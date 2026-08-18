@@ -977,16 +977,6 @@ export default function TrackedBookQuizRunner() {
                         <BookOpen size={16} /> Kitaba Dön
                       </button>
                     )}
-                    {results && (results.wrong > 0 || results.blank > 0) && (
-                      <button
-                        onClick={handleRetakeWrong}
-                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(245,158,11,0.25)', transition: 'transform 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-                      >
-                        <RotateCcw size={16} /> Yanlış & Boşları Tekrar Çöz ({results.wrong + results.blank})
-                      </button>
-                    )}
                   </div>
                 </div>
               )}

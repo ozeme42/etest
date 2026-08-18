@@ -416,13 +416,6 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
     return <div className="container" style={{ padding: '4rem', textAlign: 'center', color: '#0f172a', background: '#f8fafc', height: '100vh' }}>Sınav bulunamadı.</div>;
   }
 
-  if (isSyncing) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
-        Sınav Yükleniyor...
-      </div>
-    );
-  }
 
   if (testQuestions.length === 0) {
     return (

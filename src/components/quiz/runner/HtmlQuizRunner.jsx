@@ -47,42 +47,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
   // Exact question count calculation
   const qCount = useMemo(() => {
-    // 1. Direct answer key length (Most authoritative!)
-    const keyArray = test.answerKey || questions[0]?.answerKey;
-    if (Array.isArray(keyArray) && keyArray.length > 0) {
-      return keyArray.length;
-    }
-    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
-      return keyArray.trim().length;
-    }
-    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
-      return Object.keys(keyArray).length;
-    }
-
-    // 2. Direct question list length
-    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
-      return test.questionsList.length;
-    }
-    if (Array.isArray(test.questionIds) && test.questionIds.length > 0) {
-      return test.questionIds.length;
-    }
-    if (Array.isArray(questions) && questions.length > 0) {
-      return questions.length;
-    }
-
-    // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
-    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
-    for (const t of titles) {
-      if (t) {
-        const m = String(t).match(/(\d+)\s*Soru/i);
-        if (m) {
-          const num = parseInt(m[1], 10);
-          if (!isNaN(num) && num > 0) return num;
-        }
-      }
-    }
-
-    // 4. Question Count fields on test or first question
+    // 1. Direct Question Count field from test or questions (Authoritative!)
     const rawCount = Number(
       test.questionCount ||
       test.totalQuestions ||
@@ -94,6 +59,44 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
     );
     if (!isNaN(rawCount) && rawCount > 0) {
       return rawCount;
+    }
+
+    // 2. Direct question list length if defined with multiple questions
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
+      return test.questionsList.length;
+    }
+
+    // 3. Direct answer key length
+    const keyArray = test.answerKey || questions[0]?.answerKey;
+    if (Array.isArray(keyArray) && keyArray.length > 0) {
+      const valid = keyArray.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
+      return valid.length || keyArray.length;
+    }
+    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
+      return keyArray.trim().length;
+    }
+    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
+      return Object.keys(keyArray).length;
+    }
+
+    // 4. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+
+    // 5. Questions array if more than 1
+    if (Array.isArray(questions) && questions.length > 1) {
+      return questions.length;
+    }
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 1) {
+      return test.questionIds.length;
     }
 
     return 1;

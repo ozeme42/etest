@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowLeft, CheckCircle, XCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 

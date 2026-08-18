@@ -306,12 +306,21 @@ export default function HomeworkManager() {
         sourceFormat: q.sourceFormat,
         questionCount: q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1),
         questionType: q.questionType || q.type,
+        // Bug 4 Fix: isOpenEnded was missing from sections — checkIsOE() needs it
+        isOpenEnded: q.isOpenEnded || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik' || q.questionType === 'acik_uclu',
         answerKey: q.answerKey,
+        questionsList: q.questionsList,
+        questions: q.questions,
+        options: q.options,
+        questionText: q.questionText || q.text,
         pdfPayload: needsIdb(pdfPayload) ? undefined : pdfPayload,
         contentPayload: needsIdb(contentPayload) ? undefined : contentPayload,
+        // Bug 3 Fix: htmlPayload was missing from sections — StableHtmlViewer needs it in bundled mode
+        htmlPayload: needsIdb(q.htmlPayload) ? undefined : q.htmlPayload,
         pdfUrl: q.pdfUrl,
         imageUrls: q.imageUrls,
       };
+
     }));
 
     if (selectedQuestionIds.length > 1 && assignmentMode === 'separate' && !editingHwId) {
@@ -352,6 +361,10 @@ export default function HomeworkManager() {
           targetType: targetMode,
           targetIds: selectedTargets,
           questionIds: [q.id],
+          questionsList: q.questionsList,
+          questions: q.questions,
+          options: q.options,
+          questionText: q.questionText || q.text,
           assignedBy: currentUser?.id,
           type: q.contentType === 'physicalExam' ? 'physicalExam' : 'test',
           contentType: q.contentType || q.type || 'test',
@@ -379,6 +392,10 @@ export default function HomeworkManager() {
       totalQuestions: totalQCount, subject: firstSub,
       targetType: targetMode, targetIds: selectedTargets,
       questionIds: selectedQuestionIds, assignedBy: currentUser?.id,
+      questionsList: firstQ.questionsList,
+      questions: firstQ.questions,
+      options: firstQ.options,
+      questionText: firstQ.questionText || firstQ.text,
       type: isPhysical ? 'physicalExam' : 'test',
       contentType: isPhysical ? 'physicalExam' : (firstQ.contentType || firstQ.type || 'test'),
       contentPayload: firstQ.contentPayload,

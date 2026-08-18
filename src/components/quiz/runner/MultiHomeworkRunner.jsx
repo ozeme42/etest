@@ -3,7 +3,7 @@ import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useCurriculum } from '../../../context/CurriculumContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
-import { resolveTestQuestions } from '../../../utils/testResolver';
+import { resolveTestQuestions, extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
@@ -97,72 +97,133 @@ function isImageSection(bankQ) {
   );
 }
 
-export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}, resolvedQuestions = [], secImages = []) {
-  // 1. Answer Key check (Authoritative! If a test has 2 answers in answer key, it is a 2-question test)
-  const getAkCount = (obj) => {
-    if (!obj || !obj.answerKey) return 0;
-    const ak = obj.answerKey;
-    if (Array.isArray(ak)) return ak.filter(x => x !== undefined && x !== null && x !== '').length || ak.length;
-    if (typeof ak === 'string') return ak.trim().length;
-    if (typeof ak === 'object') return Object.keys(ak).length;
-    return 0;
-  };
-  const akCount = Math.max(
-    getAkCount(sec),
-    getAkCount(bankQ),
-    getAkCount(foundInBank),
-    getAkCount(bankQ?.bankQ)
-  );
-  if (akCount > 0) return akCount;
+export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}, resolvedQuestions = [], secImages = [], parentTest = {}) {
+  // Determine if this is a single section test
+  const parentSecs = parentTest?.sections || parentTest?.tests || parentTest?.selectedQuestions || parentTest?.questionIds || null;
+  const isSingleSection = !parentSecs || !Array.isArray(parentSecs) || parentSecs.length <= 1;
 
-  // 2. Direct question lists
-  const listCount = Math.max(
-    Array.isArray(sec?.questionsList) ? sec.questionsList.length : 0,
-    Array.isArray(bankQ?.questionsList) ? bankQ.questionsList.length : 0,
-    Array.isArray(foundInBank?.questionsList) ? foundInBank.questionsList.length : 0,
-    Array.isArray(sec?.questions) ? sec.questions.length : 0,
-    Array.isArray(bankQ?.questions) ? bankQ.questions.length : 0,
-    Array.isArray(foundInBank?.questions) ? foundInBank.questions.length : 0,
-    Array.isArray(sec?.questionIds) ? sec.questionIds.length : 0,
-    Array.isArray(bankQ?.questionIds) ? bankQ.questionIds.length : 0,
-    Array.isArray(foundInBank?.questionIds) ? foundInBank.questionIds.length : 0,
-    Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0
-  );
-  if (listCount > 0) return listCount;
+  const sectionObjects = [foundInBank, bankQ, sec, bankQ?.bankQ, sec?.bankQ].filter(Boolean);
 
-  // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
-  const titles = [sec?.title, bankQ?.title, bankQ?.name, foundInBank?.title, foundInBank?.name];
-  for (const t of titles) {
-    if (t) {
-      const m = String(t).match(/(\d+)\s*Soru/i);
-      if (m) {
-        const num = parseInt(m[1], 10);
-        if (!isNaN(num) && num > 0) return num;
-      }
-    }
-  }
-
-  // 4. Visual images count
-  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
-  if (imgCount > 0) return imgCount;
-
-  // 5. Question Count field (numeric)
+  // Helper to extract numeric question count from an object
   const getRawCount = (obj) => {
     if (!obj) return 0;
-    const val = obj.questionCount ?? obj.totalQuestions ?? obj.questionsCount ?? obj.qCount ?? obj.soruSayisi;
+    const val = obj.questionCount ?? obj.totalQuestions ?? obj.questionsCount ?? obj.qCount ?? obj.soruSayisi ?? obj._qCountHint;
     if (val !== undefined && val !== null) {
       const num = parseInt(val, 10);
       if (!isNaN(num) && num > 0) return num;
     }
     return 0;
   };
-  const countField = Math.max(
-    getRawCount(bankQ),
-    getRawCount(foundInBank),
-    getRawCount(bankQ?.bankQ),
-    getRawCount(sec)
-  );
-  if (countField > 0) return countField;
+
+  // Helper to extract answer key count from an object
+  const getAkCount = (obj) => {
+    if (!obj || !obj.answerKey) return 0;
+    const ak = obj.answerKey;
+    if (Array.isArray(ak)) {
+      const valid = ak.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
+      return valid.length || ak.length;
+    }
+    if (typeof ak === 'string') return ak.trim().length;
+    if (typeof ak === 'object') return Object.keys(ak).length;
+    return 0;
+  };
+
+  // Helper to extract questionsList count from an object
+  const getQuestionsListCount = (obj) => {
+    if (!obj || !Array.isArray(obj.questionsList)) return 0;
+    return obj.questionsList.length;
+  };
+
+  const secDirectCount = getRawCount(sec);
+  const parentRawCount = getRawCount(parentTest);
+  const bankRawCount = Math.max(getRawCount(foundInBank), getRawCount(bankQ), getRawCount(bankQ?.bankQ), getRawCount(sec?.bankQ), 0);
+
+  // 0. Direct assignment question count from the homework has TOP priority.
+  // For single-section homeworks: parent homework totalQuestions (or section count).
+  // For multi-section homeworks: the section's own direct assignment question count.
+  if (isSingleSection && parentRawCount > 0) {
+    return parentRawCount;
+  }
+  if (secDirectCount > 0) {
+    return secDirectCount;
+  }
+
+  // 1. If we have resolved questions already with length > 1
+  if (Array.isArray(resolvedQuestions) && resolvedQuestions.length > 1) {
+    return resolvedQuestions.length;
+  }
+
+  // 2. Bank template question count
+  if (bankRawCount > 0) {
+    return bankRawCount;
+  }
+
+  // 3. Section-level questionsList length
+  const secQListCount = Math.max(...sectionObjects.map(getQuestionsListCount), 0);
+  if (secQListCount > 0) return secQListCount;
+  if (isSingleSection) {
+    const parentQListCount = getQuestionsListCount(parentTest);
+    if (parentQListCount > 0) return parentQListCount;
+  }
+
+  // 4. Answer key count
+  const secAkCount = Math.max(...sectionObjects.map(getAkCount), 0);
+  if (secAkCount > 0) return secAkCount;
+  if (isSingleSection) {
+    const parentAkCount = getAkCount(parentTest);
+    if (parentAkCount > 0) return parentAkCount;
+  }
+
+  // 5. Visual images count if image test
+  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
+  if (imgCount > 1) return imgCount;
+  for (const obj of sectionObjects) {
+    if (Array.isArray(obj.imageUrls) && obj.imageUrls.length > 1) {
+      return obj.imageUrls.length;
+    }
+  }
+
+  // 6. Questions array
+  for (const obj of sectionObjects) {
+    if (Array.isArray(obj.questions) && obj.questions.length > 1) {
+      return obj.questions.length;
+    }
+  }
+  if (isSingleSection && Array.isArray(parentTest?.questions) && parentTest.questions.length > 1) {
+    return parentTest.questions.length;
+  }
+
+  // 7. Title regex (e.g. "(15 Soru)" or "15 Soru")
+  for (const obj of sectionObjects) {
+    const titles = [obj.title, obj.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+  }
+  if (isSingleSection) {
+    const parentTitles = [parentTest?.title, parentTest?.name];
+    for (const t of parentTitles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+  }
+
+  // 8. Multi-section parentCount partitioning fallback
+  if (parentRawCount > 0) {
+    const numSections = Array.isArray(parentSecs) && parentSecs.length > 0 ? parentSecs.length : 1;
+    return Math.max(1, Math.round(parentRawCount / numSections));
+  }
 
   return 1;
 }
@@ -688,7 +749,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 }
 
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
-export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers }) {
+export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers, bookPdfUrl = '' }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { questions: allBankQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
@@ -721,12 +782,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (!rawSections || (Array.isArray(rawSections) && rawSections.length === 0)) {
       const ids = test.testIds || test.questionIds || test.selectedQuestionIds;
       if (Array.isArray(ids) && ids.length > 0) {
-        rawSections = ids.map((item, idx) => (typeof item === 'object' ? item : { id: item, questionId: item, title: `${idx + 1}. Bölüm` }));
+        // Provide a per-section questionCount hint so that when findInAllSources fails
+        // or the bank question has no questionCount field, the section still knows its count.
+        // Single section: use test.totalQuestions directly.
+        // Multi-section: use test.totalQuestions / N as a rough hint (bankQ data will override).
+        const perSecHint = (test.totalQuestions || test.questionCount || 0) > 0
+          ? Math.round((test.totalQuestions || test.questionCount) / ids.length)
+          : undefined;
+        rawSections = ids.map((item, idx) => (typeof item === 'object'
+          ? { ...item }
+          : { id: item, questionId: item, title: `${idx + 1}. Bölüm`, ...(perSecHint ? { _qCountHint: perSecHint } : {}) }
+        ));
       }
     }
 
+
     if (Array.isArray(rawSections) && rawSections.length > 0) {
       const isSingleSec = rawSections.length === 1;
+
+      // Helper: returns real value if not a placeholder, else null
+      const realVal = (v) => (v && v !== '[STORED_IN_INDEXEDDB]' && v !== '[LOCALSTORAGE_CACHE]') ? v : null;
 
       return rawSections.map((sec, idx) => {
         const qId = sec.questionId || sec.id || sec.testId || sec.bankQId;
@@ -736,10 +811,28 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           foundInBank = findInAllSources(sec.id) || findInAllSources(sec.questionId);
         }
 
-        // Merge: foundInBank is base, sec fields override — this preserves sec.contentType/formatType saved in hwData.sections
-        const bankQ = foundInBank
-          ? { ...foundInBank, ...sec, bankQ: foundInBank }  // sec fields (contentType, etc.) win over foundInBank
-          : (sec.bankQ || sec.test || sec);
+        // Merge strategy:
+        // 1. Start with foundInBank (real question data)
+        // 2. Override with sec fields ONLY if they have real (non-placeholder) values
+        //    — This ensures IDB placeholder strings don't wipe real bank data
+        let bankQ;
+        if (foundInBank) {
+          const secOverrides = {};
+          // Only take sec fields that are real values (not placeholders, not undefined)
+          for (const key of Object.keys(sec)) {
+            const v = sec[key];
+            if (v === undefined || v === null) continue;
+            if (typeof v === 'string' && (v === '[STORED_IN_INDEXEDDB]' || v === '[LOCALSTORAGE_CACHE]')) continue;
+            // Don't let sec.questionCount=0 wipe foundInBank.questionCount
+            if ((key === 'questionCount' || key === 'totalQuestions' || key === 'qCount') && !v) continue;
+            secOverrides[key] = v;
+          }
+          bankQ = { ...foundInBank, ...secOverrides, bankQ: foundInBank };
+        } else {
+          bankQ = sec.bankQ || sec.test || sec;
+        }
+
+        // Resolve questions — try all sources in order
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
 
         if ((!resolvedQuestions || resolvedQuestions.length === 0) && bankQ?.questionsList) {
@@ -818,19 +911,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           });
         }
 
-        const qCount = resolveExactQuestionCount(sec, bankQ, foundInBank, resolvedQuestions, secImages);
+        const qCount = resolveExactQuestionCount(sec, bankQ, foundInBank, resolvedQuestions, secImages, test);
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
           for (let i = filled.length; i < qCount; i++) {
             filled.push({
               id: `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
+              questionNo: i + 1,
               questionText: `Soru ${i + 1}`,
               imageUrl: secImages[i] || secImages[0] || null,
               options: ['A', 'B', 'C', 'D', 'E']
             });
           }
           resolvedQuestions = filled;
+        } else if (resolvedQuestions.length > qCount && qCount > 0) {
+          resolvedQuestions = resolvedQuestions.slice(0, qCount);
         }
 
         return {
@@ -838,7 +934,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           title: sec.title || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`,
           bankQ: bankQ || sec,
           resolvedQuestions,
-          qCount: resolvedQuestions.length
+          qCount: qCount
         };
       });
     }
@@ -900,15 +996,34 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       return 0;
     };
     
+    const rawFallbackCount = test.questionCount || test.totalQuestions || test.questionsCount || test.qCount || 0;
+    const directAnsCount = safeMaxAns(test);
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
-    const finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
-    const directAnsCount = safeMaxAns(test) || (finalQs && finalQs.length > 0 ? finalQs.length : 0);
+    let finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
+    
+    const countToUse = rawFallbackCount > 0 
+      ? rawFallbackCount 
+      : (directAnsCount > 0 ? directAnsCount : (finalQs.length > 1 ? finalQs.length : 1));
+
+    if (finalQs.length < countToUse) {
+      const filled = [...finalQs];
+      for (let i = filled.length; i < countToUse; i++) {
+        filled.push({
+          id: `${test.id || 'q'}_sub_${i + 1}`,
+          questionNo: i + 1,
+          questionText: `Soru ${i + 1}`,
+          options: ['A', 'B', 'C', 'D', 'E']
+        });
+      }
+      finalQs = filled;
+    }
+
     return [{
       id: test.id || 'sec_1',
       title: test.title || test.name || '1. Bölüm',
       bankQ: test,
       resolvedQuestions: finalQs,
-      qCount: directAnsCount > 0 ? directAnsCount : (test.questionCount || test.totalQuestions || 1)
+      qCount: countToUse
     }];
   }, [test, questions, allBankQuestions, findInAllSources, isReviewMode, userAnswers]);
 
@@ -1137,14 +1252,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   });
 
   // Debounced Auto-Save trigger
-  const [saveTimeout, setSaveTimeout] = useState(null);
+  const saveTimeoutRef = useRef(null);
 
   const triggerAutoSave = useCallback((currentSectionAnswers) => {
     if (isReviewMode || !onAutoSave) return;
     
-    if (saveTimeout) clearTimeout(saveTimeout);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     
-    const timeoutId = setTimeout(() => {
+    saveTimeoutRef.current = setTimeout(() => {
       const formattedAnswers = [];
       let globalNo = 1;
 
@@ -1176,9 +1291,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         }
       });
       onAutoSave(formattedAnswers);
-    }, 500); // reduced from 2000 to 500ms for instant save
-    setSaveTimeout(timeoutId);
-  }, [isReviewMode, onAutoSave, saveTimeout, sections, test]);
+    }, 1000);
+  }, [isReviewMode, onAutoSave, sections, test]);
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
@@ -1356,7 +1470,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const extractPayload = useCallback((obj) => {
     if (!obj) return null;
     const candidates = [
-      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.url
+      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.url,
+      obj.raw_data?.contentPayload, obj.raw_data?.pdfPayload, obj.raw_data?.pdfUrl
     ];
     const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
     if (direct) return direct;
@@ -1365,7 +1480,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (qId && String(qId) !== String(test?.id)) {
       const found = findInAllSources(qId);
       if (found && String(found.id) !== String(test?.id)) {
-        const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.url];
+        const foundCand = [
+          found.contentPayload, found.pdfPayload, found.pdfUrl, found.url,
+          found.raw_data?.contentPayload, found.raw_data?.pdfPayload, found.raw_data?.pdfUrl
+        ];
         const foundDirect = foundCand.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
         if (foundDirect) return foundDirect;
       }
@@ -1373,7 +1491,25 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     return null;
   }, [findInAllSources, test?.id]);
 
-  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || test?.pdfPayload || test?.pdfUrl || idbPayload;
+  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || extractPayload(test) || test?.pdfPayload || test?.pdfUrl || test?.contentPayload || bookPdfUrl || idbPayload;
+
+  const handleManualPdfUpload = useCallback((file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target.result;
+      setIdbPayload(dataUrl);
+      const targetId = activeSec.id || activeBankQ?.id || test?.id;
+      if (targetId) {
+        try {
+          await idbSetPayload(targetId, dataUrl);
+          await idbSetPayload(`q_${targetId}`, dataUrl);
+          await idbSetPayload(`hw_${targetId}`, dataUrl);
+        } catch (err) {}
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [activeSec.id, activeBankQ?.id, test?.id]);
 
   // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
   const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || isPdfSection(test) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
@@ -1424,18 +1560,88 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (isImage && effectiveSecImages.length > 0) {
       return effectiveSecImages.length;
     }
-    return resolveExactQuestionCount(activeSec, activeBankQ, activeSec.bankQ, activeSec.resolvedQuestions, effectiveSecImages);
-  }, [isImage, effectiveSecImages, activeSec, activeBankQ]);
+    return resolveExactQuestionCount(activeSec, activeBankQ, activeSec.bankQ, activeSec.resolvedQuestions, effectiveSecImages, test);
+  }, [isImage, effectiveSecImages, activeSec, activeBankQ, test]);
+
+  const effectiveResolvedQuestions = useMemo(() => {
+    let baseQs = activeSec.resolvedQuestions || [];
+
+    // Check if we have valid real questions with text or options
+    const hasRealQs = baseQs.some(q => q.questionText && q.questionText !== `Soru ${q.questionNo || 1}` && (q.options?.length > 0 || q.questionText.length > 10));
+    if (hasRealQs && baseQs.length >= effectiveQCount) return baseQs;
+
+    // Try parsing JSON payload from activeSec, activeBankQ, test, or idbPayload
+    const payloadSources = [
+      activeSec.contentPayload,
+      activeBankQ?.contentPayload,
+      test?.contentPayload,
+      idbPayload,
+      activeSec.raw_data?.contentPayload,
+      activeBankQ?.raw_data?.contentPayload
+    ];
+
+    for (const p of payloadSources) {
+      if (typeof p === 'string' && (p.trim().startsWith('[') || p.trim().startsWith('{')) && p !== '[STORED_IN_INDEXEDDB]' && p !== '[LOCALSTORAGE_CACHE]') {
+        try {
+          const parsed = JSON.parse(p);
+          const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.questionsList || parsed.items || null);
+          if (list && Array.isArray(list) && list.length > 0) {
+            return list.map((item, idx) => ({
+              ...item,
+              id: item.id || `${activeSec.id || 'q'}_sub_${idx + 1}`,
+              questionNo: idx + 1,
+              questionText: extractQuestionText(item, activeSec, idx),
+              options: extractQuestionOptions(item, activeSec)
+            }));
+          }
+        } catch {}
+      }
+    }
+
+    // Try questionsList from activeSec, activeBankQ, or test
+    const listSources = [activeSec.questionsList, activeBankQ?.questionsList, test?.questionsList, activeSec.questions, activeBankQ?.questions, test?.questions];
+    for (const list of listSources) {
+      if (Array.isArray(list) && list.length > 0 && typeof list[0] === 'object') {
+        return list.map((item, idx) => ({
+          ...item,
+          id: item.id || `${activeSec.id || 'q'}_sub_${idx + 1}`,
+          questionNo: idx + 1,
+          questionText: extractQuestionText(item, activeSec, idx),
+          options: extractQuestionOptions(item, activeSec)
+        }));
+      }
+    }
+
+    let finalQs = baseQs;
+    if (finalQs.length < effectiveQCount) {
+      const filled = [...finalQs];
+      for (let i = filled.length; i < effectiveQCount; i++) {
+        filled.push({
+          id: `${activeBankQ?.id || activeSec.id || 'q'}_sub_${i + 1}`,
+          questionNo: i + 1,
+          questionText: `Soru ${i + 1}`,
+          options: ['A', 'B', 'C', 'D', 'E']
+        });
+      }
+      finalQs = filled;
+    }
+
+    return finalQs;
+  }, [activeSec, activeBankQ, test, idbPayload, effectiveQCount]);
 
   // IDB loader runs ALWAYS on section change regardless of isPdf.
   // This breaks the chicken-and-egg: isPdf can't be true without idbPayload,
   // and idbPayload was never loaded because isPdf was false.
   useEffect(() => {
     const targetObj = activeBankQ.id ? activeBankQ : activeSec;
-    // If direct payload already available, no need to hit IDB
+    // If direct payload already available for THIS section, no need to hit IDB
     if (extractPayload(targetObj)) return;
-    if (test?.pdfPayload || test?.pdfUrl) return;
+    // Bug 1 Fix: Do NOT early-exit on test?.pdfPayload — that's from the FIRST section only
+    // and would prevent IDB loading for section 2, 3, etc. in bundled homeworks.
+    // Only skip if the CURRENT section's own URL/payload is directly available.
+    if (activeBankQ?.pdfUrl && !activeBankQ.pdfUrl.startsWith('data:')) return;
     if (idbPayload) return;
+
 
     let isMounted = true;
     async function load() {
@@ -1662,7 +1868,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             defaultSize={320}
             documentContent={
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
+                <PdfViewerWithControls 
+                  payload={activePdfPayload} 
+                  title={activeSec.title} 
+                  height="100%" 
+                  allowUpload={true} 
+                  onUploadFile={handleManualPdfUpload} 
+                />
               </div>
             }
             answerContent={
@@ -1671,11 +1883,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
-                resolvedQuestions={activeSec.resolvedQuestions}
+                resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
                 onOptionSelect={(qNo, optIdx) => {
-                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
@@ -1712,11 +1924,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
-                resolvedQuestions={activeSec.resolvedQuestions}
+                resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
                 onOptionSelect={(qNo, optIdx) => {
-                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
@@ -1976,11 +2188,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
-                resolvedQuestions={activeSec.resolvedQuestions}
+                resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
                 onOptionSelect={(qNo, optIdx) => {
-                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
@@ -2010,7 +2222,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     <div>
                       <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
                       <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                        Bu bölümdeki {activeSec.qCount} sorunun tamamı aşağıda sıralanmıştır.
+                        Bu bölümdeki {effectiveQCount} sorunun tamamı aşağıda sıralanmıştır.
                       </p>
                     </div>
                   </div>
@@ -2020,9 +2232,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 </div>
 
                 {/* QUESTION CARDS STACKED VERTICALLY */}
-                {Array.from({ length: activeSec.qCount }).map((_, idx) => {
+                {Array.from({ length: effectiveQCount }).map((_, idx) => {
                   const qNo = idx + 1;
-                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
+                  const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[idx]) || {};
                   const isQOpenEnded = secOE || checkIsOE(qObj);
 
                   const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
@@ -2233,15 +2445,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
             answerContent={
               <RightOptikPanel
-                qCount={activeSec.qCount}
+                qCount={effectiveQCount}
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
-                resolvedQuestions={activeSec.resolvedQuestions}
+                resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
                 onOptionSelect={(qNo, optIdx) => {
-                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}

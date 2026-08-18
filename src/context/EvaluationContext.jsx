@@ -89,8 +89,8 @@ export function EvaluationProvider({ children }) {
 
   const [isSyncing, setIsSyncing] = useState(true);
 
-  const syncFromSupabase = async () => {
-    setIsSyncing(true);
+  const syncFromSupabase = async (showLoading = false) => {
+    if (showLoading) setIsSyncing(true);
     try {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
@@ -103,38 +103,38 @@ export function EvaluationProvider({ children }) {
     } catch (err) {
       console.warn('[Supabase] Submission sync error:', err);
     } finally {
-      setIsSyncing(false);
+      if (showLoading) setIsSyncing(false);
     }
   };
 
   useEffect(() => {
-    syncFromSupabase();
+    syncFromSupabase(true);
 
-    // 1. Periodic background polling every 8 seconds
+    // 1. Periodic background polling silently
     const interval = setInterval(() => {
-      syncFromSupabase();
-    }, 8000);
+      syncFromSupabase(false);
+    }, 30000);
 
-    // 2. Refresh on window focus and tab visibility
+    // 2. Refresh on window focus and tab visibility silently
     const handleFocus = () => {
-      syncFromSupabase();
+      syncFromSupabase(false);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        syncFromSupabase();
+        syncFromSupabase(false);
       }
     };
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 3. Supabase Realtime subscription on submissions table
+    // 3. Supabase Realtime subscription on submissions table silently
     let channel = null;
     if (isSupabaseConfigured()) {
       try {
         channel = supabase
           .channel('public_submissions_realtime')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
-            syncFromSupabase();
+            syncFromSupabase(false);
           })
           .subscribe();
       } catch (err) {

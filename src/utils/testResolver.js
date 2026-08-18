@@ -140,25 +140,69 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
 
   // 3. If test has questionIds
   if (rawQuestions.length === 0 && foundTest.questionIds && Array.isArray(foundTest.questionIds) && foundTest.questionIds.length > 0) {
-    rawQuestions = foundTest.questionIds.map((qId, idx) => {
+    const unbundled = [];
+    foundTest.questionIds.forEach((qId, idx) => {
       const bankMatch = allBankQuestions.find(bq =>
         String(bq.id) === String(qId) ||
         normalizeId(bq.id) === normalizeId(qId)
       );
       if (bankMatch) {
-        // Eğer text tipli tekil soru ise doğrudan döndür (questionText ve options korunur)
-        return {
-          ...bankMatch,
-          questionText: bankMatch.questionText || bankMatch.text || bankMatch.title || `Soru ${idx + 1}`,
-          options: bankMatch.options || []
-        };
+        if (bankMatch.questionsList && Array.isArray(bankMatch.questionsList) && bankMatch.questionsList.length > 0) {
+          bankMatch.questionsList.forEach((subQ, subIdx) => {
+            unbundled.push({
+              ...subQ,
+              id: subQ.id || `${bankMatch.id || qId}_sub_${subIdx + 1}`,
+              questionNo: subIdx + 1,
+              questionText: extractQuestionText(subQ, bankMatch, subIdx),
+              options: extractQuestionOptions(subQ, bankMatch)
+            });
+          });
+        } else if (typeof bankMatch.contentPayload === 'string' && (bankMatch.contentPayload.trim().startsWith('[') || bankMatch.contentPayload.trim().startsWith('{'))) {
+          try {
+            const parsed = JSON.parse(bankMatch.contentPayload);
+            const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.questionsList || parsed.items || null);
+            if (list && Array.isArray(list) && list.length > 0) {
+              list.forEach((subQ, subIdx) => {
+                unbundled.push({
+                  ...subQ,
+                  id: subQ.id || `${bankMatch.id || qId}_sub_${subIdx + 1}`,
+                  questionNo: subIdx + 1,
+                  questionText: extractQuestionText(subQ, bankMatch, subIdx),
+                  options: extractQuestionOptions(subQ, bankMatch)
+                });
+              });
+            } else {
+              unbundled.push({
+                ...bankMatch,
+                questionText: extractQuestionText(bankMatch, foundTest, idx),
+                options: extractQuestionOptions(bankMatch, foundTest)
+              });
+            }
+          } catch {
+            unbundled.push({
+              ...bankMatch,
+              questionText: extractQuestionText(bankMatch, foundTest, idx),
+              options: extractQuestionOptions(bankMatch, foundTest)
+            });
+          }
+        } else {
+          unbundled.push({
+            ...bankMatch,
+            questionText: extractQuestionText(bankMatch, foundTest, idx),
+            options: extractQuestionOptions(bankMatch, foundTest)
+          });
+        }
+      } else {
+        unbundled.push({
+          id: qId,
+          questionText: `Soru ${idx + 1}`,
+          options: []
+        });
       }
-      return {
-        id: qId,
-        questionText: `Soru ${idx + 1}`,
-        options: []
-      };
     });
+    if (unbundled.length > 0) {
+      rawQuestions = unbundled;
+    }
   }
   // 4. If test has questions array directly
   else if (rawQuestions.length === 0 && foundTest.questions && Array.isArray(foundTest.questions) && foundTest.questions.length > 0) {

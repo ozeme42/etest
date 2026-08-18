@@ -735,15 +735,9 @@ export async function dbSaveSubmission(sub) {
 export async function dbDeleteSubmission(id) {
   if (!isSupabaseConfigured() || !id) return null;
   try {
-    const rawId = String(id);
-    const uuid = toUUID(rawId);
-    
-    // 1. Delete by raw id
-    await supabase.from('submissions').delete().eq('id', rawId);
-    
-    // 2. Delete by computed UUID if different
-    if (uuid && uuid !== rawId) {
-      await supabase.from('submissions').delete().eq('id', uuid);
+    const targetUuid = toUUID(id);
+    if (targetUuid) {
+      await supabase.from('submissions').delete().eq('id', targetUuid);
     }
     return true;
   } catch (err) {
@@ -860,15 +854,9 @@ export async function dbClearHomeworkSubmissionsForStudent(hwId, studentId, book
 export async function dbDeleteSubmissionsByIds(ids = []) {
   if (!isSupabaseConfigured() || !ids || ids.length === 0) return null;
   try {
-    const rawIds = Array.from(new Set(ids.map(String).filter(Boolean)));
-    const uuidSet = new Set();
-    rawIds.forEach(id => {
-      const u = toUUID(id);
-      if (u) uuidSet.add(u);
-    });
-    const allIds = Array.from(new Set([...rawIds, ...uuidSet]));
-    if (allIds.length > 0) {
-      await supabase.from('submissions').delete().in('id', allIds);
+    const validUuids = Array.from(new Set(ids.map(id => toUUID(id)).filter(Boolean)));
+    if (validUuids.length > 0) {
+      await supabase.from('submissions').delete().in('id', validUuids);
     }
     return true;
   } catch (err) {
@@ -1295,13 +1283,13 @@ export async function dbAddHomework(hw) {
         const s = { ...sec };
         if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 1000) {
           try {
-            const url = await dbUploadFileToStorage(s.pdfPayload, `hw_sec_${s.id || Date.now()}`, 'homework-files');
+            const url = await dbUploadFileToStorage(s.pdfPayload, `hw_sec_${s.id || Date.now()}`, 'question_files');
             if (url) { s.pdfPayload = url; s.pdfUrl = url; }
           } catch (e) {}
         }
         if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 1000) {
           try {
-            const url = await dbUploadFileToStorage(s.contentPayload, `hw_sec_content_${s.id || Date.now()}`, 'homework-files');
+            const url = await dbUploadFileToStorage(s.contentPayload, `hw_sec_content_${s.id || Date.now()}`, 'question_files');
             if (url) { s.contentPayload = url; }
           } catch (e) {}
         }
@@ -1311,14 +1299,14 @@ export async function dbAddHomework(hw) {
 
     if (typeof processedHw.pdfPayload === 'string' && processedHw.pdfPayload.startsWith('data:') && processedHw.pdfPayload.length > 1000) {
       try {
-        const url = await dbUploadFileToStorage(processedHw.pdfPayload, `hw_pdf_${processedHw.id || Date.now()}`, 'homework-files');
+        const url = await dbUploadFileToStorage(processedHw.pdfPayload, `hw_pdf_${processedHw.id || Date.now()}`, 'question_files');
         if (url) { processedHw.pdfPayload = url; processedHw.pdfUrl = url; }
       } catch (e) {}
     }
 
     if (typeof processedHw.htmlPayload === 'string' && processedHw.htmlPayload.startsWith('data:') && processedHw.htmlPayload.length > 1000) {
       try {
-        const url = await dbUploadFileToStorage(processedHw.htmlPayload, `hw_html_${processedHw.id || Date.now()}`, 'homework-files');
+        const url = await dbUploadFileToStorage(processedHw.htmlPayload, `hw_html_${processedHw.id || Date.now()}`, 'question_files');
         if (url) { processedHw.htmlPayload = url; }
       } catch (e) {}
     }
@@ -1328,7 +1316,7 @@ export async function dbAddHomework(hw) {
         const newQ = { ...q };
         if (typeof newQ.image === 'string' && newQ.image.startsWith('data:') && newQ.image.length > 1000) {
           try {
-            const url = await dbUploadFileToStorage(newQ.image, `hw_q_img_${newQ.id || Date.now()}`, 'homework-files');
+            const url = await dbUploadFileToStorage(newQ.image, `hw_q_img_${newQ.id || Date.now()}`, 'question_files');
             if (url) { newQ.image = url; }
           } catch (e) {}
         }

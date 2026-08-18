@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, Clock, FileText } from 'lucide-react';
-import { idbGetPayload } from '../../../services/indexedDbService';
+import { idbGetPayload, idbSetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -47,42 +47,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
 
   // Exact question count calculation
   const qCount = useMemo(() => {
-    // 1. Direct answer key length (Most authoritative!)
-    const keyArray = test.answerKey || questions[0]?.answerKey;
-    if (Array.isArray(keyArray) && keyArray.length > 0) {
-      return keyArray.length;
-    }
-    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
-      return keyArray.trim().length;
-    }
-    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
-      return Object.keys(keyArray).length;
-    }
-
-    // 2. Direct question list length
-    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
-      return test.questionsList.length;
-    }
-    if (Array.isArray(test.questionIds) && test.questionIds.length > 0) {
-      return test.questionIds.length;
-    }
-    if (Array.isArray(questions) && questions.length > 0) {
-      return questions.length;
-    }
-
-    // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
-    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
-    for (const t of titles) {
-      if (t) {
-        const m = String(t).match(/(\d+)\s*Soru/i);
-        if (m) {
-          const num = parseInt(m[1], 10);
-          if (!isNaN(num) && num > 0) return num;
-        }
-      }
-    }
-
-    // 4. Question Count fields on test or first question
+    // 1. Direct Question Count field from test or questions (Authoritative!)
     const rawCount = Number(
       test.questionCount ||
       test.totalQuestions ||
@@ -94,6 +59,44 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
     );
     if (!isNaN(rawCount) && rawCount > 0) {
       return rawCount;
+    }
+
+    // 2. Direct question list length if defined with multiple questions
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
+      return test.questionsList.length;
+    }
+
+    // 3. Direct answer key length
+    const keyArray = test.answerKey || questions[0]?.answerKey;
+    if (Array.isArray(keyArray) && keyArray.length > 0) {
+      const valid = keyArray.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
+      return valid.length || keyArray.length;
+    }
+    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
+      return keyArray.trim().length;
+    }
+    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
+      return Object.keys(keyArray).length;
+    }
+
+    // 4. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+
+    // 5. Questions array if more than 1
+    if (Array.isArray(questions) && questions.length > 1) {
+      return questions.length;
+    }
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 1) {
+      return test.questionIds.length;
     }
 
     return 1;
@@ -193,6 +196,23 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
     }
     loadFromIdb();
   }, [test.id, test.contentPayload, test.pdfPayload, test.questionIds, questions]);
+
+  const handleManualPdfUpload = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target.result;
+      setIdbPdf(dataUrl);
+      if (test.id) {
+        try {
+          await idbSetPayload(test.id, dataUrl);
+          await idbSetPayload(`q_${test.id}`, dataUrl);
+          await idbSetPayload(`hw_${test.id}`, dataUrl);
+        } catch (err) {}
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const pdfPayload = getDirectPayload() || idbPdf;
 
@@ -489,17 +509,19 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
         panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
         panelSubtitle="Sınav dokümanını okuyup soruları cevaplayınız."
         icon={isOpenEndedMode ? "✍️" : "🎯"}
-        documentContent={useMemo(() => (
+        documentContent={
           <div style={{ flex: 1, width: '100%', height: '100%', background: '#f8fafc' }}>
             <PdfViewerWithControls 
               payload={pdfPayload} 
               title={test.title} 
               height="100%" 
+              allowUpload={true}
+              onUploadFile={handleManualPdfUpload}
               isDrawingOpen={isDrawingOpen}
               onToggleDrawing={() => setIsDrawingOpen(false)}
             />
           </div>
-        ), [pdfPayload, test.title, isDrawingOpen])}
+        }
         answerContent={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
@@ -558,29 +580,29 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                             <button
                               key={opt}
                               onClick={() => handleOptionSelect(qNo, optIdx)}
-                            style={{
-                              flex: 1,
-                              height: '36px',
-                              borderRadius: '0.5rem',
-                              border: isSelected ? 'none' : '1px solid #cbd5e1',
-                              background: isSelected ? '#059669' : '#ffffff',
-                              color: isSelected ? 'white' : '#334155',
-                              fontWeight: 900,
-                              fontSize: '0.85rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease',
-                              boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.25)' : 'none'
-                            }}
-                          >
-                            {opt}
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
+                              style={{
+                                flex: 1,
+                                height: '36px',
+                                borderRadius: '0.5rem',
+                                border: isSelected ? 'none' : '1px solid #cbd5e1',
+                                background: isSelected ? '#059669' : '#ffffff',
+                                color: isSelected ? 'white' : '#334155',
+                                fontWeight: 900,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                                boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.25)' : 'none'
+                              }}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
                   )}
                 </div>
               );

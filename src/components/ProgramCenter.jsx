@@ -1410,10 +1410,11 @@ export function MonthlyListPanel({
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
             if (ymd === sYMD) {
-              const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`);
+              const subId = `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`;
+              const exists = manualItems.some(m => m.id === subId) || autoHwItems.some(a => a.id === subId);
               if (!exists) {
                 autoHwItems.push({
-                  id: `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`,
+                  id: subId,
                   roadmapAssignmentId: assignment.id,
                   isAutoHomework: true,
                   isRoadmapTask: true,
@@ -1432,10 +1433,11 @@ export function MonthlyListPanel({
               const tYMD = topic.dueDate.split('T')[0];
               if (ymd === tYMD) {
                 const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
-                const exists = manualItems.some(m => m.id === `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`);
+                const topId = `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`;
+                const exists = manualItems.some(m => m.id === topId) || autoHwItems.some(a => a.id === topId);
                 if (!exists) {
                   autoHwItems.push({
-                    id: `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`,
+                    id: topId,
                     roadmapAssignmentId: assignment.id,
                     isAutoHomework: true,
                     isRoadmapTask: true,
@@ -2682,10 +2684,11 @@ export default function ProgramCenter({
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
             if (dayInfo.ymd === sYMD) {
-              const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`);
+              const subId = `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`;
+              const exists = manualItems.some(m => m.id === subId) || autoHwItems.some(a => a.id === subId);
               if (!exists) {
                 autoHwItems.push({
-                  id: `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`,
+                  id: subId,
                   roadmapAssignmentId: assignment.id,
                   isAutoHomework: true,
                   isRoadmapTask: true,
@@ -2704,10 +2707,11 @@ export default function ProgramCenter({
               const tYMD = topic.dueDate.split('T')[0];
               if (dayInfo.ymd === tYMD) {
                 const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
-                const exists = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`);
+                const topId = `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`;
+                const exists = manualItems.some(m => m.id === topId) || autoHwItems.some(a => a.id === topId);
                 if (!exists) {
                   autoHwItems.push({
-                    id: `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`,
+                    id: topId,
                     roadmapAssignmentId: assignment.id,
                     isAutoHomework: true,
                     isRoadmapTask: true,

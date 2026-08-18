@@ -228,8 +228,17 @@ export default function ModularQuizPage() {
     );
   }
 
+  const resolvedTestIdRef = useRef(null);
+
+  useEffect(() => {
+    resolvedTestIdRef.current = null;
+  }, [testId]);
+
   useEffect(() => {
     const cleanTestId = String(testId || '').trim();
+    if (resolvedTestIdRef.current === cleanTestId && test) {
+      return;
+    }
     const uuidTestId = toUUID(cleanTestId);
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 
@@ -361,6 +370,7 @@ export default function ModularQuizPage() {
     }
 
     if (foundTest) {
+      resolvedTestIdRef.current = cleanTestId;
       const isTrackedBook = Boolean(
         !String(foundTest.id || '').startsWith('hw_') &&
         (
@@ -520,7 +530,7 @@ export default function ModularQuizPage() {
         setLoading(false);
       }
     }
-  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, books, submissions, studentId, hwLoading, booksLoading, currLoading, qbLoading]);
+  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, books, hwLoading, booksLoading, currLoading, qbLoading]);
 
   // If this is a physical exam (from ExamManager or TrackedBook with bookType: 'exam'), redirect directly to /physical-exam/:id
   useEffect(() => {
@@ -543,7 +553,7 @@ export default function ModularQuizPage() {
   const isDataLoading = (hwLoading && (!homeworks || homeworks.length === 0)) || 
                         (booksLoading && (!bookTests || bookTests.length === 0));
 
-  if (loading || isSyncing || isDataLoading) {
+  if (loading || isDataLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
         Sınav Yükleniyor...

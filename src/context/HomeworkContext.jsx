@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { idbSetPayload, idbDeletePayload } from '../services/indexedDbService';
@@ -32,6 +32,11 @@ export function HomeworkProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    const stripHeavy = (val) => {
+      if (typeof val === 'string' && val.length > 500 && !val.startsWith('http')) return '[STORED_IN_INDEXEDDB]';
+      return val;
+    };
+
     try {
       const sanitized = homeworks.map(hw => {
         const copy = { ...hw };
@@ -54,6 +59,30 @@ export function HomeworkProvider({ children }) {
             return newQ;
           });
         }
+        // ── Bug 2 Fix: Also sanitize heavy payloads INSIDE sections array ──
+        if (Array.isArray(copy.sections)) {
+          copy.sections = copy.sections.map(sec => {
+            const s = { ...sec };
+            if (s.pdfPayload) s.pdfPayload = stripHeavy(s.pdfPayload);
+            if (s.contentPayload) s.contentPayload = stripHeavy(s.contentPayload);
+            if (s.htmlPayload) s.htmlPayload = stripHeavy(s.htmlPayload);
+            // Also strip heavy base64 imageUrls if any
+            if (Array.isArray(s.imageUrls)) {
+              s.imageUrls = s.imageUrls.map(u => (typeof u === 'string' && u.startsWith('data:') && u.length > 500 ? '[STORED_IN_INDEXEDDB]' : u));
+            }
+            // Strip heavy questionsList contentPayload entries
+            if (Array.isArray(s.questionsList)) {
+              s.questionsList = s.questionsList.map(q => {
+                if (!q || typeof q !== 'object') return q;
+                const qc = { ...q };
+                if (qc.contentPayload) qc.contentPayload = stripHeavy(qc.contentPayload);
+                if (qc.imageUrl && typeof qc.imageUrl === 'string' && qc.imageUrl.startsWith('data:') && qc.imageUrl.length > 500) qc.imageUrl = '[STORED_IN_INDEXEDDB]';
+                return qc;
+              });
+            }
+            return s;
+          });
+        }
         return copy;
       });
       
@@ -63,7 +92,16 @@ export function HomeworkProvider({ children }) {
         try {
           // Minimal payload without heavy nested lists
           const minimal = homeworks.map(h => ({
-            id: h.id, title: h.title, dueDate: h.dueDate, targetType: h.targetType, targetIds: h.targetIds, bookId: h.bookId, tests: h.tests, optionCount: h.optionCount
+            id: h.id, title: h.title, dueDate: h.dueDate, targetType: h.targetType, targetIds: h.targetIds, bookId: h.bookId, tests: h.tests, optionCount: h.optionCount,
+            // Preserve structural fields but drop payloads
+            questionIds: h.questionIds, contentType: h.contentType, questionType: h.questionType,
+            questionCount: h.questionCount, totalQuestions: h.totalQuestions,
+            answerKey: h.answerKey,
+            sections: Array.isArray(h.sections) ? h.sections.map(s => ({
+              id: s.id, questionId: s.questionId, title: s.title, contentType: s.contentType,
+              formatType: s.formatType, questionCount: s.questionCount, questionType: s.questionType,
+              answerKey: s.answerKey, pdfUrl: s.pdfUrl, imageUrls: s.imageUrls
+            })) : undefined
           }));
           localStorage.setItem('eTestHomeworks', JSON.stringify(minimal.slice(-20)));
         } catch (e2) {
@@ -75,37 +113,40 @@ export function HomeworkProvider({ children }) {
     }
   }, [homeworks]);
 
-const { currentUser } = useAuth();
-const user = currentUser;
 
-useEffect(() => {
-  if (user?.id && homeworks.length > 0) {
-    let hasU1 = false;
-    homeworks.forEach(hw => {
-      if (hw.submissions?.some(s => s.studentId === 'u1')) {
-        hasU1 = true;
-      }
-    });
+  const { currentUser } = useAuth();
+  const user = currentUser;
+  const hasMigratedU1Ref = useRef(false);
 
-    if (hasU1) {
-      setHomeworks(prev => {
-        const updated = prev.map(hw => {
-          if (hw.submissions?.some(s => s.studentId === 'u1')) {
-            const newSubmissions = hw.submissions.map(s => s.studentId === 'u1' ? { ...s, studentId: user.id } : s);
-            const newHw = { ...hw, submissions: newSubmissions };
-            dbAddHomework(newHw).catch(() => {});
-            return newHw;
-          }
-          return hw;
-        });
-        try {
-          localStorage.setItem('eTestHomeworks', JSON.stringify(updated));
-        } catch (e) {}
-        return updated;
+  useEffect(() => {
+    if (user?.id && homeworks.length > 0 && !hasMigratedU1Ref.current) {
+      let hasU1 = false;
+      homeworks.forEach(hw => {
+        if (hw.submissions?.some(s => s.studentId === 'u1')) {
+          hasU1 = true;
+        }
       });
+
+      if (hasU1) {
+        hasMigratedU1Ref.current = true;
+        setHomeworks(prev => {
+          const updated = prev.map(hw => {
+            if (hw.submissions?.some(s => s.studentId === 'u1')) {
+              const newSubmissions = hw.submissions.map(s => s.studentId === 'u1' ? { ...s, studentId: user.id } : s);
+              const newHw = { ...hw, submissions: newSubmissions };
+              dbAddHomework(newHw).catch(() => {});
+              return newHw;
+            }
+            return hw;
+          });
+          try {
+            localStorage.setItem('eTestHomeworks', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+      }
     }
-  }
-}, [user?.id, homeworks]);
+  }, [user?.id, homeworks]);
 
   const addHomework = async (hwData) => {
     const newId = `hw_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`;

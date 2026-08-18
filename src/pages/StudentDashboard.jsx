@@ -1070,18 +1070,21 @@ export default function StudentDashboard() {
                   const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
                   let formattedTopicTarget = '';
                   try { formattedTopicTarget = `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`; } catch {}
-                  autoHwItems.push({
-                    id: `roadmap_top_${assignment.id}_${topic.id}`,
-                    roadmapAssignmentId: assignment.id,
-                    isAutoHomework: true,
-                    isRoadmapTask: true,
-                    taskType: 'konu',
-                    subject: subject.name,
-                    bookTitle: plan.title,
-                    title: topic.name,
-                    time: formattedTopicTarget,
-                    done: isCompleted
-                  });
+                  const autoId = `roadmap_top_${assignment.id}_${topic.id}_${dayYMD}`;
+                  if (!autoHwItems.some(x => x.id === autoId)) {
+                    autoHwItems.push({
+                      id: autoId,
+                      roadmapAssignmentId: assignment.id,
+                      isAutoHomework: true,
+                      isRoadmapTask: true,
+                      taskType: 'konu',
+                      subject: subject.name,
+                      bookTitle: plan.title,
+                      title: topic.name,
+                      time: formattedTopicTarget,
+                      done: isCompleted
+                    });
+                  }
                 }
               }
             });
@@ -1893,7 +1896,7 @@ export default function StudentDashboard() {
 
                         return (
                           <div
-                            key={task.id || idx}
+                            key={`${task.id || 'task'}_${idx}`}
                             onClick={handleTaskClick}
                             style={{
                               display: 'flex',

@@ -16,13 +16,7 @@ export default function PeriodicQuestionAnalytics({
   mockExams = [],
   studentName = 'Öğrenci'
 }) {
-  let isDark = false;
-  try {
-    const themeCtx = useTheme();
-    isDark = themeCtx?.isDark ?? false;
-  } catch (e) {
-    isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
-  }
+  const { isDark } = useTheme();
 
   const [period, setPeriod] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
   const [dayRange, setDayRange] = useState(7); // 7 | 14 | 30 for daily
