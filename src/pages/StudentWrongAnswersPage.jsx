@@ -143,8 +143,8 @@ export default function StudentWrongAnswersPage() {
     });
   };
 
-  // View Mode: 'cards' | 'table'
-  const [viewMode, setViewMode] = useState('cards');
+  // View Mode: 'cards' | 'table' (Varsayılan: table)
+  const [viewMode, setViewMode] = useState('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
 
@@ -795,9 +795,10 @@ export default function StudentWrongAnswersPage() {
         .wa-pill { transition: all 0.15s ease; }
         .wa-pill:hover { opacity: 0.95; transform: scale(1.02); }
         .wa-scroll-x::-webkit-scrollbar { height: 4px; }
-        .wa-scroll-x::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 99px; }
         .th-sort { cursor: pointer; user-select: none; transition: background 0.15s; }
         .th-sort:hover { background: rgba(255,255,255,0.12) !important; color: #ffffff !important; }
+        .wa-table-row { transition: background 0.15s ease; }
+        .wa-table-row:hover { background: rgba(99, 102, 241, 0.18) !important; }
       `}</style>
 
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -1555,13 +1556,19 @@ export default function StudentWrongAnswersPage() {
                   <tbody>
                     {filteredTestSubmissions.map((sub, idx) => {
                       const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
+                      const isEven = idx % 2 === 0;
+                      let rowBg = isEven ? 'rgba(30, 41, 59, 0.95)' : 'rgba(21, 30, 45, 0.92)';
+                      if (sub.isReviewed) {
+                        rowBg = isEven ? 'rgba(16, 185, 129, 0.09)' : 'rgba(16, 185, 129, 0.04)';
+                      }
 
                       return (
                         <tr
                           key={sub.id || idx}
+                          className="wa-table-row"
                           style={{
-                            borderBottom: '1px solid rgba(255,255,255,0.06)',
-                            background: sub.isReviewed ? 'rgba(16, 185, 129, 0.06)' : 'transparent'
+                            borderBottom: '1px solid rgba(255,255,255,0.07)',
+                            background: rowBg
                           }}
                         >
                           <td style={{ padding: '0.85rem 1rem' }}>
