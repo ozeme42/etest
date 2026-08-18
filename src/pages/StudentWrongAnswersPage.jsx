@@ -95,8 +95,8 @@ export default function StudentWrongAnswersPage() {
     }
   }, [currentUser, studentMembers, selectedStudent]);
 
-  // Main Tabs: 'wrong_controls' (Sınav Yanlışları) vs 'error_notebook' (Hata Defterim)
-  const [activeMainTab, setActiveMainTab] = useState('wrong_controls');
+  // Main Tabs: 'unreviewed' (⏳ Kontrol Edilmeyenler) vs 'reviewed' (✅ Kontrol Edilenler) vs 'error_notebook' (📸 Görsel Hata Defterim)
+  const [activeMainTab, setActiveMainTab] = useState('unreviewed');
 
   // Selected Subject Filter (null or subject name)
   const [selectedSubject, setSelectedSubject] = useState('Tümü');
@@ -143,7 +143,7 @@ export default function StudentWrongAnswersPage() {
   // View Mode: 'cards' | 'table'
   const [viewMode, setViewMode] = useState('cards');
   const [searchQuery, setSearchQuery] = useState('');
-  const [reviewFilter, setReviewFilter] = useState('all'); // 'all', 'unreviewed', 'reviewed'
+  const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
 
   // Hata Defteri Modals & States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -267,7 +267,6 @@ export default function StudentWrongAnswersPage() {
         let topicName = bt.topic || bt.topicName || '';
 
         // If parentSubject name is a subject (e.g. "Fen Bilimleri"), DO NOT treat it as a unit!
-        // Instead, the unit is parentTopic.name (e.g. "2. Ünite" or "2. Ünite: DNA ve Genetik Kod")
         if (parentSubject?.name) {
           if (isSubjectName(parentSubject.name)) {
             if (!unitName && parentTopic?.name) {
@@ -579,9 +578,25 @@ export default function StudentWrongAnswersPage() {
     return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet]);
 
-  // Filtered Test Submissions
+  // Split Submissions into Unreviewed vs Reviewed
+  const unreviewedSubmissions = useMemo(() => {
+    return testGroupedSubmissions.filter(s => !s.isReviewed);
+  }, [testGroupedSubmissions]);
+
+  const reviewedSubmissions = useMemo(() => {
+    return testGroupedSubmissions.filter(s => s.isReviewed);
+  }, [testGroupedSubmissions]);
+
+  // Current active list depending on selected main tab
+  const currentTabBaseList = useMemo(() => {
+    if (activeMainTab === 'unreviewed') return unreviewedSubmissions;
+    if (activeMainTab === 'reviewed') return reviewedSubmissions;
+    return testGroupedSubmissions;
+  }, [activeMainTab, unreviewedSubmissions, reviewedSubmissions, testGroupedSubmissions]);
+
+  // Filtered Test Submissions for the active tab
   const filteredTestSubmissions = useMemo(() => {
-    return testGroupedSubmissions.filter(sub => {
+    return currentTabBaseList.filter(sub => {
       const textMatch =
         !searchQuery.trim() ||
         (sub.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -590,20 +605,15 @@ export default function StudentWrongAnswersPage() {
         (sub.topic || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const subjectMatch = !selectedSubject || selectedSubject === 'Tümü' || sub.subject === selectedSubject;
+      const wrongMatch = !wrongOnlyFilter || sub.wrongQuestions.length > 0;
 
-      let reviewMatch = true;
-      if (reviewFilter === 'unreviewed') reviewMatch = !sub.isReviewed;
-      else if (reviewFilter === 'reviewed') reviewMatch = sub.isReviewed;
-      else if (reviewFilter === 'wrong_only') reviewMatch = sub.wrongQuestions.length > 0;
-
-      return textMatch && subjectMatch && reviewMatch;
+      return textMatch && subjectMatch && wrongMatch;
     });
-  }, [testGroupedSubmissions, selectedSubject, searchQuery, reviewFilter]);
+  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter]);
 
-  // Overall Global Counts
-  const globalWrongCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [testGroupedSubmissions]);
-  const globalBlankCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
-  const globalReviewedCount = useMemo(() => testGroupedSubmissions.filter(sub => sub.isReviewed).length, [testGroupedSubmissions]);
+  // Tab-Specific Global Counts
+  const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
+  const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
 
   // Available Homework options for Add Modal (Active only)
   const availableHomeworkOptions = useMemo(() => {
@@ -767,7 +777,7 @@ export default function StudentWrongAnswersPage() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* ════════════════════════════════════════════
-            1. ÜST BAŞLIK VE GERİ BUTONU
+            1. ÜST BAŞLIK VE 3'LÜ ANA SEKME ÇUBUĞU
         ════════════════════════════════════════════ */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
@@ -795,58 +805,93 @@ export default function StudentWrongAnswersPage() {
                 <AlertCircle color="#f87171" size={24} /> Yanlışlarım & Hata Defteri
               </h1>
               <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 600 }}>
-                Sınavlarda ve kitap takibinde yanlış veya boş bıraktığınız soruları tek tıkla inceleyin, hatalarınızı pekiştirin.
+                Sınavlarda ve kitap takibinde yanlış veya boş bıraktığınız soruları inceleyin, hatalarınızı pekiştirin.
               </p>
             </div>
           </div>
 
-          {/* TAB DEĞİŞTİRİCİ (2 Sade Sekme) */}
+          {/* TAB DEĞİŞTİRİCİ (Kontrol Edilmeyenler | Kontrol Edilenler | Görsel Hata Defterim) */}
           <div style={{
             display: 'flex',
             background: 'rgba(30, 41, 59, 0.95)',
             padding: '4px',
             borderRadius: '14px',
             border: '1.5px solid rgba(255, 255, 255, 0.15)',
-            gap: 4
+            gap: 4,
+            flexWrap: 'wrap'
           }}>
+            {/* SEKME 1: KONTROL EDİLMEYENLER */}
             <button
-              onClick={() => setActiveMainTab('wrong_controls')}
+              onClick={() => setActiveMainTab('unreviewed')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                padding: '0.55rem 1.1rem',
+                padding: '0.55rem 1.05rem',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeMainTab === 'wrong_controls' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                color: activeMainTab === 'wrong_controls' ? '#ffffff' : '#cbd5e1',
+                background: activeMainTab === 'unreviewed' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+                color: activeMainTab === 'unreviewed' ? '#ffffff' : '#cbd5e1',
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: activeMainTab === 'wrong_controls' ? '0 4px 12px rgba(99, 102, 241, 0.4)' : 'none',
+                boxShadow: activeMainTab === 'unreviewed' ? '0 4px 12px rgba(245, 158, 11, 0.4)' : 'none',
                 transition: 'all 0.15s'
               }}
             >
-              <Layers size={16} /> Sınav & Kitap Yanlışları
+              <Clock size={16} /> ⏳ Kontrol Edilmeyenler
               <span style={{
-                background: activeMainTab === 'wrong_controls' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                background: activeMainTab === 'unreviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                 color: '#fff',
                 fontSize: '0.7rem',
                 padding: '0.1rem 0.45rem',
                 borderRadius: 99,
                 fontWeight: 900
               }}>
-                {testGroupedSubmissions.length}
+                {unreviewedSubmissions.length}
               </span>
             </button>
 
+            {/* SEKME 2: KONTROL EDİLENLER */}
+            <button
+              onClick={() => setActiveMainTab('reviewed')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.55rem 1.05rem',
+                borderRadius: '10px',
+                border: 'none',
+                background: activeMainTab === 'reviewed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                color: activeMainTab === 'reviewed' ? '#ffffff' : '#cbd5e1',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                boxShadow: activeMainTab === 'reviewed' ? '0 4px 12px rgba(16, 185, 129, 0.4)' : 'none',
+                transition: 'all 0.15s'
+              }}
+            >
+              <CheckCircle2 size={16} /> ✅ Kontrol Edilenler
+              <span style={{
+                background: activeMainTab === 'reviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                color: '#fff',
+                fontSize: '0.7rem',
+                padding: '0.1rem 0.45rem',
+                borderRadius: 99,
+                fontWeight: 900
+              }}>
+                {reviewedSubmissions.length}
+              </span>
+            </button>
+
+            {/* SEKME 3: GÖRSEL HATA DEFTERİM */}
             <button
               onClick={() => setActiveMainTab('error_notebook')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                padding: '0.55rem 1.1rem',
+                padding: '0.55rem 1.05rem',
                 borderRadius: '10px',
                 border: 'none',
                 background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'transparent',
@@ -858,7 +903,7 @@ export default function StudentWrongAnswersPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <BookMarked size={16} /> Görsel Hata Defterim
+              <BookMarked size={16} /> 📸 Görsel Hata Defterim
               <span style={{
                 background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                 color: '#fff',
@@ -874,109 +919,119 @@ export default function StudentWrongAnswersPage() {
         </div>
 
         {/* ════════════════════════════════════════════
-            2. ÖZET KPI İSTATİSTİK KARTLARI (3 Temiz Kart)
+            2. ÖZET KPI İSTATİSTİK KARTLARI
         ════════════════════════════════════════════ */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '0.85rem',
-          marginBottom: '1.25rem'
-        }}>
-          {/* Kart 1: Yanlış Soru */}
+        {activeMainTab !== 'error_notebook' && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(30, 41, 59, 0.85) 100%)',
-            border: '1.5px solid rgba(244, 63, 94, 0.35)',
-            borderRadius: '16px',
-            padding: '0.9rem 1.1rem',
-            display: 'flex',
-            alignItems: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '0.85rem',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+            marginBottom: '1.25rem'
           }}>
+            {/* Kart 1: Yanlış Soru */}
             <div style={{
-              width: 42,
-              height: 42,
-              borderRadius: '12px',
-              background: 'rgba(244, 63, 94, 0.25)',
-              color: '#fb7185',
+              background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(30, 41, 59, 0.85) 100%)',
+              border: '1.5px solid rgba(244, 63, 94, 0.35)',
+              borderRadius: '16px',
+              padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: '1.1rem'
+              gap: '0.85rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              ❌
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '12px',
+                background: 'rgba(244, 63, 94, 0.25)',
+                color: '#fb7185',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '1.1rem'
+              }}>
+                ❌
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#fda4af', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'İncelenecek Yanlış Soru' : 'Kontrol Edilen Yanlış Soru'}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{currentWrongCount} Soru</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#fda4af', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Toplam Yanlış Soru</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{globalWrongCount} Soru</div>
-            </div>
-          </div>
 
-          {/* Kart 2: Boş Bırakılan */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
-            border: '1.5px solid rgba(148, 163, 184, 0.35)',
-            borderRadius: '16px',
-            padding: '0.9rem 1.1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.85rem',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
-          }}>
+            {/* Kart 2: Boş Bırakılan */}
             <div style={{
-              width: 42,
-              height: 42,
-              borderRadius: '12px',
-              background: 'rgba(148, 163, 184, 0.2)',
-              color: '#e2e8f0',
+              background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
+              border: '1.5px solid rgba(148, 163, 184, 0.35)',
+              borderRadius: '16px',
+              padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: '1.1rem'
+              gap: '0.85rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              ⚪
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '12px',
+                background: 'rgba(148, 163, 184, 0.2)',
+                color: '#e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '1.1rem'
+              }}>
+                ⚪
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'İncelenecek Boş Soru' : 'Kontrol Edilen Boş Soru'}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{currentBlankCount} Soru</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş Bırakılan Soru</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{globalBlankCount} Soru</div>
-            </div>
-          </div>
 
-          {/* Kart 3: Kontrol Durumu */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
-            border: '1.5px solid rgba(16, 185, 129, 0.35)',
-            borderRadius: '16px',
-            padding: '0.9rem 1.1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.85rem',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
-          }}>
+            {/* Kart 3: Durum Bilgisi */}
             <div style={{
-              width: 42,
-              height: 42,
-              borderRadius: '12px',
-              background: 'rgba(16, 185, 129, 0.25)',
-              color: '#34d399',
+              background: activeMainTab === 'unreviewed'
+                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)'
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
+              border: activeMainTab === 'unreviewed' ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: '16px',
+              padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: '1.1rem'
+              gap: '0.85rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              ✅
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.72rem', color: '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kontrol Edilen Sınavlar</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                {globalReviewedCount} / {testGroupedSubmissions.length}
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '12px',
+                background: activeMainTab === 'unreviewed' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                color: activeMainTab === 'unreviewed' ? '#fbbf24' : '#34d399',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '1.1rem'
+              }}>
+                {activeMainTab === 'unreviewed' ? '⏳' : '✅'}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.72rem', color: activeMainTab === 'unreviewed' ? '#fde68a' : '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'Kontrol Bekleyen Testler' : 'Kontrol Edilen Testler'}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                  {currentTabBaseList.length} Test / Sınav
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ════════════════════════════════════════════
             3. DERS FİLTRELEME BUTONLARI (KAYDIRILABİLİR PİLLER)
@@ -993,8 +1048,8 @@ export default function StudentWrongAnswersPage() {
             const isSelected = selectedSubject === key;
             const Icon = cfg.icon;
             const count = key === 'Tümü'
-              ? testGroupedSubmissions.length
-              : testGroupedSubmissions.filter(s => s.subject === key).length;
+              ? (activeMainTab === 'error_notebook' ? studentErrors.length : currentTabBaseList.length)
+              : (activeMainTab === 'error_notebook' ? studentErrors.filter(e => e.subject === key).length : currentTabBaseList.filter(s => s.subject === key).length);
 
             return (
               <button
@@ -1035,11 +1090,11 @@ export default function StudentWrongAnswersPage() {
         </div>
 
         {/* ════════════════════════════════════════════
-            SEKME 1: SINAV VE KİTAP YANLIŞLARI
+            SEKME 1 & 2: KONTROL EDİLMEYENLER / KONTROL EDİLENLER
         ════════════════════════════════════════════ */}
-        {activeMainTab === 'wrong_controls' && (
+        {(activeMainTab === 'unreviewed' || activeMainTab === 'reviewed') && (
           <div>
-            {/* Arama & Kontrol Filtresi Araç Çubuğu */}
+            {/* Arama & Görünüm Çubuğu */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -1078,26 +1133,24 @@ export default function StudentWrongAnswersPage() {
 
               {/* Filtre ve Görünüm Seçici */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <select
-                  value={reviewFilter}
-                  onChange={e => setReviewFilter(e.target.value)}
+                <button
+                  onClick={() => setWrongOnlyFilter(prev => !prev)}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.45rem 0.75rem',
                     borderRadius: '10px',
-                    border: '1.5px solid rgba(255, 255, 255, 0.14)',
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    color: '#ffffff',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: 'pointer'
+                    border: wrongOnlyFilter ? '1.5px solid rgba(244, 63, 94, 0.5)' : '1.5px solid rgba(255, 255, 255, 0.14)',
+                    background: wrongOnlyFilter ? 'rgba(244, 63, 94, 0.2)' : 'rgba(15, 23, 42, 0.6)',
+                    color: wrongOnlyFilter ? '#fb7185' : '#cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
                   }}
                 >
-                  <option value="all" style={{ background: '#1e293b' }}>Tüm Durumlar</option>
-                  <option value="unreviewed" style={{ background: '#1e293b' }}>⚠️ Kontrol Edilmeyenler</option>
-                  <option value="reviewed" style={{ background: '#1e293b' }}>✅ Kontrol Edilenler</option>
-                  <option value="wrong_only" style={{ background: '#1e293b' }}>❌ Sadece Yanlışı Olanlar</option>
-                </select>
+                  <span>❌ Sadece Yanlışı Olanlar</span>
+                </button>
 
                 <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.5)', padding: '2px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)' }}>
                   <button
@@ -1386,8 +1439,12 @@ export default function StudentWrongAnswersPage() {
                     color: '#94a3b8'
                   }}>
                     <CheckCircle2 size={36} color="#34d399" style={{ marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>Harika! Eşleşen Yanlış Soru Bulunamadı</div>
-                    <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#cbd5e1' }}>Seçilen ders veya filtrede incelenecek sınav/kitap kaydı yok.</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
+                      {activeMainTab === 'unreviewed' ? 'Harika! Kontrol edilmeyi bekleyen sınav bulunmuyor.' : 'Henüz kontrol edilmiş sınav bulunmuyor.'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#cbd5e1' }}>
+                      {activeMainTab === 'unreviewed' ? 'Çözdüğünüz tüm sınav ve testler kontrol edilmiş görünüyor.' : 'Kontrol Edilmeyenler sekmesinden sınavlarınızı inceleyip kontrol edildi olarak işaretleyebilirsiniz.'}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1536,7 +1593,7 @@ export default function StudentWrongAnswersPage() {
         )}
 
         {/* ════════════════════════════════════════════
-            SEKME 2: GÖRSEL HATA DEFTERİM
+            SEKME 3: GÖRSEL HATA DEFTERİM
         ════════════════════════════════════════════ */}
         {activeMainTab === 'error_notebook' && (
           <div>
