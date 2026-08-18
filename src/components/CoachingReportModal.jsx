@@ -227,16 +227,16 @@ export default function CoachingReportModal({
 
       <div 
         style={{
-          background: '#ffffff',
-          color: '#0f172a',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface, #ffffff)',
+          color: 'var(--color-text, #0f172a)',
+          border: '1.5px solid var(--color-border, #e2e8f0)',
           borderRadius: '1.5rem',
           maxWidth: '880px',
           width: '100%',
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
           overflow: 'hidden'
         }}
         onClick={e => e.stopPropagation()}
@@ -244,8 +244,8 @@ export default function CoachingReportModal({
         {/* Modal Top Header (Actions) */}
         <div className="no-print" style={{
           padding: '1rem 1.5rem',
-          background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
+          background: 'var(--color-surface, #ffffff)',
+          borderBottom: '1px solid var(--color-border, #e2e8f0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -253,14 +253,14 @@ export default function CoachingReportModal({
           gap: '0.75rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <FileText size={20} color="#6366f1" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                 Haftalık Koçluk & Veli Karnesi
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                 Öğrencinin çözdüğü tüm test ve denemelerin resmi karne dökümü
               </p>
             </div>

@@ -92,18 +92,18 @@ export const processWeeklyProgramWeekChange = (rawProgram, savedWeekKey) => {
 };
 
 /* ─── Styles ─── */
-const inp = { width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.7rem', border: '1.5px solid #e2e8f0', fontSize: '0.84rem', outline: 'none', background: 'white', fontFamily: 'inherit', boxSizing: 'border-box' };
+const inp = { width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.7rem', border: '1.5px solid var(--color-border-input, #e2e8f0)', fontSize: '0.84rem', outline: 'none', background: 'var(--color-surface, white)', color: 'var(--color-text, #0f172a)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const ta = { ...inp, minHeight: 72, resize: 'vertical', lineHeight: 1.6 };
-const lbl = { fontSize: '0.7rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' };
+const lbl = { fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' };
 
 /* ─── Small components ─── */
 function TabBtn({ id, active, label, onClick }) {
   return (
     <button onClick={() => onClick(id)} style={{
-      padding: '0.55rem 0.9rem', border: active ? '2px solid #e2e8f0' : '2px solid transparent',
-      borderBottom: active ? '2px solid white' : '2px solid transparent',
-      borderRadius: '0.7rem 0.7rem 0 0', background: active ? 'white' : 'transparent',
-      color: active ? '#7c3aed' : '#64748b', fontWeight: active ? 900 : 600,
+      padding: '0.55rem 0.9rem', border: active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent',
+      borderBottom: active ? '2px solid var(--color-surface, white)' : '2px solid transparent',
+      borderRadius: '0.7rem 0.7rem 0 0', background: active ? 'var(--color-surface, white)' : 'transparent',
+      color: active ? 'var(--color-primary, #7c3aed)' : 'var(--color-text-muted, #64748b)', fontWeight: active ? 900 : 600,
       fontSize: '0.74rem', cursor: 'pointer', whiteSpace: 'nowrap',
       marginBottom: active ? -2 : 0, transition: 'all 0.15s'
     }}>{label}</button>
@@ -112,10 +112,10 @@ function TabBtn({ id, active, label, onClick }) {
 
 function Card({ emoji, title, children, color = '#7c3aed' }) {
   return (
-    <div style={{ background: 'white', borderRadius: '1.25rem', border: '2px solid #f1f5f9', padding: '1.35rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: '1rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.1rem', paddingBottom: '0.75rem', borderBottom: '2px solid #f8fafc' }}>
+    <div style={{ background: 'var(--color-surface, white)', borderRadius: '1.25rem', border: '2px solid var(--color-border, #f1f5f9)', padding: '1.35rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.1rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-border, #f8fafc)' }}>
         <span style={{ fontSize: '1.1rem' }}>{emoji}</span>
-        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>{title}</span>
+        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)' }}>{title}</span>
       </div>
       {children}
     </div>
@@ -123,19 +123,19 @@ function Card({ emoji, title, children, color = '#7c3aed' }) {
 }
 
 function Tip({ children }) {
-  return <div style={{ background: '#f0f4ff', border: '1.5px solid #c7d2fe', borderRadius: '0.75rem', padding: '0.7rem 0.9rem', fontSize: '0.8rem', color: '#3730a3', fontWeight: 700, marginBottom: '1rem' }}>💡 {children}</div>;
+  return <div style={{ background: 'rgba(99,102,241,0.12)', border: '1.5px solid rgba(99,102,241,0.3)', borderRadius: '0.75rem', padding: '0.7rem 0.9rem', fontSize: '0.8rem', color: '#818cf8', fontWeight: 700, marginBottom: '1rem' }}>💡 {children}</div>;
 }
 
 function CheckItem({ label, checked, onChange, onDelete }) {
   return (
-    <div onClick={onChange} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.8rem', background: checked ? '#f0fdf4' : '#f8fafc', borderRadius: '0.65rem', border: checked ? '1.5px solid #bbf7d0' : '1px solid #e2e8f0', cursor: 'pointer', marginBottom: 5 }}>
+    <div onClick={onChange} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.8rem', background: checked ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.65rem', border: checked ? '1.5px solid rgba(16,185,129,0.35)' : '1px solid var(--color-border, #e2e8f0)', cursor: 'pointer', marginBottom: 5 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 20, height: 20, borderRadius: 5, background: checked ? '#16a34a' : 'white', border: checked ? 'none' : '2px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 20, height: 20, borderRadius: 5, background: checked ? '#16a34a' : 'var(--color-surface, white)', border: checked ? 'none' : '2px solid var(--color-border-input, #cbd5e1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {checked && <Check size={13} color="white" strokeWidth={3} />}
         </div>
-        <span style={{ fontWeight: 700, fontSize: '0.84rem', color: checked ? '#166534' : '#374151', textDecoration: checked ? 'line-through' : 'none' }}>{label}</span>
+        <span style={{ fontWeight: 700, fontSize: '0.84rem', color: checked ? '#34d399' : 'var(--color-text, #374151)', textDecoration: checked ? 'line-through' : 'none' }}>{label}</span>
       </div>
-      {onDelete && <button type="button" onClick={e => { e.stopPropagation(); onDelete(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0', padding: 2 }}><Trash2 size={13} /></button>}
+      {onDelete && <button type="button" onClick={e => { e.stopPropagation(); onDelete(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #e2e8f0)', padding: 2 }}><Trash2 size={13} /></button>}
     </div>
   );
 }
@@ -153,10 +153,10 @@ function Progress({ value, max, color = '#7c3aed', label }) {
   const pct = Math.min(100, max > 0 ? Math.round((value / max) * 100) : 0);
   return (
     <div style={{ marginTop: 6 }}>
-      {label && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>
+      {label && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>
         <span>{label}</span><span style={{ color }}>{pct}%</span>
       </div>}
-      <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{ height: 10, background: 'var(--color-border, #f1f5f9)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99, transition: 'width 0.5s ease' }} />
       </div>
     </div>
@@ -1192,7 +1192,7 @@ export default function StudentCoachingPage() {
   const displayExamName = isStandardExam ? goals.examGoalType : (goals.customExamName || goals.examGoalType || 'Özel Sınav');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f5f3ff 0%,#ede9fe 40%,#fdf2f8 100%)', padding: 'clamp(0.75rem,3vw,1.75rem)', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', padding: 'clamp(0.75rem,3vw,1.75rem)', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
 
       {/* ── HEADER ── */}
       <div style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9,#5b21b6)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '1.25rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 8px 32px rgba(124,58,237,0.3)' }}>
@@ -1251,12 +1251,12 @@ export default function StudentCoachingPage() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div style={{ background: 'white', borderRadius: '1rem 1rem 0 0', border: '2px solid #e2e8f0', borderBottom: 'none', display: 'flex', overflowX: 'auto', padding: '0.4rem 0.4rem 0', gap: 3, boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: 'var(--color-surface)', borderRadius: '1rem 1rem 0 0', border: '2px solid var(--color-border)', borderBottom: 'none', display: 'flex', overflowX: 'auto', padding: '0.4rem 0.4rem 0', gap: 3, boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' }}>
         {TABS.map(t => <TabBtn key={t.id} id={t.id} active={activeTab === t.id} label={t.label} onClick={setActiveTab} />)}
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div style={{ background: 'white', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid #e2e8f0', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+      <div style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid var(--color-border)', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
 
         {/* ═══ PERİYODİK SORU & BAŞARI ANALİZİ ═══ */}
         {activeTab === 'soruanaliz' && (

@@ -8,6 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
+import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 
@@ -2306,10 +2307,12 @@ export default function ProgramCenter({
   setWeeklyProgram,
   topicPool,
   setTopicPool,
-  isDark = false,
+  isDark: propIsDark = false,
   studentId = null,
   targetStudent = null
 }) {
+  const { theme } = useTheme();
+  const isDark = propIsDark || theme === 'dark';
   const [programTab, setProgramTab] = useState('haftalik');
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);

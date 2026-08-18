@@ -530,8 +530,8 @@ export default function StudentHomeworksPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
-      color: '#0f172a',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       padding: '1.25rem 1rem 5rem',
       boxSizing: 'border-box'
@@ -539,7 +539,7 @@ export default function StudentHomeworksPage() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .hw-anim { animation: fadeIn 0.25s ease both; }
-        .hw-row:hover { filter: brightness(0.98); }
+        .hw-row:hover { filter: brightness(0.96); }
         .hw-row {
           display: flex;
           align-items: center;
@@ -583,8 +583,8 @@ export default function StudentHomeworksPage() {
             <button
               onClick={() => navigate('/student')}
               style={{
-                background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
+                background: 'var(--color-surface-hover)',
+                border: '1.5px solid var(--color-border-input)',
                 borderRadius: '0.75rem',
                 padding: '0.5rem 0.95rem',
                 cursor: 'pointer',
@@ -593,7 +593,7 @@ export default function StudentHomeworksPage() {
                 gap: '0.45rem',
                 fontWeight: 800,
                 fontSize: '0.82rem',
-                color: '#1e293b',
+                color: 'var(--color-text)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s'
               }}
@@ -613,17 +613,17 @@ export default function StudentHomeworksPage() {
                 fontWeight: 900,
                 fontSize: '1.15rem',
                 color: 'white',
-                border: '2px solid #ffffff',
+                border: '2px solid var(--color-surface)',
                 boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
                 flexShrink: 0
               }}>
                 📋
               </div>
               <div>
-                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: '#0f172a', lineHeight: 1.2 }}>
-                  Ödevlerim & Görevlerim
+                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-text)', lineHeight: 1.2 }}>
+                  Ödevlerim &amp; Görevlerim
                 </h1>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
                   {selectedStudent?.name ? `${selectedStudent.name} · ` : ''}Öğretmeniniz veya koçunuz tarafından atanan ödevler
                 </div>
               </div>
@@ -632,15 +632,15 @@ export default function StudentHomeworksPage() {
 
           {/* Teacher selector if viewed by teacher/admin */}
           {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginLeft: 4 }}>👁️ Öğrenci:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginLeft: 4 }}>👁️ Öğrenci:</span>
               <select
                 value={selectedStudent?.id || ''}
                 onChange={e => {
                   const s = studentMembers.find(st => String(st.id) === String(e.target.value));
                   if (s) setSelectedStudent(s);
                 }}
-                style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.76rem', fontWeight: 700, outline: 'none' }}
+                style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.76rem', fontWeight: 700, outline: 'none' }}
               >
                 {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
               </select>
@@ -657,8 +657,8 @@ export default function StudentHomeworksPage() {
         }}>
           {/* Card 1: Toplam Görev */}
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #cbd5e1',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: '1.15rem',
             padding: '0.9rem 1.15rem',
             display: 'flex',
@@ -666,22 +666,22 @@ export default function StudentHomeworksPage() {
             gap: '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
               📚
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Görev</span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Görev</span>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{allTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>({homeworkGroups.length} Set)</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>{allTests.length}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>({homeworkGroups.length} Set)</span>
               </div>
             </div>
           </div>
 
           {/* Card 2: Bekleyen Ödev */}
           <div style={{
-            background: '#ffffff',
-            border: pendingTests.length > 0 ? '1.5px solid #fecdd3' : '1.5px solid #e2e8f0',
+            background: 'var(--color-surface)',
+            border: pendingTests.length > 0 ? '1.5px solid rgba(244,63,94,0.35)' : '1.5px solid var(--color-border)',
             borderRadius: '1.15rem',
             padding: '0.9rem 1.15rem',
             display: 'flex',
@@ -689,22 +689,22 @@ export default function StudentHomeworksPage() {
             gap: '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#fff1f2', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
               ⏳
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Bekleyen Ödev</span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Bekleyen Ödev</span>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#e11d48' }}>{pendingTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>Çözüm bekliyor</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f87171' }}>{pendingTests.length}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Çözüm bekliyor</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Tamamlanan */}
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #bbf7d0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid rgba(16,185,129,0.3)',
             borderRadius: '1.15rem',
             padding: '0.9rem 1.15rem',
             display: 'flex',
@@ -712,22 +712,22 @@ export default function StudentHomeworksPage() {
             gap: '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
               ✅
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Tamamlanan</span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Tamamlanan</span>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a' }}>{completedTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a' }}>Bitti 🎉</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399' }}>{completedTests.length}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34d399' }}>Bitti 🎉</span>
               </div>
             </div>
           </div>
 
           {/* Card 4: Genel Tamamlama % */}
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e9d5ff',
+            background: 'var(--color-surface)',
+            border: '1.5px solid rgba(139,92,246,0.3)',
             borderRadius: '1.15rem',
             padding: '0.9rem 1.15rem',
             display: 'flex',
@@ -735,15 +735,15 @@ export default function StudentHomeworksPage() {
             gap: '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#faf5ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(124,58,237,0.12)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
               🎯
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İlerleme</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#7c3aed' }}>%{totalPct}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İlerleme</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc' }}>%{totalPct}</span>
               </div>
-              <div style={{ height: 6, background: '#f1f5f9', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
+              <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${totalPct}%`, background: 'linear-gradient(90deg, #4f46e5, #7c3aed)', borderRadius: 99, transition: 'width 0.6s ease' }} />
               </div>
             </div>
@@ -752,8 +752,8 @@ export default function StudentHomeworksPage() {
 
         {/* ─── TAB SWITCHER & FILTER CONTROLS ─── */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.15rem',
           padding: '0.85rem 1.15rem',
           marginBottom: '1.25rem',
@@ -764,12 +764,12 @@ export default function StudentHomeworksPage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             {/* TABS */}
-            <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 3, borderRadius: 10, overflowX: 'auto', maxWidth: '100%' }}>
+            <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, overflowX: 'auto', maxWidth: '100%' }}>
               <button
                 onClick={() => setActiveTab('pending')}
                 style={{
                   background: activeTab === 'pending' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
-                  color: activeTab === 'pending' ? '#ffffff' : '#475569',
+                  color: activeTab === 'pending' ? '#ffffff' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '0.45rem 0.95rem',
@@ -791,7 +791,7 @@ export default function StudentHomeworksPage() {
                 onClick={() => setActiveTab('completed')}
                 style={{
                   background: activeTab === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
-                  color: activeTab === 'completed' ? '#ffffff' : '#475569',
+                  color: activeTab === 'completed' ? '#ffffff' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '0.45rem 0.95rem',
@@ -813,7 +813,7 @@ export default function StudentHomeworksPage() {
                 onClick={() => setActiveTab('all')}
                 style={{
                   background: activeTab === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
-                  color: activeTab === 'all' ? '#ffffff' : '#475569',
+                  color: activeTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '0.45rem 0.95rem',
@@ -834,7 +834,7 @@ export default function StudentHomeworksPage() {
 
             {/* SEARCH INPUT */}
             <div style={{ position: 'relative', minWidth: 200, flex: 1, maxWidth: 340 }}>
-              <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <Search size={15} color="var(--color-text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
                 value={searchQuery}
@@ -842,11 +842,11 @@ export default function StudentHomeworksPage() {
                 placeholder="Ödev veya test ara..."
                 style={{
                   width: '100%',
-                  background: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
+                  background: 'var(--color-surface-hover)',
+                  border: '1.5px solid var(--color-border-input)',
                   borderRadius: 10,
                   padding: '0.45rem 0.85rem 0.45rem 2.2rem',
-                  color: '#0f172a',
+                  color: 'var(--color-text)',
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   outline: 'none',
@@ -859,15 +859,15 @@ export default function StudentHomeworksPage() {
           {/* SUBJECT FILTER PILLS */}
           {subjectsList.length > 2 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, flexShrink: 0, marginRight: 2 }}>Ders:</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 800, flexShrink: 0, marginRight: 2 }}>Ders:</span>
               {subjectsList.map(subj => (
                 <button
                   key={subj}
                   onClick={() => setSelectedSubject(subj)}
                   style={{
-                    background: selectedSubject === subj ? '#4f46e5' : '#f1f5f9',
-                    border: selectedSubject === subj ? '1.5px solid #4338ca' : '1px solid #e2e8f0',
-                    color: selectedSubject === subj ? '#ffffff' : '#475569',
+                    background: selectedSubject === subj ? '#4f46e5' : 'var(--color-surface-hover)',
+                    border: selectedSubject === subj ? '1.5px solid #4338ca' : '1px solid var(--color-border)',
+                    color: selectedSubject === subj ? '#ffffff' : 'var(--color-text-muted)',
                     borderRadius: 99,
                     padding: '0.25rem 0.75rem',
                     fontSize: '0.74rem',
@@ -888,8 +888,8 @@ export default function StudentHomeworksPage() {
         {/* ─── HOMEWORKS LIST GROUPED BY DAYS ─── */}
         {dayGroupedHomeworks.length === 0 ? (
           <div style={{
-            background: '#ffffff',
-            border: '1.5px dashed #cbd5e1',
+            background: 'var(--color-surface)',
+            border: '1.5px dashed var(--color-border-input)',
             borderRadius: '1.25rem',
             padding: '3rem 1.5rem',
             textAlign: 'center',
@@ -898,13 +898,13 @@ export default function StudentHomeworksPage() {
             alignItems: 'center',
             gap: '0.75rem'
           }}>
-            <div style={{ width: 56, height: 56, borderRadius: '1rem', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '1rem', background: 'rgba(37,99,235,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
               {activeTab === 'pending' ? '🎉' : '📂'}
             </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
               {activeTab === 'pending' ? 'Bekleyen Ödeviniz Bulunmuyor!' : 'Bu kriterde ödev kaydı bulunamadı.'}
             </h3>
-            <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
               {activeTab === 'pending'
                 ? 'Tüm ödevlerinizi başarıyla tamamladınız. Harika bir performans! 🌟'
                 : 'Farklı bir filtre seçerek veya arama terimini değiştirerek tekrar deneyebilirsiniz.'}
@@ -919,7 +919,7 @@ export default function StudentHomeworksPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ fontSize: '1.1rem' }}>{group.emoji}</span>
-                    <h3 style={{ fontSize: '0.92rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
                       {group.title}
                     </h3>
                   </div>
@@ -938,8 +938,8 @@ export default function StudentHomeworksPage() {
 
                 {/* 📋 Günün Ödev Listesi (Kolay Liste Görünümü) */}
                 <div style={{
-                  background: '#ffffff',
-                  border: group.isToday ? '1.5px solid #fde68a' : '1.5px solid #e2e8f0',
+                  background: 'var(--color-surface)',
+                  border: group.isToday ? '1.5px solid #fde68a' : '1.5px solid var(--color-border)',
                   borderRadius: '1.15rem',
                   overflow: 'hidden',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
@@ -979,9 +979,9 @@ export default function StudentHomeworksPage() {
                         key={task.id}
                         className="hw-row"
                         style={{
-                          background: rowTheme.bg,
-                          borderLeft: `4.5px solid ${task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : rowTheme.accent}`,
-                          borderBottom: isLast ? 'none' : `1px solid ${rowTheme.border}`,
+                          background: 'var(--color-surface)',
+                          borderLeft: `4.5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : (rowTheme.accent || '#6366f1')}`,
+                          borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
                           padding: '0.85rem 1.15rem',
                           display: 'flex',
                           alignItems: 'center',
@@ -997,9 +997,9 @@ export default function StudentHomeworksPage() {
                             width: 32,
                             height: 32,
                             borderRadius: '50%',
-                            background: '#ffffff',
-                            color: task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : rowTheme.accent,
-                            border: `1.5px solid ${task.isDone ? '#86efac' : isOverdue ? '#fecdd3' : rowTheme.border}`,
+                            background: 'var(--color-surface-hover)',
+                            color: task.isDone ? '#34d399' : isOverdue ? '#f87171' : (rowTheme.accent || '#818cf8'),
+                            border: `1.5px solid ${task.isDone ? 'rgba(16,185,129,0.35)' : isOverdue ? 'rgba(239,68,68,0.35)' : 'var(--color-border)'}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1020,11 +1020,11 @@ export default function StudentHomeworksPage() {
                               <span style={{
                                 fontSize: '0.66rem',
                                 fontWeight: 900,
-                                color: rowTheme.text,
-                                background: rowTheme.badgeBg,
+                                color: rowTheme.text || '#818cf8',
+                                background: 'var(--color-surface-hover)',
                                 padding: '1.5px 6px',
                                 borderRadius: 5,
-                                border: `1px solid ${rowTheme.border}`,
+                                border: '1px solid var(--color-border)',
                                 whiteSpace: 'nowrap'
                               }}>
                                 {task.subject}
@@ -1034,26 +1034,26 @@ export default function StudentHomeworksPage() {
                             <span style={{
                               fontSize: '0.64rem',
                               fontWeight: 800,
-                              color: task.isBookAssignment ? '#047857' : '#6d28d9',
-                              background: '#ffffff',
+                              color: task.isBookAssignment ? '#34d399' : '#c084fc',
+                              background: 'var(--color-surface-hover)',
                               padding: '1.5px 6px',
                               borderRadius: 5,
-                              border: task.isBookAssignment ? '1px solid #a7f3d0' : '1px solid #e9d5ff',
+                              border: task.isBookAssignment ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(124,58,237,0.25)',
                               whiteSpace: 'nowrap'
                             }}>
                               {task.isPhysical ? '📋 Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
                             </span>
 
                             {task.isDone ? (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #86efac', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'rgba(16,185,129,0.12)', color: '#34d399', padding: '1.5px 6px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.25)', whiteSpace: 'nowrap' }}>
                                 Tamamlandı
                               </span>
                             ) : isOverdue ? (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#fff1f2', color: '#e11d48', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #fecdd3', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '1.5px 6px', borderRadius: 99, border: '1px solid rgba(239,68,68,0.25)', whiteSpace: 'nowrap' }}>
                                 Gecikti
                               </span>
                             ) : isDueToday ? (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #fde68a', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'rgba(245,158,11,0.12)', color: '#fbbf24', padding: '1.5px 6px', borderRadius: 99, border: '1px solid rgba(245,158,11,0.25)', whiteSpace: 'nowrap' }}>
                                 Bugün Son
                               </span>
                             ) : null}
@@ -1065,7 +1065,7 @@ export default function StudentHomeworksPage() {
                             style={{ 
                               fontSize: '0.9rem', 
                               fontWeight: 800, 
-                              color: '#0f172a', 
+                              color: 'var(--color-text)', 
                               lineHeight: 1.25, 
                               margin: '2px 0' 
                             }}
@@ -1082,15 +1082,15 @@ export default function StudentHomeworksPage() {
                               gap: 6, 
                               flexWrap: 'wrap', 
                               fontSize: '0.7rem', 
-                              color: '#475569', 
+                              color: 'var(--color-text-muted)', 
                               fontWeight: 600 
                             }}
                           >
-                            {rawBook && <span style={{ color: '#334155', fontWeight: 700 }}>📖 {rawBook}</span>}
+                            {rawBook && <span style={{ color: 'var(--color-text)', fontWeight: 700 }}>📖 {rawBook}</span>}
                             <span>• ❓ {task.questionCount || 20} Soru</span>
                             {dueLabel && <span>• ⏰ Son: {dueLabel}</span>}
                             {task.isDone && task.submittedAt && (
-                              <span style={{ color: '#16a34a', fontWeight: 700 }}>• 🗓️ {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
+                              <span style={{ color: '#34d399', fontWeight: 700 }}>• 🗓️ {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
                             )}
                           </div>
                         </div>
@@ -1099,16 +1099,16 @@ export default function StudentHomeworksPage() {
                         <div className="hw-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {task.isDone && task.scorePct !== null && (
                             <div style={{
-                              background: task.scorePct >= 80 ? '#f0fdf4' : task.scorePct >= 50 ? '#eff6ff' : '#fff1f2',
-                              border: task.scorePct >= 80 ? '1px solid #86efac' : task.scorePct >= 50 ? '1px solid #bfdbfe' : '1px solid #fecdd3',
+                              background: task.scorePct >= 80 ? 'rgba(16,185,129,0.12)' : task.scorePct >= 50 ? 'rgba(37,99,235,0.12)' : 'rgba(239,68,68,0.12)',
+                              border: task.scorePct >= 80 ? '1px solid rgba(16,185,129,0.25)' : task.scorePct >= 50 ? '1px solid #3b82f6' : '1px solid rgba(239,68,68,0.25)',
                               padding: '0.2rem 0.5rem',
                               borderRadius: 6,
                               textAlign: 'center'
                             }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: task.scorePct >= 80 ? '#16a34a' : task.scorePct >= 50 ? '#2563eb' : '#e11d48', lineHeight: 1.1 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: task.scorePct >= 80 ? '#34d399' : task.scorePct >= 50 ? '#38bdf8' : '#f87171', lineHeight: 1.1 }}>
                                 %{task.scorePct}
                               </div>
-                              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b' }}>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
                                 {task.correctAnswers}/{task.totalScoreQuestions} D
                               </div>
                             </div>
@@ -1119,9 +1119,9 @@ export default function StudentHomeworksPage() {
                               type="button"
                               onClick={() => handleReviewTask(task)}
                               style={{
-                                background: '#ffffff',
-                                color: '#2563eb',
-                                border: '1.5px solid #bfdbfe',
+                                background: 'rgba(37,99,235,0.12)',
+                                color: '#60a5fa',
+                                border: '1.5px solid #3b82f6',
                                 borderRadius: 8,
                                 padding: '0.45rem 0.85rem',
                                 fontSize: '0.78rem',
