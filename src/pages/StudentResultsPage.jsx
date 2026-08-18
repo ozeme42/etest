@@ -718,12 +718,12 @@ export default function StudentResultsPage() {
      RENDER
   ══════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)', padding: '1.25rem 1rem', fontFamily: "'Inter', system-ui, sans-serif", color: '#f8fafc', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc', padding: '1.25rem 1rem', fontFamily: "'Inter', system-ui, sans-serif", color: '#0f172a', boxSizing: 'border-box' }}>
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .sr-anim { animation: fadeSlideUp 0.3s ease both; }
         .sr-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
-        .sr-card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99,102,241,0.3) !important; }
+        .sr-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; }
         @media (max-width: 768px) {
           .sr-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
           .sr-chart-grid { grid-template-columns: 1fr !important; }
@@ -742,46 +742,46 @@ export default function StudentResultsPage() {
         {/* ── HEADER ── */}
         <div className="sr-header-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => navigate('/student')} style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', borderRadius: 12, padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: '0.8rem', color: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}>
+            <button onClick={() => navigate('/student')} style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 12, padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: '0.8rem', color: '#334155', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <ArrowLeft size={15} /> Geri
             </button>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8, textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
-                <Sparkles size={22} color="#a5b4fc" /> Gelişim Merkezi & Karne
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Sparkles size={22} color="#6366f1" /> Gelişim Merkezi & Karne
               </h1>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 2 }}>Ders bazlı · Konu bazlı · Ödev türü bazlı ayrıntılı analiz</p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>Ders bazlı · Konu bazlı · Ödev türü bazlı ayrıntılı analiz</p>
             </div>
           </div>
 
           {/* Student Selector (Only shown to Teachers and Admins) */}
           {!isStudentRole ? (
-            <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.06)', padding: 6, borderRadius: 16, border: '1.5px solid rgba(255,255,255,0.12)', flexWrap: 'wrap', backdropFilter: 'blur(10px)' }}>
+            <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 16, border: '1.5px solid #e2e8f0', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
               {studentMembers.map(s => {
                 const active = selectedStudent?.id === s.id;
                 return (
-                  <button key={s.id} onClick={() => setSelectedStudent(s)} style={{ padding: '0.4rem 0.9rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: active ? 'white' : 'rgba(255,255,255,0.7)', boxShadow: active ? '0 2px 8px rgba(99,102,241,0.35)' : 'none' }}>
+                  <button key={s.id} onClick={() => setSelectedStudent(s)} style={{ padding: '0.4rem 0.9rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: active ? 'white' : '#475569', boxShadow: active ? '0 2px 8px rgba(99,102,241,0.3)' : 'none' }}>
                     <GraduationCap size={14} /> {s.name}
                   </button>
                 );
               })}
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.08)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
                 <GraduationCap size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#ffffff' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
-                <div style={{ fontSize: '0.7rem', color: '#c7d2fe', fontWeight: 600 }}>Öğrenci Karnesi</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
+                <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
               </div>
             </div>
           )}
         </div>
 
         {/* ── TABS ── */}
-        <div className="sr-tabs-container" style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.06)', padding: 6, borderRadius: 18, border: '1.5px solid rgba(255,255,255,0.12)', marginBottom: 22, flexWrap: 'wrap', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)' }}>
+        <div className="sr-tabs-container" style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 18, border: '1.5px solid #e2e8f0', marginBottom: 22, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
           {TAB_DEFS.map(t => (
-            <button key={t.key} className="sr-tab-btn" onClick={() => setActiveTab(t.key)} style={{ flex: '1 1 auto', padding: '0.6rem 1rem', borderRadius: 12, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s', background: activeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: activeTab === t.key ? 'white' : 'rgba(255,255,255,0.7)', boxShadow: activeTab === t.key ? '0 4px 14px rgba(99,102,241,0.4)' : 'none', whiteSpace: 'nowrap' }}>
+            <button key={t.key} className="sr-tab-btn" onClick={() => setActiveTab(t.key)} style={{ flex: '1 1 auto', padding: '0.6rem 1rem', borderRadius: 12, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s', background: activeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: activeTab === t.key ? 'white' : '#475569', boxShadow: activeTab === t.key ? '0 4px 14px rgba(99,102,241,0.3)' : 'none', whiteSpace: 'nowrap' }}>
               {t.label}
             </button>
           ))}
@@ -809,18 +809,18 @@ export default function StudentResultsPage() {
             {/* KPI Cards */}
             <div className="sr-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
               {[
-                { label: 'Çözülen Test', value: overallStats.total, icon: '📊', color: '#ffffff', bg: 'linear-gradient(135deg, #1e1b4b, #4338ca)', border: 'rgba(165,180,252,0.35)' },
-                { label: 'Ort. Başarı', value: `%${overallStats.avgScore}`, icon: '🎯', color: '#ffffff', bg: 'linear-gradient(135deg, #064e3b, #059669)', border: 'rgba(52,211,153,0.35)' },
-                { label: 'En Yüksek', value: `%${overallStats.maxScore}`, icon: '🏆', color: '#ffffff', bg: 'linear-gradient(135deg, #78350f, #d97706)', border: 'rgba(253,186,116,0.35)' },
-                { label: 'Toplam Soru', value: overallStats.totalQ, icon: '📝', color: '#ffffff', bg: 'linear-gradient(135deg, #0c4a6e, #0284c7)', border: 'rgba(125,211,252,0.35)' },
-                { label: 'Toplam Doğru', value: overallStats.totalCorrect, icon: '✅', color: '#ffffff', bg: 'linear-gradient(135deg, #065f46, #10b981)', border: 'rgba(110,231,183,0.35)' },
-                { label: 'Kritik Ders', value: overallStats.weakSubjects, icon: '⚠️', color: '#ffffff', bg: 'linear-gradient(135deg, #831843, #e11d48)', border: 'rgba(253,164,175,0.35)' },
+                { label: 'Çözülen Test', value: overallStats.total, icon: '📊', color: '#1e1b4b', bg: '#ffffff', iconBg: '#eff6ff', border: '#e2e8f0' },
+                { label: 'Ort. Başarı', value: `%${overallStats.avgScore}`, icon: '🎯', color: '#14532d', bg: '#ffffff', iconBg: '#f0fdf4', border: '#e2e8f0' },
+                { label: 'En Yüksek', value: `%${overallStats.maxScore}`, icon: '🏆', color: '#78350f', bg: '#ffffff', iconBg: '#fffbeb', border: '#e2e8f0' },
+                { label: 'Toplam Soru', value: overallStats.totalQ, icon: '📝', color: '#0c4a6e', bg: '#ffffff', iconBg: '#f0f9ff', border: '#e2e8f0' },
+                { label: 'Toplam Doğru', value: overallStats.totalCorrect, icon: '✅', color: '#064e3b', bg: '#ffffff', iconBg: '#f0fdf4', border: '#e2e8f0' },
+                { label: 'Kritik Ders', value: overallStats.weakSubjects, icon: '⚠️', color: '#881337', bg: '#ffffff', iconBg: '#fff1f2', border: '#e2e8f0' },
               ].map((k, i) => (
-                <div key={i} style={{ background: k.bg, borderRadius: 20, padding: '1.1rem 1.25rem', border: `1.5px solid ${k.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 14, backdropFilter: 'blur(16px)', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.14)', border: '1.5px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.35rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.25)' }}>{k.icon}</div>
+                <div key={i} style={{ background: k.bg, borderRadius: 20, padding: '1.1rem 1.25rem', border: `1.5px solid ${k.border}`, boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: k.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.35rem', flexShrink: 0 }}>{k.icon}</div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: k.color, lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>{k.value}</div>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', marginTop: 3 }}>{k.label}</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: k.color, lineHeight: 1.1 }}>{k.value}</div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', marginTop: 3 }}>{k.label}</div>
                   </div>
                 </div>
               ))}

@@ -782,23 +782,23 @@ export default function StudentWrongAnswersPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.2) 0%, transparent 60%), radial-gradient(ellipse at 85% 20%, rgba(56, 189, 248, 0.16) 0%, transparent 50%), linear-gradient(180deg, #1e293b 0%, #1e2538 50%, #151e2e 100%)',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
       padding: '1.25rem 1rem',
       fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
+      color: '#0f172a',
       boxSizing: 'border-box'
     }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .wa-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .wa-card:hover { transform: translateY(-2px); border-color: rgba(129, 140, 248, 0.5) !important; box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.35) !important; }
+        .wa-card:hover { transform: translateY(-2px); border-color: #cbd5e1 !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important; }
         .wa-pill { transition: all 0.15s ease; }
         .wa-pill:hover { opacity: 0.95; transform: scale(1.02); }
         .wa-scroll-x::-webkit-scrollbar { height: 4px; }
         .th-sort { cursor: pointer; user-select: none; transition: background 0.15s; }
-        .th-sort:hover { background: rgba(255,255,255,0.12) !important; color: #ffffff !important; }
+        .th-sort:hover { background: #f1f5f9 !important; color: #0f172a !important; }
         .wa-table-row { transition: background 0.15s ease; }
-        .wa-table-row:hover { background: rgba(99, 102, 241, 0.18) !important; }
+        .wa-table-row:hover { background: #f8fafc !important; }
 
         /* Responsive Mobile Styles */
         @media (max-width: 640px) {
@@ -907,8 +907,8 @@ export default function StudentWrongAnswersPage() {
               onClick={() => navigate('/student')}
               className="wa-back-btn"
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1.5px solid rgba(255, 255, 255, 0.18)',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
                 borderRadius: '12px',
                 padding: '0.55rem 0.95rem',
                 cursor: 'pointer',
@@ -917,18 +917,19 @@ export default function StudentWrongAnswersPage() {
                 gap: '0.4rem',
                 fontWeight: 800,
                 fontSize: '0.82rem',
-                color: '#ffffff',
+                color: '#334155',
                 transition: 'all 0.15s',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
               }}
             >
               <ArrowLeft size={16} /> Öğrenci Paneli
             </button>
             <div>
-              <h1 className="wa-header-title" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.45rem', letterSpacing: '-0.02em' }}>
-                <AlertCircle color="#f87171" size={22} /> Yanlışlarım & Hata Defteri
+              <h1 className="wa-header-title" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.45rem', letterSpacing: '-0.02em' }}>
+                <AlertCircle color="#ef4444" size={22} /> Yanlışlarım & Hata Defteri
               </h1>
-              <p className="wa-title-sub" style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 600 }}>
+              <p className="wa-title-sub" style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
                 Sınavlarda ve kitap takibinde yanlış veya boş bıraktığınız soruları inceleyin, hatalarınızı pekiştirin.
               </p>
             </div>
@@ -937,12 +938,13 @@ export default function StudentWrongAnswersPage() {
           {/* TAB DEĞİŞTİRİCİ (Kontrol Edilmeyenler | Kontrol Edilenler | Görsel Hata Defterim) */}
           <div className="wa-tab-bar" style={{
             display: 'flex',
-            background: 'rgba(30, 41, 59, 0.95)',
+            background: '#ffffff',
             padding: '4px',
             borderRadius: '14px',
-            border: '1.5px solid rgba(255, 255, 255, 0.15)',
+            border: '1.5px solid #e2e8f0',
             gap: 4,
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
           }}>
             {/* SEKME 1: KONTROL EDİLMEYENLER */}
             <button
@@ -955,12 +957,11 @@ export default function StudentWrongAnswersPage() {
                 padding: '0.55rem 1.05rem',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeMainTab === 'unreviewed' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
-                color: activeMainTab === 'unreviewed' ? '#ffffff' : '#cbd5e1',
+                background: activeMainTab === 'unreviewed' ? '#eff6ff' : 'transparent',
+                color: activeMainTab === 'unreviewed' ? '#1d4ed8' : '#64748b',
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: activeMainTab === 'unreviewed' ? '0 4px 12px rgba(245, 158, 11, 0.4)' : 'none',
                 transition: 'all 0.15s'
               }}
             >
@@ -968,8 +969,8 @@ export default function StudentWrongAnswersPage() {
               <span className="wa-tab-text-full">⏳ Kontrol Edilmeyenler</span>
               <span className="wa-tab-text-mobile">Bekleyen</span>
               <span style={{
-                background: activeMainTab === 'unreviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: activeMainTab === 'unreviewed' ? '#dbeafe' : '#f1f5f9',
+                color: activeMainTab === 'unreviewed' ? '#1e40af' : '#64748b',
                 fontSize: '0.68rem',
                 padding: '0.1rem 0.4rem',
                 borderRadius: 99,
@@ -990,12 +991,11 @@ export default function StudentWrongAnswersPage() {
                 padding: '0.55rem 1.05rem',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeMainTab === 'reviewed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
-                color: activeMainTab === 'reviewed' ? '#ffffff' : '#cbd5e1',
+                background: activeMainTab === 'reviewed' ? '#f0fdf4' : 'transparent',
+                color: activeMainTab === 'reviewed' ? '#15803d' : '#64748b',
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: activeMainTab === 'reviewed' ? '0 4px 12px rgba(16, 185, 129, 0.4)' : 'none',
                 transition: 'all 0.15s'
               }}
             >
@@ -1003,8 +1003,8 @@ export default function StudentWrongAnswersPage() {
               <span className="wa-tab-text-full">✅ Kontrol Edilenler</span>
               <span className="wa-tab-text-mobile">Biten</span>
               <span style={{
-                background: activeMainTab === 'reviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: activeMainTab === 'reviewed' ? '#dcfce7' : '#f1f5f9',
+                color: activeMainTab === 'reviewed' ? '#166534' : '#64748b',
                 fontSize: '0.68rem',
                 padding: '0.1rem 0.4rem',
                 borderRadius: 99,
@@ -1025,12 +1025,11 @@ export default function StudentWrongAnswersPage() {
                 padding: '0.55rem 1.05rem',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'transparent',
-                color: activeMainTab === 'error_notebook' ? '#ffffff' : '#cbd5e1',
+                background: activeMainTab === 'error_notebook' ? '#fef2f2' : 'transparent',
+                color: activeMainTab === 'error_notebook' ? '#b91c1c' : '#64748b',
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: activeMainTab === 'error_notebook' ? '0 4px 12px rgba(225, 29, 72, 0.4)' : 'none',
                 transition: 'all 0.15s'
               }}
             >
@@ -1038,8 +1037,8 @@ export default function StudentWrongAnswersPage() {
               <span className="wa-tab-text-full">📸 Görsel Hata Defterim</span>
               <span className="wa-tab-text-mobile">Defter</span>
               <span style={{
-                background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: activeMainTab === 'error_notebook' ? '#fee2e2' : '#f1f5f9',
+                color: activeMainTab === 'error_notebook' ? '#991b1b' : '#64748b',
                 fontSize: '0.68rem',
                 padding: '0.1rem 0.4rem',
                 borderRadius: 99,
@@ -1063,21 +1062,21 @@ export default function StudentWrongAnswersPage() {
           }}>
             {/* Kart 1: Yanlış Soru */}
             <div className="wa-kpi-card" style={{
-              background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(30, 41, 59, 0.85) 100%)',
-              border: '1.5px solid rgba(244, 63, 94, 0.35)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
               borderRadius: '16px',
               padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.85rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
               <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
-                background: 'rgba(244, 63, 94, 0.25)',
-                color: '#fb7185',
+                background: '#fef2f2',
+                color: '#dc2626',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1087,32 +1086,32 @@ export default function StudentWrongAnswersPage() {
                 ❌
               </div>
               <div style={{ minWidth: 0 }}>
-                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#fda4af', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {activeMainTab === 'unreviewed' ? 'Yanlış Soru' : 'Kontrol Edilen Yanlış'}
                 </div>
-                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                  {currentWrongCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Soru</span>
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+                  {currentWrongCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Soru</span>
                 </div>
               </div>
             </div>
 
             {/* Kart 2: Boş Bırakılan */}
             <div className="wa-kpi-card" style={{
-              background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
-              border: '1.5px solid rgba(148, 163, 184, 0.35)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
               borderRadius: '16px',
               padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.85rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
               <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
-                background: 'rgba(148, 163, 184, 0.2)',
-                color: '#e2e8f0',
+                background: '#f8fafc',
+                color: '#64748b',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1122,34 +1121,32 @@ export default function StudentWrongAnswersPage() {
                 ⚪
               </div>
               <div style={{ minWidth: 0 }}>
-                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {activeMainTab === 'unreviewed' ? 'Boş Soru' : 'Kontrol Edilen Boş'}
                 </div>
-                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                  {currentBlankCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Soru</span>
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+                  {currentBlankCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Soru</span>
                 </div>
               </div>
             </div>
 
             {/* Kart 3: Durum Bilgisi */}
             <div className="wa-kpi-card" style={{
-              background: activeMainTab === 'unreviewed'
-                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)'
-                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
-              border: activeMainTab === 'unreviewed' ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid rgba(16, 185, 129, 0.35)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
               borderRadius: '16px',
               padding: '0.9rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.85rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
               <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
-                background: activeMainTab === 'unreviewed' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.25)',
-                color: activeMainTab === 'unreviewed' ? '#fbbf24' : '#34d399',
+                background: activeMainTab === 'unreviewed' ? '#eff6ff' : '#f0fdf4',
+                color: activeMainTab === 'unreviewed' ? '#2563eb' : '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1159,11 +1156,11 @@ export default function StudentWrongAnswersPage() {
                 {activeMainTab === 'unreviewed' ? '⏳' : '✅'}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: activeMainTab === 'unreviewed' ? '#fde68a' : '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: activeMainTab === 'unreviewed' ? '#1d4ed8' : '#15803d', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {activeMainTab === 'unreviewed' ? 'Bekleyen Test' : 'Biten Test'}
                 </div>
-                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                  {currentTabBaseList.length} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Test</span>
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+                  {currentTabBaseList.length} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Test</span>
                 </div>
               </div>
             </div>
@@ -1199,21 +1196,21 @@ export default function StudentWrongAnswersPage() {
                   gap: '0.45rem',
                   padding: '0.48rem 0.85rem',
                   borderRadius: '12px',
-                  border: isSelected ? `1.5px solid ${cfg.color}` : '1.5px solid rgba(255, 255, 255, 0.12)',
-                  background: isSelected ? cfg.bg : 'rgba(30, 41, 59, 0.8)',
-                  color: isSelected ? '#ffffff' : '#cbd5e1',
+                  border: isSelected ? `1.5px solid ${cfg.color}` : '1.5px solid #e2e8f0',
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#475569',
                   fontWeight: 800,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: isSelected ? `0 4px 12px ${cfg.color}40` : 'none'
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
                 }}
               >
-                <Icon size={15} color={isSelected ? cfg.color : '#cbd5e1'} />
+                <Icon size={15} color={isSelected ? '#2563eb' : '#64748b'} />
                 <span>{cfg.label}</span>
                 <span style={{
-                  background: isSelected ? cfg.color : 'rgba(255,255,255,0.12)',
-                  color: isSelected ? '#0f172a' : '#ffffff',
+                  background: isSelected ? '#dbeafe' : '#f1f5f9',
+                  color: isSelected ? '#1e40af' : '#64748b',
                   fontSize: '0.68rem',
                   fontWeight: 900,
                   padding: '0.1rem 0.4rem',
@@ -1229,6 +1226,9 @@ export default function StudentWrongAnswersPage() {
         {/* ════════════════════════════════════════════
             SEKME 1 & 2: KONTROL EDİLMEYENLER / KONTROL EDİLENLER
         ════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════
+            SEKME 1 & 2: KONTROL EDİLMEYENLER / KONTROL EDİLENLER
+        ════════════════════════════════════════════ */}
         {(activeMainTab === 'unreviewed' || activeMainTab === 'reviewed') && (
           <div>
             {/* Arama, Tarihe Göre Sıralama & Görünüm Çubuğu */}
@@ -1238,12 +1238,12 @@ export default function StudentWrongAnswersPage() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '0.75rem',
-              background: 'rgba(30, 41, 59, 0.85)',
-              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
               borderRadius: '14px',
               padding: '0.65rem 0.9rem',
               marginBottom: '1rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
             }}>
               {/* Arama Kutusu */}
               <div style={{ flex: '1 1 220px', position: 'relative' }}>
@@ -1257,9 +1257,9 @@ export default function StudentWrongAnswersPage() {
                     width: '100%',
                     padding: '0.5rem 0.75rem 0.5rem 2.2rem',
                     borderRadius: '10px',
-                    border: '1.5px solid rgba(255, 255, 255, 0.14)',
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    color: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#0f172a',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                     outline: 'none',
@@ -1272,15 +1272,15 @@ export default function StudentWrongAnswersPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 
                 {/* TARİHE / METRİĞE GÖRE SIRALAMA MENÜSÜ */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.2rem 0.5rem', borderRadius: '10px', border: '1.5px solid rgba(255, 255, 255, 0.14)' }}>
-                  <ArrowUpDown size={14} color="#818cf8" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc', padding: '0.2rem 0.5rem', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+                  <ArrowUpDown size={14} color="#6366f1" />
                   <select
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value)}
                     style={{
                       border: 'none',
                       background: 'transparent',
-                      color: '#ffffff',
+                      color: '#0f172a',
                       fontSize: '0.78rem',
                       fontWeight: 800,
                       outline: 'none',
@@ -1288,10 +1288,10 @@ export default function StudentWrongAnswersPage() {
                       padding: '0.3rem 0'
                     }}
                   >
-                    <option value="date_desc" style={{ background: '#1e293b' }}>📅 Tarihe Göre: En Yeni</option>
-                    <option value="date_asc" style={{ background: '#1e293b' }}>📅 Tarihe Göre: En Eski</option>
-                    <option value="wrong_desc" style={{ background: '#1e293b' }}>❌ En Çok Yanlış Olan</option>
-                    <option value="name_asc" style={{ background: '#1e293b' }}>🔤 İsim (A-Z)</option>
+                    <option value="date_desc">📅 Tarihe Göre: En Yeni</option>
+                    <option value="date_asc">📅 Tarihe Göre: En Eski</option>
+                    <option value="wrong_desc">❌ En Çok Yanlış Olan</option>
+                    <option value="name_asc">🔤 İsim (A-Z)</option>
                   </select>
                 </div>
 
@@ -1300,9 +1300,9 @@ export default function StudentWrongAnswersPage() {
                   style={{
                     padding: '0.45rem 0.75rem',
                     borderRadius: '10px',
-                    border: wrongOnlyFilter ? '1.5px solid rgba(244, 63, 94, 0.5)' : '1.5px solid rgba(255, 255, 255, 0.14)',
-                    background: wrongOnlyFilter ? 'rgba(244, 63, 94, 0.2)' : 'rgba(15, 23, 42, 0.6)',
-                    color: wrongOnlyFilter ? '#fb7185' : '#cbd5e1',
+                    border: wrongOnlyFilter ? '1.5px solid #fecaca' : '1.5px solid #e2e8f0',
+                    background: wrongOnlyFilter ? '#fef2f2' : '#ffffff',
+                    color: wrongOnlyFilter ? '#dc2626' : '#64748b',
                     fontSize: '0.78rem',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1314,15 +1314,15 @@ export default function StudentWrongAnswersPage() {
                   <span>❌ Yanlışı Olanlar</span>
                 </button>
 
-                <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.5)', padding: '2px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div style={{ display: 'flex', background: '#f8fafc', padding: '2px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   <button
                     onClick={() => setViewMode('cards')}
                     style={{
                       padding: '0.4rem 0.65rem',
                       borderRadius: '8px',
                       border: 'none',
-                      background: viewMode === 'cards' ? 'rgba(99, 102, 241, 0.4)' : 'transparent',
-                      color: viewMode === 'cards' ? '#ffffff' : '#cbd5e1',
+                      background: viewMode === 'cards' ? '#eff6ff' : 'transparent',
+                      color: viewMode === 'cards' ? '#1d4ed8' : '#64748b',
                       fontWeight: 800,
                       fontSize: '0.76rem',
                       cursor: 'pointer',
@@ -1339,8 +1339,8 @@ export default function StudentWrongAnswersPage() {
                       padding: '0.4rem 0.65rem',
                       borderRadius: '8px',
                       border: 'none',
-                      background: viewMode === 'table' ? 'rgba(99, 102, 241, 0.4)' : 'transparent',
-                      color: viewMode === 'table' ? '#ffffff' : '#cbd5e1',
+                      background: viewMode === 'table' ? '#eff6ff' : 'transparent',
+                      color: viewMode === 'table' ? '#1d4ed8' : '#64748b',
                       fontWeight: 800,
                       fontSize: '0.76rem',
                       cursor: 'pointer',
@@ -1371,15 +1371,15 @@ export default function StudentWrongAnswersPage() {
                       key={sub.id}
                       className="wa-card"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(47, 63, 89, 0.9) 100%)',
-                        border: sub.isReviewed ? '1.5px solid rgba(52, 211, 153, 0.45)' : '1.5px solid rgba(255, 255, 255, 0.12)',
+                        background: '#ffffff',
+                        border: sub.isReviewed ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0',
                         borderRadius: '16px',
                         padding: '1rem',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         gap: '0.75rem',
-                        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)'
+                        boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
                       }}
                     >
                       {/* Üst Kısım: Ders Rozeti, Başlık, Ünite & Konu, Tarih */}
@@ -1389,9 +1389,9 @@ export default function StudentWrongAnswersPage() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.35rem',
-                            background: cfg.bg,
-                            color: cfg.color,
-                            border: `1px solid ${cfg.border}`,
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
                             fontSize: '0.7rem',
                             fontWeight: 900,
                             padding: '0.2rem 0.55rem',
@@ -1400,13 +1400,13 @@ export default function StudentWrongAnswersPage() {
                             <Icon size={13} /> {sub.subject}
                           </span>
 
-                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <Calendar size={12} color="#94a3b8" />
                             {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                           </span>
                         </div>
 
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3, marginBottom: '0.35rem' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3, marginBottom: '0.35rem' }}>
                           {sub.testTitle || 'Test Sınavı'}
                         </div>
 
@@ -1415,9 +1415,9 @@ export default function StudentWrongAnswersPage() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
                             {sub.unit && (
                               <span style={{
-                                background: 'rgba(99, 102, 241, 0.25)',
-                                color: '#c7d2fe',
-                                border: '1px solid rgba(165, 180, 252, 0.4)',
+                                background: '#eff6ff',
+                                color: '#1e3a8a',
+                                border: '1px solid #bfdbfe',
                                 padding: '0.2rem 0.55rem',
                                 borderRadius: '6px',
                                 fontSize: '0.74rem',
@@ -1452,17 +1452,17 @@ export default function StudentWrongAnswersPage() {
 
                       {/* Orta Kısım: Yanlış & Boş Soru Çipleri */}
                       <div style={{
-                        background: 'rgba(15, 23, 42, 0.5)',
+                        background: '#f8fafc',
                         borderRadius: '12px',
                         padding: '0.65rem 0.8rem',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        border: '1px solid #e2e8f0',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '0.45rem'
                       }}>
                         {/* Yanlış Sorular */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#fb7185', minWidth: 70 }}>
+                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#dc2626', minWidth: 70 }}>
                             ❌ {sub.wrongQuestions.length} Yanlış:
                           </span>
                           {sub.wrongQuestions.length > 0 ? (
@@ -1473,9 +1473,9 @@ export default function StudentWrongAnswersPage() {
                                   onClick={(e) => handleOpenReview(sub.id, e)}
                                   title="Soruyu İncele"
                                   style={{
-                                    background: 'rgba(244, 63, 94, 0.25)',
-                                    color: '#f87171',
-                                    border: '1px solid rgba(244, 63, 94, 0.4)',
+                                    background: '#fef2f2',
+                                    color: '#dc2626',
+                                    border: '1px solid #fecaca',
                                     padding: '0.15rem 0.45rem',
                                     borderRadius: '6px',
                                     fontWeight: 900,
@@ -1488,14 +1488,14 @@ export default function StudentWrongAnswersPage() {
                               ))}
                             </div>
                           ) : (
-                            <span style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 800 }}>✓ Yanlış Yok</span>
+                            <span style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 800 }}>✓ Yanlış Yok</span>
                           )}
                         </div>
 
                         {/* Boş Sorular */}
                         {sub.blankQuestions.length > 0 && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#e2e8f0', minWidth: 70 }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#64748b', minWidth: 70 }}>
                               ⚪ {sub.blankQuestions.length} Boş:
                             </span>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -1505,9 +1505,9 @@ export default function StudentWrongAnswersPage() {
                                   onClick={(e) => handleOpenReview(sub.id, e)}
                                   title="Soruyu İncele"
                                   style={{
-                                    background: 'rgba(255, 255, 255, 0.12)',
-                                    color: '#f1f5f9',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    background: '#f1f5f9',
+                                    color: '#475569',
+                                    border: '1px solid #cbd5e1',
                                     padding: '0.15rem 0.45rem',
                                     borderRadius: '6px',
                                     fontWeight: 900,
@@ -1528,9 +1528,9 @@ export default function StudentWrongAnswersPage() {
                         <button
                           onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
                           style={{
-                            background: sub.isReviewed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                            color: sub.isReviewed ? '#34d399' : '#fbbf24',
-                            border: sub.isReviewed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
+                            background: sub.isReviewed ? '#f0fdf4' : '#fffbeb',
+                            color: sub.isReviewed ? '#15803d' : '#b45309',
+                            border: sub.isReviewed ? '1px solid #bbf7d0' : '1px solid #fde68a',
                             padding: '0.45rem 0.75rem',
                             borderRadius: '10px',
                             fontWeight: 800,
@@ -1550,9 +1550,9 @@ export default function StudentWrongAnswersPage() {
                             onClick={(e) => { e.stopPropagation(); handleOpenAddModal(sub); }}
                             title="Soru Görseli Ekle"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: '#cbd5e1',
-                              border: '1px solid rgba(255, 255, 255, 0.16)',
+                              background: '#f8fafc',
+                              color: '#475569',
+                              border: '1px solid #cbd5e1',
                               padding: '0.45rem 0.65rem',
                               borderRadius: '10px',
                               fontWeight: 800,
@@ -1580,7 +1580,7 @@ export default function StudentWrongAnswersPage() {
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
+                              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
                             }}
                           >
                             <Eye size={14} /> İncele
@@ -1596,16 +1596,16 @@ export default function StudentWrongAnswersPage() {
                     gridColumn: '1 / -1',
                     padding: '3rem 1rem',
                     textAlign: 'center',
-                    background: 'rgba(30, 41, 59, 0.6)',
+                    background: '#ffffff',
                     borderRadius: '16px',
-                    border: '1.5px dashed rgba(255, 255, 255, 0.16)',
-                    color: '#94a3b8'
+                    border: '1.5px dashed #cbd5e1',
+                    color: '#64748b'
                   }}>
-                    <CheckCircle2 size={36} color="#34d399" style={{ marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
+                    <CheckCircle2 size={36} color="#16a34a" style={{ marginBottom: '0.5rem' }} />
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
                       {activeMainTab === 'unreviewed' ? 'Harika! Kontrol edilmeyi bekleyen sınav bulunmuyor.' : 'Henüz kontrol edilmiş sınav bulunmuyor.'}
                     </div>
-                    <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#cbd5e1' }}>
+                    <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#64748b' }}>
                       {activeMainTab === 'unreviewed' ? 'Çözdüğünüz tüm sınav ve testler kontrol edilmiş görünüyor.' : 'Kontrol Edilmeyenler sekmesinden sınavlarınızı inceleyip kontrol edildi olarak işaretleyebilirsiniz.'}
                     </div>
                   </div>
@@ -1616,15 +1616,15 @@ export default function StudentWrongAnswersPage() {
             {/* TABLO GÖRÜNÜMÜ (Tıklanabilir Başlık Sıralaması İle) */}
             {viewMode === 'table' && (
               <div style={{
-                background: 'rgba(30, 41, 59, 0.95)',
+                background: '#ffffff',
                 borderRadius: '16px',
-                border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                border: '1.5px solid #e2e8f0',
                 overflowX: 'auto',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.25)'
+                boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
               }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: 700 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.12)', color: '#cbd5e1', fontSize: '0.74rem' }}>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#475569', fontSize: '0.74rem' }}>
                       <th
                         className="th-sort"
                         onClick={() => setSortBy('name_asc')}
@@ -1632,7 +1632,7 @@ export default function StudentWrongAnswersPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span>SINAV / KİTAP & ÜNİTE</span>
-                          {sortBy === 'name_asc' && <ArrowUp size={12} color="#818cf8" />}
+                          {sortBy === 'name_asc' && <ArrowUp size={12} color="#6366f1" />}
                         </div>
                       </th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DERS</th>
@@ -1643,8 +1643,8 @@ export default function StudentWrongAnswersPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span>TARİH</span>
-                          {sortBy === 'date_desc' && <ArrowDown size={12} color="#818cf8" />}
-                          {sortBy === 'date_asc' && <ArrowUp size={12} color="#818cf8" />}
+                          {sortBy === 'date_desc' && <ArrowDown size={12} color="#6366f1" />}
+                          {sortBy === 'date_asc' && <ArrowUp size={12} color="#6366f1" />}
                           {sortBy !== 'date_desc' && sortBy !== 'date_asc' && <ArrowUpDown size={12} color="#94a3b8" />}
                         </div>
                       </th>
@@ -1655,7 +1655,7 @@ export default function StudentWrongAnswersPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span>❌ YANLIŞLAR</span>
-                          {sortBy === 'wrong_desc' && <ArrowDown size={12} color="#f87171" />}
+                          {sortBy === 'wrong_desc' && <ArrowDown size={12} color="#dc2626" />}
                         </div>
                       </th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>⚪ BOŞLAR</th>
@@ -1667,9 +1667,9 @@ export default function StudentWrongAnswersPage() {
                     {filteredTestSubmissions.map((sub, idx) => {
                       const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
                       const isEven = idx % 2 === 0;
-                      let rowBg = isEven ? 'rgba(30, 41, 59, 0.95)' : 'rgba(21, 30, 45, 0.92)';
+                      let rowBg = isEven ? '#ffffff' : '#f8fafc';
                       if (sub.isReviewed) {
-                        rowBg = isEven ? 'rgba(16, 185, 129, 0.09)' : 'rgba(16, 185, 129, 0.04)';
+                        rowBg = isEven ? '#f0fdf4' : '#f7fee7';
                       }
 
                       return (
@@ -1677,23 +1677,23 @@ export default function StudentWrongAnswersPage() {
                           key={sub.id || idx}
                           className="wa-table-row"
                           style={{
-                            borderBottom: '1px solid rgba(255,255,255,0.07)',
+                            borderBottom: '1px solid #f1f5f9',
                             background: rowBg
                           }}
                         >
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem', marginBottom: 2 }}>
+                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem', marginBottom: 2 }}>
                               {sub.testTitle || 'Test Sınavı'}
                             </div>
                             {(sub.unit || sub.topic) && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 4 }}>
                                 {sub.unit && (
-                                  <span style={{ background: 'rgba(99, 102, 241, 0.22)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.35)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900 }}>
+                                  <span style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900 }}>
                                     📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
                                   </span>
                                 )}
                                 {sub.topic && (
-                                  <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', border: '1px solid rgba(255, 255, 255, 0.14)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                                  <span style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
                                     📌 {sub.topic}
                                   </span>
                                 )}
@@ -1705,7 +1705,7 @@ export default function StudentWrongAnswersPage() {
                               {sub.subject}
                             </span>
                           </td>
-                          <td style={{ padding: '0.85rem 1rem', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '0.85rem 1rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                             {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
@@ -1715,14 +1715,14 @@ export default function StudentWrongAnswersPage() {
                                   <button
                                     key={q.qNum}
                                     onClick={(e) => handleOpenReview(sub.id, e)}
-                                    style={{ background: 'rgba(244, 63, 94, 0.25)', color: '#f87171', border: '1px solid rgba(244, 63, 94, 0.4)', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
                                   >
                                     S.{q.qNum}
                                   </button>
                                 ))}
                               </div>
                             ) : (
-                              <span style={{ color: '#34d399', fontWeight: 800, fontSize: '0.72rem' }}>✓ Yok</span>
+                              <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.72rem' }}>✓ Yok</span>
                             )}
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
@@ -1732,7 +1732,7 @@ export default function StudentWrongAnswersPage() {
                                   <button
                                     key={q.qNum}
                                     onClick={(e) => handleOpenReview(sub.id, e)}
-                                    style={{ background: 'rgba(255, 255, 255, 0.12)', color: '#f1f5f9', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
+                                    style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
                                   >
                                     S.{q.qNum}
                                   </button>
@@ -1746,9 +1746,9 @@ export default function StudentWrongAnswersPage() {
                             <button
                               onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
                               style={{
-                                background: sub.isReviewed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                color: sub.isReviewed ? '#34d399' : '#fbbf24',
-                                border: sub.isReviewed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
+                                background: sub.isReviewed ? '#f0fdf4' : '#fffbeb',
+                                color: sub.isReviewed ? '#15803d' : '#b45309',
+                                border: sub.isReviewed ? '1px solid #bbf7d0' : '1px solid #fde68a',
                                 padding: '0.25rem 0.55rem',
                                 borderRadius: '8px',
                                 fontWeight: 800,
@@ -1802,12 +1802,12 @@ export default function StudentWrongAnswersPage() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '0.75rem',
-              background: 'rgba(30, 41, 59, 0.85)',
-              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
               borderRadius: '14px',
               padding: '0.65rem 0.9rem',
               marginBottom: '1rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
             }}>
               {/* Yeni Görsel Ekle Butonu */}
               <button
@@ -1824,7 +1824,7 @@ export default function StudentWrongAnswersPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  boxShadow: '0 4px 14px rgba(225, 29, 72, 0.4)'
+                  boxShadow: '0 4px 14px rgba(225, 29, 72, 0.25)'
                 }}
               >
                 <Plus size={16} /> + Yeni Yanlış Soru Görseli Ekle
@@ -1843,9 +1843,9 @@ export default function StudentWrongAnswersPage() {
                     style={{
                       padding: '0.45rem 0.75rem',
                       borderRadius: '8px',
-                      border: notebookStatusFilter === tab.key ? '1px solid rgba(225, 29, 72, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
-                      background: notebookStatusFilter === tab.key ? 'rgba(225, 29, 72, 0.25)' : 'rgba(15, 23, 42, 0.5)',
-                      color: notebookStatusFilter === tab.key ? '#fb7185' : '#cbd5e1',
+                      border: notebookStatusFilter === tab.key ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                      background: notebookStatusFilter === tab.key ? '#fef2f2' : '#f8fafc',
+                      color: notebookStatusFilter === tab.key ? '#dc2626' : '#64748b',
                       fontWeight: 800,
                       fontSize: '0.76rem',
                       cursor: 'pointer'
@@ -1872,13 +1872,13 @@ export default function StudentWrongAnswersPage() {
                     key={err.id}
                     className="wa-card"
                     style={{
-                      background: 'rgba(30, 41, 59, 0.95)',
-                      border: isResolved ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1.5px solid rgba(255, 255, 255, 0.12)',
+                      background: '#ffffff',
+                      border: isResolved ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0',
                       borderRadius: '16px',
                       overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
-                      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)'
+                      boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
                     }}
                   >
                     {/* Görsel Kutusu */}
@@ -1886,13 +1886,14 @@ export default function StudentWrongAnswersPage() {
                       onClick={() => setViewingErrorModal(err)}
                       style={{
                         height: 160,
-                        background: '#0f172a',
+                        background: '#f8fafc',
                         position: 'relative',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        borderBottom: '1px solid #e2e8f0'
                       }}
                     >
                       <img
@@ -1904,7 +1905,7 @@ export default function StudentWrongAnswersPage() {
                         position: 'absolute',
                         bottom: 8,
                         right: 8,
-                        background: 'rgba(0,0,0,0.75)',
+                        background: 'rgba(15, 23, 42, 0.75)',
                         color: '#fff',
                         fontSize: '0.68rem',
                         fontWeight: 800,
@@ -1925,18 +1926,18 @@ export default function StudentWrongAnswersPage() {
                           {err.subject}
                         </span>
                         {err.reason && (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fb7185' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626' }}>
                             {err.reason}
                           </span>
                         )}
                       </div>
 
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
                         {err.testTitle || 'Ödev / Deneme Sorusu'}
                       </div>
 
                       {err.note && (
-                        <div style={{ fontSize: '0.74rem', color: '#cbd5e1', background: 'rgba(15, 23, 42, 0.6)', padding: '0.35rem 0.55rem', borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#475569', background: '#f8fafc', padding: '0.35rem 0.55rem', borderRadius: 6, border: '1px solid #e2e8f0' }}>
                           💬 {err.note}
                         </div>
                       )}
@@ -1947,9 +1948,9 @@ export default function StudentWrongAnswersPage() {
                           onClick={(e) => handleToggleStatus(err.id, err.status, e)}
                           style={{
                             flex: 1,
-                            background: isResolved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(225, 29, 72, 0.2)',
-                            color: isResolved ? '#34d399' : '#fb7185',
-                            border: isResolved ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(225, 29, 72, 0.4)',
+                            background: isResolved ? '#f0fdf4' : '#fef2f2',
+                            color: isResolved ? '#15803d' : '#dc2626',
+                            border: isResolved ? '1px solid #bbf7d0' : '1px solid #fecaca',
                             padding: '0.45rem',
                             borderRadius: '8px',
                             fontWeight: 800,
@@ -1967,9 +1968,9 @@ export default function StudentWrongAnswersPage() {
                         <button
                           onClick={(e) => handleDeleteErrorRecord(err.id, e)}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            color: '#f87171',
-                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
                             padding: '0.45rem',
                             borderRadius: '8px',
                             cursor: 'pointer'
@@ -1989,14 +1990,14 @@ export default function StudentWrongAnswersPage() {
                   gridColumn: '1 / -1',
                   padding: '3rem 1rem',
                   textAlign: 'center',
-                  background: 'rgba(30, 41, 59, 0.6)',
+                  background: '#ffffff',
                   borderRadius: '16px',
-                  border: '1.5px dashed rgba(255, 255, 255, 0.16)',
-                  color: '#94a3b8'
+                  border: '1.5px dashed #cbd5e1',
+                  color: '#64748b'
                 }}>
-                  <Camera size={36} color="#fb7185" style={{ marginBottom: '0.5rem' }} />
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>Görsel Hata Defteriniz Boş</div>
-                  <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#cbd5e1' }}>Çözemediğiniz veya tekrar etmek istediğiniz soruların fotoğrafını ekleyebilirsiniz.</div>
+                  <Camera size={36} color="#ef4444" style={{ marginBottom: '0.5rem' }} />
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>Görsel Hata Defteriniz Boş</div>
+                  <div style={{ fontSize: '0.78rem', marginTop: 4, color: '#64748b' }}>Çözemediğiniz veya tekrar etmek istediğiniz soruların fotoğrafını ekleyebilirsiniz.</div>
                 </div>
               )}
             </div>
@@ -2009,20 +2010,20 @@ export default function StudentWrongAnswersPage() {
           MODAL 1: + YANLIŞ SORU GÖRSELİ EKLE
       ════════════════════════════════════════════ */}
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#1e293b', borderRadius: '20px', padding: '1.4rem', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#f8fafc' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.4rem', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', color: '#0f172a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Camera size={20} color="#fb7185" />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#ffffff' }}>Yanlış Soru Görseli Ekle</h3>
+                <Camera size={20} color="#e11d48" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>Yanlış Soru Görseli Ekle</h3>
               </div>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}><X size={18} /></button>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={18} /></button>
             </div>
 
             <form onSubmit={handleSaveNewError} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {/* 1. Ait Olduğu Ödev / Sınav */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#cbd5e1', display: 'block', marginBottom: 4 }}>Ait Olduğu Sınav / Ödev / Kitap</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Ait Olduğu Sınav / Ödev / Kitap</label>
                 <select
                   value={newErrorForm.homeworkId}
                   onChange={e => {
@@ -2036,11 +2037,11 @@ export default function StudentWrongAnswersPage() {
                       topic: matched?.topic || (matched?.unit ? `Ünite: ${matched.unit}` : p.topic)
                     }));
                   }}
-                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '10px', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(15, 23, 42, 0.6)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
                 >
-                  <option value="" style={{ background: '#1e293b' }}>-- Ödev, Sınav veya Kitap Testi Seçin --</option>
+                  <option value="">-- Ödev, Sınav veya Kitap Testi Seçin --</option>
                   {availableHomeworkOptions.map(hw => (
-                    <option key={hw.id} value={hw.id} style={{ background: '#1e293b' }}>
+                    <option key={hw.id} value={hw.id}>
                       {hw.title} ({hw.subject}) {hw.unit ? `[${hw.unit}]` : ''}
                     </option>
                   ))}
@@ -2049,23 +2050,23 @@ export default function StudentWrongAnswersPage() {
 
               {/* 2. Ders */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#cbd5e1', display: 'block', marginBottom: 4 }}>Ders</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Ders</label>
                 <select
                   value={newErrorForm.subject}
                   onChange={e => setNewErrorForm(p => ({ ...p, subject: e.target.value }))}
-                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '10px', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(15, 23, 42, 0.6)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
                 >
                   {Object.keys(SUBJECT_CONFIG).filter(k => k !== 'Tümü').map(k => (
-                    <option key={k} value={k} style={{ background: '#1e293b' }}>{k}</option>
+                    <option key={k} value={k}>{k}</option>
                   ))}
                 </select>
               </div>
 
               {/* 3. Görsel Yükleme */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#cbd5e1', display: 'block', marginBottom: 4 }}>Soru Fotoğrafı</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Soru Fotoğrafı</label>
                 {newErrorForm.imageUrl ? (
-                  <div style={{ position: 'relative', height: 140, borderRadius: '12px', overflow: 'hidden', border: '2px solid #e11d48', background: '#0f172a' }}>
+                  <div style={{ position: 'relative', height: 140, borderRadius: '12px', overflow: 'hidden', border: '2px solid #e11d48', background: '#f8fafc' }}>
                     <img src={newErrorForm.imageUrl} alt="Soru Önizleme" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     <button
                       type="button"
@@ -2076,9 +2077,9 @@ export default function StudentWrongAnswersPage() {
                     </button>
                   </div>
                 ) : (
-                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', background: 'rgba(15, 23, 42, 0.4)', border: '2px dashed rgba(255,255,255,0.2)', borderRadius: '12px', cursor: 'pointer' }}>
-                    <Upload size={24} color="#fb7185" style={{ marginBottom: 4 }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ffffff' }}>Fotoğraf Seç veya Çek</span>
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', cursor: 'pointer' }}>
+                    <Upload size={24} color="#e11d48" style={{ marginBottom: 4 }} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>Fotoğraf Seç veya Çek</span>
                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                   </label>
                 )}
@@ -2086,7 +2087,7 @@ export default function StudentWrongAnswersPage() {
 
               {/* 4. Hata Nedeni */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#cbd5e1', display: 'block', marginBottom: 4 }}>Hata Nedeni</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Hata Nedeni</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {REASON_PRESETS.map(preset => (
                     <button
@@ -2094,9 +2095,9 @@ export default function StudentWrongAnswersPage() {
                       type="button"
                       onClick={() => setNewErrorForm(p => ({ ...p, reason: preset }))}
                       style={{
-                        border: newErrorForm.reason === preset ? 'none' : '1px solid rgba(255,255,255,0.14)',
-                        background: newErrorForm.reason === preset ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'rgba(15, 23, 42, 0.5)',
-                        color: newErrorForm.reason === preset ? 'white' : '#cbd5e1',
+                        border: newErrorForm.reason === preset ? 'none' : '1px solid #cbd5e1',
+                        background: newErrorForm.reason === preset ? 'linear-gradient(135deg, #e11d48, #be123c)' : '#f8fafc',
+                        color: newErrorForm.reason === preset ? 'white' : '#475569',
                         fontSize: '0.7rem',
                         fontWeight: 800,
                         padding: '0.25rem 0.5rem',
@@ -2112,18 +2113,18 @@ export default function StudentWrongAnswersPage() {
 
               {/* 5. Not */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#cbd5e1', display: 'block', marginBottom: 4 }}>Notunuz / Çözüm Açıklaması</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Notunuz / Çözüm Açıklaması</label>
                 <textarea
                   rows={2}
                   placeholder="Doğru çözüm adımları veya dikkat edilecek ipuçları..."
                   value={newErrorForm.note}
                   onChange={e => setNewErrorForm(p => ({ ...p, note: e.target.value }))}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '10px', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(15, 23, 42, 0.5)', color: '#ffffff', fontSize: '0.8rem', fontWeight: 600, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', fontWeight: 600, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.35rem' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: 'none', borderRadius: '10px', padding: '0.55rem 1rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>İptal</button>
+                <button type="button" onClick={() => setShowAddModal(false)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', padding: '0.55rem 1rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>İptal</button>
                 <button type="submit" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', color: 'white', border: 'none', borderRadius: '10px', padding: '0.55rem 1.25rem', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer' }}>Kaydet</button>
               </div>
             </form>
@@ -2135,44 +2136,44 @@ export default function StudentWrongAnswersPage() {
           MODAL 2: GÖRSEL DETAY & BÜYÜTME
       ════════════════════════════════════════════ */}
       {viewingErrorModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#1e293b', borderRadius: '20px', padding: '1.4rem', width: '100%', maxWidth: 750, maxHeight: '92vh', overflowY: 'auto', border: '1.5px solid rgba(255,255,255,0.18)', display: 'flex', flexDirection: 'column', gap: '0.85rem', color: '#f8fafc' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.65rem' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.4rem', width: '100%', maxWidth: 750, maxHeight: '92vh', overflowY: 'auto', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', color: '#0f172a', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem' }}>
               <div>
                 <span style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', color: 'white', fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 6, textTransform: 'uppercase' }}>
                   {viewingErrorModal.subject}
                 </span>
-                <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.15rem', fontWeight: 900, color: '#ffffff' }}>
+                <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
                   {viewingErrorModal.testTitle}
                 </h3>
               </div>
-              <button onClick={() => setViewingErrorModal(null)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.8)' }}><X size={16} /></button>
+              <button onClick={() => setViewingErrorModal(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}><X size={16} /></button>
             </div>
 
             {/* Büyük Görsel */}
-            <div style={{ background: '#0f172a', borderRadius: '12px', overflow: 'hidden', minHeight: 300, maxHeight: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', overflow: 'hidden', minHeight: 300, maxHeight: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem', border: '1px solid #e2e8f0' }}>
               <img src={viewingErrorModal.imageUrl} alt="Soru" style={{ maxWidth: '100%', maxHeight: 440, objectFit: 'contain' }} />
             </div>
 
             {/* Detaylar */}
-            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.85rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {viewingErrorModal.reason && (
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fb7185' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626' }}>
                   ⚡ Hata Nedeni: {viewingErrorModal.reason}
                 </div>
               )}
               {viewingErrorModal.note && (
-                <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>
+                <div style={{ fontSize: '0.8rem', color: '#475569' }}>
                   💬 Not: {viewingErrorModal.note}
                 </div>
               )}
             </div>
 
             {/* Aksiyonlar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid #e2e8f0' }}>
               <button
                 onClick={e => handleDeleteErrorRecord(viewingErrorModal.id, e)}
-                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.35)', borderRadius: '10px', padding: '0.5rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '0.5rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
               >
                 <Trash2 size={14} /> Görseli Sil
               </button>
@@ -2181,9 +2182,9 @@ export default function StudentWrongAnswersPage() {
                 <button
                   onClick={e => handleToggleStatus(viewingErrorModal.id, viewingErrorModal.status, e)}
                   style={{
-                    background: viewingErrorModal.status === 'resolved' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(225, 29, 72, 0.25)',
-                    color: viewingErrorModal.status === 'resolved' ? '#34d399' : '#fb7185',
-                    border: viewingErrorModal.status === 'resolved' ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(225, 29, 72, 0.45)',
+                    background: viewingErrorModal.status === 'resolved' ? '#f0fdf4' : '#fef2f2',
+                    color: viewingErrorModal.status === 'resolved' ? '#15803d' : '#dc2626',
+                    border: viewingErrorModal.status === 'resolved' ? '1px solid #bbf7d0' : '1px solid #fecaca',
                     borderRadius: '10px',
                     padding: '0.5rem 1rem',
                     fontWeight: 900,
@@ -2196,7 +2197,7 @@ export default function StudentWrongAnswersPage() {
                 >
                   {viewingErrorModal.status === 'resolved' ? <><RotateCcw size={14} /> Tekrar Et</> : <><CheckCircle2 size={14} /> Öğrenildi Olarak İşaretle</>}
                 </button>
-                <button onClick={() => setViewingErrorModal(null)} style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: 'none', borderRadius: '10px', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>Kapat</button>
+                <button onClick={() => setViewingErrorModal(null)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>Kapat</button>
               </div>
             </div>
           </div>
