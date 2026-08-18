@@ -25,6 +25,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
+import './StudentDashboard.css';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 const parseSafeDate = (d) => {
@@ -1390,13 +1391,7 @@ export default function StudentDashboard() {
   }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats]);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#0f172a',
-      paddingBottom: '5rem'
-    }}>
+    <div className="student-dashboard-page">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         @keyframes pulseGlow {
@@ -1705,24 +1700,20 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             2. HAFTALIK DERS PROGRAMI ŞERİDİ (7-DAY NAVIGATOR)
         ════════════════════════════════════════════ */}
-        <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #cbd5e1',
-          borderRadius: 22,
+        <div className="sd-card" style={{
           padding: isMobile ? '0.85rem 0.75rem' : '1.1rem 1.4rem',
-          marginBottom: '1.5rem',
-          boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+          marginBottom: '1.5rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Calendar size={17} color="#4f46e5" />
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={17} color="#6366f1" />
               </div>
               <div>
-                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   Haftalık Çalışma & Görev Takvimi
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginLeft: 8 }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
                   (Günü seçerek o günkü görevleri gör)
                 </span>
               </div>
@@ -1767,16 +1758,16 @@ export default function StudentDashboard() {
                     background: isSelected
                       ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                       : isCurrentToday
-                      ? '#e0e7ff'
-                      : '#f8fafc',
+                      ? 'var(--color-surface-hover)'
+                      : 'var(--color-surface)',
                     border: isSelected
                       ? '2px solid #6366f1'
                       : isCurrentToday
                       ? '1.5px solid #6366f1'
-                      : '1px solid #e2e8f0',
+                      : '1px solid var(--color-border)',
                     borderRadius: 14,
                     padding: isMobile ? '0.5rem 0.15rem' : '0.7rem 0.5rem',
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#4338ca' : '#334155',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#818cf8' : 'var(--color-text)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1833,11 +1824,7 @@ export default function StudentDashboard() {
             <div
               className="sd-card"
               style={{
-                background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
-                borderRadius: 22,
                 padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-                boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between'
@@ -2064,12 +2051,8 @@ export default function StudentDashboard() {
             </div>
 
             {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 20,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2077,10 +2060,10 @@ export default function StudentDashboard() {
                     📋
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
                       Ödevlerim & Görev Takibi
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                       Öğretmeniniz veya koçunuz tarafından atanan ödevlerin durumu
                     </span>
                   </div>
@@ -2168,12 +2151,8 @@ export default function StudentDashboard() {
             </div>
 
             {/* 📝 BÖLÜM 2: SON ÇÖZÜLEN TESTLER */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 20,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2191,10 +2170,10 @@ export default function StudentDashboard() {
                     📝
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
                       Son Çözülen Testler
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                       Son tamamlanan 5 test ve başarı analizleriniz
                     </span>
                   </div>
@@ -2335,12 +2314,8 @@ export default function StudentDashboard() {
             </div>
 
             {/* 🗺️ BÖLÜM 3: YOL HARİTAM & KONU TAKİBİ */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 20,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2348,10 +2323,10 @@ export default function StudentDashboard() {
                     🗺️
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
                       Yol Haritam & Konu Takibi
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                       Müfredat ve hedef sınav konu tamamlama ilerlemeniz
                     </span>
                   </div>
@@ -2428,12 +2403,8 @@ export default function StudentDashboard() {
             </div>
 
             {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 20,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2452,7 +2423,7 @@ export default function StudentDashboard() {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                      <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
                         Hedef Takip Panosu
                       </h2>
                       {goalTrackingData.totalItemsCount > 0 && (
@@ -2734,19 +2705,19 @@ export default function StudentDashboard() {
 
       {/* GOAL MODAL */}
       {showGoalModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.6)', backdropFilter:'blur(10px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
-          <div style={{ background:'#ffffff', border:'1.5px solid #cbd5e1', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease', color: '#1e293b' }}>
-            {isMobile && <div style={{ width:40, height:4, background:'#cbd5e1', borderRadius:99, margin:'0 auto 1.25rem' }} />}
+        <div style={{ position:'fixed', inset:0, background:'var(--color-modal-overlay)', backdropFilter:'blur(10px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
+          <div style={{ background:'var(--color-surface)', border:'1.5px solid var(--color-border)', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.35)', animation:'sdFadeUp 0.3s ease', color: 'var(--color-text)' }}>
+            {isMobile && <div style={{ width:40, height:4, background:'var(--color-border-input)', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'1px solid #cbd5e1', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'#334155' }}><X size={16} /></button>
+              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'var(--color-text)', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'var(--color-surface-hover)', border:'1px solid var(--color-border-input)', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'var(--color-text-secondary)' }}><X size={16} /></button>
             </div>
             <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
               <input placeholder="Hedef başlığı (örn: Günde 50 Matematik Sorusu)..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid var(--color-border-input)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'var(--color-surface-hover)', color:'var(--color-text)', width:'100%' }} required />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid var(--color-border-input)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'var(--color-surface-hover)', color:'var(--color-text)' }}>
                   {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#ffffff', color:'#0f172a' }}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}

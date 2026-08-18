@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════
+   STUDENT DASHBOARD - DUAL THEME DESIGN SYSTEM
+   ═══════════════════════════════════════════════════ */
+
+.student-dashboard-page {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
+    var(--color-bg);
+  background-attachment: fixed;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--color-text);
+  padding-bottom: 5rem;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+[data-theme="dark"] .student-dashboard-page {
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.10) 0%, transparent 45%),
+    #0b0f19;
+}
+
+/* Card Foundation */
+.sd-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 22px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  color: var(--color-text);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .sd-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.sd-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-input) !important;
+  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.15) !important;
+}
+
+.sd-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sd-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+}
+
+.sd-btn:active {
+  transform: translateY(0);
+}
+
+.sd-kpi {
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sd-kpi::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.sd-kpi:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45) !important;
+}
+
+.sd-success {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.sd-success:hover {
+  transform: scale(1.1) rotate(3deg);
+}
+
+.sd-grid-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .sd-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}

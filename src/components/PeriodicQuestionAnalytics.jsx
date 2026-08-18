@@ -249,33 +249,33 @@ export default function PeriodicQuestionAnalytics({
     const data = payload[0]?.payload;
     return (
       <div style={{
-        background: '#ffffff',
-        color: '#0f172a',
+        background: 'var(--color-surface)',
+        color: 'var(--color-text)',
         padding: isMobile ? '6px 10px' : '8px 12px',
         borderRadius: '10px',
-        border: '1.5px solid #e2e8f0',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+        border: '1.5px solid var(--color-border)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
         fontSize: isMobile ? '0.72rem' : '0.8rem',
         minWidth: 130
       }}>
-        <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: 3, borderBottom: '1px solid #e2e8f0', paddingBottom: 2 }}>
+        <div style={{ fontWeight: 900, color: '#818cf8', marginBottom: 3, borderBottom: '1px solid var(--color-border)', paddingBottom: 2 }}>
           {data?.fullLabel || data?.label || label}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#64748b' }}>Soru:</span>
-          <span style={{ fontWeight: 900, color: '#2563eb' }}>{data?.toplamSoru || 0}</span>
+          <span style={{ color: 'var(--color-text-muted)' }}>Soru:</span>
+          <span style={{ fontWeight: 900, color: '#38bdf8' }}>{data?.toplamSoru || 0}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#64748b' }}>Doğru:</span>
-          <span style={{ fontWeight: 900, color: '#15803d' }}>{data?.doğru || 0}</span>
+          <span style={{ color: 'var(--color-text-muted)' }}>Doğru:</span>
+          <span style={{ fontWeight: 900, color: '#34d399' }}>{data?.doğru || 0}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#64748b' }}>Yanlış:</span>
-          <span style={{ fontWeight: 900, color: '#b91c1c' }}>{data?.yanlış || 0}</span>
+          <span style={{ color: 'var(--color-text-muted)' }}>Yanlış:</span>
+          <span style={{ fontWeight: 900, color: '#f87171' }}>{data?.yanlış || 0}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 3, paddingTop: 2, borderTop: '1px dashed #e2e8f0' }}>
-          <span style={{ color: '#b45309', fontWeight: 800 }}>Başarı:</span>
-          <span style={{ fontWeight: 900, color: '#b45309' }}>%{data?.başarıOranı || 0}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 3, paddingTop: 2, borderTop: '1px dashed var(--color-border)' }}>
+          <span style={{ color: '#fbbf24', fontWeight: 800 }}>Başarı:</span>
+          <span style={{ fontWeight: 900, color: '#fbbf24' }}>%{data?.başarıOranı || 0}</span>
         </div>
       </div>
     );
@@ -283,12 +283,13 @@ export default function PeriodicQuestionAnalytics({
 
   return (
     <div style={{
-      background: '#ffffff',
+      background: 'var(--color-surface)',
       borderRadius: isMobile ? '1rem' : '1.25rem',
-      border: '1.5px solid #e2e8f0',
+      border: '1.5px solid var(--color-border)',
       padding: isMobile ? '0.85rem' : '1.35rem',
       boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-      fontFamily: "'Inter', -apple-system, system-ui, sans-serif"
+      fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+      color: 'var(--color-text)'
     }}>
 
       {/* ── ÜST BAŞLIK VE KONTROLLER (APP HEADER) ── */}
@@ -516,14 +517,14 @@ export default function PeriodicQuestionAnalytics({
 
       {/* ── GRAFİK & DETAY GÖRÜNÜM SEÇİCİ SEKMELERİ (MOBİL İÇİN YERDEN TASARRUF) ── */}
       <div style={{
-        background: '#f8fafc',
+        background: 'var(--color-surface-hover)',
         borderRadius: '0.75rem',
         padding: '3px',
         display: 'flex',
         alignItems: 'center',
         gap: 3,
         marginBottom: '0.85rem',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--color-border)',
         overflowX: 'auto'
       }}>
         {[
@@ -543,13 +544,13 @@ export default function PeriodicQuestionAnalytics({
                 padding: isMobile ? '0.35rem 0.4rem' : '0.4rem 0.8rem',
                 borderRadius: '0.55rem',
                 border: 'none',
-                background: isActive ? '#ffffff' : 'transparent',
-                color: isActive ? '#4f46e5' : '#64748b',
+                background: isActive ? 'var(--color-surface)' : 'transparent',
+                color: isActive ? '#818cf8' : 'var(--color-text-muted)',
                 fontWeight: 900,
                 fontSize: isMobile ? '0.72rem' : '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
                 whiteSpace: 'nowrap',
                 textAlign: 'center'
               }}
