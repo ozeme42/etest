@@ -11,11 +11,26 @@ import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight, ChevronDown,
   Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
-  Brain, Award, ArrowLeft, Calendar, Zap, Compass, CheckCircle, BarChart3
+  Brain, Award, ArrowLeft, Calendar, Zap, Compass, CheckCircle, BarChart3, Pencil
 } from 'lucide-react';
 
 const WEEK_DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const MONTH_WEEKS = ['Hafta 1', 'Hafta 2', 'Hafta 3', 'Hafta 4'];
+
+const getGradeTargetLabel = (val) => {
+  if (val === 'Teşekkür') return '🧡 Teşekkür Belgesi (70–84 Puan)';
+  if (val === 'Takdir') return '🏅 Takdir Belgesi (85+ Puan)';
+  if (val === 'Onur') return '⭐ Onur Belgesi (Tüm dersler yüksek)';
+  return '🟢 Takçek (Temel Seviye)';
+};
+
+const getExamTypeLabel = (type, customName) => {
+  if (type === 'LGS 2026') return '🎓 LGS (Liselere Geçiş Sınavı)';
+  if (type === 'YKS (TYT/AYT) 2026') return '🏛️ YKS (TYT & AYT Sınavı)';
+  if (type === 'KPSS') return '💼 KPSS (Kamu Personeli Seçme Sınavı)';
+  if (type === 'Ara Sınıf Takip & Takdir Hedefi') return '📊 Ara Sınıf Takip & Takdir Hedefi';
+  return `✏️ ${customName || 'Özel Sınav'}`;
+};
 
 const GOAL_TYPE_CONFIG = {
   Soru:   { color: '#e11d48', bg: '#ffe4e6', light: '#fff1f2', text: '#be123c', border: '#fecdd3', icon: Target,      unit: 'soru'  },
@@ -821,6 +836,7 @@ export default function GoalsAndSchedulePage() {
   const [gradeClass, setGradeClass] = useState(coachingProfile.gradeClass || coachingProfile.goals?.gradeClass || '');
   const [gradeTerm, setGradeTerm] = useState(coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm || '1');
   const [gradeTarget, setGradeTarget] = useState(coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takçek');
+  const [isEditingAcademic, setIsEditingAcademic] = useState(false);
 
   // Lists
   const [monthlyItems, setMonthlyItems] = useState(() => parseCheckableGoalList(coachingProfile.monthlyGoals, [
@@ -1359,7 +1375,7 @@ export default function GoalsAndSchedulePage() {
         {activeTab === 'academic' && (
           <div className="goal-anim" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             
-            {/* Sınav & Okul & Puan Formu */}
+            {/* Sınav & Okul & Puan Kartı (Görünüm ve Düzenleme Modu) */}
             <div style={{
               background: '#ffffff',
               border: '1.5px solid #e2e8f0',
@@ -1374,189 +1390,288 @@ export default function GoalsAndSchedulePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', fontWeight: 900, fontSize: '0.9rem' }}>
                   <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Sınav & Okul Hedefleri
                 </div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#d1fae5', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #a7f3d0' }}>
-                  Akademik
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {!isEditingAcademic ? (
+                    <button
+                      onClick={() => setIsEditingAcademic(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '0.65rem',
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        color: '#334155',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <Pencil size={12} /> Düzenle
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #bfdbfe' }}>
+                      Düzenleme Modu
+                    </span>
+                  )}
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#d1fae5', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #a7f3d0' }}>
+                    Akademik
+                  </span>
+                </div>
               </div>
 
-              {(() => {
-                const isStandardExam = ['LGS 2026', 'YKS (TYT/AYT) 2026', 'KPSS', 'Ara Sınıf Takip & Takdir Hedefi'].includes(examGoalType);
-                const isGradeTracking = examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+              {/* 🌟 1. READ-ONLY SUMMARY / SHOWCASE VIEW */}
+              {!isEditingAcademic ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '1rem',
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınav / Hedef Türü</span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{getExamTypeLabel(examGoalType, customExamName)}</span>
+                      </div>
 
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
-                      <select
-                        value={isStandardExam ? examGoalType : 'Özel Sınav'}
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (val === 'Özel Sınav') {
-                            setExamGoalType('Özel Sınav');
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: 'Özel Sınav', customExamName: customExamName || '' });
-                          } else {
-                            setExamGoalType(val);
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: val });
-                          }
-                        }}
-                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                      >
-                        <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
-                        <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
-                        <option value="KPSS">💼 KPSS (Kamu Personeli Seçme Sınavı)</option>
-                        <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
-                        <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
-                      </select>
+                      {examGoalType === 'Ara Sınıf Takip & Takdir Hedefi' ? (
+                        <>
+                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınıf & Dönem</span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{gradeClass || '5. Sınıf'} · {gradeTerm ? `${gradeTerm}. Dönem` : '1. Dönem'}</span>
+                          </div>
+
+                          <div style={{ background: '#f0fdf4', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', gridColumn: 'span 2' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Hedef Belgem</span>
+                            <span style={{ fontSize: '1rem', fontWeight: 900, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {getGradeTargetLabel(gradeTarget)}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Okul / Bölüm</span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{targetSchool || 'Belirtilmedi'}</span>
+                          </div>
+
+                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Puan</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0284c7' }}>{targetScore ? `${targetScore} Puan` : '—'}</span>
+                          </div>
+
+                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Toplam Net</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#7c3aed' }}>{targetNet ? `${targetNet} Net` : '—'}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
+                  </div>
 
-                    {(!isStandardExam || examGoalType === 'Özel Sınav') && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 2 }}>
+                    <button
+                      onClick={() => setIsEditingAcademic(true)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '0.55rem 1.15rem',
+                        borderRadius: '0.75rem',
+                        background: '#f8fafc',
+                        border: '1.5px solid #cbd5e1',
+                        color: '#1e293b',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Pencil size={14} /> Bilgileri Güncelle / Düzenle
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* 🌟 2. EDIT FORM VIEW */
+                (() => {
+                  const isStandardExam = ['LGS 2026', 'YKS (TYT/AYT) 2026', 'KPSS', 'Ara Sınıf Takip & Takdir Hedefi'].includes(examGoalType);
+                  const isGradeTracking = examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                       <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
-                        <input
-                          type="text"
-                          placeholder="Örn: DGS, ALES, BİLSEM..."
-                          value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
+                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
+                        <select
+                          value={isStandardExam ? examGoalType : 'Özel Sınav'}
                           onChange={e => {
                             const val = e.target.value;
-                            setCustomExamName(val);
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { customExamName: val, examGoalType: val || 'Özel Sınav' });
+                            if (val === 'Özel Sınav') {
+                              setExamGoalType('Özel Sınav');
+                            } else {
+                              setExamGoalType(val);
+                            }
                           }}
-                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #c084fc', background: '#faf5ff', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                        />
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                        >
+                          <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+                          <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+                          <option value="KPSS">💼 KPSS (Kamu Personeli Seçme Sınavı)</option>
+                          <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+                          <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
+                        </select>
                       </div>
-                    )}
 
-                    {isGradeTracking ? (
-                      <>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                          <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
-                            <select
-                              value={gradeClass}
-                              onChange={e => {
-                                setGradeClass(e.target.value);
-                                saveAllProfilesWithLists(undefined, undefined, undefined, { gradeClass: e.target.value });
-                              }}
-                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
-                            >
-                              <option value="">— Seçin —</option>
-                              {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Dönem</label>
-                            <select
-                              value={gradeTerm}
-                              onChange={e => {
-                                setGradeTerm(e.target.value);
-                                saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTerm: e.target.value });
-                              }}
-                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
-                            >
-                              <option value="1">1. Dönem</option>
-                              <option value="2">2. Dönem</option>
-                              <option value="yıllık">Yıllık</option>
-                            </select>
-                          </div>
-                        </div>
-
+                      {(!isStandardExam || examGoalType === 'Özel Sınav') && (
                         <div>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
-                          <select
-                            value={gradeTarget}
-                            onChange={e => {
-                              setGradeTarget(e.target.value);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTarget: e.target.value });
-                            }}
-                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #86efac', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem', fontWeight: 800, outline: 'none' }}
-                          >
-                            <option value="Takçek">🟢 Takçek (Temel Seviye)</option>
-                            <option value="Teşekkür">🧡 Teşekkür Belgesi (70–84 Puan)</option>
-                            <option value="Takdir">🏅 Takdir Belgesi (85+ Puan)</option>
-                            <option value="Onur">⭐ Onur Belgesi (Tüm dersler yüksek)</option>
-                          </select>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
                           <input
                             type="text"
-                            placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
-                            value={targetSchool}
-                            onChange={e => {
-                              setTargetSchool(e.target.value);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetSchool: e.target.value });
-                            }}
-                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                            placeholder="Örn: DGS, ALES, BİLSEM..."
+                            value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
+                            onChange={e => setCustomExamName(e.target.value)}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #c084fc', background: '#faf5ff', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                           />
                         </div>
+                      )}
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      {isGradeTracking ? (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
+                              <select
+                                value={gradeClass}
+                                onChange={e => setGradeClass(e.target.value)}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                              >
+                                <option value="">— Seçin —</option>
+                                {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Dönem</label>
+                              <select
+                                value={gradeTerm}
+                                onChange={e => setGradeTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                              >
+                                <option value="1">1. Dönem</option>
+                                <option value="2">2. Dönem</option>
+                                <option value="yıllık">Yıllık</option>
+                              </select>
+                            </div>
+                          </div>
+
                           <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Puan</label>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
+                            <select
+                              value={gradeTarget}
+                              onChange={e => setGradeTarget(e.target.value)}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #86efac', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem', fontWeight: 800, outline: 'none' }}
+                            >
+                              <option value="Takçek">🟢 Takçek (Temel Seviye)</option>
+                              <option value="Teşekkür">🧡 Teşekkür Belgesi (70–84 Puan)</option>
+                              <option value="Takdir">🏅 Takdir Belgesi (85+ Puan)</option>
+                              <option value="Onur">⭐ Onur Belgesi (Tüm dersler yüksek)</option>
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
                             <input
                               type="text"
-                              placeholder="Örn: 485"
-                              value={targetScore}
-                              onChange={e => {
-                                setTargetScore(e.target.value);
-                                saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: e.target.value });
-                              }}
+                              placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+                              value={targetSchool}
+                              onChange={e => setTargetSchool(e.target.value)}
                               style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                             />
                           </div>
 
-                          <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
-                            <input
-                              type="number"
-                              placeholder="Örn: 90"
-                              value={targetNet}
-                              onChange={e => {
-                                setTargetNet(e.target.value);
-                                saveAllProfilesWithLists(undefined, undefined, undefined, { targetNet: e.target.value });
-                              }}
-                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                            />
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Puan</label>
+                              <input
+                                type="text"
+                                placeholder="Örn: 485"
+                                value={targetScore}
+                                onChange={e => setTargetScore(e.target.value)}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
+                              <input
+                                type="number"
+                                placeholder="Örn: 90"
+                                value={targetNet}
+                                onChange={e => setTargetNet(e.target.value)}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
+                        </>
+                      )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 }}>
-                {isSavedNotice ? (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <CheckCircle2 size={16} /> Başarıyla Kaydedildi!
-                  </span>
-                ) : <span />}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingAcademic(false)}
+                          style={{
+                            padding: '0.65rem 1.1rem',
+                            borderRadius: '0.85rem',
+                            background: '#f1f5f9',
+                            border: 'none',
+                            color: '#475569',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          İptal
+                        </button>
 
-                <button
-                  onClick={() => saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '0.65rem 1.25rem',
-                    borderRadius: '0.85rem',
-                    background: 'linear-gradient(135deg, #059669, #10b981)',
-                    color: 'white',
-                    border: 'none',
-                    fontSize: '0.82rem',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
-                    marginLeft: 'auto'
-                  }}
-                >
-                  <Save size={16} /> Bilgileri Kaydet
-                </button>
-              </div>
+                        <button
+                          onClick={async () => {
+                            await saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems);
+                            setIsEditingAcademic(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '0.65rem 1.35rem',
+                            borderRadius: '0.85rem',
+                            background: 'linear-gradient(135deg, #059669, #10b981)',
+                            color: 'white',
+                            border: 'none',
+                            fontSize: '0.82rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                          }}
+                        >
+                          <Save size={16} /> Bilgileri Kaydet
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              {isSavedNotice && (
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                  <CheckCircle2 size={16} /> Hedef Başarıyla Kaydedildi!
+                </div>
+              )}
             </div>
 
             {/* Aylık Kazanımlar Checklist */}
