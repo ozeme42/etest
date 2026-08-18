@@ -48,7 +48,7 @@ export default function CoachingReportModal({
   const grandSuccessRate = grandTotalQuestions > 0 ? Math.round((grandD / grandTotalQuestions) * 100) : 0;
   const grandTotalTests = hwTestsCount + trialCount;
 
-  // 4. Ders Bazlı Soru Karnesi (Ödev & Konu Testlerinden)
+  // 4. Ders Bazlı Soru Karnesi (Ödevler, Konu Testleri & Deneme Sınavları)
   const subjMap = {};
   allHw.forEach(s => {
     const subj = s.subject || s.subjectName || 'Genel';
@@ -58,6 +58,21 @@ export default function CoachingReportModal({
     subjMap[subj].b += (s.emptyCount || 0);
     subjMap[subj].testCount += 1;
   });
+
+  allTrials.forEach(m => {
+    if (m.scores && typeof m.scores === 'object') {
+      Object.entries(m.scores).forEach(([subjName, sc]) => {
+        if (sc && (sc.d > 0 || sc.y > 0 || sc.b > 0 || sc.net > 0)) {
+          if (!subjMap[subjName]) subjMap[subjName] = { d: 0, y: 0, b: 0, testCount: 0 };
+          subjMap[subjName].d += (sc.d || 0);
+          subjMap[subjName].y += (sc.y || 0);
+          subjMap[subjName].b += (sc.b || 0);
+          subjMap[subjName].testCount += 1;
+        }
+      });
+    }
+  });
+
   const subjectList = Object.entries(subjMap).sort((a, b) => (b[1].d + b[1].y + b[1].b) - (a[1].d + a[1].y + a[1].b));
 
   // 5. En Son Deneme

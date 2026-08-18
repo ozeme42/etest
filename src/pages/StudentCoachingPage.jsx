@@ -1047,8 +1047,32 @@ export default function StudentCoachingPage() {
   };
 
   const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
-    const studentIdStr = String(studentId || '');
-    const studentUuidStr = String(toUUID(studentId) || '');
+    const studentIdStr = String(studentId || '').trim();
+    const studentUuidStr = String(toUUID(studentId) || '').trim();
+    const studentNameClean = (targetStudent?.name || personalInfo?.fullName || '').trim().toLowerCase();
+    const studentEmailClean = (targetStudent?.email || '').trim().toLowerCase();
+
+    const isStudentMatch = (s) => {
+      if (!s) return false;
+      const raw = s.raw_data || {};
+      const sid = String(s.studentId || s.student_id || s.userId || s.user_id || raw.studentId || raw.student_id || raw.userId || '').trim();
+      
+      // Direct ID check
+      if (studentIdStr && sid) {
+        if (sid === studentIdStr || sid.toLowerCase() === studentIdStr.toLowerCase()) return true;
+        if (studentUuidStr && (sid === studentUuidStr || String(toUUID(sid)) === studentUuidStr)) return true;
+      }
+      
+      // Name check
+      const sName = (s.studentName || s.student_name || raw.studentName || raw.student_name || '').trim().toLowerCase();
+      if (studentNameClean && sName && (sName === studentNameClean || sName.includes(studentNameClean) || studentNameClean.includes(sName))) return true;
+      
+      // Email check
+      const sEmail = (s.studentEmail || s.student_email || s.email || raw.studentEmail || raw.student_email || '').trim().toLowerCase();
+      if (studentEmailClean && sEmail && sEmail === studentEmailClean) return true;
+
+      return false;
+    };
 
     const normalizeSub = (s, parentHw, defaultType = 'online', subDate = null, testObj = null, bookObj = null) => {
       let title = s.title || s.testTitle || parentHw?.title || 'Sınav / Test';
@@ -1155,13 +1179,11 @@ export default function StudentCoachingPage() {
 
     // 1. EvaluationContext Online Sınavlar & Kitap Testleri (Gerçek çözülenler)
     const onlineEval = [];
-    const processedBookTestKeys = new Set();
+    const processedSubIds = new Set();
 
     (submissions || []).forEach(s => {
       if (!s) return;
-      const sid = String(s.studentId);
-      const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
-      if (!isMatch) return;
+      if (!isStudentMatch(s)) return;
 
       const subIdStr = String(s.id || s.supabaseId || '');
       if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
@@ -1188,13 +1210,11 @@ export default function StudentCoachingPage() {
       const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId));
-
       const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId));
 
-      if (bTestId) {
-        if (processedBookTestKeys.has(bTestId)) return;
-        processedBookTestKeys.add(bTestId);
-      }
+      const dedupeKey = s.id ? String(s.id) : `${bTestId}_${subDate}`;
+      if (processedSubIds.has(dedupeKey)) return;
+      processedSubIds.add(dedupeKey);
 
       onlineEval.push(normalizeSub(s, parentHw, 'online', subDate, testObj, bookObj));
     });
@@ -1208,8 +1228,7 @@ export default function StudentCoachingPage() {
       }
       if (hw.submissions && Array.isArray(hw.submissions)) {
         hw.submissions.forEach(sub => {
-          const sid = String(sub.studentId);
-          if (sid === studentIdStr || (studentUuidStr && sid === studentUuidStr)) {
+          if (isStudentMatch(sub)) {
             const subIdStr = String(sub.id || '');
             if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
             if (sub.isSubmitted === false) return;
