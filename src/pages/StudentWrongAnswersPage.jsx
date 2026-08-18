@@ -44,7 +44,7 @@ export default function StudentWrongAnswersPage() {
   const { currentUser } = useAuth();
   const { submissions } = useEvaluation();
   const { users } = useUser();
-  const { questions: bankQuestions } = useQuestionBank();
+  const { questions: bankQuestions = [] } = useQuestionBank();
   const { data: curData } = useCurriculum();
   const { homeworks = [] } = useHomework();
   const { books = [], bookTests = [] } = useTrackedBooks();
@@ -154,24 +154,34 @@ export default function StudentWrongAnswersPage() {
     const map = new Map();
     if (!curData) return map;
     (curData.tests || []).forEach(t => {
-      if (t.id) map.set(String(t.id), { 
-        title: t.title || t.name, 
-        subject: t.subjectName || t.subject, 
-        unit: t.unitName || t.unit || '', 
-        topic: t.topicName || t.topic || '' 
-      });
+      if (t.id) {
+        const info = { 
+          title: t.title || t.name, 
+          subject: t.subjectName || t.subject, 
+          unit: t.unitName || t.unit || '', 
+          topic: t.topicName || t.topic || '' 
+        };
+        map.set(String(t.id), info);
+        const uuid = toUUID(t.id);
+        if (uuid) map.set(String(uuid), info);
+      }
     });
     (curData.grades || []).forEach(g => {
       (g.subjects || []).forEach(s => {
         (s.units || []).forEach(u => {
           (u.topics || []).forEach(top => {
             (top.tests || []).forEach(t => {
-              if (t.id) map.set(String(t.id), { 
-                title: t.title || t.name, 
-                subject: s.name, 
-                unit: u.name || u.title || '', 
-                topic: top.name || top.title || '' 
-              });
+              if (t.id) {
+                const info = { 
+                  title: t.title || t.name, 
+                  subject: s.name, 
+                  unit: u.name || u.title || '', 
+                  topic: top.name || top.title || '' 
+                };
+                map.set(String(t.id), info);
+                const uuid = toUUID(t.id);
+                if (uuid) map.set(String(uuid), info);
+              }
             });
           });
         });
@@ -180,7 +190,7 @@ export default function StudentWrongAnswersPage() {
     return map;
   }, [curData]);
 
-  // Tracked Books & BookTests map with Unit and Topic extraction
+  // Tracked Books & BookTests map with thorough Unit and Topic extraction from book hierarchy
   const allBookTestsMap = useMemo(() => {
     const map = new Map();
     (books || []).forEach(b => {
@@ -190,21 +200,53 @@ export default function StudentWrongAnswersPage() {
       );
 
       bTests.forEach(bt => {
+        // Find subject / unit in book
+        let parentSubject = (b.subjects || []).find(s => 
+          String(s.id) === String(bt.subjectId) || 
+          (s.topics && s.topics.some(tp => String(tp.id) === String(bt.topicId) || (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id)))))) ||
+          (s.tests && s.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id))))
+        );
+
+        let parentTopic = parentSubject?.topics?.find(tp => 
+          String(tp.id) === String(bt.topicId) || 
+          (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id))))
+        );
+
+        if (!parentTopic && Array.isArray(b.subjects)) {
+          for (const s of b.subjects) {
+            const tp = s.topics?.find(tp => String(tp.id) === String(bt.topicId) || (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id)))));
+            if (tp) {
+              parentTopic = tp;
+              if (!parentSubject) parentSubject = s;
+              break;
+            }
+          }
+        }
+
+        // Subject name (Branş) vs Unit Name (Ünite)
         let subName = '';
-        if (bt.subjectId && Array.isArray(b.subjects)) {
-          const matchSub = b.subjects.find(s => String(s.id) === String(bt.subjectId));
-          if (matchSub) subName = matchSub.name;
+        if (b.subject || b.subjectName) {
+          subName = b.subject || b.subjectName;
+        } else if (parentSubject?.name && (parentSubject.name.toLowerCase().includes('mat') || parentSubject.name.toLowerCase().includes('fen') || parentSubject.name.toLowerCase().includes('türk') || parentSubject.name.toLowerCase().includes('sosyal') || parentSubject.name.toLowerCase().includes('ing') || parentSubject.name.toLowerCase().includes('din'))) {
+          subName = parentSubject.name;
         }
-        if (!subName) {
-          subName = b.subject || b.subjectName || '';
+
+        let unitName = bt.unit || bt.unitName || '';
+        if (!unitName && parentSubject?.name) {
+          unitName = parentSubject.name;
         }
+        if (!unitName) {
+          unitName = b.unit || b.unitName || '';
+        }
+
+        let topicName = bt.topic || bt.topicName || parentTopic?.name || b.topic || '';
 
         const info = {
           testName: bt.name || 'Test',
           bookTitle: b.title || 'Kitap',
           subject: subName,
-          unit: bt.unit || bt.unitName || b.unit || b.unitName || '',
-          topic: bt.topic || bt.topicName || b.topic || '',
+          unit: unitName,
+          topic: topicName,
           bookId: b.id,
           testId: bt.id
         };
@@ -414,9 +456,43 @@ export default function StudentWrongAnswersPage() {
         subject = titleMatched || (SUBJECT_CONFIG[subject] ? subject : 'Matematik');
       }
 
-      // ── ÜNİTE VE KONU TESPİTİ (UNIT & TOPIC) ──
-      const unit = sub.unit || sub.unitName || matchedBookTest?.unit || matchedHw?.unit || matchedHw?.unitName || matchedCurTest?.unit || '';
-      const topic = sub.topic || sub.topicName || matchedBookTest?.topic || matchedHw?.topic || matchedHw?.topicName || matchedCurTest?.topic || '';
+      // ── ÜNİTE VE KONU TESPİTİ (UNIT & TOPIC DEDUCTION) ──
+      let unit = sub.unit || sub.unitName || matchedBookTest?.unit || matchedHw?.unit || matchedHw?.unitName || matchedCurTest?.unit || '';
+      let topic = sub.topic || sub.topicName || matchedBookTest?.topic || matchedHw?.topic || matchedHw?.topicName || matchedCurTest?.topic || '';
+
+      // If unit is still empty, look into sub.answers question bank metadata
+      if (!unit && Array.isArray(sub.answers) && sub.answers.length > 0) {
+        for (const ans of sub.answers) {
+          if (ans.unit || ans.unitName) {
+            unit = ans.unit || ans.unitName;
+            break;
+          }
+          if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
+            const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
+            if (bq?.unit || bq?.unitName) {
+              unit = bq.unit || bq.unitName;
+              break;
+            }
+          }
+        }
+      }
+
+      // If topic is still empty, look into sub.answers question bank metadata
+      if (!topic && Array.isArray(sub.answers) && sub.answers.length > 0) {
+        for (const ans of sub.answers) {
+          if (ans.topic || ans.topicName) {
+            topic = ans.topic || ans.topicName;
+            break;
+          }
+          if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
+            const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
+            if (bq?.topic || bq?.topicName) {
+              topic = bq.topic || bq.topicName;
+              break;
+            }
+          }
+        }
+      }
 
       const isReviewed = reviewedSubSet.has(sub.id);
       const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
@@ -439,7 +515,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, reviewedSubSet]);
+  }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet]);
 
   // Filtered Test Submissions
   const filteredTestSubmissions = useMemo(() => {
@@ -1029,7 +1105,7 @@ export default function StudentWrongAnswersPage() {
                         boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)'
                       }}
                     >
-                      {/* Üst Kısım: Ders Rozeti, Başlık, Ünite, Tarih */}
+                      {/* Üst Kısım: Ders Rozeti, Başlık, Ünite & Konu, Tarih */}
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                           <span style={{
@@ -1052,41 +1128,55 @@ export default function StudentWrongAnswersPage() {
                           </span>
                         </div>
 
-                        <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3, marginBottom: '0.3rem' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3, marginBottom: '0.35rem' }}>
                           {sub.testTitle || 'Test Sınavı'}
                         </div>
 
                         {/* ÜNİTE VE KONU ETİKETLERİ */}
-                        {(sub.unit || sub.topic) && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                            {sub.unit && (
-                              <span style={{
-                                background: 'rgba(99, 102, 241, 0.2)',
-                                color: '#c7d2fe',
-                                border: '1px solid rgba(165, 180, 252, 0.3)',
-                                padding: '0.15rem 0.5rem',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                fontWeight: 800
-                              }}>
-                                📖 Ünite: {sub.unit}
-                              </span>
-                            )}
-                            {sub.topic && (
-                              <span style={{
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                color: '#e2e8f0',
-                                border: '1px solid rgba(255, 255, 255, 0.14)',
-                                padding: '0.15rem 0.5rem',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700
-                              }}>
-                                📌 {sub.topic}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                          {sub.unit ? (
+                            <span style={{
+                              background: 'rgba(99, 102, 241, 0.25)',
+                              color: '#c7d2fe',
+                              border: '1px solid rgba(165, 180, 252, 0.4)',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 900,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
+                            </span>
+                          ) : (
+                            <span style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: '#cbd5e1',
+                              border: '1px solid rgba(255, 255, 255, 0.14)',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800
+                            }}>
+                              📖 Genel Konu Testi
+                            </span>
+                          )}
+
+                          {sub.topic && (
+                            <span style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: '#f1f5f9',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800
+                            }}>
+                              📌 {sub.topic}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Orta Kısım: Yanlış & Boş Soru Çipleri */}
@@ -1282,23 +1372,25 @@ export default function StudentWrongAnswersPage() {
                           }}
                         >
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem' }}>
+                            <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem', marginBottom: 2 }}>
                               {sub.testTitle || 'Test Sınavı'}
                             </div>
-                            {(sub.unit || sub.topic) && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: 3 }}>
-                                {sub.unit && (
-                                  <span style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#c7d2fe', padding: '0.1rem 0.4rem', borderRadius: 4, fontSize: '0.68rem', fontWeight: 800 }}>
-                                    📖 Ünite: {sub.unit}
-                                  </span>
-                                )}
-                                {sub.topic && (
-                                  <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', padding: '0.1rem 0.4rem', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700 }}>
-                                    📌 {sub.topic}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 4 }}>
+                              {sub.unit ? (
+                                <span style={{ background: 'rgba(99, 102, 241, 0.22)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.35)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900 }}>
+                                  📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
+                                </span>
+                              ) : (
+                                <span style={{ background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.7rem', fontWeight: 800 }}>
+                                  📖 Genel Konu Testi
+                                </span>
+                              )}
+                              {sub.topic && (
+                                <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', border: '1px solid rgba(255, 255, 255, 0.14)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                                  📌 {sub.topic}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
                             <span style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 6 }}>
