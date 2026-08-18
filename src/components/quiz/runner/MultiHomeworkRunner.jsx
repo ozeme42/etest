@@ -362,14 +362,80 @@ function RightOptikPanel({
   const isLastSec = activeSecIdx === totalSections - 1;
   const isMobile = useMediaQuery('(max-width: 768px)');
 
+  // Calculate answered count and progress percentage for this section
+  const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
+    const qNo = idx + 1;
+    const ans = answers[qNo];
+    const uAns = typeof ans === 'object' ? ans?.userAnswer : ans;
+    const txt = openEndedText[qNo];
+    return (uAns !== undefined && uAns !== null && uAns !== '') || Boolean(txt);
+  }).length;
+
+  const progressPct = qCount > 0 ? Math.round((answeredCount / qCount) * 100) : 0;
+
   return (
-    <div style={{ width: '100%', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1rem', background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)', fontWeight: 900, fontSize: isMobile ? '0.8rem' : '0.85rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama'}</span>
-        <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', color: 'var(--color-text-muted)' }}>Toplam {qCount} Soru</span>
+    <div style={{ width: '100%', background: '#f8fafc', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      
+      {/* ── OPTIK HEADER WITH PROGRESS BAR ── */}
+      <div style={{
+        padding: isMobile ? '0.65rem 0.85rem' : '0.9rem 1.15rem',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.45rem',
+        flexShrink: 0,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>{isReviewMode ? '🔍' : isOpenEnded ? '✍️' : '📋'}</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                {isReviewMode ? 'Sınav İnceleme & Cevaplar' : isOpenEnded ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Kağıdı'}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>
+                {totalSections > 1 ? `${activeSecIdx + 1}. Bölüm • ` : ''}{qCount} Soru
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{
+              padding: '0.2rem 0.6rem',
+              borderRadius: '999px',
+              background: progressPct === 100 ? '#f0fdf4' : '#eff6ff',
+              border: `1px solid ${progressPct === 100 ? '#86efac' : '#bfdbfe'}`,
+              color: progressPct === 100 ? '#15803d' : '#2563eb',
+              fontSize: '0.72rem',
+              fontWeight: 900
+            }}>
+              {answeredCount} / {qCount} Kodlandı
+            </span>
+          </div>
+        </div>
+
+        {/* Section Progress Bar */}
+        <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${progressPct}%`,
+            background: progressPct === 100 ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #6366f1, #4f46e5)',
+            borderRadius: '999px',
+            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }} />
+        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.4rem' : '0.85rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.35rem' : '0.65rem', background: 'var(--color-bg)' }}>
+      {/* ── QUESTION ITEMS LIST ── */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: isMobile ? '0.5rem 0.65rem' : '0.85rem 1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? '0.45rem' : '0.65rem'
+      }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
@@ -379,58 +445,104 @@ function RightOptikPanel({
           const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
           const textVal = openEndedText[qNo] || '';
 
+          const isAnswered = (userAns !== undefined && userAns !== null && userAns !== '') || Boolean(textVal);
+
           const isCorrect = (userAnsObj && userAnsObj.isCorrect !== undefined)
             ? userAnsObj.isCorrect
             : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           return (
-            <div key={qNo} style={{ background: 'var(--color-surface)', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.3rem' : '0.4rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text)' }}>
-                <span>Soru {qNo} {isQOE ? '(✍️ Yazılı)' : ''}</span>
-                {isReviewMode ? (
-                  isQOE ? (
-                    <span style={{ fontSize: '0.68rem', color: '#7c3aed', fontWeight: 900 }}>⏳ Değerlendirmede</span>
-                  ) : userAns !== undefined && userAns !== null ? (
-                    isCorrect ? (
-                      <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 900 }}>✓ DOĞRU</span>
+            <div
+              key={qNo}
+              style={{
+                background: '#ffffff',
+                padding: isMobile ? '0.6rem 0.75rem' : '0.85rem 1rem',
+                borderRadius: '0.85rem',
+                border: isReviewMode
+                  ? (isCorrect === true ? '1.5px solid #86efac' : isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: isMobile ? '0.4rem' : '0.55rem',
+                boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.06)' : '0 1px 4px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {/* Question Item Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: '0.45rem',
+                    background: isAnswered ? '#4f46e5' : '#f1f5f9',
+                    color: isAnswered ? '#ffffff' : '#334155',
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.72rem' : '0.78rem',
+                    letterSpacing: '0.02em'
+                  }}>
+                    SORU {qNo}
+                  </span>
+                  {isQOE && (
+                    <span style={{ fontSize: '0.68rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontWeight: 800 }}>
+                      ✍️ Yazılı
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  {isReviewMode ? (
+                    isQOE ? (
+                      <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ İnceleniyor</span>
+                    ) : userAns !== undefined && userAns !== null ? (
+                      isCorrect ? (
+                        <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU</span>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ</span>
+                      )
                     ) : (
-                      <span style={{ fontSize: '0.68rem', color: '#dc2626', fontWeight: 900 }}>✗ YANLIŞ</span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>— BOŞ</span>
                     )
                   ) : (
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>— BOŞ</span>
-                  )
-                ) : (
-                  userAns !== undefined || textVal ? (
-                    <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 900 }}>✓ {isQOE ? 'Yazıldı' : 'Kodlandı'}</span>
-                  ) : (
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>— Boş</span>
-                  )
-                )}
+                    isAnswered ? (
+                      <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
+                        {isQOE ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + userAns)}`}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+                        ○ Boş
+                      </span>
+                    )
+                  )}
+                </div>
               </div>
 
+              {/* Input Area: Open-Ended or Optical Bubbles */}
               {isQOE ? (
                 <textarea
                   value={textVal}
                   onChange={(e) => !isReviewMode && onTextChange(qNo, e.target.value)}
                   readOnly={isReviewMode}
-                  placeholder={isReviewMode ? "Öğrenci bu soruya yanıt yazmadı" : `Soru ${qNo} açık uçlu / yazılı yanıt...`}
+                  placeholder={isReviewMode ? "Öğrenci bu soruya yanıt yazmadı" : `Soru ${qNo} için açık uçlu cevabınızı buraya yazınız...`}
                   rows={3}
                   style={{
                     width: '100%',
-                    padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 0.65rem',
-                    borderRadius: '0.5rem',
+                    padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 0.8rem',
+                    borderRadius: '0.6rem',
                     background: '#ffffff',
-                    border: textVal ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+                    border: textVal ? '1.5px solid #10b981' : '1.5px solid #cbd5e1',
                     color: '#0f172a',
-                    fontSize: '0.82rem',
+                    fontSize: '0.85rem',
                     fontFamily: 'inherit',
+                    lineHeight: 1.5,
                     resize: 'vertical',
                     boxSizing: 'border-box',
-                    outline: 'none'
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
                   }}
                 />
               ) : (
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem' }}>
                   {(() => {
                     const targetObj = bankQ || {};
                     const isExplicitFive = Boolean(
@@ -445,65 +557,76 @@ function RightOptikPanel({
                     );
                     const isFourOptions = !isExplicitFive;
                     const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+
                     return optList.map((opt, optIdx) => {
                       const isSelected = userAns === optIdx;
-                    
-                    let correctAns = (userAnsObj && userAnsObj.correctAnswer !== undefined && userAnsObj.correctAnswer !== null) 
-                      ? userAnsObj.correctAnswer 
-                      : qObj.correctAnswer;
-                      
-                    if (correctAns === undefined || correctAns === null) {
-                      const keySource = bankQ?.answerKey;
-                      if (keySource) {
-                        const kaVal = keySource[qNo - 1] !== undefined ? keySource[qNo - 1] : keySource[String(qNo)];
-                        if (kaVal !== undefined && kaVal !== null) {
-                          if (typeof kaVal === 'number') correctAns = kaVal;
-                          else if (typeof kaVal === 'string') {
-                            const str = kaVal.trim().toUpperCase();
-                            if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
-                            else if (!isNaN(Number(str))) correctAns = Number(str);
+
+                      let correctAns = (userAnsObj && userAnsObj.correctAnswer !== undefined && userAnsObj.correctAnswer !== null) 
+                        ? userAnsObj.correctAnswer 
+                        : qObj.correctAnswer;
+                        
+                      if (correctAns === undefined || correctAns === null) {
+                        const keySource = bankQ?.answerKey;
+                        if (keySource) {
+                          const kaVal = keySource[qNo - 1] !== undefined ? keySource[qNo - 1] : keySource[String(qNo)];
+                          if (kaVal !== undefined && kaVal !== null) {
+                            if (typeof kaVal === 'number') correctAns = kaVal;
+                            else if (typeof kaVal === 'string') {
+                              const str = kaVal.trim().toUpperCase();
+                              if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
+                              else if (!isNaN(Number(str))) correctAns = Number(str);
+                            }
                           }
                         }
                       }
-                    }
-                    const isCorrectOpt = correctAns !== undefined && correctAns !== null && correctAns === optIdx;
+                      const isCorrectOpt = correctAns !== undefined && correctAns !== null && correctAns === optIdx;
 
-                    let bg = '#ffffff';
-                    let border = '1px solid #cbd5e1';
-                    let color = '#334155';
+                      let bg = '#ffffff';
+                      let border = '1.5px solid #cbd5e1';
+                      let color = '#334155';
+                      let shadow = 'none';
 
-                    if (isReviewMode) {
-                      if (isSelected && isCorrectOpt) {
-                        bg = '#059669'; border = 'none'; color = 'white';
-                      } else if (isSelected && !isCorrectOpt) {
-                        bg = '#dc2626'; border = 'none'; color = 'white';
-                      } else if (isCorrectOpt) {
-                        bg = '#f0fdf4'; border = '1.5px solid #16a34a'; color = '#16a34a';
+                      if (isReviewMode) {
+                        if (isSelected && isCorrectOpt) {
+                          bg = 'linear-gradient(135deg, #10b981, #059669)'; border = 'none'; color = 'white'; shadow = '0 3px 10px rgba(16,185,129,0.35)';
+                        } else if (isSelected && !isCorrectOpt) {
+                          bg = 'linear-gradient(135deg, #ef4444, #dc2626)'; border = 'none'; color = 'white'; shadow = '0 3px 10px rgba(239,68,68,0.35)';
+                        } else if (isCorrectOpt) {
+                          bg = '#f0fdf4'; border = '2px solid #16a34a'; color = '#15803d';
+                        }
+                      } else if (isSelected) {
+                        bg = 'linear-gradient(135deg, #10b981, #059669)';
+                        border = 'none';
+                        color = 'white';
+                        shadow = '0 4px 12px rgba(16,185,129,0.4)';
                       }
-                    } else if (isSelected) {
-                      bg = '#059669'; border = 'none'; color = 'white';
-                    }
 
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() => !isReviewMode && onOptionSelect(qNo, optIdx)}
-                        disabled={isReviewMode}
-                        style={{
-                          flex: 1,
-                          height: isMobile ? '26px' : '30px',
-                          borderRadius: '0.4rem',
-                          border,
-                          background: bg,
-                          color,
-                          fontWeight: 900,
-                          fontSize: isMobile ? '0.75rem' : '0.8rem',
-                          cursor: isReviewMode ? 'default' : 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {opt}
-                      </button>
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => !isReviewMode && onOptionSelect(qNo, optIdx)}
+                          disabled={isReviewMode}
+                          style={{
+                            flex: 1,
+                            height: isMobile ? '32px' : '38px',
+                            borderRadius: '0.6rem',
+                            border,
+                            background: bg,
+                            color,
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.8rem' : '0.9rem',
+                            cursor: isReviewMode ? 'default' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: shadow,
+                            transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}
+                          className={!isReviewMode ? "hover:scale-105 active:scale-95" : ""}
+                        >
+                          {opt}
+                        </button>
                       );
                     });
                   })()}
@@ -514,29 +637,39 @@ function RightOptikPanel({
         })}
       </div>
 
-      {/* FOOTER BUTTONS AT THE BOTTOM OF OPTIK PANEL */}
-      <div style={{ padding: isMobile ? '0.5rem' : '0.75rem', background: '#ffffff', borderTop: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+      {/* ── FOOTER ACTIONS AT THE BOTTOM OF OPTIK PANEL ── */}
+      <div style={{
+        padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1.15rem',
+        background: '#ffffff',
+        borderTop: '1.5px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.45rem',
+        flexShrink: 0,
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.03)'
+      }}>
         {totalSections > 1 && !isLastSec && (
           <button
             onClick={onNextSection}
             style={{
               width: '100%',
-              padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
-              borderRadius: '0.65rem',
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
+              borderRadius: '0.75rem',
+              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.82rem',
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 3px 12px rgba(99,102,241,0.3)'
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+              transition: 'all 0.15s ease'
             }}
           >
-            Sonraki Bölüme Geç <ChevronRight size={isMobile ? 14 : 16} />
+            Sonraki Bölüme Geç <ChevronRight size={18} />
           </button>
         )}
 
@@ -545,22 +678,23 @@ function RightOptikPanel({
             onClick={onSubmit}
             style={{
               width: '100%',
-              padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
-              borderRadius: '0.65rem',
-              background: isReviewMode ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #10b981, #059669)',
+              padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
+              borderRadius: '0.75rem',
+              background: isReviewMode ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.82rem',
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 3px 12px rgba(16,185,129,0.3)'
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              transition: 'all 0.15s ease'
             }}
           >
-            <CheckCircle2 size={isMobile ? 14 : 16} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
+            <CheckCircle2 size={18} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
@@ -1716,61 +1850,116 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a', overflow: 'hidden' }}>
       
-      {/* ── HEADER BAR ── */}
+      {/* ── TOP HEADER BAR (PERMANENT) ── */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1rem',
-        background: '#ffffff',
-        borderBottom: '1.5px solid #e2e8f0',
+        padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: isMobile ? '0.4rem' : '0.75rem',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
         flexShrink: 0,
+        gap: '0.6rem',
         zIndex: 10,
-        minHeight: isMobile ? '48px' : '58px',
+        minHeight: isMobile ? '48px' : '56px',
         boxSizing: 'border-box',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
           {!isMobile && (
-            <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-              <Layers size={14} /> {isReviewMode ? '🔍 İNCELEME' : 'TOPLU ÖDEV RUNNER'}
-            </span>
+            <div style={{
+              padding: '0.35rem 0.75rem',
+              background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              borderRadius: '0.65rem',
+              fontWeight: 900,
+              fontSize: '0.76rem',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(79,70,229,0.25)'
+            }}>
+              <Layers size={14} /> {isReviewMode ? 'İNCELEME RAPORU' : 'ÖDEV TESTİ'}
+            </div>
           )}
-          <h2 style={{ fontSize: isMobile ? '0.85rem' : '1.05rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <h2 style={{ fontSize: isMobile ? '0.88rem' : '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {test.title || test.name}
           </h2>
+          {!isMobile && sections.length > 1 && (
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, background: '#f1f5f9', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', flexShrink: 0 }}>
+              {sections.length} Bölüm
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.75rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', flexShrink: 0 }}>
           {isReviewMode ? (
             !isMobile && (
-              <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#e0e7ff', border: '1.5px solid #c7d2fe', color: '#4338ca', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#e0e7ff', border: '1.5px solid #c7d2fe', color: '#4338ca', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <CheckCircle2 size={16} color="#4f46e5" />
-                <span>🏁 İnceleme Raporu</span>
+                <span>🏁 İnceleme Modu</span>
               </div>
             )
           ) : (
-            <div style={{ padding: isMobile ? '0.25rem 0.45rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#fef2f2' : '#ffffff', border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`, color: timeLeft < 300 ? '#dc2626' : '#0f172a', fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <Clock size={isMobile ? 13 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
+            <div style={{
+              padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.85rem',
+              borderRadius: '0.65rem',
+              background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
+              border: `1.5px solid ${timeLeft < 300 ? '#fca5a5' : '#e2e8f0'}`,
+              color: timeLeft < 300 ? '#dc2626' : '#0f172a',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.75rem' : '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
+            }}>
+              <Clock size={isMobile ? 13 : 16} color={timeLeft < 300 ? '#dc2626' : '#4f46e5'} />
               <span>{formatTime(timeLeft)}</span>
             </div>
           )}
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-            style={{ padding: isMobile ? '0.35rem 0.55rem' : '0.5rem 1rem', borderRadius: '0.75rem', background: isDrawingOpen ? '#eab308' : '#ffffff', border: `1px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`, color: isDrawingOpen ? 'white' : '#334155', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{
+              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.95rem',
+              borderRadius: '0.65rem',
+              background: isDrawingOpen ? '#f59e0b' : '#ffffff',
+              border: `1.5px solid ${isDrawingOpen ? '#d97706' : '#e2e8f0'}`,
+              color: isDrawingOpen ? 'white' : '#334155',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+              transition: 'all 0.15s ease'
+            }}
             title="Çizim Aracı"
           >
             <Pencil size={14} /> 
-            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
+            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Tahtası")}
           </button>
 
           {isReviewMode ? (
             <button
               onClick={() => onSubmit && onSubmit()}
-              style={{ padding: isMobile ? '0.35rem 0.65rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 4px 16px rgba(99, 102, 241, 0.25)' }}
+              style={{
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.25rem',
+                borderRadius: '0.65rem',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)'
+              }}
             >
               <CheckCircle2 size={isMobile ? 14 : 18} /> 
               {!isMobile && "İncelemeyi Kapat"}
@@ -1779,7 +1968,21 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           ) : (
             <button
               onClick={handleSubmit}
-              style={{ padding: isMobile ? '0.35rem 0.65rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)' }}
+              style={{
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.25rem',
+                borderRadius: '0.65rem',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.15s ease'
+              }}
             >
               <CheckCircle2 size={18} /> 
               {!isMobile && "Sınavı Bitir ve Gönder"}
@@ -1790,8 +1993,19 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       </header>
 
       {/* ── TOP SECTION TABS BAR (PERMANENT) ── */}
-      <div style={{ background: '#ffffff', borderBottom: '1.5px solid #e2e8f0', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.3rem', flexShrink: 0, width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', overflowX: 'auto', flex: 1, paddingBottom: isMobile ? '2px' : '0' }}>
+      <div style={{
+        background: '#f8fafc',
+        borderBottom: '1.5px solid #e2e8f0',
+        padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.4rem',
+        flexShrink: 0,
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflowX: 'auto', flex: 1, paddingBottom: isMobile ? '2px' : '0' }}>
           {sections.map((sec, idx) => {
             const isCurrent = idx === activeSecIdx;
             const secAnsState = sectionAnswers[sec.id]?.answers || {};
@@ -1799,41 +2013,84 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             const ansCount = Object.keys(secAnsState).length + Object.keys(secTxtState).filter(k => secTxtState[k]).length;
             const isCompleted = ansCount === sec.qCount && sec.qCount > 0;
 
+            let cleanTitle = sec.title || '';
+            if (cleanTitle.match(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)/i)) {
+              cleanTitle = cleanTitle.replace(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)[\s:•-]*/i, '').trim();
+            }
+
             return (
               <button
                 key={sec.id || idx}
                 onClick={() => setActiveSecIdx(idx)}
                 style={{
-                  padding: isMobile ? '0.25rem 0.4rem' : '0.5rem 1.1rem',
-                  borderRadius: '0.5rem',
+                  padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 1rem',
+                  borderRadius: '0.65rem',
                   fontWeight: 900,
-                  fontSize: isMobile ? '0.65rem' : '0.82rem',
+                  fontSize: isMobile ? '0.72rem' : '0.82rem',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.2rem',
-                  background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? '#f0fdf4' : '#f8fafc',
-                  border: isCurrent ? '2px solid #6366f1' : isCompleted ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0',
-                  color: isCurrent ? 'white' : isCompleted ? '#16a34a' : '#475569',
-                  transition: 'all 0.15s ease',
+                  gap: '0.4rem',
+                  background: isCurrent
+                    ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                    : isCompleted ? '#f0fdf4' : '#ffffff',
+                  border: isCurrent
+                    ? 'none'
+                    : isCompleted ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
+                  color: isCurrent
+                    ? '#ffffff'
+                    : isCompleted ? '#15803d' : '#334155',
+                  boxShadow: isCurrent
+                    ? '0 4px 14px rgba(79, 70, 229, 0.35)'
+                    : '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                   flexShrink: 0
                 }}
               >
-                <span>{idx + 1}. Blm{!isMobile && `: ${sec.title}`}</span>
-                <span style={{ fontSize: isMobile ? '0.6rem' : '0.72rem', opacity: 0.85, padding: '0.1rem 0.2rem', borderRadius: '0.3rem', background: isCurrent ? 'rgba(0,0,0,0.25)' : '#e2e8f0', color: isCurrent ? 'white' : '#334155' }}>
-                  {ansCount}/{sec.qCount}
+                <span>
+                  {idx + 1}. Bölüm{cleanTitle && !isMobile ? ` • ${cleanTitle}` : ''}
+                </span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  padding: '0.12rem 0.45rem',
+                  borderRadius: '999px',
+                  background: isCurrent
+                    ? 'rgba(255,255,255,0.22)'
+                    : isCompleted ? '#dcfce7' : '#f1f5f9',
+                  color: isCurrent
+                    ? '#ffffff'
+                    : isCompleted ? '#15803d' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.15rem'
+                }}>
+                  {isCompleted && '✓ '}{ansCount}/{sec.qCount}
                 </span>
               </button>
             );
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.2rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
           <button
             onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
             disabled={activeSecIdx === 0}
-            style={{ padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.9rem', borderRadius: '0.5rem', background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff', border: '1.5px solid #cbd5e1', color: activeSecIdx === 0 ? '#94a3b8' : '#334155', fontWeight: 800, fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}
+            style={{
+              padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.9rem',
+              borderRadius: '0.6rem',
+              background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              color: activeSecIdx === 0 ? '#94a3b8' : '#334155',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
+              cursor: activeSecIdx === 0 ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              transition: 'all 0.15s ease'
+            }}
             title="Önceki Bölüm"
           >
             <ChevronLeft size={isMobile ? 14 : 16} /> {!isMobile && "Önceki"}
@@ -1841,7 +2098,21 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           <button
             onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
             disabled={activeSecIdx === sections.length - 1}
-            style={{ padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.9rem', borderRadius: '0.5rem', background: activeSecIdx === sections.length - 1 ? '#f1f5f9' : 'linear-gradient(135deg,#6366f1,#4f46e5)', border: activeSecIdx === sections.length - 1 ? '1.5px solid #cbd5e1' : 'none', color: activeSecIdx === sections.length - 1 ? '#94a3b8' : 'white', fontWeight: 800, fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}
+            style={{
+              padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.9rem',
+              borderRadius: '0.6rem',
+              background: activeSecIdx === sections.length - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              border: activeSecIdx === sections.length - 1 ? '1.5px solid #e2e8f0' : 'none',
+              color: activeSecIdx === sections.length - 1 ? '#94a3b8' : '#ffffff',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
+              cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              boxShadow: activeSecIdx === sections.length - 1 ? 'none' : '0 2px 8px rgba(79,70,229,0.25)',
+              transition: 'all 0.15s ease'
+            }}
             title="Sonraki Bölüm"
           >
             {!isMobile && "Sonraki"} <ChevronRight size={isMobile ? 14 : 16} />

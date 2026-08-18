@@ -409,106 +409,126 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{ 
-        padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
+        padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
         background: '#ffffff', 
         borderBottom: '1.5px solid #e2e8f0',
         flexShrink: 0,
-        gap: '0.5rem',
-        flexWrap: 'wrap',
+        gap: '0.6rem',
+        flexWrap: 'nowrap',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <h2 style={{ 
-            color: '#0f172a', 
-            fontSize: isMobile ? '0.9rem' : '1.15rem', 
-            fontWeight: 900, 
-            margin: 0, 
-            whiteSpace: 'nowrap', 
-            overflow: 'hidden', 
-            textOverflow: 'ellipsis' 
-          }}>
-            {test.title || "PDF Testi"}
-          </h2>
-          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
-            {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+          {!isMobile && (
+            <div style={{
+              padding: '0.35rem 0.75rem',
+              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              borderRadius: '0.65rem',
+              fontWeight: 900,
+              fontSize: '0.76rem',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(2,132,199,0.25)'
+            }}>
+              📄 PDF TESTİ
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <h2 style={{ 
+              color: '#0f172a', 
+              fontSize: isMobile ? '0.88rem' : '1.1rem', 
+              fontWeight: 900, 
+              margin: 0, 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis' 
+            }}>
+              {test.title || "PDF Testi"}
+            </h2>
+            <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>
+              {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', flexShrink: 0 }}>
           {/* Total Countdown Timer Badge */}
           <div style={{
-            padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
+            padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
             background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
-            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
+            border: `1.5px solid ${timeLeft < 300 ? '#fca5a5' : '#e2e8f0'}`,
             color: timeLeft < 300 ? '#dc2626' : '#0f172a',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem'
+            gap: '0.35rem',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
           }}>
-            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#818cf8'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#0284c7'} />
             <span>{formatTime(timeLeft)}</span>
-            {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-                (Toplam {qCount * perQuestionMins} dk)
-              </span>
-            )}
           </div>
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
-              padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
-              borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#ffffff',
-              border: `1px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
+              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.95rem',
+              borderRadius: '0.65rem',
+              background: isDrawingOpen ? '#f59e0b' : '#ffffff',
+              border: `1.5px solid ${isDrawingOpen ? '#d97706' : '#e2e8f0'}`,
               color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.35rem',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+              transition: 'all 0.15s ease'
             }}
             title="Çizim Aracı"
           >
             <Pencil size={14} /> 
-            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
+            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Tahtası")}
           </button>
 
           <button
             onClick={handleSubmit}
             style={{
-              padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
-              borderRadius: '0.75rem',
+              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.25rem',
+              borderRadius: '0.65rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.85rem',
+              fontSize: isMobile ? '0.78rem' : '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+              gap: '0.35rem',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              transition: 'all 0.15s ease'
             }}
           >
-            <CheckCircle2 size={isMobile ? 14 : 18} /> 
-            {!isMobile && "Sınavı Bitir"}
+            <CheckCircle2 size={18} /> 
+            {!isMobile && "Sınavı Bitir ve Gönder"}
             {isMobile && "Bitir"}
           </button>
         </div>
       </header>
 
       <QuizPanelLayout
-        panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
-        panelSubtitle="Sınav dokümanını okuyup soruları cevaplayınız."
-        icon={isOpenEndedMode ? "✍️" : "🎯"}
+        panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Kağıdı"}
+        panelSubtitle={`${qCount} Soru`}
+        icon={isOpenEndedMode ? "✍️" : "📋"}
+        defaultPosition="right"
+        defaultSize={340}
         documentContent={
           <div style={{ flex: 1, width: '100%', height: '100%', background: '#f8fafc' }}>
             <PdfViewerWithControls 
@@ -523,20 +543,40 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
           </div>
         }
         answerContent={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
               const selectedOpt = answers[qNo];
               const textVal = openEndedText[qNo] || '';
+              const isAnswered = selectedOpt !== undefined || Boolean(textVal);
 
               return (
-                <div key={qNo} style={{ background: '#ffffff', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Soru {qNo}</span>
-                    {selectedOpt !== undefined || textVal ? (
-                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Yanıtlandı</span>
+                <div key={qNo} style={{
+                  background: '#ffffff',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '0.85rem',
+                  border: isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
+                  boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.06)' : '0 1px 4px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease'
+                }}>
+                  <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '0.45rem',
+                      background: isAnswered ? '#4f46e5' : '#f1f5f9',
+                      color: isAnswered ? '#ffffff' : '#334155',
+                      fontSize: '0.76rem',
+                      letterSpacing: '0.02em'
+                    }}>
+                      SORU {qNo}
+                    </span>
+                    {isAnswered ? (
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
+                        {isOpenEndedMode ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + selectedOpt)}`}
+                      </span>
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>○ Boş</span>
                     )}
                   </div>
 
@@ -548,19 +588,21 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                       rows={3}
                       style={{
                         width: '100%',
-                        padding: '0.65rem',
-                        borderRadius: '0.5rem',
+                        padding: '0.65rem 0.8rem',
+                        borderRadius: '0.6rem',
                         background: '#ffffff',
-                        border: '1.5px solid #cbd5e1',
+                        border: textVal ? '1.5px solid #10b981' : '1.5px solid #cbd5e1',
                         color: '#0f172a',
                         fontSize: '0.85rem',
                         outline: 'none',
                         fontFamily: 'inherit',
-                        boxSizing: 'border-box'
+                        lineHeight: 1.5,
+                        boxSizing: 'border-box',
+                        resize: 'vertical'
                       }}
                     />
                   ) : (
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', gap: '0.45rem' }}>
                       {(() => {
                         const isExplicitFive = Boolean(
                           Number(test?.optionCount) === 5 ||
@@ -579,22 +621,23 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                           return (
                             <button
                               key={opt}
+                              type="button"
                               onClick={() => handleOptionSelect(qNo, optIdx)}
                               style={{
                                 flex: 1,
                                 height: '36px',
-                                borderRadius: '0.5rem',
-                                border: isSelected ? 'none' : '1px solid #cbd5e1',
-                                background: isSelected ? '#059669' : '#ffffff',
+                                borderRadius: '0.6rem',
+                                border: isSelected ? 'none' : '1.5px solid #cbd5e1',
+                                background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : '#ffffff',
                                 color: isSelected ? 'white' : '#334155',
                                 fontWeight: 900,
-                                fontSize: '0.85rem',
+                                fontSize: '0.88rem',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                transition: 'all 0.15s ease',
-                                boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.25)' : 'none'
+                                transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.35)' : 'none'
                               }}
                             >
                               {opt}
