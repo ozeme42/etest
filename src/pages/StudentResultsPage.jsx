@@ -6,7 +6,7 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, TrendingUp,
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
-  FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw
+  FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -114,6 +114,68 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
+function CustomSubjectTooltip({ active, payload }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const scoreVal = data['Başarı %'] !== undefined ? data['Başarı %'] : (data.accuracy !== undefined ? data.accuracy : data.avgScore);
+    const correctVal = data['Doğru'] !== undefined ? data['Doğru'] : data.correctQ;
+    const wrongVal = data['Yanlış'] !== undefined ? data['Yanlış'] : data.wrongQ;
+    const blankVal = data['Boş'] !== undefined ? data['Boş'] : data.blankQ;
+    const totalVal = data['Soru Sayısı'] || data.totalQ || (correctVal + wrongVal + blankVal);
+
+    return (
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.96)',
+        border: '1.5px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: 14,
+        padding: '0.75rem 1rem',
+        color: '#fff',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(10px)',
+        fontSize: '0.8rem',
+        minWidth: 160
+      }}>
+        <div style={{ fontWeight: 900, color: '#c7d2fe', marginBottom: 6, fontSize: '0.9rem' }}>
+          {data.fullName || data.name || data.displayName}
+        </div>
+        {scoreVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
+            <span style={{ color: '#94a3b8' }}>Başarı Oranı:</span>
+            <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#4ade80' : scoreVal >= 50 ? '#fbbf24' : '#f87171' }}>
+              %{scoreVal}
+            </span>
+          </div>
+        )}
+        {correctVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
+            <span style={{ color: '#4ade80' }}>✓ Doğru:</span>
+            <span style={{ fontWeight: 800 }}>{correctVal}</span>
+          </div>
+        )}
+        {wrongVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
+            <span style={{ color: '#f87171' }}>✗ Yanlış:</span>
+            <span style={{ fontWeight: 800 }}>{wrongVal}</span>
+          </div>
+        )}
+        {blankVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
+            <span style={{ color: '#94a3b8' }}>○ Boş:</span>
+            <span style={{ fontWeight: 800 }}>{blankVal}</span>
+          </div>
+        )}
+        {totalVal !== undefined && (
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: '#e2e8f0', fontWeight: 800 }}>
+            <span>Toplam Soru:</span>
+            <span>{totalVal}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════════════════ */
@@ -173,6 +235,9 @@ export default function StudentResultsPage() {
   const [byTypeTab, setByTypeTab]       = useState('homework');
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [perfViewMode, setPerfViewMode] = useState('radar'); // 'radar' | 'bars'
+  const [subjChartType, setSubjChartType] = useState('bar'); // 'bar' | 'radar' | 'pie'
+  const [selectedSubjFilter, setSelectedSubjFilter] = useState('all');
+  const [topicChartSort, setTopicChartSort] = useState('accuracy_desc'); // 'accuracy_desc' | 'accuracy_asc' | 'totalQ_desc'
 
   /* ── Curriculum test map ─── */
   const allCurTestsMap = useMemo(() => {
@@ -498,27 +563,120 @@ export default function StudentResultsPage() {
       const sk = SUBJECTS.includes(s.subjectKey) ? s.subjectKey : 'Diğer';
       if (!map[sk]) map[sk] = { tests: [], totalQ: 0, totalCorrect: 0, topics: {} };
       map[sk].tests.push(s);
-      map[sk].totalQ += s.totalQuestions;
-      map[sk].totalCorrect += s.correctCount;
-      const topicKey = s.testTitle || 'Genel';
-      if (!map[sk].topics[topicKey]) map[sk].topics[topicKey] = { totalQ: 0, correctQ: 0, wrongQ: 0 };
-      map[sk].topics[topicKey].totalQ += s.totalQuestions;
-      map[sk].topics[topicKey].correctQ += s.correctCount;
-      map[sk].topics[topicKey].wrongQ += s.wrongCount;
+      map[sk].totalQ += s.totalQuestions || 0;
+      map[sk].totalCorrect += s.correctCount || 0;
+      
+      const rawTopicName = s.topicName || s.unitTopic || s.testTitle || 'Genel Test';
+      const topicKey = String(rawTopicName).trim();
+      if (!map[sk].topics[topicKey]) {
+        map[sk].topics[topicKey] = { totalQ: 0, correctQ: 0, wrongQ: 0, blankQ: 0, testCount: 0 };
+      }
+      map[sk].topics[topicKey].totalQ += s.totalQuestions || 0;
+      map[sk].topics[topicKey].correctQ += s.correctCount || 0;
+      map[sk].topics[topicKey].wrongQ += s.wrongCount || 0;
+      map[sk].topics[topicKey].blankQ += s.blankCount || 0;
+      map[sk].topics[topicKey].testCount += 1;
     });
     return Object.entries(map)
       .filter(([, v]) => v.tests.length > 0)
       .map(([subj, v]) => {
-        const avgScore = v.tests.length > 0 ? Math.round(v.tests.reduce((a, s) => a + s.computedScore, 0) / v.tests.length) : 0;
+        const avgScore = v.tests.length > 0 ? Math.round(v.tests.reduce((a, s) => a + (s.computedScore || 0), 0) / v.tests.length) : 0;
+        const totalWrong = v.tests.reduce((a, s) => a + (s.wrongCount || 0), 0);
+        const totalBlank = v.tests.reduce((a, s) => a + (s.blankCount || 0), 0);
         const topicArray = Object.entries(v.topics).map(([name, t]) => ({
-          name: name.length > 30 ? name.slice(0, 28) + '…' : name,
+          name,
           accuracy: t.totalQ > 0 ? Math.round((t.correctQ / t.totalQ) * 100) : 0,
           totalQ: t.totalQ,
-        })).sort((a, b) => a.accuracy - b.accuracy);
-        return { subj, ...v, avgScore, topicArray };
+          correctQ: t.correctQ,
+          wrongQ: t.wrongQ,
+          blankQ: t.blankQ,
+          testCount: t.testCount
+        })).sort((a, b) => b.accuracy - a.accuracy);
+        return { subj, ...v, avgScore, totalWrong, totalBlank, topicArray };
       })
-      .sort((a, b) => a.avgScore - b.avgScore);
+      .sort((a, b) => b.avgScore - a.avgScore);
   }, [studentSubmissions]);
+
+  /* ── Subject Bar Chart Data ─── */
+  const subjectBarData = useMemo(() => {
+    return subjectBreakdown.map(sb => {
+      const th = subjectThemes[sb.subj] || subjectThemes['Diğer'];
+      return {
+        name: sb.subj,
+        fullName: sb.subj,
+        'Başarı %': sb.avgScore,
+        'Doğru': sb.totalCorrect,
+        'Yanlış': sb.totalWrong,
+        'Boş': sb.totalBlank,
+        'Soru Sayısı': sb.totalQ,
+        'Test Sayısı': sb.tests.length,
+        color: th.color,
+        barColor: th.radar || th.color
+      };
+    });
+  }, [subjectBreakdown]);
+
+  /* ── Subject Pie Chart Data ─── */
+  const subjectPieData = useMemo(() => {
+    return subjectBreakdown.map(sb => {
+      const th = subjectThemes[sb.subj] || subjectThemes['Diğer'];
+      return {
+        name: sb.subj,
+        value: sb.totalQ,
+        correct: sb.totalCorrect,
+        avgScore: sb.avgScore,
+        color: th.radar || th.color
+      };
+    });
+  }, [subjectBreakdown]);
+
+  /* ── Active Topic Chart Data for selected subject ─── */
+  const activeTopicChartData = useMemo(() => {
+    let list = [];
+    if (selectedSubjFilter === 'all') {
+      subjectBreakdown.forEach(sb => {
+        sb.topicArray.forEach(tp => {
+          list.push({
+            ...tp,
+            subject: sb.subj,
+            displayName: `${sb.subj} · ${tp.name}`
+          });
+        });
+      });
+    } else {
+      const match = subjectBreakdown.find(sb => sb.subj === selectedSubjFilter);
+      if (match) {
+        list = match.topicArray.map(tp => ({
+          ...tp,
+          subject: match.subj,
+          displayName: tp.name
+        }));
+      }
+    }
+
+    if (topicChartSort === 'accuracy_desc') {
+      list.sort((a, b) => b.accuracy - a.accuracy);
+    } else if (topicChartSort === 'accuracy_asc') {
+      list.sort((a, b) => a.accuracy - b.accuracy);
+    } else if (topicChartSort === 'totalQ_desc') {
+      list.sort((a, b) => b.totalQ - a.totalQ);
+    }
+
+    return list.slice(0, 15);
+  }, [subjectBreakdown, selectedSubjFilter, topicChartSort]);
+
+  /* ── Strong & Weak Topics ─── */
+  const { topStrongTopics, topWeakTopics } = useMemo(() => {
+    let all = [];
+    subjectBreakdown.forEach(sb => {
+      sb.topicArray.forEach(tp => {
+        all.push({ ...tp, subject: sb.subj });
+      });
+    });
+    const strong = all.filter(t => t.accuracy >= 75 && t.totalQ >= 3).sort((a, b) => b.accuracy - a.accuracy).slice(0, 4);
+    const weak = all.filter(t => t.accuracy < 60 && t.totalQ >= 3).sort((a, b) => a.accuracy - b.accuracy).slice(0, 4);
+    return { topStrongTopics: strong, topWeakTopics: weak };
+  }, [subjectBreakdown]);
 
   /* ── Trend data ─── */
   const trendData = useMemo(() => {
@@ -914,66 +1072,477 @@ export default function StudentResultsPage() {
         )}
 
         {/* ══════════════════════════════════════
-            TAB 2: DERS & KONU ANALİZİ
+            TAB 2: DERS & KONU ANALİZİ (GELİŞMİŞ GRAFİKLER)
         ══════════════════════════════════════ */}
         {activeTab === 'subjects' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {subjectBreakdown.length === 0 && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 20, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.12)' }}>
-                Henüz ders/konu verisi yok
-              </div>
-            )}
-            {subjectBreakdown.map(({ subj, tests, avgScore, topicArray, totalQ, totalCorrect }) => {
-              const th = theme(subj);
-              const SubIcon = th.icon;
-              const isExpanded = expandedSubject === subj;
-              return (
-                <div key={subj} style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : 'rgba(255,255,255,0.12)'}`, boxShadow: isExpanded ? `0 8px 32px rgba(0,0,0,0.4)` : '0 4px 16px rgba(0,0,0,0.25)', overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                  {/* Subject Header */}
-                  <button className="sr-subject-header-btn" onClick={() => setExpandedSubject(isExpanded ? null : subj)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', background: isExpanded ? th.bg : 'transparent', border: 'none', cursor: 'pointer', gap: 12, flexWrap: 'wrap', transition: 'background 0.25s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.1)', border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <SubIcon size={22} color={th.color} />
-                      </div>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff' }}>{subj}</div>
-                        <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{tests.length} test · {totalQ} soru · {totalCorrect} doğru</div>
-                      </div>
-                    </div>
-                    <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <ScoreBadge score={avgScore} size="md" />
-                      <StatusTag accuracy={avgScore} />
-                      <ChevronRight size={18} color="#ffffff" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                    </div>
-                  </button>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            
+            {/* 1. ÜST ANALİZ VE GRAFİK KARTI */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
+              borderRadius: 24,
+              border: '1.5px solid rgba(255, 255, 255, 0.15)',
+              padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
+              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
+              backdropFilter: 'blur(20px)'
+            }}>
+              {/* Header with Switcher */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
+                    <BarChart3 size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                      Ders & Konu Başarı Karnesi
+                    </h2>
+                    <span style={{ fontSize: '0.74rem', color: '#c7d2fe', fontWeight: 600 }}>
+                      Dersler ve konular bazında çözülen sorular, doğruluk oranları ve yetkinlik grafiği
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Expanded: Topic horizontal bars */}
-                  {isExpanded && topicArray.length > 0 && (
-                    <div style={{ padding: '1.25rem 1.4rem', background: 'rgba(0, 0, 0, 0.25)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-                        📋 Konu / Test Bazlı Doğruluk Analizi
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {topicArray.map((top, idx) => (
-                          <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>{top.name}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{top.correctQ}/{top.totalQ} Soru</span>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#4ade80' : top.accuracy >= 50 ? '#fbbf24' : '#f87171' }}>%{top.accuracy}</span>
-                              </div>
-                            </div>
-                            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
-                              <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                {/* Grafik Türü Seçici */}
+                <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.08)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <button
+                    onClick={() => setSubjChartType('bar')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: subjChartType === 'bar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: subjChartType === 'bar' ? '#fff' : '#cbd5e1',
+                      boxShadow: subjChartType === 'bar' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <BarChart3 size={14} /> Karşılaştırma
+                  </button>
+                  <button
+                    onClick={() => setSubjChartType('radar')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: subjChartType === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: subjChartType === 'radar' ? '#fff' : '#cbd5e1',
+                      boxShadow: subjChartType === 'radar' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <Target size={14} /> Yetkinlik Radarı
+                  </button>
+                  <button
+                    onClick={() => setSubjChartType('pie')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: subjChartType === 'pie' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: subjChartType === 'pie' ? '#fff' : '#cbd5e1',
+                      boxShadow: subjChartType === 'pie' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <PieIcon size={14} /> Soru Payı
+                  </button>
+                </div>
+              </div>
+
+              {/* Chart Content */}
+              {subjectBreakdown.length === 0 ? (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                  Henüz çözülmüş test verisi bulunmuyor
+                </div>
+              ) : (
+                <div style={{ height: isMobile ? 260 : 310, width: '100%', position: 'relative' }}>
+                  {subjChartType === 'bar' && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={subjectBarData} margin={{ top: 10, right: 15, left: -20, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fill: '#cbd5e1', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                          tickFormatter={v => `%${v}`}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
+                          tickLine={false}
+                        />
+                        <Tooltip content={<CustomSubjectTooltip />} />
+                        <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.6} label={{ value: 'Hedef %70', fill: '#86efac', fontSize: 10, position: 'right' }} />
+                        <Bar
+                          dataKey="Başarı %"
+                          radius={[8, 8, 0, 0]}
+                          maxBarSize={45}
+                        >
+                          {subjectBarData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.barColor || '#6366f1'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+
+                  {subjChartType === 'radar' && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData} outerRadius={isMobile ? '65%' : '75%'}>
+                        <PolarGrid stroke="rgba(255,255,255,0.15)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255,255,255,0.2)" tick={{ fill: '#94a3b8', fontSize: 9 }} />
+                        <Radar name="Başarı %" dataKey="value" stroke="#818cf8" fill="#6366f1" fillOpacity={0.45} strokeWidth={2.5} />
+                        <Tooltip content={<CustomSubjectTooltip />} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  )}
+
+                  {subjChartType === 'pie' && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={subjectPieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={isMobile ? 50 : 65}
+                          outerRadius={isMobile ? 85 : 110}
+                          paddingAngle={3}
+                        >
+                          {subjectPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(15,23,42,0.6)" strokeWidth={2} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomSubjectTooltip />} />
+                        <Legend
+                          formatter={(value) => <span style={{ color: '#e2e8f0', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
+                          layout="horizontal"
+                          align="center"
+                          verticalAlign="bottom"
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   )}
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* 2. DERS FİLTRELEME PİLLERİ */}
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
+              <button
+                onClick={() => setSelectedSubjFilter('all')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '0.5rem 1rem',
+                  borderRadius: 12,
+                  border: selectedSubjFilter === 'all' ? '1.5px solid #818cf8' : '1.5px solid rgba(255, 255, 255, 0.12)',
+                  background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(30, 41, 59, 0.85)',
+                  color: selectedSubjFilter === 'all' ? '#ffffff' : '#cbd5e1',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: selectedSubjFilter === 'all' ? '0 4px 14px rgba(99, 102, 241, 0.4)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span>🌟 Tüm Dersler ({subjectBreakdown.length})</span>
+              </button>
+
+              {subjectBreakdown.map(sb => {
+                const th = theme(sb.subj);
+                const SubIcon = th.icon;
+                const isSelected = selectedSubjFilter === sb.subj;
+                return (
+                  <button
+                    key={sb.subj}
+                    onClick={() => setSelectedSubjFilter(isSelected ? 'all' : sb.subj)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '0.5rem 1rem',
+                      borderRadius: 12,
+                      border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid rgba(255, 255, 255, 0.12)',
+                      background: isSelected ? th.bg : 'rgba(30, 41, 59, 0.85)',
+                      color: isSelected ? '#ffffff' : '#cbd5e1',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: isSelected ? `0 4px 14px ${th.color}40` : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <SubIcon size={15} color={isSelected ? th.color : '#cbd5e1'} />
+                    <span>{sb.subj}</span>
+                    <span style={{
+                      background: isSelected ? th.color : 'rgba(255,255,255,0.12)',
+                      color: isSelected ? '#0f172a' : '#ffffff',
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      padding: '1px 6px',
+                      borderRadius: 99
+                    }}>
+                      %{sb.avgScore}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 3. KONU BAZLI DETAYLI GRAFİK VE GELİŞİM PANOSU */}
+            {activeTopicChartData.length > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
+                borderRadius: 24,
+                border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
+                boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
+                backdropFilter: 'blur(20px)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>📈 Konu Başarı & Soru Dağılım Grafiği</span>
+                      {selectedSubjFilter !== 'all' && (
+                        <span style={{ fontSize: '0.72rem', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.4)', padding: '2px 8px', borderRadius: 8 }}>
+                          {selectedSubjFilter}
+                        </span>
+                      )}
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                      Konulardaki Doğru / Yanlış / Boş soru dağılımları ve doğruluk yüzdesi
+                    </span>
+                  </div>
+
+                  {/* Sıralama Seçici */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>Sırala:</span>
+                    <select
+                      value={topicChartSort}
+                      onChange={e => setTopicChartSort(e.target.value)}
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.9)',
+                        color: '#fff',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: 10,
+                        padding: '0.35rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="accuracy_desc">🔥 En Yüksek Başarı</option>
+                      <option value="accuracy_asc">⚠️ En Düşük Başarı (Tekrar)</option>
+                      <option value="totalQ_desc">📊 En Çok Soru Çözülen</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Horizontal Bar Chart for Topics */}
+                <div style={{ height: Math.max(240, activeTopicChartData.length * 38), width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={activeTopicChartData}
+                      margin={{ top: 10, right: 25, left: isMobile ? 10 : 35, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" horizontal={false} />
+                      <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} stroke="rgba(255,255,255,0.15)" />
+                      <YAxis
+                        type="category"
+                        dataKey="displayName"
+                        width={isMobile ? 100 : 180}
+                        tick={{ fill: '#e2e8f0', fontSize: isMobile ? 10 : 11, fontWeight: 800 }}
+                        stroke="rgba(255,255,255,0.15)"
+                        tickFormatter={v => v.length > 22 ? v.slice(0, 20) + '…' : v}
+                      />
+                      <Tooltip content={<CustomSubjectTooltip />} />
+                      <Legend
+                        formatter={(val) => <span style={{ color: '#e2e8f0', fontSize: '0.76rem', fontWeight: 700 }}>{val}</span>}
+                        verticalAlign="top"
+                        align="right"
+                      />
+                      <Bar dataKey="correctQ" name="Doğru" fill="#10b981" stackId="a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="wrongQ" name="Yanlış" fill="#f43f5e" stackId="a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="blankQ" name="Boş" fill="#94a3b8" stackId="a" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* 4. AKILLI ANALİZ KARTLARI (GÜÇLÜ YÖNLER & TEKRAR GEREKENLER) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+              {/* Güçlü Konular */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%)',
+                border: '1.5px solid rgba(52, 211, 153, 0.35)',
+                borderRadius: 20,
+                padding: '1.1rem 1.35rem',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                    🚀
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#6ee7b7', fontSize: '0.92rem', fontWeight: 900 }}>
+                      En Güçlü Olduğun Konular
+                    </h4>
+                    <span style={{ fontSize: '0.68rem', color: '#a7f3d0' }}>Doğruluk %75 ve üzeri olanlar</span>
+                  </div>
+                </div>
+
+                {topStrongTopics.length === 0 ? (
+                  <div style={{ fontSize: '0.76rem', color: '#94a3b8', fontStyle: 'italic', padding: '0.5rem 0' }}>
+                    Henüz yeterli soru çözülen güçlü konu tespit edilmedi.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {topStrongTopics.map((t, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', padding: '0.45rem 0.75rem', borderRadius: 10 }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#34d399' }}>
+                          %{t.accuracy}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tekrar Gereken Konular */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%)',
+                border: '1.5px solid rgba(251, 113, 133, 0.35)',
+                borderRadius: 20,
+                padding: '1.1rem 1.35rem',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(244,63,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                    ⚠️
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#fda4af', fontSize: '0.92rem', fontWeight: 900 }}>
+                      Öncelikli Tekrar Gereken Konular
+                    </h4>
+                    <span style={{ fontSize: '0.68rem', color: '#fecdd3' }}>Doğruluk %60 altı olanlar</span>
+                  </div>
+                </div>
+
+                {topWeakTopics.length === 0 ? (
+                  <div style={{ fontSize: '0.76rem', color: '#86efac', fontWeight: 700, padding: '0.5rem 0' }}>
+                    Tebrikler! Kritik derecede zayıf konu bulunmuyor 🎉
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {topWeakTopics.map((t, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', padding: '0.45rem 0.75rem', borderRadius: 10 }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#fb7185' }}>
+                          %{t.accuracy}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 5. DERS VE KONU AKORDEON DETAYLARI */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {subjectBreakdown
+                .filter(sb => selectedSubjFilter === 'all' || sb.subj === selectedSubjFilter)
+                .map(({ subj, tests, avgScore, topicArray, totalQ, totalCorrect, totalWrong, totalBlank }) => {
+                  const th = theme(subj);
+                  const SubIcon = th.icon;
+                  const isExpanded = expandedSubject === subj || selectedSubjFilter === subj;
+                  return (
+                    <div key={subj} style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : 'rgba(255,255,255,0.12)'}`, boxShadow: isExpanded ? `0 8px 32px rgba(0,0,0,0.4)` : '0 4px 16px rgba(0,0,0,0.25)', overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                      {/* Subject Header */}
+                      <button className="sr-subject-header-btn" onClick={() => setExpandedSubject(isExpanded && selectedSubjFilter === 'all' ? null : subj)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', background: isExpanded ? th.bg : 'transparent', border: 'none', cursor: 'pointer', gap: 12, flexWrap: 'wrap', transition: 'background 0.25s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.1)', border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <SubIcon size={22} color={th.color} />
+                          </div>
+                          <div style={{ textAlign: 'left' }}>
+                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff' }}>{subj}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                              {tests.length} test · {totalQ} soru (<span style={{ color: '#4ade80' }}>{totalCorrect} D</span> · <span style={{ color: '#f87171' }}>{totalWrong} Y</span> · <span style={{ color: '#94a3b8' }}>{totalBlank} B</span>)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <ScoreBadge score={avgScore} size="md" />
+                          <StatusTag accuracy={avgScore} />
+                          <ChevronRight size={18} color="#ffffff" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                        </div>
+                      </button>
+
+                      {/* Expanded: Topic horizontal bars */}
+                      {isExpanded && topicArray.length > 0 && (
+                        <div style={{ padding: '1.25rem 1.4rem', background: 'rgba(0, 0, 0, 0.25)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+                            📋 Konu / Test Bazlı Doğruluk Analizi
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {topicArray.map((top, idx) => (
+                              <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>{top.name}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                                      {top.correctQ} D / {top.wrongQ} Y / {top.blankQ} B ({top.totalQ} Soru)
+                                    </span>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#4ade80' : top.accuracy >= 50 ? '#fbbf24' : '#f87171' }}>
+                                      %{top.accuracy}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                                  <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+
           </div>
         )}
 
