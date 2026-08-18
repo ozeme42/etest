@@ -117,25 +117,25 @@ function normalizeScore(type, val) {
 }
 
 function scoreColor(type, val) {
-  if (val === null || val === undefined) return 'rgba(255,255,255,0.3)';
-  if (type === 'binary')    return val ? '#34d399' : '#f87171';
+  if (val === null || val === undefined) return '#94a3b8';
+  if (type === 'binary')    return val ? '#16a34a' : '#dc2626';
   if (type === 'plusminus') {
-    if (val >= 2) return '#34d399';
-    if (val >= 1) return '#818cf8';
-    if (val === 0) return '#94a3b8';
-    return val <= -2 ? '#f87171' : '#fb923c';
+    if (val >= 2) return '#16a34a';
+    if (val >= 1) return '#4f46e5';
+    if (val === 0) return '#64748b';
+    return val <= -2 ? '#dc2626' : '#ea580c';
   }
   if (type === 'stars') {
     const p = val / 5;
-    return p >= 0.7 ? '#34d399' : p >= 0.4 ? '#fbbf24' : '#f87171';
+    return p >= 0.7 ? '#16a34a' : p >= 0.4 ? '#d97706' : '#dc2626';
   }
-  if (type === 'numeric') return val >= 70 ? '#34d399' : val >= 45 ? '#fbbf24' : '#f87171';
+  if (type === 'numeric') return val >= 70 ? '#16a34a' : val >= 45 ? '#d97706' : '#dc2626';
   if (type === 'emoji') {
     const p = val / 5;
-    return p >= 0.6 ? '#34d399' : p >= 0.3 ? '#fbbf24' : '#f87171';
+    return p >= 0.6 ? '#16a34a' : p >= 0.3 ? '#d97706' : '#dc2626';
   }
-  if (type === 'rubrik') return RUBRIC_COLORS[val] ?? '#94a3b8';
-  return '#94a3b8';
+  if (type === 'rubrik') return RUBRIC_COLORS[val] ?? '#64748b';
+  return '#64748b';
 }
 
 function scoreToDisplay(type, val) {
@@ -161,7 +161,7 @@ const Av = ({ name, idx, size = 32 }) => (
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+    boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
   }}>
     {(name || 'Ö').charAt(0).toUpperCase()}
   </div>
@@ -178,12 +178,12 @@ function ScoreCell({ type, value, onChange }) {
             width: 36,
             height: 30,
             borderRadius: '0.5rem',
-            border: value === 1 ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.15)',
+            border: value === 1 ? '2px solid #16a34a' : '1.5px solid #cbd5e1',
             cursor: 'pointer',
             fontWeight: 900,
             fontSize: '1rem',
-            background: value === 1 ? 'rgba(16, 185, 129, 0.28)' : 'rgba(255,255,255,0.04)',
-            color: value === 1 ? '#34d399' : 'rgba(255,255,255,0.4)',
+            background: value === 1 ? '#f0fdf4' : '#f8fafc',
+            color: value === 1 ? '#15803d' : '#94a3b8',
             transition: 'all 0.15s',
             display: 'flex',
             alignItems: 'center',
@@ -199,12 +199,12 @@ function ScoreCell({ type, value, onChange }) {
             width: 36,
             height: 30,
             borderRadius: '0.5rem',
-            border: value === 0 ? '2px solid #f87171' : '1px solid rgba(255,255,255,0.15)',
+            border: value === 0 ? '2px solid #dc2626' : '1.5px solid #cbd5e1',
             cursor: 'pointer',
             fontWeight: 900,
             fontSize: '1rem',
-            background: value === 0 ? 'rgba(239, 68, 68, 0.28)' : 'rgba(255,255,255,0.04)',
-            color: value === 0 ? '#f87171' : 'rgba(255,255,255,0.4)',
+            background: value === 0 ? '#fef2f2' : '#f8fafc',
+            color: value === 0 ? '#dc2626' : '#94a3b8',
             transition: 'all 0.15s',
             display: 'flex',
             alignItems: 'center',
@@ -221,7 +221,7 @@ function ScoreCell({ type, value, onChange }) {
   if (type === 'plusminus') {
     return (
       <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
-        {[[-2, '−−', '#f87171'], [-1, '−', '#fb923c'], [0, '0', '#94a3b8'], [1, '+', '#818cf8'], [2, '++', '#34d399']].map(([v, label, color]) => (
+        {[[-2, '−−', '#dc2626'], [-1, '−', '#ea580c'], [0, '0', '#64748b'], [1, '+', '#4f46e5'], [2, '++', '#16a34a']].map(([v, label, color]) => (
           <button
             key={v}
             onClick={() => onChange(value === v ? null : v)}
@@ -229,12 +229,12 @@ function ScoreCell({ type, value, onChange }) {
               height: 28,
               minWidth: 26,
               borderRadius: '0.4rem',
-              border: value === v ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.12)',
+              border: value === v ? `2px solid ${color}` : '1.5px solid #cbd5e1',
               cursor: 'pointer',
               fontSize: '0.68rem',
               fontWeight: 900,
-              background: value === v ? color : 'rgba(255,255,255,0.04)',
-              color: value === v ? '#ffffff' : 'rgba(255,255,255,0.6)',
+              background: value === v ? color : '#f8fafc',
+              color: value === v ? '#ffffff' : '#475569',
               transition: 'all 0.1s',
               padding: '0 4px'
             }}
@@ -260,9 +260,8 @@ function ScoreCell({ type, value, onChange }) {
               padding: '2px 1px',
               fontSize: '1.15rem',
               lineHeight: 1,
-              color: s <= (value || 0) ? '#fbbf24' : 'rgba(255,255,255,0.18)',
-              transition: 'color 0.1s',
-              textShadow: s <= (value || 0) ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none'
+              color: s <= (value || 0) ? '#f59e0b' : '#cbd5e1',
+              transition: 'color 0.1s'
             }}
           >
             ★
@@ -287,11 +286,11 @@ function ScoreCell({ type, value, onChange }) {
             width: 58,
             padding: '0.35rem 0.4rem',
             borderRadius: 8,
-            border: `1.5px solid ${value != null ? scoreColor('numeric', value) : 'rgba(255,255,255,0.18)'}`,
-            background: value != null ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255,255,255,0.04)',
+            border: `1.5px solid ${value != null ? scoreColor('numeric', value) : '#cbd5e1'}`,
+            background: value != null ? '#f0f9ff' : '#ffffff',
             fontSize: '0.86rem',
             fontWeight: 900,
-            color: value != null ? scoreColor('numeric', value) : '#ffffff',
+            color: value != null ? scoreColor('numeric', value) : '#0f172a',
             outline: 'none',
             textAlign: 'center',
             fontFamily: 'monospace'
@@ -310,8 +309,8 @@ function ScoreCell({ type, value, onChange }) {
             onClick={() => onChange(value === i + 1 ? null : i + 1)}
             title={EMOJI_LABELS[i + 1]}
             style={{
-              background: value === i + 1 ? 'rgba(236, 72, 153, 0.25)' : 'none',
-              border: value === i + 1 ? '2px solid #ec4899' : '1px solid transparent',
+              background: value === i + 1 ? '#fdf2f8' : 'none',
+              border: value === i + 1 ? '2px solid #db2777' : '1px solid transparent',
               borderRadius: '0.45rem',
               cursor: 'pointer',
               padding: '2px 3px',
@@ -342,12 +341,12 @@ function ScoreCell({ type, value, onChange }) {
               height: 28,
               minWidth: 28,
               borderRadius: '0.4rem',
-              border: value === v ? `2px solid ${RUBRIC_COLORS[v]}` : '1px solid rgba(255,255,255,0.12)',
+              border: value === v ? `2px solid ${RUBRIC_COLORS[v]}` : '1.5px solid #cbd5e1',
               cursor: 'pointer',
               fontSize: '0.68rem',
               fontWeight: 900,
-              background: value === v ? RUBRIC_COLORS[v] + '33' : 'rgba(255,255,255,0.04)',
-              color: value === v ? RUBRIC_COLORS[v] : 'rgba(255,255,255,0.6)',
+              background: value === v ? RUBRIC_COLORS[v] + '25' : '#f8fafc',
+              color: value === v ? RUBRIC_COLORS[v] : '#475569',
               transition: 'all 0.1s',
               padding: '0 4px',
               display: 'flex',
@@ -362,7 +361,7 @@ function ScoreCell({ type, value, onChange }) {
     );
   }
 
-  return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>—</span>;
+  return <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>—</span>;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -721,14 +720,14 @@ export default function ScaleModule({ students = [], teacherId }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #ffffff 30%, #a5b4fc 70%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <BarChart3 size={30} style={{ color: '#ec4899' }} /> Çok Yönlü Değerlendirme &amp; Gözlem Ölçekleri
+            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <BarChart3 size={30} style={{ color: '#6366f1' }} /> Çok Yönlü Değerlendirme &amp; Gözlem Ölçekleri
             </h1>
-            <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'linear-gradient(135deg, rgba(236,72,153,0.3), rgba(99,102,241,0.3))', color: '#fbcfe8', border: '1px solid rgba(244,114,182,0.4)', padding: '0.2rem 0.75rem', borderRadius: '1rem', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', padding: '0.2rem 0.75rem', borderRadius: '1rem', letterSpacing: '0.05em' }}>
               MEB &amp; REHBERLİK UYUMLU
             </span>
           </div>
-          <p style={{ margin: '0.35rem 0 0 0', color: 'rgba(255, 255, 255, 0.65)', fontSize: '0.92rem', fontWeight: 600 }}>
+          <p style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.92rem', fontWeight: 600 }}>
             Akademik başarı, ders içi katılım, rehberlik, sınav kaygısı, proje rubrikleri ve koçluk için tüm ölçekleri puanlayın ve gelişim raporlayın.
           </p>
         </div>
@@ -755,7 +754,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               alignItems: 'center',
               gap: '0.5rem',
               cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.35)'
+              boxShadow: '0 8px 20px rgba(99, 102, 241, 0.25)'
             }}
           >
             <Plus size={18} /> Yeni Ölçek Oluştur
@@ -766,7 +765,7 @@ export default function ScaleModule({ students = [], teacherId }) {
       {/* ── 4 LIVE KPI HERO CARDS ── */}
       <div className="scale-kpi-grid">
         <div className="scale-kpi-card">
-          <div className="scale-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(79,70,229,0.35))', color: '#818cf8', border: '1px solid rgba(165,180,252,0.3)' }}>
+          <div className="scale-kpi-icon" style={{ background: '#eff6ff', color: '#4f46e5', border: '1px solid #bfdbfe' }}>
             <ClipboardList size={26} />
           </div>
           <div>
@@ -776,7 +775,7 @@ export default function ScaleModule({ students = [], teacherId }) {
         </div>
 
         <div className="scale-kpi-card">
-          <div className="scale-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(2,132,199,0.35))', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)' }}>
+          <div className="scale-kpi-icon" style={{ background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd' }}>
             <Calendar size={26} />
           </div>
           <div>
@@ -786,7 +785,7 @@ export default function ScaleModule({ students = [], teacherId }) {
         </div>
 
         <div className="scale-kpi-card">
-          <div className="scale-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.35))', color: '#f472b6', border: '1px solid rgba(244,114,182,0.3)' }}>
+          <div className="scale-kpi-icon" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8' }}>
             <Users size={26} />
           </div>
           <div>
@@ -796,7 +795,7 @@ export default function ScaleModule({ students = [], teacherId }) {
         </div>
 
         <div className="scale-kpi-card">
-          <div className="scale-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(5,150,105,0.35))', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+          <div className="scale-kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
             <Award size={26} />
           </div>
           <div>
@@ -809,7 +808,7 @@ export default function ScaleModule({ students = [], teacherId }) {
       {/* ── PRESET TEMPLATES FAST BAR ── */}
       <div className="scale-glass-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.86rem', fontWeight: 900, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <span style={{ fontSize: '0.86rem', fontWeight: 900, color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Sparkles size={18} /> 1 Tıkla Hazır Ölçek Yükle:
           </span>
           {PRESET_SCALES.map(preset => (
@@ -821,9 +820,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                 fontWeight: 800,
                 padding: '0.45rem 0.85rem',
                 borderRadius: '0.75rem',
-                background: 'rgba(99, 102, 241, 0.16)',
-                border: '1px solid rgba(165, 180, 252, 0.3)',
-                color: '#ffffff',
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                color: '#1e293b',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -832,7 +831,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               }}
               title={preset.desc}
             >
-              <Zap size={13} style={{ color: '#38bdf8' }} /> {preset.name}
+              <Zap size={13} style={{ color: '#0284c7' }} /> {preset.name}
             </button>
           ))}
         </div>
@@ -849,9 +848,9 @@ export default function ScaleModule({ students = [], teacherId }) {
               style={{
                 padding: '0.65rem 1.15rem',
                 borderRadius: '0.85rem',
-                background: activeScale ? 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.25))' : 'rgba(255,255,255,0.06)',
-                border: '1.5px solid rgba(165,180,252,0.4)',
-                color: '#ffffff',
+                background: activeScale ? '#eff6ff' : '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                color: '#0f172a',
                 fontWeight: 900,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
@@ -875,18 +874,17 @@ export default function ScaleModule({ students = [], teacherId }) {
                   top: 'calc(100% + 8px)',
                   left: 0,
                   zIndex: 9999,
-                  background: 'linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,27,75,0.98))',
-                  border: '1.5px solid rgba(255,255,255,0.18)',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
                   borderRadius: '1rem',
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+                  boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
                   minWidth: '280px',
-                  overflow: 'hidden',
-                  backdropFilter: 'blur(16px)'
+                  overflow: 'hidden'
                 }}
                 onMouseLeave={() => setScaleDropdownOpen(false)}
               >
                 {scales.length === 0 ? (
-                  <div style={{ padding: '1rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', textAlign: 'center' }}>
+                  <div style={{ padding: '1rem', color: '#64748b', fontSize: '0.82rem', textAlign: 'center' }}>
                     Henüz kayıtlı ölçek yok
                   </div>
                 ) : (
@@ -900,25 +898,25 @@ export default function ScaleModule({ students = [], teacherId }) {
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
                         cursor: 'pointer',
-                        background: sc.id === activeScaleId ? 'rgba(99,102,241,0.25)' : 'transparent',
-                        borderLeft: `3px solid ${sc.id === activeScaleId ? '#818cf8' : 'transparent'}`,
-                        borderBottom: '1px solid rgba(255,255,255,0.06)'
+                        background: sc.id === activeScaleId ? '#eff6ff' : 'transparent',
+                        borderLeft: `3px solid ${sc.id === activeScaleId ? '#6366f1' : 'transparent'}`,
+                        borderBottom: '1px solid #e2e8f0'
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff' }}>{sc.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>{sc.criteria?.length || 0} kriter • {sc.sessions?.length || 0} seans</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{sc.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{sc.criteria?.length || 0} kriter • {sc.sessions?.length || 0} seans</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.3rem' }}>
                         <button
                           onClick={e => { e.stopPropagation(); openEditScale(sc); setScaleDropdownOpen(false); }}
-                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#c7d2fe' }}
+                          style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#4f46e5' }}
                         >
                           <Edit2 size={13} />
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); handleDeleteScale(sc.id, sc.name); setScaleDropdownOpen(false); }}
-                          style={{ background: 'rgba(239,68,68,0.2)', border: 'none', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#f87171' }}
+                          style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#dc2626' }}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -927,7 +925,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                   ))
                 )}
                 
-                <div style={{ padding: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ padding: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
                   <button
                     onClick={() => {
                       setEditingScaleId(null);
@@ -964,7 +962,7 @@ export default function ScaleModule({ students = [], teacherId }) {
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => openEditScale(activeScale)}
-                style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                 title="Ölçeği ve Kriterlerini Düzenle"
               >
                 <Edit2 size={14} /> Ölçeği Düzenle
@@ -987,9 +985,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                   style={{
                     padding: '0.45rem 0.85rem',
                     borderRadius: '0.75rem',
-                    border: isActive ? '1.5px solid #818cf8' : '1px solid rgba(255,255,255,0.12)',
-                    background: isActive ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.04)',
-                    color: '#ffffff',
+                    border: isActive ? '1.5px solid #4f46e5' : '1.5px solid #cbd5e1',
+                    background: isActive ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#f8fafc',
+                    color: isActive ? '#ffffff' : '#334155',
                     fontWeight: 800,
                     fontSize: '0.8rem',
                     cursor: 'pointer',
@@ -997,12 +995,12 @@ export default function ScaleModule({ students = [], teacherId }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: isActive ? '0 4px 12px rgba(99,102,241,0.35)' : 'none'
+                    boxShadow: isActive ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
                   }}
                 >
                   <Calendar size={13} /> {sess.label}
                   {hwCount > 0 && (
-                    <span style={{ background: 'rgba(52,211,153,0.3)', color: '#34d399', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontSize: '0.68rem', fontWeight: 900 }}>
+                    <span style={{ background: isActive ? 'rgba(255,255,255,0.25)' : '#f0fdf4', color: isActive ? '#ffffff' : '#15803d', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontSize: '0.68rem', fontWeight: 900, border: isActive ? 'none' : '1px solid #bbf7d0' }}>
                       📚 {hwCount}
                     </span>
                   )}
@@ -1016,9 +1014,9 @@ export default function ScaleModule({ students = [], teacherId }) {
               style={{
                 padding: '0.45rem 0.85rem',
                 borderRadius: '0.75rem',
-                background: 'rgba(56, 189, 248, 0.16)',
-                border: '1.5px dashed rgba(56, 189, 248, 0.4)',
-                color: '#38bdf8',
+                background: '#f0f9ff',
+                border: '1.5px dashed #0284c7',
+                color: '#0284c7',
                 fontSize: '0.8rem',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -1034,7 +1032,7 @@ export default function ScaleModule({ students = [], teacherId }) {
         )}
 
         {/* View Tabs */}
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid #e2e8f0' }}>
           <button
             onClick={() => setViewTab('grid')}
             style={{
@@ -1042,7 +1040,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               borderRadius: '0.6rem',
               border: 'none',
               background: viewTab === 'grid' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: '#ffffff',
+              color: viewTab === 'grid' ? '#ffffff' : '#64748b',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -1060,7 +1058,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               borderRadius: '0.6rem',
               border: 'none',
               background: viewTab === 'analytics' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: '#ffffff',
+              color: viewTab === 'analytics' ? '#ffffff' : '#64748b',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -1078,7 +1076,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               borderRadius: '0.6rem',
               border: 'none',
               background: viewTab === 'trend' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: '#ffffff',
+              color: viewTab === 'trend' ? '#ffffff' : '#64748b',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -1096,14 +1094,14 @@ export default function ScaleModule({ students = [], teacherId }) {
       {/* ── CONTENT AREA ── */}
       {!activeScale ? (
         <div className="scale-glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(236,72,153,0.2), rgba(99,102,241,0.2))', border: '1.5px solid rgba(244,114,182,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f472b6' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#eff6ff', border: '1.5px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
             <ClipboardList size={40} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff' }}>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
               Değerlendirme Ölçeği Seçiniz veya Oluşturunuz
             </h3>
-            <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255,255,255,0.6)', maxWidth: '480px', fontSize: '0.92rem' }}>
+            <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', maxWidth: '480px', fontSize: '0.92rem' }}>
               Yukarıdaki hazır şablonlardan 1 tıkla yükleyebilir veya kendi kriterlerinize özel yeni bir ölçek oluşturabilirsiniz.
             </p>
           </div>
@@ -1111,13 +1109,13 @@ export default function ScaleModule({ students = [], teacherId }) {
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               onClick={() => handleLoadPreset(PRESET_SCALES[0])}
-              style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', boxShadow: '0 8px 20px rgba(99,102,241,0.25)' }}
             >
               ⚡ MEB Performans Ölçeğiyle Başla
             </button>
             <button
               onClick={() => handleLoadPreset(PRESET_SCALES[1])}
-              style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #ec4899, #d946ef)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', boxShadow: '0 8px 24px rgba(236,72,153,0.35)' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #0284c7, #0369a1)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', boxShadow: '0 8px 20px rgba(2,132,199,0.25)' }}
             >
               🧠 Rehberlik &amp; Sınav Kaygısı Ölçeği
             </button>
@@ -1133,19 +1131,19 @@ export default function ScaleModule({ students = [], teacherId }) {
               
               {/* Search input */}
               <div style={{ position: 'relative', minWidth: '240px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input
                   type="text"
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
                   placeholder="Öğrenci ara..."
-                  style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.3rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.3rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Quick info & bulk tips */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
                   💡 <strong>Hızlı İpucu:</strong> Sütun başlıklarındaki "Tümüne Uygula" ile sınıfa tek tıkla standart puan verip istisnaları değiştirebilirsiniz.
                 </span>
               </div>
@@ -1160,7 +1158,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                       Öğrenci
                     </th>
                     
-                    {activeScale.criteria.map((crit, ci) => {
+                    {activeScale.criteria.map((crit) => {
                       const ct = CRITERION_TYPES.find(t => t.id === crit.type);
                       return (
                         <th key={crit.id} style={{ padding: '0.85rem 0.65rem', textAlign: 'center', borderRight: '1px solid #e2e8f0', minWidth: '140px' }}>
@@ -1168,7 +1166,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                             {crit.name}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                            <span style={{ padding: '0.12rem 0.45rem', borderRadius: '0.4rem', background: (ct?.color || '#94a3b8') + '22', color: ct?.color || '#475569', fontSize: '0.68rem', fontWeight: 800 }}>
+                            <span style={{ padding: '0.12rem 0.45rem', borderRadius: '0.4rem', background: (ct?.color || '#94a3b8') + '18', color: ct?.color || '#475569', fontSize: '0.68rem', fontWeight: 800 }}>
                               {ct?.label}
                             </span>
                             {/* Bulk quick fill trigger */}
@@ -1184,7 +1182,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                             {crit.type === 'plusminus' && (
                               <button
                                 onClick={() => handleBulkQuickScore(crit.id, 1)}
-                                style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.68rem', fontWeight: 900, cursor: 'pointer', padding: 0 }}
+                                style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.68rem', fontWeight: 900, cursor: 'pointer', padding: 0 }}
                                 title="Tüm sınıfa + ver"
                               >
                                 [Tümüne +]
@@ -1197,7 +1195,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
                     {/* Ödev Sütunu */}
                     <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', borderRight: '1px solid #e2e8f0', minWidth: '100px', background: '#fffbeb' }}>
-                      <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#d97706', textTransform: 'uppercase' }}>📚 Ödev</div>
+                      <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#b45309', textTransform: 'uppercase' }}>📚 Ödev</div>
                     </th>
 
                     {/* Ortalama Sütunu */}
@@ -1206,7 +1204,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                     </th>
 
                     {/* Rapor & Karne */}
-                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', minWidth: '110px', fontSize: '0.74rem', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', minWidth: '110px', fontSize: '0.74rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase' }}>
                       Gözlem &amp; Karne
                     </th>
                   </tr>
@@ -1267,7 +1265,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                           ))}
 
                           {/* Homework Toggle */}
-                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid rgba(255,255,255,0.06)', background: hw ? 'rgba(16,185,129,0.08)' : 'transparent' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid #e2e8f0', background: hw ? '#f0fdf4' : 'transparent' }}>
                             <button
                               onClick={() => toggleHomework(std.id)}
                               style={{
@@ -1276,9 +1274,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                                 gap: '4px',
                                 padding: '0.3rem 0.65rem',
                                 borderRadius: '1rem',
-                                border: hw ? '1.5px solid #34d399' : '1px solid rgba(255,255,255,0.18)',
-                                background: hw ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.04)',
-                                color: hw ? '#34d399' : 'rgba(255,255,255,0.6)',
+                                border: hw ? '1.5px solid #86efac' : '1.5px solid #cbd5e1',
+                                background: hw ? '#f0fdf4' : '#ffffff',
+                                color: hw ? '#15803d' : '#64748b',
                                 fontWeight: 800,
                                 fontSize: '0.72rem',
                                 cursor: 'pointer',
@@ -1291,21 +1289,21 @@ export default function ScaleModule({ students = [], teacherId }) {
                           </td>
 
                           {/* Ortalama Score Badge */}
-                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid #e2e8f0' }}>
                             {avg !== null ? (
                               <span style={{
                                 padding: '0.25rem 0.65rem',
                                 borderRadius: '0.65rem',
-                                background: avg >= 70 ? 'rgba(16,185,129,0.25)' : avg >= 45 ? 'rgba(251,191,36,0.25)' : 'rgba(239,68,68,0.25)',
-                                color: avg >= 70 ? '#34d399' : avg >= 45 ? '#fbbf24' : '#f87171',
+                                background: avg >= 70 ? '#f0fdf4' : avg >= 45 ? '#fffbeb' : '#fef2f2',
+                                color: avg >= 70 ? '#15803d' : avg >= 45 ? '#b45309' : '#dc2626',
                                 fontWeight: 900,
                                 fontSize: '0.85rem',
-                                border: `1px solid ${avg >= 70 ? 'rgba(52,211,153,0.4)' : avg >= 45 ? 'rgba(251,191,36,0.4)' : 'rgba(239,68,68,0.4)'}`
+                                border: `1px solid ${avg >= 70 ? '#bbf7d0' : avg >= 45 ? '#fde68a' : '#fecaca'}`
                               }}>
                                 %{avg}
                               </span>
                             ) : (
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>—</span>
+                              <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
                             )}
                           </td>
 
@@ -1321,9 +1319,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                                 style={{
                                   padding: '0.35rem 0.55rem',
                                   borderRadius: '0.5rem',
-                                  background: note ? 'rgba(168,85,247,0.25)' : 'rgba(255,255,255,0.06)',
-                                  border: `1px solid ${note ? 'rgba(192,132,252,0.4)' : 'rgba(255,255,255,0.15)'}`,
-                                  color: note ? '#e9d5ff' : 'rgba(255,255,255,0.6)',
+                                  background: note ? '#faf5ff' : '#f8fafc',
+                                  border: `1.5px solid ${note ? '#e9d5ff' : '#cbd5e1'}`,
+                                  color: note ? '#7e22ce' : '#64748b',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1344,9 +1342,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                                 style={{
                                   padding: '0.35rem 0.55rem',
                                   borderRadius: '0.5rem',
-                                  background: 'linear-gradient(135deg, rgba(56,189,248,0.2), rgba(99,102,241,0.2))',
-                                  border: '1px solid rgba(56,189,248,0.35)',
-                                  color: '#38bdf8',
+                                  background: '#f0f9ff',
+                                  border: '1.5px solid #bae6fd',
+                                  color: '#0284c7',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1371,14 +1369,14 @@ export default function ScaleModule({ students = [], teacherId }) {
           </div>
         ) : (
           <div className="scale-glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
-            <Calendar size={40} style={{ color: '#38bdf8', margin: '0 auto 1rem auto' }} />
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>Bu Ölçek İçin Henüz Seans Başlatılmadı</h3>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.88rem', margin: '0.5rem 0 1.25rem 0' }}>
+            <Calendar size={40} style={{ color: '#0284c7', margin: '0 auto 1rem auto' }} />
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Bu Ölçek İçin Henüz Seans Başlatılmadı</h3>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.5rem 0 1.25rem 0' }}>
               Değerlendirme yapabilmek için lütfen bir seans (tarih) oluşturun.
             </p>
             <button
               onClick={() => setShowCreateSession(true)}
-              style={{ padding: '0.65rem 1.4rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer' }}
+              style={{ padding: '0.65rem 1.4rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,165,233,0.25)' }}
             >
               <Plus size={16} /> İlk Seansı Başlat
             </button>
@@ -1391,8 +1389,8 @@ export default function ScaleModule({ students = [], teacherId }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
             {/* Criteria Success Breakdown */}
             <div className="scale-glass-card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.15rem 0', fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <BarChart3 size={20} style={{ color: '#818cf8' }} /> Kriter Bazında Sınıf Başarısı
+              <h3 style={{ margin: '0 0 1.15rem 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BarChart3 size={20} style={{ color: '#4f46e5' }} /> Kriter Bazında Sınıf Başarısı
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {criterionStats.map(crit => {
@@ -1400,12 +1398,12 @@ export default function ScaleModule({ students = [], teacherId }) {
                   return (
                     <div key={crit.id}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, marginBottom: '0.25rem' }}>
-                        <span style={{ color: '#ffffff' }}>{crit.name}</span>
-                        <span style={{ color: pct >= 70 ? '#34d399' : pct >= 45 ? '#fbbf24' : '#f87171' }}>
+                        <span style={{ color: '#0f172a' }}>{crit.name}</span>
+                        <span style={{ color: pct >= 70 ? '#15803d' : pct >= 45 ? '#b45309' : '#dc2626' }}>
                           %{pct}
                         </span>
                       </div>
-                      <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.35)', borderRadius: '1rem', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                         <div
                           style={{
                             width: `${pct}%`,
@@ -1424,8 +1422,8 @@ export default function ScaleModule({ students = [], teacherId }) {
 
             {/* Student Leaderboard / Ranking */}
             <div className="scale-glass-card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.15rem 0', fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Award size={20} style={{ color: '#fbbf24' }} /> Öğrenci Başarı Sıralaması
+              <h3 style={{ margin: '0 0 1.15rem 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Award size={20} style={{ color: '#d97706' }} /> Öğrenci Başarı Sıralaması
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '420px', overflowY: 'auto' }} className="custom-scrollbar">
                 {studentStats.map((std, rank) => (
@@ -1437,28 +1435,28 @@ export default function ScaleModule({ students = [], teacherId }) {
                       justifyContent: 'space-between',
                       padding: '0.65rem 0.85rem',
                       borderRadius: '0.75rem',
-                      background: rank === 0 ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${rank === 0 ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.06)'}`
+                      background: rank === 0 ? '#fffbeb' : '#f8fafc',
+                      border: `1.5px solid ${rank === 0 ? '#fde68a' : '#e2e8f0'}`
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 900, width: '24px', color: rank === 0 ? '#fbbf24' : rank === 1 ? '#cbd5e1' : rank === 2 ? '#fb923c' : 'rgba(255,255,255,0.5)' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, width: '24px', color: rank === 0 ? '#b45309' : rank === 1 ? '#475569' : rank === 2 ? '#c2410c' : '#94a3b8' }}>
                         #{rank + 1}
                       </span>
                       <Av name={std.name} idx={rank} size={28} />
                       <div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#ffffff' }}>{std.name} {std.surname || ''}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>{std.className || 'Öğrenci'}</div>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{std.name} {std.surname || ''}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{std.className || 'Öğrenci'}</div>
                       </div>
                     </div>
 
                     <div>
                       {std.avg !== null ? (
-                        <span style={{ fontWeight: 900, fontSize: '0.9rem', color: std.avg >= 70 ? '#34d399' : std.avg >= 45 ? '#fbbf24' : '#f87171' }}>
+                        <span style={{ fontWeight: 900, fontSize: '0.9rem', color: std.avg >= 70 ? '#15803d' : std.avg >= 45 ? '#b45309' : '#dc2626' }}>
                           %{std.avg}
                         </span>
                       ) : (
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>—</span>
+                        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
                       )}
                     </div>
                   </div>
@@ -1471,36 +1469,37 @@ export default function ScaleModule({ students = [], teacherId }) {
       ) : (
         /* ════ TAB 3: HISTORICAL DEVELOPMENT TREND ════ */
         <div className="scale-glass-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <LineChart size={22} style={{ color: '#38bdf8' }} /> Seanslar Arası Öğrenci Gelişim Analizi
+          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <LineChart size={22} style={{ color: '#0284c7' }} /> Seanslar Arası Öğrenci Gelişim Analizi
           </h3>
 
           {(activeScale?.sessions?.length || 0) < 2 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.5)' }}>
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
               Gelişim trendi hesaplayabilmek için en az 2 farklı seans oluşturup puanlamış olmanız gerekir.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
-              <table style={{ width: '100%', borderCollapse: 'collapse', color: '#ffffff' }}>
+            <div style={{ overflowX: 'auto', borderRadius: '1rem', border: '1.5px solid #e2e8f0', background: '#ffffff' }} className="custom-scrollbar">
+              <table style={{ width: '100%', borderCollapse: 'collapse', color: '#0f172a' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(99,102,241,0.18)', borderBottom: '2px solid rgba(255,255,255,0.12)' }}>
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.78rem', fontWeight: 900 }}>Öğrenci</th>
-                    {(activeScale.sessions || []).map((sess, sidx) => (
-                      <th key={sess.id} style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 800 }}>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>Öğrenci</th>
+                    {(activeScale.sessions || []).map((sess) => (
+                      <th key={sess.id} style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
                         {sess.label}
                       </th>
                     ))}
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 900 }}>Son Gelişim Trendi</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>Son Gelişim Trendi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((std, si) => {
                     const trendVal = studentTrend[std.id];
+                    const isEven = si % 2 === 0;
                     return (
-                      <tr key={std.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: si % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                      <tr key={std.id} style={{ borderBottom: '1px solid #e2e8f0', background: isEven ? '#ffffff' : '#f8fafc' }}>
                         <td style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                           <Av name={std.name} idx={si} size={28} />
-                          <span style={{ fontWeight: 800, fontSize: '0.86rem' }}>{std.name} {std.surname || ''}</span>
+                          <span style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>{std.name} {std.surname || ''}</span>
                         </td>
                         {(activeScale.sessions || []).map(sess => {
                           const vals = activeScale.criteria.map(c => {
@@ -1509,7 +1508,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                           }).filter(x => x !== null);
                           const sAvg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
                           return (
-                            <td key={sess.id} style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 800, fontSize: '0.85rem' }}>
+                            <td key={sess.id} style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                               {sAvg !== null ? `%{sAvg}` : '—'}
                             </td>
                           );
@@ -1521,8 +1520,9 @@ export default function ScaleModule({ students = [], teacherId }) {
                               borderRadius: '1rem',
                               fontWeight: 900,
                               fontSize: '0.82rem',
-                              background: trendVal > 0 ? 'rgba(16,185,129,0.2)' : trendVal < 0 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
-                              color: trendVal > 0 ? '#34d399' : trendVal < 0 ? '#f87171' : '#c7d2fe',
+                              background: trendVal > 0 ? '#f0fdf4' : trendVal < 0 ? '#fef2f2' : '#f1f5f9',
+                              color: trendVal > 0 ? '#15803d' : trendVal < 0 ? '#dc2626' : '#64748b',
+                              border: `1px solid ${trendVal > 0 ? '#bbf7d0' : trendVal < 0 ? '#fecaca' : '#cbd5e1'}`,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.25rem'
@@ -1530,7 +1530,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                               {trendVal > 0 ? `↗ +%${trendVal}` : trendVal < 0 ? `↘ %${trendVal}` : `➔ 0%`}
                             </span>
                           ) : (
-                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
+                            <span style={{ color: '#94a3b8' }}>—</span>
                           )}
                         </td>
                       </tr>
