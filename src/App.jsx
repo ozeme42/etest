@@ -77,10 +77,21 @@ import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import './App.css';
 
-// Route guard: redirects to '/' if user doesn't have the required role
+// Route guards: redirects to '/' if user is not logged in or doesn't have the required role
+function RequireAuth({ children }) {
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 function RequireRole({ roles, children }) {
   const { currentUser } = useAuth();
-  if (!currentUser || !roles.includes(currentUser.role)) {
+  if (!currentUser) {
+    return <Navigate to="/" replace />;
+  }
+  if (!roles.includes(currentUser.role)) {
     return <Navigate to="/" replace />;
   }
   return children;
@@ -158,7 +169,11 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
               <button 
-                onClick={() => { logout(); closeSidebar(); navigate('/'); }}
+                onClick={async () => { 
+                  closeSidebar(); 
+                  await logout(); 
+                  navigate('/', { replace: true }); 
+                }}
                 title="Oturumu Kapat"
                 style={{ 
                   width: '2rem', height: '2rem', borderRadius: '50%', 
@@ -392,46 +407,46 @@ function AppContent() {
               } />
               <Route path="/landing" element={<Landing />} />
               <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
-              <Route path="/teacher" element={<TeacherDashboard />} />
-              <Route path="/student" element={<StudentDashboard />} />
-              <Route path="/student/homeworks" element={<StudentHomeworksPage />} />
-              <Route path="/study-room" element={<StudyRoomPage />} />
-              <Route path="/student/study-room" element={<StudyRoomPage />} />
-              <Route path="/student/summaries" element={<StudentSummaryPage />} />
-              <Route path="/summaries" element={<SummaryManagerPage />} />
-              <Route path="/student/books" element={<StudentBooksPage />} />
-              <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
-              <Route path="/book-details/:bookId" element={<StudentBookDetailsPage />} />
-              <Route path="/student/exams" element={<StudentExamsPage />} />
-              <Route path="/student/exams/:bookId" element={<StudentBookDetailsPage />} />
-              <Route path="/homeworks" element={<HomeworkManager />} />
-              <Route path="/evaluations" element={<EvaluationManager />} />
-              <Route path="/questions" element={<QuestionBank />} />
-              <Route path="/quiz/:testId" element={<ModularQuizPage />} />
-              <Route path="/book-quiz/:testId" element={<TrackedBookQuizRunner />} />
-              <Route path="/quiz-review/:testId" element={<ModularQuizReviewPage />} />
-              <Route path="/review/:submissionId" element={<ModularQuizReviewPage />} />
-              <Route path="/books" element={<BookManager />} />
-              <Route path="/books/:id" element={<BookContentManager />} />
-              <Route path="/study-plans" element={<StudyPlanManager />} />
-              <Route path="/study-plans/:id" element={<StudyPlanDetail />} />
-              <Route path="/student/study-plan/:assignmentId" element={<StudentStudyPlanView />} />
-              <Route path="/statistics" element={<StatisticsDashboard />} />
-              <Route path="/goals" element={<GoalsAndSchedulePage />} />
-              <Route path="/student/goals" element={<GoalsAndSchedulePage />} />
-              <Route path="/student/results" element={<StudentResultsPage />} />
-              <Route path="/student-results" element={<StudentResultsPage />} />
-              <Route path="/results" element={<StudentResultsPage />} />
-              <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
-              <Route path="/student/wrong-answers" element={<StudentWrongAnswersPage />} />
-              <Route path="/my-program" element={<StudentProgramPage />} />
-              <Route path="/student/program" element={<StudentProgramPage />} />
-              <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
-              <Route path="/my-coaching" element={<MyCoachingPage />} />
-              <Route path="/physical-exam" element={<ExamManager />} />
-              <Route path="/scales" element={<ScalePage />} />
-              <Route path="/exam-analysis/:examId" element={<ExamAnalysisPage />} />
-              <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
+              <Route path="/teacher" element={<RequireRole roles={['teacher', 'admin']}><TeacherDashboard /></RequireRole>} />
+              <Route path="/student" element={<RequireRole roles={['student', 'admin', 'teacher']}><StudentDashboard /></RequireRole>} />
+              <Route path="/student/homeworks" element={<RequireAuth><StudentHomeworksPage /></RequireAuth>} />
+              <Route path="/study-room" element={<RequireAuth><StudyRoomPage /></RequireAuth>} />
+              <Route path="/student/study-room" element={<RequireAuth><StudyRoomPage /></RequireAuth>} />
+              <Route path="/student/summaries" element={<RequireAuth><StudentSummaryPage /></RequireAuth>} />
+              <Route path="/summaries" element={<RequireAuth><SummaryManagerPage /></RequireAuth>} />
+              <Route path="/student/books" element={<RequireAuth><StudentBooksPage /></RequireAuth>} />
+              <Route path="/student/books/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
+              <Route path="/book-details/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
+              <Route path="/student/exams" element={<RequireAuth><StudentExamsPage /></RequireAuth>} />
+              <Route path="/student/exams/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
+              <Route path="/homeworks" element={<RequireAuth><HomeworkManager /></RequireAuth>} />
+              <Route path="/evaluations" element={<RequireAuth><EvaluationManager /></RequireAuth>} />
+              <Route path="/questions" element={<RequireAuth><QuestionBank /></RequireAuth>} />
+              <Route path="/quiz/:testId" element={<RequireAuth><ModularQuizPage /></RequireAuth>} />
+              <Route path="/book-quiz/:testId" element={<RequireAuth><TrackedBookQuizRunner /></RequireAuth>} />
+              <Route path="/quiz-review/:testId" element={<RequireAuth><ModularQuizReviewPage /></RequireAuth>} />
+              <Route path="/review/:submissionId" element={<RequireAuth><ModularQuizReviewPage /></RequireAuth>} />
+              <Route path="/books" element={<RequireAuth><BookManager /></RequireAuth>} />
+              <Route path="/books/:id" element={<RequireAuth><BookContentManager /></RequireAuth>} />
+              <Route path="/study-plans" element={<RequireAuth><StudyPlanManager /></RequireAuth>} />
+              <Route path="/study-plans/:id" element={<RequireAuth><StudyPlanDetail /></RequireAuth>} />
+              <Route path="/student/study-plan/:assignmentId" element={<RequireAuth><StudentStudyPlanView /></RequireAuth>} />
+              <Route path="/statistics" element={<RequireAuth><StatisticsDashboard /></RequireAuth>} />
+              <Route path="/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />
+              <Route path="/student/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />
+              <Route path="/student/results" element={<RequireAuth><StudentResultsPage /></RequireAuth>} />
+              <Route path="/student-results" element={<RequireAuth><StudentResultsPage /></RequireAuth>} />
+              <Route path="/results" element={<RequireAuth><StudentResultsPage /></RequireAuth>} />
+              <Route path="/wrong-answers" element={<RequireAuth><StudentWrongAnswersPage /></RequireAuth>} />
+              <Route path="/student/wrong-answers" element={<RequireAuth><StudentWrongAnswersPage /></RequireAuth>} />
+              <Route path="/my-program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
+              <Route path="/student/program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
+              <Route path="/coaching/:studentId" element={<RequireAuth><StudentCoachingPage /></RequireAuth>} />
+              <Route path="/my-coaching" element={<RequireAuth><MyCoachingPage /></RequireAuth>} />
+              <Route path="/physical-exam" element={<RequireAuth><ExamManager /></RequireAuth>} />
+              <Route path="/scales" element={<RequireAuth><ScalePage /></RequireAuth>} />
+              <Route path="/exam-analysis/:examId" element={<RequireAuth><ExamAnalysisPage /></RequireAuth>} />
+              <Route path="/physical-exam/:hwId" element={<RequireAuth><PhysicalExamRunner /></RequireAuth>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

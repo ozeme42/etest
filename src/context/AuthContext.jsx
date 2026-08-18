@@ -252,10 +252,17 @@ export function AuthProvider({ children }) {
 
   // Logout handler
   const logout = async () => {
-    if (isSupabaseConfigured()) {
-      await supabase.auth.signOut();
-    }
+    try {
+      localStorage.removeItem('eTestAuthUser');
+    } catch {}
     setCurrentUser(null);
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('Supabase signOut error:', e);
+      }
+    }
   };
 
   return (

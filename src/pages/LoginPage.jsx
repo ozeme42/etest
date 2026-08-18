@@ -96,7 +96,13 @@ export default function LoginPage() {
               >
                 Panele Git ➔
               </button>
-              <button onClick={() => { logout(); navigate('/'); }} className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 font-bold text-xs hover:bg-rose-500 hover:text-white">
+              <button 
+                onClick={async () => { 
+                  await logout(); 
+                  navigate('/', { replace: true }); 
+                }} 
+                className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 font-bold text-xs hover:bg-rose-500 hover:text-white"
+              >
                 Çıkış
               </button>
             </div>
