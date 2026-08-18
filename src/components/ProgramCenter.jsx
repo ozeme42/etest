@@ -8,7 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 
 /* ─── Constants ─── */
@@ -1451,7 +1451,7 @@ export function MonthlyListPanel({
         });
       });
 
-      const dayItems = [...autoHwItems, ...manualItems];
+      const dayItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
 
       daysList.push({
         day,
@@ -2702,7 +2702,7 @@ export default function ProgramCenter({
       return {
         ...dayObj,
         dateLabel: dayInfo.dateLabel,
-        items: [...autoHwItems, ...manualItems]
+        items: sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests)
       };
     });
   }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books, studyPlans, studyAssignments]);

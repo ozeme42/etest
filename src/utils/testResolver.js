@@ -251,3 +251,102 @@ export function isHomeworkForStudent(hw, student, grades = []) {
   return targetIds.includes(studentId);
 }
 
+/**
+ * Sorts an array of day items according to the official Book Tracking hierarchy:
+ * 1. Book sequence (in `books` list / by book title)
+ * 2. Subject sequence in book (`subject.topics` structure)
+ * 3. Topic sequence in subject
+ * 4. Test definition order in `bookTests` & natural numeric test sorting ("Test 1" before "Test 2" before "Test 10")
+ * 5. Fallback task priority (Kitap/Ödev -> Konu -> Serbest/Manuel)
+ */
+export function sortItemsByBookOrder(items, books = [], bookTests = []) {
+  if (!Array.isArray(items) || items.length <= 1) return items || [];
+
+  const bookMap = new Map();
+  (books || []).forEach((b, idx) => {
+    if (b?.id) {
+      bookMap.set(String(b.id), { index: idx, book: b });
+      const bUuid = String(b.id).replace(/-/g, '');
+      if (bUuid) bookMap.set(bUuid, { index: idx, book: b });
+    }
+  });
+
+  const testMap = new Map();
+  (bookTests || []).forEach((t, idx) => {
+    if (t?.id) {
+      testMap.set(String(t.id), { index: idx, test: t });
+      const tUuid = String(t.id).replace(/-/g, '');
+      if (tUuid) testMap.set(tUuid, { index: idx, test: t });
+    }
+  });
+
+  return [...items].sort((a, b) => {
+    // 1. Task type priority: Book tests & Quizzes first, then Topics/Roadmaps, then Manual/Schedule
+    const getTypePriority = (it) => {
+      if (it.taskType === 'kitap' || it.testId || it.bookTitle) return 1;
+      if (it.taskType === 'ödev' || it.hwId) return 2;
+      if (it.taskType === 'konu' || it.isRoadmapTask) return 3;
+      return 4;
+    };
+    const prioA = getTypePriority(a);
+    const prioB = getTypePriority(b);
+    if (prioA !== prioB) return prioA - prioB;
+
+    // 2. Book Level Match
+    const tObjA = a.testId ? testMap.get(String(a.testId))?.test : null;
+    const tObjB = b.testId ? testMap.get(String(b.testId))?.test : null;
+
+    const bookIdA = a.bookId || tObjA?.bookId || (a.hwId && a.isAutoHomework ? a.bookId : null);
+    const bookIdB = b.bookId || tObjB?.bookId || (b.hwId && b.isAutoHomework ? b.bookId : null);
+
+    const bInfoA = bookIdA ? bookMap.get(String(bookIdA)) : null;
+    const bInfoB = bookIdB ? bookMap.get(String(bookIdB)) : null;
+
+    const bookIndexA = bInfoA ? bInfoA.index : 9999;
+    const bookIndexB = bInfoB ? bInfoB.index : 9999;
+
+    if (bookIndexA !== bookIndexB) {
+      return bookIndexA - bookIndexB;
+    }
+
+    // Book Title alphabetical if indices are same
+    const bookTitleA = (a.bookTitle || bInfoA?.book?.title || a.subject || '').trim();
+    const bookTitleB = (b.bookTitle || bInfoB?.book?.title || b.subject || '').trim();
+    const bookTitleComp = bookTitleA.localeCompare(bookTitleB, 'tr', { sensitivity: 'base' });
+    if (bookTitleComp !== 0) return bookTitleComp;
+
+    // 3. Subject and Topic Hierarchy within the same Book
+    const bookObj = bInfoA?.book || bInfoB?.book;
+    if (bookObj && Array.isArray(bookObj.subjects) && tObjA && tObjB) {
+      const sIdxA = bookObj.subjects.findIndex(s => String(s.id) === String(tObjA.subjectId));
+      const sIdxB = bookObj.subjects.findIndex(s => String(s.id) === String(tObjB.subjectId));
+      if (sIdxA !== -1 && sIdxB !== -1 && sIdxA !== sIdxB) {
+        return sIdxA - sIdxB;
+      }
+      if (sIdxA !== -1) {
+        const subj = bookObj.subjects[sIdxA];
+        if (subj && Array.isArray(subj.topics)) {
+          const tpIdxA = subj.topics.findIndex(tp => String(tp.id) === String(tObjA.topicId));
+          const tpIdxB = subj.topics.findIndex(tp => String(tp.id) === String(tObjB.topicId));
+          if (tpIdxA !== -1 && tpIdxB !== -1 && tpIdxA !== tpIdxB) {
+            return tpIdxA - tpIdxB;
+          }
+        }
+      }
+    }
+
+    // 4. Test Index in bookTests
+    const tIndexA = a.testId && testMap.has(String(a.testId)) ? testMap.get(String(a.testId)).index : 99999;
+    const tIndexB = b.testId && testMap.has(String(b.testId)) ? testMap.get(String(b.testId)).index : 99999;
+    if (tIndexA !== tIndexB && tIndexA !== 99999 && tIndexB !== 99999) {
+      return tIndexA - tIndexB;
+    }
+
+    // 5. Natural Alphanumeric Sorting by Test Name / Title (e.g. "Test 1" < "Test 2" < "Test 10")
+    const titleA = a.testName || a.title || a.name || '';
+    const titleB = b.testName || b.title || b.name || '';
+    return titleA.localeCompare(titleB, 'tr', { numeric: true, sensitivity: 'base' });
+  });
+}
+
+

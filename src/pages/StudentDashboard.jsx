@@ -22,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
@@ -1093,7 +1093,7 @@ export default function StudentDashboard() {
           });
         });
 
-        const allItems = [...autoHwItems, ...dayManualItems, ...scheduleItems];
+        const allItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
         const completedItems = allItems.filter(i => i.done);
 
         resultMap[dayMeta.key] = {
