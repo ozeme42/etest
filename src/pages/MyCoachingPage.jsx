@@ -369,6 +369,7 @@ export default function MyCoachingPage() {
     return isStudentCoached(studentId);
   }, [studentId, currentUser?.role, isStudentCoached]);
 
+  const isTeacherOrAdmin = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
   const existingProfile = useMemo(() => getCoachingProfileForStudent(studentId) || {}, [studentId, coachingProfiles]);
   const { users = [] } = useUser() || {};
   const targetStudent = useMemo(() => {
@@ -3691,19 +3692,21 @@ export default function MyCoachingPage() {
                           <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#7c3aed' }}>{s.totalNet}</span>
                           <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>net</span>
                           <ChevronDown size={18} style={{ color: '#94a3b8', transform: expandedExams[s.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginLeft: 4 }} />
-                          <button type="button" onClick={(e) => {
-                            e.stopPropagation();
-                            if (!window.confirm("Bu denemeyi silmek istediğinize emin misiniz?")) return;
-                            if (s.sourceType === 'manual') {
-                              deleteMockExam(s.id);
-                            } else if (s.submissions && s.submissions.length > 0) {
-                              s.submissions.forEach(subId => deleteSubmission(subId));
-                            } else {
-                              deleteSubmission(s.id);
-                            }
-                          }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
-                            <Trash2 size={15} />
-                          </button>
+                          {isTeacherOrAdmin && (
+                            <button type="button" onClick={(e) => {
+                              e.stopPropagation();
+                              if (!window.confirm("Bu denemeyi silmek istediğinize emin misiniz?")) return;
+                              if (s.sourceType === 'manual') {
+                                deleteMockExam(s.id);
+                              } else if (s.submissions && s.submissions.length > 0) {
+                                s.submissions.forEach(subId => deleteSubmission(subId));
+                              } else {
+                                deleteSubmission(s.id);
+                              }
+                            }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -4363,16 +4366,18 @@ export default function MyCoachingPage() {
                                               >
                                                 %{rate} Başarı
                                               </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => deleteSubmission(s.id)}
-                                                title="Testi Sil"
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
-                                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
-                                              >
-                                                <Trash2 size={14} />
-                                              </button>
+                                              {isTeacherOrAdmin && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => deleteSubmission(s.id)}
+                                                  title="Testi Sil"
+                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                                >
+                                                  <Trash2 size={14} />
+                                                </button>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
@@ -4515,16 +4520,18 @@ export default function MyCoachingPage() {
                                               >
                                                 %{rate} Başarı
                                               </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => deleteSubmission(s.id)}
-                                                title="Testi Sil"
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
-                                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
-                                              >
-                                                <Trash2 size={14} />
-                                              </button>
+                                              {isTeacherOrAdmin && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => deleteSubmission(s.id)}
+                                                  title="Testi Sil"
+                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                                >
+                                                  <Trash2 size={14} />
+                                                </button>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
