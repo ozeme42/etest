@@ -91,16 +91,18 @@ function resolveIframeContent(payload, title) {
   return { src: undefined, srcDoc: wrapInStyledHtmlDocument(trimmed, title) };
 }
 
-export default React.memo(function HtmlViewerWithControls({ payload, title = "HTML Dokümanı", height = "100%" }) {
+export default React.memo(function HtmlViewerWithControls({ payload, htmlContent, src, contentPayload, htmlPayload, title = "HTML Dokümanı", height = "100%" }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [fetchedHtml, setFetchedHtml] = useState(null);
   const [manualHtml, setManualHtml] = useState(null);
   const wrapperRef = useRef(null);
 
+  const activePayload = payload || htmlContent || src || contentPayload || htmlPayload;
+
   useEffect(() => {
-    if (typeof payload === 'string' && (payload.startsWith('http://') || payload.startsWith('https://'))) {
-      fetch(payload)
+    if (typeof activePayload === 'string' && (activePayload.startsWith('http://') || activePayload.startsWith('https://'))) {
+      fetch(activePayload)
         .then(res => res.text())
         .then(text => {
           if (text && text.trim().length > 0 && !text.includes('[STORED_IN_INDEXEDDB]')) {
@@ -109,7 +111,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
         })
         .catch(err => console.warn('[HtmlViewer] Error fetching remote HTML payload:', err));
     }
-  }, [payload]);
+  }, [activePayload]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -148,7 +150,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
   };
 
   const activeHtml = manualHtml || fetchedHtml;
-  const iframeContent = activeHtml ? { src: undefined, srcDoc: wrapInStyledHtmlDocument(activeHtml, title) } : resolveIframeContent(payload, title);
+  const iframeContent = activeHtml ? { src: undefined, srcDoc: wrapInStyledHtmlDocument(activeHtml, title) } : resolveIframeContent(activePayload, title);
 
   const isValidContent = Boolean(iframeContent.src || iframeContent.srcDoc);
 

@@ -123,11 +123,22 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         (h.submissions && h.submissions.some(s => String(s.id) === String(submission.id)))
       );
 
+      const hwQIds = [
+        ...(Array.isArray(foundHw?.questionIds) ? foundHw.questionIds : []),
+        ...(Array.isArray(foundHw?.tests) ? foundHw.tests : []),
+        ...(Array.isArray(foundHw?.selectedQuestions) ? foundHw.selectedQuestions : []),
+        ...(Array.isArray(foundHw?.sections) ? foundHw.sections : []),
+        ...(Array.isArray(submission?.questionIds) ? submission.questionIds : []),
+        ...(Array.isArray(submission?.tests) ? submission.tests : []),
+        ...(Array.isArray(submission?.sections) ? submission.sections : [])
+      ].map(x => typeof x === 'object' ? (x.id || x.questionId) : x).filter(Boolean);
+
       let foundBankQ = (allBankQuestions || []).find(q =>
         String(q.id) === targetId ||
         String(q.id) === normTargetId ||
         String(q.questionId) === targetId ||
-        String(q.id) === String(foundHw?.questionId || foundHw?.testId)
+        String(q.id) === String(foundHw?.questionId || foundHw?.testId) ||
+        hwQIds.some(qid => String(q.id) === String(qid) || String(q.id).replace(/^q_?/, '') === String(qid).replace(/^q_?/, ''))
       );
 
       let titleMatchBankQ = (allBankQuestions || []).find(q =>
@@ -146,7 +157,9 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         String(t.id) === normTargetId
       );
 
-      let resolved = foundHw || foundBankQ || titleMatchBankQ || foundBookTest || foundCurTest || null;
+      let resolved = (foundHw && foundBankQ)
+        ? { ...foundBankQ, ...foundHw, contentPayload: foundBankQ.contentPayload || foundHw.contentPayload, htmlPayload: foundBankQ.htmlPayload || foundHw.htmlPayload, pdfPayload: foundBankQ.pdfPayload || foundHw.pdfPayload, imageUrl: foundBankQ.imageUrl || foundHw.imageUrl, imageUrls: (foundBankQ.imageUrls?.length ? foundBankQ.imageUrls : foundHw.imageUrls) }
+        : (foundBankQ || foundHw || titleMatchBankQ || foundBookTest || foundCurTest || null);
 
       let contentPayload = isValidPayloadString(submission.contentPayload) ? submission.contentPayload : (isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null);
       let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
@@ -157,7 +170,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           targetId, normTargetId, submission.id, submission.testId,
           submission.homeworkId, submission.questionId, resolved?.id,
           resolved?.questionId, resolved?.testId, foundHw?.id,
-          foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id
+          foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id,
+          ...hwQIds
         ];
 
         const expandedIds = new Set();
@@ -340,7 +354,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   const globalMedia = useMemo(() => {
     const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF'));
-    const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html'));
+    const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<body') || val.includes('<p') || val.includes('<div') || val.includes('<h') || val.length > 50);
 
     let pdfSrc = null;
     if (isPdfStr(test?.pdfPayload)) pdfSrc = test.pdfPayload;
@@ -355,6 +369,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     if (!pdfSrc) {
       if (isHtmlStr(test?.htmlPayload)) htmlSrc = test.htmlPayload;
       else if (isHtmlStr(test?.contentPayload)) htmlSrc = test.contentPayload;
+      else if (test?.htmlUrl || test?.url) htmlSrc = test.htmlUrl || test.url;
       else if (Array.isArray(test?.sections)) {
         const secMatch = test.sections.find(s => isHtmlStr(s.bankQ?.htmlPayload) || isHtmlStr(s.contentPayload));
         if (secMatch) htmlSrc = secMatch.bankQ?.htmlPayload || secMatch.contentPayload;
@@ -679,9 +694,9 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                 </div>
 
                 {showTopMedia && (
-                  <div style={{ height: '380px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-                    {globalMedia.hasPdf && <PdfViewerWithControls src={globalMedia.pdfSrc} title={test.title} />}
-                    {globalMedia.hasHtml && <HtmlViewerWithControls htmlContent={globalMedia.htmlSrc} title={test.title} />}
+                  <div style={{ height: '420px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                    {globalMedia.hasPdf && <PdfViewerWithControls payload={globalMedia.pdfSrc} src={globalMedia.pdfSrc} title={test.title} />}
+                    {globalMedia.hasHtml && <HtmlViewerWithControls payload={globalMedia.htmlSrc} htmlContent={globalMedia.htmlSrc} title={test.title} />}
                   </div>
                 )}
               </div>
@@ -757,7 +772,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       </div>
                     </div>
 
-                    {oeItem.imageUrl && !globalMedia.hasHtml && !globalMedia.hasPdf && (
+                    {oeItem.imageUrl && (
                       <div style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '0 auto', background: 'var(--color-surface-hover)', borderRadius: '0.85rem', padding: '0.5rem', border: '1px solid var(--color-border)' }}>
                         <div style={{ padding: '0.2rem 0.5rem 0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#c084fc' }}>
                           <span>🖼️ Soru {qNo} Görseli</span>
