@@ -17,7 +17,21 @@ export default function QuizPanelLayout({
   const [positionState, setPositionState] = useState(defaultPosition);
   const position = isMobile ? 'bottom' : positionState;
   
-  const [isOpen, setIsOpen] = useState(() => (isMobile ? defaultOpenOnMobile : true));
+  const [isOpen, setIsOpen] = useState(() => {
+    const isNowMobile = typeof window !== 'undefined' ? (window.innerWidth <= 768) : false;
+    return isNowMobile ? defaultOpenOnMobile : true;
+  });
+
+  const hasInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      if (isMobile && !defaultOpenOnMobile) {
+        setIsOpen(false);
+      }
+    }
+  }, [isMobile, defaultOpenOnMobile]);
+
   const [panelSize, setPanelSize] = useState(defaultSize);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
@@ -103,32 +117,32 @@ export default function QuizPanelLayout({
         )}
       </div>
 
-      {/* ── MOBILE FLOATING TOGGLE BUTTON (BOTTOM RIGHT) ── */}
+      {/* ── MOBILE FLOATING TOGGLE BUTTON (ABOVE MOBILE BOTTOM NAV) ── */}
       {isMobile && (
         <button
           onClick={() => setIsOpen(prev => !prev)}
           style={{
             position: 'fixed',
-            bottom: '1rem',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.25rem)',
             right: '1rem',
-            width: '46px',
-            height: '46px',
+            width: '48px',
+            height: '48px',
             borderRadius: '50%',
             background: isOpen ? '#ef4444' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
             color: 'white',
-            border: 'none',
+            border: '2px solid rgba(255, 255, 255, 0.9)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 18px rgba(0,0,0,0.3)',
+            boxShadow: '0 6px 20px rgba(79, 70, 229, 0.45)',
             zIndex: 99999,
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
-          title={isOpen ? "Optik Formu Kapat" : "Optik Formu Aç"}
+          title={isOpen ? "Optik Formu Gizle" : "Optik Formu Aç"}
           aria-label="Optik Form"
         >
-          {isOpen ? <X size={20} /> : <FileSpreadsheet size={20} />}
+          {isOpen ? <X size={22} /> : <FileSpreadsheet size={22} />}
         </button>
       )}
 
