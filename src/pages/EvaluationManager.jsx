@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -8,23 +8,9 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import {
-  CheckCircle, XCircle, Clock3, Eye, Save, ArrowLeft,
-  CheckCircle2, Search, Filter, Layers, MessageSquare,
-  Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
-  RotateCcw, Trophy, ThumbsUp, ThumbsDown, HelpCircle,
-  Plus, Minus, Maximize2, Trash2, Layout, Award, FileCode, ZoomIn
+  CheckCircle2, Search, ArrowLeft, Eye, Edit3
 } from 'lucide-react';
 
-import PdfViewerWithControls from '../components/PdfViewerWithControls';
-import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
-import ImageLightbox, { isValidImageUrl } from '../components/quiz/common/ImageLightbox';
-
-import { resolveTestQuestions } from '../utils/testResolver';
-import { idbGetPayload } from '../services/indexedDbService';
-import { toUUID } from '../services/supabaseService';
-import { resolveExactQuestionCount } from '../components/quiz/runner/MultiHomeworkRunner';
-
-// ─── DERS TESPİTİ ─────────────────────────────────────────────────────────────
 function detectSubject(title = '', existingSubject = '') {
   if (existingSubject && !['genel', 'diğer', 'all', ''].includes(String(existingSubject).toLowerCase().trim())) {
     return existingSubject;
@@ -40,15 +26,6 @@ function detectSubject(title = '', existingSubject = '') {
   return 'Genel Ödevler';
 }
 
-function isValidPayloadString(str) {
-  if (typeof str !== 'string') return false;
-  const s = str.trim();
-  if (s.length === 0) return false;
-  if (s === '[STORED_IN_INDEXEDDB]' || s === '[LOCALSTORAGE_CACHE]') return false;
-  return true;
-}
-
-// ─── DERİN KATEGORİ TESPİTİ (PDF, HTML, GÖRSEL, YAZILI METİN) ────────────────
 function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
   const candidates = [sub, hw].filter(Boolean);
 
@@ -102,7 +79,7 @@ function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
     });
   }
 
-  // 1. PDF Kontrolü (Öncelikli)
+  // 1. PDF Kontrolü
   const isPdf = candidates.some(o => {
     if (!o) return false;
     if (o.pdfPayload || o.pdfUrl) return true;
@@ -131,7 +108,7 @@ function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
     return 'html';
   }
 
-  // 3. Görsel / Resim Kontrolü
+  // 3. Görsel Kontrolü
   const isImage = candidates.some(o => {
     if (!o) return false;
     if (o.imageUrl && o.imageUrl !== '[STORED_IN_INDEXEDDB]') return true;
@@ -145,7 +122,6 @@ function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
     return 'image';
   }
 
-  // 4. Varsayılan: Yazılı / Metin
   return 'text';
 }
 
@@ -156,736 +132,17 @@ const CATEGORY_META = {
   html: { label: 'HTML Sınavı', icon: '🌐', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' }
 };
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ─── DEĞERLENDİRME MODALI (4 KATEGORİYE ÖZEL ÇÖZÜM MODU) ──────────────────────
-// ══════════════════════════════════════════════════════════════════════════════
-function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, curriculumData, bookTests, onClose, onSaveSuccess }) {
-  const { updateSubmission } = useEvaluation();
-  const { updateHomeworkSubmission } = useHomework();
-
-  const [test, setTest] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
-  const [questionScores, setQuestionScores] = useState({});
-  const [teacherNotes, setTeacherNotes] = useState({});
-  const [overallFeedback, setOverallFeedback] = useState('');
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-
-  const targetId = String(submission?.testId || submission?.homeworkId || submission?.hwId || submission?.questionId || submission?.id || '');
-  const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadTestData() {
-      setLoading(true);
-
-      let foundHw = (homeworks || []).find(h =>
-        String(h.id) === targetId ||
-        String(h.id) === normTargetId ||
-        String(h.testId) === targetId ||
-        (h.submissions && h.submissions.some(s => String(s.id) === String(submission.id)))
-      );
-
-      const hwQIds = [
-        ...(Array.isArray(foundHw?.questionIds) ? foundHw.questionIds : []),
-        ...(Array.isArray(foundHw?.tests) ? foundHw.tests : []),
-        ...(Array.isArray(foundHw?.selectedQuestions) ? foundHw.selectedQuestions : []),
-        ...(Array.isArray(foundHw?.sections) ? foundHw.sections : []),
-        ...(Array.isArray(submission?.questionIds) ? submission.questionIds : []),
-        ...(Array.isArray(submission?.tests) ? submission.tests : []),
-        ...(Array.isArray(submission?.sections) ? submission.sections : [])
-      ].map(x => typeof x === 'object' ? (x.id || x.questionId || x.bankQ?.id) : x).filter(Boolean);
-
-      let foundBankQ = (allBankQuestions || []).find(q =>
-        String(q.id) === targetId ||
-        String(q.id) === normTargetId ||
-        String(q.questionId) === targetId ||
-        String(q.id) === String(foundHw?.questionId || foundHw?.testId) ||
-        hwQIds.some(qid => String(q.id) === String(qid) || String(q.id).replace(/^q_?/, '') === String(qid).replace(/^q_?/, ''))
-      );
-
-      let titleMatchBankQ = (allBankQuestions || []).find(q =>
-        submission.testTitle && q.title &&
-        String(q.title).toLowerCase().trim() === String(submission.testTitle).toLowerCase().trim()
-      );
-
-      let resolved = (foundHw && foundBankQ)
-        ? {
-            ...foundBankQ,
-            ...foundHw,
-            contentPayload: foundBankQ.contentPayload || foundHw.contentPayload,
-            htmlPayload: foundBankQ.htmlPayload || foundHw.htmlPayload,
-            pdfPayload: foundBankQ.pdfPayload || foundHw.pdfPayload,
-            imageUrl: foundBankQ.imageUrl || foundHw.imageUrl,
-            imageUrls: (foundBankQ.imageUrls?.length ? foundBankQ.imageUrls : foundHw.imageUrls)
-          }
-        : (foundBankQ || foundHw || titleMatchBankQ || null);
-
-      let contentPayload = isValidPayloadString(submission.contentPayload) ? submission.contentPayload : (isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null);
-      let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
-      let htmlPayload = isValidPayloadString(submission.htmlPayload) ? submission.htmlPayload : (isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null);
-
-      const candidateIds = [
-        targetId, normTargetId, submission.id, submission.testId,
-        submission.homeworkId, submission.questionId, resolved?.id,
-        resolved?.questionId, resolved?.testId, foundHw?.id,
-        foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id,
-        ...hwQIds
-      ];
-
-      const expanded = new Set();
-      candidateIds.filter(Boolean).forEach(id => {
-        const str = String(id);
-        const clean = str.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-        expanded.add(str);
-        expanded.add(clean);
-        expanded.add(`q_${clean}`);
-        expanded.add(`hw_${clean}`);
-        expanded.add(`test_${clean}`);
-      });
-
-      if (!contentPayload || !pdfPayload || !htmlPayload) {
-        for (const cid of expanded) {
-          try {
-            const val = await idbGetPayload(cid);
-            if (isValidPayloadString(val)) {
-              if (!contentPayload) contentPayload = val;
-              if (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF')) {
-                pdfPayload = val;
-              } else if (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<body') || val.includes('<p') || val.includes('<div')) {
-                htmlPayload = val;
-              }
-              break;
-            }
-          } catch (e) {}
-        }
-      }
-
-      if (contentPayload && !pdfPayload && (contentPayload.startsWith('data:application/pdf') || contentPayload.includes('.pdf') || contentPayload.startsWith('%PDF'))) {
-        pdfPayload = contentPayload;
-      }
-      if (contentPayload && !htmlPayload && (contentPayload.includes('<html') || contentPayload.startsWith('<!DOCTYPE') || contentPayload.startsWith('data:text/html') || contentPayload.includes('<body') || contentPayload.includes('<p') || contentPayload.includes('<div'))) {
-        htmlPayload = contentPayload;
-      }
-
-      const baseResolvedQs = resolveTestQuestions(resolved || submission, allBankQuestions);
-      const ansList = Array.isArray(submission.answers) ? submission.answers : [];
-      let baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
-      
-      if (baseImages.length === 0) {
-        for (const cid of expanded) {
-          const bq = (allBankQuestions || []).find(q => String(q.id) === cid || String(q.id).replace(/^q_?/, '') === cid);
-          if (bq?.imageUrl && isValidImageUrl(bq.imageUrl)) {
-            baseImages.push(bq.imageUrl);
-          }
-          if (Array.isArray(bq?.imageUrls) && bq.imageUrls.length > 0) {
-            baseImages.push(...bq.imageUrls.filter(isValidImageUrl));
-          }
-        }
-      }
-
-      const exactCount = Math.max(
-        resolveExactQuestionCount(resolved || {}, resolved || {}, resolved || {}, baseResolvedQs, baseImages),
-        ansList.length,
-        parseInt(submission.totalQuestions || resolved?.questionCount || 0, 10) || 0,
-        1
-      );
-
-      const generatedQuestions = [];
-      for (let i = 0; i < exactCount; i++) {
-        const existingQ = baseResolvedQs[i] || baseResolvedQs[0] || {};
-        const ans = ansList[i] || {};
-        let qImg = ans.imageUrl || baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
-
-        if (qImg === '[STORED_IN_INDEXEDDB]') {
-          for (const cid of expanded) {
-            try {
-              const fetchedImg = await idbGetPayload(`${cid}_img_${i + 1}`) || await idbGetPayload(`${cid}_image`) || await idbGetPayload(cid);
-              if (isValidPayloadString(fetchedImg) && (fetchedImg.startsWith('data:image') || fetchedImg.startsWith('http'))) {
-                qImg = fetchedImg;
-                break;
-              }
-            } catch (e) {}
-          }
-        }
-
-        const qText = ans.questionText || existingQ.questionText || existingQ.text || existingQ.title || (exactCount === 1 ? (resolved?.questionText || resolved?.title) : `Soru ${i + 1}`);
-
-        generatedQuestions.push({
-          ...existingQ,
-          id: existingQ.id ? `${existingQ.id}_q${i + 1}` : `q_${i + 1}`,
-          questionNo: i + 1,
-          title: existingQ.title || existingQ.name || qText || `Soru ${i + 1}`,
-          questionText: qText,
-          pdfPayload: existingQ.pdfPayload || pdfPayload,
-          htmlPayload: existingQ.htmlPayload || htmlPayload,
-          imageUrl: qImg,
-          imageUrls: baseImages,
-          options: existingQ.options || ['A', 'B', 'C', 'D']
-        });
-      }
-
-      const finalTestObj = {
-        ...(resolved || {}),
-        id: targetId,
-        title: submission.testTitle || resolved?.title || resolved?.name || 'Açık Uçlu Ödev',
-        contentPayload,
-        pdfPayload,
-        htmlPayload,
-        imageUrl: submission.imageUrl || resolved?.imageUrl || null,
-        imageUrls: submission.imageUrls || resolved?.imageUrls || [],
-        questionCount: generatedQuestions.length || 1
-      };
-
-      if (isMounted) {
-        setTest(finalTestObj);
-        setQuestions(generatedQuestions);
-
-        const scores = {};
-        const notes = {};
-        for (let i = 1; i <= exactCount; i++) {
-          const ans = ansList[i - 1];
-          if (ans) {
-            scores[i] = ans.score !== undefined ? Number(ans.score) : (ans.isCorrect === true ? 10 : 0);
-            notes[i] = ans.teacherNote || '';
-          } else {
-            scores[i] = 0;
-            notes[i] = '';
-          }
-        }
-
-        setQuestionScores(scores);
-        setTeacherNotes(notes);
-        setOverallFeedback(submission.teacherFeedback || submission.teacherNote || '');
-        setLoading(false);
-      }
-    }
-
-    loadTestData();
-    return () => { isMounted = false; };
-  }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
-
-  const category = useMemo(() => {
-    let cat = getOpenEndedCategory(submission, test, allBankQuestions);
-    if (cat === 'text') {
-      if (test?.pdfPayload || (typeof test?.contentPayload === 'string' && test.contentPayload.includes('.pdf'))) cat = 'pdf';
-      else if (test?.htmlPayload || (typeof test?.contentPayload === 'string' && test.contentPayload.includes('<html'))) cat = 'html';
-      else if (test?.imageUrl || (test?.imageUrls && test.imageUrls.length > 0)) cat = 'image';
-    }
-    return cat;
-  }, [submission, test, allBankQuestions]);
-
-  const meta = CATEGORY_META[category] || CATEGORY_META.text;
-  const answers = submission?.answers || [];
-  const qCount = questions.length || 1;
-
-  const { totalEarned, maxPossible, scorePercentage } = useMemo(() => {
-    let earned = 0;
-    let max = qCount * 10;
-    for (let i = 1; i <= qCount; i++) {
-      const s = questionScores[i] ?? (answers[i - 1]?.score !== undefined ? Number(answers[i - 1].score) : 0);
-      earned += Math.max(0, Math.min(10, s));
-    }
-    const pct = max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
-    return { totalEarned: earned, maxPossible: max, scorePercentage: pct };
-  }, [qCount, questionScores, answers]);
-
-  const handleSaveEvaluation = async () => {
-    if (isSaving || !submission) return;
-    setIsSaving(true);
-
-    try {
-      const updatedAnswers = (submission.answers || []).map((ans, idx) => {
-        const qNo = ans.questionNo || (idx + 1);
-        const score = questionScores[qNo] ?? (ans.isCorrect === true ? 10 : 0);
-        const note = teacherNotes[qNo] || '';
-        return {
-          ...ans,
-          score,
-          isCorrect: score >= 5,
-          teacherNote: note,
-          evaluatedAt: new Date().toISOString()
-        };
-      });
-
-      const updatedSubPayload = {
-        ...submission,
-        answers: updatedAnswers,
-        score: scorePercentage,
-        rawScore: totalEarned,
-        maxScore: maxPossible,
-        status: 'evaluated',
-        isEvaluatedByTeacher: true,
-        teacherFeedback: overallFeedback,
-        teacherNote: overallFeedback,
-        evaluatedAt: new Date().toISOString()
-      };
-
-      await updateSubmission(submission.id, updatedSubPayload);
-
-      if (submission.homeworkId || submission.hwId) {
-        const hwId = submission.homeworkId || submission.hwId;
-        try {
-          await updateHomeworkSubmission(hwId, submission.id, updatedSubPayload);
-        } catch (e) {}
-      }
-
-      if (onSaveSuccess) onSaveSuccess(updatedSubPayload);
-      onClose();
-    } catch (err) {
-      console.error('Error saving evaluation:', err);
-      alert('Değerlendirme kaydedilirken hata oluştu.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (loading || !test) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'white' }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', border: '4px solid rgba(99,102,241,0.2)', borderTopColor: '#6366f1', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Ödev ve Sorular Yükleniyor...</span>
-      </div>
-    );
-  }
-
-  const activeQ = questions[activeQuestionIdx] || questions[0] || {};
-  const activeAns = answers[activeQuestionIdx] || answers.find(a => a.questionNo === (activeQuestionIdx + 1)) || {};
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', height: '100vh', background: '#f1f5f9', color: '#0f172a', fontFamily: "'Inter', system-ui, sans-serif" }}>
-      
-      {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} alt="Soru Görseli" onClose={() => setLightboxSrc(null)} />
-      )}
-
-      {/* ── TOP HEADER ── */}
-      <header style={{
-        padding: '0.75rem 1.5rem',
-        background: '#ffffff',
-        borderBottom: '1.5px solid #e2e8f0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        gap: '1rem',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '0.65rem',
-              background: '#f8fafc',
-              border: '1.5px solid #cbd5e1',
-              color: '#334155',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem'
-            }}
-          >
-            <ArrowLeft size={16} /> Geri Dön
-          </button>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>
-                🎓 {submission.studentName || 'Öğrenci'}
-              </span>
-              <span style={{ color: '#64748b' }}>•</span>
-              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#4f46e5' }}>
-                {submission.testTitle || test.title}
-              </span>
-              <span style={{
-                background: meta.bg,
-                color: meta.color,
-                border: `1px solid ${meta.border}`,
-                padding: '2px 8px',
-                borderRadius: 99,
-                fontWeight: 900,
-                fontSize: '0.72rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4
-              }}>
-                {meta.icon} {meta.label}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>
-              Toplam {qCount} Soru • Açık Uçlu / Yazılı Değerlendirme
-            </div>
-          </div>
-        </div>
-
-        {/* Live Score & Save */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-            color: '#ffffff',
-            padding: '0.4rem 0.95rem',
-            borderRadius: '0.65rem',
-            fontWeight: 900,
-            fontSize: '0.92rem',
-            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)'
-          }}>
-            %{scorePercentage} ({totalEarned}/{maxPossible} Puan)
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSaveEvaluation}
-            disabled={isSaving}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              background: 'linear-gradient(135deg, #059669, #10b981)',
-              border: 'none',
-              borderRadius: '0.65rem',
-              padding: '0.6rem 1.25rem',
-              color: 'white',
-              fontWeight: 900,
-              fontSize: '0.86rem',
-              cursor: isSaving ? 'wait' : 'pointer',
-              boxShadow: '0 2px 10px rgba(16,185,129,0.3)'
-            }}
-          >
-            <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet ✓'}
-          </button>
-        </div>
-      </header>
-
-      {/* ── WORKSPACE BASED ON 4 CATEGORIES ── */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* 1. PDF / 2. HTML MODU (Bölünmüş Doküman + Yan Panel) ─────────────── */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {(category === 'pdf' || category === 'html') ? (
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', height: '100%', minHeight: 0, overflow: 'hidden' }}>
-            
-            {/* Sol: PDF / HTML Görüntüleyici */}
-            <div style={{ borderRight: '1.5px solid #e2e8f0', background: '#ffffff', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              {category === 'pdf' ? (
-                <PdfViewerWithControls payload={test.pdfPayload || test.contentPayload} title={test.title} height="100%" />
-              ) : (
-                <HtmlViewerWithControls payload={test.htmlPayload || test.contentPayload} title={test.title} height="100%" />
-              )}
-            </div>
-
-            {/* Sağ: Soru Soru Öğrenci Cevapları & Puanlama */}
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.25rem', gap: '1rem' }}>
-              <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>✍️</span> Öğrencinin Soru Yanıtları & Puanlama:
-              </div>
-
-              {questions.map((q, idx) => {
-                const qNo = idx + 1;
-                const ans = answers[idx] || answers.find(a => a.questionNo === qNo) || {};
-                const textAns = ans.userAnswerText || ans.userAnswer || '';
-                const currentScore = questionScores[qNo] ?? (ans.score !== undefined ? Number(ans.score) : 0);
-
-                return (
-                  <div key={qNo} style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#4f46e5' }}>Soru {qNo}</span>
-                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : '#b91c1c') }}>
-                        {currentScore} / 10 Puan
-                      </span>
-                    </div>
-
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 2 }}>Öğrencinin Yanıtı:</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                        {textAns || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
-                      </div>
-                    </div>
-
-                    {/* Puanlama Butonları */}
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 10 }))}
-                        style={{ flex: 1, padding: '0.4rem', borderRadius: 6, border: currentScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1', background: currentScore === 10 ? '#16a34a' : '#ffffff', color: currentScore === 10 ? '#ffffff' : '#15803d', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer' }}
-                      >
-                        ✓ 10 Puan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
-                        style={{ flex: 1, padding: '0.4rem', borderRadius: 6, border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1', background: currentScore === 5 ? '#d97706' : '#ffffff', color: currentScore === 5 ? '#ffffff' : '#d97706', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer' }}
-                      >
-                        ½ 5 Puan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
-                        style={{ flex: 1, padding: '0.4rem', borderRadius: 6, border: currentScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1', background: currentScore === 0 ? '#dc2626' : '#ffffff', color: currentScore === 0 ? '#ffffff' : '#b91c1c', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer' }}
-                      >
-                        ✕ 0 Puan
-                      </button>
-                    </div>
-
-                    {/* Not */}
-                    <input
-                      type="text"
-                      placeholder="Bu soru için öğrenciye notunuz..."
-                      value={teacherNotes[qNo] || ''}
-                      onChange={e => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
-                      style={{ width: '100%', padding: '0.4rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Genel Karne */}
-              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme / Karne Notu:</div>
-                <textarea
-                  rows="2"
-                  placeholder="Öğrencinin ödevi için genel notunuz..."
-                  value={overallFeedback}
-                  onChange={e => setOverallFeedback(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveEvaluation}
-                  disabled={isSaving}
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.88rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer' }}
-                >
-                  <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla'}
-                </button>
-              </div>
-            </div>
-
-          </div>
-        ) : (
-          /* ════════════════════════════════════════════════════════════════════ */
-          /* 3. GÖRSELLİ / 4. YAZILI METİN MODU (Soru - Cevap Net Düzen) ──────── */
-          /* ════════════════════════════════════════════════════════════════════ */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflowY: 'auto', padding: '1.5rem', maxWidth: 960, margin: '0 auto', width: '100%', boxSizing: 'border-box', gap: '1.5rem' }}>
-            
-            {/* Soru Navigasyon Hapları (Birden fazla soru varsa) */}
-            {questions.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', padding: '0.65rem 1rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', overflowX: 'auto' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>Sorular:</span>
-                {questions.map((_, qIdx) => {
-                  const qNum = qIdx + 1;
-                  const isSel = qIdx === activeQuestionIdx;
-                  const sc = questionScores[qNum] ?? 0;
-                  return (
-                    <button
-                      key={qNum}
-                      type="button"
-                      onClick={() => setActiveQuestionIdx(qIdx)}
-                      style={{
-                        minWidth: 36, height: 36, borderRadius: 8,
-                        border: isSel ? '2px solid #4f46e5' : '1px solid #cbd5e1',
-                        background: isSel ? '#4f46e5' : (sc === 10 ? '#ecfdf5' : (sc > 0 ? '#fffbeb' : '#ffffff')),
-                        color: isSel ? '#ffffff' : (sc === 10 ? '#047857' : (sc > 0 ? '#b45309' : '#334155')),
-                        fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
-                      }}
-                    >
-                      {qNum}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Soru Kartı */}
-            <div style={{ background: '#ffffff', borderRadius: '1.25rem', padding: '1.5rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ background: 'rgba(79,70,229,0.12)', color: '#4f46e5', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: 8 }}>
-                    Soru {activeQuestionIdx + 1}
-                  </span>
-                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#334155' }}>
-                    {activeQ.imageUrl ? '🖼️ Görselli Açık Uçlu Soru' : '📝 Yazılı Soru Metni'}
-                  </span>
-                </div>
-
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: (questionScores[activeQuestionIdx + 1] ?? 0) === 10 ? '#15803d' : ((questionScores[activeQuestionIdx + 1] ?? 0) >= 5 ? '#d97706' : '#b91c1c') }}>
-                  Verilen Puan: {questionScores[activeQuestionIdx + 1] ?? 0} / 10
-                </div>
-              </div>
-
-              {/* 1. Soru Görseli (Varsa) */}
-              {activeQ.imageUrl && (
-                <div style={{ background: '#f8fafc', borderRadius: '1rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <ZoomIn size={14} /> Büyütmek için görselin üzerine tıklayın
-                  </div>
-                  <img
-                    src={activeQ.imageUrl}
-                    alt={`Soru ${activeQuestionIdx + 1} Görseli`}
-                    style={{ maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: 8, cursor: 'zoom-in', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
-                    onClick={() => setLightboxSrc(activeQ.imageUrl)}
-                  />
-                </div>
-              )}
-
-              {/* 2. Soru Metni */}
-              {activeQ.questionText && (
-                <div style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 900, textTransform: 'uppercase', marginBottom: 4 }}>
-                    ❓ SORU METNİ:
-                  </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                    {activeQ.questionText}
-                  </div>
-                </div>
-              )}
-
-              {/* 3. Öğrencinin Yazılı Yanıtı */}
-              <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #bfdbfe' }}>
-                <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 900, textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>✍️</span> ÖĞRENCİNİN YAZILI YANITI:
-                </div>
-                <div style={{ fontSize: '1.02rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 48 }}>
-                  {activeAns.userAnswerText || activeAns.userAnswer || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
-                </div>
-              </div>
-
-              {/* 4. Puanlama & Not Paneli */}
-              <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#334155' }}>
-                    🎯 Bu Soru İçin Notlandırma:
-                  </span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => setQuestionScores(p => ({ ...p, [activeQuestionIdx + 1]: 10 }))}
-                      style={{
-                        padding: '0.45rem 1rem', borderRadius: 8,
-                        border: (questionScores[activeQuestionIdx + 1] === 10) ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (questionScores[activeQuestionIdx + 1] === 10) ? '#16a34a' : '#ffffff',
-                        color: (questionScores[activeQuestionIdx + 1] === 10) ? '#ffffff' : '#15803d',
-                        fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
-                      }}
-                    >
-                      ✓ Tam Puan (10)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuestionScores(p => ({ ...p, [activeQuestionIdx + 1]: 5 }))}
-                      style={{
-                        padding: '0.45rem 1rem', borderRadius: 8,
-                        border: (questionScores[activeQuestionIdx + 1] === 5) ? '2px solid #d97706' : '1px solid #cbd5e1',
-                        background: (questionScores[activeQuestionIdx + 1] === 5) ? '#d97706' : '#ffffff',
-                        color: (questionScores[activeQuestionIdx + 1] === 5) ? '#ffffff' : '#d97706',
-                        fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
-                      }}
-                    >
-                      ½ Yarım Puan (5)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuestionScores(p => ({ ...p, [activeQuestionIdx + 1]: 0 }))}
-                      style={{
-                        padding: '0.45rem 1rem', borderRadius: 8,
-                        border: (questionScores[activeQuestionIdx + 1] === 0) ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                        background: (questionScores[activeQuestionIdx + 1] === 0) ? '#dc2626' : '#ffffff',
-                        color: (questionScores[activeQuestionIdx + 1] === 0) ? '#ffffff' : '#b91c1c',
-                        fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
-                      }}
-                    >
-                      ✕ 0 Puan
-                    </button>
-                  </div>
-                </div>
-
-                <input
-                  type="text"
-                  placeholder="Bu soru için öğrenciye özel geri bildiriminiz..."
-                  value={teacherNotes[activeQuestionIdx + 1] || ''}
-                  onChange={e => setTeacherNotes(p => ({ ...p, [activeQuestionIdx + 1]: e.target.value }))}
-                  style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.84rem', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              {/* Soru İleri/Geri */}
-              {questions.length > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveQuestionIdx(p => Math.max(0, p - 1))}
-                    disabled={activeQuestionIdx === 0}
-                    style={{ padding: '0.45rem 1rem', borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontWeight: 800, fontSize: '0.82rem', cursor: activeQuestionIdx === 0 ? 'not-allowed' : 'pointer', opacity: activeQuestionIdx === 0 ? 0.4 : 1 }}
-                  >
-                    ← Önceki Soru
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveQuestionIdx(p => Math.min(questions.length - 1, p + 1))}
-                    disabled={activeQuestionIdx === questions.length - 1}
-                    style={{ padding: '0.45rem 1rem', borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontWeight: 800, fontSize: '0.82rem', cursor: activeQuestionIdx === questions.length - 1 ? 'not-allowed' : 'pointer', opacity: activeQuestionIdx === questions.length - 1 ? 0.4 : 1 }}
-                  >
-                    Sonraki Soru →
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Genel Karne & Kaydet */}
-            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Mesajı:</div>
-              <textarea
-                rows="2"
-                placeholder="Öğrencinin bu ödevi için genel karne mesajınız..."
-                value={overallFeedback}
-                onChange={e => setOverallFeedback(e.target.value)}
-                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
-              />
-              <button
-                type="button"
-                onClick={handleSaveEvaluation}
-                disabled={isSaving}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
-              </button>
-            </div>
-
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ─── ANA DEĞERLENDİRME MERKEZİ (KATEGORİ SEKMELİ DASHBOARD) ───────────────────
-// ══════════════════════════════════════════════════════════════════════════════
 export default function EvaluationManager() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { users } = useUser();
   const { homeworks } = useHomework();
-  const { submissions: allSubmissions, deleteSubmission } = useEvaluation();
+  const { submissions: allSubmissions } = useEvaluation();
   const { questions: allBankQuestions } = useQuestionBank();
-  const { data: curriculumData } = useCurriculum();
-  const { bookTests, books } = useTrackedBooks();
 
-  const [activeSubmission, setActiveSubmission] = useState(null);
-  const [formatTab, setFormatTab] = useState('all'); // 'all' | 'text' | 'image' | 'pdf' | 'html'
-  const [statusTab, setStatusTab] = useState('all'); // 'all' | 'pending' | 'completed'
+  const [formatTab, setFormatTab] = useState('all');
+  const [statusTab, setStatusTab] = useState('all');
   const [search, setSearch] = useState('');
-
-  const isAdmin = currentUser?.role === 'admin';
-  const teacherId = currentUser?.id;
 
   const openEndedSubmissions = useMemo(() => {
     const activeHws = (homeworks || []).filter(hw => hw && hw.id);
@@ -903,30 +160,12 @@ export default function EvaluationManager() {
       return false;
     };
 
-    const isStrictlyOpenEnded = (sub, hw) => {
-      if (Array.isArray(sub?.answers) && sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0)) {
-        return true;
-      }
-      if (sub?.isOpenEnded || sub?.openEnded || sub?.contentType === 'acik_uclu' || sub?.contentType === 'yazili' || sub?.questionType === 'acik_uclu' || sub?.questionType === 'yazili') {
-        return true;
-      }
-      if (hw?.isOpenEnded || hw?.openEnded || hw?.contentType === 'acik_uclu' || hw?.contentType === 'yazili' || hw?.type === 'acik_uclu' || hw?.type === 'yazili') {
-        return true;
-      }
-      const titleStr = (String(sub?.testTitle || sub?.title || hw?.title || '')).toLowerCase();
-      if (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('yazılı') || titleStr.includes('yazili') || titleStr.includes('klasik')) {
-        return true;
-      }
-      return false;
-    };
-
     activeHws.forEach(hw => {
       if (isBookTaskOrBookTest(hw)) return;
 
       (hw.submissions || []).forEach(sub => {
         if (!sub || !sub.studentId) return;
         if (isBookTaskOrBookTest(sub)) return;
-        if (!isStrictlyOpenEnded(sub, hw)) return;
 
         const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
         map.set(subKey, {
@@ -956,8 +195,6 @@ export default function EvaluationManager() {
           (hw.submissions && hw.submissions.some(s => String(s.id) === String(sub.id)));
 
         if (matchesHw) {
-          if (!isStrictlyOpenEnded(sub, hw)) return;
-
           const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
           const existing = map.get(subKey);
           if (!existing || (sub.isEvaluatedByTeacher && !existing.isEvaluatedByTeacher) || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
@@ -981,13 +218,6 @@ export default function EvaluationManager() {
       if (!sub || !sub.studentId) return;
       if (isBookTaskOrBookTest(sub)) return;
 
-      const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
-      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-      const matchedHw = activeHws.find(h => String(h.id) === targetId || String(h.id) === normTargetId);
-
-      if (matchedHw && isBookTaskOrBookTest(matchedHw)) return;
-      if (!isStrictlyOpenEnded(sub, matchedHw)) return;
-
       const subKey = String(sub.id || `sub_${Date.now()}`);
       if (!map.has(subKey)) {
         map.set(subKey, sub);
@@ -995,7 +225,7 @@ export default function EvaluationManager() {
     });
 
     return Array.from(map.values());
-  }, [allSubmissions, homeworks, allBankQuestions]);
+  }, [allSubmissions, homeworks]);
 
   const enrichedSubmissions = useMemo(() => {
     return openEndedSubmissions.map(sub => {
@@ -1047,7 +277,8 @@ export default function EvaluationManager() {
         score,
         isPending,
         isAlreadyEvaluated,
-        category
+        category,
+        matchedHw
       };
     }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [openEndedSubmissions, users, homeworks, allBankQuestions]);
@@ -1080,20 +311,16 @@ export default function EvaluationManager() {
     };
   }, [enrichedSubmissions]);
 
+  const handleOpenReview = (sub) => {
+    const targetTestId = sub.testId || sub.homeworkId || sub.hwId || sub.questionId || sub.id;
+    const studentId = sub.studentId || sub.userId || '';
+    navigate(`/quiz-review/${targetTestId}?studentId=${studentId}&teacher=true`, {
+      state: { from: '/evaluation', fromTeacher: true, isTeacher: true, submissionId: sub.id }
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', padding: '1.5rem 2rem 5rem 2rem', boxSizing: 'border-box', fontFamily: "'Inter', system-ui, sans-serif" }}>
-
-      {activeSubmission && (
-        <OpenEndedEvaluationStudio
-          submission={activeSubmission}
-          allBankQuestions={allBankQuestions}
-          homeworks={homeworks}
-          curriculumData={curriculumData}
-          bookTests={bookTests}
-          onClose={() => setActiveSubmission(null)}
-          onSaveSuccess={() => setActiveSubmission(null)}
-        />
-      )}
 
       {/* Header */}
       <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.25rem 1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -1114,10 +341,10 @@ export default function EvaluationManager() {
           </button>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>✍️</span> Açık Uçlu Ödev Değerlendirme Merkezi
+              <span>✍️</span> Açık Uçlu Sınav & Ödev Değerlendirme
             </h1>
             <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-              Yazılı, görselli, PDF ve HTML formatındaki açık uçlu ödevleri kategorilerine göre inceleyin ve puanlayın
+              Öğrenci sınav kağıtlarını ve ödev yanıtlarını standart inceleme ekranında doğrudan puanlayın
             </p>
           </div>
         </div>
@@ -1359,7 +586,7 @@ export default function EvaluationManager() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveSubmission(sub)}
+                    onClick={() => handleOpenReview(sub)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
