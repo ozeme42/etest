@@ -125,9 +125,11 @@ const gradeThemes = {
 
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function QuestionBank() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { currentUser } = useAuth();
   const { data: curData } = useCurriculum();
   const { questions: allQuestions, addQuestion, updateQuestion, deleteQuestion } = useQuestionBank();
@@ -2272,26 +2274,26 @@ export default function QuestionBank() {
       ═════════════════════════════════════════════════════════════════════ */}
       {showModal && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '1200px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '1.75rem', padding: '2.25rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '1200px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '1.75rem', padding: '2.25rem', background: isDark ? '#0f172a' : '#ffffff', border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0', boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.15)', color: isDark ? '#f8fafc' : '#0f172a' }}>
             
             {/* Modal Header */}
-            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.75rem' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {creationStep === 2 && !editingQuestionId && (
                   <button
                     type="button"
                     onClick={() => setCreationStep(1)}
-                    style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', padding: '0.45rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 800, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ background: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1', padding: '0.45rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <ArrowLeft size={16} /> Tür Seçimine Dön
                   </button>
                 )}
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   {editingQuestionId ? '✏️ İçeriği / Testi Düzenle' : (creationStep === 1 ? '✨ İçerik Türü Seçiniz' : '➕ Soru / Test Detaylarını Giriniz')}
                 </h3>
               </div>
 
-              <button className="btn-icon" onClick={() => { setShowModal(false); resetForm(); }} style={{ borderRadius: '50%', padding: '0.6rem', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer' }}>
+              <button className="btn-icon" onClick={() => { setShowModal(false); resetForm(); }} style={{ borderRadius: '50%', padding: '0.6rem', background: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', color: isDark ? '#cbd5e1' : '#475569', cursor: 'pointer' }}>
                 <X size={22} />
               </button>
             </div>
@@ -2300,7 +2302,7 @@ export default function QuestionBank() {
             {creationStep === 1 && !editingQuestionId ? (
               <div>
                 {/* FAST FILE UPLOAD DROPZONE */}
-                <div style={{ background: '#eff6ff', border: '2px dashed #93c5fd', borderRadius: '1.25rem', padding: '1.75rem', marginBottom: '1.75rem', textAlign: 'center' }}>
+                <div style={{ background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff', border: isDark ? '2px dashed rgba(165,180,252,0.4)' : '2px dashed #93c5fd', borderRadius: '1.25rem', padding: '1.75rem', marginBottom: '1.75rem', textAlign: 'center' }}>
                   <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', margin: 0 }}>
                     <input
                       type="file"
@@ -2316,16 +2318,16 @@ export default function QuestionBank() {
                     <div style={{ width: 56, height: 56, borderRadius: '1.25rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(99,102,241,0.25)' }}>
                       <Plus size={30} />
                     </div>
-                    <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#0f172a' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.15rem', color: isDark ? '#ffffff' : '#0f172a' }}>
                       📁 Bilgisayardan Doğrudan Dosya Yükleyin
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#c7d2fe', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.85rem', color: isDark ? '#c7d2fe' : '#475569', fontWeight: 600 }}>
                       Görsel (PNG/JPG), PDF (.pdf), HTML (.html) veya JSON (.json) dosyanızı seçin veya buraya sürükleyin
                     </div>
                   </label>
                 </div>
 
-                <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.95rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'center' }}>
                   Veya manuel içerik türü seçerek devam edin:
                 </p>
 
@@ -2335,8 +2337,8 @@ export default function QuestionBank() {
                   <div
                     onClick={() => handleSelectType('text')}
                     style={{
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.22) 100%)',
-                      border: '1.5px solid rgba(96, 165, 250, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: isDark ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.22) 100%)' : '#eff6ff',
+                      border: isDark ? '1.5px solid rgba(96, 165, 250, 0.35)' : '1.5px solid #bfdbfe', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
@@ -2345,10 +2347,10 @@ export default function QuestionBank() {
                       <Type size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#93c5fd', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#93c5fd' : '#1d4ed8', margin: '0 0 0.35rem 0' }}>
                         📄 Sadece Metin (Tek Soru)
                       </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Tek bir yazılı çoktan seçmeli veya açık uçlu soru metni ve şıklarını ekleyin.
                       </p>
                     </div>
@@ -2358,8 +2360,8 @@ export default function QuestionBank() {
                   <div
                     onClick={() => handleSelectType('json')}
                     style={{
-                      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.22) 100%)',
-                      border: '1.5px solid rgba(167, 139, 250, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: isDark ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.22) 100%)' : '#f5f3ff',
+                      border: isDark ? '1.5px solid rgba(167, 139, 250, 0.35)' : '1.5px solid #ddd6fe', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
@@ -2368,10 +2370,10 @@ export default function QuestionBank() {
                       <Layers size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#c4b5fd', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#c4b5fd' : '#6d28d9', margin: '0 0 0.35rem 0' }}>
                         📝 Toplu Yazılı Test Paketi
                       </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Birden fazla yazılı sorudan oluşan toplu bir test ekleyin (Ekran üzerinden veya JSON ile).
                       </p>
                     </div>
@@ -2381,8 +2383,8 @@ export default function QuestionBank() {
                   <div
                     onClick={() => handleSelectType('gorsel')}
                     style={{
-                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)',
-                      border: '1.5px solid rgba(251, 191, 36, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: isDark ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)' : '#fffbeb',
+                      border: isDark ? '1.5px solid rgba(251, 191, 36, 0.35)' : '1.5px solid #fde68a', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
@@ -2391,10 +2393,10 @@ export default function QuestionBank() {
                       <Image size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fde68a', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#fde68a' : '#b45309', margin: '0 0 0.35rem 0' }}>
                         🖼️ Görsel Soru (Tekli / Toplu)
                       </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Bir veya birden fazla resim dosyası yükleyerek görsel soru veya sorular ekleyin.
                       </p>
                     </div>
@@ -2404,8 +2406,8 @@ export default function QuestionBank() {
                   <div
                     onClick={() => handleSelectType('pdf')}
                     style={{
-                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.22) 100%)',
-                      border: '1.5px solid rgba(248, 113, 113, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: isDark ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.22) 100%)' : '#fef2f2',
+                      border: isDark ? '1.5px solid rgba(248, 113, 113, 0.35)' : '1.5px solid #fecaca', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
@@ -2414,10 +2416,10 @@ export default function QuestionBank() {
                       <FileText size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fca5a5', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#b91c1c', margin: '0 0 0.35rem 0' }}>
                         📕 PDF Test Paketi
                       </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Hazır bir PDF doküman dosyası yükleyin ve cevap anahtarını tanımlayın.
                       </p>
                     </div>
@@ -2427,8 +2429,8 @@ export default function QuestionBank() {
                   <div
                     onClick={() => handleSelectType('html')}
                     style={{
-                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.22) 100%)',
-                      border: '1.5px solid rgba(52, 211, 153, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: isDark ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.22) 100%)' : '#f0fdf4',
+                      border: isDark ? '1.5px solid rgba(52, 211, 153, 0.35)' : '1.5px solid #bbf7d0', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
@@ -2437,10 +2439,10 @@ export default function QuestionBank() {
                       <Globe size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#6ee7b7', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#047857', margin: '0 0 0.35rem 0' }}>
                         🌐 HTML Web Sayfası / Testi
                       </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         HTML dosyanızı doğrudan yükleyin veya canlı web adresi yapıştırın.
                       </p>
                     </div>
@@ -2453,16 +2455,16 @@ export default function QuestionBank() {
               <form onSubmit={handleSaveQuestion} className="q-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 
                 {/* Header Banner indicating current selected type */}
-                <div style={{ background: 'rgba(99, 102, 241, 0.18)', border: '1.5px solid rgba(165, 180, 252, 0.3)', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 800, color: '#c7d2fe', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ background: isDark ? 'rgba(99, 102, 241, 0.18)' : '#eff6ff', border: isDark ? '1.5px solid rgba(165, 180, 252, 0.3)' : '1.5px solid #bfdbfe', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 800, color: isDark ? '#c7d2fe' : '#1e40af', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {getTypeIcon(formData.contentType, showBundleFields || formData.contentType === 'json')}
-                    Seçili Tür: <strong style={{ color: '#ffffff' }}>{getTypeLabel({ contentType: formData.contentType, isBundle: showBundleFields || formData.contentType === 'json' })}</strong>
+                    Seçili Tür: <strong style={{ color: isDark ? '#ffffff' : '#1d4ed8' }}>{getTypeLabel({ contentType: formData.contentType, isBundle: showBundleFields || formData.contentType === 'json' })}</strong>
                   </span>
                   {!editingQuestionId && (
                     <button
                       type="button"
                       onClick={() => setCreationStep(1)}
-                      style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isDark ? '#ffffff' : '#1e40af', border: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid #bfdbfe', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                     >
                       Değiştir
                     </button>
@@ -2471,18 +2473,18 @@ export default function QuestionBank() {
 
                 {/* UPLOADED FILE BADGE DISPLAY IF ANY */}
                 {uploadedFileInfo && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(16, 185, 129, 0.15)', border: '1.5px solid rgba(52, 211, 153, 0.35)', padding: '0.85rem 1.25rem', borderRadius: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.35)' : '1.5px solid #a7f3d0', padding: '0.85rem 1.25rem', borderRadius: '0.85rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ background: '#10b981', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: 99, textTransform: 'uppercase' }}>
                         {uploadedFileInfo.type} Yüklendi
                       </span>
-                      <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem' }}>{uploadedFileInfo.name}</span>
-                      <span style={{ color: '#34d399', fontSize: '0.75rem' }}>({uploadedFileInfo.size})</span>
+                      <span style={{ fontWeight: 800, color: isDark ? '#ffffff' : '#065f46', fontSize: '0.9rem' }}>{uploadedFileInfo.name}</span>
+                      <span style={{ color: isDark ? '#34d399' : '#059669', fontSize: '0.75rem' }}>({uploadedFileInfo.size})</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setUploadedFileInfo(null)}
-                      style={{ background: 'none', border: 'none', color: '#f87171', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                     >
                       Kaldır
                     </button>
@@ -2491,27 +2493,27 @@ export default function QuestionBank() {
 
                 {/* Title & Soru Tipi Selector */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                  <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.4rem', display: 'block' }}>
-                      🏷️ Soru veya Test İsmi / Etiketi <span className="text-muted" style={{ fontWeight: 400, fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>(İsim verin)</span>
+                  <div className="form-group" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a', marginBottom: '0.4rem', display: 'block' }}>
+                      🏷️ Soru veya Test İsmi / Etiketi <span className="text-muted" style={{ fontWeight: 400, fontSize: '0.8rem', color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b' }}>(İsim verin)</span>
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
                       placeholder="Örn: 2024 LGS Matematik Denemesi A, Üslü Sayılar Testi..."
-                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', fontWeight: 600, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                     />
                   </div>
 
-                  <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.4rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a', marginBottom: '0.4rem', display: 'block' }}>
                       ✍️ Soru / Test Çözüm Tipi
                     </label>
                     <select
                       value={formData.type}
                       onChange={e => setFormData({ ...formData, type: e.target.value })}
-                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.95rem', fontWeight: 700, background: 'rgba(15,23,42,0.9)', color: '#ffffff', boxSizing: 'border-box' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontSize: '0.95rem', fontWeight: 700, background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                     >
                       <option value="coktan_secmeli">🔘 Çoktan Seçmeli (Optikli / Cevap Anahtarlı)</option>
                       <option value="acik_uclu">📝 Açık Uçlu (Metin Yanıtlı / Yazılı)</option>
@@ -2521,19 +2523,19 @@ export default function QuestionBank() {
 
                 {/* TYPE 1: PDF TEST BUNDLE FORM */}
                 {formData.contentType === 'pdf' && (
-                  <div className="form-group" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1.5px solid rgba(248, 113, 113, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#fca5a5', marginBottom: '0.5rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2', border: isDark ? '1.5px solid rgba(248, 113, 113, 0.3)' : '1.5px solid #fca5a5', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                    <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '0.5rem', display: 'block' }}>
                       📕 PDF Dosyası Yükleyin veya Bağlantı Yapıştırın
                     </label>
                     
-                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(248,113,113,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#fca5a5', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(248,113,113,0.5)' : '2px dashed #f87171', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#fca5a5' : '#dc2626', fontWeight: 800, fontSize: '0.9rem' }}>
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                         📁 Bilgisayardan PDF Seç
                       </label>
                     </div>
 
-                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 0.85rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', margin: '0 0 0.85rem 0' }}>
                       Veya PDF dosyasının doğrudan web linkini yapıştırın:
                     </p>
                     <input 
@@ -2541,7 +2543,7 @@ export default function QuestionBank() {
                       value={formData.contentPayload} 
                       onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
                       placeholder="Örn: https://example.com/matematik-deneme.pdf veya Google Drive Linki" 
-                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                       required 
                     />
                   </div>
@@ -2549,13 +2551,13 @@ export default function QuestionBank() {
 
                 {/* TYPE 2: HTML FORM */}
                 {formData.contentType === 'html' && (
-                  <div className="form-group" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1.5px solid rgba(52, 211, 153, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#6ee7b7', marginBottom: '0.5rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.3)' : '1.5px solid #86efac', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                    <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#6ee7b7' : '#047857', marginBottom: '0.5rem', display: 'block' }}>
                       🌐 HTML Dosyası Yükleyin veya Kod Yapıştırın
                     </label>
 
-                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(52,211,153,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#6ee7b7', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(52,211,153,0.5)' : '2px dashed #34d399', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#6ee7b7' : '#059669', fontWeight: 800, fontSize: '0.9rem' }}>
                         <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                         📁 Bilgisayardan HTML Dosyası Seç (.html)
                       </label>
@@ -2566,7 +2568,7 @@ export default function QuestionBank() {
                       value={formData.contentPayload} 
                       onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
                       placeholder="Canlı Web Adresi (https://...) veya HTML Kodları..." 
-                      style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(52,211,153,0.3)', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.4)', color: '#f8fafc', boxSizing: 'border-box' }}
+                      style={{ padding: '1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(52,211,153,0.3)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: isDark ? 'rgba(0,0,0,0.4)' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', boxSizing: 'border-box' }}
                       required
                     ></textarea>
                   </div>
@@ -2574,25 +2576,25 @@ export default function QuestionBank() {
 
                 {/* TYPE 3: VISUAL WRITTEN TEST EDITOR */}
                 {formData.contentType === 'json' && (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.5rem', borderRadius: '1.25rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
                     
                     {/* Mode Switcher Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                       <div>
-                        <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.1rem' }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '1.1rem' }}>
                           📝 Toplu Yazılı Test Düzenleme Alanı
                         </h4>
-                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b' }}>
                           Soruları görsel olarak ekran üzerinden rahatça düzenleyebilir veya yeni soru ekleyebilirsiniz.
                         </p>
                       </div>
 
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <label style={{ cursor: 'pointer', background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.3)', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <label style={{ cursor: 'pointer', background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                           📁 JSON Dosyası Yükle
                         </label>
-                        <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', gap: '0.25rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#e2e8f0', padding: '0.25rem', borderRadius: '0.75rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }}>
                           <button
                             type="button"
                             onClick={() => setJsonEditMode('visual')}
@@ -2600,7 +2602,7 @@ export default function QuestionBank() {
                               padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
                               fontWeight: 800, fontSize: '0.85rem',
                               background: jsonEditMode === 'visual' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                              color: '#ffffff'
+                              color: jsonEditMode === 'visual' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569')
                             }}
                           >
                             📝 Görsel Düzenleyici
@@ -2612,7 +2614,7 @@ export default function QuestionBank() {
                               padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
                               fontWeight: 800, fontSize: '0.85rem',
                               background: jsonEditMode === 'code' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                              color: '#ffffff'
+                              color: jsonEditMode === 'code' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569')
                             }}
                           >
                             ⚡ Ham JSON Kodu
@@ -2626,16 +2628,16 @@ export default function QuestionBank() {
                       <div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
                           {editableQuestionsList.map((qItem, qIdx) => (
-                            <div key={qItem.id || qIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                            <div key={qItem.id || qIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                <span style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(165,180,252,0.3)' }}>
+                                <span style={{ background: isDark ? 'rgba(99,102,241,0.25)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: '6px', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe' }}>
                                   Soru {qIdx + 1}
                                 </span>
 
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveVisualQuestion(qIdx)}
-                                  style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                  style={{ background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#f87171' : '#dc2626', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fca5a5', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                                 >
                                   <Trash2 size={14} /> Soruyu Sil
                                 </button>
@@ -2643,20 +2645,20 @@ export default function QuestionBank() {
 
                               {/* Question Text Input */}
                               <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '0.35rem' }}>Soru Metni:</label>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', display: 'block', marginBottom: '0.35rem' }}>Soru Metni:</label>
                                 <textarea
                                   rows="2"
                                   value={qItem.questionText || ''}
                                   onChange={e => handleUpdateVisualQuestionText(qIdx, e.target.value)}
                                   placeholder="Soru metnini buraya yazın..."
-                                  style={{ padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.15)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                                  style={{ padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                                 />
                               </div>
 
                               {/* Option Inputs and Correct Answer Radio Buttons */}
                               {formData.type === 'coktan_secmeli' && (
                                 <div>
-                                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '0.5rem' }}>
+                                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', display: 'block', marginBottom: '0.5rem' }}>
                                     Şıklar ve Doğru Cevap Seçimi:
                                   </label>
                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
@@ -2667,19 +2669,19 @@ export default function QuestionBank() {
                                           key={oIdx} 
                                           onClick={() => handleUpdateVisualCorrectAnswer(qIdx, oIdx)}
                                           style={{ 
-                                            background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', 
+                                            background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'), 
                                             padding: '0.75rem 0.85rem', 
                                             borderRadius: '0.75rem', 
-                                            border: isCorrect ? '1.5px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
+                                            border: isCorrect ? '1.5px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1'),
                                             cursor: 'pointer',
                                             transition: 'all 0.15s ease'
                                           }}
                                         >
                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                                            <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? '#34d399' : '#c7d2fe' }}>
+                                            <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#c7d2fe' : '#4f46e5') }}>
                                               {String.fromCharCode(65 + oIdx)}) Şıkkı
                                             </span>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: isCorrect ? '#34d399' : 'rgba(255,255,255,0.6)' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: isCorrect ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b') }}>
                                               <input
                                                 type="radio"
                                                 name={`correct_${qIdx}`}
@@ -2695,7 +2697,7 @@ export default function QuestionBank() {
                                             value={optText}
                                             onChange={e => handleUpdateVisualOptionText(qIdx, oIdx, e.target.value)}
                                             placeholder={`${String.fromCharCode(65 + oIdx)} şıkkı metni`}
-                                            style={{ padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.15)', width: '100%', fontSize: '0.85rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                                            style={{ padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', width: '100%', fontSize: '0.85rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                                           />
                                         </div>
                                       );
@@ -2711,7 +2713,7 @@ export default function QuestionBank() {
                         <button
                           type="button"
                           onClick={handleAddVisualQuestion}
-                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '2px dashed rgba(165,180,252,0.4)', background: 'rgba(99,102,241,0.1)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: isDark ? '2px dashed rgba(165,180,252,0.4)' : '2px dashed #93c5fd', background: isDark ? 'rgba(99,102,241,0.1)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', fontWeight: 900, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                         >
                           <Plus size={18} /> Teste Yeni Soru Ekle
                         </button>
@@ -2724,7 +2726,7 @@ export default function QuestionBank() {
                           value={formData.contentPayload}
                           onChange={e => setFormData({...formData, contentPayload: e.target.value})}
                           placeholder="JSON verisini yapıştırın..."
-                          style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.4)', color: '#f8fafc', boxSizing: 'border-box' }}
+                          style={{ padding: '1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: isDark ? 'rgba(0,0,0,0.4)' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', boxSizing: 'border-box' }}
                         ></textarea>
                       </div>
                     )}
@@ -2735,13 +2737,13 @@ export default function QuestionBank() {
                 {/* TYPE 4: IMAGE QUESTION FORM WITH CEVAP ANAHTARI */}
                 {formData.contentType === 'gorsel' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div className="form-group" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1.5px solid rgba(251, 191, 36, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                      <label style={{ fontWeight: 900, fontSize: '1rem', color: '#fde68a', marginBottom: '0.5rem', display: 'block' }}>
+                    <div className="form-group" style={{ background: isDark ? 'rgba(245, 158, 11, 0.1)' : '#fffbeb', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                      <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#fde68a' : '#b45309', marginBottom: '0.5rem', display: 'block' }}>
                         🖼️ Resim / Görsel Yükleyin veya URL Yapıştırın
                       </label>
 
-                      <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(251,191,36,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#fde68a', fontWeight: 800, fontSize: '0.9rem' }}>
+                      <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(251,191,36,0.5)' : '2px dashed #f59e0b', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#fde68a' : '#b45309', fontWeight: 800, fontSize: '0.9rem' }}>
                           <input
                             type="file"
                             accept="image/*"
@@ -2757,7 +2759,7 @@ export default function QuestionBank() {
                         </label>
                       </div>
 
-                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 0.85rem 0' }}>
+                      <p style={{ fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', margin: '0 0 0.85rem 0' }}>
                         Veya resim URL'lerini buraya alt alta yapıştırın:
                       </p>
                       <textarea 
@@ -2765,26 +2767,26 @@ export default function QuestionBank() {
                         value={formData.contentPayload} 
                         onChange={handleImagePayloadChange} 
                         placeholder="Resim URL'lerini buraya alt alta yapıştırın..." 
-                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                         required
                       ></textarea>
                     </div>
 
                     {/* ANSWER KEY SECTION FOR MULTIPLE CHOICE IMAGE QUESTIONS */}
                     {formData.type === 'coktan_secmeli' ? (
-                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                           <div>
-                            <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.05rem' }}>🔘 Görsel Sorular Cevap Anahtarı</h4>
-                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Görsel soruların doğru cevap şıklarını belirleyin.</p>
+                            <h4 style={{ margin: 0, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '1.05rem' }}>🔘 Görsel Sorular Cevap Anahtarı</h4>
+                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b' }}>Görsel soruların doğru cevap şıklarını belirleyin.</p>
                           </div>
-                          <span style={{ background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid rgba(165,180,252,0.3)' }}>
+                          <span style={{ background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe' }}>
                             Toplam {imageUrls.length || 1} Görsel Soru
                           </span>
                         </div>
                         {/* FAST BULK ANSWER KEY STRING INPUT BOX FOR IMAGE QUESTIONS */}
-                        <div style={{ marginBottom: '1.25rem', background: 'rgba(99,102,241,0.12)', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(165,180,252,0.25)' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#c7d2fe', display: 'block', marginBottom: '0.35rem' }}>
+                        <div style={{ marginBottom: '1.25rem', background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(165,180,252,0.25)' : '1.5px solid #bfdbfe' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#c7d2fe' : '#1e40af', display: 'block', marginBottom: '0.35rem' }}>
                             ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
                           </label>
                           <input
@@ -2792,7 +2794,7 @@ export default function QuestionBank() {
                             value={formData.bulkAnswerKey}
                             onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
                             placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid rgba(165,180,252,0.4)', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: isDark ? '1.5px solid rgba(165,180,252,0.4)' : '1.5px solid #93c5fd', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                           />
                         </div>
 
@@ -2801,11 +2803,11 @@ export default function QuestionBank() {
                           {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
                             const selectedOpt = imageAnswers[idx];
                             return (
-                              <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
-                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>🖼️ Görsel Soru {idx + 1}</span>
+                              <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>🖼️ Görsel Soru {idx + 1}</span>
                                   {selectedOpt !== undefined && (
-                                    <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid rgba(52,211,153,0.35)', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                                    <span style={{ background: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5', color: isDark ? '#34d399' : '#059669', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
                                       ✓ Cevap: {String.fromCharCode(65 + selectedOpt)}
                                     </span>
                                   )}
@@ -2816,19 +2818,19 @@ export default function QuestionBank() {
                                   <div
                                     onClick={() => setPreviewImage(url)}
                                     title="Görseli daha da büyütmek için tıklayın"
-                                    style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
+                                    style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
                                   >
                                     <img src={url} alt={`Görsel Soru ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '0.5rem' }} onError={e => { e.target.style.display = 'none'; }} />
                                   </div>
                                 ) : (
-                                  <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.2)', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+                                  <div style={{ padding: '2rem', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
                                     Resim yüklenmedi
                                   </div>
                                 )}
 
                                 {/* Optic Bubbles A B C D E */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.08)', alignItems: 'center' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', alignItems: 'center' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                     {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
                                       const isSelected = selectedOpt === optIdx;
@@ -2841,13 +2843,13 @@ export default function QuestionBank() {
                                             flex: 1,
                                             height: '42px',
                                             borderRadius: '0.65rem',
-                                            border: isSelected ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.15)',
-                                            background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255,255,255,0.06)',
-                                            color: '#ffffff',
+                                            border: isSelected ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
+                                            background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                                            color: isSelected ? '#ffffff' : (isDark ? '#ffffff' : '#334155'),
                                             fontWeight: 900,
                                             fontSize: '1rem',
                                             cursor: 'pointer',
-                                            boxShadow: isSelected ? '0 4px 14px rgba(16,185,129,0.4)' : 'none',
+                                            boxShadow: isSelected ? '0 4px 14px rgba(16,185,129,0.3)' : 'none',
                                             transition: 'all 0.15s ease',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -2871,8 +2873,8 @@ export default function QuestionBank() {
                       </div>
                     ) : (
                       /* OPEN-ENDED BANNER FOR IMAGE QUESTIONS */
-                      <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(251, 191, 36, 0.3)' }}>
-                        <p style={{ margin: 0, fontWeight: 800, color: '#fde68a', fontSize: '0.85rem' }}>
+                      <div style={{ background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a' }}>
+                        <p style={{ margin: 0, fontWeight: 800, color: isDark ? '#fde68a' : '#b45309', fontSize: '0.85rem' }}>
                           📝 Görsel sorular "Açık Uçlu (Metin Yanıtlı)" olarak belirlenmiştir. Öğrenciler cevabı metin kutusuna yazacaklardır.
                         </p>
                       </div>
@@ -2884,35 +2886,35 @@ export default function QuestionBank() {
                 {formData.contentType === 'text' && (
                   <>
                     <div className="form-group">
-                      <label style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>📝 Soru Metni</label>
+                      <label style={{ fontWeight: 800, fontSize: '0.9rem', color: isDark ? '#ffffff' : '#0f172a' }}>📝 Soru Metni</label>
                       <textarea 
                         rows="4" 
                         value={formData.questionText} 
                         onChange={e => setFormData({...formData, questionText: e.target.value})} 
                         placeholder="Soru metnini detaylıca yazın..." 
-                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.5, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.5, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                         required
                       ></textarea>
                     </div>
 
                     {formData.type === 'coktan_secmeli' && (
-                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>
                             🔘 Soru Şıkları ve Doğru Cevap Seçimi:
                           </label>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: p.options.length === 4 ? p.options : ['', '', '', ''], correctAnswer: Math.min(p.correctAnswer, 3) }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.18)', background: formData.options.length === 4 ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)', color: formData.options.length === 4 ? '#34d399' : 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #cbd5e1'), background: formData.options.length === 4 ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'), color: formData.options.length === 4 ? (isDark ? '#34d399' : '#047857') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'), fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
                             >
                               🏫 Ortaokul (4 Şık A-D)
                             </button>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: p.options.length === 5 ? p.options : ['', '', '', '', ''] }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #c084fc' : '1px solid rgba(255,255,255,0.18)', background: formData.options.length === 5 ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)', color: formData.options.length === 5 ? '#c084fc' : 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #8b5cf6' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #cbd5e1'), background: formData.options.length === 5 ? (isDark ? 'rgba(139,92,246,0.2)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'), color: formData.options.length === 5 ? (isDark ? '#c084fc' : '#6d28d9') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'), fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
                             >
                               🏛️ Lise (5 Şık A-E)
                             </button>
@@ -2926,16 +2928,17 @@ export default function QuestionBank() {
                                 key={idx} 
                                 onClick={() => setFormData({...formData, correctAnswer: idx})}
                                 style={{ 
-                                  background: isSelected ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', 
+                                  background: isSelected ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'), 
                                   padding: '1rem', 
                                   borderRadius: '0.75rem', 
-                                  border: isSelected ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
+                                  border: isSelected ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1'),
                                   cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
+                                  transition: 'all 0.15s ease',
+                                  boxShadow: isDark ? 'none' : '0 2px 6px rgba(0,0,0,0.02)'
                                 }}
                               >
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', cursor: 'pointer' }}>
-                                  <span style={{ fontWeight: 900, color: isSelected ? '#34d399' : '#c7d2fe', fontSize: '0.95rem' }}>{String.fromCharCode(65 + idx)}) Şıkkı</span>
+                                  <span style={{ fontWeight: 900, color: isSelected ? (isDark ? '#34d399' : '#047857') : (isDark ? '#c7d2fe' : '#4f46e5'), fontSize: '0.95rem' }}>{String.fromCharCode(65 + idx)}) Şıkkı</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                     <input 
                                       type="radio" 
@@ -2944,7 +2947,7 @@ export default function QuestionBank() {
                                       onChange={() => setFormData({...formData, correctAnswer: idx})}
                                       style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                                     />
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isSelected ? '#34d399' : 'rgba(255,255,255,0.6)' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isSelected ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b') }}>
                                       {isSelected ? '✓ Doğru Şık' : 'Seç'}
                                     </span>
                                   </div>
@@ -2959,7 +2962,7 @@ export default function QuestionBank() {
                                     setFormData({...formData, options: newOpts});
                                   }} 
                                   placeholder={`${String.fromCharCode(65 + idx)} şıkkının metni`} 
-                                  style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.9rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
+                                  style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontSize: '0.9rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                                   required
                                 />
                               </div>
@@ -2974,27 +2977,27 @@ export default function QuestionBank() {
                 {/* OPTIC ANSWER KEY & BULK STRING BUILDER FOR BUNDLE TESTS (PDF/HTML) */}
                 {showBundleFields && (
                   formData.type === 'coktan_secmeli' ? (
-                    <div style={{ marginTop: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ marginTop: '0.5rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
                       
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div>
-                          <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.05rem' }}>🔘 Cevap Anahtarı Tablosu ve Soru Sayısı</h4>
-                          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Paketteki her sorunun doğru şıkkını tek tek veya toplu olarak girin.</p>
+                          <h4 style={{ margin: 0, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '1.05rem' }}>🔘 Cevap Anahtarı Tablosu ve Soru Sayısı</h4>
+                          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b' }}>Paketteki her sorunun doğru şıkkını tek tek veya toplu olarak girin.</p>
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                           {/* Option Count Selector (4 Şık A-D vs 5 Şık A-E) */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', marginRight: '0.15rem' }}>Şık Sayısı:</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginRight: '0.15rem' }}>Şık Sayısı:</span>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: ['', '', '', ''] }))}
                               style={{
                                 padding: '0.25rem 0.55rem',
                                 borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 4 ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.15)',
-                                background: (formData.options?.length || 4) === 4 ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
-                                color: (formData.options?.length || 4) === 4 ? '#34d399' : 'rgba(255,255,255,0.6)',
+                                border: (formData.options?.length || 4) === 4 ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
+                                background: (formData.options?.length || 4) === 4 ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                                color: (formData.options?.length || 4) === 4 ? (isDark ? '#34d399' : '#047857') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
                                 fontWeight: 900,
                                 fontSize: '0.75rem',
                                 cursor: 'pointer'
@@ -3008,9 +3011,9 @@ export default function QuestionBank() {
                               style={{
                                 padding: '0.25rem 0.55rem',
                                 borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 5 ? '2px solid #c084fc' : '1px solid rgba(255,255,255,0.15)',
-                                background: (formData.options?.length || 4) === 5 ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
-                                color: (formData.options?.length || 4) === 5 ? '#c084fc' : 'rgba(255,255,255,0.6)',
+                                border: (formData.options?.length || 4) === 5 ? '2px solid #8b5cf6' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
+                                background: (formData.options?.length || 4) === 5 ? (isDark ? 'rgba(139,92,246,0.2)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                                color: (formData.options?.length || 4) === 5 ? (isDark ? '#c084fc' : '#6d28d9') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
                                 fontWeight: 900,
                                 fontSize: '0.75rem',
                                 cursor: 'pointer'
@@ -3020,15 +3023,15 @@ export default function QuestionBank() {
                             </button>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.06)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-                            <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#ffffff' }}>Toplam Soru Sayısı:</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1' }}>
+                            <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#ffffff' : '#0f172a' }}>Toplam Soru Sayısı:</label>
                             <input 
                               type="number" 
                               min="1" 
                               max="100" 
                               value={formData.questionCount} 
                               onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
-                              style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #818cf8', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }}
+                              style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #6366f1', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a' }}
                             />
                           </div>
                         </div>
@@ -3042,8 +3045,8 @@ export default function QuestionBank() {
                           const currentBubbleLetters = currentOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
                           return (
-                            <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>
+                            <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', boxShadow: isDark ? 'none' : '0 2px 4px rgba(0,0,0,0.02)' }}>
+                              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: isDark ? '#ffffff' : '#0f172a' }}>
                                 Soru {idx + 1}
                               </div>
 
@@ -3060,13 +3063,13 @@ export default function QuestionBank() {
                                         width: '36px',
                                         height: '36px',
                                         borderRadius: '50%',
-                                        border: isSelected ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.18)',
-                                        background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255,255,255,0.06)',
-                                        color: '#ffffff',
+                                        border: isSelected ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1'),
+                                        background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                                        color: isSelected ? '#ffffff' : (isDark ? '#ffffff' : '#334155'),
                                         fontWeight: 900,
                                         fontSize: '0.85rem',
                                         cursor: 'pointer',
-                                        boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.4)' : 'none',
+                                        boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
                                         transition: 'all 0.15s ease',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -3090,22 +3093,22 @@ export default function QuestionBank() {
                     </div>
                   ) : (
                     /* OPEN-ENDED BUNDLE CONFIGURATION BANNER */
-                    <div style={{ marginTop: '0.5rem', background: 'rgba(245, 158, 11, 0.15)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(251, 191, 36, 0.3)' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#fde68a', fontSize: '1rem' }}>
+                    <div style={{ marginTop: '0.5rem', background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: isDark ? '#fde68a' : '#b45309', fontSize: '1rem' }}>
                         📝 Açık Uçlu Test Yapılandırması
                       </h4>
-                      <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
+                      <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b' }}>
                         Bu test "Açık Uçlu (Yazılı Yanıtlı)" olarak belirlenmiştir. Öğrenciler şık işaretlemek yerine cevaplarını metin kutusuna yazacaklardır. Optik cevap anahtarı gerekmez.
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.06)', padding: '0.6rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(251,191,36,0.4)', width: 'fit-content' }}>
-                        <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#fde68a' }}>Toplam Soru Sayısı:</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.6rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(251,191,36,0.4)' : '1.5px solid #fde68a', width: 'fit-content' }}>
+                        <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#fde68a' : '#b45309' }}>Toplam Soru Sayısı:</label>
                         <input 
                           type="number" 
                           min="1" 
                           max="100" 
                           value={formData.questionCount} 
                           onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
-                          style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }}
+                          style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a' }}
                         />
                       </div>
                     </div>
@@ -3113,8 +3116,8 @@ export default function QuestionBank() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.25rem' }}>
-                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '0.85rem', fontWeight: 800, color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
+                <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#1e293b', borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
                   <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '0.95rem', fontSize: '1.05rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
                     {editingQuestionId ? '✓ Değişiklikleri Kaydet' : '➕ İçeriği Kaydet ve Ekle'}
                   </button>
@@ -3137,41 +3140,41 @@ export default function QuestionBank() {
 
         return (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-            <div className="modal-content" style={{ width: '96vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.25rem', borderRadius: '1.75rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
+            <div className="modal-content" style={{ width: '96vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.25rem', borderRadius: '1.75rem', background: isDark ? '#0f172a' : '#ffffff', border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0', boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.15)', color: isDark ? '#f8fafc' : '#0f172a' }}>
               
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
                     {(q.title || q.name) && (
-                      <span style={{ fontSize: '0.85rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '8px', background: isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff', color: isDark ? '#93c5fd' : '#1d4ed8', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid #bfdbfe' }}>
                         🏷️ {q.title || q.name}
                       </span>
                     )}
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#a5b4fc' : '#4f46e5', border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid #bfdbfe' }}>
                       {getTypeLabel(q)}
                     </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: q.type === 'coktan_secmeli' ? '#f0fdf4' : '#fffbeb', color: q.type === 'coktan_secmeli' ? '#16a34a' : '#d97706', border: `1px solid ${q.type === 'coktan_secmeli' ? '#bbf7d0' : '#fde68a'}` }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: q.type === 'coktan_secmeli' ? (isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4') : (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb'), color: q.type === 'coktan_secmeli' ? (isDark ? '#34d399' : '#16a34a') : (isDark ? '#fbbf24' : '#d97706'), border: `1px solid ${q.type === 'coktan_secmeli' ? (isDark ? 'rgba(52,211,153,0.3)' : '#bbf7d0') : (isDark ? 'rgba(251,191,36,0.3)' : '#fde68a')}` }}>
                       {q.type === 'coktan_secmeli' ? '🔘 Optikli / Çoktan Seçmeli' : '📝 Açık Uçlu (Yazılı)'}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>{gradeObj?.name || 'Genel'}</span> ➔ 
                     <span>{subjectObj?.name || 'Genel'}</span> ➔ 
                     <span>{unitObj?.name || 'Genel'}</span> ➔ 
-                    <span style={{ color: '#6366f1' }}>{topicObj?.name || 'Genel'}</span>
+                    <span style={{ color: isDark ? '#818cf8' : '#4f46e5' }}>{topicObj?.name || 'Genel'}</span>
                   </div>
                 </div>
 
-                <button className="btn-icon" onClick={() => setPreviewQuestion(null)} style={{ borderRadius: '50%', padding: '0.5rem', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer' }}>
+                <button className="btn-icon" onClick={() => setPreviewQuestion(null)} style={{ borderRadius: '50%', padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', color: isDark ? '#cbd5e1' : '#475569', cursor: 'pointer' }}>
                   <X size={22} />
                 </button>
               </div>
 
               {/* Status Banner */}
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '1rem', padding: '0.85rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#16a34a', fontSize: '0.95rem', fontWeight: 800 }}>
+              <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0', borderRadius: '1rem', padding: '0.85rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: isDark ? '#34d399' : '#16a34a', fontSize: '0.95rem', fontWeight: 800 }}>
                   <CheckCircle2 size={20} />
                   <span>Soru Önizleme &amp; Hata Kontrol Modu</span>
                 </div>
@@ -3185,25 +3188,25 @@ export default function QuestionBank() {
               </div>
 
               {/* QUESTION BODY PREVIEW */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '1.25rem', padding: '1.75rem', border: '1.5px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem' }}>
+              <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: '1.25rem', padding: '1.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', marginBottom: '1.5rem' }}>
                 
                 {/* 0. WRITTEN TEXT BUNDLE PREVIEW (questionsList for non-visual tests) */}
                 {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.questionsList && q.questionsList.length > 0 && (
                   <div>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff', marginBottom: '1.25rem' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', marginBottom: '1.25rem' }}>
                       📚 Toplu Yazılı Test Soruları ({q.questionsList.length} Soru - Art Arda Sıralı):
                     </h4>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
                       {q.questionsList.map((qItem, iIdx) => (
-                        <div key={iIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                        <div key={iIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
                             <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
                               Soru {iIdx + 1}
                             </span>
                           </div>
 
-                          <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                          <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
                             {qItem.questionText}
                           </h5>
 
@@ -3216,19 +3219,19 @@ export default function QuestionBank() {
                                     key={oIdx}
                                     style={{
                                       padding: '0.75rem 1rem', borderRadius: '0.75rem',
-                                      border: isCorrect ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
-                                      background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)',
+                                      border: isCorrect ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                                      background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
                                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
                                     }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ fontWeight: 900, width: '22px', height: '22px', borderRadius: '50%', background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                                      <span style={{ fontWeight: 900, width: '24px', height: '24px', borderRadius: '50%', background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'), color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
                                         {String.fromCharCode(65 + oIdx)}
                                       </span>
-                                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? '#34d399' : '#ffffff' }}>{opt}</span>
+                                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#0f172a') }}>{opt}</span>
                                     </div>
                                     {isCorrect && (
-                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
                                         <Check size={14} strokeWidth={3} /> Doğru
                                       </span>
                                     )}
@@ -3246,7 +3249,7 @@ export default function QuestionBank() {
                 {/* 1. TEXT QUESTION PREVIEW */}
                 {!q.questionsList && q.contentType === 'text' && (
                   <div>
-                    <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
+                    <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
                       {q.questionText || 'Metin Sorusu'}
                     </h4>
 
@@ -3258,18 +3261,21 @@ export default function QuestionBank() {
                             <div 
                               key={oIdx} 
                               style={{
-                                padding: '0.95rem 1.15rem', borderRadius: '0.85rem', border: isCorrect ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
-                                background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
+                                padding: '0.95rem 1.15rem', borderRadius: '0.85rem',
+                                border: isCorrect ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                                background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <span style={{ fontWeight: 900, width: '26px', height: '26px', borderRadius: '50%', background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ fontWeight: 900, width: '28px', height: '28px', borderRadius: '50%', background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'), color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
                                   {String.fromCharCode(65 + oIdx)}
                                 </span>
-                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isCorrect ? '#34d399' : '#ffffff' }}>{opt}</span>
+                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#0f172a') }}>{opt}</span>
                               </div>
                               {isCorrect && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
                                   <Check size={14} strokeWidth={3} /> Doğru Şık
                                 </span>
                               )}
@@ -3285,7 +3291,7 @@ export default function QuestionBank() {
                 {(q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0)) && (
                   <div style={{ textAlign: 'center' }}>
                     {q.questionText && (
-                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#ffffff', marginBottom: '1.25rem' }}>{q.questionText}</p>
+                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: isDark ? '#ffffff' : '#0f172a', marginBottom: '1.25rem', textAlign: 'left' }}>{q.questionText}</p>
                     )}
 
                     {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
@@ -3323,22 +3329,22 @@ export default function QuestionBank() {
                           {imageList.map((imgUrl, imgIdx) => {
                             const correctIdx = getCorrectIdxForImg(imgIdx);
                             return (
-                              <div key={imgIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
-                                <div style={{ fontWeight: 900, color: '#818cf8', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
+                              <div key={imgIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 4px 12px rgba(0,0,0,0.04)' }}>
+                                <div style={{ fontWeight: 900, color: isDark ? '#818cf8' : '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
                                   🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}
                                 </div>
 
                                 <img 
                                   src={imgUrl} 
                                   alt={`Soru Görseli ${imgIdx + 1}`} 
-                                  style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }} 
+                                  style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', background: isDark ? '#0f172a' : '#f8fafc', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }} 
                                   onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
                                 />
 
                                 {/* OPTIONS DIRECTLY UNDER EACH IMAGE */}
                                 {q.type === 'coktan_secmeli' && (
-                                  <div style={{ marginTop: '1.15rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  <div style={{ marginTop: '1.15rem', paddingTop: '1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                       Soru {imgIdx + 1} Cevap Seçenekleri:
                                     </div>
 
@@ -3353,28 +3359,28 @@ export default function QuestionBank() {
                                             style={{
                                               padding: '0.55rem 0.95rem',
                                               borderRadius: '0.75rem',
-                                              border: isCorrect ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.15)',
-                                              background: isCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                                              border: isCorrect ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
+                                              background: isCorrect ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'),
                                               fontWeight: 800,
                                               fontSize: '0.9rem',
-                                              color: isCorrect ? '#34d399' : '#ffffff',
+                                              color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#1e293b'),
                                               display: 'flex',
                                               alignItems: 'center',
                                               gap: '0.4rem',
-                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
+                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.25)' : 'none'
                                             }}
                                           >
                                             <span style={{
                                               width: '24px', height: '24px', borderRadius: '50%',
-                                              background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)',
-                                              color: 'white', fontWeight: 900, fontSize: '0.8rem',
+                                              background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1'),
+                                              color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), fontWeight: 900, fontSize: '0.8rem',
                                               display: 'flex', alignItems: 'center', justifyContent: 'center'
                                             }}>
                                               {letter}
                                             </span>
                                             <span>{optText !== letter ? `${letter}) ${optText}` : `${letter} Şıkkı`}</span>
                                             {isCorrect && (
-                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
                                                 <Check size={14} strokeWidth={3} /> Doğru
                                               </span>
                                             )}
@@ -3397,18 +3403,18 @@ export default function QuestionBank() {
                 {!q.questionsList && (q.contentType === 'html' || q.contentType === 'htm' || (typeof q.contentPayload === 'string' && (q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE')))) && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
-                      <p style={{ margin: 0, fontWeight: 800, color: '#c7d2fe', fontSize: '0.95rem' }}>
+                      <p style={{ margin: 0, fontWeight: 800, color: isDark ? '#c7d2fe' : '#4338ca', fontSize: '0.95rem' }}>
                         🌐 Görsel HTML Döküman / Test Önizlemesi:
                       </p>
                       {q.contentPayload?.startsWith('http') && (
-                        <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: '#818cf8', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: isDark ? '#818cf8' : '#4f46e5', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           Sekmede Aç <ExternalLink size={14} />
                         </a>
                       )}
                     </div>
 
                     {/* Live Rendered HTML Frame */}
-                    <div style={{ background: 'white', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.15)', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: '1.25rem', height: '520px' }}>
+                    <div style={{ background: 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', marginBottom: '1.25rem', height: '520px' }}>
                       <HtmlViewerWithControls
                         payload={q.htmlPayload || q.contentPayload}
                         title={q.title || 'HTML Test Paketi'}
@@ -3418,19 +3424,20 @@ export default function QuestionBank() {
 
                     {/* Optical Answer Key Grid */}
                     {q.type === 'coktan_secmeli' && (
-                      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
-                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#ffffff', fontSize: '0.95rem' }}>
+                      <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
                           🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
                         </h5>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
                           {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
                             const ans = q.answerKey ? q.answerKey[idx] : null;
+                            const hasAns = ans && ans !== ' ';
                             return (
-                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)', border: ans && ans !== ' ' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
-                                  {ans && ans !== ' ' ? ans : '—'}
+                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
+                                  {hasAns ? ans : '—'}
                                 </span>
                               </div>
                             );
@@ -3445,7 +3452,7 @@ export default function QuestionBank() {
                 {!q.questionsList && q.contentType === 'pdf' && (
                   <div style={{ marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: 800, color: '#fca5a5', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
+                      <span style={{ fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
                       <label style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem' }}>
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
                         📁 PDF Değiştir / Yükle
@@ -3455,31 +3462,32 @@ export default function QuestionBank() {
                       <iframe
                         src={getEmbeddableUrl(q.contentPayload)}
                         title="PDF Döküman"
-                        style={{ width: '100%', height: '550px', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '0.75rem', background: 'white' }}
+                        style={{ width: '100%', height: '550px', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0', borderRadius: '0.75rem', background: 'white' }}
                       />
                     ) : (
-                      <div style={{ padding: '3rem', textAlign: 'center', color: '#fca5a5', background: 'rgba(239,68,68,0.1)', border: '1px dashed rgba(239,68,68,0.3)', borderRadius: '0.75rem' }}>
+                      <div style={{ padding: '3rem', textAlign: 'center', color: isDark ? '#fca5a5' : '#b91c1c', background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', border: isDark ? '1px dashed rgba(239,68,68,0.3)' : '1.5px dashed #fca5a5', borderRadius: '0.75rem' }}>
                         📄 Bu test için henüz bir PDF dosyası yüklenmedi. Lütfen yukarıdaki butondan bir PDF seçin.
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Optical Answer Key Grid for PDF/HTML Tests */}
-                {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.type === 'coktan_secmeli' && (
-                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
-                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#ffffff', fontSize: '0.95rem' }}>
+                {/* Optical Answer Key Grid for PDF Tests */}
+                {!q.questionsList && q.contentType === 'pdf' && q.type === 'coktan_secmeli' && (
+                  <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
                       🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
                     </h5>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
                       {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
                         const ans = q.answerKey ? q.answerKey[idx] : null;
+                        const hasAns = ans && ans !== ' ';
                         return (
-                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)', border: ans && ans !== ' ' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
-                              {ans && ans !== ' ' ? ans : '—'}
+                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
+                              {hasAns ? ans : '—'}
                             </span>
                           </div>
                         );
@@ -3492,7 +3500,7 @@ export default function QuestionBank() {
 
               {/* Modal Footer */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button className="btn btn-outline" onClick={() => setPreviewQuestion(null)} style={{ padding: '0.75rem 1.5rem', fontWeight: 800, color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }}>
+                <button className="btn btn-outline" onClick={() => setPreviewQuestion(null)} style={{ padding: '0.75rem 1.5rem', fontWeight: 800, color: isDark ? '#ffffff' : '#1e293b', borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }}>
                   Kapat
                 </button>
               </div>
