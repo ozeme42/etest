@@ -2245,8 +2245,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   payload={activePdfPayload} 
                   title={activeSec.title} 
                   height="100%" 
-                  allowUpload={true} 
-                  onUploadFile={handleManualPdfUpload} 
                 />
               </div>
             }

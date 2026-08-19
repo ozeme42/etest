@@ -535,8 +535,6 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
               payload={pdfPayload} 
               title={test.title} 
               height="100%" 
-              allowUpload={true}
-              onUploadFile={handleManualPdfUpload}
               isDrawingOpen={isDrawingOpen}
               onToggleDrawing={() => setIsDrawingOpen(false)}
             />
