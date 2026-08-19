@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
@@ -9,7 +9,7 @@ import {
   Users, BookOpen, Target, BrainCircuit, Activity, BarChart3, 
   PieChart as PieChartIcon, Sparkles, Trophy, GraduationCap, 
   CheckCircle2, ArrowLeft, TrendingUp, Award, Search, Filter, 
-  ChevronRight, Calendar, ArrowUpRight, Flame, ShieldAlert, Check
+  ChevronRight, Calendar, ArrowUpRight, Flame, ShieldAlert, Check, Eye
 } from 'lucide-react';
 
 import { useUser } from '../context/UserContext';
@@ -18,6 +18,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useCurriculum } from '../context/CurriculumContext';
+import StudentResultsPage from './StudentResultsPage';
 import './StatisticsDashboard.css';
 
 const AVATAR_COLORS = [
@@ -81,6 +82,9 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border }) {
 
 export default function StatisticsDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const studentIdParam = searchParams.get('studentId');
+
   const { users } = useUser() || { users: [] };
   const auth = useAuth() || {};
   const currentUser = auth.currentUser;
@@ -101,6 +105,22 @@ export default function StatisticsDashboard() {
     if (!isTeacher || !teacherId) return all;
     return all.filter(u => u.teacherId === teacherId || !u.teacherId);
   }, [users, isTeacher, teacherId]);
+
+  const [activeView, setActiveView] = useState(() => studentIdParam ? 'student' : 'overview'); // 'overview' | 'student'
+  const [selectedStudentId, setSelectedStudentId] = useState(() => studentIdParam || (allTeacherStudents[0]?.id || null));
+
+  useEffect(() => {
+    if (studentIdParam) {
+      setSelectedStudentId(studentIdParam);
+      setActiveView('student');
+    }
+  }, [studentIdParam]);
+
+  const handleSelectStudentForResults = (stdId) => {
+    setSelectedStudentId(stdId);
+    setActiveView('student');
+    setSearchParams({ studentId: stdId });
+  };
 
   const filteredStudents = useMemo(() => {
     if (selectedGradeFilter === 'ALL') return allTeacherStudents;
@@ -292,6 +312,21 @@ export default function StatisticsDashboard() {
     return studentStats.slice(0, 3);
   }, [studentStats]);
 
+  if (activeView === 'student' && selectedStudentId) {
+    return (
+      <div className="stats-dashboard-page" style={{ padding: '1rem', maxWidth: 1400, margin: '0 auto' }}>
+        <StudentResultsPage
+          studentId={selectedStudentId}
+          embedded={true}
+          onBack={() => {
+            setActiveView('overview');
+            setSearchParams({});
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="stats-dashboard-page">
       
@@ -335,45 +370,76 @@ export default function StatisticsDashboard() {
               Gelişmiş İstatistikler & Başarı Analizi 📊
             </h1>
             <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-              Öğrenci gelişim eğrileri, soru çözüm grafikleri, ders tamamlama oranları ve sınıf karne dökümü.
+              Genel sınıf gelişim eğrileri, soru çözüm grafikleri ve öğrenci bazlı karne sonuçları.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: 4 }}>
-            Sınıf Filtresi:
-          </span>
-          <button
-            onClick={() => setSelectedGradeFilter('ALL')}
-            style={{
-              padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-              border: selectedGradeFilter === 'ALL' ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
-              background: selectedGradeFilter === 'ALL' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
-              color: selectedGradeFilter === 'ALL' ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-              boxShadow: selectedGradeFilter === 'ALL' ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
-            }}
-          >
-            Tüm Sınıflar
-          </button>
-          {curriculumData.grades.map(g => {
-            const isSel = selectedGradeFilter === g.id;
-            return (
-              <button
-                key={g.id}
-                onClick={() => setSelectedGradeFilter(g.id)}
-                style={{
-                  padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-                  border: isSel ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
-                  background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
-                  color: isSel ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                  boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
-                }}
-              >
-                {g.name}
-              </button>
-            );
-          })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Hızlı Öğrenci Sonuçları Seçici */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <select
+              value=""
+              onChange={e => {
+                if (e.target.value) handleSelectStudentForResults(e.target.value);
+              }}
+              style={{
+                padding: '0.48rem 1.6rem 0.48rem 0.85rem',
+                borderRadius: '0.65rem',
+                border: '1.5px solid #6366f1',
+                background: '#f5f3ff',
+                color: '#4f46e5',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: '0 2px 10px rgba(99,102,241,0.12)'
+              }}
+            >
+              <option value="">👤 Öğrenci Seç & Sonuçları Gör...</option>
+              {allTeacherStudents.map(st => (
+                <option key={st.id} value={st.id}>
+                  {st.name} {st.className ? `(${st.className})` : st.grade ? `(${st.grade})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid #e2e8f0', paddingLeft: '0.75rem' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: 4 }}>
+              Sınıf:
+            </span>
+            <button
+              onClick={() => setSelectedGradeFilter('ALL')}
+              style={{
+                padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                border: selectedGradeFilter === 'ALL' ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
+                background: selectedGradeFilter === 'ALL' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
+                color: selectedGradeFilter === 'ALL' ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                boxShadow: selectedGradeFilter === 'ALL' ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
+              }}
+            >
+              Tümü
+            </button>
+            {curriculumData.grades.map(g => {
+              const isSel = selectedGradeFilter === g.id;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setSelectedGradeFilter(g.id)}
+                  style={{
+                    padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                    border: isSel ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
+                    background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
+                    color: isSel ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                    boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
+                  }}
+                >
+                  {g.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -445,13 +511,20 @@ export default function StatisticsDashboard() {
               ];
               const m = medals[rank];
               return (
-                <div key={std.id} style={{
-                  background: m.grad,
-                  border: `1.5px solid ${m.border}`,
-                  borderRadius: '1.15rem', padding: '1rem 1.25rem',
-                  display: 'flex', alignItems: 'center', gap: '0.85rem',
-                  boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-                }}>
+                <div
+                  key={std.id}
+                  onClick={() => handleSelectStudentForResults(std.id)}
+                  style={{
+                    background: m.grad,
+                    border: `1.5px solid ${m.border}`,
+                    borderRadius: '1.15rem', padding: '1rem 1.25rem',
+                    display: 'flex', alignItems: 'center', gap: '0.85rem',
+                    boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={`${std.name} öğrencisinin tüm karne ve istatistik sonuçlarını incele`}
+                >
                   <div style={{ fontSize: '1.8rem', lineHeight: 1, flexShrink: 0 }}>{m.icon}</div>
                   <Avatar name={std.name} index={std.idx} size={42} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -462,9 +535,14 @@ export default function StatisticsDashboard() {
                     <h4 style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {std.name}
                     </h4>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a' }}>
-                      %{std.avgScore} Başarı · {std.solvedCount} Sınav
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a' }}>
+                        %{std.avgScore} Başarı · {std.solvedCount} Sınav
+                      </span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        Sonuçları Gör <ChevronRight size={12} />
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -686,9 +764,16 @@ export default function StatisticsDashboard() {
                   return (
                     <tr key={student.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s' }}>
                       <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div
+                          onClick={() => handleSelectStudentForResults(student.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+                          title="Öğrencinin tüm sonuçlarını ve karne dökümünü incele"
+                        >
                           <Avatar name={student.name} index={student.idx} size={34} />
-                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{student.name}</span>
+                          <div>
+                            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem', display: 'block' }}>{student.name}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#4f46e5', fontWeight: 700 }}>Sonuçları Gör ↗</span>
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: '0.85rem 1rem' }}>
@@ -725,17 +810,39 @@ export default function StatisticsDashboard() {
                         </div>
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
-                          <button style={{
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '0.6rem', padding: '0.35rem 0.75rem',
-                            cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
-                            color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 4
-                          }}>
-                            Koçluk <ArrowUpRight size={13} />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                          <button
+                            onClick={() => handleSelectStudentForResults(student.id)}
+                            style={{
+                              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                              border: 'none',
+                              borderRadius: '0.6rem',
+                              padding: '0.35rem 0.75rem',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                            }}
+                            title="Öğrencinin tüm sınav, ödev ve karne verilerini detaylı incele"
+                          >
+                            <BarChart3 size={13} /> Sonuçları Gör
                           </button>
-                        </Link>
+                          <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
+                            <button style={{
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '0.6rem', padding: '0.35rem 0.75rem',
+                              cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
+                              color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 4
+                            }}>
+                              Koçluk <ArrowUpRight size={13} />
+                            </button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

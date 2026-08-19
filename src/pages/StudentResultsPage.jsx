@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ListTree, Search, Calendar, Award, CheckCircle2, Clock3, Eye,
   ArrowLeft, GraduationCap, Ruler, TestTube2, BookCopy, Globe,
@@ -268,8 +268,9 @@ function CustomSubjectTooltip({ active, payload }) {
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
-export default function StudentResultsPage() {
+export default function StudentResultsPage({ studentId: propStudentId, onBack, embedded = false }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isDark } = useTheme();
   const { submissions } = useEvaluation();
   const { users } = useUser();
@@ -283,21 +284,30 @@ export default function StudentResultsPage() {
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
+  const activeTargetStudentId = propStudentId || searchParams.get('studentId');
+
   const initialStudent = useMemo(() => {
+    if (activeTargetStudentId) {
+      const match = studentMembers.find(u => String(u.id) === String(activeTargetStudentId));
+      if (match) return match;
+    }
     if (isStudentRole && currentUser) {
       return studentMembers.find(u => String(u.id) === String(currentUser.id)) || currentUser;
     }
     return studentMembers[0] || null;
-  }, [isStudentRole, currentUser, studentMembers]);
+  }, [activeTargetStudentId, isStudentRole, currentUser, studentMembers]);
 
   const [selectedStudent, setSelectedStudent] = useState(initialStudent);
 
   React.useEffect(() => {
-    if (isStudentRole && currentUser) {
+    if (activeTargetStudentId) {
+      const match = studentMembers.find(u => String(u.id) === String(activeTargetStudentId));
+      if (match) setSelectedStudent(match);
+    } else if (isStudentRole && currentUser) {
       const match = studentMembers.find(u => String(u.id) === String(currentUser.id)) || currentUser;
       setSelectedStudent(match);
     }
-  }, [isStudentRole, currentUser, studentMembers]);
+  }, [activeTargetStudentId, isStudentRole, currentUser, studentMembers]);
 
   const studentMockExams = useMemo(() => {
     if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
@@ -806,61 +816,72 @@ export default function StudentResultsPage() {
         <div className="sr-header-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
-              onClick={() => navigate('/student')}
+              onClick={() => {
+                if (onBack) onBack();
+                else if (window.history.length > 1) navigate(-1);
+                else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
+              }}
               style={{
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border-input)',
+                background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
+                border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
                 borderRadius: 12,
-                padding: '0.5rem 1rem',
+                padding: '0.55rem 1.1rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                fontWeight: 800,
-                fontSize: '0.8rem',
-                color: 'var(--color-text)',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                color: embedded ? '#ffffff' : 'var(--color-text)',
+                boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
               }}
             >
-              <ArrowLeft size={15} /> Geri
+              <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
             </button>
             <div>
               <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={22} color="#6366f1" /> Gelişim Merkezi & Karne
+                <Sparkles size={22} color="#6366f1" />
+                {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
               </h1>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>Ders bazlı · Konu bazlı · Ödev türü bazlı ayrıntılı analiz</p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
+              </p>
             </div>
           </div>
 
           {/* Student Selector */}
           {!isStudentRole ? (
-            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-              {studentMembers.map(s => {
-                const active = selectedStudent?.id === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedStudent(s)}
-                    style={{
-                      padding: '0.4rem 0.9rem',
-                      borderRadius: 10,
-                      border: 'none',
-                      fontWeight: 800,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      transition: 'all 0.15s',
-                      background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--color-surface-hover)',
-                      color: active ? 'white' : 'var(--color-text-muted)',
-                      boxShadow: active ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
-                    }}
-                  >
-                    <GraduationCap size={14} /> {s.name}
-                  </button>
-                );
-              })}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+                <GraduationCap size={15} color="#6366f1" /> Öğrenci:
+              </span>
+              <select
+                value={selectedStudent?.id || ''}
+                onChange={e => {
+                  const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                  if (s) {
+                    setSelectedStudent(s);
+                    if (!propStudentId) setSearchParams({ studentId: s.id });
+                  }
+                }}
+                style={{
+                  padding: '0.45rem 1.8rem 0.45rem 0.75rem',
+                  borderRadius: 10,
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {studentMembers.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
