@@ -854,26 +854,26 @@ export default function ModularQuizPage() {
 
   const renderRunner = () => {
     if (isMultiSection) {
-      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
     }
 
     if (isHtml) {
-      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
     }
 
     if (isPdf) {
-      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
     }
 
     if (isImageTest) {
-      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
     }
 
     if (isPhysical) {
-      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
     }
 
-    return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
   };
 
   if (!hasStarted) {
@@ -1036,42 +1036,5 @@ export default function ModularQuizPage() {
     );
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
-      <div style={{
-        padding: '0.4rem 1rem',
-        background: '#ffffff',
-        borderBottom: '1.5px solid #e2e8f0',
-        display: 'flex',
-        alignItems: 'center',
-        zIndex: 50,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-      }}>
-        <button 
-          onClick={() => navigate(-1)}
-          style={{
-            background: '#f1f5f9',
-            border: '1px solid #e2e8f0',
-            color: '#475569',
-            padding: '0.4rem 0.8rem',
-            borderRadius: '0.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            cursor: 'pointer',
-            fontSize: '0.8rem',
-            fontWeight: '700',
-            transition: 'all 0.2s'
-          }}
-        >
-          <ArrowLeft size={16} />
-          Çıkış Yap
-        </button>
-      </div>
-      
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {renderRunner()}
-      </div>
-    </div>
-  );
+  return renderRunner();
 }

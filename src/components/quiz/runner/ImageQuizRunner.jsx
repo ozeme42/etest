@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
-import { Pencil, CheckCircle2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Pencil, CheckCircle2, ChevronLeft, ChevronRight, Clock, ArrowLeft } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
-export default function ImageQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers }) {
+export default function ImageQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers, onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
@@ -416,21 +416,51 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
         flexWrap: 'wrap',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <h2 style={{ 
-            color: '#0f172a', 
-            fontSize: isMobile ? '0.9rem' : '1.15rem', 
-            fontWeight: 900, 
-            margin: 0, 
-            whiteSpace: 'nowrap', 
-            overflow: 'hidden', 
-            textOverflow: 'ellipsis' 
-          }}>
-            {test.title || "Görsel Sınav"}
-          </h2>
-          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
-            {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+          {onExit && (
+            <button
+              type="button"
+              onClick={onExit}
+              title="Sınavdan Çıkış Yap"
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                padding: isMobile ? '0.22rem 0.5rem' : '0.35rem 0.75rem',
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                cursor: 'pointer',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 800,
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <ArrowLeft size={isMobile ? 13 : 16} />
+              <span>Çıkış Yap</span>
+            </button>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <h2 style={{ 
+              color: '#0f172a', 
+              fontSize: isMobile ? '0.85rem' : '1.1rem', 
+              fontWeight: 900, 
+              margin: 0, 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis' 
+            }}>
+              {test.title || "Görsel Sınav"}
+            </h2>
+            {!isMobile && (
+              <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 600 }}>
+                {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
+              </span>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

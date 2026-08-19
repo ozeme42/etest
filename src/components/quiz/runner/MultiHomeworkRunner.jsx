@@ -8,7 +8,7 @@ import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil, Eye } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil, Eye, ArrowLeft } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -972,7 +972,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 }
 
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
-export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers, bookPdfUrl = '' }) {
+export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers, bookPdfUrl = '', onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { questions: allBankQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
@@ -1990,7 +1990,33 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         boxSizing: 'border-box',
         boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+          {onExit && (
+            <button
+              type="button"
+              onClick={onExit}
+              title="Sınavdan Çıkış Yap"
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                padding: isMobile ? '0.22rem 0.5rem' : '0.35rem 0.75rem',
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                cursor: 'pointer',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 800,
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <ArrowLeft size={isMobile ? 13 : 16} />
+              <span>Çıkış Yap</span>
+            </button>
+          )}
+
           {!isMobile && (
             <div style={{
               padding: '0.35rem 0.75rem',
@@ -2008,7 +2034,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               <Layers size={14} /> {isReviewMode ? 'İNCELEME' : 'ÖDEV TESTİ'}
             </div>
           )}
-          <h2 style={{ fontSize: isMobile ? '0.8rem' : '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <h2 style={{ fontSize: isMobile ? '0.8rem' : '1.05rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {test.title || test.name}
           </h2>
           {!isMobile && sections.length > 1 && (

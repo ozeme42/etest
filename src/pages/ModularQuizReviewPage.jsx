@@ -531,6 +531,7 @@ export default function ModularQuizReviewPage() {
         isReviewMode={true}
         userAnswers={submission}
         onSubmit={handleCloseReview}
+        onExit={handleCloseReview}
       />
     );
   }
