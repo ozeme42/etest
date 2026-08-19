@@ -1246,7 +1246,18 @@ export default function StudentDashboard() {
           });
         });
 
-        const allItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
+        // ID'ye göre tekilleştir — done:true olanı önceliklendir (önceden kaydedilen duplikeleri temizle)
+        const rawAllItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
+        const seenIds = new Map();
+        rawAllItems.forEach(item => {
+          const key = String(item.id || '');
+          if (!key) return;
+          const existing = seenIds.get(key);
+          if (!existing || (!existing.done && item.done)) {
+            seenIds.set(key, item);
+          }
+        });
+        const allItems = Array.from(seenIds.values());
         const completedItems = allItems.filter(i => i.done);
 
         resultMap[dayMeta.key] = {
