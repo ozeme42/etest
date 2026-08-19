@@ -177,6 +177,7 @@ export default function StudentBookDetailsPage() {
       const testsWithStatus = subjTests.map((t, index) => {
         // Is it solved? Check submissions strictly matching this test ID
         const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
         const studentIdStr = String(studentId);
         const studentUuidStr = String(toUUID(studentId) || '');
@@ -198,7 +199,14 @@ export default function StudentBookDetailsPage() {
             matchFields.push(...s.bookTestIds.map(String));
           }
 
-          return matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr) || toUUID(f) === tIdStr || (tUuidStr && toUUID(f) === tUuidStr)));
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) ||
+            toUUID(f) === tIdStr ||
+            (tUuidStr && toUUID(f) === tUuidStr)
+          ));
         });
 
         // Also check if any homework submission explicitly belongs to this test ID
@@ -206,9 +214,10 @@ export default function StudentBookDetailsPage() {
         for (const hw of homeworks) {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
-            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
-            if (!isMatchStudent) return false;
-            return String(s.testId || s.bookTestId) === tIdStr || (tUuidStr && String(s.testId || s.bookTestId) === tUuidStr);
+            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
           });
           if (match) {
             hwSub = match;
