@@ -38,7 +38,6 @@ export default function ModularQuizPage() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
   const isSubmittingRef = useRef(false);
 
   // Grace period for initial context data load (4 seconds)
@@ -215,12 +214,12 @@ export default function ModularQuizPage() {
   }, [test, bookForTest]);
 
   useEffect(() => {
-    if (completedSub && !submissionResult) {
+    if (completedSub && !isSubmittingRef.current) {
       navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
     }
-  }, [completedSub, submissionResult, navigate, testId, studentId]);
+  }, [completedSub, navigate, testId, studentId]);
 
-  if (completedSub && !submissionResult) {
+  if (completedSub && !isSubmittingRef.current) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
         Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
@@ -697,16 +696,18 @@ export default function ModularQuizPage() {
         } catch (e) {}
       }
 
-      setSubmissionResult({
-        submissionId: newSubId,
-        isPending: isAcikUclu,
-        correctCount,
-        wrongCount,
-        blankCount,
-        pendingCount,
-        totalQuestions: totalQ,
-        score
-      });
+      // Doğrudan yönlendir - ikinci sonuç ekranı olmadan
+      if (options?.review) {
+        navigate(`/quiz-review/${test.id}?studentId=${studentId}`, {
+          state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' }
+        });
+      } else {
+        if (test?.bookId) {
+          navigate(`/student/books/${test.bookId}`);
+        } else {
+          navigate('/student');
+        }
+      }
     } catch (err) {
       console.error('Error saving submission:', err);
       isSubmittingRef.current = false;
@@ -766,111 +767,6 @@ export default function ModularQuizPage() {
       addSubmission(fullDraftData);
     }
   };
-
-  if (submissionResult) {
-    if (submissionResult.isPending) {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc', padding: '1.5rem', color: '#0f172a' }}>
-          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 4px 25px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#fffbeb', border: '2px solid #fde68a', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock3 size={44} />
-            </div>
-            <div>
-              <span style={{ padding: '0.35rem 0.75rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                ✍️ Değerlendirmeye Gönderildi
-              </span>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0.75rem 0 0.5rem 0', color: '#0f172a' }}>
-                Cevaplarınız Başarıyla Kaydedildi!
-              </h1>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
-                Bu sınavda açık uçlu / yazılı sorular yer almaktadır. Yanıtlarınız öğretmeninizin değerlendirmesine gönderilmiştir. Puanınız öğretmen değerlendirmesinden sonra açıklanacaktır.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
-              <button
-                onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' } })}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
-              >
-                <Eye size={18} /> Cevapları İncele
-              </button>
-              {test?.bookId ? (
-                <button
-                  onClick={() => navigate(`/student/books/${test.bookId}`)}
-                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  <BookOpen size={18} /> Kitaba Dön
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate('/student')}
-                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  <Home size={18} /> Ana Sayfaya Dön
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)', padding: '1.5rem', color: 'var(--color-text)' }}>
-        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 4px 25px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f0fdf4', border: '2px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Trophy size={44} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'var(--color-text)' }}>
-              Tebrikler! Test Tamamlandı
-            </h1>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#15803d', margin: '0.5rem 0' }}>
-              %{submissionResult.score} Başarı
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', width: '100%', background: 'var(--color-surface-hover)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid var(--color-border)' }}>
-            <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d' }}>{submissionResult.correctCount}</div>
-              <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>Doğru</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b91c1c' }}>{submissionResult.wrongCount}</div>
-              <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>Yanlış</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-text)' }}>{submissionResult.blankCount}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Boş</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
-            <button
-              onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' } })}
-              style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
-            >
-              <Eye size={18} /> Detaylı İncele
-            </button>
-            {test?.bookId ? (
-              <button
-                onClick={() => navigate(`/student/books/${test.bookId}`)}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1.5px solid var(--color-border-input)', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                <BookOpen size={18} /> Kitaba Dön
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/student')}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1.5px solid var(--color-border-input)', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                <Home size={18} /> Ana Sayfaya Dön
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Determine Source Format Mode
   const isWritten = Boolean(

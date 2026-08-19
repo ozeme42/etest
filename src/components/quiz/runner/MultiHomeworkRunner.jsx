@@ -703,7 +703,7 @@ function RightOptikPanel({
 }
 
 // ─── MULTI RESULT MODAL COMPONENT ─────────────────────────────────────────────
-function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
+function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview }) {
   let totalMCQuestions = 0;
   let totalMCDoğru = 0;
   let totalMCYanlış = 0;
@@ -855,28 +855,55 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
           </div>
         </div>
 
-        {/* CONFIRM BUTTON */}
-        <button
-          onClick={onConfirmClose}
-          style={{
-            marginTop: '0.5rem',
-            padding: '0.9rem 1.5rem',
-            borderRadius: '0.85rem',
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            border: 'none',
-            color: 'white',
-            fontWeight: 900,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <CheckCircle2 size={20} /> Sonuçları Onayla ve Tamamla
-        </button>
+        {/* ACTION BUTTONS */}
+        <div style={{ display: 'flex', gap: '0.85rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+          {onReview && (
+            <button
+              onClick={onReview}
+              style={{
+                flex: 1,
+                minWidth: 160,
+                padding: '0.85rem 1.25rem',
+                borderRadius: '0.85rem',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                color: '#334155',
+                fontWeight: 900,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+            >
+              <Eye size={18} /> Cevapları İncele
+            </button>
+          )}
+          <button
+            onClick={onConfirmClose}
+            style={{
+              flex: 1.5,
+              minWidth: 180,
+              padding: '0.85rem 1.5rem',
+              borderRadius: '0.85rem',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <CheckCircle2 size={20} /> Sonuçları Onayla ve Tamamla
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1582,7 +1609,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   const handleConfirmCloseResult = () => {
     if (submissionAnswers && onSubmit) {
-      onSubmit(submissionAnswers);
+      onSubmit(submissionAnswers, { review: false });
+    }
+  };
+
+  const handleReviewResult = () => {
+    if (submissionAnswers && onSubmit) {
+      onSubmit(submissionAnswers, { review: true });
     }
   };
 
@@ -2744,6 +2777,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           sections={sections}
           sectionAnswers={sectionAnswers}
           onConfirmClose={handleConfirmCloseResult}
+          onReview={handleReviewResult}
         />
       )}
 
