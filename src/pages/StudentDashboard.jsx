@@ -288,6 +288,8 @@ export default function StudentDashboard() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
       if (isBook) {
+        return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor
+
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
         let testIdsList = [];
@@ -2125,9 +2127,15 @@ export default function StudentDashboard() {
                         <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                           {group.title}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#10b981' : '#ef4444' }}>
-                          %{group.pct}
-                        </span>
+                        {group.pct === 0 ? (
+                          <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <PlayCircle size={12} /> Çöz
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#10b981' : '#ef4444' }}>
+                            %{group.pct}
+                          </span>
+                        )}
                       </div>
 
                       {/* Progress Bar */}
@@ -2143,8 +2151,8 @@ export default function StudentDashboard() {
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                         <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#ef4444', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
-                        <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
-                          Detayları Gör <ChevronRight size={13} />
+                        <span style={{ color: group.pct === 100 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
+                          {group.pct === 0 ? 'Şimdi Çöz' : 'Detayları Gör'} <ChevronRight size={13} />
                         </span>
                       </div>
                     </div>
