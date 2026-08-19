@@ -2144,10 +2144,17 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
+                  borderRadius: '1.15rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                }}>
                   {pendingTasks.slice(0, 5).map((task, idx) => {
                     const rowTheme = getRowTheme(task.subject, idx);
                     const isOverdue = !task.isDone && task.dueDateObj && isPast(task.dueDateObj) && !isToday(task.dueDateObj);
+                    const isLast = idx === Math.min(pendingTasks.length, 5) - 1;
 
                     const rawTitle = task.title || task.name || task.testName || 'Ödev Görevi';
                     const rawBook = task.bookTitle || '';
@@ -2180,11 +2187,8 @@ export default function StudentDashboard() {
                         className="hw-row"
                         style={{
                           background: 'var(--color-surface)',
-                          borderTop: '1px solid var(--color-border)',
-                          borderRight: '1px solid var(--color-border)',
-                          borderBottom: '1px solid var(--color-border)',
                           borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
-                          borderRadius: 12,
+                          borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
                           padding: '1rem 1.2rem 1rem 1.1rem',
                           display: 'flex',
                           alignItems: 'stretch',
@@ -2316,18 +2320,20 @@ export default function StudentDashboard() {
                   })}
 
                   {pendingTasks.length > 5 && (
-                    <button 
+                    <button
                       onClick={() => navigate('/student/homeworks')}
                       style={{
+                        display: 'block',
+                        width: '100%',
                         background: 'transparent',
-                        border: '1px dashed var(--color-border)',
+                        border: 'none',
+                        borderTop: '1px solid var(--color-border)',
                         color: 'var(--color-text-muted)',
-                        padding: '0.6rem',
-                        borderRadius: 12,
+                        padding: '0.7rem',
                         fontSize: '0.75rem',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        marginTop: 4
+                        textAlign: 'center'
                       }}
                     >
                       Tüm Bekleyenleri Gör (+{pendingTasks.length - 5})
