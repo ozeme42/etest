@@ -411,11 +411,45 @@ export default function StudyRoomPage() {
     return saved ? Number(saved) : 12;
   });
 
+  const [targetInputVal, setTargetInputVal] = useState(() => {
+    const saved = localStorage.getItem('study_target_goal');
+    return saved ? String(saved) : '12';
+  });
+
   const [currentProgressCount, setCurrentProgressCount] = useState(() => {
     const todayKey = new Date().toISOString().split('T')[0];
     const saved = localStorage.getItem(`study_progress_${todayKey}`);
     return saved ? Number(saved) : 0;
   });
+
+  // 🎯 Yeni Hedef Belirleme & Çözülen Sayısını Otomatik Sıfırlama
+  const handleSetNewTargetGoal = (newGoalCount, resetProgress = true) => {
+    const validGoal = Math.max(1, Math.min(500, Number(newGoalCount) || 12));
+    setTargetGoalCount(validGoal);
+    setTargetInputVal(String(validGoal));
+    localStorage.setItem('study_target_goal', String(validGoal));
+
+    if (resetProgress) {
+      setCurrentProgressCount(0);
+      const todayKey = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`study_progress_${todayKey}`, '0');
+      setSessionElapsedSeconds(0);
+      setStopwatchSeconds(0);
+    }
+
+    if (!isRunning) {
+      setTimeLeft(Math.max(5, Math.round(validGoal * minutesPerQuestion)) * 60);
+    }
+  };
+
+  // 🔄 Çözülen Soru Sayısını Sıfırlama
+  const handleResetProgressCount = () => {
+    setCurrentProgressCount(0);
+    const todayKey = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`study_progress_${todayKey}`, '0');
+    setSessionElapsedSeconds(0);
+    setStopwatchSeconds(0);
+  };
 
   // Hesaplanan Soru Süre Bütçesi
   const calculatedQuestionBudgetMinutes = useMemo(() => {
@@ -657,6 +691,10 @@ export default function StudyRoomPage() {
       recommendedMin = +(stat.totalSeconds / stat.totalQuestions / 60).toFixed(1);
     }
     setMinutesPerQuestion(recommendedMin);
+
+    // Ders değiştiğinde çözülen sayısını sıfırla
+    handleResetProgressCount();
+
     if (!isRunning) {
       setTimeLeft(Math.max(5, Math.round(targetGoalCount * recommendedMin)) * 60);
     }
@@ -1223,6 +1261,8 @@ export default function StudyRoomPage() {
                     color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
                     gap: 6
                   }}>
                     {activeStudyMode === 'question' && (
@@ -1239,6 +1279,30 @@ export default function StudyRoomPage() {
                     )}
                     <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
                     <span style={{ fontSize: '0.76rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
+
+                    {currentProgressCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetProgressCount}
+                        title="Çözülen soru sayısını sıfırla (0)"
+                        style={{
+                          background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          color: '#ef4444',
+                          fontSize: '0.68rem',
+                          fontWeight: 900,
+                          padding: '2px 7px',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <RotateCcw size={10} /> Sıfırla
+                      </button>
+                    )}
                   </div>
 
                   {/* CANLI HIZ GÖSTERGESİ */}
@@ -1422,81 +1486,174 @@ export default function StudyRoomPage() {
               {/* Hedef Soru Sayısı & Soru Başı Bütçe */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: 10
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.subText }}>Hedef:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="500"
-                    value={targetGoalCount}
-                    onChange={e => {
-                      const val = Math.max(1, Number(e.target.value) || 12);
-                      setTargetGoalCount(val);
-                      if (!isRunning) setTimeLeft(Math.round(val * minutesPerQuestion) * 60);
-                    }}
-                    style={{
-                      width: 60,
-                      padding: '0.4rem',
-                      borderRadius: 10,
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 10
+                }}>
+                  {/* Hedef Stepper & Input */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.subText }}>Hedef:</span>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: themeObj.cardBg,
                       border: `1.5px solid ${themeObj.border}`,
-                      background: themeObj.cardBg,
-                      color: themeObj.text,
-                      fontSize: '0.95rem',
-                      fontWeight: 900,
-                      textAlign: 'center',
-                      outline: 'none'
-                    }}
-                  />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>Soru</span>
-                </div>
+                      borderRadius: 12,
+                      padding: '2px'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSetNewTargetGoal(Math.max(1, targetGoalCount - 1), true)}
+                        title="1 Azalt"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          border: 'none',
+                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                          color: themeObj.text,
+                          fontSize: '1rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={targetInputVal}
+                        onChange={e => {
+                          const raw = e.target.value.replace(/[^0-9]/g, '');
+                          setTargetInputVal(raw);
+                          if (raw && Number(raw) > 0) {
+                            handleSetNewTargetGoal(Number(raw), true);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!targetInputVal || Number(targetInputVal) < 1) {
+                            setTargetInputVal(String(targetGoalCount || 12));
+                          }
+                        }}
+                        style={{
+                          width: 48,
+                          padding: '0.35rem 0.2rem',
+                          border: 'none',
+                          background: 'transparent',
+                          color: themeObj.text,
+                          fontSize: '0.95rem',
+                          fontWeight: 900,
+                          textAlign: 'center',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSetNewTargetGoal(Math.min(500, targetGoalCount + 1), true)}
+                        title="1 Arttır"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          border: 'none',
+                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                          color: themeObj.text,
+                          fontSize: '1rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>Soru</span>
+                  </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '0.76rem', color: themeObj.subText, fontWeight: 800 }}>Soru Başı:</span>
-                  <select
-                    value={minutesPerQuestion}
-                    onChange={e => {
-                      const val = Number(e.target.value);
-                      setMinutesPerQuestion(val);
-                      if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
-                    }}
-                    style={{
-                      background: themeObj.cardBg,
-                      border: `1px solid ${themeObj.border}`,
-                      color: themeObj.text,
-                      borderRadius: 10,
+                  {/* Soru Başı Dakika & Bütçe */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.76rem', color: themeObj.subText, fontWeight: 800 }}>Soru Başı:</span>
+                    <select
+                      value={minutesPerQuestion}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setMinutesPerQuestion(val);
+                        if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
+                      }}
+                      style={{
+                        background: themeObj.cardBg,
+                        border: `1px solid ${themeObj.border}`,
+                        color: themeObj.text,
+                        borderRadius: 10,
+                        fontSize: '0.78rem',
+                        fontWeight: 900,
+                        padding: '0.35rem 0.55rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={0.8}>0.8 dk (48 sn)</option>
+                      <option value={1.0}>1.0 dk / soru</option>
+                      <option value={1.25}>1.25 dk (1 dk 15 sn)</option>
+                      <option value={1.5}>1.5 dk (1 dk 30 sn)</option>
+                      <option value={2.0}>2.0 dk / soru</option>
+                      <option value={2.5}>2.5 dk (2 dk 30 sn)</option>
+                      <option value={3.0}>3.0 dk / soru</option>
+                    </select>
+
+                    <span style={{
+                      background: isDark ? 'rgba(245, 158, 11, 0.22)' : '#fffbeb',
+                      color: '#f59e0b',
                       fontSize: '0.78rem',
                       fontWeight: 900,
-                      padding: '0.35rem 0.55rem',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value={0.8}>0.8 dk (48 sn)</option>
-                    <option value={1.0}>1.0 dk / soru</option>
-                    <option value={1.25}>1.25 dk (1 dk 15 sn)</option>
-                    <option value={1.5}>1.5 dk (1 dk 30 sn)</option>
-                    <option value={2.0}>2.0 dk / soru</option>
-                    <option value={2.5}>2.5 dk (2 dk 30 sn)</option>
-                    <option value={3.0}>3.0 dk / soru</option>
-                  </select>
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 10,
+                      border: '1px solid #fde68a',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
+                    </span>
+                  </div>
+                </div>
 
-                  <span style={{
-                    background: isDark ? 'rgba(245, 158, 11, 0.22)' : '#fffbeb',
-                    color: '#f59e0b',
-                    fontSize: '0.78rem',
-                    fontWeight: 900,
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: 10,
-                    border: '1px solid #fde68a',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
-                  </span>
+                {/* Hızlı Hedef Çipleri */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
+                  <span style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 800 }}>Hızlı Hedef:</span>
+                  {[5, 10, 15, 20, 25, 30, 40, 50].map(cnt => {
+                    const isSel = targetGoalCount === cnt;
+                    return (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => handleSetNewTargetGoal(cnt, true)}
+                        style={{
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: 8,
+                          border: `1.5px solid ${isSel ? '#f59e0b' : themeObj.border}`,
+                          background: isSel ? (isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7') : themeObj.cardBg,
+                          color: isSel ? '#d97706' : themeObj.text,
+                          fontSize: '0.72rem',
+                          fontWeight: isSel ? 900 : 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {cnt} Soru
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1511,29 +1668,92 @@ export default function StudyRoomPage() {
               border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 10
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.subText }}>Hedef Sayfa:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={targetGoalCount}
-                  onChange={e => setTargetGoalCount(Math.max(1, Number(e.target.value) || 20))}
-                  style={{
-                    width: 60,
-                    padding: '0.4rem',
-                    borderRadius: 10,
-                    border: `1.5px solid ${themeObj.border}`,
-                    background: themeObj.cardBg,
-                    color: themeObj.text,
-                    fontSize: '0.95rem',
-                    fontWeight: 900,
-                    textAlign: 'center',
-                    outline: 'none'
-                  }}
-                />
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: themeObj.cardBg,
+                  border: `1.5px solid ${themeObj.border}`,
+                  borderRadius: 12,
+                  padding: '2px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSetNewTargetGoal(Math.max(1, targetGoalCount - 5), true)}
+                    title="5 Azalt"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      border: 'none',
+                      background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                      color: themeObj.text,
+                      fontSize: '1rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={targetInputVal}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      setTargetInputVal(raw);
+                      if (raw && Number(raw) > 0) {
+                        handleSetNewTargetGoal(Number(raw), true);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!targetInputVal || Number(targetInputVal) < 1) {
+                        setTargetInputVal(String(targetGoalCount || 20));
+                      }
+                    }}
+                    style={{
+                      width: 48,
+                      padding: '0.35rem 0.2rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: themeObj.text,
+                      fontSize: '0.95rem',
+                      fontWeight: 900,
+                      textAlign: 'center',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSetNewTargetGoal(Math.min(500, targetGoalCount + 5), true)}
+                    title="5 Arttır"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      border: 'none',
+                      background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                      color: themeObj.text,
+                      fontSize: '1rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
                 <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>Sayfa Okuma</span>
               </div>
               <span style={{ fontSize: '0.78rem', color: themeObj.accent, fontWeight: 900 }}>📖 Sayfa Takibi Aktif</span>

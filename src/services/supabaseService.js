@@ -1175,11 +1175,12 @@ export async function dbDeleteQuestion(q) {
   try {
     const qId = typeof q === 'object' ? q.id : q;
     const dbId = toUUID(qId);
+    const rawIdStr = String(qId);
 
     // 1. Fetch question record to extract storage URLs if only ID was passed
     let questionObj = typeof q === 'object' ? q : null;
     if (!questionObj) {
-      const { data } = await supabase.from('questions').select('*').or(`id.eq.${dbId},id.eq.${String(qId)}`).maybeSingle();
+      const { data } = await supabase.from('questions').select('*').or(`id.eq.${dbId},id.eq.${rawIdStr}`).maybeSingle();
       if (data) questionObj = data;
     }
 
@@ -1216,10 +1217,19 @@ export async function dbDeleteQuestion(q) {
       }
     }
 
-    // 3. Delete row from Supabase database
-    let { error } = await supabase.from('questions').delete().eq('id', dbId);
-    if (error) {
-      await supabase.from('questions').delete().eq('id', String(qId));
+    // 3. Delete row from Supabase database - try all ID variations
+    const idsToDelete = [
+      dbId,
+      rawIdStr,
+      rawIdStr.replace(/^q_?/, ''),
+      rawIdStr.replace(/^hw_?/, ''),
+      `q_${rawIdStr}`,
+      `q${rawIdStr}`
+    ].filter(Boolean);
+    const uniqueIds = [...new Set(idsToDelete)];
+
+    for (const targetId of uniqueIds) {
+      await supabase.from('questions').delete().eq('id', targetId);
     }
     return true;
   } catch (err) {
