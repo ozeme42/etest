@@ -48,32 +48,84 @@ function isValidPayloadString(str) {
   return true;
 }
 
-// Format bilgisine göre kategori tespiti
-function getOpenEndedCategory(sub, testObj, questionsList = []) {
-  const isPdf = Boolean(
-    sub?.pdfPayload || testObj?.pdfPayload ||
-    (typeof sub?.contentPayload === 'string' && (sub.contentPayload.startsWith('data:application/pdf') || sub.contentPayload.includes('.pdf') || sub.contentPayload.startsWith('%PDF'))) ||
-    (typeof testObj?.contentPayload === 'string' && (testObj.contentPayload.startsWith('data:application/pdf') || testObj.contentPayload.includes('.pdf') || testObj.contentPayload.startsWith('%PDF'))) ||
-    sub?.formatType === 'pdf' || testObj?.formatType === 'pdf' || testObj?.contentType === 'pdf'
-  );
-  if (isPdf) return 'pdf';
+// ─── DERİN KATEGORİ TESPİTİ (PDF, HTML, GÖRSEL, YAZILI METİN) ────────────────
+export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
+  const candidates = [sub, hw, bankQ].filter(Boolean);
 
-  const isHtml = Boolean(
-    sub?.htmlPayload || testObj?.htmlPayload ||
-    (typeof sub?.contentPayload === 'string' && (sub.contentPayload.includes('<html') || sub.contentPayload.startsWith('<!DOCTYPE') || sub.contentPayload.startsWith('data:text/html'))) ||
-    (typeof testObj?.contentPayload === 'string' && (testObj.contentPayload.includes('<html') || testObj.contentPayload.startsWith('<!DOCTYPE') || testObj.contentPayload.startsWith('data:text/html'))) ||
-    sub?.formatType === 'html' || testObj?.formatType === 'html' || testObj?.contentType === 'html'
-  );
-  if (isHtml) return 'html';
+  if (Array.isArray(hw?.sections)) {
+    hw.sections.forEach(s => {
+      if (s && typeof s === 'object') {
+        candidates.push(s);
+        if (s.bankQ) candidates.push(s.bankQ);
+      }
+    });
+  }
 
-  const hasImages = Boolean(
-    sub?.imageUrl || (sub?.imageUrls && sub.imageUrls.length > 0) ||
-    testObj?.imageUrl || (testObj?.imageUrls && testObj.imageUrls.length > 0) ||
-    (questionsList && questionsList.some(q => q?.imageUrl || (q?.imageUrls && q.imageUrls.length > 0))) ||
-    sub?.contentType === 'gorsel' || sub?.questionType === 'gorsel_klasik' || testObj?.contentType === 'gorsel'
-  );
-  if (hasImages) return 'image';
+  const refIds = [
+    ...(Array.isArray(hw?.questionIds) ? hw.questionIds : []),
+    ...(Array.isArray(hw?.tests) ? hw.tests : []),
+    ...(Array.isArray(hw?.selectedQuestions) ? hw.selectedQuestions : []),
+    ...(Array.isArray(hw?.sections) ? hw.sections.map(s => typeof s === 'object' ? (s.id || s.questionId || s.bankQ?.id) : s) : []),
+    ...(Array.isArray(sub?.questionIds) ? sub.questionIds : []),
+    ...(Array.isArray(sub?.tests) ? sub.tests : []),
+    sub?.testId, sub?.homeworkId, sub?.hwId, sub?.questionId, hw?.questionId, hw?.testId
+  ].filter(Boolean).map(String);
 
+  refIds.forEach(id => {
+    const cleanId = id.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+    const found = (allBankQuestions || []).find(q => String(q.id) === id || String(q.id).replace(/^q_?/, '') === cleanId);
+    if (found && !candidates.includes(found)) {
+      candidates.push(found);
+    }
+  });
+
+  if (Array.isArray(sub?.answers)) {
+    sub.answers.forEach(a => {
+      if (a && typeof a === 'object') candidates.push(a);
+    });
+  }
+
+  // 1. PDF Kontrolü
+  const isPdf = candidates.some(o => {
+    if (!o) return false;
+    if (o.pdfPayload || o.pdfUrl) return true;
+    if (o.contentType === 'pdf' || o.formatType === 'pdf' || o.sourceFormat === 'pdf' || o.type === 'pdf') return true;
+    if (typeof o.contentPayload === 'string' && (o.contentPayload.includes('.pdf') || o.contentPayload.startsWith('data:application/pdf') || o.contentPayload.startsWith('%PDF'))) return true;
+    return false;
+  });
+
+  const titles = candidates.map(o => String(o.title || o.testTitle || o.name || '')).join(' ').toLowerCase();
+  if (isPdf || titles.includes('.pdf') || titles.includes('pdf sınav') || titles.includes('pdf ödev') || titles.includes('pdf kitapçık') || titles.includes('pdf testi')) {
+    return 'pdf';
+  }
+
+  // 2. HTML Kontrolü
+  const isHtml = candidates.some(o => {
+    if (!o) return false;
+    if (o.htmlPayload || o.htmlUrl) return true;
+    if (o.contentType === 'html' || o.formatType === 'html' || o.sourceFormat === 'html' || o.type === 'html') return true;
+    if (typeof o.contentPayload === 'string' && (o.contentPayload.includes('<html') || o.contentPayload.includes('<!DOCTYPE') || o.contentPayload.startsWith('data:text/html'))) return true;
+    return false;
+  });
+
+  if (isHtml || titles.includes('.html') || titles.includes('html sınav') || titles.includes('html ödev') || titles.includes('web testi') || titles.includes('html testi')) {
+    return 'html';
+  }
+
+  // 3. Görsel / Resim Kontrolü
+  const isImage = candidates.some(o => {
+    if (!o) return false;
+    if (o.imageUrl && o.imageUrl !== '[STORED_IN_INDEXEDDB]') return true;
+    if (Array.isArray(o.imageUrls) && o.imageUrls.length > 0) return true;
+    if (o.contentType === 'gorsel' || o.contentType === 'image' || o.formatType === 'image' || o.sourceFormat === 'image' || o.type === 'gorsel' || o.questionType === 'gorsel_klasik') return true;
+    return false;
+  });
+
+  if (isImage || titles.includes('görsel') || titles.includes('resimli') || titles.includes('görselli') || titles.includes('fotoğraf')) {
+    return 'image';
+  }
+
+  // 4. Varsayılan: Yazılı / Metin
   return 'text';
 }
 
@@ -157,30 +209,31 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
       let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
       let htmlPayload = isValidPayloadString(submission.htmlPayload) ? submission.htmlPayload : (isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null);
 
-      if (!contentPayload && !pdfPayload && !htmlPayload) {
-        const candidateIds = [
-          targetId, normTargetId, submission.id, submission.testId,
-          submission.homeworkId, submission.questionId, resolved?.id,
-          resolved?.questionId, resolved?.testId, foundHw?.id,
-          foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id,
-          ...hwQIds
-        ];
+      const candidateIds = [
+        targetId, normTargetId, submission.id, submission.testId,
+        submission.homeworkId, submission.questionId, resolved?.id,
+        resolved?.questionId, resolved?.testId, foundHw?.id,
+        foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id,
+        ...hwQIds
+      ];
 
-        const expanded = new Set();
-        candidateIds.filter(Boolean).forEach(id => {
-          const str = String(id);
-          const clean = str.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-          expanded.add(str);
-          expanded.add(`q_${clean}`);
-          expanded.add(`hw_${clean}`);
-          expanded.add(`test_${clean}`);
-        });
+      const expanded = new Set();
+      candidateIds.filter(Boolean).forEach(id => {
+        const str = String(id);
+        const clean = str.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+        expanded.add(str);
+        expanded.add(clean);
+        expanded.add(`q_${clean}`);
+        expanded.add(`hw_${clean}`);
+        expanded.add(`test_${clean}`);
+      });
 
+      if (!contentPayload || !pdfPayload || !htmlPayload) {
         for (const cid of expanded) {
           try {
             const val = await idbGetPayload(cid);
             if (isValidPayloadString(val)) {
-              contentPayload = val;
+              if (!contentPayload) contentPayload = val;
               if (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF')) {
                 pdfPayload = val;
               } else if (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<body') || val.includes('<p') || val.includes('<div')) {
@@ -201,8 +254,21 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
 
       const baseResolvedQs = resolveTestQuestions(resolved || submission, allBankQuestions);
       const ansList = Array.isArray(submission.answers) ? submission.answers : [];
-      const baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
+      let baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
       
+      // If baseImages is empty, search candidate questions for images
+      if (baseImages.length === 0) {
+        for (const cid of expanded) {
+          const bq = (allBankQuestions || []).find(q => String(q.id) === cid || String(q.id).replace(/^q_?/, '') === cid);
+          if (bq?.imageUrl && isValidImageUrl(bq.imageUrl)) {
+            baseImages.push(bq.imageUrl);
+          }
+          if (Array.isArray(bq?.imageUrls) && bq.imageUrls.length > 0) {
+            baseImages.push(...bq.imageUrls.filter(isValidImageUrl));
+          }
+        }
+      }
+
       const exactCount = Math.max(
         resolveExactQuestionCount(resolved || {}, resolved || {}, resolved || {}, baseResolvedQs, baseImages),
         ansList.length,
@@ -214,7 +280,20 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
       for (let i = 0; i < exactCount; i++) {
         const existingQ = baseResolvedQs[i] || baseResolvedQs[0] || {};
         const ans = ansList[i] || {};
-        const qImg = ans.imageUrl || baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
+        let qImg = ans.imageUrl || baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
+
+        // If qImg is [STORED_IN_INDEXEDDB], try to fetch
+        if (qImg === '[STORED_IN_INDEXEDDB]') {
+          for (const cid of expanded) {
+            try {
+              const fetchedImg = await idbGetPayload(`${cid}_img_${i + 1}`) || await idbGetPayload(`${cid}_image`) || await idbGetPayload(cid);
+              if (isValidPayloadString(fetchedImg) && (fetchedImg.startsWith('data:image') || fetchedImg.startsWith('http'))) {
+                qImg = fetchedImg;
+                break;
+              }
+            } catch (e) {}
+          }
+        }
 
         const qText = ans.questionText || existingQ.questionText || existingQ.text || existingQ.title || (exactCount === 1 ? (resolved?.questionText || resolved?.title) : `Soru ${i + 1}`);
 
@@ -273,8 +352,8 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
   const category = useMemo(() => {
-    return getOpenEndedCategory(submission, test, questions);
-  }, [submission, test, questions]);
+    return getOpenEndedCategory(submission, test, questions[0], allBankQuestions);
+  }, [submission, test, questions, allBankQuestions]);
 
   const meta = CATEGORY_META[category] || CATEGORY_META.text;
   const answers = submission?.answers || [];
@@ -608,7 +687,7 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
                     Soru {activeQuestionIdx + 1}
                   </span>
                   <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#334155' }}>
-                    {category === 'image' ? '🖼️ Görselli Açık Uçlu Soru' : '📝 Yazılı Soru Metni'}
+                    {activeQ.imageUrl ? '🖼️ Görselli Açık Uçlu Soru' : '📝 Yazılı Soru Metni'}
                   </span>
                 </div>
 
@@ -948,7 +1027,7 @@ export default function EvaluationManager() {
 
       const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
       const isPending = !isAlreadyEvaluated;
-      const category = getOpenEndedCategory(sub, matchedHw || matchedBankQ);
+      const category = getOpenEndedCategory(sub, matchedHw, matchedBankQ, allBankQuestions);
 
       return {
         ...sub,
