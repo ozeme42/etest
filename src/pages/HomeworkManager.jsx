@@ -12,6 +12,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
 import { idbGetPayload } from '../services/indexedDbService';
 
 const subjectThemes = {
@@ -43,13 +44,14 @@ function Toast({ msg }) {
   );
 }
 
-function GlassProgressBar({ value, max, color }) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+function GlassProgressBar({ value, max, color, customPct, customLabel }) {
+  const pct = customPct !== undefined ? Math.min(100, Math.max(0, customPct)) : (max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0);
+  const labelText = customLabel || `%{pct} (${value}/${max})`;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 800 }}>
-        <span style={{ color: 'rgba(255,255,255,0.6)' }}>Tamamlanma</span>
-        <span style={{ color: color || '#818cf8', fontWeight: 900 }}>%{pct} ({value}/{max})</span>
+        <span style={{ color: 'var(--color-text-muted)' }}>Tamamlanma</span>
+        <span style={{ color: color || '#818cf8', fontWeight: 900 }}>{labelText}</span>
       </div>
       <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
         <div style={{
@@ -72,6 +74,7 @@ export default function HomeworkManager() {
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, deleteAllHomeworks } = useHomework();
   const { users } = useUser();
   const { submissions, deleteSubmissionsByTestId, deleteAllSubmissions } = useEvaluation();
+  const { books, bookTests } = useTrackedBooks();
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
   const homeworks = useMemo(() => currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
@@ -218,6 +221,61 @@ export default function HomeworkManager() {
            (hw.targetStudentIds || []).some(id => String(id) === String(student.id));
   };
 
+  const getHomeworkTestIds = (hw) => {
+    if (!hw) return [];
+    if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+      return Object.keys(hw.testDueDates);
+    }
+    if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+      return hw.tests;
+    }
+    if (hw.bookId && bookTests && bookTests.length > 0) {
+      const bTests = bookTests.filter(bt => String(bt.bookId) === String(hw.bookId));
+      if (bTests.length > 0) return bTests.map(bt => bt.id);
+    }
+    if (books && bookTests && (hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.title && (hw.title.includes('(Tüm Kitap') || hw.title.includes('(Kendi Eklediğim)'))))) {
+      const cleanTitle = (hw.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
+      const matchedBook = books.find(b => b.title && b.title.toLowerCase().trim() === cleanTitle);
+      if (matchedBook) {
+        const bTests = bookTests.filter(bt => String(bt.bookId) === String(matchedBook.id));
+        if (bTests.length > 0) return bTests.map(bt => bt.id);
+      }
+    }
+    return [];
+  };
+
+  const isTestCompletedByStudent = (testId, studentId, hw) => {
+    const tIdStr = String(testId);
+    const sIdStr = String(studentId);
+
+    // 1. Check in hw.submissions
+    const subInHw = (hw?.submissions || []).find(s => {
+      if (String(s.studentId) !== sIdStr) return false;
+      if (s.status === 'in_progress' || s.status === 'draft' || s.isSubmitted === false) return false;
+      return String(s.testId) === tIdStr || String(s.bookTestId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr));
+    });
+    if (subInHw) return subInHw;
+
+    // 2. Check in EvaluationContext submissions
+    const subInEval = (submissions || []).find(s => {
+      if (String(s.studentId) !== sIdStr) return false;
+      if (s.status === 'in_progress' || s.status === 'draft' || s.isSubmitted === false) return false;
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || ''),
+        String(s.metadata?.realTestId || ''),
+        String(s.metadata?.bookTestId || ''),
+        String(s.metadata?.realId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String));
+      }
+      return matchFields.some(f => f && f === tIdStr);
+    });
+    return subInEval || null;
+  };
+
   const getStudentSubmission = (hw, studentId) => {
     if (!hw || !studentId) return null;
     return (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
@@ -229,12 +287,73 @@ export default function HomeworkManager() {
     const ids = (hw.targetType === 'grade' || hw.targetType === 'class')
       ? students.filter(s => (hw.targetIds || []).some(tid => isStudentInGrade(s, tid))).map(s => s.id)
       : (hw.targetIds || []);
-    const total = ids.length;
-    const completed = ids.filter(stId => !!(
-      (hw.submissions || []).find(s => s.studentId === stId) ||
-      submissions.find(s => (s.hwId === hw.id || s.testId === hw.id) && s.studentId === stId)
-    )).length;
-    return { total, completed, rate: total > 0 ? Math.round((completed / total) * 100) : 0, targetStudentIds: ids };
+    const totalStudents = ids.length;
+    const testIds = getHomeworkTestIds(hw);
+    const isMultiTest = testIds.length > 1;
+
+    if (isMultiTest) {
+      let totalPossibleTests = totalStudents * testIds.length;
+      let totalCompletedTests = 0;
+      let fullyCompletedStudents = 0;
+      let studentProgressMap = {};
+
+      ids.forEach(stId => {
+        let stCompleted = 0;
+        let stSubmissions = [];
+        testIds.forEach(tId => {
+          const sub = isTestCompletedByStudent(tId, stId, hw);
+          if (sub) {
+            stCompleted++;
+            stSubmissions.push(sub);
+          }
+        });
+        totalCompletedTests += stCompleted;
+        if (stCompleted >= testIds.length && testIds.length > 0) {
+          fullyCompletedStudents++;
+        }
+        studentProgressMap[stId] = {
+          completedTests: stCompleted,
+          totalTests: testIds.length,
+          rate: testIds.length > 0 ? Math.round((stCompleted / testIds.length) * 100) : 0,
+          isFullyCompleted: stCompleted >= testIds.length && testIds.length > 0,
+          submissions: stSubmissions
+        };
+      });
+
+      const rate = totalPossibleTests > 0 ? Math.round((totalCompletedTests / totalPossibleTests) * 100) : 0;
+
+      return {
+        total: totalStudents,
+        completed: fullyCompletedStudents,
+        rate,
+        targetStudentIds: ids,
+        isMultiTest: true,
+        totalTestsPerStudent: testIds.length,
+        totalPossibleTests,
+        totalCompletedTests,
+        fullyCompletedStudents,
+        studentProgressMap,
+        testIds
+      };
+    } else {
+      // Single test homework
+      const completed = ids.filter(stId => !!(
+        (hw.submissions || []).find(s => String(s.studentId) === String(stId) && s.status !== 'in_progress' && s.status !== 'draft' && s.isSubmitted !== false) ||
+        submissions.find(s => (String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id)) && String(s.studentId) === String(stId) && s.status !== 'in_progress' && s.status !== 'draft' && s.isSubmitted !== false)
+      )).length;
+      const rate = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
+      return {
+        total: totalStudents,
+        completed,
+        rate,
+        targetStudentIds: ids,
+        isMultiTest: false,
+        totalTestsPerStudent: 1,
+        totalPossibleTests: totalStudents,
+        totalCompletedTests: completed,
+        fullyCompletedStudents: completed
+      };
+    }
   };
 
   const getTargetLabel = (hw) => {
@@ -259,41 +378,86 @@ export default function HomeworkManager() {
       rateSum += getHomeworkStats(hw).rate;
     });
     return { total: homeworks.length, active, expired, avgRate: homeworks.length ? Math.round(rateSum / homeworks.length) : 0 };
-  }, [homeworks, students, submissions]);
+  }, [homeworks, students, submissions, books, bookTests]);
 
   const studentSummaries = useMemo(() => {
     const now = new Date(new Date().setHours(0, 0, 0, 0));
     return students.map(student => {
       const assignedHws = homeworks.filter(hw => isHomeworkAssignedToStudent(hw, student));
       
-      let completed = 0;
+      let completedHwCount = 0;
       let scoreSum = 0;
       let scoreCount = 0;
+      let totalAssignedHws = assignedHws.length;
       
       const hwDetails = assignedHws.map(hw => {
-        const sub = getStudentSubmission(hw, student.id);
+        const testIds = getHomeworkTestIds(hw);
+        const isMultiTest = testIds.length > 1;
         const isPast = new Date(hw.dueDate) < now;
-        const isDone = !!sub;
-        if (isDone) {
-          completed++;
-          if (sub.score !== undefined && sub.score !== null && !isNaN(Number(sub.score))) {
-            scoreSum += Number(sub.score);
-            scoreCount++;
-          } else if (sub.totalQuestions > 0 && sub.correctCount !== undefined) {
-            const pct = Math.round((sub.correctCount / sub.totalQuestions) * 100);
-            scoreSum += pct;
-            scoreCount++;
+
+        if (isMultiTest) {
+          let stCompleted = 0;
+          let stSubmissions = [];
+          testIds.forEach(tId => {
+            const sub = isTestCompletedByStudent(tId, student.id, hw);
+            if (sub) {
+              stCompleted++;
+              stSubmissions.push(sub);
+              if (sub.score !== undefined && sub.score !== null && !isNaN(Number(sub.score))) {
+                scoreSum += Number(sub.score);
+                scoreCount++;
+              } else if (sub.totalQuestions > 0 && sub.correctCount !== undefined) {
+                const pct = Math.round((sub.correctCount / sub.totalQuestions) * 100);
+                scoreSum += pct;
+                scoreCount++;
+              }
+            }
+          });
+          const isDone = stCompleted >= testIds.length && testIds.length > 0;
+          const progressRate = testIds.length > 0 ? Math.round((stCompleted / testIds.length) * 100) : 0;
+          if (isDone) completedHwCount++;
+
+          return {
+            homework: hw,
+            submission: stSubmissions[0] || null,
+            submissionsList: stSubmissions,
+            isDone,
+            isMultiTest: true,
+            completedTestsCount: stCompleted,
+            totalTestsCount: testIds.length,
+            progressRate,
+            isPast
+          };
+        } else {
+          const sub = getStudentSubmission(hw, student.id);
+          const isDone = !!sub;
+          if (isDone) {
+            completedHwCount++;
+            if (sub.score !== undefined && sub.score !== null && !isNaN(Number(sub.score))) {
+              scoreSum += Number(sub.score);
+              scoreCount++;
+            } else if (sub.totalQuestions > 0 && sub.correctCount !== undefined) {
+              const pct = Math.round((sub.correctCount / sub.totalQuestions) * 100);
+              scoreSum += pct;
+              scoreCount++;
+            }
           }
+          return {
+            homework: hw,
+            submission: sub,
+            submissionsList: sub ? [sub] : [],
+            isDone,
+            isMultiTest: false,
+            completedTestsCount: isDone ? 1 : 0,
+            totalTestsCount: 1,
+            progressRate: isDone ? 100 : 0,
+            isPast
+          };
         }
-        return {
-          homework: hw,
-          submission: sub,
-          isDone,
-          isPast
-        };
       });
 
-      const total = assignedHws.length;
+      const total = totalAssignedHws;
+      const completed = completedHwCount;
       const pending = total - completed;
       const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
       const avgScore = scoreCount > 0 ? Math.round(scoreSum / scoreCount) : null;
@@ -313,7 +477,7 @@ export default function HomeworkManager() {
         avgScore
       };
     });
-  }, [students, homeworks, submissions, curData]);
+  }, [students, homeworks, submissions, curData, books, bookTests]);
 
   const studentGlobalAnalytics = useMemo(() => {
     const totalStudents = students.length;
@@ -1009,8 +1173,11 @@ export default function HomeworkManager() {
                                 </div>
                                 <div>
                                   <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                    <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span> · {hw.totalQuestions} Soru · {hw.timePerQuestion} dk/soru
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                    <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span>
+                                    {stats.isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 {stats.totalTestsPerStudent} Test</span>}
+                                    <span>• {hw.totalQuestions} Soru</span>
+                                    <span>• {hw.timePerQuestion} dk/soru</span>
                                   </div>
                                 </div>
                               </div>
@@ -1029,7 +1196,17 @@ export default function HomeworkManager() {
                               </div>
                             </td>
                             <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
-                              <GlassProgressBar value={stats.completed} max={stats.total} color={theme.color} />
+                              <GlassProgressBar
+                                customPct={stats.rate}
+                                customLabel={
+                                  stats.isMultiTest
+                                    ? (stats.total === 1
+                                        ? `%{stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
+                                        : `%{stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
+                                    : `%{stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
+                                }
+                                color={stats.rate === 100 ? '#10b981' : theme.color}
+                              />
                             </td>
                             <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
@@ -1327,15 +1504,16 @@ export default function HomeworkManager() {
             <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
               <div style={{
                 background: 'var(--color-surface)',
-                borderRadius: '1.5rem', width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto',
+                borderRadius: '1.5rem', width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto',
                 padding: '1.75rem', border: '1.5px solid var(--color-border)',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-border)' }}>
                   <div>
                     <div style={{ fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-text)' }}>{activeHomework.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                      Son Tarih: {new Date(activeHomework.dueDate).toLocaleDateString('tr-TR')} · {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span>Son Tarih: {new Date(activeHomework.dueDate).toLocaleDateString('tr-TR')} · {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}</span>
+                      {stats.isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 Toplam {stats.totalTestsPerStudent} Alt Test</span>}
                     </div>
                   </div>
                   <button onClick={() => setShowStatsModal(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
@@ -1349,8 +1527,12 @@ export default function HomeworkManager() {
                     <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#38bdf8', textTransform: 'uppercase', marginTop: 2 }}>Atanan Öğrenci</div>
                   </div>
                   <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>{stats.completed}</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#34d399', textTransform: 'uppercase', marginTop: 2 }}>Tamamlayan</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>
+                      {stats.isMultiTest ? `${stats.totalCompletedTests} / ${stats.totalPossibleTests}` : `${stats.completed}`}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#34d399', textTransform: 'uppercase', marginTop: 2 }}>
+                      {stats.isMultiTest ? 'Çözülen Test' : 'Tamamlayan'}
+                    </div>
                   </div>
                   <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24' }}>%{stats.rate}</div>
@@ -1361,8 +1543,8 @@ export default function HomeworkManager() {
                 <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.35rem', border: '1px solid var(--color-border)' }}>
                   {[
                     { key: 'all', label: 'Tümü (' + stats.total + ')' },
-                    { key: 'completed', label: 'Çözenler (' + stats.completed + ')' },
-                    { key: 'pending', label: 'Bekleyenler (' + (stats.total - stats.completed) + ')' },
+                    { key: 'completed', label: (stats.isMultiTest ? 'Bitirenler (' : 'Çözenler (') + stats.completed + ')' },
+                    { key: 'pending', label: 'Bekleyen / Devam Eden (' + (stats.total - stats.completed) + ')' },
                   ].map(f => (
                     <button
                       key={f.key}
@@ -1381,28 +1563,37 @@ export default function HomeworkManager() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '38vh', overflowY: 'auto' }}>
                   {stats.targetStudentIds.filter(stId => {
-                    const sub = submissions.find(s => (s.hwId === activeHomework.id || s.testId === activeHomework.id) && s.studentId === stId) || (activeHomework.submissions || []).find(s => s.studentId === stId);
-                    if (statsStudentFilter === 'completed') return !!sub;
-                    if (statsStudentFilter === 'pending') return !sub;
+                    const stProgress = stats.isMultiTest ? stats.studentProgressMap[stId] : null;
+                    const isFullyDone = stats.isMultiTest ? (stProgress?.isFullyCompleted) : !!(
+                      (activeHomework.submissions || []).find(s => String(s.studentId) === String(stId)) ||
+                      submissions.find(s => (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id)) && String(s.studentId) === String(stId))
+                    );
+                    if (statsStudentFilter === 'completed') return isFullyDone;
+                    if (statsStudentFilter === 'pending') return !isFullyDone;
                     return true;
                   }).map(stId => {
                     const student = students.find(s => s.id === stId);
                     if (!student) return null;
+                    const stProgress = stats.isMultiTest ? stats.studentProgressMap[stId] : null;
                     const submission = (activeHomework.submissions || []).find(s => s.studentId === stId) || submissions.find(s => (s.hwId === activeHomework.id || s.testId === activeHomework.id) && s.studentId === stId);
+                    
                     const handleReview = () => {
                       setShowStatsModal(false);
                       if (activeHomework.type === 'physicalExam') navigate('/physical-exam/' + activeHomework.id + '?studentId=' + stId);
                       else if (submission?.id) navigate('/review/' + submission.id);
+                      else if (stProgress?.submissions?.[0]?.id) navigate('/review/' + stProgress.submissions[0].id);
                       else navigate('/quiz/' + activeHomework.id + '?studentId=' + stId);
                     };
 
+                    const hasActivity = stats.isMultiTest ? (stProgress?.completedTests > 0) : !!submission;
+
                     return (
-                      <div key={stId} onClick={submission ? handleReview : undefined} style={{
+                      <div key={stId} onClick={hasActivity ? handleReview : undefined} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '0.65rem 0.9rem', borderRadius: '0.75rem',
                         border: '1px solid var(--color-border)',
-                        background: submission ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)',
-                        cursor: submission ? 'pointer' : 'default'
+                        background: hasActivity ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)',
+                        cursor: hasActivity ? 'pointer' : 'default'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                           <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--color-surface)' }}>
@@ -1410,20 +1601,42 @@ export default function HomeworkManager() {
                           </div>
                           <div>
                             <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{student.name}</div>
-                            {submission && <div style={{ fontSize: '0.68rem', color: '#a78bfa', fontWeight: 700 }}>İncelemek için tıkla</div>}
+                            {stats.isMultiTest ? (
+                              <div style={{ fontSize: '0.68rem', color: stProgress?.isFullyCompleted ? '#34d399' : (stProgress?.completedTests > 0 ? '#38bdf8' : 'var(--color-text-muted)'), fontWeight: 800 }}>
+                                %{stProgress?.rate} • {stProgress?.completedTests}/{stProgress?.totalTests} Test Çözüldü
+                              </div>
+                            ) : (
+                              submission && <div style={{ fontSize: '0.68rem', color: '#a78bfa', fontWeight: 700 }}>İncelemek için tıkla</div>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                          {submission ? (
-                            <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 900, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(16,185,129,0.3)' }}>
-                              {submission.score} {activeHomework.type === 'physicalExam' ? 'Net' : 'Puan'}
-                            </span>
+                          {stats.isMultiTest ? (
+                            stProgress?.isFullyCompleted ? (
+                              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 900, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                ✓ Bitti
+                              </span>
+                            ) : stProgress?.completedTests > 0 ? (
+                              <span style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 900, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(56,189,248,0.3)' }}>
+                                ⏳ Devam Ediyor
+                              </span>
+                            ) : (
+                              <span style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                Bekliyor
+                              </span>
+                            )
                           ) : (
-                            <span style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(245,158,11,0.3)' }}>
-                              Bekliyor
-                            </span>
+                            submission ? (
+                              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 900, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                {submission.score} {activeHomework.type === 'physicalExam' ? 'Net' : 'Puan'}
+                              </span>
+                            ) : (
+                              <span style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                Bekliyor
+                              </span>
+                            )
                           )}
-                          {submission ? (
+                          {hasActivity ? (
                             <button onClick={e => { e.stopPropagation(); handleReview(); }} style={{ background: 'rgba(37,99,235,0.12)', border: 'none', borderRadius: '0.45rem', padding: '0.35rem', cursor: 'pointer', color: '#60a5fa', display: 'flex' }}>
                               <Eye size={14} />
                             </button>
@@ -1535,7 +1748,7 @@ export default function HomeworkManager() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '45vh', overflowY: 'auto' }}>
-                    {selectedStudentForDetail.hwDetails.map(({ homework, submission, isDone, isPast }) => {
+                    {selectedStudentForDetail.hwDetails.map(({ homework, submission, submissionsList, isDone, isMultiTest, completedTestsCount, totalTestsCount, progressRate, isPast }) => {
                       const theme = getTheme(homework.subject);
                       const scoreVal = submission?.score ?? (submission?.totalQuestions > 0 && submission?.correctCount !== undefined ? Math.round((submission.correctCount / submission.totalQuestions) * 100) : null);
 
@@ -1545,6 +1758,8 @@ export default function HomeworkManager() {
                           navigate('/physical-exam/' + homework.id + '?studentId=' + selectedStudentForDetail.student.id);
                         } else if (submission?.id) {
                           navigate('/review/' + submission.id);
+                        } else if (submissionsList?.[0]?.id) {
+                          navigate('/review/' + submissionsList[0].id);
                         } else {
                           navigate('/quiz/' + homework.id + '?studentId=' + selectedStudentForDetail.student.id);
                         }
@@ -1575,6 +1790,7 @@ export default function HomeworkManager() {
                               </div>
                               <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 <span style={{ color: theme.color, fontWeight: 800 }}>{homework.subject || 'Ders'}</span>
+                                {isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 {totalTestsCount} Alt Test</span>}
                                 <span>• {homework.totalQuestions} Soru</span>
                                 <span>• Son Tarih: {new Date(homework.dueDate).toLocaleDateString('tr-TR')}</span>
                               </div>
@@ -1582,29 +1798,54 @@ export default function HomeworkManager() {
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                            {isDone ? (
-                              <div style={{ textAlign: 'right' }}>
-                                <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                                  ✓ Tamamlandı {scoreVal !== null ? `(%${scoreVal})` : ''}
+                            {isMultiTest ? (
+                              isDone ? (
+                                <div style={{ textAlign: 'right' }}>
+                                  <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    ✓ Tamamlandı (%100 · {completedTestsCount}/{totalTestsCount} Test)
+                                  </span>
+                                </div>
+                              ) : completedTestsCount > 0 ? (
+                                <div style={{ textAlign: 'right' }}>
+                                  <span style={{ background: 'rgba(56,189,248,0.15)', color: '#0284c7', border: '1px solid #38bdf8', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    ⏳ Devam Ediyor (%{progressRate} · {completedTestsCount}/{totalTestsCount} Test)
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{
+                                  background: isPast ? '#fef2f2' : '#eff6ff',
+                                  color: isPast ? '#dc2626' : '#2563eb',
+                                  border: `1px solid ${isPast ? '#fecaca' : '#bfdbfe'}`,
+                                  fontWeight: 800, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem'
+                                }}>
+                                  {isPast ? '⚠️ Süresi Doldu' : `○ Başlamadı (0/${totalTestsCount} Test)`}
                                 </span>
-                                {submission?.correctCount !== undefined && (
-                                  <div style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 800, marginTop: 2 }}>
-                                    {submission.correctCount}D / {submission.wrongCount || 0}Y
-                                  </div>
-                                )}
-                              </div>
+                              )
                             ) : (
-                              <span style={{
-                                background: isPast ? '#fef2f2' : '#eff6ff',
-                                color: isPast ? '#dc2626' : '#2563eb',
-                                border: `1px solid ${isPast ? '#fecaca' : '#bfdbfe'}`,
-                                fontWeight: 800, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem'
-                              }}>
-                                {isPast ? '⚠️ Süresi Doldu' : '⏳ Bekliyor'}
-                              </span>
+                              isDone ? (
+                                <div style={{ textAlign: 'right' }}>
+                                  <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    ✓ Tamamlandı {scoreVal !== null ? `(%${scoreVal})` : ''}
+                                  </span>
+                                  {submission?.correctCount !== undefined && (
+                                    <div style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 800, marginTop: 2 }}>
+                                      {submission.correctCount}D / {submission.wrongCount || 0}Y
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{
+                                  background: isPast ? '#fef2f2' : '#eff6ff',
+                                  color: isPast ? '#dc2626' : '#2563eb',
+                                  border: `1px solid ${isPast ? '#fecaca' : '#bfdbfe'}`,
+                                  fontWeight: 800, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem'
+                                }}>
+                                  {isPast ? '⚠️ Süresi Doldu' : '⏳ Bekliyor'}
+                                </span>
+                              )
                             )}
 
-                            {isDone && (
+                            {(isDone || (isMultiTest && completedTestsCount > 0)) && (
                               <button
                                 type="button"
                                 onClick={handleReview}
