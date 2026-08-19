@@ -587,7 +587,7 @@ export default function ModularQuizPage() {
     );
   }
 
-  const handleSubmit = (formattedAnswers) => {
+  const handleSubmit = (formattedAnswers, options = {}) => {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     
