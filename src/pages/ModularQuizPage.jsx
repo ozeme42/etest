@@ -219,14 +219,6 @@ export default function ModularQuizPage() {
     }
   }, [completedSub, navigate, testId, studentId]);
 
-  if (completedSub && !isSubmittingRef.current) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
-        Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
-      </div>
-    );
-  }
-
   const resolvedTestIdRef = useRef(null);
 
   useEffect(() => {
@@ -548,6 +540,14 @@ export default function ModularQuizPage() {
       }
     }
   }, [test, bookForTest, testId, studentId, navigate]);
+
+  if (completedSub && !isSubmittingRef.current) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
+      </div>
+    );
+  }
 
   const isDataLoading = (hwLoading && (!homeworks || homeworks.length === 0)) || 
                         (booksLoading && (!bookTests || bookTests.length === 0));
