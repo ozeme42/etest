@@ -196,19 +196,39 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns).toUpperCase())
       : null;
 
-    const keySource = test.answerKey || qObj.answerKey || test.opticAnswers || qObj.opticAnswers;
-    const rawCorrectKey = Array.isArray(keySource)
-      ? keySource[qNo - 1]
-      : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : qObj.correctAnswer);
+    const keySources = [
+      test.answerKey,
+      qObj.answerKey,
+      test.opticAnswers,
+      qObj.opticAnswers,
+      test.htmlPayload?.answerKey,
+      test.contentPayload?.answerKey
+    ];
+    let rawCorrectKey = null;
+    for (const ks of keySources) {
+      if (!ks) continue;
+      if (Array.isArray(ks)) rawCorrectKey = ks[qNo - 1];
+      else if (typeof ks === 'object') rawCorrectKey = ks[qNo] ?? ks[String(qNo)] ?? ks[qNo - 1];
+      else if (typeof ks === 'string') rawCorrectKey = ks[qNo - 1];
+      if (rawCorrectKey !== null && rawCorrectKey !== undefined && rawCorrectKey !== '') break;
+    }
+    if (rawCorrectKey === null) {
+      if (ansObj.correctAnswerLetter) rawCorrectKey = ansObj.correctAnswerLetter;
+      else if (ansObj.correctAnswer !== undefined && ansObj.correctAnswer !== null) rawCorrectKey = ansObj.correctAnswer;
+      else if (qObj.correctAnswerLetter) rawCorrectKey = qObj.correctAnswerLetter;
+      else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) rawCorrectKey = qObj.correctAnswer;
+    }
 
-    const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
+    const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null && rawCorrectKey !== '')
       ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
       : null;
 
     const isMatches = Boolean(userAnsLetter && displayCorrectKey && userAnsLetter === displayCorrectKey);
 
     let isCorrect = null;
-    if (isMatches) {
+    if (ansObj.isCorrect !== undefined) {
+      isCorrect = ansObj.isCorrect;
+    } else if (isMatches) {
       isCorrect = true;
     } else if (userAns !== null && userAns !== undefined && userAns !== '') {
       isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);

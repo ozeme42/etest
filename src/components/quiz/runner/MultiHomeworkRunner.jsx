@@ -561,25 +561,63 @@ function RightOptikPanel({
                     return optList.map((opt, optIdx) => {
                       const isSelected = userAns === optIdx;
 
-                      let correctAns = (userAnsObj && userAnsObj.correctAnswer !== undefined && userAnsObj.correctAnswer !== null) 
-                        ? userAnsObj.correctAnswer 
-                        : qObj.correctAnswer;
-                        
-                      if (correctAns === undefined || correctAns === null) {
-                        const keySource = bankQ?.answerKey;
-                        if (keySource) {
-                          const kaVal = keySource[qNo - 1] !== undefined ? keySource[qNo - 1] : keySource[String(qNo)];
-                          if (kaVal !== undefined && kaVal !== null) {
-                            if (typeof kaVal === 'number') correctAns = kaVal;
-                            else if (typeof kaVal === 'string') {
-                              const str = kaVal.trim().toUpperCase();
-                              if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
-                              else if (!isNaN(Number(str))) correctAns = Number(str);
-                            }
+                      let correctAns = null;
+                      const keySources = [
+                        bankQ?.answerKey,
+                        sec?.answerKey,
+                        bankQ?.opticAnswers,
+                        sec?.opticAnswers,
+                        bankQ?.contentPayload?.answerKey,
+                        test?.answerKey,
+                        test?.opticAnswers
+                      ];
+
+                      for (const ks of keySources) {
+                        if (!ks) continue;
+                        let val = null;
+                        if (Array.isArray(ks)) {
+                          val = ks[idx] ?? ks[qNo - 1];
+                        } else if (typeof ks === 'object') {
+                          val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                        } else if (typeof ks === 'string') {
+                          const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                          val = clean[idx] ?? clean[qNo - 1];
+                        }
+                        if (val !== undefined && val !== null && val !== '') {
+                          if (typeof val === 'number') correctAns = val;
+                          else if (typeof val === 'string') {
+                            const str = val.trim().toUpperCase();
+                            if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(str))) correctAns = Number(str);
+                          }
+                          if (correctAns !== null) break;
+                        }
+                      }
+
+                      if (correctAns === null) {
+                        const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
+                        if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
+                          if (typeof rawSubCorr === 'number') correctAns = rawSubCorr;
+                          else if (typeof rawSubCorr === 'string') {
+                            const s = rawSubCorr.trim().toUpperCase();
+                            if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(s))) correctAns = Number(s);
                           }
                         }
                       }
-                      const isCorrectOpt = correctAns !== undefined && correctAns !== null && correctAns === optIdx;
+
+                      if (correctAns === null) {
+                        if (qObj.correctAnswerLetter) {
+                          const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                          if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                        } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                          correctAns = qObj.correctAnswer;
+                        }
+                      }
+
+                      const isCorrectOpt = (isReviewMode && isCorrect === true && isSelected)
+                        ? true
+                        : (correctAns !== undefined && correctAns !== null && correctAns === optIdx);
 
                       let bg = '#ffffff';
                       let border = '1.5px solid #cbd5e1';
@@ -2381,22 +2419,57 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
                     const textVal = activeSecState.openEndedText?.[qNo] || '';
 
-                    let correctAns = userAnsObj?.correctAnswer;
-                    if ((correctAns === undefined || correctAns === null) && qObj.correctAnswer !== undefined) correctAns = qObj.correctAnswer;
-                    if ((correctAns === undefined || correctAns === null) && qObj.correctAnswerLetter) {
-                      const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                      if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
-                    }
-                    if ((correctAns === undefined || correctAns === null) && activeSec.bankQ?.answerKey) {
-                      const ak = activeSec.bankQ.answerKey;
-                      const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
-                      if (kaVal !== undefined && kaVal !== null) {
-                        if (typeof kaVal === 'number') correctAns = kaVal;
-                        else if (typeof kaVal === 'string') {
-                          const s = kaVal.trim().toUpperCase();
+                    let correctAns = null;
+                    const keySources = [
+                      activeSec?.bankQ?.answerKey,
+                      activeSec?.answerKey,
+                      activeSec?.bankQ?.opticAnswers,
+                      activeSec?.opticAnswers,
+                      activeSec?.bankQ?.contentPayload?.answerKey,
+                      test?.answerKey,
+                      test?.opticAnswers
+                    ];
+
+                    for (const ks of keySources) {
+                      if (!ks) continue;
+                      let val = null;
+                      if (Array.isArray(ks)) {
+                        val = ks[idx] ?? ks[qNo - 1];
+                      } else if (typeof ks === 'object') {
+                        val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                      } else if (typeof ks === 'string') {
+                        const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                        val = clean[idx] ?? clean[qNo - 1];
+                      }
+                      if (val !== undefined && val !== null && val !== '') {
+                        if (typeof val === 'number') correctAns = val;
+                        else if (typeof val === 'string') {
+                          const s = val.trim().toUpperCase();
                           if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
                           else if (!isNaN(Number(s))) correctAns = Number(s);
                         }
+                        if (correctAns !== null) break;
+                      }
+                    }
+
+                    if (correctAns === null) {
+                      const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
+                      if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
+                        if (typeof rawSubCorr === 'number') correctAns = rawSubCorr;
+                        else if (typeof rawSubCorr === 'string') {
+                          const s = rawSubCorr.trim().toUpperCase();
+                          if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                          else if (!isNaN(Number(s))) correctAns = Number(s);
+                        }
+                      }
+                    }
+
+                    if (correctAns === null) {
+                      if (qObj.correctAnswerLetter) {
+                        const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                        if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                      } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                        correctAns = qObj.correctAnswer;
                       }
                     }
 
@@ -2472,7 +2545,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                               return optList.map((opt, optIdx) => {
                                 const isSelected = selectedOpt === optIdx;
-                                const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
+                                const isCorrectOpt = (isReviewMode && isQCorrect && isSelected)
+                                  ? true
+                                  : (correctAns !== null && correctAns !== undefined && correctAns === optIdx);
 
                                 let bg = '#ffffff';
                                 let border = '1.5px solid #cbd5e1';
@@ -2692,22 +2767,57 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   const textVal = activeSecState.openEndedText?.[qNo] || '';
 
                   // Review mode: resolve correctAnswer
-                  let corrAns = userAnsObj?.correctAnswer;
-                  if ((corrAns === undefined || corrAns === null) && qObj.correctAnswer !== undefined) corrAns = qObj.correctAnswer;
-                  if ((corrAns === undefined || corrAns === null) && qObj.correctAnswerLetter) {
-                    const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                    if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
-                  }
-                  if ((corrAns === undefined || corrAns === null) && activeSec.bankQ?.answerKey) {
-                    const ak = activeSec.bankQ.answerKey;
-                    const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
-                    if (kaVal !== undefined && kaVal !== null) {
-                      if (typeof kaVal === 'number') corrAns = kaVal;
-                      else if (typeof kaVal === 'string') {
-                        const s = kaVal.trim().toUpperCase();
+                  let corrAns = null;
+                  const keySources = [
+                    activeSec?.bankQ?.answerKey,
+                    activeSec?.answerKey,
+                    activeSec?.bankQ?.opticAnswers,
+                    activeSec?.opticAnswers,
+                    activeSec?.bankQ?.contentPayload?.answerKey,
+                    test?.answerKey,
+                    test?.opticAnswers
+                  ];
+
+                  for (const ks of keySources) {
+                    if (!ks) continue;
+                    let val = null;
+                    if (Array.isArray(ks)) {
+                      val = ks[idx] ?? ks[qNo - 1];
+                    } else if (typeof ks === 'object') {
+                      val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                    } else if (typeof ks === 'string') {
+                      const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                      val = clean[idx] ?? clean[qNo - 1];
+                    }
+                    if (val !== undefined && val !== null && val !== '') {
+                      if (typeof val === 'number') corrAns = val;
+                      else if (typeof val === 'string') {
+                        const s = val.trim().toUpperCase();
                         if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
                         else if (!isNaN(Number(s))) corrAns = Number(s);
                       }
+                      if (corrAns !== null) break;
+                    }
+                  }
+
+                  if (corrAns === null) {
+                    const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
+                    if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
+                      if (typeof rawSubCorr === 'number') corrAns = rawSubCorr;
+                      else if (typeof rawSubCorr === 'string') {
+                        const s = rawSubCorr.trim().toUpperCase();
+                        if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
+                        else if (!isNaN(Number(s))) corrAns = Number(s);
+                      }
+                    }
+                  }
+
+                  if (corrAns === null) {
+                    if (qObj.correctAnswerLetter) {
+                      const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                      if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
+                    } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                      corrAns = qObj.correctAnswer;
                     }
                   }
 
@@ -2775,7 +2885,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
                           {options.map((opt, optIdx) => {
                             const isSelected = selectedOpt === optIdx;
-                            const isCorrectOpt = corrAns !== null && corrAns !== undefined && corrAns === optIdx;
+                            const isCorrectOpt = (isReviewMode && isStdCorrect && isSelected)
+                              ? true
+                              : (corrAns !== null && corrAns !== undefined && corrAns === optIdx);
                             const optLetter = String.fromCharCode(65 + optIdx);
                             let optText = '';
                             if (typeof opt === 'string') optText = opt;
