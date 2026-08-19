@@ -362,8 +362,7 @@ function RightOptikPanel({
   const isLastSec = activeSecIdx === totalSections - 1;
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Calculate answered count and progress percentage for this section
-  const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
+const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
     const qNo = idx + 1;
     const ans = answers[qNo];
     const uAns = typeof ans === 'object' ? ans?.userAnswer : ans;
@@ -376,47 +375,49 @@ function RightOptikPanel({
   return (
     <div style={{ width: '100%', background: '#f8fafc', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
-      {/* ── OPTIK HEADER WITH PROGRESS BAR ── */}
+      {/* ── OPTIK HEADER WITH PROGRESS BAR (ULTRA-COMPACT ON MOBILE) ── */}
       <div style={{
-        padding: isMobile ? '0.65rem 0.85rem' : '0.9rem 1.15rem',
+        padding: isMobile ? '0.3rem 0.6rem' : '0.85rem 1.15rem',
         background: '#ffffff',
-        borderBottom: '1.5px solid #e2e8f0',
+        borderBottom: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.45rem',
+        gap: isMobile ? '0.25rem' : '0.45rem',
         flexShrink: 0,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+        boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>{isReviewMode ? '🔍' : isOpenEnded ? '✍️' : '📋'}</span>
-            <div>
-              <h3 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: '#0f172a' }}>
-                {isReviewMode ? 'Sınav İnceleme & Cevaplar' : isOpenEnded ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Kağıdı'}
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>
-                {totalSections > 1 ? `${activeSecIdx + 1}. Bölüm • ` : ''}{qCount} Soru
-              </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0 }}>
+            <span style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', flexShrink: 0 }}>
+              {isReviewMode ? '🔍' : isOpenEnded ? '✍️' : '📋'}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', overflow: 'hidden' }}>
+              <span style={{ margin: 0, fontSize: isMobile ? '0.78rem' : '0.95rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                {isMobile ? (isReviewMode ? 'Cevaplar' : isOpenEnded ? 'Yazılı Cevap' : 'Optik Form') : (isReviewMode ? 'Sınav İnceleme & Cevaplar' : isOpenEnded ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Kağıdı')}
+              </span>
+              <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: '#64748b', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                • {qCount} Soru
+              </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <span style={{
-              padding: '0.2rem 0.6rem',
+              padding: isMobile ? '0.12rem 0.45rem' : '0.2rem 0.6rem',
               borderRadius: '999px',
               background: progressPct === 100 ? '#f0fdf4' : '#eff6ff',
               border: `1px solid ${progressPct === 100 ? '#86efac' : '#bfdbfe'}`,
               color: progressPct === 100 ? '#15803d' : '#2563eb',
-              fontSize: '0.72rem',
+              fontSize: isMobile ? '0.68rem' : '0.72rem',
               fontWeight: 900
             }}>
-              {answeredCount} / {qCount} Kodlandı
+              {answeredCount}/{qCount} Kodlandı
             </span>
           </div>
         </div>
 
         {/* Section Progress Bar */}
-        <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: isMobile ? '3px' : '5px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
           <div style={{
             height: '100%',
             width: `${progressPct}%`,
@@ -431,10 +432,10 @@ function RightOptikPanel({
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: isMobile ? '0.5rem 0.65rem' : '0.85rem 1rem',
+        padding: isMobile ? '0.35rem 0.5rem' : '0.85rem 1rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: isMobile ? '0.45rem' : '0.65rem'
+        gap: isMobile ? '0.35rem' : '0.65rem'
       }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
@@ -449,35 +450,35 @@ function RightOptikPanel({
 
           const isCorrect = (userAnsObj && userAnsObj.isCorrect !== undefined)
             ? userAnsObj.isCorrect
-            : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
+            : (isReviewMode && userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           return (
             <div
               key={qNo}
               style={{
                 background: '#ffffff',
-                padding: isMobile ? '0.6rem 0.75rem' : '0.85rem 1rem',
-                borderRadius: '0.85rem',
+                padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
+                borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
                   ? (isCorrect === true ? '1.5px solid #86efac' : isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: isMobile ? '0.4rem' : '0.55rem',
-                boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.06)' : '0 1px 4px rgba(0,0,0,0.02)',
+                gap: isMobile ? '0.3rem' : '0.55rem',
+                boxShadow: isAnswered ? '0 2px 8px rgba(99,102,241,0.05)' : '0 1px 3px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease'
               }}
             >
               {/* Question Item Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <span style={{
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: '0.45rem',
+                    padding: isMobile ? '0.12rem 0.45rem' : '0.2rem 0.55rem',
+                    borderRadius: '0.4rem',
                     background: isAnswered ? '#4f46e5' : '#f1f5f9',
                     color: isAnswered ? '#ffffff' : '#334155',
                     fontWeight: 900,
-                    fontSize: isMobile ? '0.72rem' : '0.78rem',
+                    fontSize: isMobile ? '0.7rem' : '0.78rem',
                     letterSpacing: '0.02em'
                   }}>
                     SORU {qNo}
@@ -647,8 +648,8 @@ function RightOptikPanel({
                           disabled={isReviewMode}
                           style={{
                             flex: 1,
-                            height: isMobile ? '32px' : '38px',
-                            borderRadius: '0.6rem',
+                            height: isMobile ? '30px' : '38px',
+                            borderRadius: isMobile ? '0.45rem' : '0.6rem',
                             border,
                             background: bg,
                             color,
@@ -677,37 +678,37 @@ function RightOptikPanel({
 
       {/* ── FOOTER ACTIONS AT THE BOTTOM OF OPTIK PANEL ── */}
       <div style={{
-        padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1.15rem',
+        padding: isMobile ? '0.35rem 0.6rem' : '0.85rem 1.15rem',
         background: '#ffffff',
-        borderTop: '1.5px solid #e2e8f0',
+        borderTop: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.45rem',
+        gap: '0.35rem',
         flexShrink: 0,
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.03)'
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.02)'
       }}>
         {totalSections > 1 && !isLastSec && (
           <button
             onClick={onNextSection}
             style={{
               width: '100%',
-              padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
-              borderRadius: '0.75rem',
+              padding: isMobile ? '0.45rem 0.8rem' : '0.75rem 1.25rem',
+              borderRadius: isMobile ? '0.5rem' : '0.75rem',
               background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: isMobile ? '0.8rem' : '0.9rem',
+              fontSize: isMobile ? '0.78rem' : '0.9rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+              gap: '0.4rem',
+              boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
               transition: 'all 0.15s ease'
             }}
           >
-            Sonraki Bölüme Geç <ChevronRight size={18} />
+            Sonraki Bölüm <ChevronRight size={isMobile ? 14 : 18} />
           </button>
         )}
 
@@ -716,23 +717,26 @@ function RightOptikPanel({
             onClick={onSubmit}
             style={{
               width: '100%',
-              padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
-              borderRadius: '0.75rem',
-              background: isReviewMode ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'linear-gradient(135deg, #10b981, #059669)',
+              padding: isMobile ? '0.45rem 0.8rem' : '0.75rem 1.25rem',
+              borderRadius: isMobile ? '0.5rem' : '0.75rem',
+              background: isReviewMode
+                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: isMobile ? '0.8rem' : '0.9rem',
+              fontSize: isMobile ? '0.78rem' : '0.9rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              gap: '0.4rem',
+              boxShadow: isReviewMode ? '0 2px 8px rgba(79,70,229,0.25)' : '0 2px 8px rgba(16,185,129,0.25)',
               transition: 'all 0.15s ease'
             }}
           >
-            <CheckCircle2 size={18} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
+            <CheckCircle2 size={isMobile ? 14 : 18} />
+            {isReviewMode ? 'İncelemeyi Tamamla' : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
