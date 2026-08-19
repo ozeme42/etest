@@ -966,29 +966,29 @@ export default function StudyRoomPage() {
   const renderMasterStationContent = (isFullscreenView = false) => (
     <div style={{
       width: '100%',
-      maxWidth: isFullscreenView ? 620 : '100%',
+      maxWidth: isFullscreenView ? 1040 : '100%',
       margin: '0 auto',
       display: 'flex',
       flexDirection: 'column',
-      gap: isFullscreenView ? 16 : 14
+      gap: isFullscreenView ? 22 : 18
     }}>
-      {/* 1. Üst Mod Switcher Barı + Tam Ekran Butonu */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* 1. ÜST MOD SWITCHER BARI + ZEN BUTONU */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div className="sr-timer-modes" style={{
           flex: 1,
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 4,
+          gap: 6,
           background: themeObj.innerBg,
-          padding: 4,
-          borderRadius: 16,
+          padding: 5,
+          borderRadius: 18,
           border: `1.5px solid ${themeObj.border}`
         }}>
           {[
             { id: 'question', label: '✏️ Soru Çözümü', sub: `${calculatedQuestionBudgetMinutes} dk` },
             { id: 'book', label: '📖 Kitap Okuma', sub: 'Sayfa Kotası' },
-            { id: 'study', label: '🎯 Konu Çalışma', sub: `${durations.pomodoro} dk` },
-            { id: 'break', label: '☕ Mola', sub: `${durations.shortBreak} dk` }
+            { id: 'study', label: '🎯 Konu Çalışma', sub: `${durations.pomodoro || calculatedQuestionBudgetMinutes} dk` },
+            { id: 'break', label: '☕ Mola', sub: `${durations.shortBreak || 10} dk` }
           ].map(m => {
             const isSelected = activeStudyMode === m.id;
             return (
@@ -997,11 +997,11 @@ export default function StudyRoomPage() {
                 onClick={() => handleSwitchMasterMode(m.id)}
                 className="sr-timer-mode-btn"
                 style={{
-                  padding: '0.5rem 0.4rem',
-                  borderRadius: 12,
+                  padding: isFullscreenView ? '0.75rem 0.6rem' : '0.6rem 0.5rem',
+                  borderRadius: 14,
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.74rem',
+                  fontSize: isFullscreenView ? '0.86rem' : '0.78rem',
                   cursor: 'pointer',
                   background: isSelected
                     ? (m.id === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : m.id === 'book' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : m.id === 'study' ? 'linear-gradient(135deg, #10b981, #059669)' : themeObj.accent)
@@ -1010,638 +1010,651 @@ export default function StudyRoomPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 2,
-                  boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
-                  transition: 'all 0.15s',
+                  gap: 3,
+                  boxShadow: isSelected ? '0 6px 16px rgba(0,0,0,0.18)' : 'none',
+                  transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap'
                 }}
               >
                 <span>{m.label}</span>
-                <span style={{ fontSize: '0.62rem', opacity: isSelected ? 0.95 : 0.65 }}>{m.sub}</span>
+                <span style={{ fontSize: isFullscreenView ? '0.7rem' : '0.64rem', opacity: isSelected ? 0.95 : 0.65 }}>{m.sub}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Kart Tam Ekran / Zen Butonu */}
+        {/* Zen Tam Ekran Butonu */}
         <button
           onClick={() => setIsCardFullscreen(!isCardFullscreen)}
           style={{
             background: isCardFullscreen ? themeObj.accent : themeObj.buttonBg,
             border: `1.5px solid ${themeObj.border}`,
             color: isCardFullscreen ? 'white' : themeObj.text,
-            borderRadius: 14,
-            padding: '0.65rem 0.75rem',
+            borderRadius: 16,
+            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 5,
-            fontSize: '0.74rem',
-            fontWeight: 800,
+            gap: 6,
+            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
+            fontWeight: 900,
             whiteSpace: 'nowrap',
-            boxShadow: isCardFullscreen ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+            boxShadow: isCardFullscreen ? '0 6px 16px rgba(0,0,0,0.25)' : 'none',
             transition: 'all 0.15s'
           }}
-          title={isCardFullscreen ? "Normal Ekrana Dön" : "Sadece Bu İstasyonu Tam Ekran Yap"}
+          title={isCardFullscreen ? "Normal Ekrana Dön" : "Geniş Zen Odak Moduna Geç"}
         >
-          {isCardFullscreen ? <Shrink size={16} /> : <Expand size={16} />}
+          {isCardFullscreen ? <Shrink size={18} /> : <Expand size={18} />}
           <span>{isCardFullscreen ? 'Küçült' : 'Zen Odak'}</span>
         </button>
       </div>
 
-      {/* 2. Soru Çözümü için Ders Seçimi, Hedef & Soru Başı Dakika Bütçesi */}
-      {activeStudyMode === 'question' && (
+      {/* 2. MASAÜSTÜ GENİŞ 2 SÜTUNLU ANA İÇERİK IZGARASI */}
+      <div className={isFullscreenView ? "sr-zen-grid" : "sr-card-body-grid"}>
+
+        {/* ── SOL BÖLÜM: BÜYÜK SAYAÇ HALKASI + CANLI HIZ + ANA KONTROLLER ── */}
         <div style={{
-          background: themeObj.innerBg,
-          borderRadius: 16,
-          padding: '0.75rem 0.95rem',
-          border: `1.5px solid ${themeObj.border}`,
           display: 'flex',
           flexDirection: 'column',
-          gap: 10
-        }}>
-          {/* Üst Kısım: Ders Seçici & Geçmiş Ortalama Rozeti */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 8,
-            borderBottom: `1px dashed ${themeObj.border}`,
-            paddingBottom: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 180 }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <BookOpen size={14} style={{ color: currentSubjectObj.color }} /> Ders:
-              </span>
-              <select
-                value={selectedSubject}
-                onChange={e => handleSelectSubject(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: themeObj.cardBg,
-                  border: `1.5px solid ${themeObj.border}`,
-                  color: themeObj.text,
-                  borderRadius: 10,
-                  fontSize: '0.8rem',
-                  fontWeight: 900,
-                  padding: '0.35rem 0.55rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {STUDY_SUBJECTS.map(subj => {
-                  const st = subjectStats[subj.id];
-                  const hasData = st && st.totalQuestions > 0;
-                  const avgLabel = hasData ? ` (${formatSecToMinSec(Math.round(st.totalSeconds / st.totalQuestions))}/s)` : '';
-                  return (
-                    <option key={subj.id} value={subj.id}>
-                      {subj.icon} {subj.name} {avgLabel}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Seçili Dersin Kaydedilmiş Geçmiş Ortalaması */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              padding: '0.3rem 0.6rem',
-              borderRadius: 10,
-              background: currentSubjectStat ? 'rgba(99, 102, 241, 0.12)' : themeObj.cardBg,
-              color: currentSubjectStat ? '#6366f1' : themeObj.subText,
-              border: `1px solid ${currentSubjectStat ? 'rgba(99, 102, 241, 0.3)' : themeObj.border}`,
-              whiteSpace: 'nowrap'
-            }}>
-              <TrendingUp size={13} />
-              <span>
-                {currentSubjectStat && currentSubjectStat.totalQuestions > 0
-                  ? `Ortalama: ${formatSecToMinSec(currentSubjectAvgSec)} / soru (${currentSubjectStat.totalQuestions} soru)`
-                  : `Öneri: ${currentSubjectObj.defaultMinPerQ} dk / soru`}
-              </span>
-            </div>
-          </div>
-
-          {/* Alt Kısım: Hedef Soru Sayısı & Bütçe */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText }}>Hedef:</span>
-              <input
-                type="number"
-                min="1"
-                max="500"
-                value={targetGoalCount}
-                onChange={e => {
-                  const val = Math.max(1, Number(e.target.value) || 12);
-                  setTargetGoalCount(val);
-                  if (!isRunning) setTimeLeft(Math.round(val * minutesPerQuestion) * 60);
-                }}
-                style={{
-                  width: 52,
-                  padding: '0.25rem',
-                  borderRadius: 8,
-                  border: `1.5px solid ${themeObj.border}`,
-                  background: themeObj.cardBg,
-                  color: themeObj.text,
-                  fontSize: '0.85rem',
-                  fontWeight: 900,
-                  textAlign: 'center',
-                  outline: 'none'
-                }}
-              />
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.text }}>Soru</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 700 }}>Soru Başı Bütçe:</span>
-              <select
-                value={minutesPerQuestion}
-                onChange={e => {
-                  const val = Number(e.target.value);
-                  setMinutesPerQuestion(val);
-                  if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
-                }}
-                style={{
-                  background: themeObj.cardBg,
-                  border: `1px solid ${themeObj.border}`,
-                  color: themeObj.text,
-                  borderRadius: 8,
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  padding: '0.25rem 0.4rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value={0.8}>0.8 dk (48 sn)</option>
-                <option value={1.0}>1.0 dk / soru</option>
-                <option value={1.25}>1.25 dk (1 dk 15 sn)</option>
-                <option value={1.5}>1.5 dk (1 dk 30 sn)</option>
-                <option value={2.0}>2.0 dk / soru</option>
-                <option value={2.5}>2.5 dk (2 dk 30 sn)</option>
-                <option value={3.0}>3.0 dk / soru</option>
-              </select>
-
-              <span style={{
-                background: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb',
-                color: '#f59e0b',
-                fontSize: '0.72rem',
-                fontWeight: 900,
-                padding: '0.25rem 0.5rem',
-                borderRadius: 8,
-                border: '1px solid #fde68a',
-                whiteSpace: 'nowrap'
-              }}>
-                ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Kitap Okuma için Sayfa Kotası */}
-      {activeStudyMode === 'book' && (
-        <div style={{
+          alignItems: 'center',
+          justifyContent: 'center',
           background: themeObj.innerBg,
-          borderRadius: 14,
-          padding: '0.65rem 0.85rem',
+          borderRadius: 24,
+          padding: isFullscreenView ? '2rem 1.5rem' : '1.5rem 1.25rem',
           border: `1.5px solid ${themeObj.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+          position: 'relative'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText }}>Hedef Sayfa:</span>
-            <input
-              type="number"
-              min="1"
-              max="500"
-              value={targetGoalCount}
-              onChange={e => setTargetGoalCount(Math.max(1, Number(e.target.value) || 20))}
-              style={{
-                width: 52,
-                padding: '0.25rem',
-                borderRadius: 8,
-                border: `1.5px solid ${themeObj.border}`,
-                background: themeObj.cardBg,
-                color: themeObj.text,
-                fontSize: '0.85rem',
+          {/* SVG Timer Ring */}
+          <div style={{
+            position: 'relative',
+            width: isFullscreenView ? 300 : 250,
+            height: isFullscreenView ? 300 : 250,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width={isFullscreenView ? 300 : 250} height={isFullscreenView ? 300 : 250} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
+              <circle
+                cx={isFullscreenView ? 150 : 125}
+                cy={isFullscreenView ? 150 : 125}
+                r={isFullscreenView ? 132 : 108}
+                stroke={themeObj.isDark ? 'rgba(255,255,255,0.08)' : 'var(--color-border, #e2e8f0)'}
+                strokeWidth={isFullscreenView ? 13 : 10}
+                fill="transparent"
+              />
+              <circle
+                cx={isFullscreenView ? 150 : 125}
+                cy={isFullscreenView ? 150 : 125}
+                r={isFullscreenView ? 132 : 108}
+                stroke={activeStudyMode === 'question' ? '#f59e0b' : activeStudyMode === 'book' ? '#6366f1' : activeStudyMode === 'break' ? '#38bdf8' : '#10b981'}
+                strokeWidth={isFullscreenView ? 13 : 10}
+                fill="transparent"
+                strokeDasharray={2 * Math.PI * (isFullscreenView ? 132 : 108)}
+                strokeDashoffset={2 * Math.PI * (isFullscreenView ? 132 : 108) * (1 - progressPct / 100)}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+              />
+            </svg>
+
+            <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              {/* Büyüyen Ağaç Simgesi */}
+              <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '3rem' : '2.2rem', marginBottom: 2 }}>
+                {treeGrowthStage.icon}
+              </div>
+
+              <div className="sr-timer-digits" style={{
+                fontSize: isFullscreenView ? '4.5rem' : '3.4rem',
                 fontWeight: 900,
-                textAlign: 'center',
-                outline: 'none'
-              }}
-            />
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.text }}>Sayfa Okuma</span>
-          </div>
-          <span style={{ fontSize: '0.72rem', color: themeObj.accent, fontWeight: 800 }}>📖 Sayfa Takibi Aktif</span>
-        </div>
-      )}
+                letterSpacing: '-0.04em',
+                lineHeight: 1,
+                fontVariantNumeric: 'tabular-nums',
+                color: themeObj.text,
+                textShadow: themeObj.isDark ? `0 4px 24px ${themeObj.accent}99` : 'none'
+              }}>
+                {activeStudyMode === 'stopwatch' ? formatTime(stopwatchSeconds) : formatTime(timeLeft)}
+              </div>
 
-      {/* 3. MERKEZ SAYAÇ & BÜYÜYEN AĞAÇ & CANLI HEDEF DURUMU */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        position: 'relative',
-        padding: isFullscreenView ? '1.5rem 0' : '0.5rem 0'
-      }}>
-        {/* Circular SVG Progress Ring */}
-        <div style={{
-          position: 'relative',
-          width: isFullscreenView ? 280 : 220,
-          height: isFullscreenView ? 280 : 220,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <svg width={isFullscreenView ? 280 : 220} height={isFullscreenView ? 280 : 220} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
-            <circle
-              cx={isFullscreenView ? 140 : 110}
-              cy={isFullscreenView ? 140 : 110}
-              r={isFullscreenView ? 122 : 96}
-              stroke={themeObj.isDark ? 'rgba(255,255,255,0.08)' : 'var(--color-border, #e2e8f0)'}
-              strokeWidth={isFullscreenView ? 11 : 9}
-              fill="transparent"
-            />
-            <circle
-              cx={isFullscreenView ? 140 : 110}
-              cy={isFullscreenView ? 140 : 110}
-              r={isFullscreenView ? 122 : 96}
-              stroke={activeStudyMode === 'question' ? '#f59e0b' : activeStudyMode === 'book' ? '#6366f1' : activeStudyMode === 'break' ? '#38bdf8' : '#10b981'}
-              strokeWidth={isFullscreenView ? 11 : 9}
-              fill="transparent"
-              strokeDasharray={2 * Math.PI * (isFullscreenView ? 122 : 96)}
-              strokeDashoffset={2 * Math.PI * (isFullscreenView ? 122 : 96) * (1 - progressPct / 100)}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 0.8s ease' }}
-            />
-          </svg>
-
-          <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            {/* Büyüyen Ağaç Simgesi */}
-            <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '2.8rem' : '2rem', marginBottom: 2 }}>
-              {treeGrowthStage.icon}
-            </div>
-
-            <div className="sr-timer-digits" style={{
-              fontSize: isFullscreenView ? '3.8rem' : '3rem',
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              color: themeObj.text,
-              textShadow: themeObj.isDark ? `0 4px 20px ${themeObj.accent}88` : 'none'
-            }}>
-              {activeStudyMode === 'stopwatch' ? formatTime(stopwatchSeconds) : formatTime(timeLeft)}
-            </div>
-
-            {/* Soru / Sayfa Kotası Canlı Göstergesi */}
-            {(activeStudyMode === 'question' || activeStudyMode === 'book') ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginTop: 4 }}>
-                <div style={{
-                  fontSize: isFullscreenView ? '1rem' : '0.82rem',
-                  fontWeight: 900,
-                  color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  {activeStudyMode === 'question' && (
-                    <span style={{
-                      fontSize: '0.68rem',
-                      background: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7',
-                      color: '#d97706',
-                      padding: '1px 6px',
-                      borderRadius: 6,
-                      fontWeight: 800
-                    }}>
-                      {currentSubjectObj.icon} {currentSubjectObj.name.split(' ')[0]}
-                    </span>
-                  )}
-                  <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
-                  <span style={{ fontSize: isFullscreenView ? '0.85rem' : '0.72rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
-                </div>
-
-                {/* CANLI HIZ GÖSTERGESİ (Soru modu için) */}
-                {activeStudyMode === 'question' && currentProgressCount > 0 && (
+              {/* Soru / Sayfa Kotası Canlı Göstergesi */}
+              {(activeStudyMode === 'question' || activeStudyMode === 'book') ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: 6 }}>
                   <div style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    color: liveSessionSecPerQ <= minutesPerQuestion * 60 ? '#10b981' : '#f59e0b',
+                    fontSize: isFullscreenView ? '1.05rem' : '0.86rem',
+                    fontWeight: 900,
+                    color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 3,
-                    background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)',
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    marginTop: 1
+                    gap: 6
                   }}>
-                    <Gauge size={11} />
-                    <span>Canlı Hız: <strong>{formatSecToMinSec(liveSessionSecPerQ)}</strong> / soru</span>
+                    {activeStudyMode === 'question' && (
+                      <span style={{
+                        fontSize: '0.72rem',
+                        background: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7',
+                        color: '#d97706',
+                        padding: '2px 8px',
+                        borderRadius: 8,
+                        fontWeight: 900
+                      }}>
+                        {currentSubjectObj.icon} {currentSubjectObj.name.split(' ')[0]}
+                      </span>
+                    )}
+                    <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
+                    <span style={{ fontSize: '0.76rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                fontSize: isFullscreenView ? '0.85rem' : '0.72rem',
-                fontWeight: 800,
-                color: themeObj.subText,
-                marginTop: 4,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                {treeGrowthStage.label} · {treeGrowthStage.desc}
-              </div>
-            )}
+
+                  {/* CANLI HIZ GÖSTERGESİ */}
+                  {activeStudyMode === 'question' && currentProgressCount > 0 && (
+                    <div style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      color: liveSessionSecPerQ <= minutesPerQuestion * 60 ? '#10b981' : '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.1)',
+                      padding: '3px 10px',
+                      borderRadius: 99,
+                      marginTop: 2
+                    }}>
+                      <Gauge size={13} />
+                      <span>Canlı Hız: <strong>{formatSecToMinSec(liveSessionSecPerQ)}</strong> / soru</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  fontSize: isFullscreenView ? '0.9rem' : '0.75rem',
+                  fontWeight: 800,
+                  color: themeObj.subText,
+                  marginTop: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  {treeGrowthStage.label} · {treeGrowthStage.desc}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* 4. ANA KONTROLLER (BAŞLAT / DURAKLAT / SIFIRLA / AYARLAR) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <button
-          onClick={resetTimer}
-          title="Sıfırla"
-          style={{
-            width: isFullscreenView ? 52 : 46,
-            height: isFullscreenView ? 52 : 46,
-            borderRadius: 14,
-            background: themeObj.buttonBg,
-            border: `1.5px solid ${themeObj.border}`,
-            color: themeObj.text,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-        >
-          <RotateCcw size={isFullscreenView ? 22 : 18} />
-        </button>
-
-        <button
-          onClick={() => setIsRunning(!isRunning)}
-          className="sr-action-btn-main"
-          style={{
-            padding: isFullscreenView ? '1rem 3rem' : '0.85rem 2.4rem',
-            borderRadius: 18,
-            background: isRunning ? '#ef4444' : (activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)'),
-            border: 'none',
-            color: 'white',
-            fontWeight: 900,
-            fontSize: isFullscreenView ? '1.15rem' : '1rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: `0 6px 20px ${isRunning ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.35)'}`
-          }}
-        >
-          {isRunning ? <><Pause size={isFullscreenView ? 24 : 20} fill="white" /> Duraklat</> : <><Play size={isFullscreenView ? 24 : 20} fill="white" /> Başlat</>}
-        </button>
-
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          title="Ayarlar"
-          style={{
-            width: isFullscreenView ? 52 : 46,
-            height: isFullscreenView ? 52 : 46,
-            borderRadius: 14,
-            background: showSettings ? themeObj.accent : themeObj.buttonBg,
-            border: `1.5px solid ${themeObj.border}`,
-            color: showSettings ? 'white' : themeObj.text,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-        >
-          <Settings2 size={isFullscreenView ? 22 : 18} />
-        </button>
-      </div>
-
-      {/* 5. HIZLI SORU / SAYFA BUTONLARI (+1, -1) */}
-      {(activeStudyMode === 'question' || activeStudyMode === 'book') && (
-        <div style={{
-          background: themeObj.innerBg,
-          borderRadius: 16,
-          padding: '0.85rem',
-          border: `1.5px solid ${themeObj.border}`,
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr',
-          gap: 8,
-          alignItems: 'center'
-        }}>
-          <button
-            onClick={() => handleIncrementProgress(-1)}
-            style={{
-              padding: isFullscreenView ? '0.85rem 1.4rem' : '0.65rem 1rem',
-              borderRadius: 12,
-              background: themeObj.buttonBg,
-              border: `1px solid ${themeObj.border}`,
-              color: themeObj.text,
-              fontWeight: 900,
-              fontSize: isFullscreenView ? '1.05rem' : '0.9rem',
-              cursor: 'pointer'
-            }}
-            title="1 Azalt"
-          >
-            -1
-          </button>
-
-          <button
-            onClick={() => handleIncrementProgress(1)}
-            className="sr-action-btn-main"
-            style={{
-              padding: isFullscreenView ? '0.9rem 1.5rem' : '0.7rem 1.2rem',
-              borderRadius: 12,
-              background: activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              border: 'none',
-              color: 'white',
-              fontWeight: 900,
-              fontSize: isFullscreenView ? '1.1rem' : '0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
-            }}
-          >
-            <Plus size={isFullscreenView ? 24 : 20} strokeWidth={3} />
-            <span>{activeStudyMode === 'question' ? '+1 Soru Çözdüm 🎯' : '+1 Sayfa Okudum 📖'}</span>
-          </button>
-        </div>
-      )}
-
-      {/* 6. HIZLI BİTİRİP MOLAYA GEÇİŞ AKSİYONU */}
-      {activeStudyMode === 'question' && (
-        <div>
-          {currentProgressCount > 0 ? (
+          {/* Ana Kontroller (Başlat / Duraklat / Sıfırla / Ayarlar) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
             <button
-              onClick={handleFinishEarlyAndRewardBreak}
-              className="sr-action-btn-main"
+              onClick={resetTimer}
+              title="Sıfırla"
               style={{
-                width: '100%',
-                padding: isFullscreenView ? '0.95rem 1.2rem' : '0.75rem 1rem',
-                borderRadius: 14,
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: 'white',
-                border: 'none',
-                fontWeight: 900,
-                fontSize: isFullscreenView ? '1rem' : '0.86rem',
+                width: isFullscreenView ? 54 : 46,
+                height: isFullscreenView ? 54 : 46,
+                borderRadius: 16,
+                background: themeObj.buttonBg,
+                border: `1.5px solid ${themeObj.border}`,
+                color: themeObj.text,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)'
+                transition: 'all 0.2s'
               }}
             >
-              <Zap size={20} fill="white" />
-              <span>Testi Bitir & Kazandığın Molaya Geç! 🏖️</span>
+              <RotateCcw size={isFullscreenView ? 22 : 18} />
             </button>
-          ) : (
+
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className="sr-action-btn-main"
+              style={{
+                padding: isFullscreenView ? '1.1rem 3.2rem' : '0.9rem 2.5rem',
+                borderRadius: 20,
+                background: isRunning ? '#ef4444' : (activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)'),
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: isFullscreenView ? '1.2rem' : '1.05rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                boxShadow: `0 8px 25px ${isRunning ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.4)'}`
+              }}
+            >
+              {isRunning ? <><Pause size={isFullscreenView ? 24 : 20} fill="white" /> Duraklat</> : <><Play size={isFullscreenView ? 24 : 20} fill="white" /> Başlat</>}
+            </button>
+
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              title="Ayarlar"
+              style={{
+                width: isFullscreenView ? 54 : 46,
+                height: isFullscreenView ? 54 : 46,
+                borderRadius: 16,
+                background: showSettings ? themeObj.accent : themeObj.buttonBg,
+                border: `1.5px solid ${themeObj.border}`,
+                color: showSettings ? 'white' : themeObj.text,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Settings2 size={isFullscreenView ? 22 : 18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── SAĞ BÖLÜM: DERS SEÇİMİ + HEDEF AYARLARI + HIZLI SORU BUTONLARI + AYARLAR ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Soru Çözümü için Ders Seçimi, Hedef & Soru Başı Dakika Bütçesi */}
+          {activeStudyMode === 'question' && (
             <div style={{
-              fontSize: '0.72rem',
-              color: themeObj.subText,
-              fontWeight: 700,
-              textAlign: 'center',
+              background: themeObj.innerBg,
+              borderRadius: 20,
+              padding: isFullscreenView ? '1.1rem 1.25rem' : '0.95rem 1.1rem',
+              border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4
+              flexDirection: 'column',
+              gap: 12
             }}>
-              <Zap size={14} color="#f59e0b" />
-              <span>{calculatedQuestionBudgetMinutes} dakikadan önce bitirirsen, artan her dakika molana eklenir!</span>
+              {/* Ders Seçici & Geçmiş Ortalama Rozeti */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+                borderBottom: `1px dashed ${themeObj.border}`,
+                paddingBottom: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 180 }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <BookOpen size={16} style={{ color: currentSubjectObj.color }} /> Ders Seçimi:
+                  </span>
+                  <select
+                    value={selectedSubject}
+                    onChange={e => handleSelectSubject(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: themeObj.cardBg,
+                      border: `1.5px solid ${themeObj.border}`,
+                      color: themeObj.text,
+                      borderRadius: 12,
+                      fontSize: '0.86rem',
+                      fontWeight: 900,
+                      padding: '0.45rem 0.75rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {STUDY_SUBJECTS.map(subj => {
+                      const st = subjectStats[subj.id];
+                      const hasData = st && st.totalQuestions > 0;
+                      const avgLabel = hasData ? ` (${formatSecToMinSec(Math.round(st.totalSeconds / st.totalQuestions))}/s)` : '';
+                      return (
+                        <option key={subj.id} value={subj.id}>
+                          {subj.icon} {subj.name} {avgLabel}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Seçili Dersin Kaydedilmiş Geçmiş Ortalaması */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  padding: '0.35rem 0.7rem',
+                  borderRadius: 10,
+                  background: currentSubjectStat ? 'rgba(99, 102, 241, 0.14)' : themeObj.cardBg,
+                  color: currentSubjectStat ? '#6366f1' : themeObj.subText,
+                  border: `1px solid ${currentSubjectStat ? 'rgba(99, 102, 241, 0.3)' : themeObj.border}`,
+                  whiteSpace: 'nowrap'
+                }}>
+                  <TrendingUp size={14} />
+                  <span>
+                    {currentSubjectStat && currentSubjectStat.totalQuestions > 0
+                      ? `Ortalama: ${formatSecToMinSec(currentSubjectAvgSec)} / soru (${currentSubjectStat.totalQuestions} soru)`
+                      : `Öneri: ${currentSubjectObj.defaultMinPerQ} dk / soru`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Hedef Soru Sayısı & Soru Başı Bütçe */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.subText }}>Hedef:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={targetGoalCount}
+                    onChange={e => {
+                      const val = Math.max(1, Number(e.target.value) || 12);
+                      setTargetGoalCount(val);
+                      if (!isRunning) setTimeLeft(Math.round(val * minutesPerQuestion) * 60);
+                    }}
+                    style={{
+                      width: 60,
+                      padding: '0.4rem',
+                      borderRadius: 10,
+                      border: `1.5px solid ${themeObj.border}`,
+                      background: themeObj.cardBg,
+                      color: themeObj.text,
+                      fontSize: '0.95rem',
+                      fontWeight: 900,
+                      textAlign: 'center',
+                      outline: 'none'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>Soru</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.76rem', color: themeObj.subText, fontWeight: 800 }}>Soru Başı:</span>
+                  <select
+                    value={minutesPerQuestion}
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setMinutesPerQuestion(val);
+                      if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
+                    }}
+                    style={{
+                      background: themeObj.cardBg,
+                      border: `1px solid ${themeObj.border}`,
+                      color: themeObj.text,
+                      borderRadius: 10,
+                      fontSize: '0.78rem',
+                      fontWeight: 900,
+                      padding: '0.35rem 0.55rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value={0.8}>0.8 dk (48 sn)</option>
+                    <option value={1.0}>1.0 dk / soru</option>
+                    <option value={1.25}>1.25 dk (1 dk 15 sn)</option>
+                    <option value={1.5}>1.5 dk (1 dk 30 sn)</option>
+                    <option value={2.0}>2.0 dk / soru</option>
+                    <option value={2.5}>2.5 dk (2 dk 30 sn)</option>
+                    <option value={3.0}>3.0 dk / soru</option>
+                  </select>
+
+                  <span style={{
+                    background: isDark ? 'rgba(245, 158, 11, 0.22)' : '#fffbeb',
+                    color: '#f59e0b',
+                    fontSize: '0.78rem',
+                    fontWeight: 900,
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: 10,
+                    border: '1px solid #fde68a',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
+                  </span>
+                </div>
+              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Ayarlar Açılır Paneli (Tek Mola & Odak Senkronizasyonu) */}
-      {showSettings && (
-        <div style={{
-          background: themeObj.innerBg,
-          padding: '1rem',
-          borderRadius: 18,
-          border: `1.5px solid ${themeObj.border}`,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          boxShadow: '0 4px 14px rgba(0,0,0,0.05)'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
-              <span style={{ fontSize: '0.62rem', color: '#6366f1', fontWeight: 800 }}>Otomatik Eşitlenir</span>
+          {/* Kitap Okuma için Sayfa Kotası */}
+          {activeStudyMode === 'book' && (
+            <div style={{
+              background: themeObj.innerBg,
+              borderRadius: 20,
+              padding: '1rem 1.25rem',
+              border: `1.5px solid ${themeObj.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.subText }}>Hedef Sayfa:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={targetGoalCount}
+                  onChange={e => setTargetGoalCount(Math.max(1, Number(e.target.value) || 20))}
+                  style={{
+                    width: 60,
+                    padding: '0.4rem',
+                    borderRadius: 10,
+                    border: `1.5px solid ${themeObj.border}`,
+                    background: themeObj.cardBg,
+                    color: themeObj.text,
+                    fontSize: '0.95rem',
+                    fontWeight: 900,
+                    textAlign: 'center',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>Sayfa Okuma</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: themeObj.accent, fontWeight: 900 }}>📖 Sayfa Takibi Aktif</span>
             </div>
-            <input
-              type="number"
-              min="1"
-              max="180"
-              value={durations.pomodoro || calculatedQuestionBudgetMinutes}
-              onChange={e => {
-                const val = Math.max(1, Number(e.target.value) || 25);
-                setDurations(p => ({ ...p, pomodoro: val }));
-                const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
-                setTargetGoalCount(newGoal);
-                if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
-                  setTimeLeft(val * 60);
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '0.45rem',
-                borderRadius: 10,
-                border: `1.5px solid ${themeObj.border}`,
-                background: themeObj.cardBg,
-                color: themeObj.text,
-                fontWeight: 900,
-                fontSize: '0.85rem',
-                textAlign: 'center',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ fontSize: '0.62rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
-              ⚡ Soru sayısına göre eşitlenir: {targetGoalCount} soru × {minutesPerQuestion} dk = {calculatedQuestionBudgetMinutes} dk
+          )}
+
+          {/* Hızlı Soru / Sayfa Butonları (+1, -1) */}
+          {(activeStudyMode === 'question' || activeStudyMode === 'book') && (
+            <div style={{
+              background: themeObj.innerBg,
+              borderRadius: 20,
+              padding: '1rem',
+              border: `1.5px solid ${themeObj.border}`,
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr',
+              gap: 10,
+              alignItems: 'center'
+            }}>
+              <button
+                onClick={() => handleIncrementProgress(-1)}
+                style={{
+                  padding: isFullscreenView ? '1rem 1.6rem' : '0.85rem 1.25rem',
+                  borderRadius: 14,
+                  background: themeObj.buttonBg,
+                  border: `1.5px solid ${themeObj.border}`,
+                  color: themeObj.text,
+                  fontWeight: 900,
+                  fontSize: isFullscreenView ? '1.15rem' : '1rem',
+                  cursor: 'pointer'
+                }}
+                title="1 Azalt"
+              >
+                -1
+              </button>
+
+              <button
+                onClick={() => handleIncrementProgress(1)}
+                className="sr-action-btn-main"
+                style={{
+                  padding: isFullscreenView ? '1.1rem 1.75rem' : '0.95rem 1.4rem',
+                  borderRadius: 14,
+                  background: activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: isFullscreenView ? '1.18rem' : '1.05rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.18)'
+                }}
+              >
+                <Plus size={isFullscreenView ? 26 : 22} strokeWidth={3} />
+                <span>{activeStudyMode === 'question' ? `+1 ${currentSubjectObj.name.split(' ')[0]} Sorusu Çözdüm 🎯` : '+1 Sayfa Okudum 📖'}</span>
+              </button>
             </div>
+          )}
+
+          {/* Testi Bitir & Kazandığın Molaya Geç Butonu */}
+          {activeStudyMode === 'question' && (
+            <div>
+              {currentProgressCount > 0 ? (
+                <button
+                  onClick={handleFinishEarlyAndRewardBreak}
+                  className="sr-action-btn-main"
+                  style={{
+                    width: '100%',
+                    padding: isFullscreenView ? '1.1rem 1.4rem' : '0.95rem 1.2rem',
+                    borderRadius: 18,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 900,
+                    fontSize: isFullscreenView ? '1.1rem' : '0.96rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  <Zap size={22} fill="white" />
+                  <span>Testi Bitir & Molaya Geç ({currentProgressCount} Soru · {liveSessionSecPerQ > 0 ? `${formatSecToMinSec(liveSessionSecPerQ)}/s` : 'Hızlı Bitirme'}) 🏖️</span>
+                </button>
+              ) : (
+                <div style={{
+                  fontSize: '0.76rem',
+                  color: themeObj.subText,
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '0.4rem 0'
+                }}>
+                  <Zap size={15} color="#f59e0b" />
+                  <span>{calculatedQuestionBudgetMinutes} dakikadan önce bitirirsen, artan tüm dakikalar molana eklenir!</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ayarlar Açılır Paneli (Tek Mola & Odak Senkronizasyonu) */}
+          {showSettings && (
+            <div style={{
+              background: themeObj.innerBg,
+              padding: '1.25rem',
+              borderRadius: 20,
+              border: `1.5px solid ${themeObj.border}`,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 14,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
+                  <span style={{ fontSize: '0.64rem', color: '#6366f1', fontWeight: 800 }}>Otomatik Eşitlenir</span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={durations.pomodoro || calculatedQuestionBudgetMinutes}
+                  onChange={e => {
+                    const val = Math.max(1, Number(e.target.value) || 25);
+                    setDurations(p => ({ ...p, pomodoro: val }));
+                    const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
+                    setTargetGoalCount(newGoal);
+                    if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
+                      setTimeLeft(val * 60);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem',
+                    borderRadius: 12,
+                    border: `1.5px solid ${themeObj.border}`,
+                    background: themeObj.cardBg,
+                    color: themeObj.text,
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    textAlign: 'center',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{ fontSize: '0.64rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+                  ⚡ Soru sayısına göre: {targetGoalCount} soru × {minutesPerQuestion} dk = {calculatedQuestionBudgetMinutes} dk
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.text }}>☕ Mola Süresi (dk)</label>
+                  <span style={{ fontSize: '0.64rem', color: '#10b981', fontWeight: 800 }}>Tek Mola</span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="90"
+                  value={durations.shortBreak || 10}
+                  onChange={e => {
+                    const val = Math.max(1, Number(e.target.value) || 10);
+                    setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
+                    if (!isRunning && activeStudyMode === 'break') {
+                      setTimeLeft(val * 60);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem',
+                    borderRadius: 12,
+                    border: `1.5px solid ${themeObj.border}`,
+                    background: themeObj.cardBg,
+                    color: themeObj.text,
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    textAlign: 'center',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{ fontSize: '0.64rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+                  🏖️ Erken bitirilen seansların artan dakikaları bu molaya otomatik eklenir.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pomodoro Döngü Noktaları */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0.4rem 0' }}>
+            {[0, 1, 2, 3].map(i => {
+              const isDone = completedCycles > i;
+              const isCurrent = completedCycles === i && activeStudyMode !== 'break';
+              return (
+                <div
+                  key={i}
+                  title={`${i + 1}. Seans`}
+                  style={{
+                    width: 13,
+                    height: 13,
+                    borderRadius: 99,
+                    background: isDone ? '#10b981' : isCurrent ? themeObj.accent : (themeObj.isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1'),
+                    border: isCurrent ? `2px solid ${themeObj.text}` : 'none',
+                    boxShadow: isDone ? '0 0 8px #10b981' : isCurrent ? `0 0 8px ${themeObj.accent}` : 'none',
+                    transition: 'all 0.3s'
+                  }}
+                />
+              );
+            })}
+            <span style={{ fontSize: '0.74rem', color: themeObj.subText, fontWeight: 800, marginLeft: 4 }}>
+              Döngü {Math.floor(completedCycles / 4) + 1}
+            </span>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 900, color: themeObj.text }}>☕ Mola Süresi (dk)</label>
-              <span style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 800 }}>Tek Mola</span>
-            </div>
-            <input
-              type="number"
-              min="1"
-              max="90"
-              value={durations.shortBreak || 10}
-              onChange={e => {
-                const val = Math.max(1, Number(e.target.value) || 10);
-                setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
-                if (!isRunning && activeStudyMode === 'break') {
-                  setTimeLeft(val * 60);
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '0.45rem',
-                borderRadius: 10,
-                border: `1.5px solid ${themeObj.border}`,
-                background: themeObj.cardBg,
-                color: themeObj.text,
-                fontWeight: 900,
-                fontSize: '0.85rem',
-                textAlign: 'center',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ fontSize: '0.62rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
-              🏖️ Erken bitirilen seansların artan dakikaları bu molaya otomatik eklenir.
-            </div>
-          </div>
         </div>
-      )}
-
-      {/* Pomodoro Döngü Noktaları */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        {[0, 1, 2, 3].map(i => {
-          const isDone = completedCycles > i;
-          const isCurrent = completedCycles === i && activeStudyMode !== 'break';
-          return (
-            <div
-              key={i}
-              title={`${i + 1}. Seans`}
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 99,
-                background: isDone ? '#10b981' : isCurrent ? themeObj.accent : (themeObj.isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1'),
-                border: isCurrent ? `2px solid ${themeObj.text}` : 'none',
-                boxShadow: isDone ? '0 0 8px #10b981' : isCurrent ? `0 0 8px ${themeObj.accent}` : 'none',
-                transition: 'all 0.3s'
-              }}
-            />
-          );
-        })}
-        <span style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 700, marginLeft: 4 }}>
-          Döngü {Math.floor(completedCycles / 4) + 1}
-        </span>
       </div>
     </div>
   );
@@ -1664,8 +1677,33 @@ export default function StudyRoomPage() {
       <style>{`
         .sr-main-grid {
           display: grid;
-          grid-template-columns: 1.25fr 1fr;
+          grid-template-columns: 1.45fr 1fr;
+          gap: 1.5rem;
+        }
+        .sr-card-body-grid {
+          display: grid;
+          grid-template-columns: 1fr;
           gap: 1.25rem;
+        }
+        @media (min-width: 1080px) {
+          .sr-card-body-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.12fr;
+            gap: 1.5rem;
+            align-items: start;
+          }
+        }
+        .sr-zen-grid {
+          display: grid;
+          grid-template-columns: 1fr 1.22fr;
+          gap: 2.25rem;
+          align-items: start;
+        }
+        @media (max-width: 920px) {
+          .sr-zen-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.25rem !important;
+          }
         }
         .sr-theme-btn {
           transition: all 0.15s ease;
@@ -1677,14 +1715,14 @@ export default function StudyRoomPage() {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .sr-card:hover {
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09);
         }
         .sr-tree-pulse {
           animation: treePulse 2.5s infinite ease-in-out;
         }
         @keyframes treePulse {
           0% { transform: scale(1); }
-          50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.45)); }
+          50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(52, 211, 153, 0.5)); }
           100% { transform: scale(1); }
         }
         .sr-flame-glow {
@@ -1848,27 +1886,27 @@ export default function StudyRoomPage() {
       {/* ─── MAIN CONTENT ─── */}
       <div style={{
         flex: 1,
-        maxWidth: 1200,
+        maxWidth: 1440,
         margin: '0 auto',
         width: '100%',
-        padding: '1.25rem',
+        padding: '1.5rem 1.75rem',
         boxSizing: 'border-box'
       }}>
         <div className="sr-main-grid">
 
           {/* ─── LEFT COLUMN: 🌟 BİRLEŞİK ODAK & HEDEF İSTASYONU (MASTER CARD) ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
             {/* MASTER CARD: SAYAÇ + HEDEF TAKİPÇİSİ BİRLEŞİK */}
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
-              borderRadius: 28,
+              borderRadius: 30,
               border: `1.5px solid ${themeObj.border}`,
-              padding: '1.5rem',
+              padding: '1.75rem 2rem',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: themeObj.isDark ? '0 20px 50px rgba(0,0,0,0.3)' : '0 4px 20px -2px rgba(0,0,0,0.04)',
+              boxShadow: themeObj.isDark ? '0 20px 50px rgba(0,0,0,0.3)' : '0 6px 25px -2px rgba(0,0,0,0.05)',
               position: 'relative',
               overflow: 'hidden'
             }}>
@@ -2623,10 +2661,10 @@ export default function StudyRoomPage() {
             background: themeObj.cardBg,
             borderRadius: 32,
             border: `1.5px solid ${themeObj.border}`,
-            padding: '2rem 2.2rem',
-            maxWidth: 620,
+            padding: '2.5rem 2.8rem',
+            maxWidth: 1060,
             width: '100%',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
             marginTop: '2.5rem'
           }}>
             {renderMasterStationContent(true)}
