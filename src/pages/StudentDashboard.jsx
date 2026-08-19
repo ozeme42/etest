@@ -2180,8 +2180,9 @@ export default function StudentDashboard() {
                         className="hw-row"
                         style={{
                           background: 'var(--color-surface)',
-                          borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
-                          border: '1px solid var(--color-border)',
+                          borderTop: '1px solid var(--color-border)',
+                          borderRight: '1px solid var(--color-border)',
+                          borderBottom: '1px solid var(--color-border)',
                           borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
                           borderRadius: 12,
                           padding: '1rem 1.2rem 1rem 1.1rem',
