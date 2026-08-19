@@ -1456,6 +1456,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   }, [isReviewMode, onAutoSave, sections, test]);
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+  const [activeImageQIdx, setActiveImageQIdx] = useState(0);
+
+  useEffect(() => {
+    setActiveImageQIdx(0);
+  }, [activeSecIdx]);
 
   const totalQuestionsCount = useMemo(() => {
     return sections.reduce((sum, s) => sum + s.qCount, 0);
@@ -2238,7 +2243,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onNextSection={() => { setActiveSecIdx(p => Math.min(sections.length - 1, p + 1)); setActiveImageQIdx(0); }}
                 onSubmit={handleSubmit}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
@@ -2246,7 +2251,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
           />
         ) : isImage ? (
-          /* IMAGE SET VIEWER (DARK THEME & SINGLE LINE ABCDE BUTTONS) */
+          /* IMAGE SET VIEWER (ONE-BY-ONE SEQUENTIAL DISPLAY WITH QUESTION CHIPS) */
           <QuizPanelLayout
             panelTitle="Optik Form"
             panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
@@ -2257,17 +2262,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             documentContent={
               <>
                 <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
-                <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+                <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#f8fafc', overflowY: 'auto', padding: isMobile ? '1rem' : '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
+                  
                   {/* SECTION BANNER */}
-                  <div style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(2,132,199,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '1.25rem', padding: isMobile ? '1rem 1.25rem' : '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(2,132,199,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
                         🖼️
                       </div>
                       <div>
-                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
-                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                          Görsel Soru Seti — Aşağıdaki soruları inceleyip şıkları işaretleyiniz.
+                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.95rem' : '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                          Görsel Soru Seti ({effectiveQCount} Soru) — Soru {activeImageQIdx + 1} / {effectiveQCount}
                         </p>
                       </div>
                     </div>
@@ -2276,8 +2282,62 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     </div>
                   </div>
 
-                  {/* QUESTION CARDS IN LIGHT PASTEL THEME */}
-                  {Array.from({ length: effectiveQCount }).map((_, idx) => {
+                  {/* QUESTION QUICK-JUMP PALETTE (CHIPS) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', background: '#ffffff', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginRight: '0.25rem' }}>Sorular:</span>
+                    {Array.from({ length: effectiveQCount }).map((_, qIdx) => {
+                      const qNum = qIdx + 1;
+                      const isCurrent = qIdx === activeImageQIdx;
+                      const userAns = activeSecState.answers?.[qNum];
+                      const hasAns = userAns !== undefined && userAns !== null;
+                      const txt = activeSecState.openEndedText?.[qNum];
+                      const isDone = hasAns || Boolean(txt);
+
+                      let chipBg = '#f1f5f9';
+                      let chipColor = '#475569';
+                      let chipBorder = '1px solid #cbd5e1';
+
+                      if (isCurrent) {
+                        chipBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
+                        chipColor = '#ffffff';
+                        chipBorder = 'none';
+                      } else if (isDone) {
+                        chipBg = '#ecfdf5';
+                        chipColor = '#059669';
+                        chipBorder = '1.5px solid #a7f3d0';
+                      }
+
+                      return (
+                        <button
+                          key={qNum}
+                          onClick={() => setActiveImageQIdx(qIdx)}
+                          style={{
+                            minWidth: '34px',
+                            height: '34px',
+                            padding: '0 0.45rem',
+                            borderRadius: '0.55rem',
+                            background: chipBg,
+                            color: chipColor,
+                            border: chipBorder,
+                            fontWeight: 900,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: isCurrent ? '0 4px 10px rgba(2,132,199,0.3)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {isDone && !isCurrent ? '✓ ' : ''}{qNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* ACTIVE QUESTION CARD */}
+                  {(() => {
+                    const idx = Math.min(Math.max(0, activeImageQIdx), Math.max(0, effectiveQCount - 1));
                     const qNo = idx + 1;
                     const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
                     const isQOpenEnded = secOE || checkIsOE(qObj);
@@ -2296,7 +2356,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
                     const textVal = activeSecState.openEndedText?.[qNo] || '';
 
-                    // Review mode: resolve correctAnswer from multiple sources
                     let correctAns = userAnsObj?.correctAnswer;
                     if ((correctAns === undefined || correctAns === null) && qObj.correctAnswer !== undefined) correctAns = qObj.correctAnswer;
                     if ((correctAns === undefined || correctAns === null) && qObj.correctAnswerLetter) {
@@ -2322,22 +2381,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       : null;
 
                     return (
-                      <div key={qNo} style={{
+                      <div style={{
                         background: '#ffffff',
-                        borderRadius: '1.1rem',
+                        borderRadius: '1.25rem',
                         border: isReviewMode && isQAnswered ? `1.5px solid ${isQCorrect ? '#bbf7d0' : '#fecaca'}` : '1.5px solid #e2e8f0',
-                        padding: '1.5rem',
+                        padding: isMobile ? '1rem' : '1.5rem',
                         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '1rem'
+                        gap: '1.25rem'
                       }}>
                         
                         {/* QUESTION HEADER */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ padding: '0.3rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                              SORU {qNo}
+                            <span style={{ padding: '0.35rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.9rem' }}>
+                              SORU {qNo} / {effectiveQCount}
                             </span>
                             {isQOpenEnded && (
                               <span style={{ padding: '0.2rem 0.6rem', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
@@ -2351,16 +2410,16 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
                             ) : isQAnswered ? (
                               isQCorrect
-                                ? <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 900 }}>✓ DOĞRU</span>
-                                : <span style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 900 }}>✗ YANLIŞ</span>
+                                ? <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900 }}>✓ DOĞRU</span>
+                                : <span style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 900 }}>✗ YANLIŞ</span>
                             ) : (
                               <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— BOŞ</span>
                             )
                           ) : (
                             isQAnswered || textVal ? (
-                              <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 900 }}>✓ Cevaplandı</span>
+                              <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900 }}>✓ Cevaplandı</span>
                             ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                              <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
                             )
                           )}
                         </div>
@@ -2370,7 +2429,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                           <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} onOpenFullscreen={() => setLightboxSrc(url)} />
                         ))}
 
-                        {/* SINGLE LINE HORIZONTAL ABCDE BUTTONS */}
+                        {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
                         {!isQOpenEnded ? (
                           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                             {(() => {
@@ -2388,46 +2447,46 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                               return optList.map((opt, optIdx) => {
                                 const isSelected = selectedOpt === optIdx;
-                              const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
+                                const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
 
-                              let bg = '#ffffff';
-                              let border = '1px solid #cbd5e1';
-                              let color = '#334155';
+                                let bg = '#ffffff';
+                                let border = '1.5px solid #cbd5e1';
+                                let color = '#334155';
 
-                              if (isReviewMode) {
-                                if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
-                                else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
-                                else if (isCorrectOpt) { bg = '#f0fdf4'; border = '1.5px solid #16a34a'; color = '#16a34a'; }
-                              } else if (isSelected) {
-                                bg = '#059669';
-                                border = 'none'; color = 'white';
-                              }
+                                if (isReviewMode) {
+                                  if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
+                                  else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
+                                  else if (isCorrectOpt) { bg = '#f0fdf4'; border = '1.5px solid #16a34a'; color = '#16a34a'; }
+                                } else if (isSelected) {
+                                  bg = '#059669';
+                                  border = 'none'; color = 'white';
+                                }
 
-                              return (
-                                <button
-                                  key={opt}
-                                  onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
-                                  disabled={isReviewMode}
-                                  style={{
-                                    flex: 1,
-                                    height: '42px',
-                                    borderRadius: '0.65rem',
-                                    border,
-                                    background: bg,
-                                    color,
-                                    fontWeight: 900,
-                                    fontSize: '1rem',
-                                    cursor: isReviewMode ? 'default' : 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.25)' : 'none'
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              );
+                                return (
+                                  <button
+                                    key={opt}
+                                    onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                                    disabled={isReviewMode}
+                                    style={{
+                                      flex: 1,
+                                      height: '46px',
+                                      borderRadius: '0.75rem',
+                                      border,
+                                      background: bg,
+                                      color,
+                                      fontWeight: 900,
+                                      fontSize: '1.05rem',
+                                      cursor: isReviewMode ? 'default' : 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.25)' : 'none'
+                                    }}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
                               });
                             })()}
                           </div>
@@ -2458,21 +2517,51 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         )}
                       </div>
                     );
-                  })}
+                  })()}
 
-                  {/* BOTTOM SECTION NAV BUTTONS */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <button
-                      onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
-                      disabled={activeSecIdx === 0}
-                      style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff', border: '1.5px solid #cbd5e1', color: activeSecIdx === 0 ? '#94a3b8' : '#334155', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                      <ChevronLeft size={18} /> Önceki Bölüm
-                    </button>
-
-                    {activeSecIdx < sections.length - 1 ? (
+                  {/* BOTTOM STEP NAVIGATION BUTTONS */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    {/* PREVIOUS BUTTON */}
+                    {activeImageQIdx > 0 ? (
                       <button
-                        onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                        onClick={() => setActiveImageQIdx(p => Math.max(0, p - 1))}
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
+                      >
+                        <ChevronLeft size={18} /> Önceki Soru
+                      </button>
+                    ) : activeSecIdx > 0 ? (
+                      <button
+                        onClick={() => {
+                          setActiveSecIdx(p => Math.max(0, p - 1));
+                          setActiveImageQIdx(0);
+                        }}
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
+                      >
+                        <ChevronLeft size={18} /> Önceki Bölüm
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: '#f1f5f9', border: '1.5px solid #cbd5e1', color: '#94a3b8', fontWeight: 900, fontSize: '0.9rem', cursor: 'default', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        <ChevronLeft size={18} /> Önceki Soru
+                      </button>
+                    )}
+
+                    {/* NEXT / FINISH BUTTON */}
+                    {activeImageQIdx < effectiveQCount - 1 ? (
+                      <button
+                        onClick={() => setActiveImageQIdx(p => Math.min(effectiveQCount - 1, p + 1))}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #0284c7, #0369a1)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(2,132,199,0.35)' }}
+                      >
+                        Sonraki Soru <ChevronRight size={18} />
+                      </button>
+                    ) : activeSecIdx < sections.length - 1 ? (
+                      <button
+                        onClick={() => {
+                          setActiveSecIdx(p => Math.min(sections.length - 1, p + 1));
+                          setActiveImageQIdx(0);
+                        }}
                         style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
                       >
                         Sonraki Bölüm <ChevronRight size={18} />
@@ -2506,11 +2595,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
                 onOptionSelect={(qNo, optIdx) => {
+                  setActiveImageQIdx(qNo - 1);
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
                 }}
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onNextSection={() => { setActiveSecIdx(p => Math.min(sections.length - 1, p + 1)); setActiveImageQIdx(0); }}
                 onSubmit={handleSubmit}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
