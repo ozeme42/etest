@@ -3,12 +3,14 @@ import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useCurriculum } from '../../../context/CurriculumContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useAuth } from '../../../context/AuthContext';
 import { resolveTestQuestions, extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil, Eye, ArrowLeft } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil, Eye, ArrowLeft, Save } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -338,7 +340,11 @@ function RightOptikPanel({
   onSubmit,
   activeSecIdx,
   totalSections,
-  isReviewMode = false
+  isReviewMode = false,
+  teacherScores = {},
+  onScoreChange,
+  teacherNotes = {},
+  onNoteChange
 }) {
   const isLastSec = activeSecIdx === totalSections - 1;
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -441,6 +447,10 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
             isCorrect = userAnsObj.isCorrect;
           }
 
+          const teacherSc = teacherScores?.[qNo];
+          const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
+          const currentTeacherScore = hasTeacherGraded ? teacherSc : (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined));
+
           return (
             <div
               key={qNo}
@@ -449,7 +459,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
                 borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
-                  ? (isCorrect === true ? '1.5px solid #86efac' : isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
@@ -481,8 +491,14 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
                 <div>
                   {isReviewMode ? (
-                    isQOE ? (
-                      <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ İnceleniyor</span>
+                    currentTeacherScore === 10 ? (
+                      <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                    ) : currentTeacherScore === 5 ? (
+                      <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                    ) : currentTeacherScore === 0 ? (
+                      <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                    ) : isQOE ? (
+                      <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                     ) : userAns !== undefined && userAns !== null ? (
                       isCorrect ? (
                         <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU</span>
@@ -573,14 +589,8 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         let val = null;
                         if (Array.isArray(ks)) {
                           val = ks[idx] ?? ks[qNo - 1];
-                          if (val === undefined || val === null || val === '') {
-                            if (ks[0] === null || ks[0] === '' || ks[0] === undefined) {
-                              val = ks[qNo] ?? ks[String(qNo)];
-                            }
-                          }
                         } else if (typeof ks === 'object') {
-                          const is0 = (0 in ks) || ('0' in ks);
-                          val = is0 ? (ks[qNo - 1] ?? ks[String(qNo - 1)] ?? ks[qNo]) : (ks[qNo] ?? ks[String(qNo)] ?? ks[qNo - 1]);
+                          val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
                         } else if (typeof ks === 'string' && ks.trim().length > 0) {
                           const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
                           val = clean[idx] ?? clean[qNo - 1];
@@ -588,9 +598,9 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         if (val !== undefined && val !== null && val !== '') {
                           if (typeof val === 'number') correctAns = val;
                           else if (typeof val === 'string') {
-                            const str = val.trim().toUpperCase();
-                            if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
-                            else if (!isNaN(Number(str))) correctAns = Number(str);
+                            const s = val.trim().toUpperCase();
+                            if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(s))) correctAns = Number(s);
                           }
                           if (correctAns !== null) break;
                         }
@@ -672,6 +682,111 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                   })()}
                 </div>
               )}
+
+              {/* Öğretmen Puanlama Butonları (Review Modunda) */}
+              {isReviewMode && (
+                <div style={{ marginTop: '0.45rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isQOE ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => onScoreChange && onScoreChange(qNo, 10)}
+                      style={{
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: 6,
+                        border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                        background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
+                        color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
+                        fontWeight: 900,
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2
+                      }}
+                    >
+                      ✓ Doğru (D)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onScoreChange && onScoreChange(qNo, 0)}
+                      style={{
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: 6,
+                        border: currentTeacherScore === 0 && (isAnswered || currentTeacherScore !== undefined) ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                        background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
+                        color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
+                        fontWeight: 900,
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2
+                      }}
+                    >
+                      ✗ Yanlış (Y)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onScoreChange && onScoreChange(qNo, 0)}
+                      style={{
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: 6,
+                        border: currentTeacherScore === 0 && !isAnswered ? '2px solid #64748b' : '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#64748b',
+                        fontWeight: 900,
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2
+                      }}
+                    >
+                      ○ Boş (B)
+                    </button>
+                    {isQOE && (
+                      <button
+                        type="button"
+                        onClick={() => onScoreChange && onScoreChange(qNo, 5)}
+                        style={{
+                          padding: '0.35rem 0.2rem',
+                          borderRadius: 6,
+                          border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                          background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
+                          color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
+                          fontWeight: 900,
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 2
+                        }}
+                      >
+                        ½ Yarım (5P)
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={`Soru ${qNo} için öğretmen notu...`}
+                    value={teacherNotes?.[qNo] || ''}
+                    onChange={(e) => onNoteChange && onNoteChange(qNo, e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.3rem 0.5rem',
+                      borderRadius: 6,
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.74rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -746,7 +861,14 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 }
 
 // ─── MULTI RESULT MODAL COMPONENT ─────────────────────────────────────────────
-function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview }) {
+function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview, teacherScores = {}, teacherNotes = {}, overallFeedback = '', isReviewMode = false }) {
+  let totalAllQuestions = 0;
+  let totalAllEarnedPts = 0;
+  let totalAllMaxPts = 0;
+  let totalDoğru = 0;
+  let totalYanlış = 0;
+  let totalBoş = 0;
+
   let totalMCQuestions = 0;
   let totalMCDoğru = 0;
   let totalMCYanlış = 0;
@@ -754,16 +876,20 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 
   let totalOEQuestions = 0;
   let totalOECevaplanan = 0;
+  let totalOEEvaluated = 0;
 
   const sectionStats = sections.map((sec, idx) => {
     const bankQ = sec.bankQ || {};
     const isSecOE = checkIsOE(bankQ);
     const sa = sectionAnswers[sec.id] || { answers: {}, openEndedText: {} };
 
-    let mcDoğru = 0;
-    let mcYanlış = 0;
-    let mcBoş = 0;
+    let secDoğru = 0;
+    let secYanlış = 0;
+    let secBoş = 0;
+    let secEarnedPts = 0;
+    let secMaxPts = 0;
     let oeCevaplanan = 0;
+    let oeEvaluated = 0;
     let hasAnyOE = isSecOE;
 
     const answeredKeys = [
@@ -777,6 +903,12 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
     for (let i = 1; i <= secQCount; i++) {
       const qObj = (sec.resolvedQuestions && sec.resolvedQuestions[i - 1]) || {};
       const isQOE = isSecOE || checkIsOE(qObj);
+      secMaxPts += 10;
+      totalAllMaxPts += 10;
+      totalAllQuestions++;
+
+      const teacherSc = teacherScores[sec.id]?.[i];
+      const hasTeacherScore = teacherSc !== undefined && teacherSc !== null;
 
       if (isQOE) {
         hasAnyOE = true;
@@ -786,48 +918,85 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
           oeCevaplanan++;
           totalOECevaplanan++;
         }
+        if (hasTeacherScore) {
+          oeEvaluated++;
+          totalOEEvaluated++;
+          secEarnedPts += teacherSc;
+          totalAllEarnedPts += teacherSc;
+          if (teacherSc >= 5) {
+            secDoğru++;
+            totalDoğru++;
+          } else {
+            secYanlış++;
+            totalYanlış++;
+          }
+        } else {
+          secBoş++;
+          totalBoş++;
+        }
       } else {
         totalMCQuestions++;
         const userAnsObj = sa.answers?.[i];
         const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
 
-        if (userAns === undefined || userAns === null) {
-          mcBoş++;
+        if (hasTeacherScore) {
+          secEarnedPts += teacherSc;
+          totalAllEarnedPts += teacherSc;
+          if (teacherSc >= 5) {
+            secDoğru++;
+            totalDoğru++;
+            totalMCDoğru++;
+          } else {
+            secYanlış++;
+            totalYanlış++;
+            totalMCYanlış++;
+          }
+        } else if (userAns === undefined || userAns === null) {
+          secBoş++;
+          totalBoş++;
           totalMCBoş++;
         } else {
           const isCorrect = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
-
           if (isCorrect) {
-            mcDoğru++;
+            secDoğru++;
+            totalDoğru++;
             totalMCDoğru++;
+            secEarnedPts += 10;
+            totalAllEarnedPts += 10;
           } else {
-            mcYanlış++;
+            secYanlış++;
+            totalYanlış++;
             totalMCYanlış++;
           }
         }
       }
     }
 
-    const mcNet = Math.max(0, mcDoğru - (mcYanlış * 0.25));
-    const mcTotal = mcDoğru + mcYanlış + mcBoş;
-    const secSuccessRate = mcTotal > 0 ? Math.round((mcDoğru / mcTotal) * 100) : 0;
+    const mcNet = Math.max(0, secDoğru - (secYanlış * 0.25));
+    const secSuccessRate = secMaxPts > 0 ? Math.round((secEarnedPts / secMaxPts) * 100) : 0;
+    const isSecEvaluated = !hasAnyOE || (oeEvaluated > 0 && oeEvaluated >= oeCevaplanan);
 
     return {
       title: sec.title || `${idx + 1}. Bölüm`,
       qCount: secQCount,
       isOE: hasAnyOE,
-      mcDoğru,
-      mcYanlış,
-      mcBoş,
+      isSecEvaluated,
+      secDoğru,
+      secYanlış,
+      secBoş,
       mcNet,
+      secEarnedPts,
+      secMaxPts,
       secSuccessRate,
-      oeCevaplanan
+      oeCevaplanan,
+      oeEvaluated
     };
   });
 
-  const totalMCNet = Math.max(0, totalMCDoğru - (totalMCYanlış * 0.25));
+  const totalMCNet = Math.max(0, totalDoğru - (totalYanlış * 0.25));
   const hasOE = totalOEQuestions > 0;
-  const overallMCAccuracy = totalMCQuestions > 0 ? Math.round((totalMCDoğru / totalMCQuestions) * 100) : 0;
+  const isAllGraded = !hasOE || totalOEEvaluated > 0;
+  const overallAccuracy = totalAllMaxPts > 0 ? Math.round((totalAllEarnedPts / totalAllMaxPts) * 100) : 0;
 
   const getSuccessStatus = (rate) => {
     if (rate >= 85) return { label: 'Mükemmel 🌟', text: 'Mükemmel', color: '#10b981', badgeBg: 'rgba(16,185,129,0.15)', badgeBorder: 'rgba(16,185,129,0.3)' };
@@ -836,7 +1005,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
     return { label: 'Geliştirilmeli 📈', text: 'Geliştirilmeli', color: '#dc2626', badgeBg: 'rgba(220,38,38,0.15)', badgeBorder: 'rgba(220,38,38,0.3)' };
   };
 
-  const overallStatus = getSuccessStatus(overallMCAccuracy);
+  const overallStatus = getSuccessStatus(overallAccuracy);
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.75))', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
@@ -847,12 +1016,14 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: overallStatus.badgeBg, border: `2px solid ${overallStatus.badgeBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
             🎉
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text, #0f172a)' }}>Sınav Başarıyla Gönderildi!</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text, #0f172a)' }}>
+            {isReviewMode ? 'Değerlendirme Başarıyla Kaydedildi!' : 'Sınav Başarıyla Tamamlandı!'}
+          </h2>
           <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted, #64748b)', margin: 0, fontWeight: 700 }}>{test.title || test.name}</p>
         </div>
 
-        {/* TEACHER EVALUATION ALERT BANNER */}
-        {hasOE && (
+        {/* TEACHER EVALUATION ALERT BANNER (If not yet graded) */}
+        {hasOE && totalOEEvaluated === 0 && !isReviewMode && (
           <div style={{ background: 'rgba(124, 58, 237, 0.08)', border: '1.5px solid rgba(167, 139, 250, 0.4)', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{ fontSize: '1.8rem' }}>⏳</div>
             <div>
@@ -866,13 +1037,25 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
           </div>
         )}
 
+        {/* TEACHER FEEDBACK NOTE */}
+        {overallFeedback && (
+          <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              👨‍🏫 Öğretmen Değerlendirme Notu / Geri Bildirimi:
+            </div>
+            <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
+              {overallFeedback}
+            </div>
+          </div>
+        )}
+
         {/* OVERALL SUMMARY CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
           
           {/* Card 1: BAŞARI DURUMU */}
           <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: `1.5px solid ${overallStatus.badgeBorder}`, borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>BAŞARI DURUMU</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: overallStatus.color, lineHeight: 1.1 }}>%{overallMCAccuracy}</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: overallStatus.color, lineHeight: 1.1 }}>%{overallAccuracy}</div>
             <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallStatus.color, background: overallStatus.badgeBg, border: `1px solid ${overallStatus.badgeBorder}`, padding: '0.15rem 0.55rem', borderRadius: '12px', marginTop: '0.2rem' }}>
               {overallStatus.label}
             </span>
@@ -882,20 +1065,20 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
           <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>DOĞRU / YANLIŞ</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a', marginTop: '0.15rem' }}>
-              {totalMCDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalMCYanlış} Y</span>
+              {totalDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalYanlış} Y</span>
             </div>
-            {totalMCBoş > 0 ? (
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>({totalMCBoş} Boş Soru)</span>
+            {totalBoş > 0 ? (
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>({totalBoş} Boş Soru)</span>
             ) : (
               <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>(Tümü Yanıtlandı)</span>
             )}
           </div>
 
-          {/* Card 3: ÇOKTAN SEÇMELİ NET */}
+          {/* Card 3: NET PUAN */}
           <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>ÇOKTAN SEÇMELİ NET</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>NET PUAN</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>{totalMCNet.toFixed(2)}</div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Net Puan</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Net</span>
           </div>
 
           {/* Card 4: AÇIK UÇLU YANIT (if any) */}
@@ -903,9 +1086,11 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
             <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>AÇIK UÇLU YANIT</div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.15rem' }}>
-                {totalOECevaplanan} / {totalOEQuestions}
+                {totalOEEvaluated > 0 ? `${totalOEEvaluated} / ${totalOEQuestions} Puanlandı` : `${totalOECevaplanan} / ${totalOEQuestions}`}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>Öğretmen Bekleniyor</span>
+              <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>
+                {totalOEEvaluated > 0 ? '✓ Öğretmen Değerlendirdi' : 'Öğretmen Bekleniyor'}
+              </span>
             </div>
           )}
 
@@ -928,15 +1113,15 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
                     <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text, #0f172a)' }}>{secStat.title}</span>
                   </div>
 
-                  {secStat.isOE ? (
+                  {secStat.isOE && !secStat.isSecEvaluated ? (
                     <span style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(167, 139, 250, 0.4)', color: '#7c3aed', fontSize: '0.8rem', fontWeight: 900 }}>
                       ⏳ Öğretmen Değerlendirmesinde ({secStat.oeCevaplanan}/{secStat.qCount} Yanıt)
                     </span>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.85rem', fontWeight: 800, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#16a34a' }}>{secStat.mcDoğru} Doğru</span>
-                      <span style={{ color: '#dc2626' }}>{secStat.mcYanlış} Yanlış</span>
-                      {secStat.mcBoş > 0 && <span style={{ color: '#64748b' }}>{secStat.mcBoş} Boş</span>}
+                      <span style={{ color: '#16a34a' }}>{secStat.secDoğru} Doğru</span>
+                      <span style={{ color: '#dc2626' }}>{secStat.secYanlış} Yanlış</span>
+                      {secStat.secBoş > 0 && <span style={{ color: '#64748b' }}>{secStat.secBoş} Boş</span>}
                       
                       <span style={{
                         padding: '0.25rem 0.65rem',
@@ -1018,7 +1203,8 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers, bookPdfUrl = '', onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { questions: allBankQuestions } = useQuestionBank();
-  const { homeworks } = useHomework();
+  const { homeworks, updateHomeworkSubmission } = useHomework();
+  const { updateSubmission } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
   const { bookTests } = useTrackedBooks();
   const draftKey = useMemo(() => `draft_multi_hw_${test.id || 'test'}`, [test.id]);
@@ -1664,6 +1850,165 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const [showResultModal, setShowResultModal] = useState(false);
   const [submissionAnswers, setSubmissionAnswers] = useState(null);
 
+  const [teacherScores, setTeacherScores] = useState(() => {
+    const map = {};
+    if (isReviewMode && userAnswers) {
+      const rawAns = userAnswers.answers || userAnswers.formattedAnswers || [];
+      if (Array.isArray(rawAns)) {
+        rawAns.forEach(a => {
+          const sId = a.sectionId || 'sec_1';
+          const qNo = a.questionNoInSection || a.questionNo;
+          if (!map[sId]) map[sId] = {};
+          if (a.score !== undefined && a.score !== null) map[sId][qNo] = Number(a.score);
+          else if (a.isCorrect === true) map[sId][qNo] = 10;
+          else if (a.isCorrect === false) map[sId][qNo] = 0;
+        });
+      }
+    }
+    return map;
+  });
+
+  const [teacherNotes, setTeacherNotes] = useState(() => {
+    const map = {};
+    if (isReviewMode && userAnswers) {
+      const rawAns = userAnswers.answers || userAnswers.formattedAnswers || [];
+      if (Array.isArray(rawAns)) {
+        rawAns.forEach(a => {
+          const sId = a.sectionId || 'sec_1';
+          const qNo = a.questionNoInSection || a.questionNo;
+          if (!map[sId]) map[sId] = {};
+          if (a.teacherNote) map[sId][qNo] = a.teacherNote;
+        });
+      }
+    }
+    return map;
+  });
+
+  const [overallFeedback, setOverallFeedback] = useState(userAnswers?.teacherFeedback || userAnswers?.teacherNote || '');
+  const [isSavingTeacherGrading, setIsSavingTeacherGrading] = useState(false);
+
+  const liveReviewStats = useMemo(() => {
+    let totalPts = 0;
+    let maxPts = 0;
+    let correct = 0;
+    let wrong = 0;
+    let blank = 0;
+
+    sections.forEach(sec => {
+      const sa = sectionAnswers[sec.id] || {};
+      const secQs = sec.resolvedQuestions || [];
+      const bankQ = sec.bankQ || test;
+      const count = sec.qCount || secQs.length || 1;
+
+      for (let i = 1; i <= count; i++) {
+        maxPts += 10;
+        const teacherSc = teacherScores[sec.id]?.[i];
+        if (teacherSc !== undefined && teacherSc !== null) {
+          totalPts += teacherSc;
+          if (teacherSc >= 5) correct++;
+          else wrong++;
+        } else {
+          const userAns = sa.answers?.[i];
+          const textAns = sa.openEndedText?.[i];
+          const hasAns = (userAns !== undefined && userAns !== null && userAns !== '') || Boolean(textAns);
+          const qObj = secQs[i - 1] || {};
+          const isCorr = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
+          if (isCorr === true) {
+            totalPts += 10;
+            correct++;
+          } else if (hasAns) {
+            wrong++;
+          } else {
+            blank++;
+          }
+        }
+      }
+    });
+
+    const pct = maxPts > 0 ? Math.min(100, Math.round((totalPts / maxPts) * 100)) : 0;
+    const net = Math.max(0, correct - (wrong * 0.25));
+
+    return { totalPts, maxPts, pct, correct, wrong, blank, net };
+  }, [sections, sectionAnswers, teacherScores, test]);
+
+  const handleSaveTeacherGrading = async () => {
+    setIsSavingTeacherGrading(true);
+    try {
+      const rawAns = userAnswers?.answers || userAnswers?.formattedAnswers || [];
+      let totalPts = 0;
+      let maxPts = 0;
+
+      const updatedAnswers = sections.flatMap((sec) => {
+        const sa = sectionAnswers[sec.id] || {};
+        const secQs = sec.resolvedQuestions || [];
+        const count = sec.qCount || secQs.length || 1;
+
+        return Array.from({ length: count }).map((_, idx) => {
+          const qNo = idx + 1;
+          const existingAns = (Array.isArray(rawAns) ? rawAns.find(a => (a.sectionId === sec.id && (a.questionNoInSection === qNo || a.questionNo === qNo))) : null) || {};
+          
+          const userAns = sa.answers?.[qNo] !== undefined ? sa.answers[qNo] : existingAns.userAnswer;
+          const textAns = sa.openEndedText?.[qNo] !== undefined ? sa.openEndedText[qNo] : existingAns.userAnswerText;
+          
+          const teacherSc = teacherScores[sec.id]?.[qNo];
+          let score = teacherSc !== undefined ? teacherSc : (existingAns.score !== undefined ? Number(existingAns.score) : (existingAns.isCorrect === true ? 10 : 0));
+          let isCorrect = score >= 5;
+
+          totalPts += score;
+          maxPts += 10;
+
+          return {
+            ...existingAns,
+            sectionId: sec.id,
+            sectionTitle: sec.title,
+            questionNo: qNo,
+            questionNoInSection: qNo,
+            userAnswer: userAns,
+            userAnswerText: textAns,
+            score,
+            isCorrect,
+            teacherNote: teacherNotes[sec.id]?.[qNo] || existingAns.teacherNote || '',
+            evaluatedAt: new Date().toISOString()
+          };
+        });
+      });
+
+      const percentage = maxPts > 0 ? Math.min(100, Math.round((totalPts / maxPts) * 100)) : 0;
+
+      if (userAnswers && userAnswers.id) {
+        const updatedSubPayload = {
+          ...userAnswers,
+          answers: updatedAnswers,
+          score: percentage,
+          rawScore: totalPts,
+          maxScore: maxPts,
+          status: 'evaluated',
+          isEvaluatedByTeacher: true,
+          teacherFeedback: overallFeedback,
+          teacherNote: overallFeedback,
+          evaluatedAt: new Date().toISOString()
+        };
+
+        await updateSubmission(userAnswers.id, updatedSubPayload);
+
+        const hwId = userAnswers.homeworkId || userAnswers.hwId || test.id;
+        if (hwId) {
+          try {
+            await updateHomeworkSubmission(hwId, userAnswers.id, updatedSubPayload);
+          } catch (e) {}
+        }
+      }
+
+      setSubmissionAnswers(updatedAnswers);
+      setShowResultModal(true);
+    } catch (err) {
+      console.error('Error saving teacher grading:', err);
+      alert('Değerlendirme kaydedilirken bir hata oluştu.');
+    } finally {
+      setIsSavingTeacherGrading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (isReviewMode) {
       if (onSubmit) onSubmit(submissionAnswers || []);
@@ -2159,27 +2504,67 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           </button>
 
           {isReviewMode ? (
-            <button
-              onClick={() => onSubmit && onSubmit()}
-              style={{
-                padding: isMobile ? '0.25rem 0.6rem' : '0.5rem 1.25rem',
-                borderRadius: '0.5rem',
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.72rem' : '0.85rem',
-                cursor: 'pointer',
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.65rem' }}>
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '0.65rem',
+                padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.65rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.25rem',
-                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)'
-              }}
-            >
-              <CheckCircle2 size={isMobile ? 13 : 18} /> 
-              {!isMobile && "İncelemeyi Kapat"}
-              {isMobile && "Kapat"}
-            </button>
+                gap: '0.35rem'
+              }}>
+                <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: liveReviewStats.pct >= 70 ? '#16a34a' : (liveReviewStats.pct >= 50 ? '#d97706' : '#dc2626') }}>
+                  %{liveReviewStats.pct}
+                </span>
+                <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: '#64748b' }}>
+                  ({liveReviewStats.correct} D / {liveReviewStats.wrong} Y)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveTeacherGrading}
+                disabled={isSavingTeacherGrading}
+                style={{
+                  padding: isMobile ? '0.3rem 0.6rem' : '0.45rem 1.15rem',
+                  borderRadius: '0.65rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.72rem' : '0.85rem',
+                  cursor: isSavingTeacherGrading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <Save size={isMobile ? 12 : 15} /> 
+                {isSavingTeacherGrading ? 'Kaydediliyor...' : isMobile ? 'Kaydet' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSubmit && onSubmit()}
+                style={{
+                  padding: isMobile ? '0.3rem 0.5rem' : '0.45rem 0.95rem',
+                  borderRadius: '0.65rem',
+                  background: '#f1f5f9',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#334155',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.72rem' : '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                Kapat
+              </button>
+            </div>
           ) : (
             <button
               onClick={handleSubmit}
@@ -2381,6 +2766,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
+                teacherScores={teacherScores[activeSec.id] || {}}
+                onScoreChange={(qNo, sc) => {
+                  setTeacherScores(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: sc
+                    }
+                  }));
+                }}
+                teacherNotes={teacherNotes[activeSec.id] || {}}
+                onNoteChange={(qNo, nt) => {
+                  setTeacherNotes(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: nt
+                    }
+                  }));
+                }}
                 onOptionSelect={(qNo, optIdx) => {
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -2423,6 +2828,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
+                teacherScores={teacherScores[activeSec.id] || {}}
+                onScoreChange={(qNo, sc) => {
+                  setTeacherScores(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: sc
+                    }
+                  }));
+                }}
+                teacherNotes={teacherNotes[activeSec.id] || {}}
+                onNoteChange={(qNo, nt) => {
+                  setTeacherNotes(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: nt
+                    }
+                  }));
+                }}
                 onOptionSelect={(qNo, optIdx) => {
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -2600,11 +3025,17 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (correctAns !== null && correctAns !== undefined && selectedOpt === correctAns))
                       : null;
 
+                    const teacherSc = teacherScores[activeSec.id]?.[qNo];
+                    const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
+                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : undefined));
+
                     return (
                       <div style={{
                         background: '#ffffff',
                         borderRadius: '1.25rem',
-                        border: isReviewMode && isQAnswered ? `1.5px solid ${isQCorrect ? '#bbf7d0' : '#fecaca'}` : '1.5px solid #e2e8f0',
+                        border: isReviewMode
+                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                          : '1.5px solid #e2e8f0',
                         padding: isMobile ? '1rem' : '1.5rem',
                         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
                         display: 'flex',
@@ -2626,14 +3057,20 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                           </div>
 
                           {isReviewMode ? (
-                            isQOpenEnded ? (
-                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                            currentTeacherScore === 10 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                            ) : currentTeacherScore === 5 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                            ) : currentTeacherScore === 0 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                            ) : isQOpenEnded ? (
+                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                             ) : isQAnswered ? (
                               isQCorrect
                                 ? <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900 }}>✓ DOĞRU</span>
                                 : <span style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 900 }}>✗ YANLIŞ</span>
                             ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— BOŞ</span>
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
                             )
                           ) : (
                             isQAnswered || textVal ? (
@@ -2737,6 +3174,121 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                             />
                           </div>
                         )}
+
+                        {/* Öğretmen Puanlama Butonları (Review Modunda) */}
+                        {isReviewMode && (
+                          <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
+                                🎯 Öğretmen Puanlaması (Soru {qNo}):
+                              </span>
+                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTeacherScores(p => ({
+                                      ...p,
+                                      [activeSec.id]: {
+                                        ...(p[activeSec.id] || {}),
+                                        [qNo]: 10
+                                      }
+                                    }));
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                    border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                                    background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
+                                    color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
+                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                  }}
+                                >
+                                  ✓ Doğru (D)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTeacherScores(p => ({
+                                      ...p,
+                                      [activeSec.id]: {
+                                        ...(p[activeSec.id] || {}),
+                                        [qNo]: 0
+                                      }
+                                    }));
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                    border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                                    background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
+                                    color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
+                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                  }}
+                                >
+                                  ✗ Yanlış (Y)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTeacherScores(p => ({
+                                      ...p,
+                                      [activeSec.id]: {
+                                        ...(p[activeSec.id] || {}),
+                                        [qNo]: 0
+                                      }
+                                    }));
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                    border: currentTeacherScore === 0 && !isQAnswered ? '2px solid #64748b' : '1px solid #cbd5e1',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                  }}
+                                >
+                                  ○ Boş (B)
+                                </button>
+                                {isQOpenEnded && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTeacherScores(p => ({
+                                        ...p,
+                                        [activeSec.id]: {
+                                          ...(p[activeSec.id] || {}),
+                                          [qNo]: 5
+                                        }
+                                      }));
+                                    }}
+                                    style={{
+                                      padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                      border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                                      background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
+                                      color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
+                                      fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                    }}
+                                  >
+                                    ½ Yarım (5P)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder={`Soru ${qNo} için geri bildirim notu...`}
+                              value={teacherNotes[activeSec.id]?.[qNo] || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setTeacherNotes(p => ({
+                                  ...p,
+                                  [activeSec.id]: {
+                                    ...(p[activeSec.id] || {}),
+                                    [qNo]: v
+                                  }
+                                }));
+                              }}
+                              style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -2816,6 +3368,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
+                teacherScores={teacherScores[activeSec.id] || {}}
+                onScoreChange={(qNo, sc) => {
+                  setTeacherScores(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: sc
+                    }
+                  }));
+                }}
+                teacherNotes={teacherNotes[activeSec.id] || {}}
+                onNoteChange={(qNo, nt) => {
+                  setTeacherNotes(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: nt
+                    }
+                  }));
+                }}
                 onOptionSelect={(qNo, optIdx) => {
                   setActiveImageQIdx(qNo - 1);
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
@@ -3123,6 +3695,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
                 isReviewMode={isReviewMode}
+                teacherScores={teacherScores[activeSec.id] || {}}
+                onScoreChange={(qNo, sc) => {
+                  setTeacherScores(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: sc
+                    }
+                  }));
+                }}
+                teacherNotes={teacherNotes[activeSec.id] || {}}
+                onNoteChange={(qNo, nt) => {
+                  setTeacherNotes(p => ({
+                    ...p,
+                    [activeSec.id]: {
+                      ...(p[activeSec.id] || {}),
+                      [qNo]: nt
+                    }
+                  }));
+                }}
                 onOptionSelect={(qNo, optIdx) => {
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[qNo - 1]) || {};
                   handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -3143,6 +3735,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           test={test}
           sections={sections}
           sectionAnswers={sectionAnswers}
+          teacherScores={teacherScores}
+          teacherNotes={teacherNotes}
+          overallFeedback={overallFeedback}
+          isReviewMode={isReviewMode}
           onConfirmClose={handleConfirmCloseResult}
           onReview={handleReviewResult}
         />

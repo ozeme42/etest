@@ -9,6 +9,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
+import ReviewResultModal from './ReviewResultModal';
 
 export default function ImageQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
@@ -127,6 +128,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const [overallFeedback, setOverallFeedback] = useState(submission?.teacherFeedback || submission?.teacherNote || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   const activeQuestion = questions[currentIndex] || bundleQ || {};
   const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
@@ -195,8 +197,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         } catch (e) {}
       }
 
-      alert('✓ Değerlendirme başarıyla kaydedildi!');
-      handleGoBack();
+      setShowResultModal(true);
     } catch (err) {
       console.error('Error saving evaluation:', err);
       alert('Değerlendirme kaydedilirken hata oluştu.');
@@ -204,6 +205,28 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       setIsSaving(false);
     }
   };
+
+  const stats = useMemo(() => {
+    let cCount = 0;
+    let wCount = 0;
+    let bCount = 0;
+
+    for (let i = 1; i <= qCount; i++) {
+      const sc = questionScores[i];
+      if (sc !== undefined && sc !== null) {
+        if (sc >= 5) cCount++;
+        else wCount++;
+      } else {
+        const a = answers[i - 1];
+        if (a?.isCorrect === true) cCount++;
+        else if (a?.isCorrect === false) wCount++;
+        else bCount++;
+      }
+    }
+    return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
+  }, [qCount, questionScores, answers]);
+
+  const { correctCount, wrongCount, blankCount } = stats;
 
   const imageUrls = useMemo(() => {
     const collected = [];
@@ -471,6 +494,20 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       </div>
 
       <ImageLightbox isOpen={!!lightboxSrc} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+      <ReviewResultModal
+        isOpen={showResultModal}
+        onClose={handleGoBack}
+        studentName={submission.studentName || 'Öğrenci'}
+        testTitle={test.title || submission.testTitle || 'Görsel Sınav'}
+        score={scorePercentage}
+        correctCount={correctCount}
+        wrongCount={wrongCount}
+        blankCount={blankCount}
+        totalQuestions={qCount}
+        overallFeedback={overallFeedback}
+        isTeacher={isTeacherMode}
+      />
     </div>
   );
 }

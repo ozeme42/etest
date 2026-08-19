@@ -9,6 +9,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
+import ReviewResultModal from './ReviewResultModal';
 
 export default function HtmlQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
@@ -87,6 +88,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
   const [overallFeedback, setOverallFeedback] = useState(submission?.teacherFeedback || submission?.teacherNote || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -566,6 +568,20 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
             )}
           </div>
         }
+      />
+
+      <ReviewResultModal
+        isOpen={showResultModal}
+        onClose={handleGoBack}
+        studentName={submission.studentName || 'Öğrenci'}
+        testTitle={test.title || submission.testTitle || 'HTML Sınavı'}
+        score={scorePercentage}
+        correctCount={correctCount}
+        wrongCount={wrongCount}
+        blankCount={blankCount}
+        totalQuestions={qCount}
+        overallFeedback={overallFeedback}
+        isTeacher={isTeacherMode}
       />
     </div>
   );

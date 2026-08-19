@@ -9,6 +9,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
+import ReviewResultModal from './ReviewResultModal';
 
 export default function PdfQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
@@ -87,6 +88,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const [overallFeedback, setOverallFeedback] = useState(submission?.teacherFeedback || submission?.teacherNote || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -226,8 +228,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         } catch (e) {}
       }
 
-      alert('✓ Değerlendirme başarıyla kaydedildi!');
-      handleGoBack();
+      setShowResultModal(true);
     } catch (err) {
       console.error('Error saving evaluation:', err);
       alert('Değerlendirme kaydedilirken hata oluştu.');
@@ -566,6 +567,20 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             )}
           </div>
         }
+      />
+
+      <ReviewResultModal
+        isOpen={showResultModal}
+        onClose={handleGoBack}
+        studentName={submission.studentName || 'Öğrenci'}
+        testTitle={test.title || submission.testTitle || 'PDF Sınavı'}
+        score={scorePercentage}
+        correctCount={correctCount}
+        wrongCount={wrongCount}
+        blankCount={blankCount}
+        totalQuestions={qCount}
+        overallFeedback={overallFeedback}
+        isTeacher={isTeacherMode}
       />
     </div>
   );
