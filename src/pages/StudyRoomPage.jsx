@@ -9,7 +9,8 @@ import {
   Sparkles, Flame, CheckCircle2, Clock, Music, Headphones, BookOpen,
   Target, Coffee, Moon, Sun, ArrowLeft, Plus, Trash2, Check, BarChart2,
   Zap, Settings2, Bell, Award, ListTodo, Edit3, Shield, TreePine, Sprout,
-  Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink
+  Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink,
+  Gauge, Activity, TrendingUp, HelpCircle, History
 } from 'lucide-react';
 
 // ─── AMBIENT SYNTHESIZER (Web Audio API) ───────────────────────────────────────
@@ -316,6 +317,37 @@ const getThemeList = (isDark) => [
   }
 ];
 
+// ─── 📚 DERS LİSTESİ & VARSAYILAN HIZ STANDARTLARI ──────────────────────────
+export const STUDY_SUBJECTS = [
+  { id: 'Matematik', name: 'Matematik', icon: '📐', defaultMinPerQ: 2.0, color: '#6366f1' },
+  { id: 'Fen Bilimleri', name: 'Fen Bilimleri (Fizik/Kimya/Biyo)', icon: '🔬', defaultMinPerQ: 1.5, color: '#10b981' },
+  { id: 'Türkçe', name: 'Türkçe / Paragraf', icon: '📚', defaultMinPerQ: 1.25, color: '#f59e0b' },
+  { id: 'T.C. İnkılap Tarihi', name: 'İnkılap Tarihi / Tarih', icon: '🏛️', defaultMinPerQ: 1.0, color: '#ec4899' },
+  { id: 'Sosyal Bilgiler', name: 'Sosyal Bilgiler / Coğrafya', icon: '🌍', defaultMinPerQ: 1.0, color: '#06b6d4' },
+  { id: 'Din Kültürü', name: 'Din Kültürü ve Ahlak Bilgisi', icon: '🕌', defaultMinPerQ: 0.8, color: '#8b5cf6' },
+  { id: 'İngilizce', name: 'İngilizce / Yabancı Dil', icon: '🇬🇧', defaultMinPerQ: 1.0, color: '#3b82f6' },
+  { id: 'Felsefe / Mantık', name: 'Felsefe / Mantık', icon: '🧠', defaultMinPerQ: 1.2, color: '#14b8a6' },
+  { id: 'Genel / Karma', name: 'Genel Deneme / Karma', icon: '🎯', defaultMinPerQ: 1.5, color: '#f97316' }
+];
+
+export const formatSecToMinSec = (seconds) => {
+  if (!seconds || seconds <= 0) return '0 sn';
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  if (m === 0) return `${s} sn`;
+  if (s === 0) return `${m} dk`;
+  return `${m} dk ${s.toString().padStart(2, '0')} sn`;
+};
+
+export const getSpeedEvaluation = (avgSec, defaultMinPerQ) => {
+  const targetSec = (defaultMinPerQ || 1.5) * 60;
+  if (!avgSec || avgSec <= 0) return { label: 'Henüz Veri Yok', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.15)', icon: '⚪' };
+  if (avgSec <= targetSec * 0.8) return { label: 'Süper Hızlı', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: '⚡' };
+  if (avgSec <= targetSec * 1.15) return { label: 'İdeal Hız', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: '🎯' };
+  if (avgSec <= targetSec * 1.4) return { label: 'Standart', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: '🟡' };
+  return { label: 'Detaylı / Uzun', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: '⏳' };
+};
+
 export default function StudyRoomPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -327,6 +359,18 @@ export default function StudyRoomPage() {
 
   // ── 🎯 BİRLEŞİK ÇALIŞMA & HEDEF MODLARI: 'question' | 'book' | 'study' | 'break' | 'stopwatch' ──
   const [activeStudyMode, setActiveStudyMode] = useState(() => localStorage.getItem('study_master_mode') || 'question');
+
+  // ── 📚 DERS BAZLI ÇALIŞMA & SORU SÜRESİ TAKİBİ ──
+  const [selectedSubject, setSelectedSubject] = useState(() => localStorage.getItem('study_selected_subject') || 'Matematik');
+  const [subjectStats, setSubjectStats] = useState(() => {
+    const saved = localStorage.getItem('study_subject_stats');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
 
   // Soru Başı Bütçe Dakikası (Örn: 2.0 dk / soru)
   const [minutesPerQuestion, setMinutesPerQuestion] = useState(() => {
@@ -477,6 +521,55 @@ export default function StudyRoomPage() {
     localStorage.setItem(`study_progress_${todayKey}`, String(currentProgressCount));
   }, [currentProgressCount]);
 
+  // ── 📚 DERS İSTATİSTİĞİ KAYDI & SEÇİMİ ──
+  const recordSubjectStudy = (subject, questionsCount, elapsedSec) => {
+    if (!subject || questionsCount <= 0 || elapsedSec < 10) return;
+    setSubjectStats(prev => {
+      const existing = prev[subject] || { totalQuestions: 0, totalSeconds: 0, sessionCount: 0 };
+      const updated = {
+        ...prev,
+        [subject]: {
+          totalQuestions: (existing.totalQuestions || 0) + questionsCount,
+          totalSeconds: (existing.totalSeconds || 0) + elapsedSec,
+          sessionCount: (existing.sessionCount || 0) + 1,
+          lastSessionSecPerQ: Math.round(elapsedSec / questionsCount),
+          lastUpdated: new Date().toISOString()
+        }
+      };
+      localStorage.setItem('study_subject_stats', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleSelectSubject = (subjId) => {
+    setSelectedSubject(subjId);
+    localStorage.setItem('study_selected_subject', subjId);
+    const subjObj = STUDY_SUBJECTS.find(s => s.id === subjId);
+    const stat = subjectStats[subjId];
+    let recommendedMin = subjObj ? subjObj.defaultMinPerQ : 1.5;
+    if (stat && stat.totalQuestions >= 3 && stat.totalSeconds > 0) {
+      recommendedMin = +(stat.totalSeconds / stat.totalQuestions / 60).toFixed(1);
+    }
+    setMinutesPerQuestion(recommendedMin);
+    if (!isRunning) {
+      setTimeLeft(Math.max(5, Math.round(targetGoalCount * recommendedMin)) * 60);
+    }
+  };
+
+  const clearSubjectStats = (subjectKey = null) => {
+    if (subjectKey) {
+      setSubjectStats(prev => {
+        const next = { ...prev };
+        delete next[subjectKey];
+        localStorage.setItem('study_subject_stats', JSON.stringify(next));
+        return next;
+      });
+    } else {
+      setSubjectStats({});
+      localStorage.removeItem('study_subject_stats');
+    }
+  };
+
   // Persist Daily Stats & Streak
   const saveDailyStats = (updated) => {
     setDailyStats(updated);
@@ -592,15 +685,26 @@ export default function StudyRoomPage() {
       const newCycles = completedCycles + 1;
       setCompletedCycles(newCycles);
 
+      const elapsedSec = sessionElapsedSeconds > 0 ? sessionElapsedSeconds : (totalModeSeconds - timeLeft);
+
+      // Soru modunda ders istatistiğini kaydet
+      if (activeStudyMode === 'question' && currentProgressCount > 0) {
+        recordSubjectStudy(selectedSubject, currentProgressCount, elapsedSec);
+      }
+
       const randomTree = TREE_SPECIES[Math.floor(Math.random() * TREE_SPECIES.length)];
-      const modeLabel = activeStudyMode === 'question' ? `${currentProgressCount} Soru` : activeStudyMode === 'book' ? `${currentProgressCount} Sayfa` : 'Konu Çalışması';
+      const modeLabel = activeStudyMode === 'question'
+        ? `${currentProgressCount} Soru (${selectedSubject})`
+        : activeStudyMode === 'book'
+          ? `${currentProgressCount} Sayfa`
+          : 'Konu Çalışması';
       const newTreeItem = {
         id: String(Date.now()),
         icon: randomTree.icon,
         name: randomTree.name,
         task: modeLabel,
         time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-        duration: Math.max(1, Math.round(sessionElapsedSeconds / 60))
+        duration: Math.max(1, Math.round(elapsedSec / 60))
       };
 
       const updatedForest = [...plantedForest, newTreeItem];
@@ -611,7 +715,7 @@ export default function StudyRoomPage() {
 
       saveDailyStats({
         ...dailyStats,
-        totalMinutes: dailyStats.totalMinutes + Math.max(1, Math.round(sessionElapsedSeconds / 60)),
+        totalMinutes: dailyStats.totalMinutes + Math.max(1, Math.round(elapsedSec / 60)),
         pomodorosDone: dailyStats.pomodorosDone + 1,
         questionsDone: dailyStats.questionsDone + (activeStudyMode === 'question' ? currentProgressCount : 0)
       });
@@ -749,11 +853,17 @@ export default function StudyRoomPage() {
       questionsDone: dailyStats.questionsDone + currentProgressCount
     });
 
+    // Soru modunda ders istatistiğini kaydet
+    if (currentProgressCount > 0 && elapsedSec >= 10) {
+      recordSubjectStudy(selectedSubject, currentProgressCount, elapsedSec);
+    }
+
     setActiveStudyMode('break');
     setTimeLeft(finalBreakDuration * 60);
     setSessionElapsedSeconds(0);
 
     setEarnedBonusModal({
+      subject: selectedSubject,
       questionsDone: currentProgressCount,
       elapsedMinutes: Math.max(1, Math.round(elapsedSec / 60)),
       budgetMinutes: calculatedQuestionBudgetMinutes,
@@ -761,6 +871,76 @@ export default function StudyRoomPage() {
       totalBreakMinutes: finalBreakDuration
     });
   };
+
+  // Canlı Seans ve Soru Başı Hız Hesabı
+  const currentElapsedSec = sessionElapsedSeconds > 0
+    ? sessionElapsedSeconds
+    : (activeStudyMode === 'stopwatch' ? stopwatchSeconds : (totalModeSeconds - timeLeft));
+
+  const liveSessionSecPerQ = (activeStudyMode === 'question' && currentProgressCount > 0 && currentElapsedSec > 0)
+    ? Math.round(currentElapsedSec / currentProgressCount)
+    : 0;
+
+  // ── 📊 DERS BAZLI HIZ İSTATİSTİKLERİ ÖZETİ & HESAPLAMALARI ──
+  const trackedSubjectsList = useMemo(() => {
+    return STUDY_SUBJECTS.map(subj => {
+      const st = subjectStats[subj.id];
+      const hasData = st && st.totalQuestions > 0 && st.totalSeconds > 0;
+      const avgSec = hasData ? Math.round(st.totalSeconds / st.totalQuestions) : 0;
+      const evaluation = getSpeedEvaluation(avgSec, subj.defaultMinPerQ);
+      return {
+        ...subj,
+        totalQuestions: st?.totalQuestions || 0,
+        totalSeconds: st?.totalSeconds || 0,
+        sessionCount: st?.sessionCount || 0,
+        lastSessionSecPerQ: st?.lastSessionSecPerQ || 0,
+        hasData,
+        avgSec,
+        evaluation
+      };
+    });
+  }, [subjectStats]);
+
+  const activeTrackedCount = trackedSubjectsList.filter(s => s.hasData).length;
+
+  const totalTrackedQuestions = useMemo(() => {
+    return Object.values(subjectStats).reduce((acc, s) => acc + (s.totalQuestions || 0), 0);
+  }, [subjectStats]);
+
+  const totalTrackedSeconds = useMemo(() => {
+    return Object.values(subjectStats).reduce((acc, s) => acc + (s.totalSeconds || 0), 0);
+  }, [subjectStats]);
+
+  const overallAvgSecPerQ = totalTrackedQuestions > 0 ? Math.round(totalTrackedSeconds / totalTrackedQuestions) : 0;
+
+  const fastestSubject = useMemo(() => {
+    const withData = trackedSubjectsList.filter(s => s.hasData && s.avgSec > 0);
+    if (withData.length === 0) return null;
+    return [...withData].sort((a, b) => a.avgSec - b.avgSec)[0];
+  }, [trackedSubjectsList]);
+
+  const slowestSubject = useMemo(() => {
+    const withData = trackedSubjectsList.filter(s => s.hasData && s.avgSec > 0);
+    if (withData.length === 0) return null;
+    return [...withData].sort((a, b) => b.avgSec - a.avgSec)[0];
+  }, [trackedSubjectsList]);
+
+  const loadDemoSubjectStats = () => {
+    const demo = {
+      'Matematik': { totalQuestions: 40, totalSeconds: 5040, sessionCount: 3, lastSessionSecPerQ: 126 },
+      'Fen Bilimleri': { totalQuestions: 35, totalSeconds: 3150, sessionCount: 2, lastSessionSecPerQ: 90 },
+      'Türkçe': { totalQuestions: 45, totalSeconds: 3105, sessionCount: 3, lastSessionSecPerQ: 69 },
+      'T.C. İnkılap Tarihi': { totalQuestions: 25, totalSeconds: 1200, sessionCount: 2, lastSessionSecPerQ: 48 }
+    };
+    setSubjectStats(demo);
+    localStorage.setItem('study_subject_stats', JSON.stringify(demo));
+  };
+
+  const currentSubjectObj = STUDY_SUBJECTS.find(s => s.id === selectedSubject) || STUDY_SUBJECTS[0];
+  const currentSubjectStat = subjectStats[selectedSubject] || null;
+  const currentSubjectAvgSec = (currentSubjectStat && currentSubjectStat.totalQuestions > 0)
+    ? Math.round(currentSubjectStat.totalSeconds / currentSubjectStat.totalQuestions)
+    : Math.round(currentSubjectObj.defaultMinPerQ * 60);
 
   // Kartın içindeki render bileşeni (Normal ve Fullscreen için ortak)
   const renderMasterStationContent = (isFullscreenView = false) => (
@@ -849,84 +1029,162 @@ export default function StudyRoomPage() {
         </button>
       </div>
 
-      {/* 2. Soru Çözümü için Hedef Kotası & Soru Başı Dakika Bütçesi */}
+      {/* 2. Soru Çözümü için Ders Seçimi, Hedef & Soru Başı Dakika Bütçesi */}
       {activeStudyMode === 'question' && (
         <div style={{
           background: themeObj.innerBg,
-          borderRadius: 14,
-          padding: '0.65rem 0.85rem',
+          borderRadius: 16,
+          padding: '0.75rem 0.95rem',
           border: `1.5px solid ${themeObj.border}`,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 8
+          flexDirection: 'column',
+          gap: 10
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText }}>Hedef:</span>
-            <input
-              type="number"
-              min="1"
-              max="500"
-              value={targetGoalCount}
-              onChange={e => {
-                const val = Math.max(1, Number(e.target.value) || 12);
-                setTargetGoalCount(val);
-                if (!isRunning) setTimeLeft(Math.round(val * minutesPerQuestion) * 60);
-              }}
-              style={{
-                width: 52,
-                padding: '0.25rem',
-                borderRadius: 8,
-                border: `1.5px solid ${themeObj.border}`,
-                background: themeObj.cardBg,
-                color: themeObj.text,
-                fontSize: '0.85rem',
-                fontWeight: 900,
-                textAlign: 'center',
-                outline: 'none'
-              }}
-            />
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.text }}>Soru</span>
+          {/* Üst Kısım: Ders Seçici & Geçmiş Ortalama Rozeti */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8,
+            borderBottom: `1px dashed ${themeObj.border}`,
+            paddingBottom: 8
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 180 }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <BookOpen size={14} style={{ color: currentSubjectObj.color }} /> Ders:
+              </span>
+              <select
+                value={selectedSubject}
+                onChange={e => handleSelectSubject(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: themeObj.cardBg,
+                  border: `1.5px solid ${themeObj.border}`,
+                  color: themeObj.text,
+                  borderRadius: 10,
+                  fontSize: '0.8rem',
+                  fontWeight: 900,
+                  padding: '0.35rem 0.55rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {STUDY_SUBJECTS.map(subj => {
+                  const st = subjectStats[subj.id];
+                  const hasData = st && st.totalQuestions > 0;
+                  const avgLabel = hasData ? ` (${formatSecToMinSec(Math.round(st.totalSeconds / st.totalQuestions))}/s)` : '';
+                  return (
+                    <option key={subj.id} value={subj.id}>
+                      {subj.icon} {subj.name} {avgLabel}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Seçili Dersin Kaydedilmiş Geçmiş Ortalaması */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              padding: '0.3rem 0.6rem',
+              borderRadius: 10,
+              background: currentSubjectStat ? 'rgba(99, 102, 241, 0.12)' : themeObj.cardBg,
+              color: currentSubjectStat ? '#6366f1' : themeObj.subText,
+              border: `1px solid ${currentSubjectStat ? 'rgba(99, 102, 241, 0.3)' : themeObj.border}`,
+              whiteSpace: 'nowrap'
+            }}>
+              <TrendingUp size={13} />
+              <span>
+                {currentSubjectStat && currentSubjectStat.totalQuestions > 0
+                  ? `Ortalama: ${formatSecToMinSec(currentSubjectAvgSec)} / soru (${currentSubjectStat.totalQuestions} soru)`
+                  : `Öneri: ${currentSubjectObj.defaultMinPerQ} dk / soru`}
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 700 }}>Soru Başı:</span>
-            <select
-              value={minutesPerQuestion}
-              onChange={e => {
-                const val = Number(e.target.value);
-                setMinutesPerQuestion(val);
-                if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
-              }}
-              style={{
-                background: themeObj.cardBg,
-                border: `1px solid ${themeObj.border}`,
-                color: themeObj.text,
-                borderRadius: 8,
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                padding: '0.25rem 0.4rem',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value={1.0}>1.0 dk / soru</option>
-              <option value={1.5}>1.5 dk / soru</option>
-              <option value={2.0}>2.0 dk / soru</option>
-            </select>
+          {/* Alt Kısım: Hedef Soru Sayısı & Bütçe */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText }}>Hedef:</span>
+              <input
+                type="number"
+                min="1"
+                max="500"
+                value={targetGoalCount}
+                onChange={e => {
+                  const val = Math.max(1, Number(e.target.value) || 12);
+                  setTargetGoalCount(val);
+                  if (!isRunning) setTimeLeft(Math.round(val * minutesPerQuestion) * 60);
+                }}
+                style={{
+                  width: 52,
+                  padding: '0.25rem',
+                  borderRadius: 8,
+                  border: `1.5px solid ${themeObj.border}`,
+                  background: themeObj.cardBg,
+                  color: themeObj.text,
+                  fontSize: '0.85rem',
+                  fontWeight: 900,
+                  textAlign: 'center',
+                  outline: 'none'
+                }}
+              />
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.text }}>Soru</span>
+            </div>
 
-            <span style={{
-              background: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb',
-              color: '#f59e0b',
-              fontSize: '0.72rem',
-              fontWeight: 900,
-              padding: '0.25rem 0.5rem',
-              borderRadius: 8,
-              border: '1px solid #fde68a'
-            }}>
-              ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 700 }}>Soru Başı Bütçe:</span>
+              <select
+                value={minutesPerQuestion}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setMinutesPerQuestion(val);
+                  if (!isRunning) setTimeLeft(Math.round(targetGoalCount * val) * 60);
+                }}
+                style={{
+                  background: themeObj.cardBg,
+                  border: `1px solid ${themeObj.border}`,
+                  color: themeObj.text,
+                  borderRadius: 8,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '0.25rem 0.4rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={0.8}>0.8 dk (48 sn)</option>
+                <option value={1.0}>1.0 dk / soru</option>
+                <option value={1.25}>1.25 dk (1 dk 15 sn)</option>
+                <option value={1.5}>1.5 dk (1 dk 30 sn)</option>
+                <option value={2.0}>2.0 dk / soru</option>
+                <option value={2.5}>2.5 dk (2 dk 30 sn)</option>
+                <option value={3.0}>3.0 dk / soru</option>
+              </select>
+
+              <span style={{
+                background: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb',
+                color: '#f59e0b',
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                padding: '0.25rem 0.5rem',
+                borderRadius: 8,
+                border: '1px solid #fde68a',
+                whiteSpace: 'nowrap'
+              }}>
+                ⏱️ {calculatedQuestionBudgetMinutes} dk Bütçe
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -1009,7 +1267,7 @@ export default function StudyRoomPage() {
             />
           </svg>
 
-          <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             {/* Büyüyen Ağaç Simgesi */}
             <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '2.8rem' : '2rem', marginBottom: 2 }}>
               {treeGrowthStage.icon}
@@ -1029,17 +1287,49 @@ export default function StudyRoomPage() {
 
             {/* Soru / Sayfa Kotası Canlı Göstergesi */}
             {(activeStudyMode === 'question' || activeStudyMode === 'book') ? (
-              <div style={{
-                fontSize: isFullscreenView ? '1.05rem' : '0.85rem',
-                fontWeight: 900,
-                color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
-                marginTop: 4,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4
-              }}>
-                <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
-                <span style={{ fontSize: isFullscreenView ? '0.85rem' : '0.72rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginTop: 4 }}>
+                <div style={{
+                  fontSize: isFullscreenView ? '1rem' : '0.82rem',
+                  fontWeight: 900,
+                  color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  {activeStudyMode === 'question' && (
+                    <span style={{
+                      fontSize: '0.68rem',
+                      background: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7',
+                      color: '#d97706',
+                      padding: '1px 6px',
+                      borderRadius: 6,
+                      fontWeight: 800
+                    }}>
+                      {currentSubjectObj.icon} {currentSubjectObj.name.split(' ')[0]}
+                    </span>
+                  )}
+                  <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
+                  <span style={{ fontSize: isFullscreenView ? '0.85rem' : '0.72rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
+                </div>
+
+                {/* CANLI HIZ GÖSTERGESİ (Soru modu için) */}
+                {activeStudyMode === 'question' && currentProgressCount > 0 && (
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    color: liveSessionSecPerQ <= minutesPerQuestion * 60 ? '#10b981' : '#f59e0b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    marginTop: 1
+                  }}>
+                    <Gauge size={11} />
+                    <span>Canlı Hız: <strong>{formatSecToMinSec(liveSessionSecPerQ)}</strong> / soru</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{
@@ -1531,6 +1821,276 @@ export default function StudyRoomPage() {
               overflow: 'hidden'
             }}>
               {renderMasterStationContent(false)}
+            </div>
+
+            {/* ─── 📊 DERS BAZLI SORU SÜRESİ & HIZ ANALİZİ KARTI ─── */}
+            <div className="sr-card" style={{
+              background: themeObj.cardBg,
+              backdropFilter: 'blur(20px)',
+              borderRadius: 24,
+              border: `1.5px solid ${themeObj.border}`,
+              padding: '1.25rem',
+              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
+            }}>
+              {/* Başlık ve Butonlar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
+                  }}>
+                    <Gauge size={18} color="white" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
+                      Ders Bazlı Soru Başı Süre & Hız Analizi
+                    </h3>
+                    <div style={{ fontSize: '0.68rem', color: themeObj.subText, fontWeight: 600 }}>
+                      Hangi derste bir soruya ortalama kaç dakika harcadığınızın tespiti
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {activeTrackedCount > 0 ? (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Tüm ders süre istatistiklerini sıfırlamak istediğinize emin misiniz?')) {
+                          clearSubjectStats();
+                        }
+                      }}
+                      title="İstatistikleri Sıfırla"
+                      style={{
+                        background: themeObj.innerBg,
+                        border: `1px solid ${themeObj.border}`,
+                        color: themeObj.subText,
+                        padding: '0.3rem 0.55rem',
+                        borderRadius: 8,
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      <span>Sıfırla</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={loadDemoSubjectStats}
+                      style={{
+                        background: 'rgba(99, 102, 241, 0.12)',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        color: '#6366f1',
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 8,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✨ Örnek Veri Yükle
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Üst Özet Rozetleri (KPIs) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                marginBottom: 12
+              }}>
+                <div style={{
+                  background: themeObj.innerBg,
+                  borderRadius: 14,
+                  padding: '0.65rem 0.75rem',
+                  border: `1px solid ${themeObj.border}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>⚡ Genel Ortalama</span>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6366f1' }}>
+                    {totalTrackedQuestions > 0 ? `${formatSecToMinSec(overallAvgSecPerQ)} / soru` : 'Henüz Veri Yok'}
+                  </span>
+                  <span style={{ fontSize: '0.62rem', color: themeObj.subText, opacity: 0.85 }}>
+                    {totalTrackedQuestions > 0 ? `${totalTrackedQuestions} soru çözüldü` : 'Seans başlatın'}
+                  </span>
+                </div>
+
+                <div style={{
+                  background: themeObj.innerBg,
+                  borderRadius: 14,
+                  padding: '0.65rem 0.75rem',
+                  border: `1px solid ${themeObj.border}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>🏎️ En Hızlı Ders</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#10b981', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {fastestSubject ? `${fastestSubject.icon} ${fastestSubject.name.split(' ')[0]}` : '-'}
+                  </span>
+                  <span style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 800 }}>
+                    {fastestSubject ? `${formatSecToMinSec(fastestSubject.avgSec)} / soru` : '-'}
+                  </span>
+                </div>
+
+                <div style={{
+                  background: themeObj.innerBg,
+                  borderRadius: 14,
+                  padding: '0.65rem 0.75rem',
+                  border: `1px solid ${themeObj.border}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>⏳ En Detaylı Ders</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#f59e0b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {slowestSubject ? `${slowestSubject.icon} ${slowestSubject.name.split(' ')[0]}` : '-'}
+                  </span>
+                  <span style={{ fontSize: '0.62rem', color: '#f59e0b', fontWeight: 800 }}>
+                    {slowestSubject ? `${formatSecToMinSec(slowestSubject.avgSec)} / soru` : '-'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ders Listesi ve Hız Kartları */}
+              {activeTrackedCount > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                  {trackedSubjectsList
+                    .filter(subj => subj.hasData)
+                    .sort((a, b) => a.avgSec - b.avgSec)
+                    .map(subj => {
+                      const isSelected = selectedSubject === subj.id;
+                      return (
+                        <div
+                          key={subj.id}
+                          onClick={() => handleSelectSubject(subj.id)}
+                          style={{
+                            background: isSelected ? (themeObj.isDark ? 'rgba(99, 102, 241, 0.18)' : '#eef2ff') : themeObj.innerBg,
+                            border: isSelected ? '1.5px solid #6366f1' : `1px solid ${themeObj.border}`,
+                            borderRadius: 14,
+                            padding: '0.65rem 0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {/* Sol: Ders Adı & İkonu & Çözülen Soru Sayısı */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '1.25rem' }}>{subj.icon}</span>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>
+                                  {subj.name}
+                                </span>
+                                {isSelected && (
+                                  <span style={{
+                                    fontSize: '0.6rem',
+                                    background: '#6366f1',
+                                    color: 'white',
+                                    padding: '1px 5px',
+                                    borderRadius: 99,
+                                    fontWeight: 800
+                                  }}>
+                                    Aktif
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: themeObj.subText, fontWeight: 700 }}>
+                                {subj.totalQuestions} Soru · {subj.sessionCount} Seans · Toplam {Math.round(subj.totalSeconds / 60)} dk
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Sağ: Soru Başı Ortalama Süre & Değerlendirme Rozeti */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 900, color: subj.evaluation.color }}>
+                                {formatSecToMinSec(subj.avgSec)}
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.85 }}> / soru</span>
+                              </div>
+                              <div style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                color: subj.evaluation.color,
+                                background: subj.evaluation.bg,
+                                padding: '1px 6px',
+                                borderRadius: 6,
+                                display: 'inline-block',
+                                marginTop: 2
+                              }}>
+                                {subj.evaluation.label}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectSubject(subj.id);
+                                if (activeStudyMode !== 'question') handleSwitchMasterMode('question');
+                              }}
+                              style={{
+                                background: isSelected ? '#6366f1' : themeObj.buttonBg,
+                                border: `1px solid ${isSelected ? '#6366f1' : themeObj.border}`,
+                                color: isSelected ? 'white' : themeObj.text,
+                                borderRadius: 10,
+                                padding: '0.35rem 0.6rem',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Play size={11} fill={isSelected ? 'white' : 'currentColor'} />
+                              <span>Çalış</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div style={{
+                  background: themeObj.innerBg,
+                  borderRadius: 16,
+                  padding: '1.25rem 1rem',
+                  border: `1.5px dashed ${themeObj.border}`,
+                  textAlign: 'center'
+                }}>
+                  <Clock size={26} color="#6366f1" style={{ marginBottom: 4 }} />
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: themeObj.text }}>Henüz Kayıtlı Soru Seansı Yok</div>
+                  <div style={{ fontSize: '0.72rem', color: themeObj.subText, marginTop: 3, lineHeight: 1.4, maxWidth: 380, margin: '3px auto 8px' }}>
+                    Yukarıdaki <strong>✏️ Soru Çözümü</strong> modundan dersinizi seçip soru çözdükçe, her ders için soru başına harcadığınız süre otomatik olarak burada analiz edilecektir.
+                  </div>
+                  <button
+                    onClick={loadDemoSubjectStats}
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.12)',
+                      border: '1.5px solid rgba(99, 102, 241, 0.3)',
+                      color: '#6366f1',
+                      padding: '0.45rem 1rem',
+                      borderRadius: 12,
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✨ Örnek Analiz Verilerini Gör (Demo)
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 1. BUGÜNÜN BAŞARI ORMANI (FOREST BAHÇESİ) */}
@@ -2055,26 +2615,32 @@ export default function StudyRoomPage() {
             </h2>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted, #64748b)', margin: '0 0 1.25rem 0', lineHeight: 1.4 }}>
-              Hedeflenen <strong>{earnedBonusModal.questionsDone} soruyu</strong> toplam {earnedBonusModal.budgetMinutes} dakikalık bütçe yerine sadece <strong>{earnedBonusModal.elapsedMinutes} dakikada</strong> tamamladın!
+              Hedeflenen <strong>{earnedBonusModal.questionsDone} {earnedBonusModal.subject || ''} sorusunu</strong> toplam {earnedBonusModal.budgetMinutes} dakikalık bütçe yerine sadece <strong>{earnedBonusModal.elapsedMinutes} dakikada</strong> tamamladın!
             </p>
 
             <div style={{
               background: 'var(--color-surface-hover, #f8fafc)',
               borderRadius: 16,
-              padding: '1rem',
+              padding: '0.85rem',
               border: '1.5px solid var(--color-border, #e2e8f0)',
-              marginBottom: '1.5rem',
+              marginBottom: '1.25rem',
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 10
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 8
             }}>
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Erken Bitirme Bonusu</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f59e0b' }}>+{earnedBonusModal.bonusMinutes} dk</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Soru Başı Hız</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#6366f1' }}>
+                  {formatSecToMinSec(Math.round((earnedBonusModal.elapsedMinutes * 60) / Math.max(1, earnedBonusModal.questionsDone)))}
+                </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Hak Edilen Toplam Mola</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981' }}>{earnedBonusModal.totalBreakMinutes} dk</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Erken Bitirme</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f59e0b' }}>+{earnedBonusModal.bonusMinutes} dk</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Toplam Mola</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#10b981' }}>{earnedBonusModal.totalBreakMinutes} dk</div>
               </div>
             </div>
 
