@@ -109,52 +109,56 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
 
   return (
     <div ref={wrapperRef} style={containerStyle}>
-      {/* Sleek Minimal Controls Bar - Seamless Edge-to-Edge */}
+      {/* Sleek Minimal Controls Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.45rem 0.85rem',
+        padding: isMobile ? '0.2rem 0.5rem' : '0.45rem 0.85rem',
         background: '#f8fafc',
-        borderBottom: '1.5px solid #e2e8f0',
+        borderBottom: '1px solid #e2e8f0',
         color: '#0f172a',
-        flexWrap: 'wrap',
-        gap: '0.4rem',
+        flexWrap: 'nowrap',
+        gap: '0.35rem',
+        minHeight: isMobile ? '30px' : '42px',
+        boxSizing: 'border-box',
         zIndex: 10
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={16} style={{ color: '#ef4444' }} />
-          <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
-            {title} ({zoomLevel}%)
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0 }}>
+          <FileText size={isMobile ? 13 : 16} style={{ color: '#ef4444', flexShrink: 0 }} />
+          {!isMobile && (
+            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {title}
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.35rem', flexShrink: 0 }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.15rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
-              <ZoomOut size={15} />
+              <ZoomOut size={isMobile ? 12 : 15} />
             </button>
             <button
               type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
+              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
             >
-              <RotateCcw size={12} style={{ marginRight: '0.2rem' }} /> {zoomLevel}%
+              <RotateCcw size={isMobile ? 10 : 12} style={{ marginRight: '0.15rem' }} /> {zoomLevel}%
             </button>
             <button
               type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
-              <ZoomIn size={15} />
+              <ZoomIn size={isMobile ? 12 : 15} />
             </button>
           </div>
 
@@ -163,15 +167,28 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
             type="button"
             onClick={toggleExpanded}
             title="Pencereyi Tam Ekran Yap"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)' }}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: 'white',
+              border: 'none',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+              borderRadius: '0.45rem',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.68rem' : '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)'
+            }}
           >
-            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-            <span>{isExpanded ? 'Küçült' : 'Tam Ekran'}</span>
+            {isExpanded ? <Minimize2 size={isMobile ? 12 : 15} /> : <Maximize2 size={isMobile ? 12 : 15} />}
+            <span>{isExpanded ? 'Küçült' : (isMobile ? 'Tam Ekran' : 'Tam Ekran')}</span>
           </button>
 
           {/* Change File */}
           {allowUpload && onUploadFile && (
-            <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: isMobile ? '0.68rem' : '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && onUploadFile(e.target.files[0])} />
               📁 PDF Değiştir
             </label>

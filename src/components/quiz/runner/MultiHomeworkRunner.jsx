@@ -1951,22 +1951,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a', overflow: 'hidden' }}>
       
-      {/* ── TOP HEADER BAR (PERMANENT) ── */}
+      {/* ── TOP HEADER BAR (PERMANENT & ULTRA-COMPACT ON MOBILE) ── */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
+        padding: isMobile ? '0.25rem 0.6rem' : '0.65rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         background: '#ffffff',
         borderBottom: '1.5px solid #e2e8f0',
         flexShrink: 0,
-        gap: '0.6rem',
+        gap: isMobile ? '0.35rem' : '0.6rem',
         zIndex: 10,
-        minHeight: isMobile ? '48px' : '56px',
+        minHeight: isMobile ? '38px' : '56px',
         boxSizing: 'border-box',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
           {!isMobile && (
             <div style={{
               padding: '0.35rem 0.75rem',
@@ -1981,10 +1981,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               flexShrink: 0,
               boxShadow: '0 2px 8px rgba(79,70,229,0.25)'
             }}>
-              <Layers size={14} /> {isReviewMode ? 'İNCELEME RAPORU' : 'ÖDEV TESTİ'}
+              <Layers size={14} /> {isReviewMode ? 'İNCELEME' : 'ÖDEV TESTİ'}
             </div>
           )}
-          <h2 style={{ fontSize: isMobile ? '0.88rem' : '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <h2 style={{ fontSize: isMobile ? '0.8rem' : '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {test.title || test.name}
           </h2>
           {!isMobile && sections.length > 1 && (
@@ -1994,7 +1994,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.65rem', flexShrink: 0 }}>
           {isReviewMode ? (
             !isMobile && (
               <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#e0e7ff', border: '1.5px solid #c7d2fe', color: '#4338ca', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -2004,19 +2004,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             )
           ) : (
             <div style={{
-              padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.85rem',
-              borderRadius: '0.65rem',
-              background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
-              border: `1.5px solid ${timeLeft < 300 ? '#fca5a5' : '#e2e8f0'}`,
+              padding: isMobile ? '0.2rem 0.45rem' : '0.4rem 0.85rem',
+              borderRadius: '0.5rem',
+              background: timeLeft < 300 ? '#fef2f2' : '#f8fafc',
+              border: `1px solid ${timeLeft < 300 ? '#fca5a5' : '#cbd5e1'}`,
               color: timeLeft < 300 ? '#dc2626' : '#0f172a',
               fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.85rem',
+              fontSize: isMobile ? '0.72rem' : '0.85rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
+              gap: '0.25rem'
             }}>
-              <Clock size={isMobile ? 13 : 16} color={timeLeft < 300 ? '#dc2626' : '#4f46e5'} />
+              <Clock size={isMobile ? 12 : 16} color={timeLeft < 300 ? '#dc2626' : '#4f46e5'} />
               <span>{formatTime(timeLeft)}</span>
             </div>
           )}
@@ -2024,23 +2023,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
-              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.95rem',
-              borderRadius: '0.65rem',
-              background: isDrawingOpen ? '#f59e0b' : '#ffffff',
-              border: `1.5px solid ${isDrawingOpen ? '#d97706' : '#e2e8f0'}`,
+              padding: isMobile ? '0.25rem 0.45rem' : '0.45rem 0.95rem',
+              borderRadius: '0.5rem',
+              background: isDrawingOpen ? '#f59e0b' : '#f8fafc',
+              border: `1px solid ${isDrawingOpen ? '#d97706' : '#cbd5e1'}`,
               color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
-              fontSize: isMobile ? '0.75rem' : '0.82rem',
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+              gap: '0.25rem',
               transition: 'all 0.15s ease'
             }}
             title="Çizim Aracı"
           >
-            <Pencil size={14} /> 
+            <Pencil size={isMobile ? 12 : 14} /> 
             {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Tahtası")}
           </button>
 
@@ -2048,21 +2046,21 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             <button
               onClick={() => onSubmit && onSubmit()}
               style={{
-                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.25rem',
-                borderRadius: '0.65rem',
+                padding: isMobile ? '0.25rem 0.6rem' : '0.5rem 1.25rem',
+                borderRadius: '0.5rem',
                 background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.85rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)'
+                gap: '0.25rem',
+                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)'
               }}
             >
-              <CheckCircle2 size={isMobile ? 14 : 18} /> 
+              <CheckCircle2 size={isMobile ? 13 : 18} /> 
               {!isMobile && "İncelemeyi Kapat"}
               {isMobile && "Kapat"}
             </button>
@@ -2070,22 +2068,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             <button
               onClick={handleSubmit}
               style={{
-                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.25rem',
-                borderRadius: '0.65rem',
+                padding: isMobile ? '0.25rem 0.6rem' : '0.5rem 1.25rem',
+                borderRadius: '0.5rem',
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.85rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                gap: '0.25rem',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <CheckCircle2 size={18} /> 
+              <CheckCircle2 size={isMobile ? 13 : 18} /> 
               {!isMobile && "Sınavı Bitir ve Gönder"}
               {isMobile && "Bitir"}
             </button>
@@ -2093,133 +2091,136 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         </div>
       </header>
 
-      {/* ── TOP SECTION TABS BAR (PERMANENT) ── */}
-      <div style={{
-        background: '#f8fafc',
-        borderBottom: '1.5px solid #e2e8f0',
-        padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 1.25rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '0.4rem',
-        flexShrink: 0,
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflowX: 'auto', flex: 1, paddingBottom: isMobile ? '2px' : '0' }}>
-          {sections.map((sec, idx) => {
-            const isCurrent = idx === activeSecIdx;
-            const secAnsState = sectionAnswers[sec.id]?.answers || {};
-            const secTxtState = sectionAnswers[sec.id]?.openEndedText || {};
-            const ansCount = Object.keys(secAnsState).length + Object.keys(secTxtState).filter(k => secTxtState[k]).length;
-            const isCompleted = ansCount === sec.qCount && sec.qCount > 0;
+      {/* ── TOP SECTION TABS BAR (HIDDEN ON MOBILE IF SINGLE SECTION) ── */}
+      {(!isMobile || sections.length > 1) && (
+        <div style={{
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          padding: isMobile ? '0.2rem 0.5rem' : '0.5rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.35rem',
+          flexShrink: 0,
+          width: '100%',
+          boxSizing: 'border-box',
+          minHeight: isMobile ? '30px' : 'auto'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', flex: 1, paddingBottom: isMobile ? '1px' : '0' }}>
+            {sections.map((sec, idx) => {
+              const isCurrent = idx === activeSecIdx;
+              const secAnsState = sectionAnswers[sec.id]?.answers || {};
+              const secTxtState = sectionAnswers[sec.id]?.openEndedText || {};
+              const ansCount = Object.keys(secAnsState).length + Object.keys(secTxtState).filter(k => secTxtState[k]).length;
+              const isCompleted = ansCount === sec.qCount && sec.qCount > 0;
 
-            let cleanTitle = sec.title || '';
-            if (cleanTitle.match(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)/i)) {
-              cleanTitle = cleanTitle.replace(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)[\s:•-]*/i, '').trim();
-            }
+              let cleanTitle = sec.title || '';
+              if (cleanTitle.match(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)/i)) {
+                cleanTitle = cleanTitle.replace(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)[\s:•-]*/i, '').trim();
+              }
 
-            return (
+              return (
+                <button
+                  key={sec.id || idx}
+                  onClick={() => setActiveSecIdx(idx)}
+                  style={{
+                    padding: isMobile ? '0.2rem 0.45rem' : '0.45rem 1rem',
+                    borderRadius: isMobile ? '0.4rem' : '0.65rem',
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.68rem' : '0.82rem',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? '0.25rem' : '0.4rem',
+                    background: isCurrent
+                      ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                      : isCompleted ? '#f0fdf4' : '#ffffff',
+                    border: isCurrent
+                      ? 'none'
+                      : isCompleted ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+                    color: isCurrent
+                      ? '#ffffff'
+                      : isCompleted ? '#15803d' : '#334155',
+                    boxShadow: isCurrent
+                      ? '0 2px 8px rgba(79, 70, 229, 0.3)'
+                      : 'none',
+                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                    flexShrink: 0
+                  }}
+                >
+                  <span>
+                    {idx + 1}. Bölüm{cleanTitle && !isMobile ? ` • ${cleanTitle}` : ''}
+                  </span>
+                  <span style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 900,
+                    padding: '0.08rem 0.35rem',
+                    borderRadius: '999px',
+                    background: isCurrent
+                      ? 'rgba(255,255,255,0.22)'
+                      : isCompleted ? '#dcfce7' : '#f1f5f9',
+                    color: isCurrent
+                      ? '#ffffff'
+                      : isCompleted ? '#15803d' : '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.1rem'
+                  }}>
+                    {isCompleted && '✓ '}{ansCount}/{sec.qCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {sections.length > 1 && (
+            <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
               <button
-                key={sec.id || idx}
-                onClick={() => setActiveSecIdx(idx)}
+                onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
+                disabled={activeSecIdx === 0}
                 style={{
-                  padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 1rem',
-                  borderRadius: '0.65rem',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.72rem' : '0.82rem',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  background: isCurrent
-                    ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                    : isCompleted ? '#f0fdf4' : '#ffffff',
-                  border: isCurrent
-                    ? 'none'
-                    : isCompleted ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
-                  color: isCurrent
-                    ? '#ffffff'
-                    : isCompleted ? '#15803d' : '#334155',
-                  boxShadow: isCurrent
-                    ? '0 4px 14px rgba(79, 70, 229, 0.35)'
-                    : '0 1px 3px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                  flexShrink: 0
-                }}
-              >
-                <span>
-                  {idx + 1}. Bölüm{cleanTitle && !isMobile ? ` • ${cleanTitle}` : ''}
-                </span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 900,
-                  padding: '0.12rem 0.45rem',
-                  borderRadius: '999px',
-                  background: isCurrent
-                    ? 'rgba(255,255,255,0.22)'
-                    : isCompleted ? '#dcfce7' : '#f1f5f9',
-                  color: isCurrent
-                    ? '#ffffff'
-                    : isCompleted ? '#15803d' : '#475569',
+                  padding: isMobile ? '0.2rem 0.4rem' : '0.45rem 0.9rem',
+                  borderRadius: isMobile ? '0.4rem' : '0.6rem',
+                  background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  color: activeSecIdx === 0 ? '#94a3b8' : '#334155',
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.68rem' : '0.8rem',
+                  cursor: activeSecIdx === 0 ? 'default' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.15rem'
-                }}>
-                  {isCompleted && '✓ '}{ansCount}/{sec.qCount}
-                </span>
+                }}
+                title="Önceki Bölüm"
+              >
+                <ChevronLeft size={isMobile ? 12 : 16} /> {!isMobile && "Önceki"}
               </button>
-            );
-          })}
+              <button
+                onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                disabled={activeSecIdx === sections.length - 1}
+                style={{
+                  padding: isMobile ? '0.2rem 0.4rem' : '0.45rem 0.9rem',
+                  borderRadius: isMobile ? '0.4rem' : '0.6rem',
+                  background: activeSecIdx === sections.length - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  border: activeSecIdx === sections.length - 1 ? '1px solid #e2e8f0' : 'none',
+                  color: activeSecIdx === sections.length - 1 ? '#94a3b8' : '#ffffff',
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.68rem' : '0.8rem',
+                  cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.15rem',
+                  boxShadow: activeSecIdx === sections.length - 1 ? 'none' : '0 2px 6px rgba(79,70,229,0.25)'
+                }}
+                title="Sonraki Bölüm"
+              >
+                {!isMobile && "Sonraki"} <ChevronRight size={isMobile ? 12 : 16} />
+              </button>
+            </div>
+          )}
         </div>
-
-        <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
-          <button
-            onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
-            disabled={activeSecIdx === 0}
-            style={{
-              padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.9rem',
-              borderRadius: '0.6rem',
-              background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              color: activeSecIdx === 0 ? '#94a3b8' : '#334155',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: activeSecIdx === 0 ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.2rem',
-              transition: 'all 0.15s ease'
-            }}
-            title="Önceki Bölüm"
-          >
-            <ChevronLeft size={isMobile ? 14 : 16} /> {!isMobile && "Önceki"}
-          </button>
-          <button
-            onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-            disabled={activeSecIdx === sections.length - 1}
-            style={{
-              padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.9rem',
-              borderRadius: '0.6rem',
-              background: activeSecIdx === sections.length - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
-              border: activeSecIdx === sections.length - 1 ? '1.5px solid #e2e8f0' : 'none',
-              color: activeSecIdx === sections.length - 1 ? '#94a3b8' : '#ffffff',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.2rem',
-              boxShadow: activeSecIdx === sections.length - 1 ? 'none' : '0 2px 8px rgba(79,70,229,0.25)',
-              transition: 'all 0.15s ease'
-            }}
-            title="Sonraki Bölüm"
-          >
-            {!isMobile && "Sonraki"} <ChevronRight size={isMobile ? 14 : 16} />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* ── MAIN CONTENT AREA ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
