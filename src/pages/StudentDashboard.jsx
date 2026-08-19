@@ -24,6 +24,44 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+
+const SUBJECT_ROW_THEMES = {
+  'matematik':       { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
+  'türkçe':          { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
+  'fen':             { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
+  'sosyal':          { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
+  'inkılap':         { bg: '#fff7ed', border: '#fed7aa', accent: '#ea580c', text: '#c2410c', badgeBg: '#ffedd5' },
+  'ingilizce':       { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  'yabancı dil':     { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  'din':             { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+  'geometri':        { bg: '#f0fdfa', border: '#99f6e4', accent: '#0d9488', text: '#0f766e', badgeBg: '#ccfbf1' },
+  'fizik':           { bg: '#f5f3ff', border: '#ddd6fe', accent: '#6366f1', text: '#4338ca', badgeBg: '#ede9fe' },
+  'kimya':           { bg: '#fdf4ff', border: '#f5d0fe', accent: '#c026d3', text: '#a21caf', badgeBg: '#fae8ff' },
+  'biyoloji':        { bg: '#f0fdf4', border: '#a7f3d0', accent: '#059669', text: '#047857', badgeBg: '#d1fae5' },
+  'tarih':           { bg: '#fffbeb', border: '#fed7aa', accent: '#d97706', text: '#9a3412', badgeBg: '#ffedd5' },
+  'coğrafya':        { bg: '#f0fdf4', border: '#bbf7d0', accent: '#16a34a', text: '#166534', badgeBg: '#dcfce7' },
+  'felsefe':         { bg: '#fdf2f8', border: '#fbcfe8', accent: '#ec4899', text: '#be185d', badgeBg: '#fce7f3' },
+};
+
+const PALETTES_LIST = [
+  { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
+  { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
+  { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
+  { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
+  { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+];
+
+const getRowTheme = (subject, idx) => {
+  if (subject) {
+    const sLower = String(subject).toLowerCase();
+    for (const [key, val] of Object.entries(SUBJECT_ROW_THEMES)) {
+      if (sLower.includes(key)) return val;
+    }
+  }
+  return PALETTES_LIST[idx % PALETTES_LIST.length];
+};
+
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import './StudentDashboard.css';
 
@@ -2095,68 +2133,181 @@ export default function StudentDashboard() {
                 </button>
               </div>
 
-              {homeworkSummaryGroups.length === 0 ? (
+              {pendingTasks.length === 0 ? (
                 <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎉</div>
-                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#10b981' : 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
-                    {tests.length > 0 ? 'Tüm Ödevler Başarıyla Tamamlandı!' : 'Henüz atanmış bir ödeviniz yok'}
+                  <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz bekleyen ödeviniz yok!
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
-                    {tests.length > 0
-                      ? 'Çözülmeyi bekleyen aktif ödeviniz bulunmuyor. Geçmiş ödevlerinizi görmek için tıklayın.'
-                      : 'Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.'}
+                    Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir. Geçmiş ödevleriniz için tümünü gör butonuna tıklayabilirsiniz.
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {homeworkSummaryGroups.map(group => (
-                    <div
-                      key={group.id}
+                  {pendingTasks.slice(0, 5).map((task, idx) => {
+                    const rowTheme = getRowTheme(task.subject, idx);
+                    const isOverdue = !task.isDone && task.dueDateObj && isPast(task.dueDateObj) && !isToday(task.dueDateObj);
+
+                    const rawTitle = task.title || task.name || task.testName || 'Ödev Görevi';
+                    const rawBook = task.bookTitle || '';
+                    let displayTitle = rawTitle;
+                    if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                      const regex = new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                      displayTitle = displayTitle.replace(regex, '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                      if (!displayTitle) displayTitle = task.testName || rawTitle;
+                    }
+
+                    return (
+                      <div
+                        key={task.id || idx}
+                        onClick={() => navigate('/student/homeworks')}
+                        className="hw-row"
+                        style={{
+                          background: 'var(--color-surface, #ffffff)',
+                          borderLeft: `4.5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : (rowTheme.accent || '#6366f1')}`,
+                          borderTop: '1px solid var(--color-border)',
+                          borderRight: '1px solid var(--color-border)',
+                          borderBottom: '1px solid var(--color-border)',
+                          borderRadius: 12,
+                          padding: '0.85rem 1.15rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {/* SOL: İkon */}
+                        <div
+                          className="hw-icon-box"
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: 'var(--color-surface-hover)',
+                            color: task.isDone ? '#34d399' : isOverdue ? '#f87171' : (rowTheme.accent || '#818cf8'),
+                            border: `1.5px solid ${task.isDone ? 'rgba(16,185,129,0.35)' : isOverdue ? 'rgba(239,68,68,0.35)' : 'var(--color-border)'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.88rem',
+                            fontWeight: 900,
+                            flexShrink: 0,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          {task.isDone ? '✓' : isOverdue ? '!' : '⏳'}
+                        </div>
+
+                        {/* ORTA: Rozetler, Başlık ve Alt Bilgi */}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          {/* Rozetler */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
+                            {task.subject && (
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 900,
+                                color: rowTheme.text || '#818cf8',
+                                background: 'var(--color-surface-hover)',
+                                padding: '1.5px 6px',
+                                borderRadius: 5,
+                                border: '1px solid var(--color-border)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {task.subject}
+                              </span>
+                            )}
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              color: task.isBookAssignment ? '#34d399' : '#c084fc',
+                              background: 'var(--color-surface-hover)',
+                              padding: '1.5px 6px',
+                              borderRadius: 5,
+                              border: task.isBookAssignment ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(124,58,237,0.25)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {task.isPhysical ? '📋 Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
+                            </span>
+                            {task.isDone ? (
+                              <span style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 800,
+                                color: '#059669',
+                                background: '#d1fae5',
+                                padding: '1.5px 6px',
+                                borderRadius: 5,
+                                border: '1px solid rgba(16,185,129,0.25)'
+                              }}>
+                                {task.scorePct !== null ? `%${task.scorePct}` : 'Tamamlandı'}
+                              </span>
+                            ) : (
+                              <span style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 800,
+                                color: isOverdue ? '#e11d48' : 'var(--color-text-muted)',
+                                background: isOverdue ? '#ffe4e6' : 'var(--color-surface)',
+                                padding: '1.5px 6px',
+                                borderRadius: 5,
+                                border: isOverdue ? '1px solid rgba(225,29,72,0.25)' : '1px solid var(--color-border)'
+                              }}>
+                                {isOverdue ? 'Süresi Doldu' : 'Bekliyor'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Başlık */}
+                          <div style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 800,
+                            color: 'var(--color-text)',
+                            marginBottom: 2,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {displayTitle}
+                          </div>
+
+                          {/* Alt Bilgi */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Calendar size={11} /> {task.dueDateObj ? task.dueDateObj.toLocaleDateString('tr-TR') : 'Süresiz'}
+                            </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Target size={11} /> {task.questionCount || 0} Soru
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* SAĞ: Ok */}
+                        <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
+                          <ChevronRight size={18} />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {pendingTasks.length > 5 && (
+                    <button 
                       onClick={() => navigate('/student/homeworks')}
-                      className="sd-card"
                       style={{
-                        background: 'var(--color-surface-hover, #f8fafc)',
-                        border: '1.5px solid var(--color-border, #e2e8f0)',
-                        borderRadius: 16,
-                        padding: '1rem 1.15rem',
+                        background: 'transparent',
+                        border: '1px dashed var(--color-border)',
+                        color: 'var(--color-text-muted)',
+                        padding: '0.6rem',
+                        borderRadius: 12,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease'
+                        marginTop: 4
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
-                          {group.title}
-                        </div>
-                        {group.pct === 0 ? (
-                          <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <PlayCircle size={12} /> Çöz
-                          </div>
-                        ) : (
-                          <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#10b981' : '#ef4444' }}>
-                            %{group.pct}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${group.pct}%`,
-                          background: group.pct === 100 ? 'linear-gradient(90deg, #22c55e, #10b981)' : 'linear-gradient(90deg, #f97316, #ef4444)',
-                          borderRadius: 99,
-                          transition: 'width 0.8s ease'
-                        }} />
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#ef4444', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
-                        <span style={{ color: group.pct === 100 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
-                          {group.pct === 0 ? 'Şimdi Çöz' : 'Detayları Gör'} <ChevronRight size={13} />
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                      Tüm Bekleyenleri Gör (+{pendingTasks.length - 5})
+                    </button>
+                  )}
                 </div>
               )}
             </div>
