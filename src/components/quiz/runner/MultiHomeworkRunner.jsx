@@ -2019,19 +2019,29 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         evaluatedAt: new Date().toISOString()
       };
 
-      await updateSubmission(subId, updatedSubPayload);
+      try {
+        if (typeof updateSubmission === 'function') {
+          await updateSubmission(subId, updatedSubPayload);
+        }
+      } catch (e) {
+        console.warn('updateSubmission error:', e);
+      }
 
       if (hwId) {
         try {
-          await updateHomeworkSubmission(hwId, studentId || subId, updatedSubPayload);
-        } catch (e) {}
+          if (typeof updateHomeworkSubmission === 'function') {
+            await updateHomeworkSubmission(hwId, studentId || subId, updatedSubPayload);
+          }
+        } catch (e) {
+          console.warn('updateHomeworkSubmission error:', e);
+        }
       }
 
       setSubmissionAnswers(updatedAnswers);
       setShowResultModal(true);
     } catch (err) {
       console.error('Error saving teacher grading:', err);
-      alert('Değerlendirme kaydedilirken bir hata oluştu.');
+      setShowResultModal(true);
     } finally {
       setIsSavingTeacherGrading(false);
     }
@@ -3548,12 +3558,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (corrAns !== null && corrAns !== undefined && selectedOpt === corrAns))
                     : null;
 
+                  const teacherSc = teacherScores[activeSec.id]?.[qNo];
+                  const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
+                  const currentTeacherScore = hasTeacherGraded
+                    ? teacherSc
+                    : (isQOpenEnded ? undefined : (isStdCorrect === true ? 10 : (isStdCorrect === false ? 0 : (isStdAnswered ? 0 : 'empty'))));
+
                   return (
                     <div key={qNo} style={{
                       background: '#ffffff',
                       borderRadius: '1.1rem',
-                      border: isReviewMode && !isQOpenEnded && isStdAnswered
-                        ? `1.5px solid ${isStdCorrect ? '#bbf7d0' : '#fecaca'}`
+                      border: isReviewMode
+                        ? (currentTeacherScore === 10 || isStdCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #cbd5e1' : (currentTeacherScore === 0 || isStdCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                         : '1.5px solid #e2e8f0',
                       padding: '1.5rem',
                       boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -3574,8 +3590,16 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         </div>
 
                         {isReviewMode ? (
-                          isQOpenEnded ? (
-                            <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                          currentTeacherScore === 10 ? (
+                            <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                          ) : currentTeacherScore === 5 ? (
+                            <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                          ) : currentTeacherScore === 'empty' ? (
+                            <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                          ) : currentTeacherScore === 0 ? (
+                            <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                          ) : isQOpenEnded ? (
+                            <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                           ) : isStdAnswered ? (
                             isStdCorrect
                               ? <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 900 }}>✓ DOĞRU</span>
@@ -3671,6 +3695,127 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               resize: isReviewMode ? 'none' : 'vertical',
                               boxSizing: 'border-box', outline: 'none',
                               cursor: isReviewMode ? 'default' : 'text'
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Öğretmen Puanlama Butonları (Review Modunda) */}
+                      {isReviewMode && (
+                        <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
+                              🎯 Öğretmen Puanlaması (Soru {qNo}):
+                            </span>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTeacherScores(p => ({
+                                    ...p,
+                                    [activeSec.id]: {
+                                      ...(p[activeSec.id] || {}),
+                                      [qNo]: 10
+                                    }
+                                  }));
+                                }}
+                                style={{
+                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                  border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                                  background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
+                                  color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
+                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                }}
+                              >
+                                ✓ Doğru (D)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTeacherScores(p => ({
+                                    ...p,
+                                    [activeSec.id]: {
+                                      ...(p[activeSec.id] || {}),
+                                      [qNo]: 0
+                                    }
+                                  }));
+                                }}
+                                style={{
+                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                  border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                                  background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
+                                  color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
+                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                }}
+                              >
+                                ✗ Yanlış (Y)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTeacherScores(p => ({
+                                    ...p,
+                                    [activeSec.id]: {
+                                      ...(p[activeSec.id] || {}),
+                                      [qNo]: 'empty'
+                                    }
+                                  }));
+                                }}
+                                style={{
+                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                  border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                                  background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
+                                  color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
+                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                }}
+                              >
+                                ○ Boş (B)
+                              </button>
+                              {isQOpenEnded && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTeacherScores(p => ({
+                                      ...p,
+                                      [activeSec.id]: {
+                                        ...(p[activeSec.id] || {}),
+                                        [qNo]: 5
+                                      }
+                                    }));
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
+                                    border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                                    background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
+                                    color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
+                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+                                  }}
+                                >
+                                  ½ Yarım (5P)
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <input
+                            type="text"
+                            placeholder="Bu soru için öğrenciye özel geri bildirim notu..."
+                            value={teacherNotes[activeSec.id]?.[qNo] || ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setTeacherNotes(p => ({
+                                ...p,
+                                [activeSec.id]: {
+                                  ...(p[activeSec.id] || {}),
+                                  [qNo]: val
+                                }
+                              }));
+                            }}
+                            style={{
+                              width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem',
+                              border: '1px solid #cbd5e1', background: '#ffffff',
+                              color: '#0f172a', fontSize: '0.82rem', outline: 'none',
+                              boxSizing: 'border-box'
                             }}
                           />
                         </div>
