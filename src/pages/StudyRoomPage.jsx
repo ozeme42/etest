@@ -503,6 +503,7 @@ export default function StudyRoomPage() {
   const [activeTheme, setActiveTheme] = useState('system');
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showConfirmFinish, setShowConfirmFinish] = useState(false);
   const [completedCycles, setCompletedCycles] = useState(0);
 
   // Bonus Mola Kutlama Modalı
@@ -1836,7 +1837,7 @@ export default function StudyRoomPage() {
             <div>
               {currentProgressCount > 0 ? (
                 <button
-                  onClick={handleFinishEarlyAndRewardBreak}
+                  onClick={() => setShowConfirmFinish(true)}
                   className="sr-action-btn-main"
                   style={{
                     width: '100%',
@@ -1874,6 +1875,65 @@ export default function StudyRoomPage() {
                   <span>{calculatedQuestionBudgetMinutes} dakikadan önce bitirirsen, artan tüm dakikalar molana eklenir!</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Testi Bitir Onay Modalı */}
+          {showConfirmFinish && (
+            <div
+              onClick={() => setShowConfirmFinish(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                background: 'rgba(0,0,0,0.55)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '1rem'
+              }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background: themeObj.cardBg || '#1e293b',
+                  borderRadius: 24,
+                  padding: '2rem 1.75rem',
+                  maxWidth: 380,
+                  width: '100%',
+                  boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🏖️</div>
+                <h3 style={{ margin: '0 0 0.5rem', fontWeight: 900, color: themeObj.text || '#f1f5f9', fontSize: '1.15rem' }}>
+                  Testi bitirmek istiyor musun?
+                </h3>
+                <p style={{ margin: '0 0 1.5rem', color: themeObj.subText || '#94a3b8', fontSize: '0.87rem', lineHeight: 1.5 }}>
+                  <strong style={{ color: '#10b981' }}>{currentProgressCount} soru</strong> çözdün.
+                  {liveSessionSecPerQ > 0 && <> Ortalama <strong style={{ color: '#10b981' }}>{formatSecToMinSec(liveSessionSecPerQ)}/soru</strong>.</>}
+                  {' '}Artan süre molana eklenecek! ✨
+                </p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => setShowConfirmFinish(false)}
+                    style={{
+                      flex: 1, padding: '0.8rem', borderRadius: 14,
+                      background: 'rgba(148,163,184,0.15)', border: '1.5px solid rgba(148,163,184,0.25)',
+                      color: themeObj.subText || '#94a3b8', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Vazgeç
+                  </button>
+                  <button
+                    onClick={() => { setShowConfirmFinish(false); handleFinishEarlyAndRewardBreak(); }}
+                    style={{
+                      flex: 1, padding: '0.8rem', borderRadius: 14,
+                      background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none',
+                      color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                      boxShadow: '0 6px 16px rgba(16,185,129,0.4)'
+                    }}
+                  >
+                    ✓ Evet, Bitir
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
