@@ -556,11 +556,22 @@ export default function EvaluationManager() {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
 
+  // Kitap takibi / "Tüm Kitap Görevi" tipindeki ödevleri gizle
+  const isTrackedBookHw = (hw) => {
+    if (!hw) return false;
+    if (hw.isBookAssignment === true || hw.sourceType === 'trackedBook') return true;
+    if (hw.bookId || hw.bookTestId) return true;
+    const t = String(hw.title || '').toLowerCase();
+    if (t.includes('(tüm kitap') || t.includes('(kendi eklediğim)')) return true;
+    return false;
+  };
+
   const isAdmin = currentUser?.role === 'admin';
   const teacherId = currentUser?.id;
 
   const combinedSubmissions = useMemo(() => {
-    const activeHws = (homeworks || []).filter(hw => hw && hw.id);
+    // Kitap takibi ödevlerini filtrele
+    const activeHws = (homeworks || []).filter(hw => hw && hw.id && !isTrackedBookHw(hw));
     const map = new Map();
 
     activeHws.forEach(hw => {
