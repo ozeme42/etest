@@ -4,7 +4,7 @@ import {
   Edit2, BarChart2, ArrowRight, ArrowLeft, CheckSquare, Sparkles, BookOpen, Layers, Check, Search, Filter,
   GraduationCap, Calendar, AlertCircle, Eye, Send, Trophy, FileText, Image, FileJson,
   Trash2, Zap, Target, ClipboardList, CheckCheck, RefreshCw, Clock, Plus, X, Globe, Users, CheckCircle,
-  HelpCircle, UserCheck, ShieldAlert
+  HelpCircle, UserCheck, ShieldAlert, User, CheckCircle2, ChevronRight, Award, ExternalLink
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -77,7 +77,14 @@ export default function HomeworkManager() {
   const homeworks = useMemo(() => currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
   const questions = useMemo(() => currentUser?.role === 'admin' ? (allQuestions || []) : (allQuestions || []).filter(q => q.createdBy === currentUser?.id), [allQuestions, currentUser]);
 
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'create' | 'edit'
+  const [subViewMode, setSubViewMode] = useState('homeworks'); // 'homeworks' | 'students'
+  const [selectedStudentFilterInHwList, setSelectedStudentFilterInHwList] = useState('all');
+  const [selectedStudentForDetail, setSelectedStudentForDetail] = useState(null);
+  const [studentListSearchQuery, setStudentListSearchQuery] = useState('');
+  const [studentListGradeFilter, setStudentListGradeFilter] = useState('all');
+  const [studentListStatusFilter, setStudentListStatusFilter] = useState('all');
+
   const [step, setStep] = useState(1);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('active');
@@ -202,6 +209,22 @@ export default function HomeworkManager() {
     }
   };
 
+  const isHomeworkAssignedToStudent = (hw, student) => {
+    if (!hw || !student) return false;
+    if (hw.targetType === 'grade' || hw.targetType === 'class') {
+      return (hw.targetIds || []).some(tid => isStudentInGrade(student, tid));
+    }
+    return (hw.targetIds || []).some(id => String(id) === String(student.id)) ||
+           (hw.targetStudentIds || []).some(id => String(id) === String(student.id));
+  };
+
+  const getStudentSubmission = (hw, studentId) => {
+    if (!hw || !studentId) return null;
+    return (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+           submissions.find(s => (String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId)) ||
+           null;
+  };
+
   const getHomeworkStats = (hw) => {
     const ids = (hw.targetType === 'grade' || hw.targetType === 'class')
       ? students.filter(s => (hw.targetIds || []).some(tid => isStudentInGrade(s, tid))).map(s => s.id)
@@ -237,6 +260,99 @@ export default function HomeworkManager() {
     });
     return { total: homeworks.length, active, expired, avgRate: homeworks.length ? Math.round(rateSum / homeworks.length) : 0 };
   }, [homeworks, students, submissions]);
+
+  const studentSummaries = useMemo(() => {
+    const now = new Date(new Date().setHours(0, 0, 0, 0));
+    return students.map(student => {
+      const assignedHws = homeworks.filter(hw => isHomeworkAssignedToStudent(hw, student));
+      
+      let completed = 0;
+      let scoreSum = 0;
+      let scoreCount = 0;
+      
+      const hwDetails = assignedHws.map(hw => {
+        const sub = getStudentSubmission(hw, student.id);
+        const isPast = new Date(hw.dueDate) < now;
+        const isDone = !!sub;
+        if (isDone) {
+          completed++;
+          if (sub.score !== undefined && sub.score !== null && !isNaN(Number(sub.score))) {
+            scoreSum += Number(sub.score);
+            scoreCount++;
+          } else if (sub.totalQuestions > 0 && sub.correctCount !== undefined) {
+            const pct = Math.round((sub.correctCount / sub.totalQuestions) * 100);
+            scoreSum += pct;
+            scoreCount++;
+          }
+        }
+        return {
+          homework: hw,
+          submission: sub,
+          isDone,
+          isPast
+        };
+      });
+
+      const total = assignedHws.length;
+      const pending = total - completed;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const avgScore = scoreCount > 0 ? Math.round(scoreSum / scoreCount) : null;
+
+      const gradeObj = curData?.grades?.find(g => isStudentInGrade(student, g));
+      const gradeName = gradeObj?.name || student.grade || student.gradeId || 'Sınıf Belirtilmemiş';
+
+      return {
+        student,
+        gradeName,
+        assignedHws,
+        hwDetails,
+        total,
+        completed,
+        pending,
+        rate,
+        avgScore
+      };
+    });
+  }, [students, homeworks, submissions, curData]);
+
+  const studentGlobalAnalytics = useMemo(() => {
+    const totalStudents = students.length;
+    const withHw = studentSummaries.filter(s => s.total > 0).length;
+    const withPending = studentSummaries.filter(s => s.pending > 0).length;
+    const allCompleted = studentSummaries.filter(s => s.total > 0 && s.pending === 0).length;
+    const avgOverallRate = withHw > 0
+      ? Math.round(studentSummaries.reduce((acc, s) => acc + (s.total > 0 ? s.rate : 0), 0) / withHw)
+      : 0;
+
+    return {
+      totalStudents,
+      withHw,
+      withPending,
+      allCompleted,
+      avgOverallRate
+    };
+  }, [students, studentSummaries]);
+
+  const filteredStudentSummaries = useMemo(() => {
+    return studentSummaries.filter(item => {
+      if (studentListGradeFilter !== 'all') {
+        if (!isStudentInGrade(item.student, studentListGradeFilter)) return false;
+      }
+      if (studentListStatusFilter === 'has_homework' && item.total === 0) return false;
+      if (studentListStatusFilter === 'has_pending' && item.pending === 0) return false;
+      if (studentListStatusFilter === 'all_completed' && (item.total === 0 || item.pending > 0)) return false;
+
+      if (studentListSearchQuery.trim()) {
+        const sq = studentListSearchQuery.toLowerCase().trim();
+        const name = (item.student.name || '').toLowerCase();
+        const email = (item.student.email || '').toLowerCase();
+        const num = (item.student.studentNumber || item.student.username || '').toLowerCase();
+        if (!name.includes(sq) && !email.includes(sq) && !num.includes(sq)) return false;
+      }
+
+      return true;
+    });
+  }, [studentSummaries, studentListGradeFilter, studentListStatusFilter, studentListSearchQuery]);
 
   const canStep2 = !!(title.trim() && dueDate);
   const canSubmit = !!(title.trim() && dueDate && selectedTargets.length > 0 && selectedQuestionIds.length > 0);
@@ -452,8 +568,12 @@ export default function HomeworkManager() {
     const now = new Date(new Date().setHours(0,0,0,0));
     const filteredHw = homeworks.filter(hw => {
       const past = new Date(hw.dueDate) < now;
-      if (activeTab === 'active') return !past;
-      if (activeTab === 'expired') return past;
+      if (activeTab === 'active' && past) return false;
+      if (activeTab === 'expired' && !past) return false;
+      if (selectedStudentFilterInHwList !== 'all') {
+        const targetStudent = students.find(s => s.id === selectedStudentFilterInHwList);
+        if (targetStudent && !isHomeworkAssignedToStudent(hw, targetStudent)) return false;
+      }
       return true;
     });
 
@@ -535,7 +655,7 @@ export default function HomeworkManager() {
                 Ödev &amp; Test Yönetim Merkezi 📝
               </h1>
               <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                Sınıf veya bireysel öğrenci ödevlendirme, katılım takip raporları ve canlı sınav değerlendirmesi.
+                Ödev havuzu takibi, öğrenci bazlı karne incelemesi ve canlı sınav değerlendirmesi.
               </p>
             </div>
           </div>
@@ -574,307 +694,632 @@ export default function HomeworkManager() {
           </div>
         </header>
 
-        {/* ══════════ 4 LIVE KPI HERO METRIC CARDS ══════════ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
-          <div
-            onClick={() => { resetForm(); setViewMode('create'); }}
-            style={{
-              background: 'var(--color-surface)',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: '1.25rem', padding: '1rem 1.25rem',
-              display: 'flex', alignItems: 'center', gap: '1rem',
-              cursor: 'pointer', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
-              transition: 'transform 0.15s ease'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-          >
-            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Zap size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Yeni Görev</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>+ Oluştur</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sihirbazı Başlat</span>
-            </div>
+        {/* ══════════ VIEW SELECTOR TABS (ÖDEV BAZLI vs ÖĞRENCİ BAZLI) ══════════ */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          background: 'var(--color-surface)',
+          padding: '0.6rem 1rem',
+          borderRadius: '1.25rem',
+          border: '1.5px solid var(--color-border)'
+        }}>
+          <div style={{ display: 'flex', gap: '0.4rem', background: 'var(--color-surface-hover)', padding: '0.3rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)' }}>
+            <button
+              type="button"
+              onClick={() => setSubViewMode('homeworks')}
+              style={{
+                padding: '0.5rem 1.15rem',
+                borderRadius: '0.65rem',
+                border: 'none',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: subViewMode === 'homeworks' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                color: subViewMode === 'homeworks' ? '#ffffff' : 'var(--color-text-muted)',
+                boxShadow: subViewMode === 'homeworks' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <ClipboardList size={16} /> 📋 Ödev Bazlı Görünüm ({homeworks.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubViewMode('students')}
+              style={{
+                padding: '0.5rem 1.15rem',
+                borderRadius: '0.65rem',
+                border: 'none',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: subViewMode === 'students' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                color: subViewMode === 'students' ? '#ffffff' : 'var(--color-text-muted)',
+                boxShadow: subViewMode === 'students' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Users size={16} /> 👨‍🎓 Öğrenci Bazlı Takip ({students.length})
+            </button>
           </div>
 
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border)',
-            borderRadius: '1.25rem', padding: '1rem 1.25rem',
-            display: 'flex', alignItems: 'center', gap: '1rem',
-            boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Clock size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Aktif Ödevler</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.active} Ödev</span>
-              <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Süresi devam eden</span>
-            </div>
-          </div>
-
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border)',
-            borderRadius: '1.25rem', padding: '1rem 1.25rem',
-            display: 'flex', alignItems: 'center', gap: '1rem',
-            boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(2,132,199,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Trophy size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Katılım</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{globalAnalytics.avgRate}</span>
-              <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Öğrenci teslim oranı</span>
-            </div>
-          </div>
-
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border)',
-            borderRadius: '1.25rem', padding: '1rem 1.25rem',
-            display: 'flex', alignItems: 'center', gap: '1rem',
-            boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <AlertCircle size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Süresi Bitenler</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.expired} Ödev</span>
-              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>Teslim süresi doldu</span>
-            </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+            {subViewMode === 'homeworks'
+              ? 'Tüm tanımlı ödevlerin teslim oranlarını ve sınıf raporlarını izleyin.'
+              : 'Öğrenci bazında tamamlanan ve bekleyen ödevleri, başarı puanlarını tek ekranda inceleyin.'}
           </div>
         </div>
 
-        {/* ══════════ HOMEWORK LIST CONTAINER ══════════ */}
-        <div style={glassCardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ClipboardList size={20} color="#818cf8" /> Ödev Havuzu &amp; Takip Tablosu
+        {/* ══════════ SUBVIEW 1: HOMEWORKS LIST ══════════ */}
+        {subViewMode === 'homeworks' && (
+          <>
+            {/* 4 LIVE KPI HERO METRIC CARDS */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+              <div
+                onClick={() => { resetForm(); setViewMode('create'); }}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
+                  borderRadius: '1.25rem', padding: '1rem 1.25rem',
+                  display: 'flex', alignItems: 'center', gap: '1rem',
+                  cursor: 'pointer', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
+                  transition: 'transform 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Zap size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Yeni Görev</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>+ Oluştur</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sihirbazı Başlat</span>
+                </div>
               </div>
 
-              {filteredHw.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleToggleSelectAllHw}
-                  style={{
-                    padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
-                    border: isAllHwSelected ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
-                    background: isAllHwSelected ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
-                    color: isAllHwSelected ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem',
-                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem'
-                  }}
-                >
-                  <CheckCheck size={14} />
-                  {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
-                </button>
-              )}
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '1.25rem', padding: '1rem 1.25rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Aktif Ödevler</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.active} Ödev</span>
+                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Süresi devam eden</span>
+                </div>
+              </div>
 
-              {selectedHwListIds.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #3b82f6' }}>
-                    {selectedHwListIds.length} Seçildi
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelectedHw}
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '1.25rem', padding: '1rem 1.25rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(2,132,199,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trophy size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Katılım</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{globalAnalytics.avgRate}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Öğrenci teslim oranı</span>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '1.25rem', padding: '1rem 1.25rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Süresi Bitenler</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.expired} Ödev</span>
+                  <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>Teslim süresi doldu</span>
+                </div>
+              </div>
+            </div>
+
+            {/* HOMEWORK LIST CONTAINER */}
+            <div style={glassCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ClipboardList size={20} color="#818cf8" /> Ödev Havuzu &amp; Takip Tablosu
+                  </div>
+
+                  {/* Student Filter in Homework List */}
+                  <select
+                    value={selectedStudentFilterInHwList}
+                    onChange={(e) => setSelectedStudentFilterInHwList(e.target.value)}
                     style={{
-                      padding: '0.38rem 0.85rem', borderRadius: '0.6rem', border: 'none',
-                      background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                      fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer',
-                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                      boxShadow: '0 2px 8px rgba(220,38,38,0.25)'
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '0.6rem',
+                      border: '1.5px solid var(--color-border-input)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      outline: 'none',
+                      cursor: 'pointer'
                     }}
                   >
-                    <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
-                  </button>
+                    <option value="all">👨‍🎓 Tüm Öğrenciler ({students.length})</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.id}>👨‍🎓 {s.name}</option>
+                    ))}
+                  </select>
+
+                  {filteredHw.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAllHw}
+                      style={{
+                        padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                        border: isAllHwSelected ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                        background: isAllHwSelected ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
+                        color: isAllHwSelected ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem',
+                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem'
+                      }}
+                    >
+                      <CheckCheck size={14} />
+                      {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
+                    </button>
+                  )}
+
+                  {selectedHwListIds.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #3b82f6' }}>
+                        {selectedHwListIds.length} Seçildi
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleDeleteSelectedHw}
+                        style={{
+                          padding: '0.38rem 0.85rem', borderRadius: '0.6rem', border: 'none',
+                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                          fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                          boxShadow: '0 2px 8px rgba(220,38,38,0.25)'
+                        }}
+                      >
+                        <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedHwListIds([])}
+                        style={{
+                          padding: '0.35rem 0.6rem', borderRadius: '0.6rem',
+                          border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                        }}
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid var(--color-border)' }}>
+                  {[
+                    { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
+                    { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
+                    { key: 'expired', label: 'Biten (' + globalAnalytics.expired + ')' }
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
+                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                        background: activeTab === t.key ? (t.key === 'expired' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#4f46e5,#6366f1)') : 'transparent',
+                        color: activeTab === t.key ? '#ffffff' : 'var(--color-text-muted)',
+                        boxShadow: activeTab === t.key ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredHw.length === 0 ? (
+                <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <BookOpen size={48} style={{ opacity: 0.35 }} />
+                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.05rem' }}>Bu kriterlerde ödev bulunamadı.</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Filtreleri değiştirerek veya Yeni Ödev Sihirbazı ile ödev tanımlayabilirsiniz!</div>
                   <button
-                    type="button"
-                    onClick={() => setSelectedHwListIds([])}
+                    onClick={() => { resetForm(); setViewMode('create'); }}
                     style={{
-                      padding: '0.35rem 0.6rem', borderRadius: '0.6rem',
-                      border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)',
-                      color: 'var(--color-text)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                      marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
+                      background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                      cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)'
                     }}
                   >
-                    İptal
+                    <Plus size={15} /> Yeni Ödev Oluştur
                   </button>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                        <th style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isAllHwSelected}
+                            onChange={handleToggleSelectAllHw}
+                            style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                            title="Tümünü Seç / Kaldır"
+                          />
+                        </th>
+                        {['Ödev / Başlık', 'Hedef Kitle', 'Son Tarih', 'İlerleme & Katılım', 'İşlemler'].map((h, i) => (
+                          <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHw.map(hw => {
+                        const stats = getHomeworkStats(hw);
+                        const isPast = new Date(hw.dueDate) < now;
+                        const theme = getTheme(hw.subject);
+                        const isSelected = selectedHwListIds.includes(hw.id);
+
+                        return (
+                          <tr 
+                            key={hw.id}
+                            style={{ 
+                              borderBottom: '1px solid var(--color-border)', 
+                              transition: 'background 0.15s',
+                              background: isSelected ? 'rgba(37,99,235,0.08)' : 'transparent'
+                            }}
+                          >
+                            <td style={{ width: 44, padding: '0.9rem 0.5rem 0.9rem 1rem', textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => handleToggleHwSelect(hw.id, e)}
+                                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                              />
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
+                                  <BookOpen size={16} color={theme.color} />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                    <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span> · {hw.totalQuestions} Soru · {hw.timePerQuestion} dk/soru
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem' }}>
+                              <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                {getTargetLabel(hw)}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                              <div style={{ fontWeight: 800, color: isPast ? '#f87171' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>
+                                <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
+                              </div>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isPast ? '#f87171' : '#34d399', marginTop: 2 }}>
+                                {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
+                              <GlassProgressBar value={stats.completed} max={stats.total} color={theme.color} />
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                                <button
+                                  onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
+                                  style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '0.6rem',
+                                    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                    color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.75rem',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                    boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                                  }}
+                                >
+                                  <BarChart2 size={13} /> Rapor
+                                </button>
+                                <button
+                                  onClick={() => openEditPage(hw)}
+                                  style={{
+                                    padding: '0.4rem', borderRadius: '0.6rem',
+                                    background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)',
+                                    cursor: 'pointer', display: 'flex', color: 'var(--color-text)'
+                                  }}
+                                  title="Düzenle"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
+                                      deleteHomework(hw.id);
+                                      deleteSubmissionsByTestId(hw.id);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '0.4rem', borderRadius: '0.6rem',
+                                    background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+                                    cursor: 'pointer', display: 'flex', color: '#f87171'
+                                  }}
+                                  title="Sil"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
+          </>
+        )}
 
-            <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid var(--color-border)' }}>
-              {[
-                { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
-                { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
-                { key: 'expired', label: 'Biten (' + globalAnalytics.expired + ')' }
-              ].map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
-                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
-                    background: activeTab === t.key ? (t.key === 'expired' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#4f46e5,#6366f1)') : 'transparent',
-                    color: activeTab === t.key ? '#ffffff' : 'var(--color-text-muted)',
-                    boxShadow: activeTab === t.key ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* ══════════ SUBVIEW 2: STUDENT-CENTRIC TRACKING DASHBOARD ══════════ */}
+        {subViewMode === 'students' && (
+          <>
+            {/* 4 LIVE STUDENT KPI CARDS */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Öğrenci</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.totalStudents} Öğrenci</span>
+                  <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 700 }}>Kayıtlı öğrenciler</span>
+                </div>
+              </div>
 
-          {filteredHw.length === 0 ? (
-            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-              <BookOpen size={48} style={{ opacity: 0.35 }} />
-              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.05rem' }}>Bu kategoride ödev bulunamadı.</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Yeni Ödev Sihirbazı aracılığıyla ilk ödevinizi tanımlayın!</div>
-              <button
-                onClick={() => { resetForm(); setViewMode('create'); }}
-                style={{
-                  marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)'
-                }}
-              >
-                <Plus size={15} /> Yeni Ödev Oluştur
-              </button>
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <UserCheck size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ödevi Olanlar</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withHw} Öğrenci</span>
+                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Ödev tanımlı</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Eksik / Bekleyen</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withPending} Öğrenci</span>
+                  <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Teslim beklenen</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99,102,241,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trophy size={24} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Tamamlama</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{studentGlobalAnalytics.avgOverallRate}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700 }}>Genel öğrenci başarısı</span>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-                    <th style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={isAllHwSelected}
-                        onChange={handleToggleSelectAllHw}
-                        style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
-                        title="Tümünü Seç / Kaldır"
-                      />
-                    </th>
-                    {['Ödev / Başlık', 'Hedef Kitle', 'Son Tarih', 'İlerleme & Katılım', 'İşlemler'].map((h, i) => (
-                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+
+            {/* STUDENT LIST CONTAINER */}
+            <div style={glassCardStyle}>
+              {/* Search, Grade & Status Filters */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', flex: 1, minWidth: 280 }}>
+                  <div style={{ position: 'relative', minWidth: 220, flex: 1 }}>
+                    <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Öğrenci adı, soyadı veya no ile ara..."
+                      value={studentListSearchQuery}
+                      onChange={(e) => setStudentListSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.85rem 0.5rem 2.2rem',
+                        borderRadius: '0.65rem',
+                        border: '1.5px solid var(--color-border-input)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                        fontSize: '0.82rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <select
+                    value={studentListGradeFilter}
+                    onChange={(e) => setStudentListGradeFilter(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: '0.65rem',
+                      border: '1.5px solid var(--color-border-input)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Tüm Sınıflar</option>
+                    {(curData?.grades || []).map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredHw.map(hw => {
-                    const stats = getHomeworkStats(hw);
-                    const isPast = new Date(hw.dueDate) < now;
-                    const theme = getTheme(hw.subject);
-                    const isSelected = selectedHwListIds.includes(hw.id);
+                  </select>
+                </div>
 
-                    return (
-                      <tr 
-                        key={hw.id}
-                        style={{ 
-                          borderBottom: '1px solid var(--color-border)', 
-                          transition: 'background 0.15s',
-                          background: isSelected ? 'rgba(37,99,235,0.08)' : 'transparent'
-                        }}
-                      >
-                        <td style={{ width: 44, padding: '0.9rem 0.5rem 0.9rem 1rem', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => handleToggleHwSelect(hw.id, e)}
-                            style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
-                          />
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
-                              <BookOpen size={16} color={theme.color} />
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span> · {hw.totalQuestions} Soru · {hw.timePerQuestion} dk/soru
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem' }}>
-                          <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                            {getTargetLabel(hw)}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 800, color: isPast ? '#f87171' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>
-                            <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isPast ? '#f87171' : '#34d399', marginTop: 2 }}>
-                            {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
-                          <GlassProgressBar value={stats.completed} max={stats.total} color={theme.color} />
-                        </td>
-                        <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                            <button
-                              onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
-                              style={{
-                                padding: '0.4rem 0.85rem', borderRadius: '0.6rem',
-                                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                                color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.75rem',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                                boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
-                              }}
-                            >
-                              <BarChart2 size={13} /> Rapor
-                            </button>
-                            <button
-                              onClick={() => openEditPage(hw)}
-                              style={{
-                                padding: '0.4rem', borderRadius: '0.6rem',
-                                background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)',
-                                cursor: 'pointer', display: 'flex', color: 'var(--color-text)'
-                              }}
-                              title="Düzenle"
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-                                  deleteHomework(hw.id);
-                                  deleteSubmissionsByTestId(hw.id);
-                                }
-                              }}
-                              style={{
-                                padding: '0.4rem', borderRadius: '0.6rem',
-                                background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-                                cursor: 'pointer', display: 'flex', color: '#f87171'
-                              }}
-                              title="Sil"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
+                <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid var(--color-border)' }}>
+                  {[
+                    { key: 'all', label: `Tümü (${studentSummaries.length})` },
+                    { key: 'has_homework', label: `Ödevi Olanlar (${studentGlobalAnalytics.withHw})` },
+                    { key: 'has_pending', label: `Eksik / Bekleyen (${studentGlobalAnalytics.withPending})` },
+                    { key: 'all_completed', label: `Tamamlayan (${studentGlobalAnalytics.allCompleted})` },
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setStudentListStatusFilter(t.key)}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
+                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                        background: studentListStatusFilter === t.key ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                        color: studentListStatusFilter === t.key ? '#ffffff' : 'var(--color-text-muted)',
+                        boxShadow: studentListStatusFilter === t.key ? '0 4px 12px rgba(79,70,229,0.25)' : 'none'
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredStudentSummaries.length === 0 ? (
+                <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <Users size={48} style={{ opacity: 0.35 }} />
+                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.05rem' }}>Eşleşen öğrenci bulunamadı.</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Filtreleri veya arama kriterini değiştirerek tekrar deneyiniz.</div>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                        {['Öğrenci', 'Sınıf / Şube', 'Atanan Ödev', 'Tamamlanan / Bekleyen', 'Tamamlanma Oranı', 'Ortalama Başarı', 'İşlemler'].map((h, i) => (
+                          <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 6 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                        ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {filteredStudentSummaries.map(({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails }) => {
+                        return (
+                          <tr
+                            key={student.id}
+                            style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}
+                          >
+                            <td style={{ padding: '0.9rem 1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                                  {(student.name || 'Ö').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{student.name}</div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                    {student.email || student.username || (student.studentNumber ? `No: ${student.studentNumber}` : 'Öğrenci')}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem' }}>
+                              <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                {gradeName}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.85rem' }}>
+                                {total} Ödev
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
+                                  ✓ {completed} Bitti
+                                </span>
+                                {pending > 0 && (
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
+                                    ⏳ {pending} Bekliyor
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
+                              <GlassProgressBar value={completed} max={total} color={rate === 100 ? '#10b981' : rate > 50 ? '#6366f1' : '#f59e0b'} />
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                              {avgScore !== null ? (
+                                <span style={{
+                                  padding: '0.25rem 0.65rem',
+                                  borderRadius: '0.5rem',
+                                  background: avgScore >= 70 ? 'rgba(16,185,129,0.15)' : avgScore >= 50 ? 'rgba(37,99,235,0.15)' : 'rgba(239,68,68,0.15)',
+                                  color: avgScore >= 70 ? '#34d399' : avgScore >= 50 ? '#60a5fa' : '#f87171',
+                                  border: `1px solid ${avgScore >= 70 ? '#10b981' : avgScore >= 50 ? '#3b82f6' : '#ef4444'}`,
+                                  fontWeight: 900,
+                                  fontSize: '0.8rem'
+                                }}>
+                                  %{avgScore}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStudentForDetail({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails })}
+                                style={{
+                                  padding: '0.45rem 0.95rem',
+                                  borderRadius: '0.65rem',
+                                  background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 900,
+                                  fontSize: '0.76rem',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <Eye size={13} /> Ödevleri İncele ({total})
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
-        {/* ══════════ REPORT / STATS MODAL ══════════ */}
+        {/* ══════════ REPORT / STATS MODAL (HOMEWORK-CENTRIC) ══════════ */}
         {showStatsModal && activeHomework && (() => {
           const stats = getHomeworkStats(activeHomework);
           const isPast = new Date(activeHomework.dueDate) < now;
@@ -996,6 +1441,201 @@ export default function HomeworkManager() {
             </div>
           );
         })()}
+
+        {/* ══════════ STUDENT DETAIL MODAL (ÖĞRENCİ BAZLI DETAY & ÖDEV LİSTESİ) ══════════ */}
+        {selectedStudentForDetail && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'var(--color-modal-overlay)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: 'var(--color-surface)',
+              borderRadius: '1.5rem',
+              width: '100%',
+              maxWidth: 780,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '1.75rem',
+              border: '1.5px solid var(--color-border)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              color: 'var(--color-text)'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '1rem', borderBottom: '1.5px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.2)' }}>
+                    {(selectedStudentForDetail.student.name || 'Ö').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: 'var(--color-text)' }}>
+                        {selectedStudentForDetail.student.name}
+                      </h2>
+                      <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: 99 }}>
+                        {selectedStudentForDetail.gradeName}
+                      </span>
+                    </div>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                      {selectedStudentForDetail.student.email || selectedStudentForDetail.student.username || 'Öğrenci Ödev Takip Karnesi'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedStudentForDetail(null)}
+                  style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Mini Stat Cards for this student */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
+                <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: '0.85rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#60a5fa' }}>{selectedStudentForDetail.total}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', marginTop: 2 }}>Toplam Ödev</div>
+                </div>
+                <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.85rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#34d399' }}>{selectedStudentForDetail.completed}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', marginTop: 2 }}>Tamamlanan</div>
+                </div>
+                <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '0.85rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fbbf24' }}>{selectedStudentForDetail.pending}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', marginTop: 2 }}>Bekleyen</div>
+                </div>
+                <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '0.85rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#818cf8' }}>
+                    {selectedStudentForDetail.avgScore !== null ? `%${selectedStudentForDetail.avgScore}` : `%${selectedStudentForDetail.rate}`}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', marginTop: 2 }}>
+                    {selectedStudentForDetail.avgScore !== null ? 'Ort. Başarı' : 'Tamamlama'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Homeworks List for this student */}
+              <div>
+                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  📋 Öğrenciye Tanımlı Ödevler ({selectedStudentForDetail.hwDetails.length})
+                </h4>
+
+                {selectedStudentForDetail.hwDetails.length === 0 ? (
+                  <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Bu öğrenciye henüz atanmış bir ödev bulunmamaktadır.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '45vh', overflowY: 'auto' }}>
+                    {selectedStudentForDetail.hwDetails.map(({ homework, submission, isDone, isPast }) => {
+                      const theme = getTheme(homework.subject);
+                      const scoreVal = submission?.score ?? (submission?.totalQuestions > 0 && submission?.correctCount !== undefined ? Math.round((submission.correctCount / submission.totalQuestions) * 100) : null);
+
+                      const handleReview = () => {
+                        setSelectedStudentForDetail(null);
+                        if (homework.type === 'physicalExam') {
+                          navigate('/physical-exam/' + homework.id + '?studentId=' + selectedStudentForDetail.student.id);
+                        } else if (submission?.id) {
+                          navigate('/review/' + submission.id);
+                        } else {
+                          navigate('/quiz/' + homework.id + '?studentId=' + selectedStudentForDetail.student.id);
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={homework.id}
+                          style={{
+                            background: 'var(--color-surface)',
+                            border: isDone ? '1.5px solid rgba(16,185,129,0.35)' : isPast ? '1.5px solid rgba(239,68,68,0.35)' : '1.5px solid var(--color-border)',
+                            borderRadius: '0.9rem',
+                            padding: '0.85rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '0.75rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                            <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
+                              <BookOpen size={16} color={theme.color} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {homework.title}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ color: theme.color, fontWeight: 800 }}>{homework.subject || 'Ders'}</span>
+                                <span>• {homework.totalQuestions} Soru</span>
+                                <span>• Son Tarih: {new Date(homework.dueDate).toLocaleDateString('tr-TR')}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                            {isDone ? (
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  ✓ Tamamlandı {scoreVal !== null ? `(%${scoreVal})` : ''}
+                                </span>
+                                {submission?.correctCount !== undefined && (
+                                  <div style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 800, marginTop: 2 }}>
+                                    {submission.correctCount}D / {submission.wrongCount || 0}Y
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{
+                                background: isPast ? '#fef2f2' : '#eff6ff',
+                                color: isPast ? '#dc2626' : '#2563eb',
+                                border: `1px solid ${isPast ? '#fecaca' : '#bfdbfe'}`,
+                                fontWeight: 800, fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '0.45rem'
+                              }}>
+                                {isPast ? '⚠️ Süresi Doldu' : '⏳ Bekliyor'}
+                              </span>
+                            )}
+
+                            {isDone && (
+                              <button
+                                type="button"
+                                onClick={handleReview}
+                                style={{
+                                  padding: '0.4rem 0.75rem',
+                                  borderRadius: '0.6rem',
+                                  background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                  border: 'none',
+                                  color: '#fff',
+                                  fontWeight: 800,
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  boxShadow: '0 2px 8px rgba(79,70,229,0.25)'
+                                }}
+                              >
+                                <Eye size={12} /> İncele
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
