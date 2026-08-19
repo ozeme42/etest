@@ -65,7 +65,6 @@ const QUICK_FEEDBACK_PRESETS = [
   '🌟 Gayet başarılı bir çalışma, tebrikler!'
 ];
 
-// Helper to determine if a question item is Open-Ended / Written
 function isItemOpenEnded(item, ans) {
   if (ans?.userAnswerText && String(ans.userAnswerText).trim().length > 0) return true;
   if (!item) return false;
@@ -78,7 +77,6 @@ function isItemOpenEnded(item, ans) {
   return false;
 }
 
-// Helper to validate whether a payload string is a valid non-placeholder string
 function isValidPayloadString(str) {
   if (typeof str !== 'string') return false;
   const s = str.trim();
@@ -87,7 +85,6 @@ function isValidPayloadString(str) {
   return true;
 }
 
-// Helper to extract clean candidate IDs
 function getExpandedIds(rawIds = []) {
   const expanded = new Set();
   rawIds.filter(Boolean).forEach(id => {
@@ -106,7 +103,7 @@ function getExpandedIds(rawIds = []) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ─── PRO EVALUATION STUDIO MODAL (BÖLÜNMÜŞ EKRAN DEĞERLENDİRME STÜDYOSU) ─────
+// ─── PRO EVALUATION STUDIO MODAL ─────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curriculumData, bookTests, books, onClose, onSaveSuccess }) {
   const { updateSubmission } = useEvaluation();
@@ -117,17 +114,15 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // View Layout Modes: 'split' (Left doc, Right grading) | 'focus' (Question by question) | 'student_review' (Full runner review)
   const [studioMode, setStudioMode] = useState('split');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
 
-  // Local Grading States
   const [questionScores, setQuestionScores] = useState({});
   const [teacherNotes, setTeacherNotes] = useState({});
   const [overallFeedback, setOverallFeedback] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
-  const targetId = String(submission.testId || submission.homeworkId || submission.hwId || submission.questionId || submission.id || '');
+  const targetId = String(submission?.testId || submission?.homeworkId || submission?.hwId || submission?.questionId || submission?.id || '');
   const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
 
   useEffect(() => {
@@ -369,7 +364,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
     return () => { isMounted = false; };
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
-  // Global Media (PDF / HTML) detection
   const globalMedia = useMemo(() => {
     const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF'));
     const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<body') || val.includes('<p') || val.includes('<div') || val.includes('<h') || val.length > 50);
@@ -400,7 +394,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
     return { hasPdf, hasHtml, pdfSrc, htmlSrc };
   }, [test]);
 
-  // Categorized Questions
   const categorizedQuestions = useMemo(() => {
     const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
     const items = [];
@@ -433,7 +426,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
     return { items, oeList, mcList, totalQ };
   }, [questions, submission, test]);
 
-  // Live Score Stats
   const scoreStats = useMemo(() => {
     const { items, totalQ } = categorizedQuestions;
 
@@ -468,7 +460,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
     };
   }, [categorizedQuestions, questionScores]);
 
-  // Save Handler
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
     setIsSaving(true);
@@ -564,9 +555,7 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
         <ImageLightbox src={lightboxSrc} alt="Soru Görseli" onClose={() => setLightboxSrc(null)} />
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* ── TOP STUDIO NAVBAR ── */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
       <header style={{
         background: 'var(--color-surface, #1e293b)',
         borderBottom: '1.5px solid var(--color-border, rgba(255,255,255,0.08))',
@@ -579,7 +568,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
         zIndex: 20,
         boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
       }}>
-        {/* Left: Back + Student & Test Info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
           <button
             type="button"
@@ -630,7 +618,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
           </div>
         </div>
 
-        {/* Center: Studio Mode Switcher */}
         <div style={{
           display: 'flex',
           background: 'var(--color-surface-hover, rgba(255,255,255,0.06))',
@@ -681,7 +668,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
           </button>
         </div>
 
-        {/* Right: Live Dynamic Score & Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{
             background: 'var(--color-surface-hover, rgba(255,255,255,0.06))',
@@ -738,13 +724,9 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
         </div>
       </header>
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* ── STUDIO WORKSPACE BODY ── */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-        
         {studioMode === 'student_review' ? (
-          /* ── STUDENT REVIEW MODE ── */
           <div style={{ flex: 1, height: '100%', overflowY: 'auto' }}>
             {isMultiSection ? (
               <MultiHomeworkRunner test={test} questions={questions} isReviewMode={true} userAnswers={submission} onSubmit={onClose} />
@@ -759,7 +741,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
             )}
           </div>
         ) : (
-          /* ── SPLIT STUDIO MODE ── */
           <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', height: '100%', minHeight: 0, overflow: 'hidden' }}>
             
             {/* ── LEFT PANEL: DOCUMENT & QUESTION VIEWER ── */}
@@ -772,7 +753,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
               background: 'var(--color-surface, #1e293b)',
               overflow: 'hidden'
             }}>
-              {/* Left Top: Question Navigation Bar */}
               <div style={{
                 padding: '0.65rem 1rem',
                 borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))',
@@ -827,7 +807,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                 </div>
               </div>
 
-              {/* Left Center: Document / Question Content Area */}
               <div style={{ flex: 1, minHeight: 0, position: 'relative', overflowY: 'auto', background: '#0b1120' }}>
                 {globalMedia.hasPdf ? (
                   <PdfViewerWithControls payload={globalMedia.pdfSrc} src={globalMedia.pdfSrc} title={test.title} height="100%" />
@@ -849,7 +828,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                     </div>
                   </div>
                 ) : (
-                  /* Standard Question Text & Options Card */
                   <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: 720, margin: '0 auto' }}>
                     <div style={{ background: 'var(--color-surface, #1e293b)', borderRadius: '1rem', padding: '1.5rem', border: '1.5px solid var(--color-border, rgba(255,255,255,0.1))', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem' }}>
@@ -912,7 +890,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
               padding: '1.25rem',
               gap: '1.25rem'
             }}>
-              {/* Question Navigation Controls Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface, #1e293b)', padding: '0.75rem 1rem', borderRadius: '1rem', border: '1.5px solid var(--color-border, rgba(255,255,255,0.08))' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
@@ -967,7 +944,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                 </div>
               </div>
 
-              {/* Active Question Grading Card */}
               <div style={{
                 background: 'var(--color-surface, #1e293b)',
                 borderRadius: '1.25rem',
@@ -978,7 +954,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                 gap: '1rem',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.1)'
               }}>
-                {/* Soru Metni veya Özeti */}
                 {activeQuestionItem?.question?.questionText && activeQuestionItem.question.questionText !== `Soru ${activeQuestionItem.qNo}` && (
                   <div style={{ background: 'var(--color-surface-hover, rgba(255,255,255,0.04))', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, rgba(255,255,255,0.08))', fontSize: '0.86rem', color: 'var(--color-text, #e2e8f0)', fontWeight: 600 }}>
                     <span style={{ color: '#38bdf8', fontWeight: 800 }}>❓ Soru Metni: </span>
@@ -986,7 +961,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                   </div>
                 )}
 
-                {/* Öğrencinin Cevabı */}
                 <div style={{
                   background: 'rgba(37,99,235,0.08)',
                   border: '1.5px solid rgba(59,130,246,0.3)',
@@ -1017,7 +991,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                   </div>
                 </div>
 
-                {/* Puanlama Butonları */}
                 <div style={{
                   background: 'var(--color-surface-hover, rgba(255,255,255,0.04))',
                   padding: '1rem',
@@ -1086,7 +1059,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                       ✕ 0
                     </button>
 
-                    {/* Stepper (+ / -) */}
                     <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface, #1e293b)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border, rgba(255,255,255,0.15))', padding: '2px 4px' }}>
                       <button
                         type="button"
@@ -1108,7 +1080,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                     </div>
                   </div>
 
-                  {/* Soru Geri Bildirim Notu */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {['👏 Harika Açıklama', '💡 İşlem Hatası Var', '✍️ Formül Eksik', '🌟 Mükemmel'].map((tag, tIdx) => (
@@ -1153,7 +1124,6 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
                 </div>
               </div>
 
-              {/* Genel Karne & Rapor Notu */}
               <div style={{
                 background: 'var(--color-surface, #1e293b)',
                 borderRadius: '1.25rem',
@@ -1240,6 +1210,699 @@ function ProEvaluationStudio({ submission, allBankQuestions, homeworks, curricul
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ─── MAIN EVALUATION MANAGER (DASHBOARD & LIST) ──────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+export default function EvaluationManager() {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { users } = useUser();
+  const { homeworks } = useHomework();
+  const { submissions: allSubmissions, deleteSubmission } = useEvaluation();
+  const { questions: allBankQuestions } = useQuestionBank();
+  const { data: curriculumData } = useCurriculum();
+  const { bookTests, books } = useTrackedBooks();
+
+  const [activeSubmission, setActiveSubmission] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [search, setSearch] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('all');
+  const [formatFilter, setFormatFilter] = useState('all');
+
+  const isAdmin = currentUser?.role === 'admin';
+  const teacherId = currentUser?.id;
+
+  const combinedSubmissions = useMemo(() => {
+    const activeHws = (homeworks || []).filter(hw => hw && hw.id);
+    const map = new Map();
+
+    activeHws.forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        if (!sub || !sub.studentId) return;
+        const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
+        map.set(subKey, {
+          ...sub,
+          id: subKey,
+          homeworkId: hw.id,
+          hwId: hw.id,
+          testId: hw.id,
+          testTitle: hw.title,
+          subject: hw.subject,
+          totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+          submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
+        });
+      });
+
+      (allSubmissions || []).forEach(sub => {
+        if (!sub || !sub.studentId) return;
+        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
+        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+        
+        const matchesHw = String(hw.id) === targetId ||
+          String(hw.id) === normTargetId ||
+          String(hw.id) === String(sub.hwId) ||
+          String(hw.id) === String(sub.homeworkId) ||
+          (hw.submissions && hw.submissions.some(s => String(s.id) === String(sub.id)));
+
+        if (matchesHw) {
+          const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
+          const existing = map.get(subKey);
+          if (!existing || (sub.isEvaluatedByTeacher && !existing.isEvaluatedByTeacher) || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+            map.set(subKey, {
+              ...sub,
+              id: subKey,
+              homeworkId: hw.id,
+              hwId: hw.id,
+              testId: hw.id,
+              testTitle: hw.title,
+              subject: hw.subject,
+              totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+              submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
+            });
+          }
+        }
+      });
+    });
+
+    (allSubmissions || []).forEach(sub => {
+      if (!sub || !sub.studentId) return;
+      const subKey = String(sub.id || `sub_${Date.now()}`);
+      if (!map.has(subKey)) {
+        map.set(subKey, sub);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [allSubmissions, homeworks]);
+
+  const enrichedSubmissions = useMemo(() => {
+    return combinedSubmissions.map(sub => {
+      let studentName = sub.studentName;
+      const sId = String(sub.studentId || sub.userId || sub.user_id || '');
+      if (!studentName || studentName === 'Öğrenci' || !studentName.trim()) {
+        const matchedUser = (users || []).find(u => String(u.id) === sId || String(u.studentId) === sId);
+        if (matchedUser && matchedUser.name) {
+          studentName = matchedUser.name;
+        } else if (sId) {
+          studentName = `Öğrenci (#${sId.slice(-4)})`;
+        } else {
+          studentName = 'Öğrenci';
+        }
+      }
+
+      let targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
+      let normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+
+      let matchedHw = (homeworks || []).find(h =>
+        String(h.id) === targetId ||
+        String(h.id) === normTargetId ||
+        String(h.testId) === targetId ||
+        (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
+      );
+
+      let matchedBankQ = (allBankQuestions || []).find(q =>
+        String(q.id) === targetId ||
+        String(q.id) === normTargetId ||
+        String(q.questionId) === targetId
+      );
+
+      let matchedBookTest = (bookTests || []).find(bt =>
+        String(bt.id) === targetId ||
+        String(bt.id) === normTargetId ||
+        toUUID(bt.id) === targetId
+      );
+
+      let matchedCurTest = (curriculumData?.tests || []).find(t =>
+        String(t.id) === targetId ||
+        String(t.id) === normTargetId
+      );
+
+      let title = sub.testTitle || sub.homeworkTitle || sub.title;
+      const isGeneric = !title || ['sınav', 'test', 'açık uçlu sınav kağıdı', 'değerlendirme dosyası', 'ödev', 'test sınavı'].includes(String(title).trim().toLowerCase());
+
+      if (isGeneric) {
+        if (matchedHw?.title) title = matchedHw.title;
+        else if (matchedBankQ?.title || matchedBankQ?.questionText || matchedBankQ?.text) title = matchedBankQ.title || matchedBankQ.questionText || matchedBankQ.text;
+        else if (matchedBookTest?.name || matchedBookTest?.title) title = matchedBookTest.name || matchedBookTest.title;
+        else if (matchedCurTest?.title || matchedCurTest?.name) title = matchedCurTest.title || matchedCurTest.name;
+        else title = 'Ödev / Sınav';
+      }
+
+      let subject = detectSubject(title, sub.subject || matchedHw?.subject || matchedBankQ?.subject || matchedCurTest?.subjectName);
+
+      const ansList = Array.isArray(sub.answers) ? sub.answers : [];
+      let totalQ = resolveExactQuestionCount(matchedHw || {}, matchedBankQ || {}, matchedBankQ || {}, [], matchedBankQ?.imageUrls || []);
+      if (totalQ <= 1 && ansList.length > 1) totalQ = ansList.length;
+      if (totalQ <= 1 && sub.totalQuestions) totalQ = sub.totalQuestions;
+
+      let score = sub.score;
+      if (score !== undefined && score !== null) {
+        score = Number(score);
+        if (score > 100) {
+          const maxPossible = totalQ * 10;
+          score = maxPossible > 0 ? Math.min(100, Math.round((score / maxPossible) * 100)) : 100;
+        } else {
+          score = Math.max(0, Math.min(100, Math.round(score)));
+        }
+      }
+
+      const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
+      let hasWrittenAnswers = false;
+      let writtenCount = 0;
+      if (Array.isArray(sub.answers)) {
+        sub.answers.forEach(a => {
+          if (a.userAnswerText && String(a.userAnswerText).trim().length > 0) {
+            hasWrittenAnswers = true;
+            writtenCount++;
+          }
+        });
+      }
+
+      const isExplicitOpenEnded = sub.isOpenEnded || sub.questionType === 'acik_uclu' || sub.questionType === 'yazili' || sub.contentType === 'acik_uclu' || sub.contentType === 'yazili';
+      const titleLower = String(title).toLowerCase();
+      const hasOEKeywords = titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili');
+
+      const isPending = !isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords);
+
+      const formatType = sub.pdfPayload || matchedBankQ?.pdfPayload || titleLower.includes('.pdf') ? 'pdf' : (sub.htmlPayload || matchedBankQ?.htmlPayload || titleLower.includes('.html') ? 'html' : (sub.imageUrls?.length || matchedBankQ?.imageUrls?.length ? 'image' : 'standard'));
+
+      return {
+        ...sub,
+        studentName,
+        testTitle: title,
+        subject,
+        totalQuestions: totalQ,
+        score,
+        isPending,
+        isAlreadyEvaluated,
+        writtenCount,
+        formatType
+      };
+    });
+  }, [combinedSubmissions, users, homeworks, allBankQuestions, bookTests, curriculumData]);
+
+  const scopedSubmissions = useMemo(() => {
+    return enrichedSubmissions.filter(sub => {
+      if (sub.status === 'draft' || sub.status === 'in_progress') return false;
+
+      if (!isAdmin) {
+        if (!teacherId) return false;
+        if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
+
+        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || '');
+        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+
+        const hwMatch = (homeworks || []).find(h =>
+          String(h.id) === targetId ||
+          String(h.id) === normTargetId ||
+          String(h.testId) === targetId ||
+          (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
+        );
+
+        const hwIsMine = hwMatch && (
+          String(hwMatch.createdBy) === String(teacherId) ||
+          String(hwMatch.teacherId) === String(teacherId) ||
+          String(hwMatch.assignedBy) === String(teacherId)
+        );
+
+        const subIsMine =
+          String(sub.createdBy) === String(teacherId) ||
+          String(sub.teacherId) === String(teacherId) ||
+          String(sub.assignedBy) === String(teacherId);
+
+        if (!hwIsMine && !subIsMine) return false;
+      }
+      return true;
+    }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  }, [enrichedSubmissions, homeworks, isAdmin, teacherId]);
+
+  const pendingList = useMemo(() => scopedSubmissions.filter(s => s.isPending), [scopedSubmissions]);
+  const completedList = useMemo(() => scopedSubmissions.filter(s => !s.isPending), [scopedSubmissions]);
+
+  const stats = useMemo(() => {
+    const scored = completedList.filter(s => s.score !== null && s.score !== undefined);
+    const avgScore = scored.length > 0 ? Math.round(scored.reduce((acc, s) => acc + s.score, 0) / scored.length) : 0;
+    return {
+      pending: pendingList.length,
+      completed: completedList.length,
+      total: scopedSubmissions.length,
+      avgScore
+    };
+  }, [pendingList, completedList, scopedSubmissions]);
+
+  const filteredSubmissions = useMemo(() => {
+    let list = [];
+    if (activeTab === 'pending') list = pendingList;
+    else if (activeTab === 'completed') list = completedList;
+    else list = scopedSubmissions;
+
+    return list.filter(sub => {
+      const sName = String(sub.studentName || '').toLowerCase();
+      const tTitle = String(sub.testTitle || sub.title || '').toLowerCase();
+      const query = search.toLowerCase().trim();
+      const matchesSearch = !query || sName.includes(query) || tTitle.includes(query);
+
+      const matchesSubject = subjectFilter === 'all' || (sub.subject && sub.subject === subjectFilter) || tTitle.includes(subjectFilter.toLowerCase());
+      const matchesStudent = studentFilter === 'all' || String(sub.studentId) === String(studentFilter);
+      const matchesFormat = formatFilter === 'all' || sub.formatType === formatFilter;
+
+      return matchesSearch && matchesSubject && matchesStudent && matchesFormat;
+    });
+  }, [activeTab, pendingList, completedList, scopedSubmissions, search, subjectFilter, studentFilter, formatFilter]);
+
+  const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme', 'Genel Testler'];
+  const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+
+  const formatRelativeDate = (dateStr) => {
+    if (!dateStr) return 'Tarih Yok';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Tarih Yok';
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.round(diffMs / 60000);
+      const diffHours = Math.round(diffMs / 3600000);
+      const diffDays = Math.round(diffMs / 86400000);
+
+      if (diffMins < 5) return 'Az önce';
+      if (diffMins < 60) return `${diffMins} dakika önce`;
+      if (diffHours < 24) return `${diffHours} saat önce`;
+      if (diffDays === 1) return 'Dün';
+      if (diffDays < 7) return `${diffDays} gün önce`;
+      return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      background: 'var(--color-bg, #0f172a)',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      color: 'var(--color-text, #f8fafc)',
+      padding: '1.5rem 2rem 5rem 2rem',
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.5rem'
+    }}>
+
+      {activeSubmission && (
+        <ProEvaluationStudio
+          submission={activeSubmission}
+          allBankQuestions={allBankQuestions}
+          homeworks={homeworks}
+          curriculumData={curriculumData}
+          bookTests={bookTests}
+          books={books}
+          onClose={() => setActiveSubmission(null)}
+          onSaveSuccess={() => setActiveSubmission(null)}
+        />
+      )}
+
+      {/* ── TOP HEADER ── */}
+      <header style={{
+        background: 'var(--color-surface, #1e293b)',
+        border: '1.5px solid var(--color-border, rgba(255,255,255,0.08))',
+        borderRadius: '1.5rem',
+        padding: '1.25rem 1.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+            }}
+            style={{
+              background: 'var(--color-surface-hover, rgba(255,255,255,0.06))',
+              border: '1.5px solid var(--color-border, rgba(255,255,255,0.12))',
+              borderRadius: '0.85rem',
+              padding: '0.6rem 1rem',
+              color: 'inherit',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 800,
+              fontSize: '0.84rem'
+            }}
+          >
+            <ArrowLeft size={16} /> Panel
+          </button>
+
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '-0.02em' }}>
+              <span>📋</span> Sınav & Ödev Değerlendirme Merkezi
+            </h1>
+            <p style={{ margin: '3px 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted, #94a3b8)' }}>
+              Öğrenci yanıtlarını, açık uçlu çözümleri ve test dokümanlarını stüdyo ortamında değerlendirin
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{
+            background: 'rgba(59,130,246,0.14)',
+            color: '#60a5fa',
+            border: '1px solid rgba(59,130,246,0.3)',
+            padding: '0.35rem 0.85rem',
+            borderRadius: 99,
+            fontWeight: 900,
+            fontSize: '0.78rem'
+          }}>
+            ⚡ Toplam {stats.total} Teslimat
+          </span>
+        </div>
+      </header>
+
+      {/* ── METRIC CARDS ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div
+          onClick={() => setActiveTab('pending')}
+          style={{
+            background: activeTab === 'pending' ? 'rgba(245, 158, 11, 0.12)' : 'var(--color-surface, #1e293b)',
+            border: `1.5px solid ${activeTab === 'pending' ? '#f59e0b' : 'var(--color-border, rgba(255,255,255,0.08))'}`,
+            borderRadius: '1.25rem', padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fbbf24' }}>⏳ Bekleyen Değerlendirmeler</span>
+            <span style={{ fontSize: '1.4rem' }}>✍️</span>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fbbf24', marginTop: '0.5rem' }}>
+            {stats.pending}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)' }}>Öğretmen notlaması bekleyen sınavlar</span>
+        </div>
+
+        <div
+          onClick={() => setActiveTab('completed')}
+          style={{
+            background: activeTab === 'completed' ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #1e293b)',
+            border: `1.5px solid ${activeTab === 'completed' ? '#10b981' : 'var(--color-border, rgba(255,255,255,0.08))'}`,
+            borderRadius: '1.25rem', padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#34d399' }}>✅ Tamamlanan & Notlandırılan</span>
+            <span style={{ fontSize: '1.4rem' }}>🏆</span>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#34d399', marginTop: '0.5rem' }}>
+            {stats.completed}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)' }}>Notlandırılmış ve karnesi hazır olanlar</span>
+        </div>
+
+        <div
+          onClick={() => setActiveTab('all')}
+          style={{
+            background: activeTab === 'all' ? 'rgba(59, 130, 246, 0.12)' : 'var(--color-surface, #1e293b)',
+            border: `1.5px solid ${activeTab === 'all' ? '#3b82f6' : 'var(--color-border, rgba(255,255,255,0.08))'}`,
+            borderRadius: '1.25rem', padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#60a5fa' }}>📊 Toplam Teslimat</span>
+            <span style={{ fontSize: '1.4rem' }}>📁</span>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#60a5fa', marginTop: '0.5rem' }}>
+            {stats.total}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)' }}>Öğrencilerin çözdüğü tüm sınavlar</span>
+        </div>
+
+        <div style={{
+          background: 'var(--color-surface, #1e293b)',
+          border: '1.5px solid var(--color-border, rgba(255,255,255,0.08))',
+          borderRadius: '1.25rem', padding: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#a855f7' }}>🎯 Ortalama Başarı</span>
+            <span style={{ fontSize: '1.4rem' }}>🌟</span>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#a855f7', marginTop: '0.5rem' }}>
+            %{stats.avgScore}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)' }}>Değerlendirilen sınav puan ortalaması</span>
+        </div>
+      </div>
+
+      {/* ── FILTER & SEARCH BAR ── */}
+      <div style={{
+        background: 'var(--color-surface, #1e293b)',
+        border: '1.5px solid var(--color-border, rgba(255,255,255,0.08))',
+        borderRadius: '1.25rem',
+        padding: '1rem 1.25rem',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.85rem'
+      }}>
+        <div style={{ display: 'flex', background: 'var(--color-surface-hover, rgba(255,255,255,0.04))', padding: '0.25rem', borderRadius: '0.85rem', border: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pending')}
+            style={{
+              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', border: 'none',
+              background: activeTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+              color: activeTab === 'pending' ? '#ffffff' : 'var(--color-text-muted, #94a3b8)',
+              fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+            }}
+          >
+            ⏳ Bekleyenler ({stats.pending})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('completed')}
+            style={{
+              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', border: 'none',
+              background: activeTab === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+              color: activeTab === 'completed' ? '#ffffff' : 'var(--color-text-muted, #94a3b8)',
+              fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+            }}
+          >
+            ✅ Tamamlananlar ({stats.completed})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            style={{
+              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', border: 'none',
+              background: activeTab === 'all' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
+              color: activeTab === 'all' ? '#ffffff' : 'var(--color-text-muted, #94a3b8)',
+              fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
+            }}
+          >
+            📁 Tümü ({stats.total})
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+          <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 200px', maxWidth: '340px' }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #94a3b8)' }} />
+            <input
+              type="text"
+              placeholder="Öğrenci veya sınav adı ile ara..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.25rem',
+                borderRadius: '0.75rem', background: 'var(--color-surface-hover, rgba(255,255,255,0.04))',
+                border: '1.5px solid var(--color-border, rgba(255,255,255,0.1))',
+                color: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <select
+            value={subjectFilter}
+            onChange={e => setSubjectFilter(e.target.value)}
+            style={{
+              padding: '0.5rem 0.85rem', borderRadius: '0.75rem',
+              background: 'var(--color-surface-hover, rgba(255,255,255,0.04))',
+              border: '1.5px solid var(--color-border, rgba(255,255,255,0.1))',
+              color: 'inherit', fontSize: '0.82rem', fontWeight: 700, outline: 'none', cursor: 'pointer'
+            }}
+          >
+            <option value="all">📚 Tüm Dersler</option>
+            {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+
+          <select
+            value={studentFilter}
+            onChange={e => setStudentFilter(e.target.value)}
+            style={{
+              padding: '0.5rem 0.85rem', borderRadius: '0.75rem',
+              background: 'var(--color-surface-hover, rgba(255,255,255,0.04))',
+              border: '1.5px solid var(--color-border, rgba(255,255,255,0.1))',
+              color: 'inherit', fontSize: '0.82rem', fontWeight: 700, outline: 'none', cursor: 'pointer'
+            }}
+          >
+            <option value="all">🎓 Tüm Öğrenciler</option>
+            {studentUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* ── SUBMISSIONS LIST / CARDS ── */}
+      {filteredSubmissions.length === 0 ? (
+        <div style={{
+          background: 'var(--color-surface, #1e293b)',
+          border: '1.5px solid var(--color-border, rgba(255,255,255,0.08))',
+          borderRadius: '1.5rem',
+          padding: '4rem 2rem',
+          textAlign: 'center',
+          color: 'var(--color-text-muted, #94a3b8)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem'
+        }}>
+          <CheckCircle2 size={48} color="#10b981" />
+          <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text, #ffffff)', fontSize: '1.2rem' }}>
+            {activeTab === 'pending' ? 'Harika! Bekleyen Değerlendirme Yok' : 'Kayıt Bulunamadı'}
+          </h3>
+          <p style={{ margin: 0, fontSize: '0.88rem', maxWidth: 450 }}>
+            {activeTab === 'pending'
+              ? 'Tüm açık uçlu ve notlandırma gerektiren öğrenci teslimleri başarıyla sonuçlandırılmıştır.'
+              : 'Seçili filtrelere uygun sınav veya ödev teslimatı bulunmuyor.'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          {filteredSubmissions.map(sub => {
+            const theme = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
+
+            return (
+              <div
+                key={sub.id}
+                style={{
+                  background: 'var(--color-surface, #1e293b)',
+                  border: `1.5px solid ${sub.isPending ? 'rgba(245,158,11,0.35)' : 'var(--color-border, rgba(255,255,255,0.08))'}`,
+                  borderRadius: '1.25rem',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                  boxShadow: sub.isPending ? '0 4px 20px rgba(245,158,11,0.06)' : '0 4px 16px rgba(0,0,0,0.04)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                      color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {(sub.studentName || 'Ö')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.9rem', color: 'var(--color-text, #ffffff)' }}>
+                        {sub.studentName || 'Öğrenci'}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)' }}>
+                        {formatRelativeDate(sub.submittedAt)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span style={{
+                    background: sub.isPending ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+                    color: sub.isPending ? '#fbbf24' : '#34d399',
+                    border: `1px solid ${sub.isPending ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.35)'}`,
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: 99,
+                    fontWeight: 900,
+                    fontSize: '0.74rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {sub.isPending ? '⏳ Değerlendirme Bekliyor' : '✅ Değerlendirildi'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--color-text, #ffffff)', lineHeight: 1.4 }}>
+                    {sub.testTitle}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                    <span style={{
+                      background: theme.bg, color: theme.color,
+                      border: `1px solid ${theme.border}`,
+                      padding: '0.15rem 0.55rem', borderRadius: 6,
+                      fontWeight: 800, fontSize: '0.72rem'
+                    }}>
+                      {theme.icon} {sub.subject}
+                    </span>
+                    <span style={{ background: 'var(--color-surface-hover, rgba(255,255,255,0.06))', color: 'var(--color-text-muted, #94a3b8)', padding: '0.15rem 0.55rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700, border: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}>
+                      {sub.totalQuestions} Soru
+                    </span>
+                    {sub.writtenCount > 0 && (
+                      <span style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', padding: '0.15rem 0.55rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, border: '1px solid rgba(245,158,11,0.3)' }}>
+                        ✍️ {sub.writtenCount} Yazılı Cevap
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-border, rgba(255,255,255,0.08))', paddingTop: '0.75rem', marginTop: 'auto' }}>
+                  <div>
+                    {sub.score !== null && sub.score !== undefined ? (
+                      <span style={{ fontSize: '1.05rem', fontWeight: 900, color: sub.score >= 70 ? '#34d399' : (sub.score >= 50 ? '#fbbf24' : '#f87171') }}>
+                        %{sub.score} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted, #94a3b8)' }}>Puan</span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: 800 }}>
+                        Puanlanmadı
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubmission(sub)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: sub.isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      border: 'none',
+                      borderRadius: '0.75rem',
+                      padding: '0.5rem 1.1rem',
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      boxShadow: sub.isPending ? '0 4px 14px rgba(245,158,11,0.3)' : '0 4px 14px rgba(59,130,246,0.25)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {sub.isPending ? <><Edit3 size={14} /> Değerlendir & Puanla</> : <><Eye size={14} /> İncele & Düzenle</>}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 }
