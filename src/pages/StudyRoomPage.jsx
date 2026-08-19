@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
   Sparkles, Flame, CheckCircle2, Clock, Music, Headphones, BookOpen,
-  Target, Coffee, Moon, Sun, ArrowLeft, Plus, Trash2, Check, BarChart2,
+  Target, Coffee, Moon, Sun, ArrowLeft, Plus, Minus, Trash2, Check, BarChart2,
   Zap, Settings2, Bell, Award, ListTodo, Edit3, Shield, TreePine, Sprout,
   Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink,
   Gauge, Activity, TrendingUp, HelpCircle, History
