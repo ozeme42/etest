@@ -395,11 +395,28 @@ export default function StudyRoomPage() {
     return Math.max(5, Math.round(targetGoalCount * minutesPerQuestion));
   }, [targetGoalCount, minutesPerQuestion]);
 
-  // Durations
+  // Durations (Tek Mola Sistemi: Odak & Mola)
   const [durations, setDurations] = useState(() => {
     const saved = localStorage.getItem('study_durations');
-    return saved ? JSON.parse(saved) : { pomodoro: 25, shortBreak: 5, longBreak: 15 };
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          pomodoro: parsed.pomodoro || 25,
+          shortBreak: parsed.shortBreak || parsed.breakTime || 10
+        };
+      } catch (e) {}
+    }
+    return { pomodoro: 25, shortBreak: 10 };
   });
+
+  // Soru sayısı veya bütçe değiştiğinde odak süresini otomatik senkronize et
+  useEffect(() => {
+    setDurations(prev => {
+      if (prev.pomodoro === calculatedQuestionBudgetMinutes) return prev;
+      return { ...prev, pomodoro: calculatedQuestionBudgetMinutes };
+    });
+  }, [calculatedQuestionBudgetMinutes]);
 
   // Dinamik Zaman Sayacı
   const [timeLeft, setTimeLeft] = useState(() => {
@@ -720,10 +737,10 @@ export default function StudyRoomPage() {
         questionsDone: dailyStats.questionsDone + (activeStudyMode === 'question' ? currentProgressCount : 0)
       });
 
-      // Mola moduna geçiş yap
+      // Mola moduna geçiş yap (Tek mola sistemi)
       setActiveStudyMode('break');
-      const breakDuration = (newCycles % 4 === 0) ? (durations.longBreak || 15) : (durations.shortBreak || 5);
-      setTimeLeft(breakDuration * 60);
+      const baseBreak = Number(durations.shortBreak || durations.breakTime) || 10;
+      setTimeLeft(baseBreak * 60);
       setSessionElapsedSeconds(0);
     } else {
       // Mola bitti, soru veya konu moduna dön
@@ -744,9 +761,10 @@ export default function StudyRoomPage() {
     } else if (mode === 'book') {
       setTimeLeft(25 * 60);
     } else if (mode === 'study') {
-      setTimeLeft((durations.pomodoro || 25) * 60);
+      setTimeLeft((durations.pomodoro || calculatedQuestionBudgetMinutes || 25) * 60);
     } else if (mode === 'break') {
-      setTimeLeft((durations.shortBreak || 5) * 60);
+      const baseBreak = Number(durations.shortBreak || durations.breakTime) || 10;
+      setTimeLeft(baseBreak * 60);
     } else if (mode === 'stopwatch') {
       setStopwatchSeconds(0);
     }
@@ -760,9 +778,10 @@ export default function StudyRoomPage() {
     } else if (activeStudyMode === 'book') {
       setTimeLeft(25 * 60);
     } else if (activeStudyMode === 'study') {
-      setTimeLeft((durations.pomodoro || 25) * 60);
+      setTimeLeft((durations.pomodoro || calculatedQuestionBudgetMinutes || 25) * 60);
     } else if (activeStudyMode === 'break') {
-      setTimeLeft((durations.shortBreak || 5) * 60);
+      const baseBreak = Number(durations.shortBreak || durations.breakTime) || 10;
+      setTimeLeft(baseBreak * 60);
     } else if (activeStudyMode === 'stopwatch') {
       setStopwatchSeconds(0);
     }
@@ -785,13 +804,14 @@ export default function StudyRoomPage() {
   };
 
   // Toplam Mod Süresi
+  const baseBreakMinutes = Number(durations.shortBreak || durations.breakTime) || 10;
   const totalModeSeconds = activeStudyMode === 'question'
     ? calculatedQuestionBudgetMinutes * 60
     : activeStudyMode === 'book'
       ? 25 * 60
       : activeStudyMode === 'study'
-        ? (durations.pomodoro || 25) * 60
-        : (durations.shortBreak || 5) * 60;
+        ? (durations.pomodoro || calculatedQuestionBudgetMinutes || 25) * 60
+        : baseBreakMinutes * 60;
 
   const progressPct = activeStudyMode === 'stopwatch'
     ? Math.min(100, (stopwatchSeconds % 3600) / 36)
@@ -828,7 +848,7 @@ export default function StudyRoomPage() {
     const savedSeconds = Math.max(0, budgetSec - elapsedSec);
     const bonusMinutes = Math.floor(savedSeconds / 60);
 
-    const standardBreak = durations.shortBreak || 5;
+    const standardBreak = Number(durations.shortBreak || durations.breakTime) || 10;
     const finalBreakDuration = standardBreak + bonusMinutes;
 
     const randomTree = TREE_SPECIES[Math.floor(Math.random() * TREE_SPECIES.length)];
@@ -1510,58 +1530,90 @@ export default function StudyRoomPage() {
         </div>
       )}
 
-      {/* Ayarlar Açılır Paneli */}
+      {/* Ayarlar Açılır Paneli (Tek Mola & Odak Senkronizasyonu) */}
       {showSettings && (
         <div style={{
           background: themeObj.innerBg,
           padding: '1rem',
-          borderRadius: 16,
+          borderRadius: 18,
           border: `1.5px solid ${themeObj.border}`,
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 8
+          gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.05)'
         }}>
           <div>
-            <label style={{ fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText, display: 'block', marginBottom: 3 }}>🎯 Odak (dk)</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
+              <span style={{ fontSize: '0.62rem', color: '#6366f1', fontWeight: 800 }}>Otomatik Eşitlenir</span>
+            </div>
             <input
               type="number"
               min="1"
-              max="120"
-              value={durations.pomodoro}
+              max="180"
+              value={durations.pomodoro || calculatedQuestionBudgetMinutes}
               onChange={e => {
-                const val = Number(e.target.value) || 25;
+                const val = Math.max(1, Number(e.target.value) || 25);
                 setDurations(p => ({ ...p, pomodoro: val }));
+                const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
+                setTargetGoalCount(newGoal);
+                if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
+                  setTimeLeft(val * 60);
+                }
               }}
-              style={{ width: '100%', padding: '0.4rem', borderRadius: 8, border: `1px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText, display: 'block', marginBottom: 3 }}>☕ Mola (dk)</label>
-            <input
-              type="number"
-              min="1"
-              max="60"
-              value={durations.shortBreak}
-              onChange={e => {
-                const val = Number(e.target.value) || 5;
-                setDurations(p => ({ ...p, shortBreak: val }));
+              style={{
+                width: '100%',
+                padding: '0.45rem',
+                borderRadius: 10,
+                border: `1.5px solid ${themeObj.border}`,
+                background: themeObj.cardBg,
+                color: themeObj.text,
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                outline: 'none',
+                boxSizing: 'border-box'
               }}
-              style={{ width: '100%', padding: '0.4rem', borderRadius: 8, border: `1px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
             />
+            <div style={{ fontSize: '0.62rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+              ⚡ Soru sayısına göre eşitlenir: {targetGoalCount} soru × {minutesPerQuestion} dk = {calculatedQuestionBudgetMinutes} dk
+            </div>
           </div>
+
           <div>
-            <label style={{ fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText, display: 'block', marginBottom: 3 }}>🏖️ Uzun Mola (dk)</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 900, color: themeObj.text }}>☕ Mola Süresi (dk)</label>
+              <span style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 800 }}>Tek Mola</span>
+            </div>
             <input
               type="number"
               min="1"
               max="90"
-              value={durations.longBreak}
+              value={durations.shortBreak || 10}
               onChange={e => {
-                const val = Number(e.target.value) || 15;
-                setDurations(p => ({ ...p, longBreak: val }));
+                const val = Math.max(1, Number(e.target.value) || 10);
+                setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
+                if (!isRunning && activeStudyMode === 'break') {
+                  setTimeLeft(val * 60);
+                }
               }}
-              style={{ width: '100%', padding: '0.4rem', borderRadius: 8, border: `1px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
+              style={{
+                width: '100%',
+                padding: '0.45rem',
+                borderRadius: 10,
+                border: `1.5px solid ${themeObj.border}`,
+                background: themeObj.cardBg,
+                color: themeObj.text,
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
             />
+            <div style={{ fontSize: '0.62rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+              🏖️ Erken bitirilen seansların artan dakikaları bu molaya otomatik eklenir.
+            </div>
           </div>
         </div>
       )}
