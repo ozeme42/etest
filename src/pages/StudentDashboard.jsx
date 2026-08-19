@@ -2170,6 +2170,8 @@ export default function StudentDashboard() {
                       else if (hwObj?.id) navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent.id}`);
                       else navigate('/student/homeworks');
                     };
+                    const isDueToday = !task.isDone && task.dueDateObj && isToday(task.dueDateObj);
+                    const dueLabel = task.dueDateObj ? task.dueDateObj.toLocaleDateString('tr-TR') : '';
 
                     return (
                       <div
@@ -2177,167 +2179,136 @@ export default function StudentDashboard() {
                         onClick={handleHwClick}
                         className="hw-row"
                         style={{
-                          background: 'var(--color-surface, #ffffff)',
-                          borderLeft: `4.5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : (rowTheme.accent || '#6366f1')}`,
-                          borderTop: '1px solid var(--color-border)',
-                          borderRight: '1px solid var(--color-border)',
-                          borderBottom: '1px solid var(--color-border)',
+                          background: 'var(--color-surface)',
+                          borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
+                          border: '1px solid var(--color-border)',
+                          borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
                           borderRadius: 12,
-                          padding: '0.85rem 1.15rem',
+                          padding: '1rem 1.2rem 1rem 1.1rem',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.85rem',
+                          alignItems: 'stretch',
+                          gap: '0.9rem',
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease'
+                          transition: 'background 0.15s ease'
                         }}
                       >
-                        {/* SOL: İkon */}
-                        <div
-                          className="hw-icon-box"
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            background: 'var(--color-surface-hover)',
-                            color: task.isDone ? '#34d399' : isOverdue ? '#f87171' : (rowTheme.accent || '#818cf8'),
-                            border: `1.5px solid ${task.isDone ? 'rgba(16,185,129,0.35)' : isOverdue ? 'rgba(239,68,68,0.35)' : 'var(--color-border)'}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.88rem',
-                            fontWeight: 900,
-                            flexShrink: 0,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-                          }}
-                        >
-                          {task.isDone ? '✓' : isOverdue ? '!' : '⏳'}
+                        {/* SOL: Durum İkonu */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 2 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: '50%',
+                            background: task.isDone ? 'rgba(16,185,129,0.12)' : isOverdue ? 'rgba(225,29,72,0.1)' : isDueToday ? 'rgba(245,158,11,0.12)' : (rowTheme.badgeBg || 'var(--color-surface-hover)'),
+                            color: task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1'),
+                            border: `2px solid ${task.isDone ? 'rgba(16,185,129,0.3)' : isOverdue ? 'rgba(225,29,72,0.3)' : isDueToday ? 'rgba(245,158,11,0.3)' : (rowTheme.border || 'var(--color-border)')}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '1rem', fontWeight: 900, flexShrink: 0
+                          }}>
+                            {task.isDone ? '✓' : isOverdue ? '!' : isDueToday ? '⚡' : '⏳'}
+                          </div>
                         </div>
 
-                        {/* ORTA: Rozetler, Başlık ve Alt Bilgi */}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          {/* Rozetler */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
+                        {/* ORTA: Tüm Bilgiler */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+
+                          {/* Rozet Satırı */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                            {task.isDone ? (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color:'#059669', background:'#d1fae5', padding:'2px 7px', borderRadius:99, border:'1px solid rgba(16,185,129,0.3)', whiteSpace:'nowrap' }}>✓ Tamamlandı</span>
+                            ) : isOverdue ? (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color:'#be123c', background:'#ffe4e6', padding:'2px 7px', borderRadius:99, border:'1px solid rgba(225,29,72,0.25)', whiteSpace:'nowrap' }}>⚠ Süresi Doldu</span>
+                            ) : isDueToday ? (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color:'#b45309', background:'#fef3c7', padding:'2px 7px', borderRadius:99, border:'1px solid rgba(245,158,11,0.3)', whiteSpace:'nowrap' }}>⚡ Bugün Son</span>
+                            ) : (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color: rowTheme.text||'#6366f1', background: rowTheme.badgeBg||'var(--color-surface-hover)', padding:'2px 7px', borderRadius:99, border:`1px solid ${rowTheme.border||'var(--color-border)'}`, whiteSpace:'nowrap' }}>○ Bekliyor</span>
+                            )}
                             {task.subject && (
-                              <span style={{
-                                fontSize: '0.66rem',
-                                fontWeight: 900,
-                                color: rowTheme.text || '#818cf8',
-                                background: 'var(--color-surface-hover)',
-                                padding: '1.5px 6px',
-                                borderRadius: 5,
-                                border: '1px solid var(--color-border)',
-                                whiteSpace: 'nowrap'
-                              }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color: rowTheme.text||'#6366f1', background: rowTheme.badgeBg||'var(--color-surface-hover)', padding:'2px 8px', borderRadius:99, border:`1px solid ${rowTheme.border||'var(--color-border)'}`, whiteSpace:'nowrap' }}>
                                 {task.subject}
                               </span>
                             )}
-                            <span style={{
-                              fontSize: '0.64rem',
-                              fontWeight: 800,
-                              color: task.isBookAssignment ? '#34d399' : '#c084fc',
-                              background: 'var(--color-surface-hover)',
-                              padding: '1.5px 6px',
-                              borderRadius: 5,
-                              border: task.isBookAssignment ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(124,58,237,0.25)',
-                              whiteSpace: 'nowrap'
-                            }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:'0.65rem', fontWeight:800, color: task.isPhysical?'#92400e':task.isBookAssignment?'#065f46':'#4c1d95', background: task.isPhysical?'#fef3c7':task.isBookAssignment?'#d1fae5':'#ede9fe', padding:'2px 8px', borderRadius:99, border: task.isPhysical?'1px solid #fde68a':task.isBookAssignment?'1px solid #6ee7b7':'1px solid #ddd6fe', whiteSpace:'nowrap' }}>
                               {task.isPhysical ? '📋 Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
                             </span>
-                            {task.isDone ? (
-                              <span style={{
-                                fontSize: '0.64rem',
-                                fontWeight: 800,
-                                color: '#059669',
-                                background: '#d1fae5',
-                                padding: '1.5px 6px',
-                                borderRadius: 5,
-                                border: '1px solid rgba(16,185,129,0.25)'
-                              }}>
-                                {task.scorePct !== null ? `%${task.scorePct}` : 'Tamamlandı'}
+                          </div>
+
+                          {/* Başlık */}
+                          <div style={{ fontSize:'0.95rem', fontWeight:900, color:'var(--color-text)', lineHeight:1.3, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            {displayTitle}
+                          </div>
+
+                          {/* Kitap adı */}
+                          {rawBook && (
+                            <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--color-text-muted)', display:'flex', alignItems:'center', gap:4 }}>
+                              <BookOpen size={11} /> {rawBook}
+                            </div>
+                          )}
+
+                          {/* Bilgi Çipleri */}
+                          <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:700, color:'var(--color-text-muted)' }}>
+                              <Target size={11} style={{ color: rowTheme.accent||'#6366f1' }} />
+                              {task.questionCount || 0} Soru
+                            </span>
+                            {dueLabel && (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:700, color: isOverdue?'#be123c': isDueToday?'#b45309':'var(--color-text-muted)' }}>
+                                <Calendar size={11} style={{ color: isOverdue?'#e11d48':isDueToday?'#f59e0b':(rowTheme.accent||'#6366f1') }} />
+                                Son: {dueLabel}
                               </span>
-                            ) : (
-                              <span style={{
-                                fontSize: '0.64rem',
-                                fontWeight: 800,
-                                color: isOverdue ? '#e11d48' : 'var(--color-text-muted)',
-                                background: isOverdue ? '#ffe4e6' : 'var(--color-surface)',
-                                padding: '1.5px 6px',
-                                borderRadius: 5,
-                                border: isOverdue ? '1px solid rgba(225,29,72,0.25)' : '1px solid var(--color-border)'
-                              }}>
-                                {isOverdue ? 'Süresi Doldu' : 'Bekliyor'}
+                            )}
+                            {task.isDone && task.submittedAt && (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:700, color:'#059669' }}>
+                                <CheckCircle2 size={11} /> {new Date(task.submittedAt).toLocaleDateString('tr-TR')}
                               </span>
                             )}
                           </div>
 
-                          {/* Başlık */}
-                          <div style={{
-                            fontSize: '0.85rem',
-                            fontWeight: 800,
-                            color: 'var(--color-text)',
-                            marginBottom: 2,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {displayTitle}
-                          </div>
-
-                          {/* Alt Bilgi */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <Calendar size={11} /> {task.dueDateObj ? task.dueDateObj.toLocaleDateString('tr-TR') : 'Süresiz'}
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <Target size={11} /> {task.questionCount || 0} Soru
-                            </span>
-                          </div>
+                          {/* Skor Çubuğu */}
+                          {task.isDone && task.scorePct !== null && (
+                            <div>
+                              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                                <span style={{ fontSize:'0.68rem', fontWeight:700, color:'var(--color-text-muted)' }}>
+                                  {task.correctAnswers||0} / {task.totalScoreQuestions||task.questionCount||20} doğru
+                                </span>
+                                <span style={{ fontSize:'0.8rem', fontWeight:900, color: task.scorePct>=80?'#10b981':task.scorePct>=50?'#3b82f6':'#e11d48' }}>
+                                  %{task.scorePct}
+                                </span>
+                              </div>
+                              <div style={{ height:5, background:'var(--color-border)', borderRadius:99, overflow:'hidden' }}>
+                                <div style={{
+                                  height:'100%', width:`${task.scorePct}%`,
+                                  background: task.scorePct>=80?'linear-gradient(90deg,#34d399,#10b981)':task.scorePct>=50?'linear-gradient(90deg,#60a5fa,#3b82f6)':'linear-gradient(90deg,#fb7185,#e11d48)',
+                                  borderRadius:99, transition:'width 0.8s ease'
+                                }} />
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        {/* SAĞ: Çöz Butonu veya Tamamlandı ikonu */}
-                        {task.isDone ? (
-                          <div style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            background: 'rgba(16,185,129,0.12)',
-                            color: '#10b981',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            fontSize: '1rem',
-                            fontWeight: 900
-                          }}>✓</div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleHwClick}
-                            style={{
-                              background: isOverdue
-                                ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                                : `linear-gradient(135deg, ${rowTheme.accent || '#6366f1'}, ${rowTheme.accent ? rowTheme.accent + 'dd' : '#4f46e5'})`,
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: 9,
-                              padding: '0.4rem 0.75rem',
-                              fontSize: '0.74rem',
-                              fontWeight: 900,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              flexShrink: 0,
-                              boxShadow: isOverdue
-                                ? '0 3px 10px rgba(225,29,72,0.35)'
-                                : `0 3px 10px ${rowTheme.accent ? rowTheme.accent + '55' : 'rgba(99,102,241,0.35)'}`,
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            <PlayCircle size={14} /> {isOverdue ? 'Hemen Çöz' : 'Çöz'}
-                          </button>
-                        )}
+                        {/* SAĞ: Aksiyon */}
+                        <div style={{ display:'flex', alignItems:'center', flexShrink:0 }}>
+                          {task.isDone ? (
+                            <div style={{ width:32, height:32, borderRadius:'50%', background:'rgba(16,185,129,0.12)', color:'#10b981', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem', fontWeight:900 }}>✓</div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleHwClick}
+                              style={{
+                                background: isOverdue
+                                  ? 'linear-gradient(135deg,#e11d48,#be123c)'
+                                  : isDueToday
+                                    ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+                                    : `linear-gradient(135deg,${rowTheme.accent||'#6366f1'},${rowTheme.accent?rowTheme.accent+'cc':'#4f46e5'})`,
+                                color:'#fff', border:'none', borderRadius:10,
+                                padding:'0.5rem 1rem', fontSize:'0.75rem', fontWeight:900,
+                                cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5,
+                                boxShadow: isOverdue?'0 3px 12px rgba(225,29,72,0.3)':isDueToday?'0 3px 12px rgba(245,158,11,0.3)':`0 3px 12px ${rowTheme.accent?rowTheme.accent+'44':'rgba(99,102,241,0.3)'}`,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              <PlayCircle size={14} />
+                              {isOverdue ? 'Hemen Çöz' : isDueToday ? 'Bugün Çöz' : 'Çöz'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                     })();
