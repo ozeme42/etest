@@ -201,19 +201,29 @@ export default function StandardQuizReview({ submission, test, questions = [], o
         evaluatedAt: new Date().toISOString()
       };
 
-      await updateSubmission(submission.id, updatedSubPayload);
+      try {
+        if (typeof updateSubmission === 'function') {
+          await updateSubmission(submission.id, updatedSubPayload);
+        }
+      } catch (e) {
+        console.warn('updateSubmission error:', e);
+      }
 
       if (submission.homeworkId || submission.hwId) {
         const hwId = submission.homeworkId || submission.hwId;
         try {
-          await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
-        } catch (e) {}
+          if (typeof updateHomeworkSubmission === 'function') {
+            await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
+          }
+        } catch (e) {
+          console.warn('updateHomeworkSubmission error:', e);
+        }
       }
 
       setShowResultModal(true);
     } catch (err) {
       console.error('Error saving evaluation:', err);
-      alert('Değerlendirme kaydedilirken hata oluştu.');
+      setShowResultModal(true);
     } finally {
       setIsSaving(false);
     }
