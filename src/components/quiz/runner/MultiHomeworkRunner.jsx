@@ -448,9 +448,17 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
           const isAnswered = (userAns !== undefined && userAns !== null && userAns !== '') || Boolean(textVal);
 
-          const isCorrect = (userAnsObj && userAnsObj.isCorrect !== undefined)
-            ? userAnsObj.isCorrect
-            : (isReviewMode && userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
+          let isCorrect = null;
+          if (isReviewMode && userAns !== undefined && userAns !== null && userAns !== '') {
+            const evalResult = checkIsAnswerCorrect(userAns, qObj, bankQ || test, qNo);
+            if (evalResult !== null) {
+              isCorrect = evalResult;
+            } else if (userAnsObj && userAnsObj.isCorrect !== undefined) {
+              isCorrect = userAnsObj.isCorrect;
+            }
+          } else if (userAnsObj && userAnsObj.isCorrect !== undefined) {
+            isCorrect = userAnsObj.isCorrect;
+          }
 
           return (
             <div
@@ -565,12 +573,18 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                       let correctAns = null;
                       const keySources = [
                         bankQ?.answerKey,
+                        bankQ?.answer_key,
                         bankQ?.opticAnswers,
                         bankQ?.contentPayload?.answerKey,
+                        bankQ?.contentPayload?.answer_key,
                         bankQ?.htmlPayload?.answerKey,
                         bankQ?.pdfPayload?.answerKey,
+                        bankQ?.raw_data?.answerKey,
+                        bankQ?.raw_data?.answer_key,
                         bankQ?.bankQ?.answerKey,
-                        bankQ?.bankQ?.opticAnswers
+                        bankQ?.bankQ?.answer_key,
+                        bankQ?.bankQ?.opticAnswers,
+                        bankQ?.bankQ?.pdfPayload?.answerKey
                       ];
 
                       for (const ks of keySources) {
@@ -578,9 +592,15 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         let val = null;
                         if (Array.isArray(ks)) {
                           val = ks[idx] ?? ks[qNo - 1];
+                          if (val === undefined || val === null || val === '') {
+                            if (ks[0] === null || ks[0] === '' || ks[0] === undefined) {
+                              val = ks[qNo] ?? ks[String(qNo)];
+                            }
+                          }
                         } else if (typeof ks === 'object') {
-                          val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
-                        } else if (typeof ks === 'string') {
+                          const is0 = (0 in ks) || ('0' in ks);
+                          val = is0 ? (ks[qNo - 1] ?? ks[String(qNo - 1)] ?? ks[qNo]) : (ks[qNo] ?? ks[String(qNo)] ?? ks[qNo - 1]);
+                        } else if (typeof ks === 'string' && ks.trim().length > 0) {
                           const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
                           val = clean[idx] ?? clean[qNo - 1];
                         }
