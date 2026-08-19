@@ -77,7 +77,13 @@ export default function HomeworkManager() {
   const { books, bookTests } = useTrackedBooks();
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
-  const homeworks = useMemo(() => currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
+  const homeworks = useMemo(() => {
+    let list = currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id);
+    return list.filter(hw => {
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.title && (hw.title.includes('(Tüm Kitap') || hw.title.includes('(Kendi Eklediğim)')));
+      return !isBook;
+    });
+  }, [allHomeworks, currentUser]);
   const questions = useMemo(() => currentUser?.role === 'admin' ? (allQuestions || []) : (allQuestions || []).filter(q => q.createdBy === currentUser?.id), [allQuestions, currentUser]);
 
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'create' | 'edit'

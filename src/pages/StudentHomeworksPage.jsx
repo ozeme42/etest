@@ -128,6 +128,8 @@ export default function StudentHomeworksPage() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
       if (isBook) {
+        return []; // Kitap ödevleri zaten "Kitaplarım" sayfasında gösterildiği için burada gizliyoruz
+
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
         let testIdsList = [];
