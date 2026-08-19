@@ -429,7 +429,7 @@ export default function StudyRoomPage() {
     setTargetInputVal(String(validGoal));
     localStorage.setItem('study_target_goal', String(validGoal));
 
-    if (resetProgress) {
+    if (resetProgress && !isRunning && sessionElapsedSeconds === 0) {
       setCurrentProgressCount(0);
       const todayKey = new Date().toISOString().split('T')[0];
       localStorage.setItem(`study_progress_${todayKey}`, '0');
@@ -437,7 +437,7 @@ export default function StudyRoomPage() {
       setStopwatchSeconds(0);
     }
 
-    if (!isRunning) {
+    if (!isRunning && sessionElapsedSeconds === 0) {
       setTimeLeft(Math.max(5, Math.round(validGoal * minutesPerQuestion)) * 60);
     }
   };
@@ -447,8 +447,10 @@ export default function StudyRoomPage() {
     setCurrentProgressCount(0);
     const todayKey = new Date().toISOString().split('T')[0];
     localStorage.setItem(`study_progress_${todayKey}`, '0');
-    setSessionElapsedSeconds(0);
-    setStopwatchSeconds(0);
+    if (!isRunning && sessionElapsedSeconds === 0) {
+      setSessionElapsedSeconds(0);
+      setStopwatchSeconds(0);
+    }
   };
 
   // Hesaplanan Soru Süre Bütçesi
@@ -692,10 +694,9 @@ export default function StudyRoomPage() {
     }
     setMinutesPerQuestion(recommendedMin);
 
-    // Ders değiştiğinde çözülen sayısını sıfırla
-    handleResetProgressCount();
-
-    if (!isRunning) {
+    // Sadece sayaç çalışmıyorken çözülen sayısını ve süreyi güncelle
+    if (!isRunning && sessionElapsedSeconds === 0) {
+      handleResetProgressCount();
       setTimeLeft(Math.max(5, Math.round(targetGoalCount * recommendedMin)) * 60);
     }
   };
@@ -890,8 +891,24 @@ export default function StudyRoomPage() {
 
   // Birleşik Mod Değiştirici
   const handleSwitchMasterMode = (mode) => {
+    if (mode === activeStudyMode) return;
+
+    const studyModes = ['question', 'book', 'study'];
+    const isCurrentStudy = studyModes.includes(activeStudyMode);
+    const isTargetStudy = studyModes.includes(mode);
+
+    // Eğer çalışma modları (Soru, Kitap, Konu) arasında geçiş yapılıyorsa ve sayaç başlamışsa (çalışıyor veya süre ilerlemişse)
+    // Sayacı sıfırlama, kaldığı yerden devam ettir!
+    if (isCurrentStudy && isTargetStudy && (isRunning || sessionElapsedSeconds > 0)) {
+      setActiveStudyMode(mode);
+      localStorage.setItem('study_master_mode', mode);
+      return;
+    }
+
+    // Mola veya ilk kez başlatılmamış durumdaki geçişler
     setIsRunning(false);
     setActiveStudyMode(mode);
+    localStorage.setItem('study_master_mode', mode);
     setSessionElapsedSeconds(0);
 
     if (mode === 'question') {
