@@ -49,7 +49,7 @@ function isValidPayloadString(str) {
 }
 
 // ─── DERİN KATEGORİ TESPİTİ (PDF, HTML, GÖRSEL, YAZILI METİN) ────────────────
-export function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
+function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
   const candidates = [sub, hw].filter(Boolean);
 
   if (Array.isArray(hw?.sections)) {
