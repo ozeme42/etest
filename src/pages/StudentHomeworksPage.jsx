@@ -178,52 +178,18 @@ export default function StudentHomeworksPage() {
         return []; // Kitap ödevleri zaten "Kitaplarım" sayfasında gösterildiği için burada gizliyoruz
       }
 
-      if (Array.isArray(hw.tests) && hw.tests.length > 1) {
-        return hw.tests.map((testId, idx) => {
-          const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId)) ||
-            (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId));
-
-          const qCount = hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : 10;
-          let correctCount = 0;
-          if (sub) {
-            if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-              correctCount = sub.answers.filter(a => a.isCorrect === true).length;
-            } else if (typeof sub.correctCount === 'number') {
-              correctCount = sub.correctCount;
-            } else if (typeof sub.score === 'number' && sub.score <= 100 && qCount > 0) {
-              correctCount = Math.round((sub.score / 100) * qCount);
-            }
-          }
-          let scorePct = null;
-          if (sub) {
-            if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) scorePct = Math.round(Number(sub.scorePercentage));
-            else if (typeof sub.score === 'number' && sub.score <= 100) scorePct = Math.round(sub.score);
-            else if (qCount > 0) scorePct = Math.round((correctCount / qCount) * 100);
-          }
-
-          return {
-            ...hw,
-            id: `hw_${hw.id}_${testId}`,
-            realTestId: testId,
-            testId: testId,
-            hwId: hw.id,
-            title: `${hw.title || hw.name || 'Ödev'} (Test ${idx + 1})`,
-            status: sub ? 'Sonuçlandı' : 'Atandı',
-            isDone: !!sub,
-            questionCount: qCount,
-            correctAnswers: correctCount,
-            totalScoreQuestions: qCount,
-            scorePct,
-            submissionId: sub?.id,
-            submittedAt: sub?.submittedAt || sub?.createdAt
-          };
-        });
-      }
-
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
         (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
-      const qCount = hw.totalQuestions || hw.questionCount || 1;
+      let qCount = hw.totalQuestions || hw.questionCount || 0;
+      if (!qCount && Array.isArray(hw.sections) && hw.sections.length > 0) {
+        qCount = hw.sections.reduce((acc, sec) => acc + (sec.qCount || sec.questionCount || 0), 0);
+      }
+      if (!qCount && Array.isArray(hw.questionIds) && hw.questionIds.length > 0) {
+        qCount = hw.questionIds.length;
+      }
+      if (!qCount) qCount = 1;
+
       let correctCount = 0;
       if (sub) {
         if (Array.isArray(sub.answers) && sub.answers.length > 0) {
@@ -243,6 +209,11 @@ export default function StudentHomeworksPage() {
 
       return [{
         ...hw,
+        id: hw.id,
+        realTestId: hw.id,
+        testId: hw.id,
+        hwId: hw.id,
+        title: hw.title || hw.name || 'Ödev Testi',
         status: sub ? 'Sonuçlandı' : 'Atandı',
         isDone: !!sub,
         questionCount: qCount,

@@ -375,34 +375,28 @@ export default function StudentDashboard() {
         return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor
       }
 
-      if (Array.isArray(hw.tests) && hw.tests.length > 1) {
-        return hw.tests.map((testId, idx) => {
-          const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId)) ||
-            (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId));
-
-          return {
-            ...hw,
-            id: `hw_${hw.id}_${testId}`,
-            realTestId: testId,
-            testId: testId,
-            hwId: hw.id,
-            title: `${hw.title || hw.name || 'Ödev'} (Test ${idx + 1})`,
-            status: sub ? 'Sonuçlandı' : 'Atandı',
-            questionCount: hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : (hw.questionCount || 1),
-            correctAnswers: sub ? (sub.score || 0) : 0,
-            submissionId: sub?.id
-          };
-        });
-      }
-
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
         (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
+      let qCount = hw.totalQuestions || hw.questionCount || 0;
+      if (!qCount && Array.isArray(hw.sections) && hw.sections.length > 0) {
+        qCount = hw.sections.reduce((acc, sec) => acc + (sec.qCount || sec.questionCount || 0), 0);
+      }
+      if (!qCount && Array.isArray(hw.questionIds) && hw.questionIds.length > 0) {
+        qCount = hw.questionIds.length;
+      }
+      if (!qCount) qCount = 1;
+
       return [{
         ...hw,
+        id: hw.id,
+        realTestId: hw.id,
+        testId: hw.id,
+        hwId: hw.id,
+        title: hw.title || hw.name || 'Ödev Testi',
         status: sub ? 'Sonuçlandı' : 'Atandı',
-        questionCount: hw.totalQuestions || hw.questionCount || 1,
-        correctAnswers: sub ? (sub.score || 0) : 0,
+        questionCount: qCount,
+        correctAnswers: sub ? (sub.score || sub.correctCount || 0) : 0,
         submissionId: sub?.id
       }];
     });
@@ -1140,7 +1134,7 @@ export default function StudentDashboard() {
               try { formattedDue = `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}`; } catch {}
             }
 
-            if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+            if (isBook && Array.isArray(hw.tests) && hw.tests.length > 1) {
               hw.tests.forEach((testId, idx) => {
                 const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
                   (submissions || []).some(s => isMatchHwSub(s, hw, testId));
@@ -1154,9 +1148,9 @@ export default function StudentDashboard() {
                     hwId: hw.id,
                     testId: testId,
                     isAutoHomework: true,
-                    taskType: isBook ? 'kitap' : 'ödev',
-                    subject: hw.subject || 'Atanan Kitap/Ödev',
-                    title: `${hw.title || 'Ödev'} — ${testTitle}`,
+                    taskType: 'kitap',
+                    subject: hw.subject || 'Atanan Kitap',
+                    title: `${hw.title || 'Kitap'} — ${testTitle}`,
                     questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
                     time: formattedDue || null,
                     done: isTestSolved

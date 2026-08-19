@@ -39,9 +39,27 @@ export default function AdminHomeworkTracker() {
         let totalTests = hw.tests ? hw.tests.length : 1;
         let submissionIds = [];
 
-        if (hw.tests) {
+        const directSub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+          submissions.find(s => (String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+
+        if (directSub) {
+          submissionIds.push(directSub.id);
+          if (directSub.status === 'completed' || directSub.status === 'evaluated' || directSub.score !== undefined) {
+            status = 'completed';
+            completedAt = directSub.completedAt || directSub.submittedAt || directSub.createdAt;
+            score = directSub.scorePercentage !== undefined ? Math.round(directSub.scorePercentage) : (directSub.score || 0);
+          } else {
+            status = 'pending';
+          }
+          if (directSub.answers) {
+            directSub.answers.forEach(a => {
+              if (a.isCorrect === false) mistakes++;
+              if (a.userAnswer === null || a.userAnswer === undefined || a.userAnswer === '') blanks++;
+            });
+          }
+        } else if (hw.tests) {
             hw.tests.forEach(testId => {
-                const sub = submissions.find(s => s.testId === testId && s.studentId === studentId);
+                const sub = submissions.find(s => String(s.testId) === String(testId) && String(s.studentId) === String(studentId));
                 if (sub) {
                     submissionIds.push(sub.id);
                     if (sub.status === 'completed') {
@@ -63,11 +81,13 @@ export default function AdminHomeworkTracker() {
                     }
                 }
             });
-        }
 
-        if (testsCompleted === totalTests && totalTests > 0) {
-            status = 'completed';
-            score = Math.round(score / totalTests); 
+            if (testsCompleted === totalTests && totalTests > 0) {
+                status = 'completed';
+                score = Math.round(score / totalTests); 
+            } else if (isOverdue) {
+                status = 'overdue';
+            }
         } else if (isOverdue) {
             status = 'overdue';
         }

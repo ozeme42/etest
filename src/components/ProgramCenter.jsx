@@ -1320,7 +1320,7 @@ export function MonthlyListPanel({
         }
 
         if (isForThisDay) {
-          if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+          if (isBook && Array.isArray(hw.tests) && hw.tests.length > 1) {
             hw.tests.forEach((testId, idx) => {
               const isTestSolved = checkIsTaskSolved({
                 testId: testId,
@@ -1336,9 +1336,9 @@ export function MonthlyListPanel({
                   hwId: hw.id,
                   testId: testId,
                   isAutoHomework: true,
-                  taskType: isBook ? 'kitap' : 'ödev',
-                  subject: hw.subject || 'Atanan Kitap/Ödev',
-                  topic: `${hw.title || 'Ödev'} — ${testTitle}`,
+                  taskType: 'kitap',
+                  subject: hw.subject || 'Atanan Kitap',
+                  topic: `${hw.title || 'Kitap'} — ${testTitle}`,
                   questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
                   done: isTestSolved
@@ -2591,7 +2591,7 @@ export default function ProgramCenter({
         }
 
         if (isForThisDay) {
-          if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+          if (isBook && Array.isArray(hw.tests) && hw.tests.length > 1) {
             hw.tests.forEach((testId, idx) => {
               const isTestSolved = checkIsTaskSolved({
                 testId: testId,
@@ -2607,9 +2607,9 @@ export default function ProgramCenter({
                   hwId: hw.id,
                   testId: testId,
                   isAutoHomework: true,
-                  taskType: isBook ? 'kitap' : 'ödev',
-                  subject: hw.subject || 'Atanan Kitap/Ödev',
-                  topic: `${hw.title || 'Ödev'} — ${testTitle}`,
+                  taskType: 'kitap',
+                  subject: hw.subject || 'Atanan Kitap',
+                  topic: `${hw.title || 'Kitap'} — ${testTitle}`,
                   questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
                   done: isTestSolved
