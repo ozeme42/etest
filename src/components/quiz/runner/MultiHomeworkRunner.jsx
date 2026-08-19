@@ -820,6 +820,8 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
     }
 
     const mcNet = Math.max(0, mcDoğru - (mcYanlış * 0.25));
+    const mcTotal = mcDoğru + mcYanlış + mcBoş;
+    const secSuccessRate = mcTotal > 0 ? Math.round((mcDoğru / mcTotal) * 100) : 0;
 
     return {
       title: sec.title || `${idx + 1}. Bölüm`,
@@ -829,91 +831,143 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
       mcYanlış,
       mcBoş,
       mcNet,
+      secSuccessRate,
       oeCevaplanan
     };
   });
 
   const totalMCNet = Math.max(0, totalMCDoğru - (totalMCYanlış * 0.25));
   const hasOE = totalOEQuestions > 0;
+  const overallMCAccuracy = totalMCQuestions > 0 ? Math.round((totalMCDoğru / totalMCQuestions) * 100) : 0;
+
+  const getSuccessStatus = (rate) => {
+    if (rate >= 85) return { label: 'Mükemmel 🌟', text: 'Mükemmel', color: '#10b981', badgeBg: 'rgba(16,185,129,0.15)', badgeBorder: 'rgba(16,185,129,0.3)' };
+    if (rate >= 70) return { label: 'Çok İyi 🎯', text: 'Çok İyi', color: '#0284c7', badgeBg: 'rgba(2,132,199,0.15)', badgeBorder: 'rgba(2,132,199,0.3)' };
+    if (rate >= 50) return { label: 'Başarılı 👍', text: 'Başarılı', color: '#d97706', badgeBg: 'rgba(217,119,6,0.15)', badgeBorder: 'rgba(217,119,6,0.3)' };
+    return { label: 'Geliştirilmeli 📈', text: 'Geliştirilmeli', color: '#dc2626', badgeBg: 'rgba(220,38,38,0.15)', badgeBorder: 'rgba(220,38,38,0.3)' };
+  };
+
+  const overallStatus = getSuccessStatus(overallMCAccuracy);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
-      <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.5rem', width: '100%', maxWidth: '750px', color: 'var(--color-text)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', margin: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.75))', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
+      <div style={{ background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '1.5rem', width: '100%', maxWidth: '750px', color: 'var(--color-text, #0f172a)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', margin: 'auto' }}>
         
         {/* TOP HEADER */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#ecfdf5', border: '2px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: overallStatus.badgeBg, border: `2px solid ${overallStatus.badgeBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
             🎉
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>Sınav Başarıyla Gönderildi!</h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', margin: 0 }}>{test.title || test.name}</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text, #0f172a)' }}>Sınav Başarıyla Gönderildi!</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted, #64748b)', margin: 0, fontWeight: 700 }}>{test.title || test.name}</p>
         </div>
 
         {/* TEACHER EVALUATION ALERT BANNER */}
         {hasOE && (
-          <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <div style={{ background: 'rgba(124, 58, 237, 0.08)', border: '1.5px solid rgba(167, 139, 250, 0.4)', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{ fontSize: '1.8rem' }}>⏳</div>
             <div>
               <h4 style={{ margin: '0 0 0.3rem 0', fontWeight: 900, color: '#7c3aed', fontSize: '0.95rem' }}>
                 Yazılı / Açık Uçlu Cevaplarınız Öğretmen Değerlendirmesine Gönderildi
               </h4>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                Çoktan seçmeli sorularınızın puan ve net hesaplaması tamamlanmıştır. Açık uçlu ({totalOEQuestions} soru) yanıtlarınız ise öğretmeniniz tarafından incelenip puanlandıktan sonra karnenize yansıyacaktır.
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.5 }}>
+                Çoktan seçmeli sorularınızın puan ve başarı oranı hesaplanmıştır. Açık uçlu ({totalOEQuestions} soru) yanıtlarınız ise öğretmeniniz tarafından incelenip puanlandıktan sonra karnenize yansıyacaktır.
               </p>
             </div>
           </div>
         )}
 
         {/* OVERALL SUMMARY CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>ÇOKTAN SEÇMELİ NET</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', marginTop: '0.2rem' }}>{totalMCNet.toFixed(2)}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
+          
+          {/* Card 1: BAŞARI DURUMU */}
+          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: `1.5px solid ${overallStatus.badgeBorder}`, borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>BAŞARI DURUMU</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: overallStatus.color, lineHeight: 1.1 }}>%{overallMCAccuracy}</div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallStatus.color, background: overallStatus.badgeBg, border: `1px solid ${overallStatus.badgeBorder}`, padding: '0.15rem 0.55rem', borderRadius: '12px', marginTop: '0.2rem' }}>
+              {overallStatus.label}
+            </span>
           </div>
-          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>DOĞRU / YANLIŞ</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.3rem' }}>
+
+          {/* Card 2: DOĞRU / YANLIŞ / BOŞ */}
+          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>DOĞRU / YANLIŞ</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a', marginTop: '0.15rem' }}>
               {totalMCDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalMCYanlış} Y</span>
             </div>
+            {totalMCBoş > 0 ? (
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>({totalMCBoş} Boş Soru)</span>
+            ) : (
+              <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>(Tümü Yanıtlandı)</span>
+            )}
           </div>
-          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.3rem' }}>
-              {totalOECevaplanan} / {totalOEQuestions}
+
+          {/* Card 3: ÇOKTAN SEÇMELİ NET */}
+          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>ÇOKTAN SEÇMELİ NET</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>{totalMCNet.toFixed(2)}</div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Net Puan</span>
+          </div>
+
+          {/* Card 4: AÇIK UÇLU YANIT (if any) */}
+          {hasOE && (
+            <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>AÇIK UÇLU YANIT</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.15rem' }}>
+                {totalOECevaplanan} / {totalOEQuestions}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>Öğretmen Bekleniyor</span>
             </div>
-          </div>
+          )}
+
         </div>
 
         {/* BÖLÜM BAZLI DETAYLAR */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#334155' }}>📊 Bölüm Bazlı Sonuç Özeti</h4>
+          <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #334155)' }}>📊 Bölüm Bazlı Sonuç Özeti</h4>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {sectionStats.map((secStat, sIdx) => (
-              <div key={sIdx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span style={{ padding: '0.25rem 0.55rem', background: secStat.isOE ? '#7c3aed' : '#0284c7', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 900, color: 'white' }}>
-                    {secStat.isOE ? '✍️ Yazılı Bölüm' : '📝 Test Bölümü'}
-                  </span>
-                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>{secStat.title}</span>
-                </div>
+            {sectionStats.map((secStat, sIdx) => {
+              const secStatus = getSuccessStatus(secStat.secSuccessRate);
 
-                {secStat.isOE ? (
-                  <span style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', background: '#faf5ff', border: '1px solid #e9d5ff', color: '#7c3aed', fontSize: '0.8rem', fontWeight: 900 }}>
-                    ⏳ Öğretmen Değerlendirmesinde ({secStat.oeCevaplanan}/{secStat.qCount} Yanıt)
-                  </span>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.82rem', fontWeight: 800 }}>
-                    <span style={{ color: '#16a34a' }}>{secStat.mcDoğru} Doğru</span>
-                    <span style={{ color: '#dc2626' }}>{secStat.mcYanlış} Yanlış</span>
-                    <span style={{ color: '#64748b' }}>{secStat.mcBoş} Boş</span>
-                    <span style={{ padding: '0.2rem 0.6rem', background: '#0284c7', borderRadius: '0.4rem', color: 'white', fontWeight: 900 }}>
-                      Net: {secStat.mcNet.toFixed(2)}
+              return (
+                <div key={sIdx} style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span style={{ padding: '0.25rem 0.55rem', background: secStat.isOE ? '#7c3aed' : '#0284c7', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 900, color: 'white' }}>
+                      {secStat.isOE ? '✍️ Yazılı Bölüm' : '📝 Test Bölümü'}
                     </span>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text, #0f172a)' }}>{secStat.title}</span>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {secStat.isOE ? (
+                    <span style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(167, 139, 250, 0.4)', color: '#7c3aed', fontSize: '0.8rem', fontWeight: 900 }}>
+                      ⏳ Öğretmen Değerlendirmesinde ({secStat.oeCevaplanan}/{secStat.qCount} Yanıt)
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.85rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#16a34a' }}>{secStat.mcDoğru} Doğru</span>
+                      <span style={{ color: '#dc2626' }}>{secStat.mcYanlış} Yanlış</span>
+                      {secStat.mcBoş > 0 && <span style={{ color: '#64748b' }}>{secStat.mcBoş} Boş</span>}
+                      
+                      <span style={{
+                        padding: '0.25rem 0.65rem',
+                        background: secStatus.badgeBg,
+                        border: `1.5px solid ${secStatus.badgeBorder}`,
+                        color: secStatus.color,
+                        borderRadius: '0.5rem',
+                        fontWeight: 900,
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}>
+                        %{secStat.secSuccessRate} Başarı
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -927,9 +981,9 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
                 minWidth: 160,
                 padding: '0.85rem 1.25rem',
                 borderRadius: '0.85rem',
-                background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
-                color: '#334155',
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #cbd5e1)',
+                color: 'var(--color-text, #334155)',
                 fontWeight: 900,
                 fontSize: '0.92rem',
                 cursor: 'pointer',
