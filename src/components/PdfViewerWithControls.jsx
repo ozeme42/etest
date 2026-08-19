@@ -13,7 +13,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false, isDrawingOpen = false, onToggleDrawing }) {
+export default function PdfViewerWithControls({ payload, src, filePayload, pdfPayload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false, isDrawingOpen = false, onToggleDrawing }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [numPages, setNumPages] = useState(null);
@@ -27,6 +27,8 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
   const overlayRefs = useRef([]);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  const activePayload = payload || src || filePayload || pdfPayload;
+
   useEffect(() => {
     const updateWidth = () => {
       if (wrapperRef.current) {
@@ -39,8 +41,8 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
   }, []);
 
   const embedUrl = useMemo(() => {
-    return getEmbeddablePdfUrl(payload);
-  }, [payload]);
+    return getEmbeddablePdfUrl(activePayload);
+  }, [activePayload]);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);

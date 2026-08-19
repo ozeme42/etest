@@ -818,20 +818,27 @@ export default function ModularQuizPage() {
   ));
   const isDefinitelyStandardForHtml = isRealStandardQuiz && !hasExplicitHtmlQuestions;
   
-  const isValidHtmlPayload = test.htmlPayload && typeof test.htmlPayload === 'string' && !test.htmlPayload.startsWith('data:image');
-  
+  const isValidHtmlPayload = Boolean(
+    (typeof test.htmlPayload === 'string' && test.htmlPayload.length > 0 && !test.htmlPayload.startsWith('data:image')) ||
+    (typeof test.contentPayload === 'string' && (test.contentPayload.includes('<!DOCTYPE') || test.contentPayload.includes('<html') || test.contentPayload.includes('<body') || test.contentPayload.includes('<div') || test.contentPayload.startsWith('data:text/html')))
+  );
+
   const isHtml = !isDefinitelyStandardForHtml && Boolean(
     isValidHtmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
-    test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions
+    test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions ||
+    (test.title && String(test.title).toLowerCase().includes('html')) ||
+    (test.name && String(test.name).toLowerCase().includes('html'))
   );
 
   const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
     q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || Boolean(q.pdfPayload) || Boolean(q.pdfUrl)
   ));
-  const isPdf = Boolean(
+  const isPdf = !isHtml && Boolean(
     test.pdfPayload || test.pdfUrl || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
     test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions ||
-    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.includes('.pdf')))
+    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.includes('.pdf') || test.contentPayload.startsWith('%PDF'))) ||
+    (test.title && String(test.title).toLowerCase().includes('pdf')) ||
+    (test.name && String(test.name).toLowerCase().includes('pdf'))
   );
 
   // ALWAYS force Physical Optik Grid Form ONLY for real physical tracked book tests with no digital content
@@ -856,19 +863,23 @@ export default function ModularQuizPage() {
     (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
-  const isMultiSection = Boolean(
-    String(testId || '').trim().startsWith('hw_') ||
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
-    (test.items && Array.isArray(test.items) && test.items.length > 0) ||
-    test.isBulk ||
-    test.isMulti
+  const hasMultipleDistinctSections = Boolean(
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
+    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1 && !isHtml && !isPdf && !isImageTest)
+  );
+
+  const isMultiSection = hasMultipleDistinctSections || (
+    !isHtml && !isPdf && !isImageTest && !isPhysical && Boolean(
+      test.isBulk ||
+      test.isMulti
+    )
   );
 
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
   const renderRunner = () => {
-    if (isMultiSection) {
+    if (hasMultipleDistinctSections) {
       return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
     }
 
@@ -886,6 +897,10 @@ export default function ModularQuizPage() {
 
     if (isPhysical) {
       return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
+    }
+
+    if (isMultiSection) {
+      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
     }
 
     return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;

@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
-import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useHomework } from '../../../context/HomeworkContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function ImageQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
+  const { updateSubmission } = useEvaluation();
+  const { updateHomeworkSubmission } = useHomework();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState(null);
+
+  const isTeacherMode = Boolean(
+    location.state?.isTeacher ||
+    location.state?.fromTeacher ||
+    location.search.includes('teacher=true') ||
+    currentUser?.role === 'teacher' ||
+    currentUser?.role === 'admin'
+  );
 
   const handleGoBack = () => {
     if (onClose) {
@@ -22,7 +37,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       navigate(location.state.from, { replace: true });
       return;
     }
-    if (location.state?.fromTeacher || location.state?.isTeacher) {
+    if (location.state?.fromTeacher || location.state?.isTeacher || location.search.includes('teacher=true')) {
       navigate('/evaluation', { replace: true });
     } else {
       navigate('/student-results', { replace: true });
@@ -60,291 +75,172 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           if (q.id) { const val = await idbGetPayload(q.id); if (val) { resolved = val; break; } }
         }
       }
-      if (resolved) { loadedRef.current = testId; setIdbPayload(resolved); }
+      if (resolved) setIdbPayload(resolved);
+      loadedRef.current = testId;
     }
     loadFromIdb();
-  }, [test.id, test.contentPayload, questions]);
+  }, [test, questions]);
 
-  const allImageUrls = useMemo(() => {
-    const urls = [];
-    const getObjUrls = (obj) => {
-      if (!obj) return [];
-      if (obj.imageUrls && Array.isArray(obj.imageUrls) && obj.imageUrls.length > 0) return obj.imageUrls;
-      if (obj.imageUrl && typeof obj.imageUrl === 'string' && obj.imageUrl !== '[STORED_IN_INDEXEDDB]') return [obj.imageUrl];
-      const payload = extractPayload(obj) || idbPayload;
-      if (payload && typeof payload === 'string') {
-        if (payload.startsWith('http') || payload.startsWith('data:image')) return [payload];
-        if (payload.includes('|') || payload.includes('\n')) return payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
-      }
-      if (obj.url && typeof obj.url === 'string') return [obj.url];
-      return [];
-    };
-
-    if (questions.length > 0) {
-      questions.forEach(q => urls.push(...getObjUrls(q)));
-    }
-    if (urls.length === 0) {
-      urls.push(...getObjUrls(test));
-    }
-    if (urls.length === 0 && bundleQ) {
-      urls.push(...getObjUrls(bundleQ));
-    }
-    return urls.filter(isValidImageUrl);
-  }, [questions, bundleQ, test, idbPayload]);
+  const allAvailableImages = useMemo(() => {
+    const collected = [];
+    const directUrls = test.imageUrls || bundleQ.imageUrls;
+    if (Array.isArray(directUrls)) collected.push(...directUrls.filter(isValidImageUrl));
+    if (test.imageUrl && isValidImageUrl(test.imageUrl)) collected.push(test.imageUrl);
+    if (bundleQ.imageUrl && isValidImageUrl(bundleQ.imageUrl)) collected.push(bundleQ.imageUrl);
+    if (idbPayload && isValidImageUrl(idbPayload)) collected.push(idbPayload);
+    questions.forEach(q => {
+      if (q.imageUrl && isValidImageUrl(q.imageUrl)) collected.push(q.imageUrl);
+      if (Array.isArray(q.imageUrls)) collected.push(...q.imageUrls.filter(isValidImageUrl));
+    });
+    return Array.from(new Set(collected));
+  }, [test, bundleQ, idbPayload, questions]);
 
   const qCount = useMemo(() => {
-    // 1. Direct answer key length (Most authoritative!)
     const keyArray = test.answerKey || bundleQ.answerKey;
-    if (Array.isArray(keyArray) && keyArray.length > 0) {
-      return keyArray.length;
-    }
-    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
-      return keyArray.trim().length;
-    }
-    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
-      return Object.keys(keyArray).length;
-    }
-
-    // 2. Direct question list length if explicitly provided
-    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
-      return test.questionsList.length;
-    }
-    if (Array.isArray(bundleQ.questionsList) && bundleQ.questionsList.length > 0) {
-      return bundleQ.questionsList.length;
-    }
-    if (Array.isArray(questions) && questions.length > 1) {
-      return questions.length;
-    }
-    if (Array.isArray(allImageUrls) && allImageUrls.length > 1) {
-      return allImageUrls.length;
-    }
-
-    // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
-    const titles = [test.title, test.name, bundleQ.title, bundleQ.name, submission?.testTitle, submission?.title];
-    for (const t of titles) {
-      if (typeof t === 'string') {
-        const match = t.match(/(\d+)\s*soru/i);
-        if (match && Number(match[1]) > 0) {
-          return Number(match[1]);
-        }
-      }
-    }
-
-    // 4. If submission has recorded actual answers list
-    if (Array.isArray(answers) && answers.length > 0) {
-      return answers.length;
-    }
-
-    // 5. Explicit question count properties on test / question / submission
-    const explicit = Number(
-      test.questionCount ||
-      bundleQ.questionCount ||
-      submission?.totalQuestions ||
-      test.totalQuestions ||
-      test.questionsCount ||
-      bundleQ.totalQuestions
-    );
-    if (explicit && explicit > 0) return explicit;
-
+    if (Array.isArray(keyArray) && keyArray.length > 0) return keyArray.length;
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) return test.questionsList.length;
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 0) return test.questionIds.length;
+    if (Array.isArray(questions) && questions.length > 0) return questions.length;
+    if (allAvailableImages.length > 0) return allAvailableImages.length;
+    if (Array.isArray(answers) && answers.length > 0) return answers.length;
     return 1;
-  }, [submission?.totalQuestions, test, questions, bundleQ, allImageUrls.length, answers]);
+  }, [test, bundleQ, questions, allAvailableImages, answers]);
 
-  const activeQuestion = questions[currentIndex] || questions[0] || {};
-  
-  const activeImageUrl = useMemo(() => {
-    const qDirect = activeQuestion.imageUrl || (activeQuestion.imageUrls && activeQuestion.imageUrls[0]) || activeQuestion.contentPayload;
-    if (qDirect && isValidImageUrl(qDirect) && qDirect !== '[STORED_IN_INDEXEDDB]') {
-      return qDirect;
+  const [questionScores, setQuestionScores] = useState(() => {
+    const scores = {};
+    for (let i = 1; i <= qCount; i++) {
+      const a = answers[i - 1];
+      if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
+      else if (a?.isCorrect === true) scores[i] = 10;
+      else scores[i] = 0;
     }
-    if (allImageUrls[currentIndex]) {
-      return allImageUrls[currentIndex];
-    }
-    if (allImageUrls.length > 0) {
-      return allImageUrls[0];
-    }
-    const testDirect = test.imageUrl || test.contentPayload || (test.imageUrls && test.imageUrls[0]) || idbPayload;
-    if (testDirect && isValidImageUrl(testDirect) && testDirect !== '[STORED_IN_INDEXEDDB]') {
-      return testDirect;
-    }
-    return null;
-  }, [activeQuestion, allImageUrls, currentIndex, test, idbPayload]);
+    return scores;
+  });
 
-  const imageUrls = useMemo(() => {
-    // Paket halinde yüklenen görsel soru setlerinde allImageUrls öncelikli
-    if (allImageUrls.length > 0) {
-      const url = allImageUrls[currentIndex] || allImageUrls[0];
-      return url ? [url] : [];
+  const [teacherNotes, setTeacherNotes] = useState(() => {
+    const notes = {};
+    for (let i = 1; i <= qCount; i++) {
+      notes[i] = answers[i - 1]?.teacherNote || '';
     }
-    // Bireysel soruların kendi imageUrls dizisi varsa sadece ilkini al
-    if (activeQuestion.imageUrls && Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 0) {
-      const firstValid = activeQuestion.imageUrls.find(isValidImageUrl);
-      return firstValid ? [firstValid] : [];
-    }
-    return activeImageUrl ? [activeImageUrl].filter(isValidImageUrl) : [];
-  }, [activeQuestion, allImageUrls, currentIndex, activeImageUrl]);
+    return notes;
+  });
 
-  const activeAnsObj = answers.find(a => 
-    a.questionNo === currentIndex + 1 || 
-    String(a.questionId || '').endsWith(`_${currentIndex + 1}`) || 
-    a.questionId === `q_${currentIndex + 1}`
-  ) || {};
+  const [overallFeedback, setOverallFeedback] = useState(submission?.teacherFeedback || submission?.teacherNote || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const activeQuestion = questions[currentIndex] || bundleQ || {};
+  const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
+
   const userAns = activeAnsObj.userAnswer;
   const textAns = activeAnsObj.userAnswerText;
   const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
 
-  const isCorrect = hasAnswer
-    ? checkIsAnswerCorrect(userAns, activeQuestion, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, currentIndex + 1)
-    : (activeAnsObj.isCorrect !== undefined && activeAnsObj.isCorrect !== null ? activeAnsObj.isCorrect : null);
-
-
-  const keySource = test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers;
-  const rawCorrectKey = Array.isArray(keySource)
-    ? keySource[currentIndex]
-    : (keySource && typeof keySource === 'object' ? (keySource[currentIndex + 1] ?? keySource[currentIndex]) : activeQuestion.correctAnswer);
-
-  const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
-    ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
-    : null;
-
-  const isEvaluated = Boolean(
-    submission?.isEvaluatedByTeacher ||
-    submission?.status === 'completed' ||
-    submission?.status === 'evaluated' ||
-    submission?.status === 'graded'
-  );
-
-  const stats = useMemo(() => {
-    // Sadece answers dizisi boşsa (yani cevaplar yüklenemediyse) submission'dan hazır değerleri al.
-    // Aksi takdirde güncel answers dizisi üzerinden her zaman yeniden hesapla.
-    if (answers.length === 0 && submission?.correctCount !== undefined && submission?.wrongCount !== undefined && isEvaluated) {
-      return {
-        correctCount: submission.correctCount || 0,
-        wrongCount: submission.wrongCount || 0,
-        blankCount: submission.blankCount ?? Math.max(0, qCount - ((submission.correctCount || 0) + (submission.wrongCount || 0)))
-      };
-    }
-
-    let cCount = 0;
-    let wCount = 0;
-    let bCount = 0;
-
-    Array.from({ length: qCount }).forEach((_, idx) => {
-      const qNo = idx + 1;
-      const qObj = questions[idx] || questions[0] || {};
-      // Sadece questionNo veya questionId ile eşleştir, idx fallback kullanma
-      const ansObj = answers.find(a =>
-        a.questionNo === qNo ||
-        String(a.questionId || '').endsWith(`_${qNo}`) ||
-        a.questionId === `q_${qNo}`
-      ) || {};
-
-      const uAns = ansObj.userAnswer;
-      const tAns = ansObj.userAnswerText;
-      const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
-
-      // Çoktan seçmeli sorularda geçmiş hatalı DB kayıtlarını ezmek için her zaman lokal hesaplama yap.
-      let evalCorrect;
-      if (hasAns) {
-        // qObj bundle sınavlarında answersKey içermeyebilir, test'i güçlendir
-        evalCorrect = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, qNo);
-      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
-        evalCorrect = ansObj.isCorrect;
-      } else {
-        evalCorrect = null;
-      }
-
-      if (evalCorrect === true) {
-        cCount++;
-      } else if (hasAns || tAns) {
-        // Cevap verilmiş ama yanlış ya da hesaplanamadı
-        wCount++;
-      } else {
-        bCount++;
-      }
-    });
-
-    return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
-  }, [qCount, questions, answers, test, submission, isEvaluated]);
-
-  const { correctCount, wrongCount, blankCount } = stats;
-  const totalCount = correctCount + wrongCount + blankCount;
-  const scorePercentage = (isEvaluated && submission?.isEvaluatedByTeacher && submission?.score !== undefined && submission?.score !== null)
-    ? submission.score
-    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : (submission?.score || 0));
-
-  // Map answers for grid navigator
-  const answersMap = useMemo(() => {
-    const map = {};
-    Array.from({ length: qCount }).forEach((_, idx) => {
-      const qNo = idx + 1;
-      const qObj = questions[idx] || questions[0] || {};
-      const foundAns = answers.find(a => 
-        a.questionNo === qNo || 
-        String(a.questionId || '').endsWith(`_${qNo}`) ||
-        a.questionId === `q_${qNo}`
-      );
-      if (foundAns) {
-        const uAns = foundAns.userAnswer;
-        const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
-        let evalCorrect;
-        if (hasAns) {
-          evalCorrect = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, qNo);
-        } else if (foundAns.isCorrect !== undefined && foundAns.isCorrect !== null) {
-          evalCorrect = foundAns.isCorrect;
-        } else {
-          evalCorrect = null;
-        }
-        map[qNo] = { ...foundAns, isCorrect: evalCorrect };
-      }
-    });
-    return map;
-  }, [qCount, questions, answers]);
-
   const isOpenEndedMode = useMemo(() => {
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-      (Array.isArray(questions[0]?.answerKey) && questions[0]?.answerKey.length > 0)
-    ) {
+    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
       return false;
     }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.questionType === 'yazili' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'yazili' ||
-      test.contentType === 'acik_uclu' ||
-      test.contentType === 'yazili' ||
-      test.isOpenEnded
-    ) {
-      return true;
-    }
-
-    if (test.title && (
-      test.title.toLowerCase().includes('açık uçlu') ||
-      test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('yazılı') ||
-      test.title.toLowerCase().includes('yazili')
-    )) {
-      return true;
-    }
-
-    return questions.some(q =>
-      q.type === 'acik_uclu' ||
-      q.type === 'yazili' ||
-      q.contentType === 'acik_uclu' ||
-      q.contentType === 'yazili' ||
-      q.isOpenEnded
+    return Boolean(
+      test.questionType === 'gorsel_klasik' || test.type === 'gorsel_klasik' || test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('görsel'))) ||
+      questions.some(q => q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded)
     );
   }, [test, questions]);
 
+  const scorePercentage = useMemo(() => {
+    let earned = 0;
+    let max = qCount * 10;
+    for (let i = 1; i <= qCount; i++) {
+      const s = questionScores[i] ?? 0;
+      earned += s;
+    }
+    return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
+  }, [qCount, questionScores]);
+
+  const handleSaveEvaluation = async () => {
+    if (isSaving || !submission) return;
+    setIsSaving(true);
+    try {
+      const updatedAnswers = Array.from({ length: qCount }).map((_, idx) => {
+        const qNo = idx + 1;
+        const existingAns = answers[idx] || {};
+        const score = questionScores[qNo] ?? (existingAns.isCorrect === true ? 10 : 0);
+        const note = teacherNotes[qNo] || '';
+        return {
+          ...existingAns,
+          questionNo: qNo,
+          score,
+          isCorrect: score >= 5,
+          teacherNote: note,
+          evaluatedAt: new Date().toISOString()
+        };
+      });
+
+      const updatedSubPayload = {
+        ...submission,
+        answers: updatedAnswers,
+        score: scorePercentage,
+        status: 'evaluated',
+        isEvaluatedByTeacher: true,
+        teacherFeedback: overallFeedback,
+        teacherNote: overallFeedback,
+        evaluatedAt: new Date().toISOString()
+      };
+
+      await updateSubmission(submission.id, updatedSubPayload);
+
+      if (submission.homeworkId || submission.hwId) {
+        const hwId = submission.homeworkId || submission.hwId;
+        try {
+          await updateHomeworkSubmission(hwId, submission.id, updatedSubPayload);
+        } catch (e) {}
+      }
+
+      alert('✓ Değerlendirme başarıyla kaydedildi!');
+      handleGoBack();
+    } catch (err) {
+      console.error('Error saving evaluation:', err);
+      alert('Değerlendirme kaydedilirken hata oluştu.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const imageUrls = useMemo(() => {
+    const collected = [];
+    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) collected.push(activeQuestion.imageUrl);
+    if (Array.isArray(activeQuestion.imageUrls)) collected.push(...activeQuestion.imageUrls.filter(isValidImageUrl));
+    if (collected.length === 0 && allAvailableImages.length > 0) {
+      if (allAvailableImages.length === qCount && allAvailableImages[currentIndex]) collected.push(allAvailableImages[currentIndex]);
+      else if (allAvailableImages[0]) collected.push(allAvailableImages[0]);
+    }
+    return collected;
+  }, [activeQuestion, allAvailableImages, currentIndex, qCount]);
+
+  const answersMap = useMemo(() => {
+    const map = {};
+    for (let i = 0; i < qCount; i++) {
+      const qNo = i + 1;
+      const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
+      if (ans) {
+        const sc = questionScores[qNo] ?? (ans.score !== undefined ? Number(ans.score) : null);
+        const isC = sc !== null ? sc >= 5 : ans.isCorrect;
+        map[i] = {
+          userAnswer: ans.userAnswer,
+          isCorrect: isC,
+          hasAnswer: ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== ''
+        };
+      }
+    }
+    return map;
+  }, [qCount, answers, questionScores]);
+
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const currentQNo = currentIndex + 1;
+  const currentScore = questionScores[currentQNo] ?? (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
+      {/* Header */}
       <header style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
         background: '#ffffff',
@@ -355,9 +251,6 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         flexShrink: 0,
         gap: isMobile ? '0.4rem' : '1rem',
         minHeight: isMobile ? '48px' : '62px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
         boxSizing: 'border-box',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
@@ -385,7 +278,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 style={{
-              fontSize: isMobile ? '0.85rem' : '1.1rem',
+              fontSize: isMobile ? '0.85rem' : '1.05rem',
               fontWeight: 900,
               margin: 0,
               color: '#0f172a',
@@ -393,97 +286,55 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {test.title || test.name || 'Sınav İncelemesi'}
-              {!isMobile && " — İnceleme Raporu"}
+              {submission.studentName ? `🎓 ${submission.studentName} — ` : ''}{test.title || test.name || 'Görselli Sınav'}
             </h2>
-            {!isMobile && (
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                🖼️ Görsel Formatında Sınav İncelemesi
-              </div>
-            )}
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+              🖼️ Görselli Soru & Değerlendirme
+            </div>
           </div>
         </div>
 
-        {/* Score Badges */}
-        {isOpenEndedMode && !isEvaluated ? (
+        {/* Action & Score */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <div style={{
-            background: '#fffbeb',
-            color: '#b45309',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.45rem 1.1rem',
-            borderRadius: '0.65rem',
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            color: '#ffffff',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
+            borderRadius: '0.5rem',
             fontWeight: 900,
-            fontSize: isMobile ? '0.72rem' : '0.85rem',
-            border: '1px solid #fde68a',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            flexShrink: 0
+            fontSize: isMobile ? '0.78rem' : '0.9rem',
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
           }}>
-            ✍️ {isMobile ? 'Bekliyor' : 'Değerlendirme Bekliyor'}
+            %{scorePercentage} Puan
           </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
-            <div style={{
-              background: '#f0fdf4',
-              color: '#15803d',
-              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-              borderRadius: '0.5rem',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #bbf7d0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.2rem'
-            }}>
-              <span>✓ {correctCount}</span>
-              {!isMobile && <span>Doğru</span>}
-            </div>
-            <div style={{
-              background: '#fef2f2',
-              color: '#b91c1c',
-              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-              borderRadius: '0.5rem',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #fecaca',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.2rem'
-            }}>
-              <span>✕ {wrongCount}</span>
-              {!isMobile && <span>Yanlış</span>}
-            </div>
-            <div style={{
-              background: '#f8fafc',
-              color: '#475569',
-              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-              borderRadius: '0.5rem',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.2rem'
-            }}>
-              <span>○ {blankCount}</span>
-              {!isMobile && <span>Boş</span>}
-            </div>
-            <div style={{
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              color: '#ffffff',
-              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.85rem',
-              borderRadius: '0.5rem',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.72rem' : '0.82rem',
-              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
-            }}>
-              %{scorePercentage}
-            </div>
-          </div>
-        )}
+
+          {isTeacherMode && (
+            <button
+              type="button"
+              onClick={handleSaveEvaluation}
+              disabled={isSaving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                border: 'none',
+                borderRadius: '0.5rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.1rem',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.75rem' : '0.84rem',
+                cursor: isSaving ? 'wait' : 'pointer',
+                boxShadow: '0 2px 10px rgba(16,185,129,0.3)'
+              }}
+            >
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet ✓'}
+            </button>
+          )}
+        </div>
       </header>
 
-      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      <div style={{ maxWidth: '960px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
         <QuestionGridNav
           totalQuestions={qCount}
           currentIndex={currentIndex}
@@ -494,66 +345,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
         <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#0284c7' }}>
-              Soru {currentIndex + 1} İncelemesi
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#4f46e5' }}>
+              Soru {currentQNo} İncelemesi & Puanlama
             </h3>
-
-            {(() => {
-              const isQOpenEnded = isOpenEndedMode || textAns || activeAnsObj.userAnswerText || activeQuestion.type === 'acik_uclu';
-
-              if (isQOpenEnded && !isEvaluated) {
-                if (textAns || activeAnsObj.userAnswerText) {
-                  return (
-                    <span style={{ padding: '0.35rem 0.75rem', background: '#faf5ff', color: '#7c3aed', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      ✍️ DEĞERLENDİRME BEKLİYOR
-                    </span>
-                  );
-                }
-                return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
-                    BOŞ BIRAKILDI
-                  </span>
-                );
-              }
-
-              if (!hasAnswer && !textAns && !activeAnsObj.userAnswerText) {
-                return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
-                    BOŞ BIRAKILDI
-                  </span>
-                );
-              }
-
-              if (isCorrect === true || activeAnsObj.score > 0) {
-                return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#f0fdf4', color: '#15803d', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #bbf7d0' }}>
-                    <CheckCircle size={16} /> {isQOpenEnded ? `DOĞRU (${activeAnsObj.score ?? 10} Puan)` : 'DOĞRU CEVAPLADIN'}
-                  </span>
-                );
-              }
-
-              if (isCorrect === false && (hasAnswer || activeAnsObj.score === 0)) {
-                return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #fecaca' }}>
-                    <XCircle size={16} /> {isQOpenEnded ? 'YANLIŞ (0 Puan)' : 'YANLIŞ CEVAPLADIN'}
-                  </span>
-                );
-              }
-
-              if (hasAnswer) {
-                return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#f0f9ff', color: '#0369a1', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #bae6fd' }}>
-                    ✓ CEVAPLANDI
-                  </span>
-                );
-              }
-
-              return (
-                <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
-                  BOŞ BIRAKILDI
-                </span>
-              );
-            })()}
+            <span style={{ fontWeight: 900, fontSize: '0.9rem', color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : '#7c3aed') }}>
+              Verilen Not: {currentScore} / 10 Puan
+            </span>
           </div>
 
           {imageUrls.length > 0 && (
@@ -562,66 +359,103 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 <StandardImageFrame
                   key={imgIdx}
                   src={url}
-                  alt={`Soru ${currentIndex + 1} Görsel`}
+                  alt={`Soru ${currentQNo} Görsel`}
                   onOpenFullscreen={() => setLightboxSrc(url)}
                 />
               ))}
             </div>
           )}
 
-          {textAns ? (
-            <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>YAZILI CEVABINIZ</div>
-              <div style={{ marginTop: '0.35rem', fontSize: '0.95rem', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                {textAns}
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0'}` }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#64748b' }}>SENİN CEVABIN</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#334155', marginTop: '0.25rem' }}>
-                  {hasAnswer
-                    ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)
-                    : 'Boş'}
-                </div>
-              </div>
-
-              {displayCorrectKey && (
-                <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#15803d' }}>DOĞRU CEVAP</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#15803d', marginTop: '0.25rem' }}>
-                    {displayCorrectKey}
-                  </div>
-                </div>
-              )}
+          {/* Soru Metni Varsa */}
+          {activeQuestion.questionText && (
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.6 }}>
+              {activeQuestion.questionText}
             </div>
           )}
 
-          {activeQuestion.solutionText && (
-            <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '0.85rem', background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1e40af', fontSize: '0.9rem' }}>
-              <strong style={{ color: '#1d4ed8' }}>💡 Çözüm Açıklaması: </strong> {activeQuestion.solutionText}
+          {/* Öğrencinin Yazılı Yanıtı */}
+          <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #bfdbfe' }}>
+            <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 900, textTransform: 'uppercase', marginBottom: 4 }}>✍️ ÖĞRENCİNİN YAZILI CEVABI:</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              {textAns || activeAnsObj.userAnswer || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
+            </div>
+          </div>
+
+          {/* Öğretmen Puanlama Butonları & Not */}
+          {isTeacherMode && (
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>🎯 Puan Ver:</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 10 }))}
+                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1', background: currentScore === 10 ? '#16a34a' : '#ffffff', color: currentScore === 10 ? '#ffffff' : '#15803d', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                  >
+                    ✓ Doğru (D)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
+                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1', background: currentScore === 0 ? '#dc2626' : '#ffffff', color: currentScore === 0 ? '#ffffff' : '#b91c1c', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                  >
+                    ✗ Yanlış (Y)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
+                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                  >
+                    ○ Boş (B)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 5 }))}
+                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1', background: currentScore === 5 ? '#d97706' : '#ffffff', color: currentScore === 5 ? '#ffffff' : '#d97706', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                  >
+                    ½ Yarım (5P)
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Bu soru için öğrenciye geri bildirim notu..."
+                value={teacherNotes[currentQNo] || ''}
+                onChange={e => setTeacherNotes(p => ({ ...p, [currentQNo]: e.target.value }))}
+                style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+              />
             </div>
           )}
         </div>
+
+        {/* Genel Karne & İleri/Geri */}
+        {isTeacherMode && (
+          <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
+            <textarea
+              rows="2"
+              placeholder="Öğrencinin bu sınavı için genel karne notunuz..."
+              value={overallFeedback}
+              onChange={e => setOverallFeedback(e.target.value)}
+              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
+            />
+            <button
+              type="button"
+              onClick={handleSaveEvaluation}
+              disabled={isSaving}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2rem' }}>
           <button
             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
             disabled={currentIndex === 0}
-            style={{
-              padding: '0.75rem 1.5rem',
-              borderRadius: '0.85rem',
-              border: '1.5px solid #cbd5e1',
-              background: currentIndex === 0 ? '#f1f5f9' : '#ffffff',
-              color: currentIndex === 0 ? '#94a3b8' : '#334155',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
+            style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: currentIndex === 0 ? '#f1f5f9' : '#ffffff', color: currentIndex === 0 ? '#94a3b8' : '#334155', fontWeight: 800, fontSize: '0.9rem', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <ChevronLeft size={18} /> Önceki Soru
           </button>
@@ -629,20 +463,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           <button
             onClick={() => setCurrentIndex(Math.min(qCount - 1, currentIndex + 1))}
             disabled={currentIndex === qCount - 1}
-            style={{
-              padding: '0.75rem 1.5rem',
-              borderRadius: '0.85rem',
-              border: 'none',
-              background: currentIndex === qCount - 1 ? '#f1f5f9' : '#4f46e5',
-              color: currentIndex === qCount - 1 ? '#94a3b8' : '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: currentIndex === qCount - 1 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(79, 70, 229, 0.25)'
-            }}
+            style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', border: 'none', background: currentIndex === qCount - 1 ? '#f1f5f9' : '#4f46e5', color: currentIndex === qCount - 1 ? '#94a3b8' : '#ffffff', fontWeight: 800, fontSize: '0.9rem', cursor: currentIndex === qCount - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(79, 70, 229, 0.25)' }}
           >
             Sonraki Soru <ChevronRight size={18} />
           </button>

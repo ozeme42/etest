@@ -94,7 +94,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
   // Exact question count calculation
   const qCount = useMemo(() => {
     // 1. Direct answer key length (highest priority for multiple-choice tests with answer keys)
-    const keyArray = test.answerKey || questions[0]?.answerKey;
+    const keyArray = test?.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) {
       const valid = keyArray.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
       if (valid.length > 0) return valid.length;
@@ -106,27 +106,41 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
       return Object.keys(keyArray).length;
     }
 
-    // 2. Direct question list length if defined with multiple questions
-    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
+    // 2. Explicit numeric question count on test / question / section
+    const explicit = Number(
+      test?.questionCount ||
+      test?.totalQuestions ||
+      test?.questionsCount ||
+      test?.qCount ||
+      (Array.isArray(test?.sections) && test.sections[0]?.questionCount) ||
+      questions[0]?.questionCount ||
+      questions[0]?.totalQuestions
+    );
+    if (!isNaN(explicit) && explicit > 0) {
+      return explicit;
+    }
+
+    // 3. Direct question list length if defined with multiple questions
+    if (Array.isArray(test?.questionsList) && test.questionsList.length > 0) {
       return test.questionsList.length;
     }
     if (Array.isArray(questions[0]?.questionsList) && questions[0].questionsList.length > 0) {
       return questions[0].questionsList.length;
     }
 
-    // 3. Questions array if more than 1
+    // 4. Questions array if more than 1
     if (Array.isArray(questions) && questions.length > 1) {
       return questions.length;
     }
-    if (Array.isArray(test.questions) && test.questions.length > 1) {
+    if (Array.isArray(test?.questions) && test.questions.length > 1) {
       return test.questions.length;
     }
-    if (Array.isArray(test.questionIds) && test.questionIds.length > 1) {
+    if (Array.isArray(test?.questionIds) && test.questionIds.length > 1) {
       return test.questionIds.length;
     }
 
-    // 4. Title regex (e.g. "(5 Soru)" or "5 Soru")
-    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
+    // 5. Title regex (e.g. "(5 Soru)" or "5 Soru")
+    const titles = [test?.title, test?.name, questions[0]?.title, questions[0]?.name];
     for (const t of titles) {
       if (t) {
         const m = String(t).match(/(\d+)\s*Soru/i);
@@ -137,28 +151,8 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
       }
     }
 
-    // 5. Open-ended single document mode default to 1 unless explicit sub-questions
-    if (isOpenEndedMode) {
-      const rawCount = Number(test.questionCount || questions[0]?.questionCount);
-      if (!isNaN(rawCount) && rawCount > 0 && rawCount !== 10) {
-        return rawCount;
-      }
-      return (questions && questions.length > 0) ? questions.length : 1;
-    }
-
-    // 6. Explicit questionCount from question bank item
-    const qbCount = Number(test.questionCount || questions[0]?.questionCount);
-    if (!isNaN(qbCount) && qbCount > 0 && qbCount !== 10) {
-      return qbCount;
-    }
-
-    const testTotalQ = Number(test.totalQuestions || test.questionsCount || test.qCount);
-    if (!isNaN(testTotalQ) && testTotalQ > 0 && testTotalQ !== 10) {
-      return testTotalQ;
-    }
-
     return 1;
-  }, [test, questions, isOpenEndedMode]);
+  }, [test, questions]);
 
   const [idbHtml, setIdbHtml] = useState(null);
   const loadedRef = useRef(null);
@@ -166,23 +160,30 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
   const extractDirectHtml = (obj) => {
     if (!obj) return null;
     const candidates = [
-      obj.contentPayload,
       obj.htmlPayload,
+      obj.contentPayload,
+      obj.raw_data?.htmlPayload,
+      obj.raw_data?.contentPayload,
       obj.url,
       obj.htmlUrl,
       obj.content,
-      obj.pdfPayload,
-      obj.filePayload,
       obj.payload,
       obj.data,
       obj.html
     ];
-    return candidates.find(c => typeof c === 'string' && c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+    return candidates.find(c => typeof c === 'string' && c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]' && (c.includes('<html') || c.includes('<!DOCTYPE') || c.includes('<body') || c.includes('<div') || c.includes('<p') || c.startsWith('data:text/html') || c.startsWith('http'))) || null;
   };
 
   const getDirectPayload = () => {
     let p = extractDirectHtml(test);
     if (p) return p;
+
+    if (Array.isArray(test?.sections)) {
+      for (const sec of test.sections) {
+        p = extractDirectHtml(sec) || extractDirectHtml(sec?.bankQ);
+        if (p) return p;
+      }
+    }
 
     if (questions && questions.length > 0) {
       for (const q of questions) {
@@ -191,14 +192,14 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
       }
     }
 
-    if (test.questions && Array.isArray(test.questions)) {
+    if (test?.questions && Array.isArray(test.questions)) {
       for (const q of test.questions) {
         p = extractDirectHtml(q);
         if (p) return p;
       }
     }
 
-    if (test.questionsList && Array.isArray(test.questionsList)) {
+    if (test?.questionsList && Array.isArray(test.questionsList)) {
       for (const q of test.questionsList) {
         p = extractDirectHtml(q);
         if (p) return p;
@@ -210,18 +211,25 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
   useEffect(() => {
     const direct = getDirectPayload();
-    if (direct) return;
-    if (loadedRef.current === test.id) return;
+    if (direct) {
+      setIdbHtml(direct);
+      return;
+    }
+
+    let isMounted = true;
 
     async function loadFromIdb() {
       const rawIds = [
-        test.id,
-        test.id?.replace(/^hw_/, ''),
-        test.id?.replace(/^hw_/, 'q_'),
-        ...(test.questionIds || []),
-        ...(questions || []).map(q => q.id),
-        ...(test.questions || []).map(q => q.id),
-        ...(test.questionsList || []).map(q => q.id)
+        test?.id,
+        test?.testId,
+        test?.hwId,
+        test?.homeworkId,
+        test?.questionId,
+        ...(test?.questionIds || []),
+        ...(questions || []).map(q => q?.id),
+        ...(test?.questions || []).map(q => q?.id),
+        ...(test?.questionsList || []).map(q => q?.id),
+        ...(Array.isArray(test?.sections) ? test.sections.flatMap(s => [s?.id, s?.questionId, s?.bankQ?.id]) : [])
       ];
 
       const idsToTry = [];
@@ -243,19 +251,41 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
       const uniqueIds = [...new Set(idsToTry)];
 
+      // 1st pass: direct ids
       for (const id of uniqueIds) {
         try {
           const val = await idbGetPayload(id);
-          if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
-            loadedRef.current = test.id;
+          if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+            loadedRef.current = test?.id;
             setIdbHtml(val);
             return;
           }
         } catch (e) {}
       }
+
+      // 2nd pass: fuzzy scan all IDB keys
+      try {
+        const { idbGetAllKeys } = await import('../../../services/indexedDbService');
+        const allKeys = await idbGetAllKeys();
+        const normIds = uniqueIds.map(id => String(id).replace(/^(hw_|q_|q|test_|sub_)/, '').toLowerCase());
+        for (const key of allKeys) {
+          const normKey = String(key).replace(/^(hw_|q_|q|test_|sub_)/, '').toLowerCase();
+          const isMatch = normIds.some(nid => nid && (nid === normKey || normKey.includes(nid) || nid.includes(normKey)));
+          if (isMatch) {
+            const val = await idbGetPayload(key);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+              loadedRef.current = test?.id;
+              setIdbHtml(val);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
     }
+
     loadFromIdb();
-  }, [test.id, test.contentPayload, test.htmlPayload, test.questionIds, questions]);
+    return () => { isMounted = false; };
+  }, [test, questions]);
 
   const htmlPayload = getDirectPayload() || idbHtml;
 
