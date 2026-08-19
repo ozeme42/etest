@@ -260,11 +260,13 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         const ansList = Array.isArray(submission.answers) ? submission.answers : [];
         const baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
         
-        const exactCount = Math.max(
-          resolveExactQuestionCount(resolved || {}, resolved || {}, resolved || {}, baseResolvedQs, baseImages),
-          ansList.length,
-          parseInt(submission.totalQuestions || resolved?.questionCount || 0, 10) || 0,
-          1
+        const exactCount = resolveExactQuestionCount(
+          resolved || {},
+          resolved || {},
+          resolved || {},
+          baseResolvedQs,
+          baseImages,
+          resolved || {}
         );
 
         const isSingleOE = isItemOpenEnded(resolved) || isItemOpenEnded(submission);

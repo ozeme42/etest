@@ -45,24 +45,31 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const answers = submission.answers || [];
 
   const qCount = useMemo(() => {
+    // 1. Title regex FIRST (e.g. "(5 Soru)", "5 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
+    for (const t of titles) {
+      if (typeof t === 'string') {
+        const match = t.match(/\((\d+)\s*soru\)/i) || t.match(/(\d+)\s*soru/i);
+        if (match && Number(match[1]) > 0) return Number(match[1]);
+      }
+    }
+
+    // 2. Answer key
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) return keyArray.length;
     if (typeof keyArray === 'string' && keyArray.trim().length > 0) return keyArray.trim().length;
     if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) return Object.keys(keyArray).length;
 
+    // 3. Questions list / sub-questions
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) return test.questionsList.length;
     if (Array.isArray(test.questionIds) && test.questionIds.length > 0) return test.questionIds.length;
-    if (Array.isArray(questions) && questions.length > 0) return questions.length;
+    if (Array.isArray(questions) && questions.length > 1) return questions.length;
 
-    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
-    for (const t of titles) {
-      if (typeof t === 'string') {
-        const match = t.match(/(\d+)\s*soru/i);
-        if (match && Number(match[1]) > 0) return Number(match[1]);
-      }
-    }
+    // 4. Test questionCount
+    if (test.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
+    if (questions[0]?.questionCount && Number(questions[0].questionCount) > 0) return Number(questions[0].questionCount);
 
-    if (Array.isArray(answers) && answers.length > 0) return answers.length;
+    if (Array.isArray(questions) && questions.length === 1) return 1;
     return 1;
   }, [test, questions, answers, submission]);
 
