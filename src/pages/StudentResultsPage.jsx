@@ -121,14 +121,22 @@ const getTypeConfig = (isDark) => ({
 });
 
 function getSubjectKey(s) {
-  const t = ((s.testTitle || '') + ' ' + (s.subjectKey || '')).toLowerCase();
+  const rawKey = s.subjectKey || s.subjectName || s.subject || '';
+  const rawTitle = s.testTitle || s.testName || s.title || '';
+  const t = (rawTitle + ' ' + rawKey).toLowerCase();
+
   if (t.includes('matematik') || t.includes('mat')) return 'Matematik';
   if (t.includes('fen')) return 'Fen Bilimleri';
   if (t.includes('türkçe') || t.includes('turkce') || t.includes('türk')) return 'Türkçe';
-  if (t.includes('sosyal') || t.includes('inkılap')) return 'Sosyal Bilgiler';
+  if (t.includes('sosyal') || t.includes('inkılap') || t.includes('tarih')) return 'Sosyal Bilgiler';
   if (t.includes('ingilizce') || t.includes('english') || t.includes('ing')) return 'İngilizce';
+  if (t.includes('din') || t.includes('ahlak')) return 'Din Kültürü';
   if (t.includes('deneme') || t.includes('genel')) return 'Genel Testler';
-  return s.subjectKey || 'Diğer';
+
+  if (rawKey && !rawKey.toLowerCase().includes('kitap') && rawKey !== 'Diğer') {
+    return rawKey;
+  }
+  return 'Genel Testler';
 }
 
 function ScoreBadge({ score, type, isPendingEval, size = 'md', isDark = false }) {
@@ -206,12 +214,21 @@ function ChartTooltip({ active, payload, label }) {
 
 function CustomSubjectTooltip({ active, payload }) {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
+    const data = payload[0].payload || {};
     const scoreVal = data['Başarı %'] !== undefined ? data['Başarı %'] : (data.accuracy !== undefined ? data.accuracy : data.avgScore);
-    const correctVal = data['Doğru'] !== undefined ? data['Doğru'] : data.correctQ;
-    const wrongVal = data['Yanlış'] !== undefined ? data['Yanlış'] : data.wrongQ;
-    const blankVal = data['Boş'] !== undefined ? data['Boş'] : data.blankQ;
-    const totalVal = data['Soru Sayısı'] || data.totalQ || (correctVal + wrongVal + blankVal);
+    const correctVal = data['Doğru'] !== undefined ? data['Doğru'] : (data.correctQ !== undefined ? data.correctQ : data.totalCorrect);
+    const wrongVal = data['Yanlış'] !== undefined ? data['Yanlış'] : (data.wrongQ !== undefined ? data.wrongQ : data.totalWrong);
+    const blankVal = data['Boş'] !== undefined ? data['Boş'] : (data.blankQ !== undefined ? data.blankQ : data.totalBlank);
+    
+    let totalVal = data['Soru Sayısı'] ?? data.totalQ ?? data.value;
+    if (totalVal === undefined || totalVal === null || isNaN(totalVal)) {
+      const c = Number(correctVal) || 0;
+      const w = Number(wrongVal) || 0;
+      const b = Number(blankVal) || 0;
+      totalVal = c + w + b;
+    }
+
+    const title = data.fullName || data.name || data.displayName || data.subject || 'Ders';
 
     return (
       <div style={{
@@ -225,9 +242,9 @@ function CustomSubjectTooltip({ active, payload }) {
         minWidth: 160
       }}>
         <div style={{ fontWeight: 900, color: '#6366f1', marginBottom: 6, fontSize: '0.9rem' }}>
-          {data.fullName || data.name || data.displayName}
+          {title}
         </div>
-        {scoreVal !== undefined && (
+        {scoreVal !== undefined && !isNaN(scoreVal) && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
             <span style={{ color: 'var(--color-text-muted)' }}>Başarı Oranı:</span>
             <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#10b981' : scoreVal >= 50 ? '#f59e0b' : '#ef4444' }}>
@@ -235,30 +252,28 @@ function CustomSubjectTooltip({ active, payload }) {
             </span>
           </div>
         )}
-        {correctVal !== undefined && (
+        {correctVal !== undefined && !isNaN(correctVal) && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
             <span style={{ color: '#10b981' }}>✓ Doğru:</span>
             <span style={{ fontWeight: 800, color: '#10b981' }}>{correctVal}</span>
           </div>
         )}
-        {wrongVal !== undefined && (
+        {wrongVal !== undefined && !isNaN(wrongVal) && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
             <span style={{ color: '#ef4444' }}>✗ Yanlış:</span>
             <span style={{ fontWeight: 800, color: '#ef4444' }}>{wrongVal}</span>
           </div>
         )}
-        {blankVal !== undefined && (
+        {blankVal !== undefined && !isNaN(blankVal) && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
             <span style={{ color: 'var(--color-text-muted)' }}>— Boş:</span>
             <span style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>{blankVal}</span>
           </div>
         )}
-        {totalVal !== undefined && (
-          <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: 'var(--color-text)', fontWeight: 800 }}>
-            <span>Toplam Soru:</span>
-            <span>{totalVal}</span>
-          </div>
-        )}
+        <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: 'var(--color-text)', fontWeight: 800 }}>
+          <span>Toplam Soru:</span>
+          <span>{Number(totalVal) || 0}</span>
+        </div>
       </div>
     );
   }
@@ -776,11 +791,23 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   }, [subjectBreakdown, isDark]);
 
   const subjectPieData = useMemo(() => {
-    return subjectBreakdown.map(sb => ({
-      name: sb.subj,
-      value: sb.totalQ,
-      color: getSubjectTheme(sb.subj, isDark).color
-    }));
+    return subjectBreakdown
+      .filter(sb => (sb.totalQ || 0) > 0)
+      .map(sb => ({
+        name: sb.subj,
+        value: sb.totalQ,
+        totalQ: sb.totalQ,
+        'Soru Sayısı': sb.totalQ,
+        'Başarı %': sb.avgScore,
+        avgScore: sb.avgScore,
+        correctQ: sb.totalCorrect,
+        wrongQ: sb.totalWrong,
+        blankQ: sb.totalBlank,
+        'Doğru': sb.totalCorrect,
+        'Yanlış': sb.totalWrong,
+        'Boş': sb.totalBlank,
+        color: getSubjectTheme(sb.subj, isDark).color
+      }));
   }, [subjectBreakdown, isDark]);
 
   return (
@@ -1403,10 +1430,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                           dataKey="value"
                           nameKey="name"
                           cx="50%"
-                          cy="50%"
-                          innerRadius={isMobile ? 50 : 65}
-                          outerRadius={isMobile ? 85 : 110}
-                          paddingAngle={3}
+                          cy="44%"
+                          innerRadius={isMobile ? 45 : 60}
+                          outerRadius={isMobile ? 80 : 105}
+                          paddingAngle={4}
                         >
                           {subjectPieData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--color-surface)" strokeWidth={2} />
@@ -1414,10 +1441,30 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         </Pie>
                         <Tooltip content={<CustomSubjectTooltip />} />
                         <Legend
-                          formatter={(value) => <span style={{ color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
+                          formatter={(value) => (
+                            <span style={{
+                              color: 'var(--color-text)',
+                              fontSize: '0.76rem',
+                              fontWeight: 800,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: 6,
+                              background: 'var(--color-surface-hover)',
+                              border: '1px solid var(--color-border)',
+                              display: 'inline-block'
+                            }}>
+                              {value}
+                            </span>
+                          )}
                           layout="horizontal"
                           align="center"
                           verticalAlign="bottom"
+                          wrapperStyle={{
+                            paddingTop: 12,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
+                            gap: '8px 12px'
+                          }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
