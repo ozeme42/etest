@@ -45,32 +45,59 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
   });
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
+    const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+    ) {
+      return false;
+    }
+
+    if (
+      test.questionType === 'acik_uclu' ||
+      test.questionType === 'yazili' ||
+      test.type === 'acik_uclu' ||
+      test.type === 'yazili' ||
+      test.contentType === 'acik_uclu' ||
+      test.contentType === 'yazili' ||
+      test.isOpenEnded
+    ) {
+      return true;
+    }
+
+    if (test.title && (
+      test.title.toLowerCase().includes('açık uçlu') ||
+      test.title.toLowerCase().includes('acik uclu') ||
+      test.title.toLowerCase().includes('yazılı') ||
+      test.title.toLowerCase().includes('yazili')
+    )) {
+      return true;
+    }
+
+    if (questions.some(q =>
+      q.type === 'acik_uclu' ||
+      q.type === 'yazili' ||
+      q.contentType === 'acik_uclu' ||
+      q.contentType === 'yazili' ||
+      q.isOpenEnded
+    )) {
+      return true;
+    }
+
+    return false;
+  }, [test, questions]);
+
+  const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
+
   // Exact question count calculation
   const qCount = useMemo(() => {
-    // 1. Direct Question Count field from test or questions (Authoritative!)
-    const rawCount = Number(
-      test.questionCount ||
-      test.totalQuestions ||
-      test.questionsCount ||
-      test.qCount ||
-      questions[0]?.questionCount ||
-      questions[0]?.totalQuestions ||
-      questions[0]?.qCount
-    );
-    if (!isNaN(rawCount) && rawCount > 0) {
-      return rawCount;
-    }
-
-    // 2. Direct question list length if defined with multiple questions
-    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
-      return test.questionsList.length;
-    }
-
-    // 3. Direct answer key length
+    // 1. Direct answer key length (highest priority for multiple-choice tests with answer keys)
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) {
       const valid = keyArray.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
-      return valid.length || keyArray.length;
+      if (valid.length > 0) return valid.length;
     }
     if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
       return keyArray.trim().length;
@@ -79,7 +106,26 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
       return Object.keys(keyArray).length;
     }
 
-    // 4. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    // 2. Direct question list length if defined with multiple questions
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
+      return test.questionsList.length;
+    }
+    if (Array.isArray(questions[0]?.questionsList) && questions[0].questionsList.length > 0) {
+      return questions[0].questionsList.length;
+    }
+
+    // 3. Questions array if more than 1
+    if (Array.isArray(questions) && questions.length > 1) {
+      return questions.length;
+    }
+    if (Array.isArray(test.questions) && test.questions.length > 1) {
+      return test.questions.length;
+    }
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 1) {
+      return test.questionIds.length;
+    }
+
+    // 4. Title regex (e.g. "(5 Soru)" or "5 Soru")
     const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
     for (const t of titles) {
       if (t) {
@@ -91,16 +137,28 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
       }
     }
 
-    // 5. Questions array if more than 1
-    if (Array.isArray(questions) && questions.length > 1) {
-      return questions.length;
+    // 5. Open-ended single document mode default to 1 unless explicit sub-questions
+    if (isOpenEndedMode) {
+      const rawCount = Number(test.questionCount || questions[0]?.questionCount);
+      if (!isNaN(rawCount) && rawCount > 0 && rawCount !== 10) {
+        return rawCount;
+      }
+      return (questions && questions.length > 0) ? questions.length : 1;
     }
-    if (Array.isArray(test.questionIds) && test.questionIds.length > 1) {
-      return test.questionIds.length;
+
+    // 6. Explicit questionCount from question bank item
+    const qbCount = Number(test.questionCount || questions[0]?.questionCount);
+    if (!isNaN(qbCount) && qbCount > 0 && qbCount !== 10) {
+      return qbCount;
+    }
+
+    const testTotalQ = Number(test.totalQuestions || test.questionsCount || test.qCount);
+    if (!isNaN(testTotalQ) && testTotalQ > 0 && testTotalQ !== 10) {
+      return testTotalQ;
     }
 
     return 1;
-  }, [test, questions]);
+  }, [test, questions, isOpenEndedMode]);
 
   const [idbPdf, setIdbPdf] = useState(null);
   const loadedRef = useRef(null);
@@ -216,59 +274,6 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
 
   const pdfPayload = getDirectPayload() || idbPdf;
 
-  const isOpenEndedMode = useMemo(() => {
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
-    ) {
-      return false;
-    }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.questionType === 'yazili' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'yazili' ||
-      test.contentType === 'acik_uclu' ||
-      test.contentType === 'yazili' ||
-      test.isOpenEnded
-    ) {
-      return true;
-    }
-
-    if (test.title && (
-      test.title.toLowerCase().includes('açık uçlu') ||
-      test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('yazılı') ||
-      test.title.toLowerCase().includes('yazili')
-    )) {
-      return true;
-    }
-
-    if (questions.some(q =>
-      q.type === 'acik_uclu' ||
-      q.type === 'yazili' ||
-      q.contentType === 'acik_uclu' ||
-      q.contentType === 'yazili' ||
-      q.isOpenEnded
-    )) {
-      return true;
-    }
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli'
-    ) {
-      return false;
-    }
-
-    return false;
-  }, [test, questions]);
-
-  const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
 
   const [timeLeft, setTimeLeft] = useState(() => {

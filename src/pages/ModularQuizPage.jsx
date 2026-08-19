@@ -508,7 +508,22 @@ export default function ModularQuizPage() {
             sections
           });
         } else {
-          setTest(foundTest);
+          const singleQId = (Array.isArray(questionIdList) && questionIdList.length === 1)
+            ? (typeof questionIdList[0] === 'object' ? (questionIdList[0].id || questionIdList[0].questionId) : questionIdList[0])
+            : (foundTest.questionIds?.[0] || foundTest.id);
+          const bankQ = singleQId ? allBankQuestions?.find(q => String(q.id) === String(singleQId) || String(q.id).replace(/^q_?/, '') === String(singleQId).replace(/^q_?/, '')) : null;
+
+          if (bankQ) {
+            setTest({
+              ...bankQ,
+              ...foundTest,
+              questionCount: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+              totalQuestions: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+              isOpenEnded: bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu' || foundTest.isOpenEnded
+            });
+          } else {
+            setTest(foundTest);
+          }
         }
 
         const resolved = resolveTestQuestions(foundTest, allBankQuestions);

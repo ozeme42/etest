@@ -811,7 +811,7 @@ export default function GoalsAndSchedulePage() {
         if (countedSubIds.has(subId)) return;
         countedSubIds.add(subId);
 
-        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 10);
+        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 1);
         const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
         const subDate = dateStr ? new Date(dateStr) : null;
         totalCount += qCount;

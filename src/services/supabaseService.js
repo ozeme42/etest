@@ -1262,7 +1262,7 @@ export async function dbGetHomeworks() {
         targetIds: h.target_ids || raw.targetIds || [],
         tests: qIds,
         questionIds: qIds,
-        totalQuestions: h.total_questions || raw.totalQuestions || qIds.length || 10,
+        totalQuestions: h.total_questions || raw.totalQuestions || raw.questionCount || (qIds.length > 0 ? qIds.length : 1),
         timePerQuestion: h.time_per_question || raw.timePerQuestion || 2,
         time: h.time || raw.time || 20,
         createdAt: h.created_at,
