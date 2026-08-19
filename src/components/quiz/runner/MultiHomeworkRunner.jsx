@@ -564,12 +564,12 @@ function RightOptikPanel({
                       let correctAns = null;
                       const keySources = [
                         bankQ?.answerKey,
-                        sec?.answerKey,
                         bankQ?.opticAnswers,
-                        sec?.opticAnswers,
                         bankQ?.contentPayload?.answerKey,
-                        test?.answerKey,
-                        test?.opticAnswers
+                        bankQ?.htmlPayload?.answerKey,
+                        bankQ?.pdfPayload?.answerKey,
+                        bankQ?.bankQ?.answerKey,
+                        bankQ?.bankQ?.opticAnswers
                       ];
 
                       for (const ks of keySources) {
