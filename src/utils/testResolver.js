@@ -219,8 +219,30 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
     });
   }
   // 5. Fallback: single item
-  else if (rawQuestions.length === 0 && (foundTest.contentPayload || foundTest.htmlPayload || foundTest.pdfPayload || foundTest.type || foundTest.contentType)) {
+  else if (rawQuestions.length === 0 && (foundTest.contentPayload || foundTest.htmlPayload || foundTest.pdfPayload || foundTest.type || foundTest.contentType || foundTest.imageUrl || foundTest.imageUrls)) {
     rawQuestions = [foundTest];
+  }
+
+  // Unbundle multi-image question sets if single container with multiple images
+  if (rawQuestions.length === 1) {
+    const singleQ = rawQuestions[0];
+    let imgs = [];
+    if (Array.isArray(singleQ.imageUrls) && singleQ.imageUrls.length > 1) {
+      imgs = singleQ.imageUrls.filter(u => typeof u === 'string' && !u.startsWith('[STORED_IN_'));
+    } else if (typeof singleQ.contentPayload === 'string' && (singleQ.contentPayload.includes('\n\n') || singleQ.contentPayload.includes('|'))) {
+      imgs = singleQ.contentPayload.split(/\n\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image/') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
+    }
+    if (imgs.length > 1) {
+      rawQuestions = imgs.map((imgUrl, imgIdx) => ({
+        ...singleQ,
+        id: `${singleQ.id || 'q'}_sub_${imgIdx + 1}`,
+        questionNo: imgIdx + 1,
+        questionText: `Soru ${imgIdx + 1}`,
+        imageUrl: imgUrl,
+        imageUrls: [imgUrl],
+        options: singleQ.options || ['A', 'B', 'C', 'D', 'E']
+      }));
+    }
   }
 
   // Final check: enrich items from allBankQuestions if needed
