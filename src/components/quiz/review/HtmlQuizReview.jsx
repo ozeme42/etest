@@ -71,8 +71,12 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
       const a = answers[i - 1];
-      if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
+      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+      if (a?.evalStatus === 'empty' || (a?.isCorrect === null && !hasAns)) scores[i] = 'empty';
+      else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
       else if (a?.isCorrect === true) scores[i] = 10;
+      else if (a?.isCorrect === false) scores[i] = 0;
+      else if (!hasAns) scores[i] = 'empty';
       else scores[i] = 0;
     }
     return scores;
@@ -131,6 +135,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     const userAns = ansObj.userAnswer;
     const textAns = ansObj.userAnswerText;
     const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+    const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
 
     let userAnsLetter = null;
     if (hasAnswer) {
@@ -149,10 +154,14 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     }
 
     let isCorrect;
-    if (hasAnswer) {
+    const teacherSc = questionScores[qNo];
+    if (teacherSc !== undefined && teacherSc !== null) {
+      if (teacherSc === 'empty') isCorrect = null;
+      else isCorrect = Number(teacherSc) >= 5;
+    } else if (hasAnswer) {
       isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-    } else if (textAns) {
-      isCorrect = questionScores[qNo] !== undefined ? (questionScores[qNo] >= 5) : (ansObj.isCorrect !== undefined ? ansObj.isCorrect : null);
+    } else if (hasText) {
+      isCorrect = null;
     } else {
       isCorrect = null;
     }
@@ -170,20 +179,30 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       const qObj = questions[idx] || questions[0] || {};
       const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
 
-      const { isCorrect } = computeQuestionEvaluation(qNo, qObj, ansObj);
+      const teacherSc = questionScores[qNo];
       const userAns = ansObj.userAnswer;
       const textAns = ansObj.userAnswerText;
       const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+      const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
 
-      if (isCorrect === true) cCount++;
-      else if (isCorrect === false && (hasAnswer || ansObj.score === 0)) wCount++;
-      else if (hasAnswer) cCount++;
-      else if (textAns) {
-        if (isCorrect === true) cCount++;
-        else if (isCorrect === false) wCount++;
-        else bCount++;
+      if (teacherSc !== undefined && teacherSc !== null) {
+        if (teacherSc === 'empty') {
+          bCount++;
+        } else {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        }
       } else {
-        bCount++;
+        if (hasAnswer) {
+          const isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+          if (isCorrect === true) cCount++;
+          else wCount++;
+        } else if (hasText) {
+          bCount++;
+        } else {
+          bCount++;
+        }
       }
     });
 
@@ -207,8 +226,10 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     let earned = 0;
     let max = qCount * 10;
     for (let i = 1; i <= qCount; i++) {
-      const s = questionScores[i] ?? 0;
-      earned += s;
+      const s = questionScores[i];
+      if (s !== undefined && s !== null && s !== 'empty') {
+        earned += Number(s);
+      }
     }
     return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
   }, [qCount, questionScores]);
@@ -220,13 +241,45 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       const updatedAnswers = Array.from({ length: qCount }).map((_, idx) => {
         const qNo = idx + 1;
         const existingAns = answers[idx] || {};
-        const score = questionScores[qNo] ?? (existingAns.isCorrect === true ? 10 : 0);
+        const teacherSc = questionScores[qNo];
+
+        let score = 0;
+        let isCorrect = null;
+        let evalStatus = 'empty';
+
+        if (teacherSc === 'empty') {
+          score = 0;
+          isCorrect = null;
+          evalStatus = 'empty';
+        } else if (teacherSc !== undefined && teacherSc !== null) {
+          score = Number(teacherSc);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
+        } else if (existingAns.score !== undefined && existingAns.score !== null) {
+          score = Number(existingAns.score);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? 'correct' : 'wrong';
+        } else if (existingAns.isCorrect === true) {
+          score = 10;
+          isCorrect = true;
+          evalStatus = 'correct';
+        } else if (existingAns.isCorrect === false) {
+          score = 0;
+          isCorrect = false;
+          evalStatus = 'wrong';
+        } else {
+          score = 0;
+          isCorrect = null;
+          evalStatus = 'empty';
+        }
+
         const note = teacherNotes[qNo] || '';
         return {
           ...existingAns,
           questionNo: qNo,
           score,
-          isCorrect: score >= 5,
+          isCorrect,
+          evalStatus,
           teacherNote: note,
           evaluatedAt: new Date().toISOString()
         };
@@ -248,12 +301,11 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       if (submission.homeworkId || submission.hwId) {
         const hwId = submission.homeworkId || submission.hwId;
         try {
-          await updateHomeworkSubmission(hwId, submission.id, updatedSubPayload);
+          await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
         } catch (e) {}
       }
 
-      alert('✓ Değerlendirme başarıyla kaydedildi!');
-      handleGoBack();
+      setShowResultModal(true);
     } catch (err) {
       console.error('Error saving evaluation:', err);
       alert('Değerlendirme kaydedilirken hata oluştu.');
@@ -380,11 +432,23 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-              const { userAnsLetter, displayCorrectKey, isCorrect } = computeQuestionEvaluation(qNo, qObj, ansObj);
+              const { userAnsLetter, displayCorrectKey } = computeQuestionEvaluation(qNo, qObj, ansObj);
 
-              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
-              const isItemOE = isOpenEndedMode || !!textAns || qObj.type === 'acik_uclu';
-              const currentScore = questionScores[qNo] ?? (ansObj.score !== undefined ? Number(ansObj.score) : 0);
+              const teacherSc = questionScores[qNo];
+              const currentScore = teacherSc !== undefined ? teacherSc : (hasAnswer ? (ansObj.isCorrect === true ? 10 : (ansObj.isCorrect === false ? 0 : undefined)) : 'empty');
+
+              let isCorrect;
+              if (currentScore === 10 || currentScore === 5) {
+                isCorrect = true;
+              } else if (currentScore === 0) {
+                isCorrect = false;
+              } else if (currentScore === 'empty') {
+                isCorrect = null;
+              } else if (hasAnswer) {
+                isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+              } else {
+                isCorrect = null;
+              }
 
               return (
                 <div
@@ -400,21 +464,23 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE ? (
-                      <span style={{ color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : '#7c3aed'), fontWeight: 900, fontSize: '0.82rem' }}>
-                        {currentScore} / 10 Puan
+                      <span style={{ color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : currentScore === 'empty' ? '#64748b' : '#b91c1c'), fontWeight: 900, fontSize: '0.82rem' }}>
+                        {currentScore === 'empty' ? '○ Boş (0 Puan)' : `${currentScore} / 10 Puan`}
                       </span>
                     ) : hasAnswer ? (
                       isCorrect === true ? (
                         <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <CheckCircle size={15} /> DOĞRU
                         </span>
-                      ) : (
+                      ) : isCorrect === false ? (
                         <span style={{ color: '#b91c1c', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <XCircle size={15} /> YANLIŞ
                         </span>
+                      ) : (
+                        <span style={{ color: '#64748b', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                       )
                     ) : (
-                      <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
+                      <span style={{ color: '#64748b', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                     )}
                   </div>
 
@@ -429,7 +495,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
-                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#0284c7' }}>
+                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
                           {hasAnswer ? (userAnsLetter || 'Boş') : 'Boş'}
                         </span>
                       </div>
@@ -490,13 +556,13 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                         </button>
                         <button
                           type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
+                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 'empty' }))}
                           style={{
                             padding: '0.4rem 0.25rem',
                             borderRadius: 6,
-                            border: currentScore === 0 && !hasAnswer ? '2px solid #64748b' : '1px solid #cbd5e1',
-                            background: '#f8fafc',
-                            color: '#475569',
+                            border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                            background: currentScore === 'empty' ? '#64748b' : '#f8fafc',
+                            color: currentScore === 'empty' ? '#ffffff' : '#475569',
                             fontWeight: 900,
                             fontSize: '0.76rem',
                             cursor: 'pointer',

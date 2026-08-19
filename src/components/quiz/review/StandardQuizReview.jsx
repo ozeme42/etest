@@ -86,8 +86,12 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
       const a = answers[i - 1];
-      if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
+      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+      if (a?.evalStatus === 'empty' || (a?.isCorrect === null && !hasAns)) scores[i] = 'empty';
+      else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
       else if (a?.isCorrect === true) scores[i] = 10;
+      else if (a?.isCorrect === false) scores[i] = 0;
+      else if (!hasAns) scores[i] = 'empty';
       else scores[i] = 0;
     }
     return scores;
@@ -127,8 +131,10 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     let earned = 0;
     let max = qCount * 10;
     for (let i = 1; i <= qCount; i++) {
-      const s = questionScores[i] ?? 0;
-      earned += s;
+      const s = questionScores[i];
+      if (s !== undefined && s !== null && s !== 'empty') {
+        earned += Number(s);
+      }
     }
     return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
   }, [qCount, questionScores]);
@@ -140,13 +146,45 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       const updatedAnswers = Array.from({ length: qCount }).map((_, idx) => {
         const qNo = idx + 1;
         const existingAns = answers[idx] || {};
-        const score = questionScores[qNo] ?? (existingAns.isCorrect === true ? 10 : 0);
+        const teacherSc = questionScores[qNo];
+
+        let score = 0;
+        let isCorrect = null;
+        let evalStatus = 'empty';
+
+        if (teacherSc === 'empty') {
+          score = 0;
+          isCorrect = null;
+          evalStatus = 'empty';
+        } else if (teacherSc !== undefined && teacherSc !== null) {
+          score = Number(teacherSc);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
+        } else if (existingAns.score !== undefined && existingAns.score !== null) {
+          score = Number(existingAns.score);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? 'correct' : 'wrong';
+        } else if (existingAns.isCorrect === true) {
+          score = 10;
+          isCorrect = true;
+          evalStatus = 'correct';
+        } else if (existingAns.isCorrect === false) {
+          score = 0;
+          isCorrect = false;
+          evalStatus = 'wrong';
+        } else {
+          score = 0;
+          isCorrect = null;
+          evalStatus = 'empty';
+        }
+
         const note = teacherNotes[qNo] || '';
         return {
           ...existingAns,
           questionNo: qNo,
           score,
-          isCorrect: score >= 5,
+          isCorrect,
+          evalStatus,
           teacherNote: note,
           evaluatedAt: new Date().toISOString()
         };
@@ -168,7 +206,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       if (submission.homeworkId || submission.hwId) {
         const hwId = submission.homeworkId || submission.hwId;
         try {
-          await updateHomeworkSubmission(hwId, submission.id, updatedSubPayload);
+          await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
         } catch (e) {}
       }
 
@@ -189,8 +227,13 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     for (let i = 1; i <= qCount; i++) {
       const sc = questionScores[i];
       if (sc !== undefined && sc !== null) {
-        if (sc >= 5) cCount++;
-        else wCount++;
+        if (sc === 'empty') {
+          bCount++;
+        } else {
+          const numSc = Number(sc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        }
       } else {
         const a = answers[i - 1];
         if (a?.isCorrect === true) cCount++;
@@ -209,8 +252,11 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       const qNo = i + 1;
       const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
       if (ans) {
-        const sc = questionScores[qNo] ?? (ans.score !== undefined ? Number(ans.score) : null);
-        const isC = sc !== null ? sc >= 5 : ans.isCorrect;
+        const sc = questionScores[qNo];
+        let isC = ans.isCorrect;
+        if (sc === 'empty') isC = null;
+        else if (sc !== undefined && sc !== null) isC = Number(sc) >= 5;
+
         map[i] = {
           userAnswer: ans.userAnswer,
           isCorrect: isC,
@@ -223,7 +269,8 @@ export default function StandardQuizReview({ submission, test, questions = [], o
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;
-  const currentScore = questionScores[currentQNo] ?? (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : 0);
+  const teacherCurrentSc = questionScores[currentQNo];
+  const currentScore = teacherCurrentSc !== undefined ? teacherCurrentSc : (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : (hasAnswer ? (activeAnsObj.isCorrect === true ? 10 : 0) : 'empty'));
 
   const questionText = extractQuestionText(activeQuestion);
   const optionsList = extractQuestionOptions(activeQuestion);
@@ -399,8 +446,8 @@ export default function StandardQuizReview({ submission, test, questions = [], o
                   </button>
                   <button
                     type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 'empty' }))}
+                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1', background: currentScore === 'empty' ? '#64748b' : '#f8fafc', color: currentScore === 'empty' ? '#ffffff' : '#475569', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
                   >
                     ○ Boş (B)
                   </button>

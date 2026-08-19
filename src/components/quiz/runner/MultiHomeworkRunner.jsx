@@ -450,7 +450,9 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
           const teacherSc = teacherScores?.[qNo];
           const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
-          const currentTeacherScore = hasTeacherGraded ? teacherSc : (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined));
+          const currentTeacherScore = hasTeacherGraded
+            ? teacherSc
+            : (isAnswered ? (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined)) : 'empty');
 
           return (
             <div
@@ -460,7 +462,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
                 borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
-                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 0 || isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
@@ -498,6 +500,8 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                       <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
                     ) : currentTeacherScore === 0 ? (
                       <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                    ) : currentTeacherScore === 'empty' ? (
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                     ) : isQOE ? (
                       <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                     ) : userAns !== undefined && userAns !== null ? (
@@ -714,7 +718,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                       style={{
                         padding: '0.35rem 0.2rem',
                         borderRadius: 6,
-                        border: currentTeacherScore === 0 && (isAnswered || currentTeacherScore !== undefined) ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                        border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
                         background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
                         color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
                         fontWeight: 900,
@@ -730,13 +734,13 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => onScoreChange && onScoreChange(qNo, 0)}
+                      onClick={() => onScoreChange && onScoreChange(qNo, 'empty')}
                       style={{
                         padding: '0.35rem 0.2rem',
                         borderRadius: 6,
-                        border: currentTeacherScore === 0 && !isAnswered ? '2px solid #64748b' : '1px solid #cbd5e1',
-                        background: '#f8fafc',
-                        color: '#64748b',
+                        border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                        background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
+                        color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
                         fontWeight: 900,
                         fontSize: '0.72rem',
                         cursor: 'pointer',
@@ -920,14 +924,20 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
         if (hasTeacherScore) {
           oeEvaluated++;
           totalOEEvaluated++;
-          secEarnedPts += teacherSc;
-          totalAllEarnedPts += teacherSc;
-          if (teacherSc >= 5) {
-            secDoğru++;
-            totalDoğru++;
+          if (teacherSc === 'empty') {
+            secBoş++;
+            totalBoş++;
           } else {
-            secYanlış++;
-            totalYanlış++;
+            const numSc = Number(teacherSc);
+            secEarnedPts += numSc;
+            totalAllEarnedPts += numSc;
+            if (numSc >= 5) {
+              secDoğru++;
+              totalDoğru++;
+            } else {
+              secYanlış++;
+              totalYanlış++;
+            }
           }
         } else {
           secBoş++;
@@ -939,18 +949,25 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
         const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
 
         if (hasTeacherScore) {
-          secEarnedPts += teacherSc;
-          totalAllEarnedPts += teacherSc;
-          if (teacherSc >= 5) {
-            secDoğru++;
-            totalDoğru++;
-            totalMCDoğru++;
+          if (teacherSc === 'empty') {
+            secBoş++;
+            totalBoş++;
+            totalMCBoş++;
           } else {
-            secYanlış++;
-            totalYanlış++;
-            totalMCYanlış++;
+            const numSc = Number(teacherSc);
+            secEarnedPts += numSc;
+            totalAllEarnedPts += numSc;
+            if (numSc >= 5) {
+              secDoğru++;
+              totalDoğru++;
+              totalMCDoğru++;
+            } else {
+              secYanlış++;
+              totalYanlış++;
+              totalMCYanlış++;
+            }
           }
-        } else if (userAns === undefined || userAns === null) {
+        } else if (userAns === undefined || userAns === null || userAns === '') {
           secBoş++;
           totalBoş++;
           totalMCBoş++;
@@ -1858,9 +1875,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const sId = a.sectionId || 'sec_1';
           const qNo = a.questionNoInSection || a.questionNo;
           if (!map[sId]) map[sId] = {};
-          if (a.score !== undefined && a.score !== null) map[sId][qNo] = Number(a.score);
-          else if (a.isCorrect === true) map[sId][qNo] = 10;
-          else if (a.isCorrect === false) map[sId][qNo] = 0;
+          if (a.evalStatus === 'empty' || (a.isCorrect === null && !a.userAnswer && !a.userAnswerText)) {
+            map[sId][qNo] = 'empty';
+          } else if (a.score !== undefined && a.score !== null) {
+            map[sId][qNo] = Number(a.score);
+          } else if (a.isCorrect === true) {
+            map[sId][qNo] = 10;
+          } else if (a.isCorrect === false) {
+            map[sId][qNo] = 0;
+          }
         });
       }
     }
@@ -1903,13 +1926,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         maxPts += 10;
         const teacherSc = teacherScores[sec.id]?.[i];
         if (teacherSc !== undefined && teacherSc !== null) {
-          totalPts += teacherSc;
-          if (teacherSc >= 5) correct++;
-          else wrong++;
+          if (teacherSc === 'empty') {
+            blank++;
+          } else {
+            const numSc = Number(teacherSc);
+            totalPts += numSc;
+            if (numSc >= 5) correct++;
+            else wrong++;
+          }
         } else {
           const userAns = sa.answers?.[i];
           const textAns = sa.openEndedText?.[i];
-          const hasAns = (userAns !== undefined && userAns !== null && userAns !== '') || Boolean(textAns);
+          const hasAns = (userAns !== undefined && userAns !== null && userAns !== '') || (textAns !== undefined && textAns !== null && String(textAns).trim() !== '');
           const qObj = secQs[i - 1] || {};
           const isCorr = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
           if (isCorr === true) {
@@ -1950,10 +1978,39 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const textAns = sa.openEndedText?.[qNo] !== undefined ? sa.openEndedText[qNo] : existingAns.userAnswerText;
           
           const teacherSc = teacherScores[sec.id]?.[qNo];
-          let score = teacherSc !== undefined ? teacherSc : (existingAns.score !== undefined ? Number(existingAns.score) : (existingAns.isCorrect === true ? 10 : 0));
-          let isCorrect = score >= 5;
+          let score = 0;
+          let isCorrect = null;
+          let evalStatus = 'empty';
 
-          totalPts += score;
+          if (teacherSc === 'empty') {
+            score = 0;
+            isCorrect = null;
+            evalStatus = 'empty';
+          } else if (teacherSc !== undefined && teacherSc !== null) {
+            score = Number(teacherSc);
+            isCorrect = score >= 5;
+            evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
+            totalPts += score;
+          } else if (existingAns.score !== undefined && existingAns.score !== null) {
+            score = Number(existingAns.score);
+            isCorrect = score >= 5;
+            evalStatus = score >= 5 ? 'correct' : 'wrong';
+            totalPts += score;
+          } else if (existingAns.isCorrect === true) {
+            score = 10;
+            isCorrect = true;
+            evalStatus = 'correct';
+            totalPts += 10;
+          } else if (existingAns.isCorrect === false) {
+            score = 0;
+            isCorrect = false;
+            evalStatus = 'wrong';
+          } else {
+            score = 0;
+            isCorrect = null;
+            evalStatus = 'empty';
+          }
+
           maxPts += 10;
 
           return {
@@ -1966,6 +2023,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             userAnswerText: textAns,
             score,
             isCorrect,
+            evalStatus,
             teacherNote: teacherNotes[sec.id]?.[qNo] || existingAns.teacherNote || '',
             evaluatedAt: new Date().toISOString()
           };
@@ -3033,14 +3091,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                     const teacherSc = teacherScores[activeSec.id]?.[qNo];
                     const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
-                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : undefined));
+                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : (isQAnswered ? 0 : 'empty')));
 
                     return (
                       <div style={{
                         background: '#ffffff',
                         borderRadius: '1.25rem',
                         border: isReviewMode
-                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #cbd5e1' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                           : '1.5px solid #e2e8f0',
                         padding: isMobile ? '1rem' : '1.5rem',
                         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -3067,6 +3125,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                             ) : currentTeacherScore === 5 ? (
                               <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                            ) : currentTeacherScore === 'empty' ? (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                             ) : currentTeacherScore === 0 ? (
                               <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
                             ) : isQOpenEnded ? (
@@ -3238,15 +3298,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                       ...p,
                                       [activeSec.id]: {
                                         ...(p[activeSec.id] || {}),
-                                        [qNo]: 0
+                                        [qNo]: 'empty'
                                       }
                                     }));
                                   }}
                                   style={{
                                     padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                    border: currentTeacherScore === 0 && !isQAnswered ? '2px solid #64748b' : '1px solid #cbd5e1',
-                                    background: '#f8fafc',
-                                    color: '#64748b',
+                                    border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                                    background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
+                                    color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
                                     fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
                                   }}
                                 >
