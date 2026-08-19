@@ -49,8 +49,8 @@ function isValidPayloadString(str) {
 }
 
 // ─── DERİN KATEGORİ TESPİTİ (PDF, HTML, GÖRSEL, YAZILI METİN) ────────────────
-export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
-  const candidates = [sub, hw, bankQ].filter(Boolean);
+export function getOpenEndedCategory(sub, hw, allBankQuestions = []) {
+  const candidates = [sub, hw].filter(Boolean);
 
   if (Array.isArray(hw?.sections)) {
     hw.sections.forEach(s => {
@@ -61,23 +61,40 @@ export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
     });
   }
 
-  const refIds = [
+  const refIds = new Set([
     ...(Array.isArray(hw?.questionIds) ? hw.questionIds : []),
     ...(Array.isArray(hw?.tests) ? hw.tests : []),
     ...(Array.isArray(hw?.selectedQuestions) ? hw.selectedQuestions : []),
     ...(Array.isArray(hw?.sections) ? hw.sections.map(s => typeof s === 'object' ? (s.id || s.questionId || s.bankQ?.id) : s) : []),
     ...(Array.isArray(sub?.questionIds) ? sub.questionIds : []),
     ...(Array.isArray(sub?.tests) ? sub.tests : []),
+    ...(Array.isArray(sub?.answers) ? sub.answers.map(a => a?.questionId) : []),
     sub?.testId, sub?.homeworkId, sub?.hwId, sub?.questionId, hw?.questionId, hw?.testId
-  ].filter(Boolean).map(String);
+  ].filter(Boolean).map(String));
 
   refIds.forEach(id => {
     const cleanId = id.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-    const found = (allBankQuestions || []).find(q => String(q.id) === id || String(q.id).replace(/^q_?/, '') === cleanId);
-    if (found && !candidates.includes(found)) {
-      candidates.push(found);
-    }
+    const foundList = (allBankQuestions || []).filter(q =>
+      String(q.id) === id ||
+      String(q.id).replace(/^q_?/, '') === cleanId ||
+      String(q.questionId) === id ||
+      String(q.testId) === id
+    );
+    foundList.forEach(found => {
+      if (!candidates.includes(found)) candidates.push(found);
+    });
   });
+
+  const targetTitle = (sub?.testTitle || sub?.title || hw?.title || '').trim().toLowerCase();
+  if (targetTitle) {
+    const titleMatches = (allBankQuestions || []).filter(q =>
+      (q.title && q.title.trim().toLowerCase() === targetTitle) ||
+      (q.name && q.name.trim().toLowerCase() === targetTitle)
+    );
+    titleMatches.forEach(tm => {
+      if (!candidates.includes(tm)) candidates.push(tm);
+    });
+  }
 
   if (Array.isArray(sub?.answers)) {
     sub.answers.forEach(a => {
@@ -85,17 +102,18 @@ export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
     });
   }
 
-  // 1. PDF Kontrolü
+  // 1. PDF Kontrolü (Öncelikli)
   const isPdf = candidates.some(o => {
     if (!o) return false;
     if (o.pdfPayload || o.pdfUrl) return true;
-    if (o.contentType === 'pdf' || o.formatType === 'pdf' || o.sourceFormat === 'pdf' || o.type === 'pdf') return true;
+    const ct = String(o.contentType || o.formatType || o.sourceFormat || o.type || o.documentType || '').toLowerCase();
+    if (ct.includes('pdf')) return true;
     if (typeof o.contentPayload === 'string' && (o.contentPayload.includes('.pdf') || o.contentPayload.startsWith('data:application/pdf') || o.contentPayload.startsWith('%PDF'))) return true;
     return false;
   });
 
   const titles = candidates.map(o => String(o.title || o.testTitle || o.name || '')).join(' ').toLowerCase();
-  if (isPdf || titles.includes('.pdf') || titles.includes('pdf sınav') || titles.includes('pdf ödev') || titles.includes('pdf kitapçık') || titles.includes('pdf testi')) {
+  if (isPdf || titles.includes('.pdf') || titles.includes('pdf sınav') || titles.includes('pdf ödev') || titles.includes('pdf kitapçık') || titles.includes('pdf testi') || titles.includes('(pdf)')) {
     return 'pdf';
   }
 
@@ -103,12 +121,13 @@ export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
   const isHtml = candidates.some(o => {
     if (!o) return false;
     if (o.htmlPayload || o.htmlUrl) return true;
-    if (o.contentType === 'html' || o.formatType === 'html' || o.sourceFormat === 'html' || o.type === 'html') return true;
+    const ct = String(o.contentType || o.formatType || o.sourceFormat || o.type || o.documentType || '').toLowerCase();
+    if (ct.includes('html')) return true;
     if (typeof o.contentPayload === 'string' && (o.contentPayload.includes('<html') || o.contentPayload.includes('<!DOCTYPE') || o.contentPayload.startsWith('data:text/html'))) return true;
     return false;
   });
 
-  if (isHtml || titles.includes('.html') || titles.includes('html sınav') || titles.includes('html ödev') || titles.includes('web testi') || titles.includes('html testi')) {
+  if (isHtml || titles.includes('.html') || titles.includes('html sınav') || titles.includes('html ödev') || titles.includes('web testi') || titles.includes('html testi') || titles.includes('(html)')) {
     return 'html';
   }
 
@@ -117,7 +136,8 @@ export function getOpenEndedCategory(sub, hw, bankQ, allBankQuestions = []) {
     if (!o) return false;
     if (o.imageUrl && o.imageUrl !== '[STORED_IN_INDEXEDDB]') return true;
     if (Array.isArray(o.imageUrls) && o.imageUrls.length > 0) return true;
-    if (o.contentType === 'gorsel' || o.contentType === 'image' || o.formatType === 'image' || o.sourceFormat === 'image' || o.type === 'gorsel' || o.questionType === 'gorsel_klasik') return true;
+    const ct = String(o.contentType || o.formatType || o.sourceFormat || o.type || o.questionType || '').toLowerCase();
+    if (ct.includes('gorsel') || ct.includes('image')) return true;
     return false;
   });
 
@@ -178,7 +198,7 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
         ...(Array.isArray(submission?.questionIds) ? submission.questionIds : []),
         ...(Array.isArray(submission?.tests) ? submission.tests : []),
         ...(Array.isArray(submission?.sections) ? submission.sections : [])
-      ].map(x => typeof x === 'object' ? (x.id || x.questionId) : x).filter(Boolean);
+      ].map(x => typeof x === 'object' ? (x.id || x.questionId || x.bankQ?.id) : x).filter(Boolean);
 
       let foundBankQ = (allBankQuestions || []).find(q =>
         String(q.id) === targetId ||
@@ -256,7 +276,6 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
       const ansList = Array.isArray(submission.answers) ? submission.answers : [];
       let baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
       
-      // If baseImages is empty, search candidate questions for images
       if (baseImages.length === 0) {
         for (const cid of expanded) {
           const bq = (allBankQuestions || []).find(q => String(q.id) === cid || String(q.id).replace(/^q_?/, '') === cid);
@@ -282,7 +301,6 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
         const ans = ansList[i] || {};
         let qImg = ans.imageUrl || baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
 
-        // If qImg is [STORED_IN_INDEXEDDB], try to fetch
         if (qImg === '[STORED_IN_INDEXEDDB]') {
           for (const cid of expanded) {
             try {
@@ -352,8 +370,14 @@ function OpenEndedEvaluationStudio({ submission, allBankQuestions, homeworks, cu
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
   const category = useMemo(() => {
-    return getOpenEndedCategory(submission, test, questions[0], allBankQuestions);
-  }, [submission, test, questions, allBankQuestions]);
+    let cat = getOpenEndedCategory(submission, test, allBankQuestions);
+    if (cat === 'text') {
+      if (test?.pdfPayload || (typeof test?.contentPayload === 'string' && test.contentPayload.includes('.pdf'))) cat = 'pdf';
+      else if (test?.htmlPayload || (typeof test?.contentPayload === 'string' && test.contentPayload.includes('<html'))) cat = 'html';
+      else if (test?.imageUrl || (test?.imageUrls && test.imageUrls.length > 0)) cat = 'image';
+    }
+    return cat;
+  }, [submission, test, allBankQuestions]);
 
   const meta = CATEGORY_META[category] || CATEGORY_META.text;
   const answers = submission?.answers || [];
@@ -879,7 +903,7 @@ export default function EvaluationManager() {
       return false;
     };
 
-    const isStrictlyOpenEnded = (sub, hw, bankQ) => {
+    const isStrictlyOpenEnded = (sub, hw) => {
       if (Array.isArray(sub?.answers) && sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0)) {
         return true;
       }
@@ -889,10 +913,7 @@ export default function EvaluationManager() {
       if (hw?.isOpenEnded || hw?.openEnded || hw?.contentType === 'acik_uclu' || hw?.contentType === 'yazili' || hw?.type === 'acik_uclu' || hw?.type === 'yazili') {
         return true;
       }
-      if (bankQ?.isOpenEnded || bankQ?.openEnded || bankQ?.contentType === 'acik_uclu' || bankQ?.questionType === 'acik_uclu' || bankQ?.type === 'acik_uclu' || bankQ?.type === 'gorsel_klasik') {
-        return true;
-      }
-      const titleStr = (String(sub?.testTitle || sub?.title || hw?.title || bankQ?.title || '')).toLowerCase();
+      const titleStr = (String(sub?.testTitle || sub?.title || hw?.title || '')).toLowerCase();
       if (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('yazılı') || titleStr.includes('yazili') || titleStr.includes('klasik')) {
         return true;
       }
@@ -905,9 +926,7 @@ export default function EvaluationManager() {
       (hw.submissions || []).forEach(sub => {
         if (!sub || !sub.studentId) return;
         if (isBookTaskOrBookTest(sub)) return;
-
-        const matchedBankQ = (allBankQuestions || []).find(q => String(q.id) === String(hw.questionId || hw.testId || hw.id));
-        if (!isStrictlyOpenEnded(sub, hw, matchedBankQ)) return;
+        if (!isStrictlyOpenEnded(sub, hw)) return;
 
         const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
         map.set(subKey, {
@@ -937,8 +956,7 @@ export default function EvaluationManager() {
           (hw.submissions && hw.submissions.some(s => String(s.id) === String(sub.id)));
 
         if (matchesHw) {
-          const matchedBankQ = (allBankQuestions || []).find(q => String(q.id) === String(hw.questionId || hw.testId || hw.id));
-          if (!isStrictlyOpenEnded(sub, hw, matchedBankQ)) return;
+          if (!isStrictlyOpenEnded(sub, hw)) return;
 
           const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
           const existing = map.get(subKey);
@@ -966,10 +984,9 @@ export default function EvaluationManager() {
       const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
       const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
       const matchedHw = activeHws.find(h => String(h.id) === targetId || String(h.id) === normTargetId);
-      const matchedBankQ = (allBankQuestions || []).find(q => String(q.id) === targetId || String(q.id) === normTargetId);
 
       if (matchedHw && isBookTaskOrBookTest(matchedHw)) return;
-      if (!isStrictlyOpenEnded(sub, matchedHw, matchedBankQ)) return;
+      if (!isStrictlyOpenEnded(sub, matchedHw)) return;
 
       const subKey = String(sub.id || `sub_${Date.now()}`);
       if (!map.has(subKey)) {
@@ -1005,20 +1022,13 @@ export default function EvaluationManager() {
         (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
       );
 
-      let matchedBankQ = (allBankQuestions || []).find(q =>
-        String(q.id) === targetId ||
-        String(q.id) === normTargetId ||
-        String(q.questionId) === targetId
-      );
-
       let title = sub.testTitle || sub.homeworkTitle || sub.title;
       if (!title || ['sınav', 'test', 'ödev'].includes(String(title).trim().toLowerCase())) {
         if (matchedHw?.title) title = matchedHw.title;
-        else if (matchedBankQ?.title) title = matchedBankQ.title;
         else title = 'Açık Uçlu Ödev';
       }
 
-      let subject = detectSubject(title, sub.subject || matchedHw?.subject || matchedBankQ?.subject);
+      let subject = detectSubject(title, sub.subject || matchedHw?.subject);
 
       let score = sub.score;
       if (score !== undefined && score !== null) {
@@ -1027,7 +1037,7 @@ export default function EvaluationManager() {
 
       const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
       const isPending = !isAlreadyEvaluated;
-      const category = getOpenEndedCategory(sub, matchedHw, matchedBankQ, allBankQuestions);
+      const category = getOpenEndedCategory(sub, matchedHw, allBankQuestions);
 
       return {
         ...sub,
