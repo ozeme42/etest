@@ -134,64 +134,45 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     return obj.questionsList.length;
   };
 
+  // Extract all valid images from all section candidate sources
+  const allImagesFromSources = [
+    ...(Array.isArray(secImages) ? secImages : []),
+    ...sectionObjects.flatMap(obj => [
+      ...(Array.isArray(obj?.imageUrls) ? obj.imageUrls : []),
+      ...extractImageUrls(obj?.contentPayload),
+      ...extractImageUrls(obj?.raw_data?.contentPayload),
+      ...extractImageUrls(obj?.raw_data?.imageUrls)
+    ])
+  ];
+  const uniqueImages = extractImageUrls(allImagesFromSources);
+  const realImgCount = uniqueImages.length;
+  const realQListCount = Math.max(...sectionObjects.map(getQuestionsListCount), 0);
+  const realAkCount = Math.max(...sectionObjects.map(getAkCount), 0);
+  const resolvedCount = Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0;
+
+  // 1. If section has multiple images or sub-questions, that MUST be the question count
+  if (realImgCount > 1) return realImgCount;
+  if (realQListCount > 1) return realQListCount;
+  if (realAkCount > 1) return realAkCount;
+  if (resolvedCount > 1) return resolvedCount;
+
+  // 2. Direct assignment question count from section or homework
   const secDirectCount = getRawCount(sec);
   const parentRawCount = getRawCount(parentTest);
   const bankRawCount = Math.max(getRawCount(foundInBank), getRawCount(bankQ), getRawCount(bankQ?.bankQ), getRawCount(sec?.bankQ), 0);
 
-  // 0. Direct assignment question count from the homework has TOP priority.
-  // For single-section homeworks: parent homework totalQuestions (or section count).
-  // For multi-section homeworks: the section's own direct assignment question count.
   if (isSingleSection && parentRawCount > 0) {
     return parentRawCount;
   }
   if (secDirectCount > 0) {
     return secDirectCount;
   }
-
-  // 1. If we have resolved questions already with length > 1
-  if (Array.isArray(resolvedQuestions) && resolvedQuestions.length > 1) {
-    return resolvedQuestions.length;
-  }
-
-  // 2. Bank template question count
   if (bankRawCount > 0) {
     return bankRawCount;
   }
-
-  // 3. Section-level questionsList length
-  const secQListCount = Math.max(...sectionObjects.map(getQuestionsListCount), 0);
-  if (secQListCount > 0) return secQListCount;
-  if (isSingleSection) {
-    const parentQListCount = getQuestionsListCount(parentTest);
-    if (parentQListCount > 0) return parentQListCount;
-  }
-
-  // 4. Answer key count
-  const secAkCount = Math.max(...sectionObjects.map(getAkCount), 0);
-  if (secAkCount > 0) return secAkCount;
-  if (isSingleSection) {
-    const parentAkCount = getAkCount(parentTest);
-    if (parentAkCount > 0) return parentAkCount;
-  }
-
-  // 5. Visual images count if image test
-  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
-  if (imgCount > 1) return imgCount;
-  for (const obj of sectionObjects) {
-    if (Array.isArray(obj.imageUrls) && obj.imageUrls.length > 1) {
-      return obj.imageUrls.length;
-    }
-  }
-
-  // 6. Questions array
-  for (const obj of sectionObjects) {
-    if (Array.isArray(obj.questions) && obj.questions.length > 1) {
-      return obj.questions.length;
-    }
-  }
-  if (isSingleSection && Array.isArray(parentTest?.questions) && parentTest.questions.length > 1) {
-    return parentTest.questions.length;
-  }
+  if (realQListCount > 0) return realQListCount;
+  if (realAkCount > 0) return realAkCount;
+  if (realImgCount > 0) return realImgCount;
 
   // 7. Title regex (e.g. "(15 Soru)" or "15 Soru")
   for (const obj of sectionObjects) {
@@ -785,7 +766,15 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
     let oeCevaplanan = 0;
     let hasAnyOE = isSecOE;
 
-    for (let i = 1; i <= sec.qCount; i++) {
+    const answeredKeys = [
+      ...Object.keys(sa.answers || {}).map(Number),
+      ...Object.keys(sa.openEndedText || {}).map(Number)
+    ].filter(n => !isNaN(n) && n > 0);
+    const maxAnsweredNo = answeredKeys.length > 0 ? Math.max(...answeredKeys) : 0;
+    const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
+    const secQCount = Math.max(sec.qCount || 1, sec.resolvedQuestions?.length || 0, maxAnsweredNo, secImgCount);
+
+    for (let i = 1; i <= secQCount; i++) {
       const qObj = (sec.resolvedQuestions && sec.resolvedQuestions[i - 1]) || {};
       const isQOE = isSecOE || checkIsOE(qObj);
 
@@ -825,7 +814,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 
     return {
       title: sec.title || `${idx + 1}. Bölüm`,
-      qCount: sec.qCount,
+      qCount: secQCount,
       isOE: hasAnyOE,
       mcDoğru,
       mcYanlış,
@@ -1370,15 +1359,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               const globalQNo = item.questionNo || item.qNo;
               const secStartIdx = secOffsets[sections.indexOf(targetSec)];
               if (globalQNo && globalQNo > 0) {
-                // If global qNo is larger than section size, offset it
                 const localQNo = globalQNo - secStartIdx;
-                qNo = (localQNo >= 1 && localQNo <= targetSec.qCount) ? localQNo : ((idx - secStartIdx) + 1);
+                qNo = localQNo >= 1 ? localQNo : ((idx - secStartIdx) + 1);
               } else {
                 qNo = (idx - secStartIdx) + 1;
               }
-              // Clamp to valid range
               if (qNo < 1) qNo = 1;
-              if (qNo > targetSec.qCount) qNo = ((idx - secStartIdx) % targetSec.qCount) + 1;
             }
 
             // Populate open-ended text
@@ -1545,11 +1531,19 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         const secQs = sec.resolvedQuestions || [];
         const bankQ = sec.bankQ || test;
 
-        for (let idx = 0; idx < sec.qCount; idx++) {
+        const answeredKeys = [
+          ...Object.keys(sa.answers || {}).map(Number),
+          ...Object.keys(sa.openEndedText || {}).map(Number)
+        ].filter(n => !isNaN(n) && n > 0);
+        const maxAnsweredNo = answeredKeys.length > 0 ? Math.max(...answeredKeys) : 0;
+        const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
+        const secQCount = Math.max(sec.qCount || 1, sec.resolvedQuestions?.length || 0, maxAnsweredNo, secImgCount);
+
+        for (let idx = 0; idx < secQCount; idx++) {
           const qNo = idx + 1;
           const qObj = secQs[idx] || {};
-          const ansObj = sa.answers?.[qNo] || {};
-          const userAns = typeof ansObj === 'object' ? ansObj.userAnswer : ansObj;
+          const ansObj = sa.answers?.[qNo];
+          const userAns = ansObj !== undefined ? (typeof ansObj === 'object' ? ansObj?.userAnswer : ansObj) : null;
           const textAns = sa.openEndedText?.[qNo] || null;
           
           const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
@@ -1579,8 +1573,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   }, [activeSecIdx]);
 
   const totalQuestionsCount = useMemo(() => {
-    return sections.reduce((sum, s) => sum + s.qCount, 0);
-  }, [sections]);
+    return sections.reduce((sum, s) => {
+      const sa = sectionAnswers[s.id] || {};
+      const answeredKeys = [
+        ...Object.keys(sa.answers || {}).map(Number),
+        ...Object.keys(sa.openEndedText || {}).map(Number)
+      ].filter(n => !isNaN(n) && n > 0);
+      const maxAns = answeredKeys.length > 0 ? Math.max(...answeredKeys) : 0;
+      const imgCount = Array.isArray(s.bankQ?.imageUrls) ? s.bankQ.imageUrls.length : (Array.isArray(s.imageUrls) ? s.imageUrls.length : 0);
+      const effectiveCount = Math.max(s.qCount || 1, s.resolvedQuestions?.length || 0, maxAns, imgCount);
+      return sum + effectiveCount;
+    }, 0);
+  }, [sections, sectionAnswers]);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question) || 2;
   const totalSeconds = useMemo(() => totalQuestionsCount * perQuestionMins * 60 || 1200, [totalQuestionsCount, perQuestionMins]);
@@ -1679,7 +1683,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
 
-      for (let idx = 0; idx < sec.qCount; idx++) {
+      const answeredKeys = [
+        ...Object.keys(sa.answers || {}).map(Number),
+        ...Object.keys(sa.openEndedText || {}).map(Number)
+      ].filter(n => !isNaN(n) && n > 0);
+      const maxAnsweredNo = answeredKeys.length > 0 ? Math.max(...answeredKeys) : 0;
+      const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
+      const secQCount = Math.max(sec.qCount || 1, sec.resolvedQuestions?.length || 0, maxAnsweredNo, secImgCount);
+
+      for (let idx = 0; idx < secQCount; idx++) {
         const qNo = idx + 1;
         const qObj = secQs[idx] || {};
         const ansObj = sa.answers?.[qNo];
@@ -2215,8 +2227,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               const isCurrent = idx === activeSecIdx;
               const secAnsState = sectionAnswers[sec.id]?.answers || {};
               const secTxtState = sectionAnswers[sec.id]?.openEndedText || {};
-              const ansCount = Object.keys(secAnsState).length + Object.keys(secTxtState).filter(k => secTxtState[k]).length;
-              const isCompleted = ansCount === sec.qCount && sec.qCount > 0;
+              const answeredKeys = [
+                ...Object.keys(secAnsState).map(Number),
+                ...Object.keys(secTxtState).filter(k => secTxtState[k]).map(Number)
+              ].filter(n => !isNaN(n) && n > 0);
+              const uniqueAnsCount = new Set(answeredKeys).size;
+              const maxAnsweredNo = answeredKeys.length > 0 ? Math.max(...answeredKeys) : 0;
+              const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
+              const targetCount = Math.max(sec.qCount || 1, sec.resolvedQuestions?.length || 0, maxAnsweredNo, secImgCount);
+              const isCompleted = uniqueAnsCount >= targetCount && targetCount > 0;
 
               let cleanTitle = sec.title || '';
               if (cleanTitle.match(/^(\d+\.?\s*(bölüm|blm)|bölüm\s*\d+)/i)) {
@@ -2271,7 +2290,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     alignItems: 'center',
                     gap: '0.1rem'
                   }}>
-                    {isCompleted && '✓ '}{ansCount}/{sec.qCount}
+                    {isCompleted && '✓ '}{uniqueAnsCount}/{targetCount}
                   </span>
                 </button>
               );
