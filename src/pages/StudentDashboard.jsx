@@ -2158,10 +2158,23 @@ export default function StudentDashboard() {
                       if (!displayTitle) displayTitle = task.testName || rawTitle;
                     }
 
+                    return (() => {
+                    const handleHwClick = (e) => {
+                      e?.stopPropagation();
+                      const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+                      const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                      const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                      const realTestId = task.realTestId || task.testId;
+                      if (isExam) navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent.id}`);
+                      else if (realTestId && realTestId !== (task.hwId || task.id)) navigate(`/quiz/${realTestId}?studentId=${selectedStudent.id}`);
+                      else if (hwObj?.id) navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent.id}`);
+                      else navigate('/student/homeworks');
+                    };
+
                     return (
                       <div
                         key={task.id || idx}
-                        onClick={() => navigate('/student/homeworks')}
+                        onClick={handleHwClick}
                         className="hw-row"
                         style={{
                           background: 'var(--color-surface, #ffffff)',
@@ -2282,12 +2295,52 @@ export default function StudentDashboard() {
                           </div>
                         </div>
 
-                        {/* SAĞ: Ok */}
-                        <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-                          <ChevronRight size={18} />
-                        </div>
+                        {/* SAĞ: Çöz Butonu veya Tamamlandı ikonu */}
+                        {task.isDone ? (
+                          <div style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: 'rgba(16,185,129,0.12)',
+                            color: '#10b981',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            fontSize: '1rem',
+                            fontWeight: 900
+                          }}>✓</div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleHwClick}
+                            style={{
+                              background: isOverdue
+                                ? 'linear-gradient(135deg, #e11d48, #be123c)'
+                                : `linear-gradient(135deg, ${rowTheme.accent || '#6366f1'}, ${rowTheme.accent ? rowTheme.accent + 'dd' : '#4f46e5'})`,
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: 9,
+                              padding: '0.4rem 0.75rem',
+                              fontSize: '0.74rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              flexShrink: 0,
+                              boxShadow: isOverdue
+                                ? '0 3px 10px rgba(225,29,72,0.35)'
+                                : `0 3px 10px ${rowTheme.accent ? rowTheme.accent + '55' : 'rgba(99,102,241,0.35)'}`,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            <PlayCircle size={14} /> {isOverdue ? 'Hemen Çöz' : 'Çöz'}
+                          </button>
+                        )}
                       </div>
                     );
+                    })();
                   })}
 
                   {pendingTasks.length > 5 && (
