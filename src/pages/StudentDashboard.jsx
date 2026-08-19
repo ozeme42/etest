@@ -1294,6 +1294,12 @@ export default function StudentDashboard() {
       return;
     }
 
+    // Auto-homework görevleri (kitap testleri, ödeve bağlı görevler) virtual'dır —
+    // weeklyProgram'a eklenemeyen bu görevler için toggle yapma, duplike oluşturma
+    if (isObj && (taskOrId.isAutoHomework || taskOrId.hwId || taskOrId.testId || taskOrId.roadmapAssignmentId)) {
+      return;
+    }
+
     if (coachingProfile) {
       const rawWeekly = Array.isArray(coachingProfile.weeklyProgram) ? coachingProfile.weeklyProgram : [];
       const currentDayRow = rawWeekly.find(r => r.day === activeDayKey);
@@ -1311,17 +1317,8 @@ export default function StudentDashboard() {
           return dayRow;
         });
       } else {
-        const baseItem = isObj ? taskOrId : { id: taskId };
-        updatedWeeklyProgram = DAYS_OF_WEEK.map(dMeta => {
-          const row = rawWeekly.find(r => r.day === dMeta.key) || { day: dMeta.key, items: [] };
-          if (dMeta.key === activeDayKey) {
-            return {
-              ...row,
-              items: [...(row.items || []), { ...baseItem, done: true }]
-            };
-          }
-          return row;
-        });
+        // Programda olmayan görevler için ekleme yapma — sadece var olanları güncelle
+        return;
       }
 
       await saveCoachingProfile({
