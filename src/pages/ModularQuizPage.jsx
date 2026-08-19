@@ -602,14 +602,19 @@ export default function ModularQuizPage() {
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNo || (idx + 1);
 
-      let isCorrect = null;
-      // Her zaman kullanıcı cevabını checkIsAnswerCorrect ile değerlendir
-      if (userAns !== null && userAns !== undefined && userAns !== '') {
-        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-      } else if (textVal) {
-        isCorrect = null; // Open ended pending
-      } else {
-        isCorrect = false; // Blank
+      let isCorrect = ans.isCorrect;
+      if (isCorrect === undefined) {
+        if (userAns !== null && userAns !== undefined && userAns !== '') {
+          const effectiveTest = {
+            ...test,
+            answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers
+          };
+          isCorrect = checkIsAnswerCorrect(userAns, qObj, effectiveTest, qNo);
+        } else if (textVal) {
+          isCorrect = null; // Open ended pending
+        } else {
+          isCorrect = false; // Blank
+        }
       }
 
       if (isCorrect === true) correctCount++;
@@ -617,14 +622,14 @@ export default function ModularQuizPage() {
       else if (isCorrect === null && textVal) pendingCount++;
       else blankCount++;
 
-      // Do\u011fru cevab\u0131 \u00f6nce runner'dan gelen ans.correctAnswer'dan al,
-      // sonra test.answerKey'den, sonra bireysel qObj'den al
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
       const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
-      const finalCorrectAnswer = (ans.correctAnswer !== undefined && ans.correctAnswer !== null && ans.correctAnswer !== '')
-        ? ans.correctAnswer
-        : answerKeyLetter
-        ?? (qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined && !Array.isArray(questions) || questions.length > 1 ? String.fromCharCode(65 + qObj.correctAnswer) : null));
+      const finalCorrectAnswer = (ans.correctAnswerLetter !== undefined && ans.correctAnswerLetter !== null && ans.correctAnswerLetter !== '')
+        ? ans.correctAnswerLetter
+        : (ans.correctAnswer !== undefined && ans.correctAnswer !== null && ans.correctAnswer !== '')
+          ? (typeof ans.correctAnswer === 'number' ? String.fromCharCode(65 + ans.correctAnswer) : String(ans.correctAnswer))
+          : answerKeyLetter
+          ?? (qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null));
 
       return {
         ...ans,

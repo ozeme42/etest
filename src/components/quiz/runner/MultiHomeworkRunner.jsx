@@ -1573,23 +1573,46 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)
           : null;
 
-        // Resolve correctAnswer letter for review display
-        let correctAns = qObj.correctAnswer !== undefined ? qObj.correctAnswer : null;
-        if (correctAns === null && qObj.correctAnswerLetter) {
-          const letter = String(qObj.correctAnswerLetter).trim().toUpperCase();
-          if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
-        }
-        if (correctAns === null && bankQ?.answerKey) {
-          const kaVal = Array.isArray(bankQ.answerKey)
-            ? bankQ.answerKey[idx]
-            : (bankQ.answerKey[qNo - 1] !== undefined ? bankQ.answerKey[qNo - 1] : bankQ.answerKey[String(qNo)]);
-          if (kaVal !== undefined && kaVal !== null) {
-            if (typeof kaVal === 'number') correctAns = kaVal;
-            else if (typeof kaVal === 'string') {
-              const s = kaVal.trim().toUpperCase();
+        // Resolve correctAnswer letter for review display - prioritize bankQ / section answerKey first
+        let correctAns = null;
+        const keySources = [
+          bankQ?.answerKey,
+          sec?.answerKey,
+          bankQ?.opticAnswers,
+          sec?.opticAnswers,
+          bankQ?.contentPayload?.answerKey,
+          test?.answerKey,
+          test?.opticAnswers
+        ];
+
+        for (const ks of keySources) {
+          if (!ks) continue;
+          let val = null;
+          if (Array.isArray(ks)) {
+            val = ks[idx] ?? ks[qNo - 1];
+          } else if (typeof ks === 'object') {
+            val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+          } else if (typeof ks === 'string' && ks.trim().length > 0) {
+            const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+            val = clean[idx] ?? clean[qNo - 1];
+          }
+          if (val !== undefined && val !== null && val !== '') {
+            if (typeof val === 'number') correctAns = val;
+            else if (typeof val === 'string') {
+              const s = val.trim().toUpperCase();
               if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
               else if (!isNaN(Number(s))) correctAns = Number(s);
             }
+            if (correctAns !== null) break;
+          }
+        }
+
+        if (correctAns === null) {
+          if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+            correctAns = qObj.correctAnswer;
+          } else if (qObj.correctAnswerLetter) {
+            const letter = String(qObj.correctAnswerLetter).trim().toUpperCase();
+            if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
           }
         }
 
@@ -1603,7 +1626,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           userAnswerText: textAns,
           isCorrect,
           correctAnswer: correctAns,
-          correctAnswerLetter: correctAns !== null && correctAns !== undefined ? String.fromCharCode(65 + correctAns) : null
+          correctAnswerLetter: correctAns !== null && correctAns !== undefined && typeof correctAns === 'number' && correctAns >= 0 && correctAns <= 4
+            ? String.fromCharCode(65 + correctAns)
+            : (correctAns !== null && correctAns !== undefined ? String(correctAns) : null)
         });
       }
     });
