@@ -562,21 +562,146 @@ export default function StudentDashboard() {
     const studentIdStr = String(selectedStudent.id || '');
     const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
-    const solvedList = [];
-    const seenKeys = new Set();
+    const isMatchStudent = (s) => {
+      const sId = String(s?.studentId || '');
+      return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
+    };
 
+    const solvedList = [];
+    const processedSubIds = new Set();
+    const processedTestKeys = new Set();
+
+    // 1. Process Homeworks
+    (homeworks || []).forEach(hw => {
+      const subInHw = (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
+      const subInGlobal = (submissions || []).find(s => isMatchStudent(s) && (String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.id)) && s.status !== 'in_progress' && s.status !== 'draft');
+
+      const sub = subInGlobal || subInHw;
+      if (!sub) return;
+
+      const subIdStr = String(sub.id || `hw_${hw.id}_${studentIdStr}`);
+      processedSubIds.add(subIdStr);
+      if (sub.id) processedSubIds.add(String(sub.id));
+      processedTestKeys.add(String(hw.id));
+      if (sub.testId) processedTestKeys.add(String(sub.testId));
+
+      const raw = sub.raw_data || {};
+      const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || hw.createdAt;
+
+      const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || sub.bookId));
+      const cleanBookTitle = (bookObj?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+      const title = hw.title || sub.testTitle || raw.testTitle || 'Ödev Testi';
+      const subject = hw.subject || raw.subject || sub.subject || bookObj?.subject || 'Genel Testler';
+      const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
+
+      // Detect open-ended / written test
+      const isOpenEnded = Boolean(
+        hw.questionType === 'acik_uclu' ||
+        hw.type === 'acik_uclu' ||
+        hw.contentType === 'acik_uclu' ||
+        sub.isOpenEnded ||
+        raw.isOpenEnded ||
+        sub.questionType === 'acik_uclu' ||
+        sub.status === 'pending' ||
+        sub.status === 'pending_evaluation' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+      );
+      const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
+
+      let cCount = 0;
+      let wCount = 0;
+      let eCount = 0;
+
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+        sub.answers.forEach(ans => {
+          if (ans.isCorrect === true) {
+            cCount++;
+          } else if (ans.isCorrect === false) {
+            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+            if (isB) eCount++;
+            else wCount++;
+          } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
+            if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
+              // Open ended response
+            } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
+              // Answer given
+            } else {
+              eCount++;
+            }
+          }
+        });
+      } else {
+        cCount = typeof sub.correctCount === 'number' ? sub.correctCount : (typeof raw.correctCount === 'number' ? raw.correctCount : 0);
+        wCount = typeof sub.wrongCount === 'number' ? sub.wrongCount : (typeof raw.wrongCount === 'number' ? raw.wrongCount : 0);
+        eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : (typeof raw.blankCount === 'number' ? raw.blankCount : 0));
+      }
+
+      const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+      const sumCount = cCount + wCount + eCount;
+      let rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || raw.totalQuestions || 0;
+      if (!rawTotal && Array.isArray(hw.sections) && hw.sections.length > 0) {
+        rawTotal = hw.sections.reduce((acc, sec) => acc + (sec.qCount || sec.questionCount || 0), 0);
+      }
+      if (!rawTotal && Array.isArray(hw.questionIds) && hw.questionIds.length > 0) {
+        rawTotal = hw.questionIds.length;
+      }
+      const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
+
+      if (cCount > qCount && qCount > 0) {
+        cCount = Math.min(qCount, Math.round((cCount / 100) * qCount));
+        eCount = Math.max(0, qCount - (cCount + wCount));
+      }
+
+      let pct = 0;
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+        pct = Math.round(Number(sub.scorePercentage));
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+        pct = Math.round(Number(raw.scorePercentage));
+      } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
+        pct = Math.round(Number(sub.accuracy));
+      } else if (qCount > 0 && !isPendingEvaluation) {
+        pct = Math.round((cCount / qCount) * 100);
+      } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
+        pct = Math.round(sub.score);
+      }
+      pct = Math.min(100, Math.max(0, pct));
+
+      solvedList.push({
+        id: sub.id || hw.id,
+        testId: hw.id,
+        submissionId: sub.id,
+        title,
+        subject,
+        subTitle,
+        date: dateVal,
+        correctCount: cCount,
+        wrongCount: wCount,
+        emptyCount: eCount,
+        totalQuestions: qCount,
+        pct,
+        isOpenEnded,
+        isPendingEvaluation,
+        type: hw.isBookAssignment ? 'kitap' : 'ödev',
+        isPhysical: hw.type === 'physicalExam' || hw.isPhysical
+      });
+    });
+
+    // 2. Process Standalone Submissions (Book tests, Question Bank tests)
     (submissions || []).forEach(sub => {
-      const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
-      if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!isMatchStudent(sub) || sub.status === 'in_progress' || sub.status === 'draft') return;
+
+      const subIdStr = String(sub.id || '');
+      if (subIdStr && processedSubIds.has(subIdStr)) return;
+
+      const testId = String(sub.testId || sub.bookTestId || sub.realTestId || '');
+      if (testId && processedTestKeys.has(testId)) return;
 
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      const dateVal = sub.submittedAt || sub.completedAt || sub.createdAt || sub.updatedAt || raw.submittedAt;
-      const testId = sub.testId || sub.bookTestId || sub.realTestId || raw.testId || sub.id;
-      const key = `${sub.id || testId}_${dateVal}`;
-      if (seenKeys.has(key)) return;
-      seenKeys.add(key);
+      if (sub.id) processedSubIds.add(String(sub.id));
+      if (testId) processedTestKeys.add(testId);
 
       const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
       const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
@@ -586,8 +711,10 @@ export default function StudentDashboard() {
 
       const title = sub.testTitle || raw.testTitle || targetTest?.name || sub.title || 'Test Çözümü';
       const subject = subjObj?.name || sub.subject || raw.subject || targetBook?.subject || cleanBookTitle || 'Genel Testler';
+      const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
-      // 1. Detect open-ended / written test
+      const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
+
       const isOpenEnded = Boolean(
         sub.isOpenEnded ||
         raw.isOpenEnded ||
@@ -600,7 +727,6 @@ export default function StudentDashboard() {
       );
       const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
 
-      // 2. Count D / Y / B
       let cCount = 0;
       let wCount = 0;
       let eCount = 0;
@@ -629,7 +755,6 @@ export default function StudentDashboard() {
         eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : (typeof raw.blankCount === 'number' ? raw.blankCount : 0));
       }
 
-      // 3. Resolve total questions
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = cCount + wCount + eCount;
       const rawTotal = sub.totalQuestions || raw.totalQuestions || targetTest?.questionCount || (Array.isArray(sub.questions) ? sub.questions.length : 0);
@@ -640,7 +765,6 @@ export default function StudentDashboard() {
         eCount = Math.max(0, qCount - (cCount + wCount));
       }
 
-      // 4. Resolve accuracy percentage
       let pct = 0;
       if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
         pct = Math.round(Number(sub.scorePercentage));
@@ -661,7 +785,7 @@ export default function StudentDashboard() {
         submissionId: sub.id,
         title,
         subject,
-        subTitle: cleanBookTitle && cleanBookTitle !== subject ? cleanBookTitle : null,
+        subTitle,
         date: dateVal,
         correctCount: cCount,
         wrongCount: wCount,
@@ -672,102 +796,6 @@ export default function StudentDashboard() {
         isPendingEvaluation,
         type: sub.type || (sub.bookTestId ? 'kitap' : 'test'),
         isPhysical: sub.type === 'physicalExam' || sub.isPhysical
-      });
-    });
-
-    (homeworks || []).forEach(hw => {
-      (hw.submissions || []).forEach(sub => {
-        const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
-        if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
-
-        const dateVal = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
-        const key = `hw_${hw.id}_${sub.id || dateVal}`;
-        if (seenKeys.has(key)) return;
-        seenKeys.add(key);
-
-        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
-        const cleanBookTitle = (bookObj?.title || hw.title || 'Ödev').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
-
-        const isOpenEnded = Boolean(
-          hw.questionType === 'acik_uclu' ||
-          hw.type === 'acik_uclu' ||
-          hw.contentType === 'acik_uclu' ||
-          sub.isOpenEnded ||
-          sub.questionType === 'acik_uclu' ||
-          sub.status === 'pending' ||
-          sub.status === 'pending_evaluation' ||
-          (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
-        );
-        const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
-
-        let cCount = 0;
-        let wCount = 0;
-        let eCount = 0;
-
-        if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-          sub.answers.forEach(ans => {
-            if (ans.isCorrect === true) {
-              cCount++;
-            } else if (ans.isCorrect === false) {
-              const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-              if (isB) eCount++;
-              else wCount++;
-            } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
-              if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
-                // Open ended
-              } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
-                // Answer given
-              } else {
-                eCount++;
-              }
-            }
-          });
-        } else {
-          cCount = typeof sub.correctCount === 'number' ? sub.correctCount : 0;
-          wCount = typeof sub.wrongCount === 'number' ? sub.wrongCount : 0;
-          eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : 0);
-        }
-
-        const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
-        const sumCount = cCount + wCount + eCount;
-        const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || 0;
-        const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
-
-        if (cCount > qCount && qCount > 0) {
-          cCount = Math.min(qCount, Math.round((cCount / 100) * qCount));
-          eCount = Math.max(0, qCount - (cCount + wCount));
-        }
-
-        let pct = 0;
-        if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
-          pct = Math.round(Number(sub.scorePercentage));
-        } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
-          pct = Math.round(Number(sub.accuracy));
-        } else if (qCount > 0 && !isPendingEvaluation) {
-          pct = Math.round((cCount / qCount) * 100);
-        } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
-          pct = Math.round(sub.score);
-        }
-        pct = Math.min(100, Math.max(0, pct));
-
-        solvedList.push({
-          id: sub.id || hw.id,
-          testId: hw.id,
-          submissionId: sub.id,
-          title: hw.title || 'Ödev Testi',
-          subject: hw.subject || cleanBookTitle || 'Genel Testler',
-          subTitle: cleanBookTitle && cleanBookTitle !== hw.subject ? cleanBookTitle : null,
-          date: dateVal,
-          correctCount: cCount,
-          wrongCount: wCount,
-          emptyCount: eCount,
-          totalQuestions: qCount,
-          pct,
-          isOpenEnded,
-          isPendingEvaluation,
-          type: hw.isBookAssignment ? 'kitap' : 'ödev',
-          isPhysical: hw.type === 'physicalExam' || hw.isPhysical
-        });
       });
     });
 
