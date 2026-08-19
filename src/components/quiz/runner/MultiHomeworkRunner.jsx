@@ -338,6 +338,7 @@ function RightOptikPanel({
   onTextChange,
   onNextSection,
   onSubmit,
+  onSaveEvaluation,
   activeSecIdx,
   totalSections,
   isReviewMode = false,
@@ -830,14 +831,12 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
         {(totalSections === 1 || isLastSec) && (
           <button
-            onClick={onSubmit}
+            onClick={isReviewMode ? (onSaveEvaluation || onSubmit) : onSubmit}
             style={{
               width: '100%',
               padding: isMobile ? '0.45rem 0.8rem' : '0.75rem 1.25rem',
               borderRadius: isMobile ? '0.5rem' : '0.75rem',
-              background: isReviewMode
-                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                : 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
@@ -847,12 +846,12 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.4rem',
-              boxShadow: isReviewMode ? '0 2px 8px rgba(79,70,229,0.25)' : '0 2px 8px rgba(16,185,129,0.25)',
+              boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
               transition: 'all 0.15s ease'
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} />
-            {isReviewMode ? 'İncelemeyi Tamamla' : 'Sınavı Bitir ve Gönder'}
+            {isReviewMode ? '💾 Değerlendirmeyi Kaydet & Sonucu Gör' : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
@@ -1975,28 +1974,34 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
       const percentage = maxPts > 0 ? Math.min(100, Math.round((totalPts / maxPts) * 100)) : 0;
 
-      if (userAnswers && userAnswers.id) {
-        const updatedSubPayload = {
-          ...userAnswers,
-          answers: updatedAnswers,
-          score: percentage,
-          rawScore: totalPts,
-          maxScore: maxPts,
-          status: 'evaluated',
-          isEvaluatedByTeacher: true,
-          teacherFeedback: overallFeedback,
-          teacherNote: overallFeedback,
-          evaluatedAt: new Date().toISOString()
-        };
+      const subId = userAnswers?.id || userAnswers?.submissionId || `sub_${test.id}_${Date.now()}`;
+      const hwId = userAnswers?.homeworkId || userAnswers?.hwId || test.id;
+      const studentId = userAnswers?.studentId || userAnswers?.userId || userAnswers?.user_id;
 
-        await updateSubmission(userAnswers.id, updatedSubPayload);
+      const updatedSubPayload = {
+        ...(userAnswers || {}),
+        id: subId,
+        testId: test.id,
+        hwId: hwId,
+        homeworkId: hwId,
+        studentId: studentId,
+        answers: updatedAnswers,
+        score: percentage,
+        rawScore: totalPts,
+        maxScore: maxPts,
+        status: 'evaluated',
+        isEvaluatedByTeacher: true,
+        teacherFeedback: overallFeedback,
+        teacherNote: overallFeedback,
+        evaluatedAt: new Date().toISOString()
+      };
 
-        const hwId = userAnswers.homeworkId || userAnswers.hwId || test.id;
-        if (hwId) {
-          try {
-            await updateHomeworkSubmission(hwId, userAnswers.id, updatedSubPayload);
-          } catch (e) {}
-        }
+      await updateSubmission(subId, updatedSubPayload);
+
+      if (hwId) {
+        try {
+          await updateHomeworkSubmission(hwId, studentId || subId, updatedSubPayload);
+        } catch (e) {}
       }
 
       setSubmissionAnswers(updatedAnswers);
@@ -2011,7 +2016,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   const handleSubmit = () => {
     if (isReviewMode) {
-      if (onSubmit) onSubmit(submissionAnswers || []);
+      handleSaveTeacherGrading();
       return;
     }
 
@@ -2111,15 +2116,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   };
 
   const handleConfirmCloseResult = () => {
-    if (submissionAnswers && onSubmit) {
-      onSubmit(submissionAnswers, { review: false });
+    setShowResultModal(false);
+    if (onSubmit) {
+      onSubmit(submissionAnswers || []);
     }
   };
 
   const handleReviewResult = () => {
-    if (submissionAnswers && onSubmit) {
-      onSubmit(submissionAnswers, { review: true });
-    }
+    setShowResultModal(false);
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
@@ -2793,6 +2797,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
                 onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
                 onSubmit={handleSubmit}
+                onSaveEvaluation={handleSaveTeacherGrading}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
               />
@@ -2855,6 +2860,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
                 onNextSection={() => { setActiveSecIdx(p => Math.min(sections.length - 1, p + 1)); setActiveImageQIdx(0); }}
                 onSubmit={handleSubmit}
+                onSaveEvaluation={handleSaveTeacherGrading}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
               />
@@ -3342,10 +3348,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       </button>
                     ) : isReviewMode ? (
                       <button
-                        onClick={() => onSubmit && onSubmit()}
-                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(79,70,229,0.35)' }}
+                        onClick={handleSaveTeacherGrading}
+                        disabled={isSavingTeacherGrading}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
                       >
-                        <CheckCircle2 size={18} /> İncelemeyi Kapat
+                        <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
                       </button>
                     ) : (
                       <button
@@ -3396,6 +3403,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
                 onNextSection={() => { setActiveSecIdx(p => Math.min(sections.length - 1, p + 1)); setActiveImageQIdx(0); }}
                 onSubmit={handleSubmit}
+                onSaveEvaluation={handleSaveTeacherGrading}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
               />
@@ -3670,10 +3678,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     </button>
                   ) : isReviewMode ? (
                     <button
-                      onClick={() => onSubmit && onSubmit()}
-                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(79,70,229,0.35)' }}
+                      onClick={handleSaveTeacherGrading}
+                      disabled={isSavingTeacherGrading}
+                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
                     >
-                      <CheckCircle2 size={18} /> İncelemeyi Kapat
+                      <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
                     </button>
                   ) : (
                     <button
@@ -3722,6 +3731,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
                 onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
                 onSubmit={handleSubmit}
+                onSaveEvaluation={handleSaveTeacherGrading}
                 activeSecIdx={activeSecIdx}
                 totalSections={sections.length}
               />
