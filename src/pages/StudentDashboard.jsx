@@ -388,7 +388,7 @@ export default function StudentDashboard() {
             hwId: hw.id,
             title: `${hw.title || hw.name || 'Ödev'} (Test ${idx + 1})`,
             status: sub ? 'Sonuçlandı' : 'Atandı',
-            questionCount: hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : 10,
+            questionCount: hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : (hw.questionCount || 1),
             correctAnswers: sub ? (sub.score || 0) : 0,
             submissionId: sub?.id
           };
@@ -401,7 +401,7 @@ export default function StudentDashboard() {
       return [{
         ...hw,
         status: sub ? 'Sonuçlandı' : 'Atandı',
-        questionCount: hw.totalQuestions || 10,
+        questionCount: hw.totalQuestions || hw.questionCount || 1,
         correctAnswers: sub ? (sub.score || 0) : 0,
         submissionId: sub?.id
       }];
@@ -562,6 +562,7 @@ export default function StudentDashboard() {
   }, [selectedStudent, books, bookTests, submissions]);
 
   /* ─── Son Çözülen 5 Test ─── */
+  /* ─── Son Çözülen 5 Test ─── */
   const recentSolvedTests = useMemo(() => {
     if (!selectedStudent) return [];
     const studentIdStr = String(selectedStudent.id || '');
@@ -574,27 +575,91 @@ export default function StudentDashboard() {
       const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
       if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
 
-      const dateVal = sub.submittedAt || sub.createdAt || sub.updatedAt;
-      const testId = sub.testId || sub.bookTestId || sub.realTestId || sub.id;
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
+      const dateVal = sub.submittedAt || sub.completedAt || sub.createdAt || sub.updatedAt || raw.submittedAt;
+      const testId = sub.testId || sub.bookTestId || sub.realTestId || raw.testId || sub.id;
       const key = `${sub.id || testId}_${dateVal}`;
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
 
-      const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId));
-      const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId));
+      const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
+      const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
 
       const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
       const cleanBookTitle = (targetBook?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-      const title = sub.testTitle || targetTest?.name || sub.title || 'Test Çözümü';
-      const subject = subjObj?.name || sub.subject || targetBook?.subject || cleanBookTitle || 'Ders';
+      const title = sub.testTitle || raw.testTitle || targetTest?.name || sub.title || 'Test Çözümü';
+      const subject = subjObj?.name || sub.subject || raw.subject || targetBook?.subject || cleanBookTitle || 'Genel Testler';
 
-      const qCount = sub.totalQuestions || targetTest?.questionCount || (Array.isArray(sub.questions) ? sub.questions.length : 20);
-      const cCount = sub.correctCount !== undefined ? sub.correctCount : (sub.score !== undefined ? sub.score : 0);
-      const wCount = sub.wrongCount !== undefined ? sub.wrongCount : 0;
-      const eCount = sub.emptyCount !== undefined ? sub.emptyCount : Math.max(0, qCount - (cCount + wCount));
+      // 1. Detect open-ended / written test
+      const isOpenEnded = Boolean(
+        sub.isOpenEnded ||
+        raw.isOpenEnded ||
+        sub.questionType === 'acik_uclu' ||
+        sub.type === 'acik_uclu' ||
+        sub.contentType === 'acik_uclu' ||
+        sub.status === 'pending' ||
+        sub.status === 'pending_evaluation' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+      );
+      const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
 
-      const pct = qCount > 0 ? Math.round((cCount / qCount) * 100) : (typeof sub.score === 'number' ? sub.score : 0);
+      // 2. Count D / Y / B
+      let cCount = 0;
+      let wCount = 0;
+      let eCount = 0;
+
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+        sub.answers.forEach(ans => {
+          if (ans.isCorrect === true) {
+            cCount++;
+          } else if (ans.isCorrect === false) {
+            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+            if (isB) eCount++;
+            else wCount++;
+          } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
+            if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
+              // Open ended pending
+            } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
+              // Answer given
+            } else {
+              eCount++;
+            }
+          }
+        });
+      } else {
+        cCount = typeof sub.correctCount === 'number' ? sub.correctCount : (typeof raw.correctCount === 'number' ? raw.correctCount : 0);
+        wCount = typeof sub.wrongCount === 'number' ? sub.wrongCount : (typeof raw.wrongCount === 'number' ? raw.wrongCount : 0);
+        eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : (typeof raw.blankCount === 'number' ? raw.blankCount : 0));
+      }
+
+      // 3. Resolve total questions
+      const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+      const sumCount = cCount + wCount + eCount;
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || targetTest?.questionCount || (Array.isArray(sub.questions) ? sub.questions.length : 0);
+      const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
+
+      if (cCount > qCount && qCount > 0) {
+        cCount = Math.min(qCount, Math.round((cCount / 100) * qCount));
+        eCount = Math.max(0, qCount - (cCount + wCount));
+      }
+
+      // 4. Resolve accuracy percentage
+      let pct = 0;
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+        pct = Math.round(Number(sub.scorePercentage));
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+        pct = Math.round(Number(raw.scorePercentage));
+      } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
+        pct = Math.round(Number(sub.accuracy));
+      } else if (qCount > 0 && !isPendingEvaluation) {
+        pct = Math.round((cCount / qCount) * 100);
+      } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
+        pct = Math.round(sub.score);
+      }
+      pct = Math.min(100, Math.max(0, pct));
 
       solvedList.push({
         id: sub.id || testId,
@@ -608,7 +673,9 @@ export default function StudentDashboard() {
         wrongCount: wCount,
         emptyCount: eCount,
         totalQuestions: qCount,
-        pct: Math.min(100, Math.max(0, pct)),
+        pct,
+        isOpenEnded,
+        isPendingEvaluation,
         type: sub.type || (sub.bookTestId ? 'kitap' : 'test'),
         isPhysical: sub.type === 'physicalExam' || sub.isPhysical
       });
@@ -619,7 +686,7 @@ export default function StudentDashboard() {
         const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
         if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
 
-        const dateVal = sub.submittedAt || sub.createdAt || hw.createdAt;
+        const dateVal = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
         const key = `hw_${hw.id}_${sub.id || dateVal}`;
         if (seenKeys.has(key)) return;
         seenKeys.add(key);
@@ -627,25 +694,83 @@ export default function StudentDashboard() {
         const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
         const cleanBookTitle = (bookObj?.title || hw.title || 'Ödev').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-        const qCount = hw.totalQuestions || sub.totalQuestions || 20;
-        const cCount = sub.score !== undefined ? sub.score : (sub.correctCount || 0);
-        const wCount = sub.wrongCount || 0;
-        const eCount = Math.max(0, qCount - (cCount + wCount));
-        const pct = qCount > 0 ? Math.round((cCount / qCount) * 100) : 0;
+        const isOpenEnded = Boolean(
+          hw.questionType === 'acik_uclu' ||
+          hw.type === 'acik_uclu' ||
+          hw.contentType === 'acik_uclu' ||
+          sub.isOpenEnded ||
+          sub.questionType === 'acik_uclu' ||
+          sub.status === 'pending' ||
+          sub.status === 'pending_evaluation' ||
+          (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+        );
+        const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
+
+        let cCount = 0;
+        let wCount = 0;
+        let eCount = 0;
+
+        if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+          sub.answers.forEach(ans => {
+            if (ans.isCorrect === true) {
+              cCount++;
+            } else if (ans.isCorrect === false) {
+              const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+              if (isB) eCount++;
+              else wCount++;
+            } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
+              if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
+                // Open ended
+              } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
+                // Answer given
+              } else {
+                eCount++;
+              }
+            }
+          });
+        } else {
+          cCount = typeof sub.correctCount === 'number' ? sub.correctCount : 0;
+          wCount = typeof sub.wrongCount === 'number' ? sub.wrongCount : 0;
+          eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : 0);
+        }
+
+        const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+        const sumCount = cCount + wCount + eCount;
+        const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || 0;
+        const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
+
+        if (cCount > qCount && qCount > 0) {
+          cCount = Math.min(qCount, Math.round((cCount / 100) * qCount));
+          eCount = Math.max(0, qCount - (cCount + wCount));
+        }
+
+        let pct = 0;
+        if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+          pct = Math.round(Number(sub.scorePercentage));
+        } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
+          pct = Math.round(Number(sub.accuracy));
+        } else if (qCount > 0 && !isPendingEvaluation) {
+          pct = Math.round((cCount / qCount) * 100);
+        } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
+          pct = Math.round(sub.score);
+        }
+        pct = Math.min(100, Math.max(0, pct));
 
         solvedList.push({
           id: sub.id || hw.id,
           testId: hw.id,
           submissionId: sub.id,
           title: hw.title || 'Ödev Testi',
-          subject: hw.subject || cleanBookTitle || 'Ödev',
+          subject: hw.subject || cleanBookTitle || 'Genel Testler',
           subTitle: cleanBookTitle && cleanBookTitle !== hw.subject ? cleanBookTitle : null,
           date: dateVal,
           correctCount: cCount,
           wrongCount: wCount,
           emptyCount: eCount,
           totalQuestions: qCount,
-          pct: Math.min(100, Math.max(0, pct)),
+          pct,
+          isOpenEnded,
+          isPendingEvaluation,
           type: hw.isBookAssignment ? 'kitap' : 'ödev',
           isPhysical: hw.type === 'physicalExam' || hw.isPhysical
         });
@@ -1280,7 +1405,7 @@ export default function StudentDashboard() {
         if (countedSubIds.has(subId)) return;
         countedSubIds.add(subId);
 
-        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 10);
+        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 1);
         const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
         const subDate = dateStr ? new Date(dateStr) : null;
 
@@ -2432,41 +2557,68 @@ export default function StudentDashboard() {
                             </div>
                           )}
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                            <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              ✓ {test.correctCount} D
-                            </span>
-                            <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              ✗ {test.wrongCount} Y
-                            </span>
-                            {test.emptyCount > 0 && (
-                              <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                ○ {test.emptyCount} B
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                            {test.isPendingEvaluation ? (
+                              <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Öğretmen Değerlendirmesinde
                               </span>
+                            ) : (
+                              <>
+                                <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  ✓ {test.correctCount} D
+                                </span>
+                                <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  ✗ {test.wrongCount} Y
+                                </span>
+                                {test.emptyCount > 0 && (
+                                  <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                    ○ {test.emptyCount} B
+                                  </span>
+                                )}
+                                <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
+                                  • {test.totalQuestions} Soru
+                                </span>
+                              </>
                             )}
-                            <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
-                              • {test.totalQuestions} Soru
-                            </span>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                          <div style={{
-                            background: pctBg,
-                            border: `1.5px solid ${pctBorder}`,
-                            color: pctColor,
-                            padding: '0.4rem 0.75rem',
-                            borderRadius: 12,
-                            textAlign: 'center',
-                            minWidth: 54
-                          }}>
-                            <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
-                              %{test.pct}
+                          {test.isPendingEvaluation ? (
+                            <div style={{
+                              background: 'rgba(124, 58, 237, 0.12)',
+                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
+                              color: '#7c3aed',
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: 12,
+                              textAlign: 'center',
+                              minWidth: 54
+                            }}>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                                ⏳
+                              </div>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>
+                                Değerlendirmede
+                              </div>
                             </div>
-                            <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>
-                              Başarı
+                          ) : (
+                            <div style={{
+                              background: pctBg,
+                              border: `1.5px solid ${pctBorder}`,
+                              color: pctColor,
+                              padding: '0.4rem 0.75rem',
+                              borderRadius: 12,
+                              textAlign: 'center',
+                              minWidth: 54
+                            }}>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                                %{test.pct}
+                              </div>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>
+                                Başarı
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center' }}>
                             <ChevronRight size={16} />

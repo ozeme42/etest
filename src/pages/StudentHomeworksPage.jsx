@@ -161,9 +161,9 @@ export default function StudentHomeworksPage() {
           status: sub ? 'Sonuçlandı' : 'Atandı',
           isDone: !!sub,
           questionCount: hw.totalQuestions || (bookObj?.subjects || []).reduce((acc, s) => acc + (s.count || 20), 0) || 90,
-          correctAnswers: sub ? (sub.score || sub.correctCount || 0) : 0,
+          correctAnswers: sub ? (typeof sub.correctCount === 'number' ? sub.correctCount : (typeof sub.score === 'number' && sub.score <= 100 && sub.totalQuestions ? Math.round((sub.score / 100) * sub.totalQuestions) : (sub.score || 0))) : 0,
           totalScoreQuestions: sub?.totalQuestions || hw.totalQuestions || 90,
-          scorePct: sub ? Math.round(((sub.score || sub.correctCount || 0) / (sub.totalQuestions || hw.totalQuestions || 90)) * 100) : null,
+          scorePct: sub ? (sub.scorePercentage !== undefined && sub.scorePercentage !== null ? Math.round(Number(sub.scorePercentage)) : (typeof sub.score === 'number' && sub.score <= 100 ? Math.round(sub.score) : (sub.totalQuestions ? Math.round(((sub.correctCount || 0) / sub.totalQuestions) * 100) : null))) : null,
           submissionId: sub?.id,
           submittedAt: sub?.submittedAt || sub?.createdAt,
           realTestId: hw.id,
@@ -184,8 +184,22 @@ export default function StudentHomeworksPage() {
             (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId));
 
           const qCount = hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : 10;
-          const correctCount = sub ? (sub.score || sub.correctCount || 0) : 0;
-          const scorePct = sub ? Math.round((correctCount / qCount) * 100) : null;
+          let correctCount = 0;
+          if (sub) {
+            if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+              correctCount = sub.answers.filter(a => a.isCorrect === true).length;
+            } else if (typeof sub.correctCount === 'number') {
+              correctCount = sub.correctCount;
+            } else if (typeof sub.score === 'number' && sub.score <= 100 && qCount > 0) {
+              correctCount = Math.round((sub.score / 100) * qCount);
+            }
+          }
+          let scorePct = null;
+          if (sub) {
+            if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) scorePct = Math.round(Number(sub.scorePercentage));
+            else if (typeof sub.score === 'number' && sub.score <= 100) scorePct = Math.round(sub.score);
+            else if (qCount > 0) scorePct = Math.round((correctCount / qCount) * 100);
+          }
 
           return {
             ...hw,
@@ -209,9 +223,23 @@ export default function StudentHomeworksPage() {
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
         (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
-      const qCount = hw.totalQuestions || 10;
-      const correctCount = sub ? (sub.score || sub.correctCount || 0) : 0;
-      const scorePct = sub ? Math.round((correctCount / qCount) * 100) : null;
+      const qCount = hw.totalQuestions || hw.questionCount || 1;
+      let correctCount = 0;
+      if (sub) {
+        if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+          correctCount = sub.answers.filter(a => a.isCorrect === true).length;
+        } else if (typeof sub.correctCount === 'number') {
+          correctCount = sub.correctCount;
+        } else if (typeof sub.score === 'number' && sub.score <= 100 && qCount > 0) {
+          correctCount = Math.round((sub.score / 100) * qCount);
+        }
+      }
+      let scorePct = null;
+      if (sub) {
+        if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) scorePct = Math.round(Number(sub.scorePercentage));
+        else if (typeof sub.score === 'number' && sub.score <= 100) scorePct = Math.round(sub.score);
+        else if (qCount > 0) scorePct = Math.round((correctCount / qCount) * 100);
+      }
 
       return [{
         ...hw,
