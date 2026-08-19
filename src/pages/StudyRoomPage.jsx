@@ -74,6 +74,33 @@ class AmbientEngine {
     }
   }
 
+  // Çok hafif, tatlı ve rahatsız etmeyen soru başı süre hatırlatma sesi (Soft Ding)
+  playSoftDing() {
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now); // A5
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.05); // E6
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.65);
+    } catch (e) {
+      console.warn('Soft ding error:', e);
+    }
+  }
+
   setSoundVolume(type, vol) {
     this.init();
     if (!this.ctx) return;
@@ -445,6 +472,68 @@ export default function StudyRoomPage() {
   // Bonus Mola Kutlama Modalı
   const [earnedBonusModal, setEarnedBonusModal] = useState(null);
 
+  // ── 🌟 EKRAN KAPANMAMA (WAKE LOCK) SİSTEMİ ──
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const wakeLockRef = useRef(null);
+
+  // Soru Başı Hatırlatıcı Bildirim Sesi (Örn: her 2 dakikada bir küçük yumuşak zil)
+  const [questionChimeEnabled, setQuestionChimeEnabled] = useState(() => {
+    const saved = localStorage.getItem('study_question_chime_enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Ekran Kapanmama (Wake Lock API) Otomatik Yönetimi
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && isRunning) {
+        try {
+          if (!wakeLockRef.current) {
+            wakeLockRef.current = await navigator.wakeLock.request('screen');
+            if (isSubscribed) setWakeLockActive(true);
+            wakeLockRef.current.addEventListener('release', () => {
+              if (isSubscribed) setWakeLockActive(false);
+              wakeLockRef.current = null;
+            });
+          }
+        } catch (err) {
+          console.warn('Wake Lock request error:', err);
+        }
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockRef.current) {
+        try {
+          await wakeLockRef.current.release();
+        } catch (err) {}
+        wakeLockRef.current = null;
+        if (isSubscribed) setWakeLockActive(false);
+      }
+    };
+
+    if (isRunning) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isSubscribed = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isRunning]);
+
   // ── 1. FOREST & BÜYÜYEN AĞAÇ SİSTEMİ ──
   const [plantedForest, setPlantedForest] = useState(() => {
     const todayKey = new Date().toISOString().split('T')[0];
@@ -672,7 +761,18 @@ export default function StudyRoomPage() {
     if (isRunning) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
-          setSessionElapsedSeconds(e => e + 1);
+          setSessionElapsedSeconds(e => {
+            const nextElapsed = e + 1;
+            // 🔔 Soru Başı Bütçe Süresi Hatırlatması (Örn: her 2 dakikada bir çok hafif yumuşak bildirim sesi)
+            if (activeStudyMode === 'question' && questionChimeEnabled && minutesPerQuestion > 0) {
+              const intervalSec = Math.round(minutesPerQuestion * 60);
+              if (intervalSec > 0 && nextElapsed % intervalSec === 0) {
+                ambientAudio.playSoftDing();
+              }
+            }
+            return nextElapsed;
+          });
+
           if (prev <= 1) {
             clearInterval(timerRef.current);
             setIsRunning(false);
@@ -692,7 +792,7 @@ export default function StudyRoomPage() {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [isRunning, activeStudyMode, dailyStats]);
+  }, [isRunning, activeStudyMode, dailyStats, questionChimeEnabled, minutesPerQuestion]);
 
   // Seans Tamamlama & Ağaç Dikme Mantığı
   const handleTimerComplete = () => {
@@ -1625,6 +1725,82 @@ export default function StudyRoomPage() {
                   🏖️ Erken bitirilen seansların artan dakikaları bu molaya otomatik eklenir.
                 </div>
               </div>
+
+              {/* 🔔 Soru Başı Süre Hatırlatma Sesi & Ekran Açık Tutma Modu Kontrolleri */}
+              <div style={{
+                gridColumn: '1 / -1',
+                background: themeObj.cardBg,
+                borderRadius: 14,
+                padding: '0.75rem 1rem',
+                border: `1.5px solid ${themeObj.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: questionChimeEnabled ? 'rgba(245, 158, 11, 0.15)' : themeObj.innerBg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Bell size={18} color={questionChimeEnabled ? '#f59e0b' : themeObj.subText} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>
+                      Soru Başı Süre Hatırlatma Sesi
+                    </div>
+                    <div style={{ fontSize: '0.66rem', color: themeObj.subText, fontWeight: 700 }}>
+                      Her {minutesPerQuestion} dakikada bir (1 soru süresi dolduğunda) hafif yumuşak sesle uyarır
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const next = !questionChimeEnabled;
+                    setQuestionChimeEnabled(next);
+                    localStorage.setItem('study_question_chime_enabled', String(next));
+                    if (next) ambientAudio.playSoftDing();
+                  }}
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: questionChimeEnabled ? 'linear-gradient(135deg, #10b981, #059669)' : (themeObj.isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1'),
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.76rem',
+                    cursor: 'pointer',
+                    boxShadow: questionChimeEnabled ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {questionChimeEnabled ? '🔔 Ses Açık' : '🔕 Kapalı'}
+                </button>
+              </div>
+
+              {/* Ekran Kapanmama Bilgi Şeridi */}
+              <div style={{
+                gridColumn: '1 / -1',
+                background: 'rgba(16, 185, 129, 0.08)',
+                borderRadius: 12,
+                padding: '0.55rem 0.85rem',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: '0.72rem',
+                color: '#10b981',
+                fontWeight: 800
+              }}>
+                <Sun size={15} />
+                <span>Ekran Kapanmama Modu: Sayaç çalışırken ekranınız dokunmasanız da asla kapanmaz ve uyumaz.</span>
+              </div>
             </div>
           )}
 
@@ -1825,6 +2001,25 @@ export default function StudyRoomPage() {
                 <Flame size={14} color="#f97316" fill="#f97316" />
                 <span>{streakData.currentStreak} Günlük Seri!</span>
               </span>
+
+              {/* 🌟 EKRAN KAPANMAMA MODU ROZETİ */}
+              {wakeLockActive && (
+                <span style={{
+                  background: 'rgba(16, 185, 129, 0.14)',
+                  color: '#10b981',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 99,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  border: '1.5px solid #a7f3d0'
+                }} title="Sayaç çalıştığı sürece ekranınız hiç kapanmaz.">
+                  <Sun size={13} />
+                  <span>Ekran Açık Tutuluyor</span>
+                </span>
+              )}
             </div>
             <div className="sr-sub-text" style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 600, marginTop: 1 }}>
               {currentUser?.name || 'Öğrenci'} · Birleşik Odaklanma & Hızlı Mola İstasyonu
@@ -2608,6 +2803,25 @@ export default function StudyRoomPage() {
                 <Flame size={14} color="#f97316" fill="#f97316" />
                 <span>{streakData.currentStreak} Günlük Seri!</span>
               </span>
+
+              {/* 🌟 EKRAN KAPANMAMA MODU ROZETİ */}
+              {wakeLockActive && (
+                <span style={{
+                  background: 'rgba(16, 185, 129, 0.14)',
+                  color: '#10b981',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 99,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  border: '1.5px solid #a7f3d0'
+                }} title="Sayaç çalıştığı sürece ekranınız hiç kapanmaz.">
+                  <Sun size={13} />
+                  <span>Ekran Açık</span>
+                </span>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
