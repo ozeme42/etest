@@ -492,7 +492,16 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     );
   }
 
-  const isMultiSection = Boolean((test.sections && test.sections.length > 1) || test.isBulk || test.isMulti);
+  const isMultiSection = Boolean(
+    (test.sections && test.sections.length > 0) ||
+    (test.tests && test.tests.length > 0) ||
+    (test.items && test.items.length > 0) ||
+    String(test?.id || '').startsWith('hw_') ||
+    String(submission?.hwId || '').startsWith('hw_') ||
+    test.isBulk ||
+    test.isMulti ||
+    test.isQuestionBank
+  );
   const isPdf = Boolean(test.pdfPayload || test.pdfUrl || test.contentType === 'pdf');
   const isHtml = Boolean(test.htmlPayload || test.contentType === 'html');
   const isImageTest = !isHtml && !isPdf && Boolean(test.contentType === 'gorsel' || (test.imageUrls && test.imageUrls.length > 0) || test.imageUrl);
