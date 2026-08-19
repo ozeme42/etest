@@ -2474,6 +2474,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       >
                         Sonraki Bölüm <ChevronRight size={18} />
                       </button>
+                    ) : isReviewMode ? (
+                      <button
+                        onClick={() => onSubmit && onSubmit()}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(79,70,229,0.35)' }}
+                      >
+                        <CheckCircle2 size={18} /> İncelemeyi Kapat
+                      </button>
                     ) : (
                       <button
                         onClick={handleSubmit}
@@ -2735,6 +2742,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.25)' }}
                     >
                       Sonraki Bölüm <ChevronRight size={18} />
+                    </button>
+                  ) : isReviewMode ? (
+                    <button
+                      onClick={() => onSubmit && onSubmit()}
+                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(79,70,229,0.35)' }}
+                    >
+                      <CheckCircle2 size={18} /> İncelemeyi Kapat
                     </button>
                   ) : (
                     <button
