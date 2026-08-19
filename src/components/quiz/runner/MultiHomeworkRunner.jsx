@@ -2170,6 +2170,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             icon="📋"
             defaultPosition="right"
             defaultSize={320}
+            defaultOpenOnMobile={false}
             documentContent={
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <PdfViewerWithControls 
@@ -2210,6 +2211,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             icon="📋"
             defaultPosition="right"
             defaultSize={320}
+            defaultOpenOnMobile={false}
             documentContent={
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <StableHtmlViewer
@@ -2251,6 +2253,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             icon="📋"
             defaultPosition="right"
             defaultSize={320}
+            defaultOpenOnMobile={false}
             documentContent={
               <>
                 <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
@@ -2522,6 +2525,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             icon="📋"
             defaultPosition="right"
             defaultSize={320}
+            defaultOpenOnMobile={false}
             documentContent={
               <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
                 {/* SECTION BANNER */}

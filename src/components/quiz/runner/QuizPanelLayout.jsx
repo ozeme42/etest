@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Columns, Rows, X, GripVertical, GripHorizontal, ChevronLeft, ChevronUp } from 'lucide-react';
+import { Columns, Rows, X, GripVertical, GripHorizontal, ChevronLeft, ChevronUp, FileSpreadsheet } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function QuizPanelLayout({
@@ -9,14 +9,15 @@ export default function QuizPanelLayout({
   panelSubtitle = "Cevaplarınızı buradan işaretleyiniz",
   defaultPosition = 'right',
   defaultSize = 380,
-  icon = "🎯"
+  icon = "🎯",
+  defaultOpenOnMobile = true
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   const [positionState, setPositionState] = useState(defaultPosition);
   const position = isMobile ? 'bottom' : positionState;
   
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(() => (isMobile ? defaultOpenOnMobile : true));
   const [panelSize, setPanelSize] = useState(defaultSize);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
@@ -64,14 +65,14 @@ export default function QuizPanelLayout({
   }, [isDragging, position]);
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: position === 'right' ? 'row' : 'column', flex: 1, overflow: 'hidden', background: '#f8fafc' }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: position === 'right' ? 'row' : 'column', flex: 1, overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
       
       {/* ── LEFT / TOP: Document Viewer ── */}
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {documentContent}
         
-        {/* Floating Open Button when closed */}
-        {!isOpen && (
+        {/* Desktop Floating Open Button when closed */}
+        {!isMobile && !isOpen && (
           <button
             onClick={() => setIsOpen(true)}
             style={{
@@ -101,6 +102,35 @@ export default function QuizPanelLayout({
           </button>
         )}
       </div>
+
+      {/* ── MOBILE FLOATING TOGGLE BUTTON (BOTTOM RIGHT) ── */}
+      {isMobile && (
+        <button
+          onClick={() => setIsOpen(prev => !prev)}
+          style={{
+            position: 'fixed',
+            bottom: '1rem',
+            right: '1rem',
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            background: isOpen ? '#ef4444' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.3)',
+            zIndex: 99999,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+          title={isOpen ? "Optik Formu Kapat" : "Optik Formu Aç"}
+          aria-label="Optik Form"
+        >
+          {isOpen ? <X size={20} /> : <FileSpreadsheet size={20} />}
+        </button>
+      )}
 
       {/* ── RESIZER & ANSWER PANEL ── */}
       {isOpen && (
