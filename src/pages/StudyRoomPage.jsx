@@ -3532,9 +3532,12 @@ export default function StudyRoomPage() {
     >
       <style>{`
         .sr-main-grid {
-          display: grid;
-          grid-template-columns: 1.45fr 1fr;
+          display: flex;
+          flex-direction: column;
           gap: 1.5rem;
+          max-width: 1020px;
+          margin: 0 auto;
+          width: 100%;
         }
         .sr-card-body-grid {
           display: grid;
@@ -4193,71 +4196,7 @@ export default function StudyRoomPage() {
                 </div>
               ))}
             </div>
-
           </div>
-
-          {/* ─── RIGHT COLUMN: HIZLI NOTLAR & MOTİVASYON ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* 1. HIZLI NOTLAR & KARALAMA */}
-            <div className="sr-card" style={{
-              background: themeObj.cardBg,
-              backdropFilter: 'blur(20px)',
-              borderRadius: 24,
-              border: `1.5px solid ${themeObj.border}`,
-              padding: '1.25rem',
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Edit3 size={16} color={themeObj.accent} />
-                <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: themeObj.text }}>
-                  Hızlı Notlar & Karalama
-                </h3>
-              </div>
-              <textarea
-                placeholder="Çalışırken aklına gelen formülleri veya önemli notları buraya yaz..."
-                value={scratchNotes}
-                onChange={e => setScratchNotes(e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem',
-                  borderRadius: 12,
-                  border: `1.5px solid ${themeObj.border}`,
-                  background: themeObj.innerBg,
-                  color: themeObj.text,
-                  fontSize: '0.78rem',
-                  outline: 'none',
-                  resize: 'vertical',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {/* 3. MOTIVATIONAL QUOTE BANNER */}
-            <div className="sr-card" style={{
-              background: themeObj.cardBg,
-              backdropFilter: 'blur(16px)',
-              borderRadius: 22,
-              border: `1.5px solid ${themeObj.border}`,
-              padding: '1rem 1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: themeObj.isDark ? 'rgba(255,255,255,0.15)' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.2rem' }}>
-                ✨
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: themeObj.text, lineHeight: 1.4, fontStyle: 'italic' }}>
-                  "{FOCUS_QUOTES[activeQuoteIndex]}"
-                </div>
-              </div>
-            </div>
-
-          </div>
-
         </div>
       </div>
 
