@@ -20,7 +20,8 @@ export default function StudentBookDetailsPage() {
   const { users = [] } = useUser();
   const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions = [], deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const [feedbackToast, setFeedbackToast] = useState(null);
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
@@ -596,6 +597,8 @@ export default function StudentBookDetailsPage() {
     const currentUserIdStr = String(currentUser?.id || '');
     const currentUserUuidStr = String(toUUID(currentUser?.id) || '');
 
+    const unclassifiedList = [];
+
     allBookTests.forEach(t => {
       const sub = t.bestSub || t.latestSub;
       const testWrong = t.isCompleted ? (sub?.wrongCount ?? 0) : 0;
@@ -723,6 +726,28 @@ export default function StudentBookDetailsPage() {
           });
         }
       });
+
+      // Collect unclassified wrong questions
+      if (matchingSubs.length > 0) {
+        matchingSubs.forEach(ms => {
+          if (Array.isArray(ms.answers)) {
+            ms.answers.forEach((a, aIdx) => {
+              const qNum = a.questionNo || (aIdx + 1);
+              if (a.isCorrect === false && !testMergedReasons[qNum]) {
+                unclassifiedList.push({
+                  testId: t.id,
+                  testName: t.name,
+                  subjectName: t.subjectName,
+                  qNo: qNum,
+                  subId: ms.id,
+                  userAnswer: a.userAnswer,
+                  correctAnswer: a.correctAnswer
+                });
+              }
+            });
+          }
+        });
+      }
     });
 
     // Fallback: If still 0 classified but there are mistake_reasons_ keys in localStorage, aggregate all of them
@@ -757,9 +782,50 @@ export default function StudentBookDetailsPage() {
       totalClassified,
       unclassifiedCount,
       topReason,
-      questionsList
+      questionsList,
+      unclassifiedList
     };
-  }, [subjectProgress, studentId, submissions, currentUser]);
+  }, [subjectProgress, studentId, submissions, homeworks, currentUser]);
+
+  const handleQuickAssignMistakeReason = async (item, reasonLabel) => {
+    try {
+      const targetStudentId = String(targetStudent?.id || currentUser?.id || 'u1');
+      // 1. Write to localStorage
+      const key1 = `mistake_reasons_${item.testId}_${targetStudentId}`;
+      const key2 = `mistake_reasons_bt_${item.testId}_${targetStudentId}`;
+      let prevObj = {};
+      try {
+        prevObj = JSON.parse(localStorage.getItem(key1) || '{}') || {};
+      } catch {}
+      const nextObj = { ...prevObj, [item.qNo]: reasonLabel };
+      try {
+        localStorage.setItem(key1, JSON.stringify(nextObj));
+        localStorage.setItem(key2, JSON.stringify(nextObj));
+      } catch {}
+
+      // 2. Sync to Supabase via updateSubmission
+      const subTarget = submissions.find(s => String(s.id) === String(item.subId) || String(s.testId) === String(item.testId) || String(s.bookTestId) === String(item.testId));
+      if (subTarget && updateSubmission) {
+        const updatedAnswers = (subTarget.answers || []).map(a => {
+          const num = a.questionNo || a.questionIndex;
+          if (num === item.qNo || String(num) === String(item.qNo)) {
+            return { ...a, reason: reasonLabel, mistakeReason: reasonLabel };
+          }
+          return a;
+        });
+        const nextReasons = { ...(subTarget.mistakeReasons || {}), [item.qNo]: reasonLabel };
+        await updateSubmission(subTarget.id, {
+          mistakeReasons: nextReasons,
+          answers: updatedAnswers
+        });
+      }
+
+      setFeedbackToast(`✓ Soru ${item.qNo} için "${reasonLabel}" sebebi veritabanına kaydedildi!`);
+      setTimeout(() => setFeedbackToast(null), 3000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
@@ -859,6 +925,29 @@ export default function StudentBookDetailsPage() {
           }
         }
       `}</style>
+
+      {feedbackToast && (
+        <div style={{
+          position: 'fixed',
+          top: 76,
+          right: 24,
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '0.65rem 1.15rem',
+          borderRadius: 12,
+          fontSize: '0.82rem',
+          fontWeight: 800,
+          zIndex: 99999,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          animation: 'fadeSlideUp 0.25s ease'
+        }}>
+          <CheckCircle2 size={16} color="#10b981" />
+          <span>{feedbackToast}</span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <button
@@ -1441,6 +1530,60 @@ export default function StudentBookDetailsPage() {
                     <span style={{ fontWeight: 900, color: bookMistakeStats.reasonDefs[q.reasonKey]?.color || '#e11d48' }}>
                       {q.rawReason || q.reasonKey}
                     </span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
+
+        {/* Bekleyen Sınıflandırılmamış Yanlış Sorular Listesi & Hızlı Sebep Seçme */}
+        {bookMistakeStats.unclassifiedList && bookMistakeStats.unclassifiedList.length > 0 && (
+          <div style={{ marginTop: '0.85rem' }}>
+            <details open style={{ background: '#fffbeb', borderRadius: 12, border: '1.5px solid #fde68a', overflow: 'hidden' }}>
+              <summary style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚠️ Bekleyen Yanlış Sorular ({bookMistakeStats.unclassifiedList.length} Soru) — Hızlı Sebep Seç & Kaydet
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 800 }}>Detayları Göster / Gizle ▼</span>
+              </summary>
+              <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
+                {bookMistakeStats.unclassifiedList.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '0.5rem 0.75rem', background: '#ffffff', borderRadius: 10, border: '1px solid #fef3c7', fontSize: '0.76rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 900, color: '#0f172a' }}>{item.testName}</span>
+                      <span style={{ color: '#dc2626', fontWeight: 900, background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>• Soru {item.qNo} (Yanlış)</span>
+                      {item.subjectName && <span style={{ fontSize: '0.68rem', background: '#f1f5f9', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>{item.subjectName}</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {[
+                        { label: '⚡ İşlem', color: '#d97706', bg: '#fffbeb', full: '⚡ İşlem Hatası' },
+                        { label: '⚠️ Dikkat', color: '#e11d48', bg: '#fff1f2', full: '⚠️ Dikkat Kaybı' },
+                        { label: '📖 Formül', color: '#0284c7', bg: '#f0f9ff', full: '📖 Formül / Bilgi' },
+                        { label: '🧠 Konu', color: '#7c3aed', bg: '#faf5ff', full: '🧠 Konu Eksiği' },
+                        { label: '⏱️ Zaman', color: '#db2777', bg: '#fdf2f8', full: '⏱️ Zaman Yetmedi' }
+                      ].map(r => (
+                        <button
+                          key={r.label}
+                          type="button"
+                          onClick={() => handleQuickAssignMistakeReason(item, r.full)}
+                          style={{
+                            padding: '0.2rem 0.45rem',
+                            fontSize: '0.64rem',
+                            fontWeight: 900,
+                            borderRadius: 6,
+                            border: `1.5px solid ${r.color}66`,
+                            background: r.bg,
+                            color: r.color,
+                            cursor: 'pointer',
+                            transition: 'all 0.12s ease'
+                          }}
+                          title={`Soru ${item.qNo} için "${r.full}" olarak veritabanına kaydet`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

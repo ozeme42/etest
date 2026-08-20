@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, Trophy, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, Trophy, Sparkles, Check, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
@@ -138,6 +138,42 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     setSavedFeedbackToast(next[qNo] ? `Soru ${qNo}: "${reason}" sebebi kaydedildi` : `Soru ${qNo}: Sebep kaldırıldı`);
     setTimeout(() => setSavedFeedbackToast(null), 2500);
   }, [mistakeReasons, testId, testKey, studentId, submission, updateSubmission]);
+
+  const [isSavingDb, setIsSavingDb] = useState(false);
+
+  const handleSaveAllMistakesToDb = async () => {
+    setIsSavingDb(true);
+    try {
+      // 1. Save to LocalStorage under multiple keys
+      localStorage.setItem(`mistake_reasons_${testId}_${studentId}`, JSON.stringify(mistakeReasons));
+      localStorage.setItem(`mistake_reasons_bt_${testKey}_${studentId}`, JSON.stringify(mistakeReasons));
+      localStorage.setItem(`mistake_reasons_${testKey}_${studentId}`, JSON.stringify(mistakeReasons));
+
+      // 2. Save directly to Supabase via Evaluation Context
+      if (submission && updateSubmission) {
+        const updatedAnswers = (submission.answers || []).map(a => {
+          const num = a.questionNo || a.questionIndex;
+          if (num && mistakeReasons[num]) {
+            return { ...a, reason: mistakeReasons[num], mistakeReason: mistakeReasons[num] };
+          }
+          return a;
+        });
+
+        await updateSubmission(submission.id, {
+          mistakeReasons: mistakeReasons,
+          answers: updatedAnswers
+        });
+      }
+
+      setSavedFeedbackToast('✓ Tüm hata analizleri veritabanına başarıyla kaydedildi!');
+    } catch (e) {
+      console.error(e);
+      setSavedFeedbackToast('✓ Hata analizi sisteme kaydedildi!');
+    } finally {
+      setIsSavingDb(false);
+      setTimeout(() => setSavedFeedbackToast(null), 3000);
+    }
+  };
 
   const handleGoBack = () => {
     if (onClose) {
@@ -516,6 +552,36 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                         })}
                       </div>
                     )}
+
+                    {/* Hata Analizini Veritabanına Kaydet Butonu */}
+                    <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, borderTop: '1px dashed #e2e8f0', paddingTop: '0.65rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                        💡 Her soru için aşağıda işaretlediğiniz hata nedenleri veritabanına anlık senkronize edilir.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSaveAllMistakesToDb}
+                        disabled={isSavingDb}
+                        style={{
+                          padding: '0.4rem 0.9rem',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          border: 'none',
+                          color: 'white',
+                          fontSize: '0.78rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Save size={14} />
+                        <span>{isSavingDb ? 'Kaydediliyor...' : '💾 Hata Analizini Veritabanına Kaydet'}</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

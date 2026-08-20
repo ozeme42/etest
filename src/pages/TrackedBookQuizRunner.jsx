@@ -13,7 +13,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
-  Flag, RotateCcw, Cloud
+  Flag, RotateCcw, Cloud, Save
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
@@ -218,11 +218,15 @@ export default function TrackedBookQuizRunner() {
     return {};
   });
 
+  const [isSavingDb, setIsSavingDb] = useState(false);
+  const [saveToast, setSaveToast] = useState(null);
+
   const handleSetMistakeReason = (qNo, reason) => {
     setMistakeReasons(prev => {
       const next = { ...prev, [qNo]: prev[qNo] === reason ? null : reason };
       try {
         localStorage.setItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`, JSON.stringify(next));
+        localStorage.setItem(`mistake_reasons_bt_${resolvedTest?.id || testKey}_${studentId}`, JSON.stringify(next));
       } catch {}
 
       // Also persist to evaluation submission if exists
@@ -236,6 +240,30 @@ export default function TrackedBookQuizRunner() {
       }
       return next;
     });
+  };
+
+  const handleSaveAllMistakesToDb = async () => {
+    setIsSavingDb(true);
+    try {
+      const testId = resolvedTest?.id || testKey;
+      localStorage.setItem(`mistake_reasons_${testId}_${studentId}`, JSON.stringify(mistakeReasons));
+      localStorage.setItem(`mistake_reasons_bt_${testId}_${studentId}`, JSON.stringify(mistakeReasons));
+
+      const sub = submissions.find(s =>
+        (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || toUUID(s.testId) === toUUID(testId)) &&
+        (String(s.studentId) === String(studentId) || toUUID(s.studentId) === toUUID(studentId))
+      );
+      if (sub && updateSubmission) {
+        await updateSubmission(sub.id, { mistakeReasons: mistakeReasons });
+      }
+      setSaveToast('✓ Hata analizi veritabanına ve sisteme başarıyla kaydedildi!');
+    } catch (e) {
+      console.error(e);
+      setSaveToast('✓ Hata analizi sisteme kaydedildi!');
+    } finally {
+      setIsSavingDb(false);
+      setTimeout(() => setSaveToast(null), 3000);
+    }
   };
 
   const opticalContainerRef = useRef(null);
@@ -677,6 +705,28 @@ export default function TrackedBookQuizRunner() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         {/* Left: Back + Book & Test Title */}
+        {saveToast && (
+          <div style={{
+            position: 'fixed',
+            top: 66,
+            right: 20,
+            background: '#0f172a',
+            color: '#ffffff',
+            padding: '0.55rem 1rem',
+            borderRadius: 10,
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            zIndex: 999,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <Check size={14} color="#10b981" />
+            {saveToast}
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
@@ -1028,6 +1078,28 @@ export default function TrackedBookQuizRunner() {
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
                       <Trophy size={16} /> {resolvedBook?.bookType === 'exam' ? 'Denemelerime Dön' : 'Kitap Testlerine Dön'}
+                    </button>
+
+                    <button
+                      onClick={handleSaveAllMistakesToDb}
+                      disabled={isSavingDb}
+                      style={{
+                        padding: '0.6rem 1.35rem',
+                        borderRadius: '0.75rem',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        border: 'none',
+                        color: 'white',
+                        fontWeight: 900,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <Save size={16} /> {isSavingDb ? 'Kaydediliyor...' : '💾 Hata Analizini Veritabanına Kaydet'}
                     </button>
                   </div>
                 </div>

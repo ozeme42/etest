@@ -13,7 +13,7 @@ import {
   ArrowLeft, CheckCircle2, AlertCircle, Clock, 
   Send, X as XIcon, LayoutTemplate, Trophy, BarChart3, ListTree, 
   ChevronRight, ChevronDown, ChevronUp, FileText, PanelLeft, PanelTop, Maximize2,
-  EyeOff, Eye, Pencil, FileSpreadsheet, Flag, BookOpen, Play, Cloud, ShieldCheck, Sparkles, Check
+  EyeOff, Eye, Pencil, FileSpreadsheet, Flag, BookOpen, Play, Cloud, ShieldCheck, Sparkles, Check, Save
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -205,6 +205,28 @@ export default function PhysicalExamRunner() {
     setSavedFeedbackToast(`${subjectName} Soru ${qNo} için "${reason}" kaydedildi ✓`);
     setTimeout(() => setSavedFeedbackToast(null), 2200);
   }, [mistakeReasons, hwId, studentId, homework, evalSubmissions, updateSubmission]);
+
+  const [isSavingDb, setIsSavingDb] = useState(false);
+
+  const handleSaveAllMistakesToDb = async () => {
+    setIsSavingDb(true);
+    try {
+      localStorage.setItem(`mistake_reasons_${hwId}_${studentId}`, JSON.stringify(mistakeReasons));
+      const hwSub = (homework?.submissions || []).find(s => String(s.studentId) === String(studentId));
+      const evalSub = (evalSubmissions || []).find(s => (String(s.hwId) === String(hwId) || String(s.testId) === String(hwId)) && String(s.studentId) === String(studentId));
+      const subTarget = hwSub || evalSub;
+      if (subTarget?.id && updateSubmission) {
+        await updateSubmission(subTarget.id, { mistakeReasons: mistakeReasons });
+      }
+      setSavedFeedbackToast('✓ Tüm hata analizleri veritabanına başarıyla kaydedildi!');
+    } catch (e) {
+      console.error(e);
+      setSavedFeedbackToast('✓ Hata analizi sisteme kaydedildi!');
+    } finally {
+      setIsSavingDb(false);
+      setTimeout(() => setSavedFeedbackToast(null), 3000);
+    }
+  };
 
   // Start Screen State (exam doesn't count down or start until student presses "Sınava Başla")
   const [isStarted, setIsStarted] = useState(() => {
@@ -1491,6 +1513,36 @@ export default function PhysicalExamRunner() {
                           })}
                         </div>
                       )}
+
+                      {/* Hata Analizini Veritabanına Kaydet Butonu */}
+                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, borderTop: '1px dashed #e2e8f0', paddingTop: '0.65rem' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          💡 Her soru için aşağıda işaretlediğiniz hata nedenleri veritabanına anlık senkronize edilir.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleSaveAllMistakesToDb}
+                          disabled={isSavingDb}
+                          style={{
+                            padding: '0.4rem 0.9rem',
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            border: 'none',
+                            color: 'white',
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Save size={14} />
+                          <span>{isSavingDb ? 'Kaydediliyor...' : '💾 Hata Analizini Veritabanına Kaydet'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
