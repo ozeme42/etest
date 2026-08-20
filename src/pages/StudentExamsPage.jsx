@@ -362,6 +362,8 @@ export default function StudentExamsPage() {
             wrongCount: hwSub.wrongCount ?? hwSub.subjectStats?.totalWrong ?? 0,
             blankCount: hwSub.blankCount ?? hwSub.subjectStats?.totalBlank ?? 0,
             score: hwSub.score ?? hwSub.subjectStats?.totalNet ?? 0,
+            subjectStats: hwSub.subjectStats,
+            studentAnswers: hwSub.studentAnswers,
             submittedAt: hwSub.submittedAt
           };
         }
@@ -397,6 +399,7 @@ export default function StudentExamsPage() {
       b.totalCorrect = totalCorrect;
       b.totalWrong = totalWrong;
       b.totalBlank = totalBlank;
+      b.bestSubsByKey = bestSubsByKey;
 
       const hasDirectHwSub = b.assignedHomeworks.some(hw => (hw.submissions || []).some(s => String(s.studentId) === String(studentId)));
       const hasEvalSub = Object.keys(bestSubsByKey).length > 0 && (totalCorrect > 0 || totalWrong > 0 || totalBlank > 0);
@@ -424,12 +427,7 @@ export default function StudentExamsPage() {
       list.push({ id: mock.id, type: 'mock', title: mock.title, date: mock.date || mock.createdAt?.slice(0, 10), d, y, b, net: Number(mock.totalNet || 0), isCompleted: true, scores: mock.scores, original: mock });
     });
     assignedBooks.forEach(book => {
-      const bestSubs = studentSubmissions.filter(sub => {
-        const testId = sub.testId || sub.bookTestId || sub.id;
-        const hwId = sub.hwId || sub.homeworkId;
-        return book.allAssignedTestIds.has(String(testId)) ||
-               book.assignedHomeworks.some(hw => String(hw.id) === String(hwId) || String(hw.id) === String(testId));
-      });
+      const bestSubs = Object.values(book.bestSubsByKey || {});
       const primaryHw = book.assignedHomeworks?.[0];
       const isPhysical = primaryHw?.type === 'physicalExam' || primaryHw?.contentType === 'physicalExam' || primaryHw?.subjects?.length > 0 || book.bookType === 'exam';
 
@@ -447,14 +445,15 @@ export default function StudentExamsPage() {
         isCompleted: book.isCompleted || book.progressPct >= 100,
         progressPct: book.progressPct,
         remainingDays: book.remainingDays,
-        subjects: book.subjects,
+        subjects: book.subjects || primaryHw?.subjects || [],
         assignedHomeworks: book.assignedHomeworks,
         bestSubs,
+        penaltyRatio: book.penaltyRatio,
         original: book
       });
     });
     return list.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [studentMockExams, assignedBooks, studentSubmissions]);
+  }, [studentMockExams, assignedBooks]);
 
   const handleOpenExam = (exam) => {
     if (exam.type === 'mock') {
@@ -468,6 +467,152 @@ export default function StudentExamsPage() {
     }
   };
 
+  /* ── Universal helper to retrieve per-subject scores for any exam ─── */
+  const getExamSubjectScores = useCallback((exam) => {
+    const result = {};
+    if (!exam) return result;
+
+    // 1. Manual Mock Exam
+    if (exam.type === 'mock' && exam.scores) {
+      Object.entries(exam.scores).forEach(([sName, sc]) => {
+        const d = Number(sc.d) || 0;
+        const y = Number(sc.y) || 0;
+        const b = Number(sc.b) || 0;
+        const net = typeof sc.net === 'number' ? sc.net : parseFloat(sc.net || (d - y / 4).toFixed(2));
+        result[sName] = {
+          name: sName,
+          d,
+          y,
+          b,
+          net,
+          totalQ: d + y + b
+        };
+      });
+      return result;
+    }
+
+    // 2. Physical / Book Exam
+    if (exam.type === 'book') {
+      const origBook = exam.original || {};
+      const primaryHw = (exam.assignedHomeworks && exam.assignedHomeworks[0]) || {};
+      const declaredSubjects = exam.subjects || origBook.subjects || primaryHw.subjects || [];
+
+      let rawStats = null;
+      let studentAnswers = null;
+      let answerKey = origBook.answerKey || primaryHw.answerKey || {};
+
+      const subsToSearch = exam.bestSubs || [];
+      for (const sub of subsToSearch) {
+        if (sub.subjectStats) rawStats = sub.subjectStats;
+        if (sub.studentAnswers) studentAnswers = sub.studentAnswers;
+      }
+
+      if (!rawStats && primaryHw.submissions) {
+        const hwSub = primaryHw.submissions.find(s => String(s.studentId) === String(studentId));
+        if (hwSub) {
+          if (hwSub.subjectStats) rawStats = hwSub.subjectStats;
+          if (hwSub.studentAnswers) studentAnswers = hwSub.studentAnswers;
+        }
+      }
+
+      const penalty = exam.penaltyRatio || 3;
+
+      const addStatItem = (sName, correct, wrong, blank, netVal, countVal) => {
+        if (!sName || sName === 'totalCorrect' || sName === 'totalWrong' || sName === 'totalBlank' || sName === 'totalNet') return;
+        const d = Number(correct) || 0;
+        const y = Number(wrong) || 0;
+        const b = Number(blank) || 0;
+        const net = netVal !== undefined && netVal !== null ? Number(netVal) : parseFloat((d - y / penalty).toFixed(2));
+        const totalQ = countVal || (d + y + b);
+        result[sName] = {
+          name: sName,
+          d,
+          y,
+          b,
+          net: parseFloat(net.toFixed(2)),
+          totalQ
+        };
+      };
+
+      if (Array.isArray(rawStats)) {
+        rawStats.forEach(item => {
+          if (item && item.name) {
+            addStatItem(item.name, item.correct ?? item.d, item.wrong ?? item.y, item.blank ?? item.b, item.net, item.count);
+          }
+        });
+      } else if (rawStats && typeof rawStats === 'object') {
+        const innerStats = rawStats.subjectStats || rawStats;
+        if (Array.isArray(innerStats)) {
+          innerStats.forEach(item => {
+            if (item && item.name) {
+              addStatItem(item.name, item.correct ?? item.d, item.wrong ?? item.y, item.blank ?? item.b, item.net, item.count);
+            }
+          });
+        } else {
+          Object.entries(innerStats).forEach(([sName, sData]) => {
+            if (typeof sData === 'object' && sData !== null) {
+              const actualName = sData.name || sName;
+              addStatItem(actualName, sData.correct ?? sData.d ?? sData.correctCount, sData.wrong ?? sData.y ?? sData.wrongCount, sData.blank ?? sData.b ?? sData.blankCount, sData.net, sData.count);
+            }
+          });
+        }
+      }
+
+      // Ensure all declared subjects (Türkçe, Matematik, Fen, vb.) are included
+      declaredSubjects.forEach(sub => {
+        const sName = typeof sub === 'string' ? sub : (sub.name || 'Genel');
+        if (!result[sName]) {
+          const subAnswers = studentAnswers?.[sName] || [];
+          const subKey = answerKey?.[sName] || [];
+          const qCount = Number(sub.count || sub.questionCount) || Math.max(subAnswers.length, subKey.length, 0);
+
+          if (subAnswers.length > 0 || subKey.length > 0) {
+            let d = 0, y = 0, b = 0;
+            const limit = Math.max(qCount, subAnswers.length, subKey.length);
+            for (let i = 0; i < limit; i++) {
+              const ans = subAnswers[i];
+              const correct = subKey[i];
+              if (!ans) b++;
+              else if (ans === correct) d++;
+              else y++;
+            }
+            const net = Math.max(0, parseFloat((d - y / penalty).toFixed(2)));
+            result[sName] = {
+              name: sName,
+              d,
+              y,
+              b,
+              net,
+              totalQ: limit
+            };
+          } else {
+            result[sName] = {
+              name: sName,
+              d: 0,
+              y: 0,
+              b: qCount,
+              net: 0,
+              totalQ: qCount
+            };
+          }
+        }
+      });
+
+      if (Object.keys(result).length === 0 && (exam.d || exam.y || exam.b || exam.net)) {
+        result['Genel Sınav'] = {
+          name: 'Genel Sınav',
+          d: exam.d || 0,
+          y: exam.y || 0,
+          b: exam.b || 0,
+          net: Number(exam.net) || 0,
+          totalQ: (exam.d || 0) + (exam.y || 0) + (exam.b || 0)
+        };
+      }
+    }
+
+    return result;
+  }, [studentId]);
+
   const overallStats = useMemo(() => {
     let totalD = 0, totalY = 0, totalB = 0, totalNet = 0, maxNet = 0;
     const subMap = {};
@@ -478,16 +623,17 @@ export default function StudentExamsPage() {
       const n = parseFloat(exam.net || 0);
       totalNet += n;
       if (n > maxNet) maxNet = n;
-      if (exam.type === 'mock' && exam.scores) {
-        Object.entries(exam.scores).forEach(([sName, sc]) => {
-          if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0, d: 0, y: 0, b: 0 };
-          subMap[sName].net += parseFloat(sc.net || 0);
-          subMap[sName].d += Number(sc.d) || 0;
-          subMap[sName].y += Number(sc.y) || 0;
-          subMap[sName].b += Number(sc.b) || 0;
-          subMap[sName].count++;
-        });
-      }
+
+      const examSubs = getExamSubjectScores(exam);
+      Object.entries(examSubs).forEach(([sName, sc]) => {
+        if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0, d: 0, y: 0, b: 0, totalQ: 0 };
+        subMap[sName].net += sc.net || 0;
+        subMap[sName].d += sc.d || 0;
+        subMap[sName].y += sc.y || 0;
+        subMap[sName].b += sc.b || 0;
+        subMap[sName].totalQ += sc.totalQ || (sc.d + sc.y + sc.b);
+        subMap[sName].count++;
+      });
     });
     const total = allExamsList.length;
     const totalQ = totalD + totalY + totalB;
@@ -509,7 +655,7 @@ export default function StudentExamsPage() {
       bookCount: assignedBooks.length,
       mockCount: studentMockExams.length
     };
-  }, [allExamsList, assignedBooks.length, studentMockExams.length]);
+  }, [allExamsList, assignedBooks.length, studentMockExams.length, getExamSubjectScores]);
 
   const examChartData = useMemo(() => {
     return allExamsList.slice(0, 15).map((exam, idx) => {
@@ -548,100 +694,31 @@ export default function StudentExamsPage() {
     const subMap = {};
 
     allExamsList.forEach(exam => {
-      // 1. If manual mock exam
-      if (exam.type === 'mock' && exam.scores) {
-        Object.entries(exam.scores).forEach(([sName, sc]) => {
-          if (!subMap[sName]) {
-            subMap[sName] = {
-              name: sName,
-              fullName: sName,
-              Doğru: 0,
-              Yanlış: 0,
-              Boş: 0,
-              net: 0,
-              totalQ: 0,
-              examCount: 0
-            };
-          }
-          const d = Number(sc.d) || 0;
-          const y = Number(sc.y) || 0;
-          const b = Number(sc.b) || 0;
-          const net = parseFloat(sc.net || (d - y / 4).toFixed(2));
-          subMap[sName].Doğru += d;
-          subMap[sName].Yanlış += y;
-          subMap[sName].Boş += b;
-          subMap[sName].net += net;
-          subMap[sName].totalQ += (d + y + b);
-          subMap[sName].examCount += 1;
-        });
-      }
-
-      // 2. If physical / book exam
-      if (exam.type === 'book') {
-        const primaryHw = exam.assignedHomeworks?.[0];
-        const subs = exam.subjects || primaryHw?.subjects || [];
-        
-        let foundSubjectStats = false;
-        if (exam.bestSubs && exam.bestSubs.length > 0) {
-          exam.bestSubs.forEach(sub => {
-            const stats = sub.subjectStats?.subjectStats || sub.subjectStats || sub.metadata?.subjectStats;
-            if (stats && typeof stats === 'object') {
-              Object.entries(stats).forEach(([sName, sData]) => {
-                if (sName === 'totalCorrect' || sName === 'totalWrong' || sName === 'totalBlank' || sName === 'totalNet') return;
-                foundSubjectStats = true;
-                if (!subMap[sName]) {
-                  subMap[sName] = {
-                    name: sName,
-                    fullName: sName,
-                    Doğru: 0,
-                    Yanlış: 0,
-                    Boş: 0,
-                    net: 0,
-                    totalQ: 0,
-                    examCount: 0
-                  };
-                }
-                const d = Number(sData.correct ?? sData.d ?? sData.correctCount) || 0;
-                const y = Number(sData.wrong ?? sData.y ?? sData.wrongCount) || 0;
-                const b = Number(sData.blank ?? sData.b ?? sData.blankCount) || 0;
-                const net = Number(sData.net ?? sData.score) || parseFloat((d - y / (exam.penaltyRatio || 3)).toFixed(2));
-                subMap[sName].Doğru += d;
-                subMap[sName].Yanlış += y;
-                subMap[sName].Boş += b;
-                subMap[sName].net += net;
-                subMap[sName].totalQ += (d + y + b);
-                subMap[sName].examCount += 1;
-              });
-            }
-          });
+      const examSubs = getExamSubjectScores(exam);
+      Object.entries(examSubs).forEach(([sName, sc]) => {
+        if (!subMap[sName]) {
+          subMap[sName] = {
+            name: sName,
+            fullName: sName,
+            Doğru: 0,
+            Yanlış: 0,
+            Boş: 0,
+            net: 0,
+            totalQ: 0,
+            examCount: 0
+          };
         }
-
-        if (!foundSubjectStats && (exam.d || exam.y || exam.b)) {
-          const sName = subs[0]?.name || exam.title || 'Genel Sınav';
-          if (!subMap[sName]) {
-            subMap[sName] = {
-              name: sName,
-              fullName: sName,
-              Doğru: 0,
-              Yanlış: 0,
-              Boş: 0,
-              net: 0,
-              totalQ: 0,
-              examCount: 0
-            };
-          }
-          subMap[sName].Doğru += exam.d || 0;
-          subMap[sName].Yanlış += exam.y || 0;
-          subMap[sName].Boş += exam.b || 0;
-          subMap[sName].net += Number(exam.net) || 0;
-          subMap[sName].totalQ += (exam.d + exam.y + exam.b);
-          subMap[sName].examCount += 1;
-        }
-      }
+        subMap[sName].Doğru += sc.d || 0;
+        subMap[sName].Yanlış += sc.y || 0;
+        subMap[sName].Boş += sc.b || 0;
+        subMap[sName].net += sc.net || 0;
+        subMap[sName].totalQ += sc.totalQ || (sc.d + sc.y + sc.b);
+        subMap[sName].examCount += 1;
+      });
     });
 
     return Object.values(subMap).map(item => {
-      const totalQ = item.Doğru + item.Yanlış + item.Boş;
+      const totalQ = item.totalQ || (item.Doğru + item.Yanlış + item.Boş);
       const rate = totalQ > 0 ? Math.round((item.Doğru / totalQ) * 100) : 0;
       const avgNet = item.examCount > 0 ? parseFloat((item.net / item.examCount).toFixed(2)) : 0;
       return {
@@ -652,7 +729,7 @@ export default function StudentExamsPage() {
         net: parseFloat(item.net.toFixed(2))
       };
     }).sort((a, b) => b.totalQ - a.totalQ);
-  }, [allExamsList]);
+  }, [allExamsList, getExamSubjectScores]);
 
   const activeExamChartData = examChartViewMode === 'exams' ? examChartData : examSubjectChartData;
 
@@ -667,13 +744,22 @@ export default function StudentExamsPage() {
   const trendData = useMemo(() => {
     return [...allExamsList].reverse().map(exam => {
       let net = exam.net;
-      if (chartMetric !== 'Toplam Net' && exam.type === 'mock' && exam.scores?.[chartMetric]) {
-        const sc = exam.scores[chartMetric];
-        net = sc.net !== undefined ? parseFloat(sc.net) : 0;
+      if (chartMetric !== 'Toplam Net') {
+        const examSubs = getExamSubjectScores(exam);
+        if (examSubs[chartMetric]) {
+          net = examSubs[chartMetric].net;
+        } else {
+          net = 0;
+        }
       }
-      return { name: exam.title?.length > 14 ? exam.title.slice(0, 12) + '…' : exam.title, fullName: exam.title, date: exam.date, Net: parseFloat(net?.toFixed(2) || 0) };
+      return { 
+        name: exam.title?.length > 14 ? exam.title.slice(0, 12) + '…' : exam.title, 
+        fullName: exam.title, 
+        date: exam.date, 
+        Net: parseFloat(net !== undefined && net !== null ? Number(net).toFixed(2) : 0) 
+      };
     });
-  }, [allExamsList, chartMetric]);
+  }, [allExamsList, chartMetric, getExamSubjectScores]);
 
   const [showClassifiedQuestions, setShowClassifiedQuestions] = useState(false);
 

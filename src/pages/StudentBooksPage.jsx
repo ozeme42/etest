@@ -340,6 +340,27 @@ export default function StudentBooksPage() {
     const subMap = {};
 
     assignedBooks.forEach(b => {
+      // Ensure all declared subjects in the book are initialized
+      if (b.subjects && Array.isArray(b.subjects)) {
+        b.subjects.forEach(s => {
+          const sName = typeof s === 'string' ? s : s?.name;
+          if (sName && sName.trim() !== '' && !subMap[sName]) {
+            subMap[sName] = {
+              id: `sub_${sName}`,
+              name: sName,
+              fullName: sName,
+              Doğru: 0,
+              Yanlış: 0,
+              Boş: 0,
+              totalQ: 0,
+              rate: 0,
+              totalSolvedTests: 0,
+              totalAssignedTests: Number(s.testCount) || 0
+            };
+          }
+        });
+      }
+
       const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(b.id));
 
       testsInBook.forEach(t => {
@@ -347,7 +368,7 @@ export default function StudentBooksPage() {
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
 
-        const subObj = (b.subjects || []).find(s => String(s.id) === String(t.subjectId)) || { name: t.name || 'Genel' };
+        const subObj = (b.subjects || []).find(s => String(s.id) === String(t.subjectId) || String(s.name) === String(t.subjectName)) || { name: t.name || 'Genel' };
         let subjectName = subObj.name || t.name || 'Genel';
         if (/^test\s*\d+/i.test(subjectName) && b.subjects && b.subjects.length > 0) {
           subjectName = b.subjects[0]?.name || subjectName;
