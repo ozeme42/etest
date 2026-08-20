@@ -16,14 +16,14 @@ import {
   Flag, RotateCcw, Cloud
 } from 'lucide-react';
 
-function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000) {
+function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
   if (totalCount <= 0) return [[]];
-  // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
-  if (isMobile || containerWidth < 680) {
+  // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
+  if (isSidePdf || isMobile || containerWidth < 760) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
+  // Geniş panelde (PDF yokken veya gizliyken) soru sayısına göre 2 eşit/dengeli sütuna böl:
   const perCol = Math.ceil(totalCount / 2);
   const col1 = [];
   const col2 = [];
@@ -269,9 +269,11 @@ export default function TrackedBookQuizRunner() {
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
   const isOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.questionType === 'acik_uclu';
 
+  const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
+
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(questionCount, isMobile, containerWidth);
-  }, [questionCount, isMobile, containerWidth]);
+    return getQuestionColumns(questionCount, isMobile, containerWidth, isSidePdf);
+  }, [questionCount, isMobile, containerWidth, isSidePdf]);
 
   // Timer calculation
   const perQuestionMins = Number(resolvedTest?.timePerQuestion || resolvedBook?.timePerQuestion) || 2;
@@ -931,10 +933,11 @@ export default function TrackedBookQuizRunner() {
         {/* PDF Panel */}
         {hasPdf && (
           <ResizablePdfPanel
-pdfUrl={pdfUrl}
+            pdfUrl={pdfUrl}
             title={resolvedTest.name || resolvedBook?.title || 'Kitap PDF'}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
+            defaultWidth="72%"
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
@@ -955,7 +958,7 @@ pdfUrl={pdfUrl}
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 960 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: !isSidePdf ? 960 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (

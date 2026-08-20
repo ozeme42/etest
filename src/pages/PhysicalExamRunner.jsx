@@ -18,14 +18,14 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000) {
+function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
   if (totalCount <= 0) return [[]];
-  // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
-  if (isMobile || containerWidth < 680) {
+  // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
+  if (isSidePdf || isMobile || containerWidth < 760) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
+  // Geniş panelde (PDF yokken veya gizliyken) soru sayısına göre 2 eşit/dengeli sütuna böl:
   const perCol = Math.ceil(totalCount / 2);
   const col1 = [];
   const col2 = [];
@@ -463,10 +463,12 @@ export default function PhysicalExamRunner() {
   const subjects = homework?.subjects || [];
   const activeSubject = subjects[activeSubjectIndex] || subjects[0];
 
+  const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
+
   const questionColumns = useMemo(() => {
     const totalCount = activeSubject?.count || 0;
-    return getQuestionColumns(totalCount, isMobile, containerWidth);
-  }, [activeSubject?.count, isMobile, containerWidth]);
+    return getQuestionColumns(totalCount, isMobile, containerWidth, isSidePdf);
+  }, [activeSubject?.count, isMobile, containerWidth, isSidePdf]);
 
   const activeSubjectMistakeStats = useMemo(() => {
     if (!activeSubject) return { classified: 0, totalTarget: 0, counts: {} };
@@ -1252,6 +1254,7 @@ export default function PhysicalExamRunner() {
             title={homework.title}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
+            defaultWidth="72%"
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
@@ -1272,7 +1275,16 @@ export default function PhysicalExamRunner() {
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: pdfMode === 'hidden' ? 1200 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+            <div style={{ 
+              maxWidth: !isSidePdf ? 1200 : undefined, 
+              width: '100%', 
+              margin: !isSidePdf ? '0 auto' : undefined, 
+              padding: isMobile ? '0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: isSidePdf ? '0.75rem' : '1rem', 
+              boxSizing: 'border-box' 
+            }}>
               
               {/* 1. SCORECARD HERO (AFTER SUBMISSION) */}
               {isSubmitted && results && (
