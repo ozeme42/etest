@@ -599,6 +599,20 @@ export async function dbGetSubmissions(studentId) {
     if (error) throw error;
     return data.map(s => {
       const meta = (s.answers || []).find(a => a.type === 'metadata');
+      const isManual = meta?.isManual !== undefined
+        ? Boolean(meta.isManual)
+        : Boolean(
+            meta?.sourceType === 'manual_test' ||
+            s.source_type === 'manual_test' ||
+            String(meta?.realId || s.id || '').startsWith('sub_manual') ||
+            String(meta?.realTestId || s.test_id || '').startsWith('sub_manual')
+          );
+      
+      const approvalStatus = meta?.approvalStatus || s.approval_status || (meta?.isApproved ? 'approved' : (s.is_evaluated_by_teacher ? 'approved' : (isManual ? 'pending' : 'approved')));
+      const isApproved = meta?.isApproved !== undefined
+        ? Boolean(meta.isApproved)
+        : Boolean(approvalStatus === 'approved' || s.is_evaluated_by_teacher || s.status === 'completed');
+
       return {
         id: meta?.realId || String(s.id),
         supabaseId: String(s.id),
@@ -615,8 +629,22 @@ export async function dbGetSubmissions(studentId) {
         subject: s.subject,
         title: s.title,
         testTitle: s.test_title || s.title,
-        status: meta?.status || s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
-        isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || s.status === 'completed' || s.status === 'evaluated'),
+        bookTitle: meta?.bookTitle || s.book_title || null,
+        unitTopic: meta?.unitTopic || null,
+        totalNet: meta?.totalNet !== undefined ? meta.totalNet : ((s.correct_count || 0) - ((s.wrong_count || 0) / 4)),
+        scorePercentage: meta?.scorePercentage || (s.score !== undefined ? s.score : null),
+        isManual: isManual,
+        sourceType: meta?.sourceType || (isManual ? 'manual_test' : null),
+        status: meta?.status || s.status || (isApproved ? 'completed' : 'pending_approval'),
+        approvalStatus: approvalStatus,
+        isApproved: isApproved,
+        submittedByRole: meta?.submittedByRole || null,
+        submittedByName: meta?.submittedByName || null,
+        approvedBy: meta?.approvedBy || null,
+        approvedByName: meta?.approvedByName || null,
+        approvedAt: meta?.approvedAt || null,
+        rejectedReason: meta?.rejectedReason || null,
+        isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || isApproved),
         teacherFeedback: s.teacher_feedback || null,
         totalScorePoints: s.total_score_points || null,
         maxPossibleScore: s.max_possible_score || null,
@@ -648,22 +676,26 @@ export async function dbSaveSubmission(sub) {
       return r ? { ...a, reason: r, mistakeReason: r } : a;
     });
 
+    const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test');
+    const approvalStatus = sub.approvalStatus || (sub.isApproved ? 'approved' : (sub.status === 'completed' ? 'approved' : (isManual ? 'pending' : 'approved')));
+    const isApproved = sub.isApproved !== undefined ? Boolean(sub.isApproved) : (approvalStatus === 'approved' || sub.status === 'completed');
+
     const payload = {
       id: toUUID(sub.id || `sub_${Date.now()}`),
       test_id: toUUID(sub.testId || 'test_1'),
       student_id: String(sub.studentId || 'u1'),
-      score: sub.score || 0,
+      score: sub.score || sub.scorePercentage || 0,
       correct_count: sub.correctCount || 0,
       wrong_count: sub.wrongCount || 0,
       empty_count: sub.emptyCount || sub.blankCount || 0,
       subject: sub.subject || 'Genel',
       title: sub.title || sub.testTitle || 'Sınav',
       test_title: sub.testTitle || sub.title || 'Sınav',
-      status: sub.status || 'pending_evaluation',
+      status: sub.status || (isApproved ? 'completed' : 'pending_approval'),
       teacher_feedback: sub.teacherFeedback || null,
       total_score_points: sub.totalScorePoints || null,
       max_possible_score: sub.maxPossibleScore || null,
-      is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
+      is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || isApproved),
       homework_id: (sub.hwId || sub.homeworkId) ? String(sub.hwId || sub.homeworkId) : null,
       answers: [
         ...cleanAnswers,
@@ -674,8 +706,22 @@ export async function dbSaveSubmission(sub) {
           hwId: sub.hwId || sub.homeworkId || null,
           bookTestId: sub.bookTestId || null,
           bookTestIds: sub.bookTestIds || [],
+          bookTitle: sub.bookTitle || null,
+          unitTopic: sub.unitTopic || null,
+          totalNet: sub.totalNet !== undefined ? sub.totalNet : null,
+          scorePercentage: sub.scorePercentage !== undefined ? sub.scorePercentage : null,
+          isManual: isManual,
+          sourceType: sub.sourceType || (isManual ? 'manual_test' : null),
+          approvalStatus: approvalStatus,
+          isApproved: isApproved,
+          submittedByRole: sub.submittedByRole || null,
+          submittedByName: sub.submittedByName || null,
+          approvedBy: sub.approvedBy || null,
+          approvedByName: sub.approvedByName || null,
+          approvedAt: sub.approvedAt || null,
+          rejectedReason: sub.rejectedReason || null,
           mistakeReasons: rawMistakeReasons,
-          status: sub.status || 'pending_evaluation'
+          status: sub.status || (isApproved ? 'completed' : 'pending_approval')
         }
       ],
       questions: sub.questions || []

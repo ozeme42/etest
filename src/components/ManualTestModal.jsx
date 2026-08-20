@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Check, Plus, BookOpen, CheckCircle2, AlertCircle,
   HelpCircle, Calendar, Sparkles, TrendingUp, ChevronDown, Layers
@@ -10,6 +10,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
+import { getTurkeyToday } from '../utils/dateHelpers';
 
 const MISTAKE_REASONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -24,7 +25,8 @@ export default function ManualTestModal({
   isOpen,
   onClose,
   initialData = null,
-  onSaved = null
+  onSaved = null,
+  studentId: propStudentId = null
 }) {
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
@@ -33,7 +35,7 @@ export default function ManualTestModal({
   const { homeworks = [], submitHomework } = useHomework();
   const { data: curData } = useCurriculum();
 
-  const studentId = initialData?.studentId || currentUser?.id;
+  const studentId = propStudentId || initialData?.studentId || currentUser?.id;
 
   // Selected entities
   const [selectedBookId, setSelectedBookId] = useState('');
@@ -46,18 +48,21 @@ export default function ManualTestModal({
   const [customSubject, setCustomSubject] = useState('');
   const [customUnitTopic, setCustomUnitTopic] = useState('');
   const [customTestName, setCustomTestName] = useState('');
-
   // Scores
   const [totalQuestions, setTotalQuestions] = useState(20);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [emptyCount, setEmptyCount] = useState(0);
   const [penaltyRatio, setPenaltyRatio] = useState('4'); // '4' for YKS, '3' for LGS, '0' for None
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getTurkeyToday());
 
   // Mistake reasons map: { 1: "⚡ İşlem Hatası", 2: "⚠️ Dikkat Kaybı" }
   const [mistakeReasons, setMistakeReasons] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Guard against re-renders wiping user-entered input while modal is open
+  const prevIsOpenRef = useRef(false);
+  const prevDataKeyRef = useRef(null);
 
   // Available followed books
   const availableBooks = useMemo(() => {
@@ -103,11 +108,31 @@ export default function ManualTestModal({
     });
   }, [selectedBook, bookTests, selectedSubject, selectedTopicId]);
 
-  // Init when modal opens or initialData changes
+  // Init when modal opens or target test data changes
   useEffect(() => {
-    if (!isOpen) return;
+    const dataKey = initialData ? (initialData.submissionId || initialData.id || initialData.testId || initialData.bookId || '__init__') : '__null__';
+    const justOpened = isOpen && !prevIsOpenRef.current;
+    const dataChanged = isOpen && dataKey !== prevDataKeyRef.current;
 
-    if (initialData) {
+    prevIsOpenRef.current = isOpen;
+    prevDataKeyRef.current = dataKey;
+
+    if (!isOpen) return;
+    if (!justOpened && !dataChanged) return;
+
+    const hasSpecificTestData = Boolean(
+      initialData && (
+        initialData.submissionId ||
+        initialData.id ||
+        initialData.bookId ||
+        initialData.testId ||
+        initialData.subject ||
+        initialData.totalQuestions ||
+        initialData.correctCount
+      )
+    );
+
+    if (hasSpecificTestData) {
       setSelectedBookId(initialData.bookId || '__custom__');
       setSelectedSubject(initialData.subject || '');
       setSelectedTopicId(initialData.topicId || '');
@@ -130,20 +155,21 @@ export default function ManualTestModal({
       setDate(initialData.date || new Date().toISOString().split('T')[0]);
       setMistakeReasons(initialData.mistakeReasons || {});
     } else {
-      // Default reset
+      // Default reset for fresh entry
       if (availableBooks.length > 0) {
         const firstB = availableBooks[0];
         setSelectedBookId(firstB.id);
         const firstSubj = (firstB.subjects || [])[0]?.name || '';
         setSelectedSubject(firstSubj);
+        setCustomSubject(firstSubj);
       } else {
         setSelectedBookId('__custom__');
-        setSelectedSubject('Matematik');
+        setSelectedSubject('');
+        setCustomSubject('');
       }
       setSelectedTopicId('');
       setSelectedTestId('');
       setCustomBookTitle('');
-      setCustomSubject('');
       setCustomUnitTopic('');
       setCustomTestName('');
       setTotalQuestions(20);
@@ -165,8 +191,12 @@ export default function ManualTestModal({
     if (bId !== '__custom__') {
       const bObj = books.find(b => String(b.id) === String(bId) || toUUID(b.id) === toUUID(bId));
       if (bObj && bObj.subjects && bObj.subjects.length > 0) {
-        setSelectedSubject(bObj.subjects[0].name);
+        const firstSub = bObj.subjects[0].name;
+        setSelectedSubject(firstSub);
+        setCustomSubject(firstSub);
       }
+    } else {
+      setCustomSubject(selectedSubject || '');
     }
   };
 
@@ -350,10 +380,9 @@ export default function ManualTestModal({
         await addSubmission(newSubmission);
       }
 
-      // Check if linked to an assigned homework (only submit if approved)
+      // Check if linked to an assigned homework (only submit if approved and specific test is assigned)
       const targetHw = (homeworks || []).find(h => 
-        (testId && (String(h.id) === String(testId) || (h.tests && h.tests.includes(testId)))) ||
-        (bookId && String(h.bookId) === String(bookId))
+        testId && (String(h.id) === String(testId) || (Array.isArray(h.tests) && h.tests.includes(testId)))
       );
       if (targetHw && isApproved && typeof submitHomework === 'function') {
         try {
@@ -597,10 +626,10 @@ export default function ManualTestModal({
               ) : (
                 <input
                   type="text"
-                  value={selectedSubject || customSubject}
+                  value={customSubject}
                   onChange={e => {
-                    setSelectedSubject(e.target.value);
                     setCustomSubject(e.target.value);
+                    setSelectedSubject(e.target.value);
                   }}
                   placeholder="Örn: Matematik"
                   style={{

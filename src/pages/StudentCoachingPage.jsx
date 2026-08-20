@@ -20,13 +20,14 @@ import { toUUID } from '../services/supabaseService';
 import ProgramCenter from '../components/ProgramCenter';
 import CoachingReportModal from '../components/CoachingReportModal';
 import { computeStudentAnalyticsData } from '../utils/testResolver';
+import { getTurkeyToday, getTurkeyYMD } from '../utils/dateHelpers';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => getTurkeyToday();
 const DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const DAY_LONG = { 'Pzt': 'Pazartesi', 'Sal': 'Salı', 'Çrş': 'Çarşamba', 'Prş': 'Perşembe', 'Cum': 'Cuma', 'Cts': 'Cumartesi', 'Paz': 'Pazar' };
 const SUBJECTS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Genel Tekrar', 'Soru Çözümü', 'Deneme Sınavı', 'Paragraf / Problem'];
@@ -1646,12 +1647,12 @@ export default function StudentCoachingPage() {
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginRight: 4 }}>
                         📚 En Çok Çözülen Dersler:
                       </span>
-                      {topSubjs.map(([sName, stat]) => {
+                      {topSubjs.map(([sName, stat], idx) => {
                         const sTotalQ = stat.d + stat.y + stat.b;
                         const sRate = sTotalQ > 0 ? Math.round((stat.d / sTotalQ) * 100) : 0;
                         return (
                           <div
-                            key={sName}
+                            key={`${sName}_${idx}`}
                             style={{
                               background: 'white',
                               border: '1px solid #cbd5e1',
@@ -2666,12 +2667,12 @@ export default function StudentCoachingPage() {
                 <div>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    {SUBJECTS.map(subName => {
+                    {SUBJECTS.map((subName, idx) => {
                       const isSelected = (newLog.revision || '').includes(subName);
                       return (
                         <button
                           type="button"
-                          key={subName}
+                          key={`${subName}_${idx}`}
                           onClick={() => {
                             setNewLog(p => {
                               const curr = p.revision ? p.revision.trim() : '';
@@ -3386,8 +3387,8 @@ export default function StudentCoachingPage() {
                       {/* Ders bazlı fiziki deneme detayları */}
                       {s.scores && Object.keys(s.scores).length > 0 && (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, pt: 4, borderTop: '1px border-dashed #e2e8f0' }}>
-                          {Object.entries(s.scores).map(([subName, sc]) => (
-                            <div key={subName} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'white', border: '1px solid #e2e8f0', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {Object.entries(s.scores).map(([subName, sc], idx) => (
+                            <div key={`${subName}_${idx}`} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'white', border: '1px solid #e2e8f0', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span style={{ color: '#64748b', fontWeight: 800 }}>{subName}:</span>
                               <span style={{ color: '#7c3aed', fontWeight: 900 }}>{sc.net} Net</span>
                               <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>({sc.correct || 0}D {sc.wrong || 0}Y {sc.empty || 0}B)</span>
@@ -3489,14 +3490,14 @@ export default function StudentCoachingPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allSubjectsForTable.map(subject => {
+                        {allSubjectsForTable.map((subject, idx) => {
                           const isCustom = !templateSubjects.includes(subject);
                           const subGrades = schoolGrades.filter(g => g.subject === subject);
                           const subScores = subGrades.map(g => parseFloat(g.score)).filter(s => !isNaN(s));
                           const subAvg = subScores.length > 0 ? (subScores.reduce((a, b) => a + b, 0) / subScores.length).toFixed(1) : '—';
 
                           return (
-                            <tr key={subject} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <tr key={`${subject}_${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                   {isCustom && <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#b45309', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>Seçmeli</span>}
@@ -3782,13 +3783,13 @@ export default function StudentCoachingPage() {
                           >
                             🌐 Tüm Dersler ({otherHomeworkSubmissions.length})
                           </button>
-                          {availableSubjects.map(([subj, count]) => {
+                          {availableSubjects.map(([subj, count], idx) => {
                             const isSel = hwSubjectFilter === subj;
                             const col = SUBJECT_COLORS[subj] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subj] || '📚';
                             return (
                               <button
-                                key={subj}
+                                key={`${subj}_${idx}`}
                                 type="button"
                                 onClick={() => setHwSubjectFilter(isSel ? 'all' : subj)}
                                 style={{
@@ -3813,7 +3814,7 @@ export default function StudentCoachingPage() {
                       {/* Tarihsel Hızlı Özet Şeridi (Sadece Tarih Modunda) */}
                       {hwGroupByMode === 'date' && dateEntries.length > 0 && (
                         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                          {dateEntries.slice(0, 10).map(([dStr, tests]) => {
+                          {dateEntries.slice(0, 10).map(([dStr, tests], idx) => {
                             const qCount = tests.reduce((a, b) => a + (b.correctCount || 0) + (b.wrongCount || 0) + (b.emptyCount || 0), 0);
                             const dCount = tests.reduce((a, b) => a + (b.correctCount || 0), 0);
                             const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
@@ -3821,7 +3822,7 @@ export default function StudentCoachingPage() {
 
                             return (
                               <div
-                                key={dStr}
+                                key={`${dStr}_${idx}`}
                                 onClick={() => setExpandedHwDates(prev => ({ ...prev, [dStr]: true }))}
                                 style={{
                                   background: isBugun ? '#f0fdf4' : '#ffffff',
@@ -3913,7 +3914,7 @@ export default function StudentCoachingPage() {
                           </div>
 
                           {/* ── 1. DERSLERE GÖRE GRUPLAMA ── */}
-                          {hwGroupByMode === 'subject' && currentEntries.map(([subjName, tests]) => {
+                          {hwGroupByMode === 'subject' && currentEntries.map(([subjName, tests], idx) => {
                             const isOpen = Boolean(expandedHwSubjects[subjName]);
                             const col = SUBJECT_COLORS[subjName] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subjName] || '📚';
@@ -3925,7 +3926,7 @@ export default function StudentCoachingPage() {
                             const grpRate = grpTotalQ > 0 ? Math.round((grpD / grpTotalQ) * 100) : 0;
 
                             return (
-                              <div key={subjName} style={{ background: 'white', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                              <div key={`${subjName}_${idx}`} style={{ background: 'white', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                                 <div
                                   onClick={() => setExpandedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
                                   style={{
@@ -4254,7 +4255,7 @@ export default function StudentCoachingPage() {
                             const sub = newManualMock.subjects[subName];
                             const total = Object.keys(newManualMock.subjects).length;
                             return (
-                              <tr key={subName} style={{ borderBottom: idx < total - 1 ? '1px solid #f1f5f9' : 'none', background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
+                              <tr key={`${subName}_${idx}`} style={{ borderBottom: idx < total - 1 ? '1px solid #f1f5f9' : 'none', background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
                                 <td style={{ padding: '0.55rem 0.75rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap' }}>{subName}</td>
                                 <td style={{ padding: '0.35rem', textAlign: 'center' }}>
                                   <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: '#bbf7d0' }}
@@ -4298,7 +4299,7 @@ export default function StudentCoachingPage() {
                         <option value="">— Ders seç veya yaz —</option>
                         {['Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce','Din Kültürü','Yabancı Dil','Tarih','Coğrafya','Fizik','Kimya','Biyoloji','Edebiyat','Geometri','TYT Türkçe','TYT Matematik','TYT Fen','TYT Sosyal']
                           .filter(s => !newManualMock.subjects[s])
-                          .map(s => <option key={s} value={s}>{s}</option>)
+                          .map((s, idx) => <option key={`${s}_${idx}`} value={s}>{s}</option>)
                         }
                       </select>
                       <input

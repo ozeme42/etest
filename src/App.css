@@ -49,6 +49,13 @@
 }
 
 /* --- Sidebar --- */
+body[data-ssp-fullscreen="true"] .sidebar,
+html.ssp-in-fullscreen .sidebar {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .sidebar {
   width: 270px;
   height: 100vh;

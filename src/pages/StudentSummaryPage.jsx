@@ -5,222 +5,212 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import SummaryHtmlViewer from '../components/summary/SummaryHtmlViewer';
-import { 
-  BookOpen, Search, ChevronRight, ChevronLeft, ChevronDown, 
-  Sparkles, Layers, Printer, Maximize2, Minimize2, ZoomIn, ZoomOut,
-  FolderOpen, FileText, CheckCircle2, Bookmark, Share2, Menu, X, ArrowLeft,
-  GraduationCap, PlayCircle, HelpCircle, ArrowRight, BookMarked, Compass, ListFilter
+import {
+  BookOpen, Search, ChevronRight, ChevronLeft, ChevronDown,
+  Printer, ZoomIn, ZoomOut, FileText, CheckCircle2,
+  ArrowLeft, ArrowRight, BookMarked, X,
+  LayoutGrid, Grid3X3, Grid2X2, Columns, List, Sparkles,
+  ChevronsUpDown, Check, Award, Maximize2, Minimize2
 } from 'lucide-react';
 import './StudentSummaryPage.css';
 
-// Subject color theme helper
-const getSubjectTheme = (subjectName = '', isDark = false) => {
-  const s = String(subjectName || '').toLowerCase();
-  if (s.includes('matematik') || s.includes('geometri')) {
-    return {
-      icon: '📐',
-      color: '#3b82f6',
-      gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-      bg: isDark ? 'rgba(37, 99, 235, 0.16)' : '#f0f7ff',
-      border: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
-      text: isDark ? '#93c5fd' : '#1d4ed8',
-      badgeBg: isDark ? 'rgba(37, 99, 235, 0.25)' : '#dbeafe',
-      name: 'Matematik'
-    };
-  }
-  if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) {
-    return {
-      icon: '🔬',
-      color: '#10b981',
-      gradient: 'linear-gradient(135deg, #059669, #10b981)',
-      bg: isDark ? 'rgba(16, 185, 129, 0.16)' : '#f0fdf4',
-      border: isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0',
-      text: isDark ? '#6ee7b7' : '#15803d',
-      badgeBg: isDark ? 'rgba(16, 185, 129, 0.25)' : '#dcfce7',
-      name: 'Fen Bilimleri'
-    };
-  }
-  if (s.includes('türkçe') || s.includes('edebiyat') || s.includes('dil')) {
-    return {
-      icon: '📖',
-      color: '#f43f5e',
-      gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)',
-      bg: isDark ? 'rgba(244, 63, 94, 0.16)' : '#fff1f2',
-      border: isDark ? 'rgba(244, 63, 94, 0.35)' : '#fecdd3',
-      text: isDark ? '#fda4af' : '#be123c',
-      badgeBg: isDark ? 'rgba(244, 63, 94, 0.25)' : '#ffe4e6',
-      name: 'Türkçe'
-    };
-  }
-  if (s.includes('inkılap') || s.includes('tarih') || s.includes('sosyal') || s.includes('coğrafya')) {
-    return {
-      icon: '🏛️',
-      color: '#f59e0b',
-      gradient: 'linear-gradient(135deg, #d97706, #f59e0b)',
-      bg: isDark ? 'rgba(245, 158, 11, 0.16)' : '#fffbeb',
-      border: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
-      text: isDark ? '#fcd34d' : '#b45309',
-      badgeBg: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7',
-      name: 'Sosyal Bilgiler'
-    };
-  }
-  if (s.includes('ingilizce') || s.includes('yabancı') || s.includes('almanca')) {
-    return {
-      icon: '🌍',
-      color: '#8b5cf6',
-      gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)',
-      bg: isDark ? 'rgba(139, 92, 246, 0.16)' : '#faf5ff',
-      border: isDark ? 'rgba(139, 92, 246, 0.35)' : '#e9d5ff',
-      text: isDark ? '#c4b5fd' : '#6d28d9',
-      badgeBg: isDark ? 'rgba(139, 92, 246, 0.25)' : '#f3e8ff',
-      name: 'İngilizce'
-    };
-  }
-  if (s.includes('din') || s.includes('ahlak')) {
-    return {
-      icon: '🕌',
-      color: '#06b6d4',
-      gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)',
-      bg: isDark ? 'rgba(6, 182, 212, 0.16)' : '#ecfeff',
-      border: isDark ? 'rgba(6, 182, 212, 0.35)' : '#a5f3fc',
-      text: isDark ? '#67e8f9' : '#0e7490',
-      badgeBg: isDark ? 'rgba(6, 182, 212, 0.25)' : '#cffafe',
-      name: 'Din Kültürü'
-    };
-  }
+const UNIT_PALETTES = [
+  // 1. Vibrant Indigo / Electric Blue
+  { color: '#4f46e5', gradient: 'linear-gradient(135deg, #4338ca, #6366f1)', lightBg: '#eef2ff', darkBg: 'rgba(79,70,229,0.18)', lightBorder: '#c7d2fe', darkBorder: 'rgba(99,102,241,0.38)', lightText: '#3730a3', darkText: '#a5b4fc', glow: 'rgba(99,102,241,0.28)' },
+  // 2. Emerald Green / Mint
+  { color: '#059669', gradient: 'linear-gradient(135deg, #047857, #10b981)', lightBg: '#ecfdf5', darkBg: 'rgba(16,185,129,0.18)', lightBorder: '#a7f3d0', darkBorder: 'rgba(16,185,129,0.38)', lightText: '#065f46', darkText: '#6ee7b7', glow: 'rgba(16,185,129,0.28)' },
+  // 3. Rose Red / Ruby
+  { color: '#e11d48', gradient: 'linear-gradient(135deg, #be123c, #f43f5e)', lightBg: '#fff1f2', darkBg: 'rgba(244,63,94,0.18)', lightBorder: '#fecdd3', darkBorder: 'rgba(244,63,94,0.38)', lightText: '#9f1239', darkText: '#fda4af', glow: 'rgba(244,63,94,0.28)' },
+  // 4. Amber Gold / Warm Sunshine
+  { color: '#d97706', gradient: 'linear-gradient(135deg, #b45309, #f59e0b)', lightBg: '#fffbeb', darkBg: 'rgba(245,158,11,0.18)', lightBorder: '#fde68a', darkBorder: 'rgba(245,158,11,0.38)', lightText: '#92400e', darkText: '#fcd34d', glow: 'rgba(245,158,11,0.28)' },
+  // 5. Electric Purple / Violet
+  { color: '#7c3aed', gradient: 'linear-gradient(135deg, #6d28d9, #8b5cf6)', lightBg: '#faf5ff', darkBg: 'rgba(139,92,246,0.18)', lightBorder: '#ddd6fe', darkBorder: 'rgba(139,92,246,0.38)', lightText: '#5b21b6', darkText: '#c4b5fd', glow: 'rgba(139,92,246,0.28)' },
+  // 6. Deep Cyan / Laguna
+  { color: '#0891b2', gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)', lightBg: '#ecfeff', darkBg: 'rgba(6,182,212,0.18)', lightBorder: '#a5f3fc', darkBorder: 'rgba(6,182,212,0.38)', lightText: '#155e75', darkText: '#67e8f9', glow: 'rgba(6,182,212,0.28)' },
+  // 7. Vivid Pink / Magenta
+  { color: '#db2777', gradient: 'linear-gradient(135deg, #be185d, #ec4899)', lightBg: '#fdf2f8', darkBg: 'rgba(236,72,153,0.18)', lightBorder: '#fbcfe8', darkBorder: 'rgba(236,72,153,0.38)', lightText: '#9d174d', darkText: '#f472b6', glow: 'rgba(236,72,153,0.28)' },
+  // 8. Azure / Sky Blue
+  { color: '#0284c7', gradient: 'linear-gradient(135deg, #0369a1, #38bdf8)', lightBg: '#f0f9ff', darkBg: 'rgba(14,165,233,0.18)', lightBorder: '#bae6fd', darkBorder: 'rgba(56,189,248,0.38)', lightText: '#075985', darkText: '#7dd3fc', glow: 'rgba(14,165,233,0.28)' },
+  // 9. Tangerine / Coral Orange
+  { color: '#ea580c', gradient: 'linear-gradient(135deg, #c2410c, #fb923c)', lightBg: '#fff7ed', darkBg: 'rgba(249,115,22,0.18)', lightBorder: '#fed7aa', darkBorder: 'rgba(251,146,60,0.38)', lightText: '#9a3412', darkText: '#fdba74', glow: 'rgba(249,115,22,0.28)' },
+  // 10. Teal / Turquoise
+  { color: '#0d9488', gradient: 'linear-gradient(135deg, #0f766e, #14b8a6)', lightBg: '#f0fdfa', darkBg: 'rgba(20,184,166,0.18)', lightBorder: '#99f6e4', darkBorder: 'rgba(20,184,166,0.38)', lightText: '#115e59', darkText: '#5eead4', glow: 'rgba(20,184,166,0.28)' },
+  // 11. Fuchsia / Orchid
+  { color: '#c026d3', gradient: 'linear-gradient(135deg, #a21caf, #e879f9)', lightBg: '#fdf4ff', darkBg: 'rgba(217,70,239,0.18)', lightBorder: '#f5d0fe', darkBorder: 'rgba(232,121,249,0.38)', lightText: '#86198f', darkText: '#f0abfc', glow: 'rgba(217,70,239,0.28)' },
+  // 12. Lime / Apple Green
+  { color: '#65a30d', gradient: 'linear-gradient(135deg, #4d7c0f, #84cc16)', lightBg: '#f7fee7', darkBg: 'rgba(132,204,22,0.18)', lightBorder: '#d9f99d', darkBorder: 'rgba(132,204,22,0.38)', lightText: '#3f6212', darkText: '#bef264', glow: 'rgba(132,204,22,0.28)' },
+];
+
+const getUnitTheme = (index, unitNum, isDark) => {
+  const palIndex = (typeof unitNum === 'number' && unitNum > 0 ? (unitNum - 1) : index) % UNIT_PALETTES.length;
+  const p = UNIT_PALETTES[Math.abs(palIndex)];
   return {
-    icon: '📚',
-    color: '#6366f1',
-    gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-    bg: isDark ? 'rgba(99, 102, 241, 0.16)' : '#f8fafc',
-    border: isDark ? 'rgba(99, 102, 241, 0.35)' : '#cbd5e1',
-    text: isDark ? '#a5b4fc' : '#334155',
-    badgeBg: isDark ? 'rgba(99, 102, 241, 0.25)' : '#f1f5f9',
-    name: 'Ders'
+    color: p.color,
+    gradient: p.gradient,
+    bg: isDark ? p.darkBg : p.lightBg,
+    border: isDark ? p.darkBorder : p.lightBorder,
+    text: isDark ? p.darkText : p.lightText,
+    glow: p.glow
   };
 };
 
-// Row theme palettes for color variety in topic list
-const getRowPalettes = (isDark = false) => [
-  { bg: isDark ? 'rgba(37, 99, 235, 0.08)' : '#f0f7ff', border: isDark ? 'rgba(59, 130, 246, 0.25)' : '#bfdbfe', accent: '#3b82f6', text: isDark ? '#93c5fd' : '#1d4ed8', badgeBg: isDark ? 'rgba(37, 99, 235, 0.2)' : '#dbeafe' },
-  { bg: isDark ? 'rgba(244, 63, 94, 0.08)' : '#fff1f2', border: isDark ? 'rgba(244, 63, 94, 0.25)' : '#fecdd3', accent: '#f43f5e', text: isDark ? '#fda4af' : '#be123c', badgeBg: isDark ? 'rgba(244, 63, 94, 0.2)' : '#ffe4e6' },
-  { bg: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.25)' : '#bbf7d0', accent: '#10b981', text: isDark ? '#6ee7b7' : '#15803d', badgeBg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7' },
-  { bg: isDark ? 'rgba(139, 92, 246, 0.08)' : '#faf5ff', border: isDark ? 'rgba(139, 92, 246, 0.25)' : '#e9d5ff', accent: '#8b5cf6', text: isDark ? '#c4b5fd' : '#6d28d9', badgeBg: isDark ? 'rgba(139, 92, 246, 0.2)' : '#f3e8ff' },
-  { bg: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffbeb', border: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fde68a', accent: '#f59e0b', text: isDark ? '#fcd34d' : '#b45309', badgeBg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7' },
-  { bg: isDark ? 'rgba(6, 182, 212, 0.08)' : '#ecfeff', border: isDark ? 'rgba(6, 182, 212, 0.25)' : '#a5f3fc', accent: '#06b6d4', text: isDark ? '#67e8f9' : '#0e7490', badgeBg: isDark ? 'rgba(6, 182, 212, 0.2)' : '#cffafe' },
-];
-
-const getRowTheme = (subjectName, idx, isDark = false) => {
-  const palettes = getRowPalettes(isDark);
-  if (subjectName) {
-    const s = String(subjectName).toLowerCase();
-    if (s.includes('matematik')) return palettes[0];
-    if (s.includes('türkçe')) return palettes[1];
-    if (s.includes('fen')) return palettes[2];
-    if (s.includes('ingilizce')) return palettes[3];
-    if (s.includes('sosyal') || s.includes('inkılap')) return palettes[4];
-    if (s.includes('din')) return palettes[5];
-  }
-  return palettes[idx % palettes.length];
+const getSubjectTheme = (subjectName, isDark) => {
+  const s = String(subjectName || '').toLowerCase();
+  if (s.includes('matematik') || s.includes('geometri')) return { icon: '📐', color: '#3b82f6', gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', bg: isDark ? 'rgba(37,99,235,0.18)' : '#eff6ff', border: isDark ? 'rgba(59,130,246,0.38)' : '#bfdbfe', text: isDark ? '#93c5fd' : '#1d4ed8', glow: 'rgba(59,130,246,0.25)' };
+  if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return { icon: '🔬', color: '#10b981', gradient: 'linear-gradient(135deg, #059669, #10b981)', bg: isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5', border: isDark ? 'rgba(16,185,129,0.38)' : '#bbf7d0', text: isDark ? '#6ee7b7' : '#15803d', glow: 'rgba(16,185,129,0.25)' };
+  if (s.includes('turkce') || s.includes('edebiyat') || s.includes('dil')) return { icon: '📖', color: '#f43f5e', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', bg: isDark ? 'rgba(244,63,94,0.18)' : '#fff1f2', border: isDark ? 'rgba(244,63,94,0.38)' : '#fecdd3', text: isDark ? '#fda4af' : '#be123c', glow: 'rgba(244,63,94,0.25)' };
+  if (s.includes('tarih') || s.includes('sosyal') || s.includes('cografya') || s.includes('inkilap')) return { icon: '🏛️', color: '#f59e0b', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', bg: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb', border: isDark ? 'rgba(245,158,11,0.38)' : '#fde68a', text: isDark ? '#fcd34d' : '#b45309', glow: 'rgba(245,158,11,0.25)' };
+  if (s.includes('ingilizce') || s.includes('yabanci') || s.includes('almanca')) return { icon: '🌍', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', bg: isDark ? 'rgba(139,92,246,0.18)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.38)' : '#e9d5ff', text: isDark ? '#c4b5fd' : '#6d28d9', glow: 'rgba(139,92,246,0.25)' };
+  if (s.includes('din') || s.includes('ahlak')) return { icon: '🕌', color: '#06b6d4', gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', bg: isDark ? 'rgba(6,182,212,0.18)' : '#ecfeff', border: isDark ? 'rgba(6,182,212,0.38)' : '#a5f3fc', text: isDark ? '#67e8f9' : '#0e7490', glow: 'rgba(6,182,212,0.25)' };
+  return { icon: '📚', color: '#6366f1', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', bg: isDark ? 'rgba(99,102,241,0.18)' : '#f8fafc', border: isDark ? 'rgba(99,102,241,0.38)' : '#cbd5e1', text: isDark ? '#a5b4fc' : '#334155', glow: 'rgba(99,102,241,0.25)' };
 };
 
-// Natural alphanumeric order extractor and sorter
-const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
+const getSubjectIcon = (subjectName) => {
+  const s = String(subjectName || '').toLowerCase();
+  if (s.includes('matematik') || s.includes('geometri')) return '📐';
+  if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return '🔬';
+  if (s.includes('turkce') || s.includes('edebiyat') || s.includes('dil')) return '📖';
+  if (s.includes('tarih') || s.includes('sosyal') || s.includes('cografya') || s.includes('inkilap')) return '🏛️';
+  if (s.includes('ingilizce') || s.includes('yabanci') || s.includes('almanca')) return '🌍';
+  if (s.includes('din') || s.includes('ahlak')) return '🕌';
+  return '📚';
+};
+
+const extractUnitOrderNumber = (unit, fallbackIndex) => {
   if (!unit) return fallbackIndex;
   if (typeof unit.order === 'number') return unit.order;
   if (typeof unit.sortOrder === 'number') return unit.sortOrder;
   if (typeof unit.unitNumber === 'number') return unit.unitNumber;
-
   const raw = String(unit.name || '').trim();
   const match = raw.match(/(\d+)/);
   if (match) return parseInt(match[1], 10);
   return fallbackIndex;
 };
 
-const sortUnitsNaturally = (unitList = []) => {
-  return [...unitList].sort((a, b) => {
+const sortUnitsNaturally = (unitList) =>
+  [...unitList].sort((a, b) => {
     const numA = extractUnitOrderNumber(a, 999);
     const numB = extractUnitOrderNumber(b, 999);
     if (numA !== numB) return numA - numB;
     return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
   });
-};
 
-const sortTopicsNaturally = (topicList = []) => {
-  return [...topicList].sort((a, b) => {
+const sortTopicsNaturally = (topicList) =>
+  [...topicList].sort((a, b) => {
     if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
     const numA = (String(a.name || '').match(/(\d+)/) || [])[1];
     const numB = (String(b.name || '').match(/(\d+)/) || [])[1];
-    if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) {
-      return parseInt(numA, 10) - parseInt(numB, 10);
-    }
+    if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) return parseInt(numA, 10) - parseInt(numB, 10);
     return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
   });
-};
 
 const getUnitDetails = (unit, index) => {
   const unitNum = extractUnitOrderNumber(unit, index + 1);
-  const raw = String(unit?.name || '').trim();
-
-  const isGeneric = !raw || 
-    /^\d+$/.test(raw) || 
-    /^(\d+)\.\s*ünite$/i.test(raw) || 
-    /^ünite\s*(\d+)$/i.test(raw) || 
-    /^ünite\s*-\s*(\d+)$/i.test(raw);
-
+  const raw = String(unit && unit.name ? unit.name : '').trim();
+  const isGeneric = !raw || /^\d+$/.test(raw) || /^(\d+)\.\s*unite$/i.test(raw) || /^unite\s*(\d+)$/i.test(raw);
   let cleanTitle = '';
   if (!isGeneric) {
-    cleanTitle = raw
-      .replace(/^(\d+\.\s*ünite|\d+\s*-\s*ünite|ünite\s*\d+)[:\s\-]*/i, '')
-      .replace(/^(\d+)[\.\-]\s*/, '')
-      .trim();
+    cleanTitle = raw.replace(/^(\d+\.\s*unite|\d+\s*-\s*unite|unite\s*\d+)[:\s\-]*/i, '').replace(/^(\d+)[\.\-]\s*/, '').trim();
   }
-
-  const fullDisplayName = cleanTitle 
-    ? `${unitNum}. Ünite: ${cleanTitle}` 
-    : `${unitNum}. Ünite`;
-
-  return {
-    unitNum,
-    cleanTitle,
-    fullDisplayName,
-    badgeText: `${unitNum}. ÜNİTE`
-  };
+  const fullDisplayName = cleanTitle ? (unitNum + '. Ünite: ' + cleanTitle) : (unitNum + '. Ünite');
+  return { unitNum, cleanTitle, fullDisplayName, badgeText: (unitNum + '. ÜNİTE') };
 };
 
 export default function StudentSummaryPage() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { data: curriculumData } = useCurriculum();
-  const { summaries, getSummary, hasSummary } = useSummaries();
+  const { summaries, getSummary, hasSummary, isSummaryRead, toggleSummaryRead } = useSummaries();
   const { currentUser } = useAuth();
 
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
   const [activeReadingTarget, setActiveReadingTarget] = useState(null);
-
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'has_summary' | 'unread' | 'completed'
+  const [colLayout, setColLayout] = useState('auto'); // 'auto' | '2' | '3' | '4' | '1'
   const [fontSize, setFontSize] = useState(16);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPageFullscreen, setIsPageFullscreen] = useState(false);
+  const [openUnitIds, setOpenUnitIds] = useState(new Set());
+
+  const isCurrentTargetRead = useMemo(() => {
+    if (!activeReadingTarget) return false;
+    return isSummaryRead(activeReadingTarget.type, activeReadingTarget.id, currentUser && currentUser.id);
+  }, [activeReadingTarget, isSummaryRead, currentUser]);
+
+  const handleToggleCurrentRead = () => {
+    if (!activeReadingTarget) return;
+    toggleSummaryRead(activeReadingTarget.type, activeReadingTarget.id, currentUser && currentUser.id);
+  };
+
+  const togglePageFullscreen = () => {
+    if (!isPageFullscreen) {
+      setIsPageFullscreen(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch (err) {}
+    } else {
+      setIsPageFullscreen(false);
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch (err) {}
+    }
+  };
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsPageFullscreen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && isPageFullscreen) {
+        setIsPageFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isPageFullscreen]);
+
+  useEffect(() => {
+    if (isPageFullscreen) {
+      document.body.setAttribute('data-ssp-fullscreen', 'true');
+      document.documentElement.classList.add('ssp-in-fullscreen');
+    } else {
+      document.body.removeAttribute('data-ssp-fullscreen');
+      document.documentElement.classList.remove('ssp-in-fullscreen');
+    }
+    return () => {
+      document.body.removeAttribute('data-ssp-fullscreen');
+      document.documentElement.classList.remove('ssp-in-fullscreen');
+    };
+  }, [isPageFullscreen]);
 
   const grades = curriculumData.grades || [];
   const subjects = curriculumData.subjects || [];
   const units = curriculumData.units || [];
   const topics = curriculumData.topics || [];
 
-  // Sync selectedGradeId
   useEffect(() => {
-    if (currentUser?.gradeId && grades.some(g => String(g.id) === String(currentUser.gradeId))) {
+    if (currentUser && currentUser.gradeId && grades.some(g => String(g.id) === String(currentUser.gradeId))) {
       setSelectedGradeId(currentUser.gradeId);
     } else if (!selectedGradeId && grades.length > 0) {
       setSelectedGradeId(grades[0].id);
     }
   }, [grades, currentUser, selectedGradeId]);
 
-  // Filter subjects by selected grade
-  const filteredSubjects = useMemo(() => {
-    return subjects.filter(s => String(s.gradeId) === String(selectedGradeId));
-  }, [subjects, selectedGradeId]);
+  const filteredSubjects = useMemo(
+    () => subjects.filter(s => String(s.gradeId) === String(selectedGradeId)),
+    [subjects, selectedGradeId]
+  );
 
   useEffect(() => {
     if (filteredSubjects.length > 0) {
@@ -232,831 +222,655 @@ export default function StudentSummaryPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
-  // Filter & sort units by selected subject
   const filteredUnits = useMemo(() => {
     const list = units.filter(u => String(u.subjectId) === String(selectedSubjectId));
     return sortUnitsNaturally(list);
   }, [units, selectedSubjectId]);
 
-  // Reading items for next/previous navigation
+  useEffect(() => {
+    if (filteredUnits.length > 0) {
+      setOpenUnitIds(new Set(filteredUnits.map(u => String(u.id))));
+    }
+  }, [selectedSubjectId, filteredUnits.length]);
+
   const readingItemList = useMemo(() => {
     const list = [];
     filteredUnits.forEach((u, uIdx) => {
-      const { fullDisplayName } = getUnitDetails(u, uIdx);
-      list.push({
-        type: 'unit',
-        id: u.id,
-        name: fullDisplayName,
-        unitId: u.id,
-        unitName: fullDisplayName,
-        label: `${fullDisplayName} (Genel Özet)`
-      });
+      const details = getUnitDetails(u, uIdx);
+      const full = details.fullDisplayName;
+      list.push({ type: 'unit', id: u.id, name: full, unitId: u.id, unitName: full, unitIdx: uIdx });
       const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
-      unitTopics.forEach(t => {
-        list.push({
-          type: 'topic',
-          id: t.id,
-          name: t.name,
-          unitId: u.id,
-          unitName: fullDisplayName,
-          label: t.name
-        });
-      });
+      unitTopics.forEach(t => list.push({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: full, unitIdx: uIdx }));
     });
     return list;
   }, [filteredUnits, topics]);
 
-  // Active summary
   const currentSummary = useMemo(() => {
     if (!activeReadingTarget) return null;
     return getSummary(activeReadingTarget.type, activeReadingTarget.id);
-  }, [activeReadingTarget, summaries]);
+  }, [activeReadingTarget, summaries, getSummary]);
 
-  // Navigation indices
-  const currentIdx = readingItemList.findIndex(item => String(item.id) === String(activeReadingTarget?.id));
+  const currentIdx = readingItemList.findIndex(item => String(item.id) === String(activeReadingTarget && activeReadingTarget.id));
   const prevItem = currentIdx > 0 ? readingItemList[currentIdx - 1] : null;
-  const nextItem = currentIdx >= 0 && currentIdx < readingItemList.length - 1 ? readingItemList[currentIdx + 1] : null;
+  const nextItem = (currentIdx >= 0 && currentIdx < readingItemList.length - 1) ? readingItemList[currentIdx + 1] : null;
 
-  // Selected entities
   const currentGrade = grades.find(g => String(g.id) === String(selectedGradeId));
   const currentSubject = subjects.find(s => String(s.id) === String(selectedSubjectId));
-  const currentUnit = units.find(u => String(u.id) === String(activeReadingTarget?.unitId || activeReadingTarget?.id));
+  const activeSubjectTheme = getSubjectTheme(currentSubject && currentSubject.name, isDark);
+  const activeIcon = getSubjectIcon(currentSubject && currentSubject.name);
 
-  const activeTheme = getSubjectTheme(currentSubject?.name, isDark);
+  const activeUnitTheme = useMemo(() => {
+    if (!activeReadingTarget) return activeSubjectTheme;
+    const uIdx = filteredUnits.findIndex(u => String(u.id) === String(activeReadingTarget.unitId));
+    const targetUnit = uIdx >= 0 ? filteredUnits[uIdx] : null;
+    const uNum = extractUnitOrderNumber(targetUnit, uIdx >= 0 ? uIdx + 1 : 1);
+    return getUnitTheme(uIdx >= 0 ? uIdx : 0, uNum, isDark);
+  }, [activeReadingTarget, filteredUnits, isDark, activeSubjectTheme]);
 
-  // Total available summaries count in current grade
   const totalSummariesInGrade = useMemo(() => {
     let count = 0;
     filteredSubjects.forEach(s => {
       const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
       sUnits.forEach(u => {
         if (hasSummary('unit', u.id)) count++;
-        const uTopics = topics.filter(t => String(t.unitId) === String(u.id));
-        uTopics.forEach(t => {
-          if (hasSummary('topic', t.id)) count++;
+        topics.filter(t => String(t.unitId) === String(u.id)).forEach(t => { if (hasSummary('topic', t.id)) count++; });
+      });
+    });
+    return count;
+  }, [filteredSubjects, units, topics, summaries, hasSummary]);
+
+  const readSummariesCountInGrade = useMemo(() => {
+    let count = 0;
+    filteredSubjects.forEach(s => {
+      const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
+      sUnits.forEach(u => {
+        if (isSummaryRead('unit', u.id, currentUser && currentUser.id)) count++;
+        topics.filter(t => String(t.unitId) === String(u.id)).forEach(t => {
+          if (isSummaryRead('topic', t.id, currentUser && currentUser.id)) count++;
         });
       });
     });
     return count;
-  }, [filteredSubjects, units, topics, summaries]);
+  }, [filteredSubjects, units, topics, isSummaryRead, currentUser]);
 
-  const handlePrint = () => {
-    window.print();
+  const toggleUnit = (unitId) => {
+    setOpenUnitIds(prev => {
+      const next = new Set(prev);
+      if (next.has(String(unitId))) next.delete(String(unitId));
+      else next.add(String(unitId));
+      return next;
+    });
   };
 
+  const handleExpandAll = () => {
+    setOpenUnitIds(new Set(filteredUnits.map(u => String(u.id))));
+  };
+
+  const handleCollapseAll = () => {
+    setOpenUnitIds(new Set());
+  };
+
+  const allUnitsOpen = filteredUnits.length > 0 && openUnitIds.size === filteredUnits.length;
+
   useEffect(() => {
-    if (activeReadingTarget) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [activeReadingTarget?.id]);
+    if (activeReadingTarget) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeReadingTarget]);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: isDark 
-        ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.08) 0%, transparent 45%), var(--color-bg, #0f172a)'
-        : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg, #f8fafc)',
-      color: 'var(--color-text, #0f172a)',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      padding: activeReadingTarget ? 0 : '1.25rem 1rem 5rem',
-      boxSizing: 'border-box'
-    }}>
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .summary-anim { animation: fadeIn 0.25s ease both; }
-        .summary-row:hover { filter: brightness(${isDark ? '1.12' : '0.98'}); }
-        @media (max-width: 640px) {
-          .summary-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
-        }
-      `}</style>
-
-      {/* ════════════════════════════════════════════════════════════════
-          VIEW 1: FULLSCREEN EDGE-TO-EDGE READER
-         ════════════════════════════════════════════════════════════════ */}
+    <div className="ssp-page">
       {activeReadingTarget ? (
-        <div className="edu-reader-view-fullscreen">
-          
-          {/* STICKY TOP READING APP BAR */}
-          <header className="edu-reader-topbar no-print">
-            <div className="edu-topbar-inner">
-              
-              {/* Back to Catalog Button */}
-              <button 
-                className="edu-back-to-catalog-btn"
-                onClick={() => setActiveReadingTarget(null)}
-              >
-                <ArrowLeft size={16} />
-                <span>Konu Listesi</span>
-              </button>
-
-              {/* Breadcrumbs */}
-              <div className="edu-topbar-breadcrumbs">
-                <span>{currentGrade?.name}</span>
-                <ChevronRight size={12} className="crumb-sep" />
-                <span style={{ color: activeTheme.color, fontWeight: 800 }}>{currentSubject?.name}</span>
-                <ChevronRight size={12} className="crumb-sep" />
-                <span>{activeReadingTarget.unitName || currentUnit?.name}</span>
-                {activeReadingTarget.type === 'topic' && (
-                  <>
-                    <ChevronRight size={12} className="crumb-sep" />
-                    <strong className="crumb-active-title">{activeReadingTarget.name}</strong>
-                  </>
-                )}
-              </div>
-
-              {/* Action Controls */}
-              <div className="edu-topbar-controls">
-                
-                {/* Topic Drawer Trigger */}
-                <button 
-                  className="edu-drawer-toggle-btn"
-                  onClick={() => setIsDrawerOpen(true)}
-                  title="Diğer Konuları Görüntüle"
-                >
-                  <ListFilter size={15} />
-                  <span>Konular</span>
+        <div className={'ssp-reader' + (isPageFullscreen ? ' is-fullscreen' : '')}>
+          <header className="ssp-reader-bar no-print">
+            <div className="ssp-reader-bar-inner">
+              <div className="ssp-reader-bar-left">
+                <button className="ssp-reader-back-btn" onClick={() => { setActiveReadingTarget(null); setIsPageFullscreen(false); }}>
+                  <ArrowLeft size={15} />
+                  <span>Konu Listesi</span>
                 </button>
-
-                {/* Font Size Adjuster */}
-                <div className="edu-font-adjust-box">
-                  <button 
-                    onClick={() => setFontSize(prev => Math.max(13, prev - 1))}
-                    title="Yazı Boyutunu Küçült"
-                    className="edu-ctrl-btn"
-                  >
-                    <ZoomOut size={13} /> A-
+                <div className="ssp-reader-breadcrumbs">
+                  <span>{currentGrade && currentGrade.name}</span>
+                  <ChevronRight size={11} className="ssp-crumb-sep" />
+                  <span className="ssp-crumb-subject">{currentSubject && currentSubject.name}</span>
+                  <ChevronRight size={11} className="ssp-crumb-sep" />
+                  <span className="ssp-crumb-unit" style={{ color: activeUnitTheme.color, fontWeight: 800 }}>{activeReadingTarget.unitName}</span>
+                  {activeReadingTarget.type === 'topic' && (
+                    <>
+                      <ChevronRight size={11} className="ssp-crumb-sep" />
+                      <span className="ssp-crumb-active">{activeReadingTarget.name}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="ssp-reader-bar-right">
+                <button
+                  className={'ssp-bar-btn' + (isCurrentTargetRead ? ' read-active' : '')}
+                  onClick={handleToggleCurrentRead}
+                >
+                  <CheckCircle2 size={14} />
+                  <span className="btn-label">{isCurrentTargetRead ? 'Okundu' : 'Okudum'}</span>
+                </button>
+                <button
+                  className={'ssp-bar-btn fullscreen-btn' + (isPageFullscreen ? ' is-active' : '')}
+                  onClick={togglePageFullscreen}
+                  title={isPageFullscreen ? 'Tam Ekrandan Çık (Esc)' : 'Tam Ekran Yap'}
+                >
+                  {isPageFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  <span className="btn-label">{isPageFullscreen ? 'Küçült' : 'Tam Ekran'}</span>
+                </button>
+                <div className="ssp-font-box">
+                  <button className="ssp-font-btn" onClick={() => setFontSize(p => Math.max(13, p - 1))}>
+                    <ZoomOut size={12} /> A-
                   </button>
-                  <span className="edu-font-val">{fontSize}px</span>
-                  <button 
-                    onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
-                    title="Yazı Boyutunu Büyüt"
-                    className="edu-ctrl-btn"
-                  >
-                    <ZoomIn size={13} /> A+
+                  <span className="ssp-font-val">{fontSize}px</span>
+                  <button className="ssp-font-btn" onClick={() => setFontSize(p => Math.min(24, p + 1))}>
+                    <ZoomIn size={12} /> A+
                   </button>
                 </div>
-
-                {/* Print Button */}
-                <button onClick={handlePrint} className="edu-ctrl-btn" title="Yazdır / PDF Kaydet">
+                <button className="ssp-bar-btn" onClick={() => window.print()}>
                   <Printer size={14} />
-                  <span>Yazdır</span>
+                  <span className="btn-label">Yazdır</span>
                 </button>
               </div>
-
             </div>
           </header>
 
-          {/* MAIN ARTICLE CONTAINER */}
-          <main className="edu-fullscreen-article-wrap">
-            <article className="edu-reader-card-full">
-              
-              {/* Article Hero Header */}
-              <div className="edu-article-header">
-                <div className="edu-header-meta">
-                  <span 
-                    className="edu-meta-badge"
-                    style={{ background: activeTheme.bg, color: activeTheme.color, borderColor: activeTheme.border }}
-                  >
-                    {activeReadingTarget.type === 'unit' ? '📁 ÜNİTE GENEL ÖZETİ' : '📄 KONU ANLATIMI & ÖZET'}
-                  </span>
-                  {currentSummary?.updatedAt && (
-                    <span className="edu-updated-date">
-                      Güncelleme: {new Date(currentSummary.updatedAt).toLocaleDateString('tr-TR')}
+          <div className="ssp-reader-layout">
+            <div className="ssp-reader-main">
+              <article className="ssp-article-card ssp-anim">
+                <div className="ssp-article-hero" style={{ borderLeft: '5px solid ' + activeUnitTheme.color }}>
+                  <div className="ssp-article-meta">
+                    <span className="ssp-article-type-badge" style={{ background: activeUnitTheme.bg, color: activeUnitTheme.color, borderColor: activeUnitTheme.border }}>
+                      {activeReadingTarget.type === 'unit' ? 'ÜNİTE GENEL ÖZETİ' : 'KONU ANLATIMI ve ÖZET'}
                     </span>
-                  )}
+                    {isCurrentTargetRead && (
+                      <span className="ssp-article-read-badge">
+                        <CheckCircle2 size={11} /> Okundu
+                      </span>
+                    )}
+                    {currentSummary && currentSummary.updatedAt && (
+                      <span className="ssp-article-updated">
+                        {'Güncellendi: ' + new Date(currentSummary.updatedAt).toLocaleDateString('tr-TR')}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="ssp-article-title">{activeReadingTarget.name}</h1>
                 </div>
-                <h1 className="edu-article-title">{activeReadingTarget.name}</h1>
-              </div>
+                <div className="ssp-article-content">
+                  <SummaryHtmlViewer
+                    htmlContent={currentSummary ? currentSummary.contentHtml || '' : ''}
+                    fontSize={fontSize}
+                    title={activeReadingTarget.name}
+                    targetType={activeReadingTarget.type}
+                    emptyMessage="Bu konu için henüz özet veya ders notu eklenmemiş. Çok yakında öğretmeniniz tarafından eklenecektir."
+                    isRead={isCurrentTargetRead}
+                    onToggleRead={handleToggleCurrentRead}
+                    showControls={true}
+                  />
+                </div>
+              </article>
 
-              {/* IFRAME HTML VIEWER */}
-              <div className="edu-iframe-container">
-                <SummaryHtmlViewer
-                  htmlContent={currentSummary?.contentHtml || ''}
-                  fontSize={fontSize}
-                  title={activeReadingTarget.name}
-                  targetType={activeReadingTarget.type}
-                  emptyMessage="Bu konu için henüz özet veya ders notu eklenmemiş. Çok yakında öğretmeniniz tarafından eklenecektir."
-                />
-              </div>
-
-              {/* PRACTICE CTA CARD */}
-              <div className="edu-practice-cta-card no-print">
-                <div className="edu-cta-left">
-                  <div className="edu-cta-icon">{activeTheme.icon}</div>
-                  <div>
-                    <h4>Konuyu Pekiştir & Test Çöz</h4>
-                    <p style={{ color: isDark ? '#a7f3d0' : 'var(--color-text-muted, #047857)' }}>
-                      Özeti tamamladın mı? Soru bankasından ve denemelerden ilgili soruları çözerek konuyu pekiştir.
-                    </p>
+              <div className="ssp-cta-card no-print">
+                <div className="ssp-cta-left">
+                  <div className="ssp-cta-emoji">{activeIcon}</div>
+                  <div className="ssp-cta-text">
+                    <h4>Konuyu Pekiştir ve Test Çöz</h4>
+                    <p>{isCurrentTargetRead
+                      ? 'Harika! Bu konunun özetini okudun. Şimdi soru bankasında ilgili soruları çöz.'
+                      : 'Özeti tamamladıktan sonra Okudum butonuna tıklayabilir, ilgili soruları çözebilirsin.'}</p>
                   </div>
                 </div>
-                <button 
-                  className="edu-cta-btn"
-                  onClick={() => navigate('/student/exams')}
-                >
-                  <span>Testlere Git</span>
-                  <ArrowRight size={15} />
-                </button>
+                <div className="ssp-cta-actions">
+                  <button className={'ssp-cta-read-btn' + (isCurrentTargetRead ? ' read' : '')} onClick={handleToggleCurrentRead}>
+                    <CheckCircle2 size={15} />
+                    <span>{isCurrentTargetRead ? 'Okundu' : 'Okudum Olarak İşaretle'}</span>
+                  </button>
+                  <button className="ssp-cta-go-btn" onClick={() => navigate('/student/exams')}>
+                    <span>Testlere Git</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
 
-              {/* ARTICLE FOOTER NAVIGATION (PREV / NEXT) */}
-              <div className="edu-article-pagination no-print">
+              <div className="ssp-pagination no-print">
                 {prevItem ? (
-                  <button 
-                    className="edu-page-nav-btn prev"
-                    onClick={() => setActiveReadingTarget(prevItem)}
-                  >
+                  <button className="ssp-nav-btn" onClick={() => setActiveReadingTarget(prevItem)}>
                     <ChevronLeft size={18} />
-                    <div className="edu-page-nav-text">
-                      <span className="edu-nav-sub">Önceki Konu</span>
-                      <strong>{prevItem.name}</strong>
+                    <div className="ssp-nav-text">
+                      <span className="ssp-nav-sub">Önceki Konu</span>
+                      <span className="ssp-nav-label">{prevItem.name}</span>
                     </div>
                   </button>
                 ) : <div />}
-
                 {nextItem ? (
-                  <button 
-                    className="edu-page-nav-btn next"
-                    onClick={() => setActiveReadingTarget(nextItem)}
-                  >
-                    <div className="edu-page-nav-text text-right">
-                      <span className="edu-nav-sub">Sonraki Konu</span>
-                      <strong>{nextItem.name}</strong>
+                  <button className="ssp-nav-btn next" onClick={() => setActiveReadingTarget(nextItem)}>
+                    <div className="ssp-nav-text">
+                      <span className="ssp-nav-sub">Sonraki Konu</span>
+                      <span className="ssp-nav-label">{nextItem.name}</span>
                     </div>
                     <ChevronRight size={18} />
                   </button>
                 ) : <div />}
               </div>
-
-            </article>
-          </main>
-
-          {/* SLIDE-OVER TOPIC DRAWER */}
-          {isDrawerOpen && (
-            <div className="edu-drawer-backdrop no-print" onClick={() => setIsDrawerOpen(false)}>
-              <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
-                <div className="edu-drawer-header">
-                  <div className="edu-drawer-title">
-                    <FolderOpen size={17} color="#3b82f6" />
-                    <span>Konu Listesi</span>
-                  </div>
-                  <button className="edu-drawer-close" onClick={() => setIsDrawerOpen(false)}>
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <div className="edu-drawer-scroll custom-scrollbar">
-                  {filteredUnits.map((u, uIdx) => {
-                    const { unitNum, fullDisplayName } = getUnitDetails(u, uIdx);
-                    const isUnitActive = activeReadingTarget?.type === 'unit' && String(activeReadingTarget?.id) === String(u.id);
-                    const unitHasSummary = hasSummary('unit', u.id);
-                    const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
-
-                    return (
-                      <div key={u.id} className="edu-drawer-unit-box">
-                        <div 
-                          className={`edu-drawer-unit-item ${isUnitActive ? 'active' : ''}`}
-                          onClick={() => {
-                            setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName });
-                            setIsDrawerOpen(false);
-                          }}
-                        >
-                          <span className="edu-unit-num">{unitNum}</span>
-                          <strong>{fullDisplayName} (Genel Özet)</strong>
-                          {unitHasSummary && <span className="edu-dot-badge">●</span>}
-                        </div>
-
-                        <div className="edu-drawer-topic-list">
-                          {unitTopics.map(t => {
-                            const isTopicActive = activeReadingTarget?.type === 'topic' && String(activeReadingTarget?.id) === String(t.id);
-                            const topicHasSummary = hasSummary('topic', t.id);
-
-                            return (
-                              <div
-                                key={t.id}
-                                className={`edu-drawer-topic-item ${isTopicActive ? 'active' : ''}`}
-                                onClick={() => {
-                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: fullDisplayName });
-                                  setIsDrawerOpen(false);
-                                }}
-                              >
-                                <span className="edu-topic-bullet" />
-                                <span>{t.name}</span>
-                                {topicHasSummary && <span className="edu-dot-badge">●</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
-          )}
-
+          </div>
         </div>
       ) : (
-
-        /* ════════════════════════════════════════════════════════════════
-            VIEW 2: CLEAN MODERN DUAL-THEME CATALOG VIEW WITH COLORFUL LIST ROWS
-           ════════════════════════════════════════════════════════════════ */
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          
-          {/* ─── TOP ACTION & HEADER ─── */}
-          <div className="summary-header-wrap summary-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => navigate('/student')}
-                style={{
-                  background: 'var(--color-surface, #ffffff)',
-                  border: '1.5px solid var(--color-border-input, #cbd5e1)',
-                  borderRadius: '0.75rem',
-                  padding: '0.5rem 0.95rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  color: 'var(--color-text, #1e293b)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <ArrowLeft size={16} /> Öğrenci Paneli
-              </button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 900,
-                  fontSize: '1.15rem',
-                  color: 'white',
-                  border: isDark ? '2px solid rgba(255,255,255,0.2)' : '2px solid #ffffff',
-                  boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
-                  flexShrink: 0
-                }}>
-                  📚
-                </div>
-                <div>
-                  <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
-                    Ders Notları & Konu Özetleri
-                  </h1>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
-                    Müfredata tam uyumlu ünite özetleri ve sınav hazırlık notları
-                  </div>
+        <div className="ssp-catalog ssp-anim">
+          {/* Hero Banner */}
+          <div className="ssp-hero">
+            <div className="ssp-hero-inner">
+              <div className="ssp-hero-top">
+                <button className="ssp-back-btn" onClick={() => navigate('/student')}>
+                  <ArrowLeft size={15} />
+                  <span>Öğrenci Paneli</span>
+                </button>
+                <div className="ssp-grade-pills">
+                  <span className="ssp-grade-label">Sınıf:</span>
+                  {grades.map(g => (
+                    <button key={g.id}
+                      className={'ssp-grade-pill' + (String(selectedGradeId) === String(g.id) ? ' active' : '')}
+                      onClick={() => setSelectedGradeId(g.id)}>
+                      {g.name}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            {/* Sınıf Seçici Rozeti */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface, #ffffff)', padding: '0.35rem 0.6rem', borderRadius: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginLeft: 4 }}>🎓 Sınıf:</span>
-              <div style={{ display: 'inline-flex', gap: 4 }}>
-                {grades.map(g => (
-                  <button
-                    key={g.id}
-                    onClick={() => setSelectedGradeId(g.id)}
-                    style={{
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: String(selectedGradeId) === String(g.id) ? '#4f46e5' : 'var(--color-surface-hover, #f1f5f9)',
-                      color: String(selectedGradeId) === String(g.id) ? '#ffffff' : 'var(--color-text-muted, #475569)',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {g.name}
-                  </button>
-                ))}
+              <div className="ssp-hero-title">
+                <div className="ssp-hero-icon">📚</div>
+                <div className="ssp-hero-text">
+                  <h1>Ders Notları ve Konu Özetleri</h1>
+                  <p>Müfredatla uyumlu ünite özetleri ve sınav hazırlık ders notları</p>
+                </div>
+              </div>
+              <div className="ssp-stats-row">
+                <div className="ssp-stat-item">
+                  <span className="ssp-stat-value">{currentGrade ? currentGrade.name : '-'}</span>
+                  <span className="ssp-stat-label">Sınıf</span>
+                </div>
+                <div className="ssp-stat-item">
+                  <span className="ssp-stat-value">{filteredSubjects.length}</span>
+                  <span className="ssp-stat-label">Ders</span>
+                </div>
+                <div className="ssp-stat-item">
+                  <span className="ssp-stat-value">{filteredUnits.length}</span>
+                  <span className="ssp-stat-label">Ünite</span>
+                </div>
+                <div className={'ssp-stat-item' + (totalSummariesInGrade > 0 ? ' highlight' : '')}>
+                  <span className="ssp-stat-value">{readSummariesCountInGrade + '/' + totalSummariesInGrade}</span>
+                  <span className="ssp-stat-label">Okundu</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ─── 4 SUMMARY OVERVIEW METRICS ─── */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '0.85rem',
-            marginBottom: '1.25rem'
-          }}>
-            {/* Card 1: Seçili Sınıf */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: '1.15rem',
-              padding: '0.9rem 1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.85rem',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(37, 99, 235, 0.2)' : '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                🎓
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Seviye / Sınıf</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{currentGrade?.name || 'Sınıf'}</span>
-              </div>
-            </div>
-
-            {/* Card 2: Ders Sayısı */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: '1.15rem',
-              padding: '0.9rem 1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.85rem',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(124, 58, 237, 0.2)' : '#faf5ff', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                📖
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Ders</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#a855f7' }}>{filteredSubjects.length} Ders</span>
-              </div>
-            </div>
-
-            {/* Card 3: Ünite Sayısı */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: '1.15rem',
-              padding: '0.9rem 1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.85rem',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(8, 145, 178, 0.2)' : '#ecfeff', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                📁
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Ünite Sayısı</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#06b6d4' }}>{filteredUnits.length} Ünite</span>
-              </div>
-            </div>
-
-            {/* Card 4: Hazır Özet */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid #bbf7d0',
-              borderRadius: '1.15rem',
-              padding: '0.9rem 1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.85rem',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#f0fdf4', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                ✨
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Hazır Özetler</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{totalSummariesInGrade} İçerik</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── DERS SEÇİCİ TABLAR & ARAMA ÇUBUĞU ─── */}
-          <div style={{
-            background: 'var(--color-surface, #ffffff)',
-            border: '1.5px solid var(--color-border, #e2e8f0)',
-            borderRadius: '1.15rem',
-            padding: '0.85rem 1.15rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.85rem',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-          }}>
-            {/* SUBJECT HORIZONTAL CARDS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto', paddingBottom: 4 }}>
+          {/* Subjects Navigation Bar */}
+          <div className="ssp-subjects-bar">
+            <div className="ssp-subjects-row">
               {filteredSubjects.map(s => {
                 const theme = getSubjectTheme(s.name, isDark);
+                const icon = getSubjectIcon(s.name);
                 const isSelected = String(selectedSubjectId) === String(s.id);
-                
                 const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
-                let count = 0;
+                let summaryCount = 0;
                 sUnits.forEach(u => {
-                  if (hasSummary('unit', u.id)) count++;
-                  const uTopics = topics.filter(t => String(t.unitId) === String(u.id));
-                  uTopics.forEach(t => {
-                    if (hasSummary('topic', t.id)) count++;
-                  });
+                  if (hasSummary('unit', u.id)) summaryCount++;
+                  topics.filter(t => String(t.unitId) === String(u.id)).forEach(t => { if (hasSummary('topic', t.id)) summaryCount++; });
                 });
-
                 return (
-                  <button
-                    key={s.id}
+                  <button key={s.id}
+                    className={'ssp-subject-btn' + (isSelected ? ' active' : '')}
                     onClick={() => setSelectedSubjectId(s.id)}
-                    style={{
-                      background: isSelected ? theme.bg : 'var(--color-surface, #ffffff)',
-                      border: isSelected ? `2px solid ${theme.color}` : '1.5px solid var(--color-border, #e2e8f0)',
-                      borderRadius: '0.85rem',
-                      padding: '0.5rem 0.85rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      boxShadow: isSelected ? `0 4px 12px ${theme.border}` : '0 1px 3px rgba(0,0,0,0.02)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span style={{ fontSize: '1.15rem' }}>{theme.icon}</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <strong style={{ fontSize: '0.84rem', color: isSelected ? theme.color : 'var(--color-text, #0f172a)', display: 'block', fontWeight: 900 }}>
-                        {s.name}
-                      </strong>
-                      <span style={{ fontSize: '0.68rem', color: isSelected ? theme.text : 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                        {count > 0 ? `${count} Özet Hazır` : `${sUnits.length} Ünite`}
+                    style={isSelected ? { borderColor: theme.color, background: theme.bg, boxShadow: `0 8px 24px ${theme.glow}` } : {}}>
+                    <span className="ssp-subject-emoji">{icon}</span>
+                    <div className="ssp-subject-info">
+                      <span className="ssp-subject-name" style={{ color: isSelected ? theme.color : 'inherit' }}>{s.name}</span>
+                      <span className="ssp-subject-meta" style={{ color: isSelected ? theme.text : 'var(--color-text-muted, #64748b)' }}>
+                        {summaryCount > 0 ? `${summaryCount} Özet Hazır` : `${sUnits.length} Ünite`}
                       </span>
                     </div>
                   </button>
                 );
               })}
             </div>
+          </div>
 
-            {/* SEARCH INPUT */}
-            <div style={{ position: 'relative', width: '100%' }}>
-              <Search size={15} color="var(--color-text-muted, #94a3b8)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder={`${currentSubject?.name || 'Ders'} içinde ünite veya konu ara...`}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--color-surface-hover, #f8fafc)',
-                  border: '1.5px solid var(--color-border-input, #cbd5e1)',
-                  borderRadius: 10,
-                  padding: '0.5rem 0.85rem 0.5rem 2.2rem',
-                  color: 'var(--color-text, #0f172a)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
+          {/* Toolbar: Search, Filters, Column Switcher, Expand/Collapse */}
+          <div className="ssp-toolbar-card">
+            <div className="ssp-toolbar-top">
+              <div className="ssp-search-wrapper">
+                <Search size={16} className="ssp-search-icon" />
+                <input
+                  type="text"
+                  placeholder={`${currentSubject ? currentSubject.name : 'Ders'} içinde ünite veya konu ara...`}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className="ssp-search-clear" onClick={() => setSearchQuery('')} title="Aramayı Temizle">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Chips */}
+              <div className="ssp-filter-pills">
+                <button
+                  className={'ssp-filter-pill' + (filterStatus === 'all' ? ' active' : '')}
+                  onClick={() => setFilterStatus('all')}>
+                  Tümü
+                </button>
+                <button
+                  className={'ssp-filter-pill' + (filterStatus === 'has_summary' ? ' active' : '')}
+                  onClick={() => setFilterStatus('has_summary')}>
+                  <Sparkles size={12} /> Özetliler
+                </button>
+                <button
+                  className={'ssp-filter-pill' + (filterStatus === 'unread' ? ' active' : '')}
+                  onClick={() => setFilterStatus('unread')}>
+                  Okunmamış
+                </button>
+                <button
+                  className={'ssp-filter-pill' + (filterStatus === 'completed' ? ' active' : '')}
+                  onClick={() => setFilterStatus('completed')}>
+                  <Check size={12} /> Tamamlananlar
+                </button>
+              </div>
+            </div>
+
+            <div className="ssp-toolbar-bottom">
+              <div className="ssp-toolbar-left">
+                <button
+                  className="ssp-expand-toggle-btn"
+                  onClick={allUnitsOpen ? handleCollapseAll : handleExpandAll}
+                  title={allUnitsOpen ? 'Tüm Üniteleri Daralt' : 'Tüm Üniteleri Genişlet'}>
+                  <ChevronsUpDown size={14} />
+                  <span>{allUnitsOpen ? 'Tümünü Kapat' : 'Tümünü Genişlet'}</span>
+                </button>
+                <span className="ssp-count-badge">
+                  {filteredUnits.length} Ünite
+                </span>
+              </div>
+
+              {/* Dynamic Column Selector */}
+              <div className="ssp-column-selector-group">
+                <span className="ssp-col-label">Görünüm:</span>
+                <div className="ssp-col-buttons">
+                  <button
+                    className={'ssp-col-btn' + (colLayout === 'auto' ? ' active' : '')}
+                    onClick={() => setColLayout('auto')}
+                    title="Dinamik Otomatik Sütun (Ekrana Göre Uyum Sağlar)">
+                    <LayoutGrid size={14} />
+                    <span className="ssp-col-text">Otomatik</span>
+                  </button>
+                  <button
+                    className={'ssp-col-btn' + (colLayout === '2' ? ' active' : '')}
+                    onClick={() => setColLayout('2')}
+                    title="2 Sütunlu Izgara">
+                    <Grid2X2 size={14} />
+                    <span className="ssp-col-text">2'li</span>
+                  </button>
+                  <button
+                    className={'ssp-col-btn' + (colLayout === '3' ? ' active' : '')}
+                    onClick={() => setColLayout('3')}
+                    title="3 Sütunlu Izgara">
+                    <Grid3X3 size={14} />
+                    <span className="ssp-col-text">3'lü</span>
+                  </button>
+                  <button
+                    className={'ssp-col-btn' + (colLayout === '4' ? ' active' : '')}
+                    onClick={() => setColLayout('4')}
+                    title="4 Sütunlu Izgara (Geniş Ekran)">
+                    <Columns size={14} />
+                    <span className="ssp-col-text">4'lü</span>
+                  </button>
+                  <button
+                    className={'ssp-col-btn' + (colLayout === '1' ? ' active' : '')}
+                    onClick={() => setColLayout('1')}
+                    title="Tek Sütunlu Liste">
+                    <List size={14} />
+                    <span className="ssp-col-text">Liste</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* ─── VIBRANT & COLORFUL UNIT LIST (LIST VIEW) ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Units Dynamic Multi-Column Grid with Distinct Per-Unit Colors */}
+          <div className={`ssp-units-grid ssp-grid-${colLayout}`}>
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
-                const { unitNum, cleanTitle, fullDisplayName, badgeText } = getUnitDetails(u, uIdx);
+                const det = getUnitDetails(u, uIdx);
+                const unitTheme = getUnitTheme(uIdx, det.unitNum, isDark);
                 const unitHasSummary = hasSummary('unit', u.id);
+                const isUnitRead = isSummaryRead('unit', u.id, currentUser && currentUser.id);
                 const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
+                const isOpen = openUnitIds.has(String(u.id));
 
-                const filteredTopicsList = searchQuery
-                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || fullDisplayName.toLowerCase().includes(searchQuery.toLowerCase()))
-                  : unitTopics;
+                const filteredTopicsList = unitTopics.filter(t => {
+                  const topicHasSummary = hasSummary('topic', t.id);
+                  const isTopicRead = isSummaryRead('topic', t.id, currentUser && currentUser.id);
 
-                if (searchQuery && !fullDisplayName.toLowerCase().includes(searchQuery.toLowerCase()) && filteredTopicsList.length === 0) {
-                  return null;
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchTopic = t.name.toLowerCase().includes(q);
+                    const matchUnit = det.fullDisplayName.toLowerCase().includes(q);
+                    if (!matchTopic && !matchUnit) return false;
+                  }
+
+                  if (filterStatus === 'has_summary' && !topicHasSummary && !unitHasSummary) return false;
+                  if (filterStatus === 'unread' && isTopicRead) return false;
+                  if (filterStatus === 'completed' && !isTopicRead) return false;
+
+                  return true;
+                });
+
+                if (searchQuery || filterStatus !== 'all') {
+                  const unitMatchesSearch = searchQuery && det.fullDisplayName.toLowerCase().includes(searchQuery.toLowerCase());
+                  const unitMatchesFilter = (filterStatus === 'has_summary' && unitHasSummary) ||
+                                            (filterStatus === 'unread' && !isUnitRead) ||
+                                            (filterStatus === 'completed' && isUnitRead);
+
+                  if (!unitMatchesSearch && !unitMatchesFilter && filteredTopicsList.length === 0) {
+                    return null;
+                  }
                 }
 
+                const totalTopicsCount = unitTopics.length;
+                const readTopicsCount = unitTopics.filter(t => isSummaryRead('topic', t.id, currentUser && currentUser.id)).length;
+                const progressPct = totalTopicsCount > 0 ? Math.round((readTopicsCount / totalTopicsCount) * 100) : (isUnitRead ? 100 : 0);
+                const isUnitCompleted = totalTopicsCount > 0 ? readTopicsCount === totalTopicsCount : isUnitRead;
+
                 return (
-                  <div key={u.id} className="summary-anim" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    
-                    {/* 📁 ÜNİTE BAŞLIK ÇUBUĞU */}
-                    <div style={{
-                      background: 'var(--color-surface, #ffffff)',
-                      border: `1.5px solid ${activeTheme.border}`,
-                      borderLeft: `5px solid ${activeTheme.color}`,
-                      borderRadius: '1.15rem',
-                      padding: '0.75rem 1.15rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                  <div
+                    key={u.id}
+                    className={`ssp-unit-card ${isUnitCompleted ? 'is-completed' : ''}`}
+                    style={{
+                      '--unit-color': unitTheme.color,
+                      '--unit-glow': unitTheme.glow,
+                      borderColor: isUnitCompleted ? 'rgba(16, 185, 129, 0.45)' : (isDark ? 'rgba(255,255,255,0.09)' : unitTheme.border)
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220 }}>
-                        <span style={{
-                          background: activeTheme.gradient,
-                          color: '#ffffff',
-                          fontSize: '0.7rem',
-                          fontWeight: 900,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          letterSpacing: '0.04em'
-                        }}>
-                          {badgeText}
-                        </span>
-                        {cleanTitle && (
-                          <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', margin: 0 }}>
-                            {cleanTitle}
-                          </h3>
-                        )}
+                    {/* Top Decorative Color Accent (Unique per unit) */}
+                    <div className="ssp-card-accent" style={{ background: unitTheme.gradient }} />
+
+                    {/* Unit Card Header */}
+                    <div className="ssp-unit-card-header" onClick={() => toggleUnit(u.id)}>
+                      <div className="ssp-card-header-top">
+                        <div className="ssp-unit-badge-pill" style={{ background: unitTheme.gradient }}>
+                          {det.badgeText}
+                        </div>
+                        <div className="ssp-unit-meta-chips">
+                          <span className="ssp-chip-topic-count">
+                            {totalTopicsCount} Konu
+                          </span>
+                          {unitHasSummary && (
+                            <span className="ssp-chip-summary-ready" style={{ color: unitTheme.color, background: unitTheme.bg }} title="Ünite Özeti Mevcut">
+                              ● Özet
+                            </span>
+                          )}
+                          {isUnitCompleted && (
+                            <span className="ssp-chip-completed">
+                              <Award size={11} /> Tamamlandı
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Ünite Genel Özeti Butonu */}
-                      <button
-                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName })}
-                        style={{
-                          background: unitHasSummary ? activeTheme.bg : 'var(--color-surface-hover, #f8fafc)',
-                          color: unitHasSummary ? activeTheme.color : 'var(--color-text-muted, #64748b)',
-                          border: `1.5px solid ${unitHasSummary ? activeTheme.border : 'var(--color-border, #cbd5e1)'}`,
-                          borderRadius: 10,
-                          padding: '0.4rem 0.85rem',
-                          fontSize: '0.76rem',
-                          fontWeight: 900,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        <BookMarked size={14} />
-                        <span>{unitHasSummary ? 'Ünite Genel Özeti' : 'Ünite Notları'}</span>
-                        <ChevronRight size={13} />
-                      </button>
-                    </div>
+                      {/* Unit Title */}
+                      <h3 className="ssp-unit-title" title={det.cleanTitle || det.fullDisplayName}>
+                        {det.cleanTitle || det.fullDisplayName}
+                      </h3>
 
-                    {/* 📋 KONU LİSTESİ (Farklı Renklerde Satırlar) */}
-                    <div style={{
-                      background: 'var(--color-surface, #ffffff)',
-                      border: '1.5px solid var(--color-border, #e2e8f0)',
-                      borderRadius: '1.15rem',
-                      overflow: 'hidden',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                    }}>
-                      {filteredTopicsList.length > 0 ? (
-                        filteredTopicsList.map((t, tIdx) => {
-                          const topicHasSummary = hasSummary('topic', t.id);
-                          const topicTitle = t.name || `Konu ${tIdx + 1}`;
-                          const isLast = tIdx === filteredTopicsList.length - 1;
-                          const rowTheme = getRowTheme(currentSubject?.name, tIdx, isDark);
-
-                          return (
-                            <div
-                              key={t.id}
-                              className="summary-row"
-                              onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: fullDisplayName })}
-                              style={{
-                                background: rowTheme.bg,
-                                borderLeft: `4.5px solid ${topicHasSummary ? rowTheme.accent : (isDark ? '#475569' : '#94a3b8')}`,
-                                borderBottom: isLast ? 'none' : `1px solid ${rowTheme.border}`,
-                                padding: '0.85rem 1.15rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '0.85rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {/* SOL: Konu Numarası, Başlık ve Rozet */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
-                                
-                                <div style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: '50%',
-                                  background: 'var(--color-surface, #ffffff)',
-                                  color: rowTheme.accent,
-                                  border: `1.5px solid ${rowTheme.border}`,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '0.85rem',
-                                  fontWeight: 900,
-                                  flexShrink: 0,
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                                }}>
-                                  {tIdx + 1}
-                                </div>
-
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                                    <span style={{
-                                      fontSize: '0.66rem',
-                                      fontWeight: 900,
-                                      color: rowTheme.text,
-                                      background: rowTheme.badgeBg,
-                                      padding: '1px 6px',
-                                      borderRadius: 5,
-                                      border: `1px solid ${rowTheme.border}`
-                                    }}>
-                                      {currentSubject?.name || 'Ders'}
-                                    </span>
-
-                                    {topicHasSummary ? (
-                                      <span style={{
-                                        fontSize: '0.64rem',
-                                        fontWeight: 900,
-                                        background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#f0fdf4',
-                                        color: '#10b981',
-                                        padding: '1px 6px',
-                                        borderRadius: 99,
-                                        border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #86efac'
-                                      }}>
-                                        ● Özet Hazır
-                                      </span>
-                                    ) : (
-                                      <span style={{
-                                        fontSize: '0.64rem',
-                                        fontWeight: 700,
-                                        background: 'var(--color-surface, #ffffff)',
-                                        color: 'var(--color-text-muted, #64748b)',
-                                        padding: '1px 6px',
-                                        borderRadius: 99,
-                                        border: '1px solid var(--color-border, #cbd5e1)'
-                                      }}>
-                                        Müfredat Konusu
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', lineHeight: 1.35 }}>
-                                    {topicTitle}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* SAĞ: Oku / İncele Butonu */}
-                              <div style={{ flexShrink: 0 }}>
-                                <button
-                                  type="button"
-                                  style={{
-                                    background: topicHasSummary ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface, #ffffff)',
-                                    color: topicHasSummary ? '#ffffff' : 'var(--color-text, #334155)',
-                                    border: topicHasSummary ? 'none' : '1.5px solid var(--color-border-input, #cbd5e1)',
-                                    borderRadius: 9,
-                                    padding: '0.45rem 0.95rem',
-                                    fontSize: '0.78rem',
-                                    fontWeight: 900,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    boxShadow: topicHasSummary ? '0 2px 8px rgba(79,70,229,0.25)' : '0 1px 3px rgba(0,0,0,0.02)',
-                                    transition: 'all 0.15s',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  {topicHasSummary ? <BookOpen size={14} /> : <FileText size={14} />}
-                                  <span>{topicHasSummary ? 'Özeti Oku' : 'İncele'}</span>
-                                  <ChevronRight size={13} />
-                                </button>
-                              </div>
-
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem' }}>
-                          Bu ünitede kayıtlı konu bulunmuyor.
+                      {/* Progress Bar & Stats */}
+                      <div className="ssp-unit-progress-container">
+                        <div className="ssp-progress-info">
+                          <span className="ssp-progress-text">
+                            {totalTopicsCount > 0 ? `${readTopicsCount} / ${totalTopicsCount} Konu Okundu` : (isUnitRead ? 'Okundu' : 'Okunmadı')}
+                          </span>
+                          <span className="ssp-progress-percent" style={{ color: unitTheme.color }}>%{progressPct}</span>
                         </div>
-                      )}
+                        <div className="ssp-unit-progress-track">
+                          <div
+                            className="ssp-unit-progress-fill"
+                            style={{
+                              width: `${progressPct}%`,
+                              background: isUnitCompleted ? 'linear-gradient(90deg, #10b981, #059669)' : unitTheme.gradient
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Card Header Actions */}
+                      <div className="ssp-unit-header-actions">
+                        <button
+                          className={'ssp-unit-summary-cta' + (isUnitRead ? ' is-read' : (unitHasSummary ? ' has-summary' : ''))}
+                          style={{
+                            background: isUnitRead ? 'rgba(16,185,129,0.12)' : (unitHasSummary ? unitTheme.bg : 'var(--color-surface-hover, #f8fafc)'),
+                            color: isUnitRead ? '#059669' : (unitHasSummary ? unitTheme.color : 'var(--color-text-muted, #64748b)'),
+                            borderColor: isUnitRead ? 'rgba(16,185,129,0.4)' : (unitHasSummary ? unitTheme.border : 'var(--color-border, #e2e8f0)')
+                          }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            setActiveReadingTarget({
+                              type: 'unit',
+                              id: u.id,
+                              name: det.fullDisplayName,
+                              unitId: u.id,
+                              unitName: det.fullDisplayName
+                            });
+                          }}>
+                          {isUnitRead ? <CheckCircle2 size={13} color="#10b981" /> : <BookMarked size={13} />}
+                          <span>{isUnitRead ? 'Ünite Özeti (Okundu)' : 'Ünite Özeti'}</span>
+                        </button>
+
+                        <div className="ssp-expand-icon-box" title={isOpen ? 'Daralt' : 'Genişlet'}>
+                          <span className="ssp-expand-hint">{isOpen ? 'Gizle' : 'Konular'}</span>
+                          <ChevronDown size={16} className={'ssp-unit-chevron' + (isOpen ? ' open' : '')} />
+                        </div>
+                      </div>
                     </div>
 
+                    {/* Unit Card Body (Topic list) */}
+                    {isOpen && (
+                      <div className="ssp-unit-card-body">
+                        {filteredTopicsList.length > 0 ? (
+                          <div className="ssp-topics-list-container">
+                            {filteredTopicsList.map((t, tIdx) => {
+                              const topicHasSummary = hasSummary('topic', t.id);
+                              const isTopicRead = isSummaryRead('topic', t.id, currentUser && currentUser.id);
+
+                              return (
+                                <div
+                                  key={t.id}
+                                  className={'ssp-topic-item' + (isTopicRead ? ' topic-read' : '')}
+                                  onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: det.fullDisplayName })}>
+                                  <div className="ssp-topic-item-header">
+                                    <div
+                                      className="ssp-topic-num-badge"
+                                      style={{
+                                        background: isTopicRead ? 'rgba(16,185,129,0.14)' : unitTheme.bg,
+                                        color: isTopicRead ? '#059669' : unitTheme.color,
+                                        borderColor: isTopicRead ? 'rgba(16,185,129,0.4)' : unitTheme.border
+                                      }}>
+                                      {isTopicRead ? <Check size={12} /> : (tIdx + 1)}
+                                    </div>
+                                    <div className="ssp-topic-item-title" title={t.name}>
+                                      {t.name || `Konu ${tIdx + 1}`}
+                                    </div>
+                                  </div>
+
+                                  <div className="ssp-topic-item-footer">
+                                    <div className="ssp-topic-tags">
+                                      {topicHasSummary ? (
+                                        <span className="ssp-mini-badge ready" style={{ background: unitTheme.bg, color: unitTheme.color }}>
+                                          ● Özet Hazır
+                                        </span>
+                                      ) : (
+                                        <span className="ssp-mini-badge pending">
+                                          Notlar
+                                        </span>
+                                      )}
+                                      {isTopicRead && (
+                                        <span className="ssp-mini-badge read">
+                                          <CheckCircle2 size={10} /> Okundu
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="ssp-topic-buttons">
+                                      <button
+                                        className={'ssp-topic-read-btn' + (isTopicRead ? ' read' : '')}
+                                        title={isTopicRead ? 'Okundu olarak işaretlendi' : 'Okudum olarak işaretle'}
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          toggleSummaryRead('topic', t.id, currentUser && currentUser.id);
+                                        }}>
+                                        <CheckCircle2 size={12} />
+                                        <span>{isTopicRead ? 'Okundu' : 'Okudum'}</span>
+                                      </button>
+                                      <button
+                                        className={'ssp-topic-open-btn' + (topicHasSummary ? ' has-summary' : '')}
+                                        style={topicHasSummary ? { background: unitTheme.gradient } : {}}
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: det.fullDisplayName });
+                                        }}>
+                                        {topicHasSummary ? <BookOpen size={12} /> : <FileText size={12} />}
+                                        <span>{topicHasSummary ? 'Özet' : 'İncele'}</span>
+                                        <ChevronRight size={11} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="ssp-empty-unit">
+                            {unitTopics.length === 0 ? 'Bu ünitede kayıtlı konu bulunmuyor.' : 'Filtreye uygun konu bulunamadı.'}
+                          </div>
+                        )}
+
+                        {isUnitCompleted && totalTopicsCount > 0 && (
+                          <div className="ssp-unit-completed-banner">
+                            <Sparkles size={14} color="#10b981" />
+                            <span>Tebrikler! Bu ünitedeki tüm konuları tamamladın. 🎉</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
             ) : (
-              <div style={{
-                background: 'var(--color-surface, #ffffff)',
-                border: '1.5px dashed var(--color-border, #cbd5e1)',
-                borderRadius: '1.25rem',
-                padding: '3rem 1.5rem',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <BookOpen size={40} color="var(--color-text-muted, #94a3b8)" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', margin: 0 }}>Bu Derse Ait Ünite Bulunamadı</h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #64748b)', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
-                  Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.
-                </p>
+              <div className="ssp-empty-catalog">
+                <BookOpen size={48} color="var(--color-text-muted, #94a3b8)" />
+                <h3>Bu Derse Ait Ünite Bulunamadı</h3>
+                <p>Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.</p>
               </div>
             )}
           </div>
-
         </div>
       )}
-
     </div>
   );
 }

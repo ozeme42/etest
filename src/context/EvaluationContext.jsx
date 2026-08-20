@@ -15,13 +15,49 @@ export function useEvaluation() {
 
 const DEFAULT_SAMPLE_SUBMISSIONS = [];
 
+const getDeletedIds = () => {
+  try {
+    const saved = localStorage.getItem('eTestDeletedSubmissions');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch {}
+  return new Set();
+};
+
+const markIdsAsDeleted = (ids) => {
+  try {
+    const current = getDeletedIds();
+    (ids || []).forEach(id => {
+      if (id) current.add(String(id));
+    });
+    const arr = Array.from(current).slice(-500);
+    localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(arr));
+  } catch {}
+};
+
+const unmarkIdAsDeleted = (id) => {
+  if (!id) return;
+  try {
+    const current = getDeletedIds();
+    if (current.has(String(id))) {
+      current.delete(String(id));
+      localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(current)));
+    }
+  } catch {}
+};
+
 export function EvaluationProvider({ children }) {
   const [submissions, setSubmissions] = useState(() => {
+    const deletedIds = getDeletedIds();
     const saved = localStorage.getItem('eTestSubmissions');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) ? parsed.filter(s => !String(s?.id).startsWith('sub_sample')) : [];
+        return Array.isArray(parsed)
+          ? parsed.filter(s => s && !String(s.id).startsWith('sub_sample') && !deletedIds.has(String(s.id)) && !deletedIds.has(String(s.supabaseId)))
+          : [];
       } catch (e) {}
     }
     return [];
@@ -34,9 +70,18 @@ export function EvaluationProvider({ children }) {
     try {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
+        const deletedIds = getDeletedIds();
+
+        // Filter out deleted items from DB list immediately
+        const validDbSubs = dbSubsList.filter(s => {
+          const sid = String(s?.id || '');
+          const suid = String(s?.supabaseId || '');
+          if (deletedIds.has(sid) || (suid && deletedIds.has(suid))) return false;
+          return true;
+        });
+
         // Auto-sync any local mistake reasons into submissions and Supabase
-        let hasNewReasonsToSync = false;
-        const updatedSubs = dbSubsList.map(sub => {
+        const updatedSubs = validDbSubs.map(sub => {
           const testId = String(sub.testId || sub.realTestId || sub.bookTestId || '');
           const cleanTId = testId.replace(/^bt_/, '').replace(/^q_/, '');
           let subMistakeReasons = (sub.mistakeReasons && typeof sub.mistakeReasons === 'object') ? { ...sub.mistakeReasons } : {};
@@ -53,7 +98,6 @@ export function EvaluationProvider({ children }) {
                       if (r && subMistakeReasons[qNo] !== r) {
                         subMistakeReasons[qNo] = r;
                         changed = true;
-                        hasNewReasonsToSync = true;
                       }
                     });
                   }
@@ -70,11 +114,30 @@ export function EvaluationProvider({ children }) {
           return sub;
         });
 
-        setSubmissions(updatedSubs);
-        try {
-          localStorage.setItem('eTestSubmissions', JSON.stringify(updatedSubs));
-          localStorage.setItem('etest_submissions', JSON.stringify(updatedSubs));
-        } catch {}
+        setSubmissions(prev => {
+          const dbIds = new Set();
+          (updatedSubs || []).forEach(s => {
+            if (s?.id) dbIds.add(String(s.id));
+            if (s?.supabaseId) dbIds.add(String(s.supabaseId));
+          });
+
+          // Only keep local items that are unsynced drafts or not yet in DB and not deleted
+          const localOnly = (prev || []).filter(localSub => {
+            const lId = String(localSub?.id || '');
+            const lSuId = String(localSub?.supabaseId || '');
+            if (!lId && !lSuId) return false;
+            if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
+            if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
+            return lId.startsWith('draft_') || lId.startsWith('sub_manual_');
+          });
+
+          const mergedList = [...updatedSubs, ...localOnly];
+          try {
+            localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
+            localStorage.setItem('etest_submissions', JSON.stringify(mergedList));
+          } catch {}
+          return mergedList;
+        });
       }
     } catch (err) {
       console.warn('[Supabase] Submission sync error:', err);
@@ -242,9 +305,11 @@ export function EvaluationProvider({ children }) {
     }
 
     setSubmissions(prev => {
+      unmarkIdAsDeleted(newSub.id);
       const nextSubs = [...prev, newSub];
       try {
         localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
+        localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
       } catch (e) {}
       return nextSubs;
     });
@@ -304,6 +369,9 @@ export function EvaluationProvider({ children }) {
 
   const updateSubmission = async (id, updatedData) => {
     let savedTarget = null;
+    unmarkIdAsDeleted(id);
+    if (updatedData?.id) unmarkIdAsDeleted(updatedData.id);
+
     setSubmissions(prev => {
       let found = false;
       const nextSubs = prev.map(sub => {
@@ -377,6 +445,8 @@ export function EvaluationProvider({ children }) {
     if (target?.id) idsToDelete.push(String(target.id));
     if (target?.supabaseId) idsToDelete.push(String(target.supabaseId));
 
+    markIdsAsDeleted(idsToDelete);
+
     setSubmissions(prev => {
       const remaining = prev.filter(s => !idsToDelete.includes(String(s.id)) && !idsToDelete.includes(String(s.supabaseId)));
       try {
@@ -415,6 +485,10 @@ export function EvaluationProvider({ children }) {
         if (s.supabaseId) toDelete.push(String(s.supabaseId));
       }
     });
+
+    if (toDelete.length > 0) {
+      markIdsAsDeleted(toDelete);
+    }
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !toDelete.includes(String(s.id)) && !toDelete.includes(String(s.supabaseId)));

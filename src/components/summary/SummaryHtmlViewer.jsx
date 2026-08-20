@@ -1,17 +1,39 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { Maximize2, Minimize2, CheckCircle2, Check, ZoomIn, ZoomOut } from 'lucide-react';
 import './SummaryHtmlViewer.css';
 
 export default function SummaryHtmlViewer({
   htmlContent = '',
-  fontSize = 16,
+  fontSize: initialFontSize = 16,
   title = '',
   targetType = 'topic',
-  emptyMessage = 'Bu bölüm için henüz özet veya konu anlatımı eklenmemiş.'
+  emptyMessage = 'Bu bölüm için henüz özet veya konu anlatımı eklenmemiş.',
+  isRead = false,
+  onToggleRead = null,
+  showControls = true
 }) {
   const { isDark } = useTheme();
   const iframeRef = useRef(null);
+  const fullscreenIframeRef = useRef(null);
   const [iframeHeight, setIframeHeight] = useState(600);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fontSize, setFontSize] = useState(initialFontSize);
+
+  useEffect(() => {
+    setFontSize(initialFontSize);
+  }, [initialFontSize]);
+
+  // Escape key to close fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Clean and prepare HTML
   const hasContent = Boolean(htmlContent && typeof htmlContent === 'string' && htmlContent.trim());
@@ -176,16 +198,135 @@ export default function SummaryHtmlViewer({
   }
 
   return (
-    <div className="summary-iframe-wrapper">
-      <iframe
-        ref={iframeRef}
-        title={title || 'Ders Özeti'}
-        srcDoc={iframeDoc}
-        onLoad={handleIframeLoad}
-        className="summary-content-iframe"
-        style={{ height: `${iframeHeight}px` }}
-        sandbox="allow-same-origin allow-scripts allow-popups"
-      />
-    </div>
+    <>
+      <div className="summary-iframe-wrapper">
+        {showControls && (
+          <div className="summary-mini-toolbar no-print">
+            {onToggleRead && (
+              <button
+                type="button"
+                className={`summary-action-btn ${isRead ? 'read-active' : ''}`}
+                onClick={onToggleRead}
+                title={isRead ? 'Okundu işaretini kaldır' : 'Bu konuyu okudum olarak işaretle'}
+              >
+                {isRead ? <CheckCircle2 size={14} color="#10b981" /> : <Check size={14} />}
+                <span>{isRead ? 'Okundu' : 'Okudum'}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="summary-action-btn fullscreen-btn"
+              onClick={() => setIsFullscreen(true)}
+              title="Tam Ekran Moduna Geç"
+            >
+              <Maximize2 size={14} />
+              <span>Tam Ekran</span>
+            </button>
+          </div>
+        )}
+
+        <iframe
+          ref={iframeRef}
+          title={title || 'Ders Özeti'}
+          srcDoc={iframeDoc}
+          onLoad={handleIframeLoad}
+          className="summary-content-iframe"
+          style={{ height: `${iframeHeight}px` }}
+          sandbox="allow-same-origin allow-scripts allow-popups"
+        />
+      </div>
+
+      {/* ─── FULLSCREEN IMMERSIVE MODAL OVERLAY ─── */}
+      {isFullscreen && (
+        <div className="summary-fullscreen-overlay">
+          {/* Header Bar */}
+          <header className="summary-fullscreen-header">
+            <div className="summary-fullscreen-title-box">
+              <span style={{ fontSize: '1.2rem' }}>📖</span>
+              <span className="summary-fullscreen-title">{title || 'Ders Özeti'}</span>
+              {isRead && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  color: '#10b981',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  padding: '2px 8px',
+                  borderRadius: 99
+                }}>
+                  <CheckCircle2 size={12} /> Okundu
+                </span>
+              )}
+            </div>
+
+            <div className="summary-fullscreen-controls">
+              {/* Font Size Adjusters */}
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '2px 6px', gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setFontSize(prev => Math.max(13, prev - 1))}
+                  title="Yazı Boyutunu Küçült"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--color-text, #334155)', padding: 2 }}
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, minWidth: 32, textAlign: 'center', color: 'var(--color-text-muted, #475569)' }}>{fontSize}px</span>
+                <button
+                  type="button"
+                  onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
+                  title="Yazı Boyutunu Büyüt"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--color-text, #334155)', padding: 2 }}
+                >
+                  <ZoomIn size={13} />
+                </button>
+              </div>
+
+              {/* Okudum Button */}
+              {onToggleRead && (
+                <button
+                  type="button"
+                  className={`summary-action-btn ${isRead ? 'read-active' : ''}`}
+                  onClick={onToggleRead}
+                  title={isRead ? 'Okundu işaretini kaldır' : 'Okudum olarak işaretle'}
+                >
+                  {isRead ? <CheckCircle2 size={14} color="#10b981" /> : <Check size={14} />}
+                  <span>{isRead ? 'Okundu' : 'Okudum'}</span>
+                </button>
+              )}
+
+              {/* Exit Fullscreen Button */}
+              <button
+                type="button"
+                className="summary-action-btn"
+                onClick={() => setIsFullscreen(false)}
+                title="Tam Ekrandan Çık (Esc)"
+                style={{ background: '#ef4444', color: '#ffffff', borderColor: '#dc2626' }}
+              >
+                <Minimize2 size={14} />
+                <span>Kapat (Esc)</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Fullscreen Body */}
+          <div className="summary-fullscreen-body">
+            <div className="summary-fullscreen-content-card">
+              <iframe
+                ref={fullscreenIframeRef}
+                title={title || 'Ders Özeti Tam Ekran'}
+                srcDoc={iframeDoc}
+                className="summary-fullscreen-iframe"
+                style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', flex: 1 }}
+                sandbox="allow-same-origin allow-scripts allow-popups"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

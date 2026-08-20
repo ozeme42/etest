@@ -358,7 +358,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
                 <select value={subject} onChange={e => { setSubject(e.target.value); setTopic(''); }}
                   style={{ width: '100%', padding: '0.65rem 0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.65rem', fontSize: '0.88rem', outline: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : 'white', color: isDark ? '#ffffff' : '#0f172a', fontFamily: 'inherit', cursor: 'pointer' }}>
                   <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Ders seçin --</option>
-                  {allSubjects.map(s => <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
+                  {allSubjects.map((s, idx) => <option key={`${s}_${idx}`} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
                 </select>
               </div>
             )}
@@ -372,7 +372,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
                     <select value={topic} onChange={e => setTopic(e.target.value)}
                       style={{ width: '100%', padding: '0.65rem 0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.65rem', fontSize: '0.88rem', outline: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : 'white', color: isDark ? '#ffffff' : '#0f172a', fontFamily: 'inherit', marginBottom: 6, cursor: 'pointer' }}>
                       <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Konu seçin (isteğe bağlı) --</option>
-                      {poolTopicsForSubject.map(t => <option key={t} value={t} style={{ background: '#0f172a', color: '#ffffff' }}>{t}</option>)}
+                      {poolTopicsForSubject.map((t, idx) => <option key={`${t}_${idx}`} value={t} style={{ background: '#0f172a', color: '#ffffff' }}>{t}</option>)}
                     </select>
                     {topic && taskType === 'konu' && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -992,10 +992,10 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
               <div style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginBottom: 10 }}>Havuza eklemek istediğiniz dersleri seçin:</div>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 12 }}>
-                {selectedCurriculumPreview.subjects.map(sub => {
+                {selectedCurriculumPreview.subjects.map((sub, idx) => {
                   const isSelected = selectedSubjectsForImport.has(sub.id);
                   return (
-                    <div key={sub.id} 
+                    <div key={`${sub.id || sub.name}_${idx}`} 
                       onClick={() => {
                         const next = new Set(selectedSubjectsForImport);
                         if (isSelected) next.delete(sub.id);
@@ -1077,12 +1077,12 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {pool.map(subject => {
+        {pool.map((subject, idx) => {
           const isOpen = expandedSubjects[subject.id];
           const doneCount = subject.topics.filter(t => t.status === 'Tamamlandı').length;
           const totalCount = subject.topics.length;
           return (
-            <div key={subject.id} style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e8ecf0', overflow: 'hidden', boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(20px)' : 'none' }}>
+            <div key={`${subject.id || subject.name}_${idx}`} style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e8ecf0', overflow: 'hidden', boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(20px)' : 'none' }}>
               <div onClick={() => toggleSubject(subject.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.85rem 1rem', cursor: 'pointer', gap: '0.75rem' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: subject.color, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
@@ -1106,10 +1106,10 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
               {isOpen && (
                 <div style={{ padding: '0 1rem 1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.65rem' }}>
-                    {subject.topics.map(topic => {
+                    {subject.topics.map((topic, tIdx) => {
                       const sc = STATUS_COLORS[topic.status] || STATUS_COLORS['Başlanmadı'];
                       return (
-                        <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.65rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: '0.6rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                        <div key={`${topic.id || topic.name}_${tIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.65rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: '0.6rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9', flexWrap: 'wrap' }}>
                           <div style={{ flex: 1, minWidth: 110, fontSize: '0.83rem', fontWeight: 700, color: isDark ? '#ffffff' : '#374151' }}>{topic.name}</div>
                           
                           {/* Quick Assign Action Chips */}

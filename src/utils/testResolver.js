@@ -1,4 +1,5 @@
 import { toUUID } from '../services/supabaseService';
+import { getTurkeyYMD } from './dateHelpers';
 
 /**
  * Helper to extract question text robustly from any question object format.
@@ -545,7 +546,7 @@ export function computeStudentAnalyticsData({
       else subject = 'Genel / Diğer';
     }
 
-    const cleanDate = (subDate || s.submittedAt || s.completedAt || s.createdAt || new Date().toISOString()).slice(0, 10);
+    const cleanDate = getTurkeyYMD(subDate || s.submittedAt || s.completedAt || s.createdAt || s.date);
 
     return {
       id: s.id || `sub_${Date.now()}_${Math.random()}`,
@@ -582,9 +583,9 @@ export function computeStudentAnalyticsData({
     if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
     // Only approved manual tests count towards system analytics and statistics
-    const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test';
+    const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
     if (isManualTest) {
-      const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || raw.approvalStatus === 'approved' || raw.isApproved === true;
+      const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed' || raw.approvalStatus === 'approved' || raw.isApproved === true;
       if (!isApproved) return;
     }
 
@@ -601,7 +602,7 @@ export function computeStudentAnalyticsData({
     // Soru çözülmemiş/boş taslakları atla
     if (correct === 0 && wrong === 0 && empty === 0 && (!s.answers || s.answers.length === 0)) return;
 
-    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt;
+    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt || s.date;
     if (!subDate) return;
 
     const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
@@ -609,24 +610,26 @@ export function computeStudentAnalyticsData({
     const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
     const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
 
-    // If parent homework is linked to a book/exam that was deleted, discard it
-    if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
-      return;
-    }
+    if (!isManualTest) {
+      // If parent homework is linked to a book/exam that was deleted, discard it
+      if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
+        return;
+      }
 
-    // If submission is linked to a book/exam that was deleted, discard it
-    if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
-      return;
-    }
+      // If submission is linked to a book/exam that was deleted, discard it
+      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
+        return;
+      }
 
-    // If submission is linked to a homework that has been deleted (and is not an independent tracked book test), discard it!
-    const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
-    if (isHwSub && !parentHw) {
-      return; // Deleted homework!
-    }
+      // If submission is linked to a homework that has been deleted (and is not an independent tracked book test), discard it!
+      const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
+      if (isHwSub && !parentHw) {
+        return; // Deleted homework!
+      }
 
-    if (!bookObj && !testObj && !parentHw) {
-      return; // Orphaned submission for a deleted test/exam
+      if (!bookObj && !testObj && !parentHw) {
+        return; // Orphaned submission for a deleted test/exam
+      }
     }
 
     const dedupeKey = s.id ? String(s.id) : `${bTestId}_${subDate}`;
@@ -678,7 +681,7 @@ export function computeStudentAnalyticsData({
     return {
       id: m.id,
       title: m.title || 'Fiziki Deneme Sınavı',
-      date: (m.date || m.createdAt || new Date().toISOString()).slice(0, 10),
+      date: getTurkeyYMD(m.date || m.createdAt || m.submittedAt),
       totalNet: parseFloat(m.totalNet) || 0,
       sourceType: 'manual',
       approvalStatus: m.approvalStatus || (m.createdBy === 'student' ? 'pending' : 'approved'),

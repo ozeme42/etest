@@ -15,7 +15,10 @@ export function useSummaries() {
       getSummary: () => null,
       hasSummary: () => false,
       getSummariesBySubject: () => [],
-      getSummariesByUnit: () => []
+      getSummariesByUnit: () => [],
+      isSummaryRead: () => false,
+      toggleSummaryRead: () => false,
+      readMap: {}
     };
   }
   return context;
@@ -172,6 +175,59 @@ export function SummaryProvider({ children }) {
     return summaries.filter(s => String(s.unitId) === unitIdStr || (s.targetType === 'unit' && String(s.targetId) === unitIdStr));
   };
 
+  // Read / Okundu State Management per student
+  const [readMap, setReadMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eTest_Read_Summaries_All');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return {};
+  });
+
+  const getSummaryKey = (targetType, targetId) => `${targetType || 'item'}_${targetId}`;
+
+  const isSummaryRead = (targetType, targetId, studentId = 'default') => {
+    if (!targetId) return false;
+    const stId = String(studentId || 'default');
+    const key = getSummaryKey(targetType, targetId);
+    const userReadList = readMap[stId] || [];
+    return userReadList.includes(key) || userReadList.includes(String(targetId));
+  };
+
+  const toggleSummaryRead = (targetType, targetId, studentId = 'default') => {
+    if (!targetId) return false;
+    const stId = String(studentId || 'default');
+    const key = getSummaryKey(targetType, targetId);
+
+    let nextIsRead = false;
+    setReadMap(prev => {
+      const userList = prev[stId] ? [...prev[stId]] : [];
+      const idx = userList.indexOf(key);
+      const idIdx = userList.indexOf(String(targetId));
+
+      let updatedUserList;
+      if (idx >= 0 || idIdx >= 0) {
+        updatedUserList = userList.filter(k => k !== key && k !== String(targetId));
+        nextIsRead = false;
+      } else {
+        updatedUserList = [...userList, key];
+        nextIsRead = true;
+      }
+
+      const updatedMap = { ...prev, [stId]: updatedUserList };
+      try {
+        localStorage.setItem('eTest_Read_Summaries_All', JSON.stringify(updatedMap));
+        localStorage.setItem(`eTest_Read_Summaries_${stId}`, JSON.stringify(updatedUserList));
+      } catch {}
+      return updatedMap;
+    });
+
+    window.dispatchEvent(new CustomEvent('summary_read_changed', { detail: { targetType, targetId, studentId: stId } }));
+    return nextIsRead;
+  };
+
   return (
     <SummaryContext.Provider value={{
       summaries,
@@ -181,7 +237,10 @@ export function SummaryProvider({ children }) {
       getSummary,
       hasSummary,
       getSummariesBySubject,
-      getSummariesByUnit
+      getSummariesByUnit,
+      isSummaryRead,
+      toggleSummaryRead,
+      readMap
     }}>
       {children}
     </SummaryContext.Provider>

@@ -21,13 +21,14 @@ import { toUUID } from '../services/supabaseService';
 import ProgramCenter from '../components/ProgramCenter';
 import CoachingReportModal from '../components/CoachingReportModal';
 import { computeStudentAnalyticsData } from '../utils/testResolver';
+import { getTurkeyToday, getTurkeyYMD } from '../utils/dateHelpers';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => getTurkeyToday();
 const DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const DAY_LONG = { 'Pzt': 'Pazartesi', 'Sal': 'Salı', 'Çrş': 'Çarşamba', 'Prş': 'Perşembe', 'Cum': 'Cuma', 'Cts': 'Cumartesi', 'Paz': 'Pazar' };
 const SUBJECTS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Genel Tekrar', 'Soru Çözümü', 'Deneme Sınavı', 'Paragraf / Problem'];
@@ -1694,12 +1695,12 @@ export default function MyCoachingPage() {
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginRight: 4 }}>
                         📚 En Çok Çözülen Dersler:
                       </span>
-                      {topSubjs.map(([sName, stat]) => {
+                      {topSubjs.map(([sName, stat], idx) => {
                         const sTotalQ = stat.d + stat.y + stat.b;
                         const sRate = sTotalQ > 0 ? Math.round((stat.d / sTotalQ) * 100) : 0;
                         return (
                           <div
-                            key={sName}
+                            key={`${sName}_${idx}`}
                             style={{
                               background: 'var(--color-surface, white)',
                               border: '1px solid var(--color-border-input, #cbd5e1)',
@@ -2707,12 +2708,12 @@ export default function MyCoachingPage() {
                 <div>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    {SUBJECTS.map(subName => {
+                    {SUBJECTS.map((subName, idx) => {
                       const isSelected = (newLog.revision || '').includes(subName);
                       return (
                         <button
                           type="button"
-                          key={subName}
+                          key={`${subName}_${idx}`}
                           onClick={() => {
                             setNewLog(p => {
                               const curr = p.revision ? p.revision.trim() : '';
@@ -3364,8 +3365,8 @@ export default function MyCoachingPage() {
                         style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input, #cbd5e1)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text, #334155)', background: 'var(--color-surface, white)', cursor: 'pointer', outline: 'none' }}
                       >
                         <option value="Toplam Net">Genel (Toplam Net)</option>
-                        {Array.from(new Set(generalTrialExams.flatMap(e => Object.keys(e.scores || {})))).map(s => (
-                          <option key={s} value={s}>{s} Net</option>
+                        {Array.from(new Set(generalTrialExams.flatMap(e => Object.keys(e.scores || {})))).map((s, idx) => (
+                          <option key={`${s}_${idx}`} value={s}>{s} Net</option>
                         ))}
                       </select>
                     </div>
@@ -3380,17 +3381,18 @@ export default function MyCoachingPage() {
                                  net = s.scores[chartMetric].net !== undefined ? parseFloat(s.scores[chartMetric].net) : 0;
                               }
                            }
-                           return { name: `D${i + 1}`, Net: parseFloat(Number(net).toFixed(2)), fullName: s.title, date: s.date };
+                           return {
+                              name: s.title ? (s.title.length > 12 ? s.title.substring(0, 10) + '..' : s.title) : `Deneme ${i+1}`,
+                              net: parseFloat(Number(net).toFixed(2)),
+                              fullTitle: s.title || `Deneme ${i+1}`,
+                              date: s.date
+                           };
                         })}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border, #e2e8f0)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted, #64748b)' }} dy={10} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted, #64748b)' }} dx={-10} domain={['dataMin - 5', 'dataMax + 5']} />
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '0.8rem', fontWeight: 700, background: 'var(--color-surface, #ffffff)', color: 'var(--color-text, #0f172a)' }}
-                            formatter={(value) => [`${value} Net`, 'Sonuç']}
-                            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
-                          />
-                          <Line type="monotone" dataKey="Net" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, fill: '#7c3aed', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, fill: '#6d28d9' }} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border, rgba(226, 232, 240, 0.6))" />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} />
+                          <YAxis domain={[0, 'dataMax + 5']} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} />
+                          <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                          <Line type="monotone" dataKey="net" stroke="#7c3aed" strokeWidth={3} dot={{ fill: '#7c3aed', r: 4 }} activeDot={{ r: 6 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -3398,79 +3400,69 @@ export default function MyCoachingPage() {
                 )}
 
                 {/* Özet istatistik */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {[
                     { label: 'Toplam Deneme', value: generalTrialExams.length, color: '#a855f7' },
                     { label: 'Ortalama Net', value: (generalTrialExams.reduce((s, x) => s + (x.totalNet || 0), 0) / generalTrialExams.length).toFixed(1), color: '#3b82f6' },
                     { label: 'En Yüksek Net', value: Math.max(...generalTrialExams.map(x => x.totalNet || 0)).toFixed(1), color: '#10b981' },
                     { label: 'Son Deneme', value: generalTrialExams[0]?.totalNet ?? '—', color: '#f59e0b' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+                    <div key={s.label} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '0.85rem', padding: '0.85rem 1rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: s.color }}>{s.value}</div>
+                      <div style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)', marginTop: 2 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Deneme Listesi */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {generalTrialExams.map((s, i) => (
-                    <div key={s.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0.85rem 1rem', background: i === 0 ? 'rgba(124, 58, 237, 0.1)' : 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', border: i === 0 ? '1.5px solid rgba(124, 58, 237, 0.35)' : '1px solid var(--color-border, #e2e8f0)' }}>
-                      <div 
-                        onClick={() => toggleExamExpand(s.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                      >
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#7c3aed' : 'var(--color-surface, #e2e8f0)', color: i === 0 ? 'white' : 'var(--color-text-muted, #64748b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>{i + 1}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)' }}>{s.title}</span>
-                            {s.sourceType === 'online' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', padding: '0.15rem 0.45rem', borderRadius: 4 }}>⚡ Online Sınav</span>
-                            )}
-                            {s.sourceType === 'optik' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
-                            )}
-                            {s.sourceType === 'manual' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
+                    <div key={s.id || i} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: i === 0 ? '1.5px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border, rgba(255,255,255,1))', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>{s.title}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span>📅 {s.date}</span>
+                            {s.sourceType === 'manual' ? (
+                              <span style={{ background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Fiziki Giriş</span>
+                            ) : (
+                              <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Optik / Online</span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: 6, fontSize: '0.75rem', fontWeight: 800, marginRight: 8, background: 'var(--color-surface, rgba(255,255,255,0.6))', padding: '0.2rem 0.6rem', borderRadius: 20, border: '1px solid var(--color-border, transparent)' }}>
-                             <span style={{ color: '#10b981' }}>{s.totalCorrect || 0}D</span>
-                             <span style={{ color: '#ef4444' }}>{s.totalWrong || 0}Y</span>
-                             <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>{s.totalEmpty || 0}B</span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#7c3aed' }}>{s.totalNet} Net</div>
+                            {s.totalQuestions > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)' }}>{s.totalQuestions} Soru</div>}
                           </div>
-                          <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#a855f7' }}>{s.totalNet}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>net</span>
-                          <ChevronDown size={18} style={{ color: 'var(--color-text-muted, #94a3b8)', transform: expandedExams[s.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginLeft: 4 }} />
-                          {isTeacherOrAdmin && (
-                            <button type="button" onClick={(e) => {
-                              e.stopPropagation();
-                              if (!window.confirm("Bu denemeyi silmek istediğinize emin misiniz?")) return;
-                              if (s.sourceType === 'manual') {
-                                deleteMockExam(s.id);
-                              } else if (s.submissions && s.submissions.length > 0) {
-                                s.submissions.forEach(subId => deleteSubmission(subId));
-                              } else {
-                                deleteSubmission(s.id);
-                              }
-                            }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4, marginLeft: 4 }}>
-                              <Trash2 size={15} />
+
+                          {s.sourceType === 'manual' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`"${s.title}" denemesini silmek istediğinize emin misiniz?`)) {
+                                  deleteMockExam(s.id);
+                                }
+                              }}
+                              title="Denemeyi Sil"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #94a3b8)', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                              onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #94a3b8)'}
+                            >
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
                       </div>
 
-                      {/* Ders bazlı detay tablosu */}
-                      {expandedExams[s.id] && s.scores && Object.keys(s.scores).length > 0 && (
-                        <div style={{ marginTop: '0.75rem', borderTop: '1px dashed var(--color-border, #cbd5e1)', paddingTop: '0.75rem' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.5rem' }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
-                          <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: '400px' }}>
+                      {/* Score breakdown per subject */}
+                      {s.scores && Object.keys(s.scores).length > 0 && (
+                        <div style={{ padding: '0 1.25rem 1rem' }}>
+                          <div style={{ borderTop: '1px dashed var(--color-border, #e2e8f0)', paddingTop: '0.75rem' }}>
+                            <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
                               <thead>
-                                <tr style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', color: 'var(--color-text-muted, #64748b)' }}>
+                                <tr style={{ color: 'var(--color-text-muted, #64748b)', textAlign: 'left' }}>
                                   <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)' }}>Ders</th>
                                   <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Doğru (D)</th>
                                   <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Yanlış (Y)</th>
@@ -3480,7 +3472,7 @@ export default function MyCoachingPage() {
                               </thead>
                               <tbody>
                                 {Object.entries(s.scores).map(([subName, sc], idx) => (
-                                  <tr key={subName} style={{ background: idx % 2 === 0 ? 'var(--color-surface-hover, rgba(255,255,255,0.4))' : 'transparent', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+                                  <tr key={`${subName}_${idx}`} style={{ background: idx % 2 === 0 ? 'var(--color-surface-hover, rgba(255,255,255,0.4))' : 'transparent', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
                                     <td style={{ padding: '0.5rem', fontWeight: 700, color: 'var(--color-text, #334155)' }}>{subName}</td>
                                     <td style={{ padding: '0.5rem', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>{sc.d || 0}</td>
                                     <td style={{ padding: '0.5rem', textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{sc.y || 0}</td>
@@ -3587,14 +3579,14 @@ export default function MyCoachingPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allSubjectsForTable.map(subject => {
+                        {allSubjectsForTable.map((subject, idx) => {
                           const isCustom = !templateSubjects.includes(subject);
                           const subGrades = schoolGrades.filter(g => g.subject === subject);
                           const subScores = subGrades.map(g => parseFloat(g.score)).filter(s => !isNaN(s));
                           const subAvg = subScores.length > 0 ? (subScores.reduce((a, b) => a + b, 0) / subScores.length).toFixed(1) : '—';
 
                           return (
-                            <tr key={subject} style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)' }}>
+                            <tr key={`${subject}_${idx}`} style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)' }}>
                               <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                   {isCustom && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>Seçmeli</span>}
@@ -3880,13 +3872,13 @@ export default function MyCoachingPage() {
                           >
                             🌐 Tüm Dersler ({otherHomeworkSubmissions.length})
                           </button>
-                          {availableSubjects.map(([subj, count]) => {
+                          {availableSubjects.map(([subj, count], idx) => {
                             const isSel = hwSubjectFilter === subj;
                             const col = SUBJECT_COLORS[subj] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subj] || '📚';
                             return (
                               <button
-                                key={subj}
+                                key={`${subj}_${idx}`}
                                 type="button"
                                 onClick={() => setHwSubjectFilter(isSel ? 'all' : subj)}
                                 style={{
@@ -3911,7 +3903,7 @@ export default function MyCoachingPage() {
                       {/* Tarihsel Hızlı Özet Şeridi (Sadece Tarih Modunda) */}
                       {hwGroupByMode === 'date' && dateEntries.length > 0 && (
                         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                          {dateEntries.slice(0, 10).map(([dStr, tests]) => {
+                          {dateEntries.slice(0, 10).map(([dStr, tests], idx) => {
                             const qCount = tests.reduce((a, b) => a + (b.correctCount || 0) + (b.wrongCount || 0) + (b.emptyCount || 0), 0);
                             const dCount = tests.reduce((a, b) => a + (b.correctCount || 0), 0);
                             const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
@@ -3919,99 +3911,46 @@ export default function MyCoachingPage() {
 
                             return (
                               <div
-                                key={dStr}
+                                key={`${dStr}_${idx}`}
                                 onClick={() => setExpandedHwDates(prev => ({ ...prev, [dStr]: true }))}
                                 style={{
-                                  background: isBugun ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, rgba(255,255,255,0.9))',
+                                  background: isBugun ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-surface-hover, rgba(255,255,255,0.7))',
                                   border: isBugun ? '1.5px solid #86efac' : '1px solid var(--color-border, #e2e8f0)',
-                                  borderRadius: '0.7rem',
-                                  padding: '0.5rem 0.75rem',
-                                  minWidth: 140,
+                                  borderRadius: '0.65rem',
+                                  padding: '0.35rem 0.65rem',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 700,
                                   cursor: 'pointer',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                                  flexShrink: 0
+                                  whiteSpace: 'nowrap',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6
                                 }}
                               >
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isBugun ? '#10b981' : 'var(--color-text, #0f172a)' }}>
-                                  📅 {dStr.split('-').reverse().join('.')}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6' }}>
-                                    ✏️ {qCount} Soru
-                                  </span>
-                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#10b981' : '#f59e0b' }}>
-                                    %{rate}
-                                  </span>
-                                </div>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
-                                  {tests.length} Test Çözüldü
-                                </div>
+                                <span>{isBugun ? '📍 Bugün' : dStr}</span>
+                                <span style={{ color: '#10b981', fontWeight: 800 }}>%{rate}</span>
+                                <span style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.68rem' }}>({tests.length}T)</span>
                               </div>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* Gruplanmış Akordiyon & Kart Listesi */}
-                      {currentEntries.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', padding: '2rem', fontWeight: 600, background: 'var(--color-surface, rgba(255, 255, 255, 0.4))', borderRadius: '0.85rem', border: '1px dashed var(--color-border, #cbd5e1)' }}>
-                          Aradığınız kriterlere uygun test bulunamadı.
+                      {/* Boş Durum (Arama Sonucu Yoksa) */}
+                      {filtered.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '2rem 1rem', background: 'var(--color-surface, rgba(255, 255, 255, 0.6))', borderRadius: '1rem', border: '1px dashed var(--color-border, #cbd5e1)', color: 'var(--color-text-muted, #94a3b8)' }}>
+                          <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>🔍</div>
+                          <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>Arama kriterlerine uygun test bulunamadı.</div>
+                          <div style={{ fontSize: '0.75rem', marginTop: 4 }}>Farklı bir ders veya arama kelimesi deneyebilirsin.</div>
                         </div>
-                      ) : (
+                      )}
+
+                      {/* ═══ GRUPLANMIŞ TEST KARTLARI ═══ */}
+                      {filtered.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          {/* Hızlı Tümünü Aç / Kapat Butonları */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>
-                              {hwGroupByMode === 'subject'
-                                ? 'Ders gruplarına tıklayarak detaylı test listesini görebilirsiniz:'
-                                : 'Günlere tıklayarak o gün çözülen tüm test ve soruları görebilirsiniz:'}
-                            </span>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const allOpen = {};
-                                  currentEntries.forEach(([k]) => { allOpen[k] = true; });
-                                  if (hwGroupByMode === 'subject') setExpandedHwSubjects(allOpen);
-                                  else setExpandedHwDates(allOpen);
-                                }}
-                                style={{
-                                  background: 'rgba(99, 102, 241, 0.15)',
-                                  color: '#818cf8',
-                                  border: '1px solid rgba(99, 102, 241, 0.35)',
-                                  borderRadius: '0.45rem',
-                                  padding: '0.2rem 0.55rem',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                ▼ Tümünü Aç
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (hwGroupByMode === 'subject') setExpandedHwSubjects({});
-                                  else setExpandedHwDates({});
-                                }}
-                                style={{
-                                  background: 'var(--color-surface, rgba(255, 255, 255, 0.8))',
-                                  color: 'var(--color-text-muted, #64748b)',
-                                  border: '1px solid var(--color-border, #e2e8f0)',
-                                  borderRadius: '0.45rem',
-                                  padding: '0.2rem 0.55rem',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                ▲ Tümünü Kapat
-                              </button>
-                            </div>
-                          </div>
 
                           {/* ── 1. DERSLERE GÖRE GRUPLAMA ── */}
-                          {hwGroupByMode === 'subject' && currentEntries.map(([subjName, tests]) => {
+                          {hwGroupByMode === 'subject' && currentEntries.map(([subjName, tests], idx) => {
                             const isOpen = Boolean(expandedHwSubjects[subjName]);
                             const col = SUBJECT_COLORS[subjName] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subjName] || '📚';
@@ -4023,7 +3962,7 @@ export default function MyCoachingPage() {
                             const grpRate = grpTotalQ > 0 ? Math.round((grpD / grpTotalQ) * 100) : 0;
 
                             return (
-                              <div key={subjName} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                              <div key={`${subjName}_${idx}`} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                                 <div
                                   onClick={() => setExpandedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
                                   style={{
@@ -4083,54 +4022,37 @@ export default function MyCoachingPage() {
                                             flexDirection: 'column',
                                             justifyContent: 'space-between',
                                             gap: 8,
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
                                           }}
                                         >
                                           <div>
-                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                                              {s.title}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}>
+                                              <span style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #1e293b)' }}>
+                                                {s.title || 'Konu Testi'}
+                                              </span>
+                                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444', background: rate >= 70 ? 'rgba(16, 185, 129, 0.12)' : rate >= 50 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)', padding: '1px 6px', borderRadius: 4 }}>
+                                                %{rate}
+                                              </span>
                                             </div>
-                                            <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                              <span>📅 {s.date}</span>
-                                              <span>•</span>
-                                              <span style={{ fontWeight: 700, color: '#3b82f6' }}>✏️ {totalQ} Soru</span>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                              <span>📅 {formatCleanDate(s.date)}</span>
+                                              {s.sourceType === 'online' && (
+                                                <span style={{ color: '#0284c7', background: 'rgba(56, 189, 248, 0.12)', padding: '0 4px', borderRadius: 3, fontWeight: 700, fontSize: '0.65rem' }}>Online</span>
+                                              )}
+                                              {s.sourceType === 'optik' && (
+                                                <span style={{ color: '#d97706', background: 'rgba(245, 158, 11, 0.12)', padding: '0 4px', borderRadius: 3, fontWeight: 700, fontSize: '0.65rem' }}>Optik</span>
+                                              )}
                                             </div>
                                           </div>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', gap: 6 }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted, #475569)' }}>
-                                              ✅ {d} <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ⭕ {b}</>}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', fontSize: '0.73rem', fontWeight: 800 }}>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                              <span style={{ color: '#10b981' }}>{d}D</span>
+                                              <span style={{ color: '#ef4444' }}>{y}Y</span>
+                                              {b > 0 && <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>{b}B</span>}
                                             </div>
-
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                              <span
-                                                style={{
-                                                  fontWeight: 900,
-                                                  fontSize: '0.76rem',
-                                                  color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444',
-                                                  background: rate >= 70 ? 'rgba(16, 185, 129, 0.15)' : rate >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                                  border: rate >= 70 ? '1px solid rgba(16, 185, 129, 0.35)' : rate >= 50 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(239, 68, 68, 0.35)',
-                                                  padding: '2px 7px',
-                                                  borderRadius: '0.4rem',
-                                                  display: 'inline-flex',
-                                                  alignItems: 'center',
-                                                  gap: 2
-                                                }}
-                                              >
-                                                %{rate} Başarı
-                                              </span>
-                                              {isTeacherOrAdmin && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => deleteSubmission(s.id)}
-                                                  title="Testi Sil"
-                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2, display: 'flex', borderRadius: 4 }}
-                                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                  onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #cbd5e1)'}
-                                                >
-                                                  <Trash2 size={14} />
-                                                </button>
-                                              )}
+                                            <div style={{ color: '#6366f1', fontWeight: 900 }}>
+                                              {s.totalNet !== undefined ? `${s.totalNet} Net` : `${totalQ} Soru`}
                                             </div>
                                           </div>
                                         </div>
@@ -4143,7 +4065,7 @@ export default function MyCoachingPage() {
                           })}
 
                           {/* ── 2. GÜNLERE / TARİHE GÖRE GRUPLAMA ── */}
-                          {hwGroupByMode === 'date' && currentEntries.map(([dateKey, tests]) => {
+                          {hwGroupByMode === 'date' && currentEntries.map(([dateKey, tests], idx) => {
                             const isOpen = Boolean(expandedHwDates[dateKey]);
                             const isBugun = dateKey === today();
 
@@ -4155,7 +4077,7 @@ export default function MyCoachingPage() {
 
                             return (
                               <div
-                                key={dateKey}
+                                key={`${dateKey}_${idx}`}
                                 style={{
                                   background: 'var(--color-surface, rgba(255, 255, 255, 0.7))',
                                   backdropFilter: 'blur(12px)',
@@ -4165,7 +4087,6 @@ export default function MyCoachingPage() {
                                   boxShadow: isBugun ? '0 4px 12px rgba(16,185,129,0.1)' : '0 2px 8px rgba(0,0,0,0.03)'
                                 }}
                               >
-                                {/* Gün Başlık Çubuğu */}
                                 <div
                                   onClick={() => setExpandedHwDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
                                   style={{
@@ -4181,26 +4102,23 @@ export default function MyCoachingPage() {
                                     userSelect: 'none'
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '1.1rem' }}>📅</span>
-                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: isBugun ? '#10b981' : 'var(--color-text, #0f172a)' }}>
-                                      {formatDateTR(dateKey)}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: '1.1rem' }}>{isBugun ? '🌟' : '📅'}</span>
+                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #1e293b)' }}>
+                                      {formatCleanDate(dateKey)}
                                     </span>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#3b82f6', background: 'var(--color-surface, white)', border: '1px solid rgba(59, 130, 246, 0.35)', padding: '1px 8px', borderRadius: 99 }}>
-                                      {tests.length} Test
-                                    </span>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#a855f7', background: 'var(--color-surface, white)', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '1px 8px', borderRadius: 99 }}>
-                                      ✏️ {grpTotalQ} Soru Çözüldü
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text, #475569)', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '1px 7px', borderRadius: 99 }}>
+                                      {tests.length} Test · {grpTotalQ} Soru
                                     </span>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                      <span style={{ color: grpRate >= 70 ? '#10b981' : grpRate >= 50 ? '#f59e0b' : '#ef4444', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 7px', borderRadius: '0.4rem' }}>
+                                      <span style={{ color: '#10b981', background: 'var(--color-surface, white)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '2px 6px', borderRadius: '0.4rem' }}>
                                         Ort. %{grpRate} Başarı
                                       </span>
-                                      <span style={{ color: 'var(--color-text-muted, #475569)', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 7px', borderRadius: '0.4rem' }}>
-                                        ✅ {grpD} · ❌ {grpY} {grpB > 0 && `· ⭕ ${grpB}`}
+                                      <span style={{ color: 'var(--color-text-muted, #475569)', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 6px', borderRadius: '0.4rem' }}>
+                                        ✅ {grpD} · ❌ {grpY}
                                       </span>
                                     </div>
                                     <div style={{ color: 'var(--color-text-muted, #64748b)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
@@ -4209,7 +4127,6 @@ export default function MyCoachingPage() {
                                   </div>
                                 </div>
 
-                                {/* Gün İçi Test Kartları Grid Düzeni */}
                                 {isOpen && (
                                   <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.4))' }}>
                                     {tests.map((s, i) => {
@@ -4218,9 +4135,8 @@ export default function MyCoachingPage() {
                                       const b = s.emptyCount || 0;
                                       const totalQ = d + y + b;
                                       const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
-                                      const subj = s.subject || 'Genel / Diğer';
-                                      const col = SUBJECT_COLORS[subj] || SUBJECT_COLORS['Genel / Diğer'];
-                                      const ico = SUBJECT_ICONS[subj] || '📚';
+                                      const col = SUBJECT_COLORS[s.subject] || SUBJECT_COLORS['Genel / Diğer'];
+                                      const ico = SUBJECT_ICONS[s.subject] || '📚';
 
                                       return (
                                         <div
@@ -4228,63 +4144,45 @@ export default function MyCoachingPage() {
                                           style={{
                                             background: 'var(--color-surface, white)',
                                             borderRadius: '0.75rem',
-                                            border: '1px solid var(--color-border, #e2e8f0)',
+                                            border: `1.5px solid ${col.border}`,
                                             padding: '0.75rem 0.85rem',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             justifyContent: 'space-between',
                                             gap: 8,
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
                                           }}
                                         >
                                           <div>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}>
-                                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: col.text, background: col.bg, border: `1px solid ${col.border}`, padding: '1px 6px', borderRadius: '0.35rem' }}>
-                                                {ico} {subj}
+                                              <span style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #1e293b)' }}>
+                                                {s.title || 'Konu Testi'}
                                               </span>
-                                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6' }}>
-                                                ✏️ {totalQ} Soru
+                                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444', background: rate >= 70 ? 'rgba(16, 185, 129, 0.12)' : rate >= 50 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)', padding: '1px 6px', borderRadius: 4 }}>
+                                                %{rate}
                                               </span>
                                             </div>
-                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                                              {s.title}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: col.text, background: col.bg, border: `1px solid ${col.border}`, padding: '1px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                {ico} {s.subject || 'Genel'}
+                                              </span>
+                                              {s.sourceType === 'online' && (
+                                                <span style={{ color: '#0284c7', background: 'rgba(56, 189, 248, 0.12)', padding: '0 4px', borderRadius: 3, fontWeight: 700, fontSize: '0.65rem' }}>Online</span>
+                                              )}
+                                              {s.sourceType === 'optik' && (
+                                                <span style={{ color: '#d97706', background: 'rgba(245, 158, 11, 0.12)', padding: '0 4px', borderRadius: 3, fontWeight: 700, fontSize: '0.65rem' }}>Optik</span>
+                                              )}
                                             </div>
                                           </div>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', gap: 6 }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted, #475569)' }}>
-                                              ✅ {d} <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ⭕ {b}</>}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', fontSize: '0.73rem', fontWeight: 800 }}>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                              <span style={{ color: '#10b981' }}>{d}D</span>
+                                              <span style={{ color: '#ef4444' }}>{y}Y</span>
+                                              {b > 0 && <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>{b}B</span>}
                                             </div>
-
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                              <span
-                                                style={{
-                                                  fontWeight: 900,
-                                                  fontSize: '0.76rem',
-                                                  color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444',
-                                                  background: rate >= 70 ? 'rgba(16, 185, 129, 0.15)' : rate >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                                  border: rate >= 70 ? '1px solid rgba(16, 185, 129, 0.35)' : rate >= 50 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(239, 68, 68, 0.35)',
-                                                  padding: '2px 7px',
-                                                  borderRadius: '0.4rem',
-                                                  display: 'inline-flex',
-                                                  alignItems: 'center',
-                                                  gap: 2
-                                                }}
-                                              >
-                                                %{rate} Başarı
-                                              </span>
-                                              {isTeacherOrAdmin && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => deleteSubmission(s.id)}
-                                                  title="Testi Sil"
-                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2, display: 'flex', borderRadius: 4 }}
-                                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                  onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #cbd5e1)'}
-                                                >
-                                                  <Trash2 size={14} />
-                                                </button>
-                                              )}
+                                            <div style={{ color: '#6366f1', fontWeight: 900 }}>
+                                              {s.totalNet !== undefined ? `${s.totalNet} Net` : `${totalQ} Soru`}
                                             </div>
                                           </div>
                                         </div>
@@ -4295,59 +4193,62 @@ export default function MyCoachingPage() {
                               </div>
                             );
                           })}
+
                         </div>
                       )}
+
                     </div>
                   );
                 })()}
+
               </div>
             )}
           </div>
         )}
 
-        {/* ═══ DENEME EKLEME MODAL POPUP ═══ */}
+        {/* ─── MODAL: Manuel Deneme Girişi ─── */}
         {showMockModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-            <div style={{ background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', width: '100%', maxWidth: 650, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', border: '1px solid var(--color-border, #e2e8f0)' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.2s ease' }}>
+            <div style={{ background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', padding: '1.5rem', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
               
-              {/* Modal Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-border, #f1f5f9)' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1.5px solid var(--color-border, #f1f5f9)', paddingBottom: '0.85rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '1.2rem' }}>📝</span>
+                  <div style={{ width: 34, height: 34, borderRadius: '0.65rem', background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem' }}>
+                    📝
+                  </div>
                   <div>
-                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text, #0f172a)' }}>Yeni Deneme Sonucu Ekle</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Sonuçlarınız anında sisteme kaydedilecektir.</p>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Fiziki Deneme Sınavı Ekle</h3>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Ders bazlı doğru ve yanlışlarını gir, netin otomatik hesaplansın</div>
                   </div>
                 </div>
-                <button onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.6))', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }}>
+                <button type="button" onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--color-text-muted, #64748b)' }}>
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveManualMock}>
-                {/* Header Info */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <form onSubmit={handleCreateManualMock}>
+                {/* Title & Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
-                    <label style={lbl}>Deneme Adı / Yayın</label>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', display: 'block', marginBottom: 4 }}>DENEME ADI / YAYIN *</label>
                     <input style={inp} value={newManualMock.title} onChange={e => setNewManualMock(p => ({ ...p, title: e.target.value }))} placeholder="Örn: Özdebir Türkiye Geneli LGS-3" required />
                   </div>
                   <div>
-                    <label style={lbl}>Tarih</label>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', display: 'block', marginBottom: 4 }}>SINAV TARİHİ</label>
                     <input style={inp} type="date" value={newManualMock.date} onChange={e => setNewManualMock(p => ({ ...p, date: e.target.value }))} />
                   </div>
                 </div>
 
                 {/* Subject Table / Grid */}
-                <div style={{ fontWeight: 800, fontSize: '0.83rem', color: 'var(--color-text, #1e293b)', marginBottom: 8 }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
-                
                 <div style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', overflow: 'hidden', marginBottom: '0.85rem' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                     <thead>
                       <tr style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
                         <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Ders</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#10b981', width: 70 }}>Doğru (D)</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#ef4444', width: 70 }}>Yanlış (Y)</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#f59e0b', width: 70 }}>Boş (B)</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#10b981', width: 70 }}>D</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#ef4444', width: 70 }}>Y</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#f59e0b', width: 70 }}>B</th>
                         <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#a855f7', width: 85 }}>Net</th>
                         <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', width: 36 }}></th>
                       </tr>
@@ -4357,7 +4258,7 @@ export default function MyCoachingPage() {
                         const sub = newManualMock.subjects[subName];
                         const total = Object.keys(newManualMock.subjects).length;
                         return (
-                          <tr key={subName} style={{ borderBottom: idx < total - 1 ? '1px solid var(--color-border, #f1f5f9)' : 'none', background: idx % 2 === 0 ? 'var(--color-surface, white)' : 'var(--color-surface-hover, #fafafa)' }}>
+                          <tr key={`${subName}_${idx}`} style={{ borderBottom: idx < total - 1 ? '1px solid var(--color-border, #f1f5f9)' : 'none', background: idx % 2 === 0 ? 'var(--color-surface, white)' : 'var(--color-surface-hover, #fafafa)' }}>
                             <td style={{ padding: '0.55rem 0.75rem', fontWeight: 800, color: 'var(--color-text, #1e293b)', whiteSpace: 'nowrap' }}>{subName}</td>
                             <td style={{ padding: '0.35rem', textAlign: 'center' }}>
                               <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: 'rgba(16, 185, 129, 0.4)' }}
@@ -4401,7 +4302,7 @@ export default function MyCoachingPage() {
                     <option value="">— Ders seç veya yaz —</option>
                     {['Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce','Din Kültürü','Yabancı Dil','Tarih','Coğrafya','Fizik','Kimya','Biyoloji','Edebiyat','Geometri','TYT Türkçe','TYT Matematik','TYT Fen','TYT Sosyal']
                       .filter(s => !newManualMock.subjects[s])
-                      .map(s => <option key={s} value={s}>{s}</option>)
+                      .map((s, idx) => <option key={`${s}_${idx}`} value={s}>{s}</option>)
                     }
                   </select>
                   <input

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, BookOpen, BookMarked, ClipboardCheck, GraduationCap, 
-  Users, Award, AlertTriangle, Headphones, Calendar, ArrowRight, X, Sparkles, Sun, Moon
+  Users, Award, AlertTriangle, Headphones, Calendar, ArrowRight, X, Sparkles, Sun, Moon, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -88,6 +88,7 @@ export default function CommandPalette() {
     if (isTeacherOrAdmin) {
       items.push(
         { id: 'p-tdash', title: 'Öğretmen Paneli', category: 'Sayfalar', url: '/teacher', icon: Users },
+        { id: 'p-tapprovals', title: 'Onay Merkezi (Manuel Test & Yazılı)', category: 'Sayfalar', url: '/approvals', icon: ShieldCheck },
         { id: 'p-thw', title: 'Ödev Takip & Yönetim', category: 'Sayfalar', url: '/homeworks', icon: BookMarked },
         { id: 'p-teval', title: 'Değerlendirmeler & Raporlar', category: 'Sayfalar', url: '/evaluations', icon: ClipboardCheck },
         { id: 'p-tq', title: 'Soru Bankası & Testler', category: 'Sayfalar', url: '/questions', icon: BookOpen },

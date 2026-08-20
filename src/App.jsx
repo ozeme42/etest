@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
-  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon
+  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
@@ -21,6 +21,7 @@ const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
 const StudentBookDetailsPage = lazy(() => import('./pages/StudentBookDetailsPage'));
 const HomeworkManager = lazy(() => import('./pages/HomeworkManager'));
 const EvaluationManager = lazy(() => import('./pages/EvaluationManager'));
+const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage'));
 const QuestionBank = lazy(() => import('./pages/QuestionBank'));
 const ModularQuizPage = lazy(() => import('./pages/ModularQuizPage'));
 const ModularQuizReviewPage = lazy(() => import('./pages/ModularQuizReviewPage'));
@@ -78,6 +79,7 @@ function PageLoader() {
 
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
+import { useEvaluation } from './context/EvaluationContext';
 import './App.css';
 
 // Route guards: redirects to '/' if user is not logged in or doesn't have the required role
@@ -103,7 +105,8 @@ function RequireRole({ roles, children }) {
 function Sidebar({ isCollapsed, setIsCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
-  const { isStudentCoached } = useCoaching();
+  const { isStudentCoached, mockExams = [] } = useCoaching();
+  const { submissions = [] } = useEvaluation();
   const { theme, isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -117,6 +120,26 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
       return next;
     });
   };
+
+  const pendingApprovalsCount = React.useMemo(() => {
+    if (!currentUser || (currentUser.role !== 'teacher' && currentUser.role !== 'admin')) return 0;
+    const manualTests = (submissions || []).filter(s => {
+      if (!s || s.status === 'draft' || s.status === 'in_progress') return false;
+      if (s.sourceType === 'trackedBook' || s.sourceType === 'online_quiz' || s.sourceType === 'modular_quiz' || s.sourceType === 'physical_exam' || s.sourceType === 'exam') return false;
+      const isManual = Boolean(s.isManual === true || s.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual'));
+      return isManual && (
+        s.approvalStatus === 'pending' ||
+        s.status === 'pending_approval' ||
+        (s.isApproved === false && s.approvalStatus !== 'rejected')
+      );
+    }).length;
+
+    const manualMocks = (mockExams || []).filter(m => {
+      return m.approvalStatus === 'pending' || (m.createdBy === 'student' && m.approvalStatus !== 'approved' && m.approvalStatus !== 'rejected');
+    }).length;
+
+    return manualTests + manualMocks;
+  }, [submissions, mockExams, currentUser]);
 
   const hasCoach = currentUser?.role === 'student' ? isStudentCoached(currentUser?.id) : true;
 
@@ -365,6 +388,17 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 </div>
                 <span>Öğretmen Paneli</span>
               </NavLink>
+              <NavLink to="/approvals" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                  <ShieldCheck size={16} color="white" />
+                </div>
+                <span>Onay Merkezi</span>
+                {pendingApprovalsCount > 0 && (
+                  <span className="nav-hot-badge" style={{ background: '#7c3aed', color: 'white', fontWeight: 900 }}>
+                    {pendingApprovalsCount}
+                  </span>
+                )}
+              </NavLink>
               <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)', boxShadow: '0 2px 10px rgba(234,88,12,0.35)' }}>
                   <BookMarked size={16} color="white" />
@@ -378,7 +412,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 <span>Değerlendirmeler</span>
               </NavLink>
               <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
                   <ClipboardCheck size={16} color="white" />
                 </div>
                 <span>Fiziki Deneme &amp; Optik</span>
@@ -499,6 +533,8 @@ function AppContent() {
               <Route path="/student/exams" element={<RequireAuth><StudentExamsPage /></RequireAuth>} />
               <Route path="/student/exams/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/homeworks" element={<RequireAuth><HomeworkManager /></RequireAuth>} />
+              <Route path="/approvals" element={<RequireRole roles={['teacher', 'admin']}><ApprovalsPage /></RequireRole>} />
+              <Route path="/onaylar" element={<Navigate to="/approvals" replace />} />
               <Route path="/evaluations" element={<RequireRole roles={['teacher', 'admin']}><EvaluationManager /></RequireRole>} />
               <Route path="/evaluation" element={<Navigate to="/evaluations" replace />} />
               <Route path="/questions" element={<RequireAuth><QuestionBank /></RequireAuth>} />

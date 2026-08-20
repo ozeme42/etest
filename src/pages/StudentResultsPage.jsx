@@ -657,23 +657,33 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       if (correct === 0 && wrong === 0 && blank === 0 && (!sub.answers || sub.answers.length === 0)) return;
 
+      const isManual = Boolean(
+        sub.isManual === true ||
+        sub.sourceType === 'manual_test' ||
+        raw.isManual === true ||
+        raw.sourceType === 'manual_test' ||
+        String(sub.id || '').startsWith('sub_manual') ||
+        String(bTestId).startsWith('sub_manual')
+      );
+
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const curInfo = allCurTestsMap.get(bTestId);
 
-      const testExists = Boolean(testObj || bookObj || curInfo);
+      const testExists = Boolean(testObj || bookObj || curInfo || isManual);
       if (!testExists) {
         return; // Silinmiş test ve ödevlerin eski kayıtları gösterilmez
       }
 
-      const cleanBookTitle = (bookObj?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || 'Kitap';
+      const cleanBookTitle = rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
       const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
-      const subjectName = subjObj?.name || bookObj?.subject || cleanBookTitle;
-      const testName = testObj?.name || sub.testTitle || raw.testTitle || 'Test';
+      const subjectName = sub.subject || raw.subject || subjObj?.name || bookObj?.subject || cleanBookTitle;
+      const testName = sub.testTitle || raw.testTitle || sub.title || testObj?.name || 'Test';
 
       const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
-      const topicName = topicObj?.name || testObj?.topicName || testObj?.unit || testObj?.unitName || sub.topic || sub.unit || sub.topicName || sub.unitName || raw.topic || raw.unit || '';
+      const topicName = sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || testObj?.topicName || testObj?.unit || testObj?.unitName || raw.topic || raw.unit || '';
 
       const fullTestTitle = topicName
         ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})`
@@ -685,25 +695,25 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       let scorePct = 0;
-      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
         scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
-      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
-        scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
-        scorePct = Math.min(100, Math.max(0, Math.round(raw.score)));
-      } else if (total > 0) {
+      } else if (total > 0 && typeof correct === 'number' && correct >= 0) {
         scorePct = Math.min(100, Math.round((correct / total) * 100));
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100 && (!total || total <= 1)) {
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100 && (!total || total <= 1)) {
+        scorePct = Math.min(100, Math.max(0, Math.round(raw.score)));
       }
 
-      const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test' || raw.isManual || raw.sourceType === 'manual_test');
       const isPendingApproval = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
       const isRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
-      const existing = bestBookSubsByTest[bTestId];
+      const entryKey = isManual ? (sub.id || bTestId) : bTestId;
+      const existing = bestBookSubsByTest[entryKey];
       if (!existing || correct > existing.correctCount || (correct === existing.correctCount && scorePct > existing.computedScore)) {
-        bestBookSubsByTest[bTestId] = {
+        bestBookSubsByTest[entryKey] = {
           ...sub,
           id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
           testId: bTestId,
@@ -713,7 +723,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           testName,
           testTitle: fullTestTitle,
           subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
-          typeKey: 'book',
+          typeKey: isManual ? 'individual' : 'book',
           isEvaluated: true,
           isOpenEnded: false,
           isPendingEval: false,
@@ -725,6 +735,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           blankCount: blank,
           totalQuestions: total,
           computedScore: scorePct,
+          totalNet: sub.totalNet !== undefined ? sub.totalNet : ((correct - (wrong / 4)).toFixed(2)),
           submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
         };
       }

@@ -25,6 +25,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import ManualTestModal from '../components/ManualTestModal';
 
 const SUBJECT_ROW_THEMES = {
@@ -972,6 +973,15 @@ export default function StudentDashboard() {
         return;
       }
 
+      const isManual = Boolean(
+        sub.isManual === true ||
+        sub.sourceType === 'manual_test' ||
+        raw.isManual === true ||
+        raw.sourceType === 'manual_test' ||
+        String(sub.id || '').startsWith('sub_manual') ||
+        String(testId).startsWith('sub_manual')
+      );
+
       const targetTest = (bookTests || []).find(t => 
         String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
         (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
@@ -984,25 +994,27 @@ export default function StudentDashboard() {
       const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
       const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
 
-      // If resource no longer exists, it is a deleted test/exam/homework -> discard!
-      if (!targetBook && !targetTest && !targetCurTest && !targetBankQ && !targetHw) {
-        return;
-      }
-      if (sub.bookId && !targetBook) {
-        return;
-      }
-      if (sub.hwId && !targetHw && !targetTest) {
-        return;
-      }
-      if (targetHw && targetHw.bookId && !books.some(b => String(b.id) === String(targetHw.bookId) || toUUID(b.id) === toUUID(targetHw.bookId))) {
-        return;
-      }
-      if (targetHw && targetHw.type === 'physicalExam' && !targetBook) {
-        return;
-      }
-      const isExamSub = sub.type === 'physicalExam' || sub.isExam || sub.isTrial || String(sub.title || sub.testTitle || '').toLowerCase().includes('deneme');
-      if (isExamSub && !targetBook && !(studentMockExams || []).some(m => String(m.id) === String(sub.id) || String(m.title) === String(sub.title || sub.testTitle))) {
-        return;
+      // If resource is not manual and no longer exists, it is a deleted test/exam/homework -> discard!
+      if (!isManual) {
+        if (!targetBook && !targetTest && !targetCurTest && !targetBankQ && !targetHw) {
+          return;
+        }
+        if (sub.bookId && !targetBook) {
+          return;
+        }
+        if (sub.hwId && !targetHw && !targetTest) {
+          return;
+        }
+        if (targetHw && targetHw.bookId && !books.some(b => String(b.id) === String(targetHw.bookId) || toUUID(b.id) === toUUID(targetHw.bookId))) {
+          return;
+        }
+        if (targetHw && targetHw.type === 'physicalExam' && !targetBook) {
+          return;
+        }
+        const isExamSub = sub.type === 'physicalExam' || sub.isExam || sub.isTrial || String(sub.title || sub.testTitle || '').toLowerCase().includes('deneme');
+        if (isExamSub && !targetBook && !(studentMockExams || []).some(m => String(m.id) === String(sub.id) || String(m.title) === String(sub.title || sub.testTitle))) {
+          return;
+        }
       }
 
       if (sub.id) processedSubIds.add(String(sub.id));
@@ -1010,16 +1022,15 @@ export default function StudentDashboard() {
 
       const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
       const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(targetTest?.topicId || raw.topicId || sub.topicId));
-      const unitTopic = (topicObj?.name || targetTest?.topicName || targetTest?.unit || targetTest?.unitName || sub.topic || sub.unit || sub.topicName || sub.unitName || raw.topic || raw.unit || raw.topicName || raw.unitName || '').trim();
-      const cleanBookTitle = (targetBook?.title || targetHw?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      const unitTopic = (sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || targetTest?.topicName || targetTest?.unit || targetTest?.unitName || raw.topic || raw.unit || raw.topicName || raw.unitName || '').trim();
+      
+      const bookTitle = sub.bookTitle || raw.bookTitle || targetBook?.title || targetHw?.title || '';
+      const cleanBookTitle = bookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
-      let title = targetTest?.name || sub.testTitle || raw.testTitle || sub.title;
-      if (!title || title === targetHw?.title || title.includes('(Tüm Kitap')) {
-        title = targetTest?.name || sub.testTitle || raw.testTitle || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
-      }
+      let title = sub.testTitle || raw.testTitle || sub.title || targetTest?.name || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
       title = title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
-      const subject = subjObj?.name || sub.subject || raw.subject || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || cleanBookTitle || 'Genel Testler';
+      const subject = sub.subject || raw.subject || subjObj?.name || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || cleanBookTitle || 'Genel Testler';
       const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
@@ -1047,7 +1058,6 @@ export default function StudentDashboard() {
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
-
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
       let cCount = 0;
@@ -1098,15 +1108,15 @@ export default function StudentDashboard() {
       }
 
       let pct = 0;
-      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage)) {
+      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage) && sub.scorePercentage > 0) {
         pct = Math.round(sub.scorePercentage);
-      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage)) {
+      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage) && raw.scorePercentage > 0) {
         pct = Math.round(raw.scorePercentage);
-      } else if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0)) {
+      } else if (qCount > 0 && typeof cCount === 'number' && cCount >= 0) {
         pct = Math.round((cCount / qCount) * 100);
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100 && (!qCount || qCount <= 1)) {
         pct = Math.round(sub.score);
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100 && (!qCount || qCount <= 1)) {
         pct = Math.round(raw.score);
       } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
         pct = Math.round(Number(sub.accuracy));
@@ -1118,7 +1128,6 @@ export default function StudentDashboard() {
         return;
       }
 
-      const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test');
       const isManualPending = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
       const isManualRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
@@ -1908,26 +1917,16 @@ export default function StudentDashboard() {
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
   const todayStr = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const studentGoals = useMemo(() => {
-    if (!selectedStudent) return [];
-    return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
-  }, [goals, selectedStudent]);
-
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
 
     const studentIdStr = String(selectedStudent.id);
     const studentUuidStr = String(toUUID(selectedStudent.id) || '');
-    const todayYMD = formatLocalYMD(new Date());
-
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const day = startOfWeek.getDay();
-    const diffToMonday = (day === 0 ? -6 : 1) - day;
-    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Standart Türkiye Saati (UTC+3) Tarih Aralıkları
+    const todayYMD = getTurkeyToday();
+    const { startYMD: weekStartYMD, endYMD: weekEndYMD } = getTurkeyWeekRange();
+    const { startYMD: monthStartYMD, endYMD: monthEndYMD } = getTurkeyMonthRange();
 
     let todayCount = 0;
     let weekCount = 0;
@@ -1939,15 +1938,19 @@ export default function StudentDashboard() {
     // 1. All Evaluation Submissions
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
-      if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+      const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
+      if (isManualTest) {
+        const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed';
+        if (!isApproved) return;
+      } else {
+        const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
+        const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
+        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
 
-      const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
-      const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
-      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
-
-      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
-      if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
-      if (!bookObj && !testObj && !parentHw) return;
+        if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
+        if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
+        if (!bookObj && !testObj && !parentHw) return;
+      }
 
       const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
       if (countedSubIds.has(subId)) return;
@@ -1970,19 +1973,18 @@ export default function StudentDashboard() {
       }
 
       const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
-      const subDate = dateStr ? new Date(dateStr) : null;
+      const subYMD = getTurkeyYMD(dateStr);
 
       totalCount += qCount;
 
-      if (subDate && !isNaN(subDate.getTime())) {
-        const subYMD = formatLocalYMD(subDate);
-        if (subYMD === todayYMD || isToday(subDate)) {
+      if (subYMD) {
+        if (subYMD === todayYMD) {
           todayCount += qCount;
         }
-        if (subDate >= startOfWeek) {
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
           weekCount += qCount;
         }
-        if (subDate >= startOfMonth) {
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
           monthCount += qCount;
         }
       }
@@ -2003,19 +2005,18 @@ export default function StudentDashboard() {
 
         let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 1);
         const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
-        const subDate = dateStr ? new Date(dateStr) : null;
+        const subYMD = getTurkeyYMD(dateStr);
 
         totalCount += qCount;
 
-        if (subDate && !isNaN(subDate.getTime())) {
-          const subYMD = formatLocalYMD(subDate);
-          if (subYMD === todayYMD || isToday(subDate)) {
+        if (subYMD) {
+          if (subYMD === todayYMD) {
             todayCount += qCount;
           }
-          if (subDate >= startOfWeek) {
+          if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
             weekCount += qCount;
           }
-          if (subDate >= startOfMonth) {
+          if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
             monthCount += qCount;
           }
         }
@@ -2040,20 +2041,19 @@ export default function StudentDashboard() {
       }
       if (qCount <= 0) qCount = Number(m.totalQuestions || m.questionCount || 90);
 
-      const dateStr = m.date || m.createdAt;
-      const subDate = dateStr ? new Date(dateStr) : null;
+      const dateStr = m.date || m.createdAt || m.submittedAt;
+      const subYMD = getTurkeyYMD(dateStr);
 
       totalCount += qCount;
 
-      if (subDate && !isNaN(subDate.getTime())) {
-        const subYMD = formatLocalYMD(subDate);
-        if (subYMD === todayYMD || isToday(subDate)) {
+      if (subYMD) {
+        if (subYMD === todayYMD) {
           todayCount += qCount;
         }
-        if (subDate >= startOfWeek) {
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
           weekCount += qCount;
         }
-        if (subDate >= startOfMonth) {
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
           monthCount += qCount;
         }
       }
@@ -2063,10 +2063,9 @@ export default function StudentDashboard() {
     if (profile?.dailyLogs && Array.isArray(profile.dailyLogs)) {
       profile.dailyLogs.forEach(log => {
         if (!log.date) return;
-        const logDate = new Date(log.date);
         const logQCount = Number(log.questionCount || log.questionsCount || 0);
-        if (logQCount > 0 && !isNaN(logDate.getTime())) {
-          const logYMD = formatLocalYMD(logDate);
+        if (logQCount > 0) {
+          const logYMD = getTurkeyYMD(log.date);
           if (logYMD === todayYMD) {
             todayCount = Math.max(todayCount, logQCount);
           }
@@ -4058,7 +4057,7 @@ export default function StudentDashboard() {
       {/* Manuel Test Sonucu Ekleme Modalı */}
       <ManualTestModal
         isOpen={isManualTestModalOpen}
-        initialData={{ studentId: selectedStudent?.id }}
+        studentId={selectedStudent?.id}
         onClose={() => setIsManualTestModalOpen(false)}
       />
     </div>

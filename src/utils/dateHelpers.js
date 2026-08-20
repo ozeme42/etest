@@ -2,8 +2,98 @@ import { parse, format, isPast, isToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 /**
- * 📅 STANDARDIZED DATE & TIME HELPER UTILITIES
+ * 📅 STANDARDIZED DATE & TIME HELPER UTILITIES (TURKEY TIMEZONE UTC+3 AWARE)
  */
+
+/**
+ * Returns 'YYYY-MM-DD' formatted date string in Turkey Time (Europe/Istanbul, UTC+3)
+ * Handles ISO strings, timestamps, Date objects, and plain date strings safely.
+ */
+export const getTurkeyYMD = (dateInput = new Date()) => {
+  if (!dateInput) return getTurkeyYMD(new Date());
+  try {
+    // If already in YYYY-MM-DD format, return it
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+      return dateInput.trim();
+    }
+    const d = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+    if (!d || isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Istanbul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(d);
+  } catch (e) {
+    const d = new Date(dateInput);
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const trDate = new Date(utc + (3600000 * 3));
+    const year = trDate.getFullYear();
+    const month = String(trDate.getMonth() + 1).padStart(2, '0');
+    const day = String(trDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+};
+
+/**
+ * Returns today's date in Turkey ('YYYY-MM-DD')
+ */
+export const getTurkeyToday = () => {
+  return getTurkeyYMD(new Date());
+};
+
+/**
+ * Returns Monday to Sunday date range for Turkey timezone ('YYYY-MM-DD')
+ */
+export const getTurkeyWeekRange = (refDate = new Date()) => {
+  const ymd = getTurkeyYMD(refDate);
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const day = dt.getDay(); // 0 is Sunday
+  const diffToMon = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(y, m - 1, d + diffToMon);
+  const sunday = new Date(y, m - 1, d + diffToMon + 6);
+  return {
+    startYMD: getTurkeyYMD(monday),
+    endYMD: getTurkeyYMD(sunday)
+  };
+};
+
+/**
+ * Returns 1st to last day of month range for Turkey timezone ('YYYY-MM-DD')
+ */
+export const getTurkeyMonthRange = (refDate = new Date()) => {
+  const ymd = getTurkeyYMD(refDate);
+  const [y, m] = ymd.split('-').map(Number);
+  const firstDay = `${y}-${String(m).padStart(2, '0')}-01`;
+  const lastDayObj = new Date(y, m, 0);
+  const lastDay = `${y}-${String(m).padStart(2, '0')}-${String(lastDayObj.getDate()).padStart(2, '0')}`;
+  return {
+    startYMD: firstDay,
+    endYMD: lastDay
+  };
+};
+
+export const isTurkeyToday = (dateInput) => {
+  if (!dateInput) return false;
+  return getTurkeyYMD(dateInput) === getTurkeyToday();
+};
+
+export const isTurkeyThisWeek = (dateInput) => {
+  if (!dateInput) return false;
+  const ymd = getTurkeyYMD(dateInput);
+  const { startYMD, endYMD } = getTurkeyWeekRange();
+  return ymd >= startYMD && ymd <= endYMD;
+};
+
+export const isTurkeyThisMonth = (dateInput) => {
+  if (!dateInput) return false;
+  const ymd = getTurkeyYMD(dateInput);
+  const { startYMD, endYMD } = getTurkeyMonthRange();
+  return ymd >= startYMD && ymd <= endYMD;
+};
 
 export const parseSafeDate = (d) => {
   if (!d) return new Date();

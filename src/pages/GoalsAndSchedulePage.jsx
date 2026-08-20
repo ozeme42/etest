@@ -7,6 +7,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { toUUID } from '../services/supabaseService';
+import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight, ChevronDown,
@@ -766,16 +767,10 @@ export default function GoalsAndSchedulePage() {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
     const studentIdStr = String(selectedStudent.id);
     const studentUuidStr = String(toUUID(selectedStudent.id) || '');
-    const now = new Date();
-    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    const startOfWeek = new Date(now);
-    const day = startOfWeek.getDay();
-    const diffToMonday = (day === 0 ? -6 : 1) - day;
-    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Standart Türkiye Saati (UTC+3) Tarih Aralıkları
+    const todayYMD = getTurkeyToday();
+    const { startYMD: weekStartYMD, endYMD: weekEndYMD } = getTurkeyWeekRange();
+    const { startYMD: monthStartYMD, endYMD: monthEndYMD } = getTurkeyMonthRange();
 
     let todayCount = 0;
     let weekCount = 0;
@@ -787,15 +782,19 @@ export default function GoalsAndSchedulePage() {
     // 1. All Evaluation Submissions (Tracked Books, Online Quizzes, Physical Exams)
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
-      if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+      const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
+      if (isManualTest) {
+        const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed';
+        if (!isApproved) return;
+      } else {
+        const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
+        const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
+        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
 
-      const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
-      const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
-      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
-
-      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
-      if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
-      if (!bookObj && !testObj && !parentHw) return;
+        if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
+        if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
+        if (!bookObj && !testObj && !parentHw) return;
+      }
 
       const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
       if (countedSubIds.has(subId)) return;
@@ -814,13 +813,14 @@ export default function GoalsAndSchedulePage() {
       if (qCount <= 0) qCount = 20;
 
       const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
-      const subDate = dateStr ? new Date(dateStr) : null;
+      const subYMD = getTurkeyYMD(dateStr);
+
       totalCount += qCount;
-      if (subDate && !isNaN(subDate.getTime())) {
-        const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+
+      if (subYMD) {
         if (subYMD === todayYMD) todayCount += qCount;
-        if (subDate >= startOfWeek) weekCount += qCount;
-        if (subDate >= startOfMonth) monthCount += qCount;
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) weekCount += qCount;
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) monthCount += qCount;
       }
     });
 
@@ -835,13 +835,14 @@ export default function GoalsAndSchedulePage() {
 
         let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 1);
         const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
-        const subDate = dateStr ? new Date(dateStr) : null;
+        const subYMD = getTurkeyYMD(dateStr);
+
         totalCount += qCount;
-        if (subDate && !isNaN(subDate.getTime())) {
-          const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+
+        if (subYMD) {
           if (subYMD === todayYMD) todayCount += qCount;
-          if (subDate >= startOfWeek) weekCount += qCount;
-          if (subDate >= startOfMonth) monthCount += qCount;
+          if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) weekCount += qCount;
+          if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) monthCount += qCount;
         }
       });
     });
@@ -868,14 +869,15 @@ export default function GoalsAndSchedulePage() {
       }
       if (qCount <= 0) qCount = Number(m.totalQuestions || m.questionCount || 90);
 
-      const dateStr = m.date || m.createdAt;
-      const subDate = dateStr ? new Date(dateStr) : null;
+      const dateStr = m.date || m.createdAt || m.submittedAt;
+      const subYMD = getTurkeyYMD(dateStr);
+
       totalCount += qCount;
-      if (subDate && !isNaN(subDate.getTime())) {
-        const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+
+      if (subYMD) {
         if (subYMD === todayYMD) todayCount += qCount;
-        if (subDate >= startOfWeek) weekCount += qCount;
-        if (subDate >= startOfMonth) monthCount += qCount;
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) weekCount += qCount;
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) monthCount += qCount;
       }
     });
 

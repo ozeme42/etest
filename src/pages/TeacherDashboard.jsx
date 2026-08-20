@@ -6,7 +6,7 @@ import {
   Search, Calendar, Layers, BarChart3, TrendingUp, Target,
   UserCheck, Sparkles, UserPlus, Eye, CheckCircle2, Flame,
   BookMarked, Star, Award, Zap, ArrowRight, Bell, Map, Key,
-  Check, Trash2, ArrowUpRight, ShieldAlert, School
+  Check, Trash2, ArrowUpRight, ShieldAlert, School, ShieldCheck, Clock3
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -319,7 +319,7 @@ export default function TeacherDashboard() {
   const quickActions = [
     { icon: UserPlus,  label: 'Öğrenci Ekle',   sub: 'Hızlı sınıf kaydı',       grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: '0 6px 20px rgba(16,185,129,0.35)',  onClick: () => setShowAddStudentModal(true) },
     { icon: Plus,      label: 'Test Oluştur',    sub: 'Soru bankasından test',   grad: 'linear-gradient(135deg,#4f46e5,#6366f1)', shadow: '0 6px 20px rgba(99,102,241,0.35)',  onClick: () => { resetForm(); setShowModal(true); } },
-    { icon: ClipboardCheck, label: 'Değerlendirme & Onay', sub: pendingManualApprovals.length > 0 ? `⏳ ${pendingManualApprovals.length} test bekliyor` : 'Sınav & onay merkezi', grad: 'linear-gradient(135deg,#7c3aed,#6366f1)', shadow: '0 6px 20px rgba(124,58,237,0.35)', onClick: () => navigate(pendingManualApprovals.length > 0 ? '/evaluations?tab=manual_pending' : '/evaluations') },
+    { icon: ShieldCheck, label: 'Onay Merkezi',  sub: pendingManualApprovals.length > 0 ? `⏳ ${pendingManualApprovals.length} test bekliyor` : 'Manuel test & onaylar', grad: 'linear-gradient(135deg,#7c3aed,#a855f7)', shadow: '0 6px 20px rgba(124,58,237,0.35)', onClick: () => navigate('/approvals') },
     { icon: BookOpen,  label: 'Ödev Ver',         sub: 'Öğrencilere ödev ata',    grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: '0 6px 20px rgba(245,158,11,0.35)',  onClick: () => navigate('/homeworks') },
     { icon: Layers,    label: 'Soru Bankası',     sub: 'Sorularını yönet',        grad: 'linear-gradient(135deg,#0284c7,#0369a1)', shadow: '0 6px 20px rgba(2,132,199,0.35)', onClick: () => navigate('/questions') },
     { icon: BarChart3, label: 'İstatistikler',    sub: 'Analiz & raporlar',       grad: 'linear-gradient(135deg,#e11d48,#f43f5e)', shadow: '0 6px 20px rgba(244,63,94,0.35)',  onClick: () => navigate('/statistics') },
@@ -417,7 +417,7 @@ export default function TeacherDashboard() {
             </div>
 
             <button
-              onClick={() => navigate('/evaluations?tab=manual_pending')}
+              onClick={() => navigate('/approvals')}
               style={{
                 padding: '0.6rem 1.2rem',
                 borderRadius: '0.75rem',
@@ -433,7 +433,7 @@ export default function TeacherDashboard() {
                 boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
               }}
             >
-              <span>Onaylamak İçin İncele</span>
+              <span>Onay Merkezi'ne Git</span>
               <ChevronRight size={15} />
             </button>
           </div>

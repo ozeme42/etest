@@ -10,6 +10,12 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   Tooltip, CartesianGrid, Legend, Cell, ReferenceLine
 } from 'recharts';
+import {
+  getTurkeyYMD,
+  getTurkeyToday,
+  getTurkeyWeekRange,
+  getTurkeyMonthRange
+} from '../utils/dateHelpers';
 
 export default function PeriodicQuestionAnalytics({
   homeworkSubmissions = [],
@@ -30,7 +36,7 @@ export default function PeriodicQuestionAnalytics({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 1. Tüm Test ve Deneme Kayıtlarını Tek Bir Temiz Listede Birleştir
+  // 1. Tüm Test ve Deneme Kayıtlarını Tek Bir Temiz Listede Birleştir (Türkiye Saati Uyumlu)
   const unifiedItems = useMemo(() => {
     const list = [];
 
@@ -43,7 +49,7 @@ export default function PeriodicQuestionAnalytics({
       const q = d + y + b || h.totalQuestions || 0;
       if (q === 0) return;
 
-      const dateStr = (h.date || h.submittedAt || h.createdAt || new Date().toISOString()).slice(0, 10);
+      const dateStr = getTurkeyYMD(h.date || h.submittedAt || h.createdAt || h.completedAt);
       list.push({
         id: h.id || `hw_${Math.random()}`,
         title: h.title || 'Konu Testi',
@@ -83,7 +89,7 @@ export default function PeriodicQuestionAnalytics({
       const q = d + y + b || Number(m.totalQuestions || m.questionCount || 0);
       if (q === 0) return;
 
-      const dateStr = (m.date || m.createdAt || new Date().toISOString()).slice(0, 10);
+      const dateStr = getTurkeyYMD(m.date || m.createdAt || m.submittedAt);
       list.push({
         id: m.id || `mock_${Math.random()}`,
         title: m.title || m.examName || 'Deneme Sınavı',
@@ -143,18 +149,18 @@ export default function PeriodicQuestionAnalytics({
     return Array.from(set);
   }, [unifiedItems]);
 
-  // 2. Periyotlara Göre Gruplama (Günlük / Haftalık / Aylık)
+  // 2. Periyotlara Göre Gruplama (Türkiye Saati Uyumlu: Günlük / Haftalık / Aylık)
   const chartData = useMemo(() => {
-    const now = new Date();
+    const todayYMD = getTurkeyToday();
+    const [ty, tm, td] = todayYMD.split('-').map(Number);
 
     if (period === 'daily') {
       const days = [];
       for (let i = dayRange - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        const ymd = d.toISOString().slice(0, 10);
-        const label = `${d.getDate()} ${d.toLocaleString('tr-TR', { month: 'short' })}`;
-        const dayName = d.toLocaleString('tr-TR', { weekday: 'short' });
+        const refDate = new Date(ty, tm - 1, td - i);
+        const ymd = getTurkeyYMD(refDate);
+        const label = `${refDate.getDate()} ${refDate.toLocaleString('tr-TR', { month: 'short' })}`;
+        const dayName = refDate.toLocaleString('tr-TR', { weekday: 'short' });
 
         const itemsOnDay = filteredItems.filter(item => item.date === ymd);
         let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
@@ -172,7 +178,7 @@ export default function PeriodicQuestionAnalytics({
         days.push({
           key: ymd,
           label: `${label}`,
-          shortLabel: `${d.getDate()} ${d.toLocaleString('tr-TR', { month: 'short' }).slice(0, 3)}`,
+          shortLabel: `${refDate.getDate()} ${refDate.toLocaleString('tr-TR', { month: 'short' }).slice(0, 3)}`,
           subLabel: dayName,
           doğru: dCount,
           yanlış: yCount,
@@ -188,16 +194,16 @@ export default function PeriodicQuestionAnalytics({
     if (period === 'weekly') {
       const weeks = [];
       for (let i = 5; i >= 0; i--) {
-        const endDay = new Date();
-        endDay.setDate(now.getDate() - (i * 7));
-        const startDay = new Date(endDay);
-        startDay.setDate(endDay.getDate() - 6);
+        const refDay = new Date(ty, tm - 1, td - (i * 7));
+        const { startYMD, endYMD } = getTurkeyWeekRange(refDay);
+        const [sy, sm, sd] = startYMD.split('-').map(Number);
+        const [ey, em, ed] = endYMD.split('-').map(Number);
+        const startDay = new Date(sy, sm - 1, sd);
+        const endDay = new Date(ey, em - 1, ed);
 
-        const startYmd = startDay.toISOString().slice(0, 10);
-        const endYmd = endDay.toISOString().slice(0, 10);
-        const label = i === 0 ? 'Bu Hafta' : i === 1 ? 'Geçen H.' : `${startDay.getDate()} ${startDay.toLocaleString('tr-TR', { month: 'short' })}`;
+        const label = i === 0 ? 'Bu Hafta' : i === 1 ? 'Geçen H.' : `${sd} ${startDay.toLocaleString('tr-TR', { month: 'short' })}`;
 
-        const itemsInWeek = filteredItems.filter(item => item.date >= startYmd && item.date <= endYmd);
+        const itemsInWeek = filteredItems.filter(item => item.date >= startYMD && item.date <= endYMD);
         let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
         itemsInWeek.forEach(it => {
           const stats = getItemSubjectStats(it, selectedSubject);
@@ -211,10 +217,10 @@ export default function PeriodicQuestionAnalytics({
         const testCount = itemsInWeek.length;
 
         weeks.push({
-          key: `${startYmd}_${endYmd}`,
+          key: `${startYMD}_${endYMD}`,
           label,
           shortLabel: label,
-          subLabel: `${startDay.getDate()}/${startDay.getMonth()+1}-${endDay.getDate()}/${endDay.getMonth()+1}`,
+          subLabel: `${sd}/${sm}-${ed}/${em}`,
           doğru: dCount,
           yanlış: yCount,
           boş: bCount,
@@ -229,13 +235,13 @@ export default function PeriodicQuestionAnalytics({
     if (period === 'monthly') {
       const months = [];
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const y = d.getFullYear();
-        const m = d.getMonth() + 1;
+        const refDay = new Date(ty, tm - 1 - i, 1);
+        const y = refDay.getFullYear();
+        const m = refDay.getMonth() + 1;
         const mStr = String(m).padStart(2, '0');
         const monthKey = `${y}-${mStr}`;
-        const label = d.toLocaleString('tr-TR', { month: 'short' });
-        const fullLabel = d.toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
+        const label = refDay.toLocaleString('tr-TR', { month: 'short' });
+        const fullLabel = refDay.toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
 
         const itemsInMonth = filteredItems.filter(item => item.date.startsWith(monthKey));
         let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
@@ -482,8 +488,8 @@ export default function PeriodicQuestionAnalytics({
               }}
             >
               <option value="all">🌐 Tümü</option>
-              {availableSubjects.map(s => (
-                <option key={s} value={s}>{s}</option>
+              {availableSubjects.map((s, idx) => (
+                <option key={`${s}_${idx}`} value={s}>{s}</option>
               ))}
             </select>
           )}
@@ -829,8 +835,8 @@ export default function PeriodicQuestionAnalytics({
           <div style={{ padding: '0.25rem 0.35rem' }}>
             {subjectBreakdown.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: isMobile ? '230px' : '280px', overflowY: 'auto' }}>
-                {subjectBreakdown.map(sb => (
-                  <div key={sb.name} style={{ background: 'var(--color-surface-hover, #f8fafc)', padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.8rem', borderRadius: '0.65rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                {subjectBreakdown.map((sb, idx) => (
+                  <div key={`${sb.name}_${idx}`} style={{ background: 'var(--color-surface-hover, #f8fafc)', padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.8rem', borderRadius: '0.65rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                       <span style={{ fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', color: 'var(--color-text, #0f172a)' }}>{sb.name}</span>
                       <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: sb.rate >= 70 ? '#10b981' : sb.rate >= 50 ? '#f59e0b' : '#ef4444' }}>

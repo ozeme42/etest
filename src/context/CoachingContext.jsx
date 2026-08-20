@@ -176,7 +176,11 @@ export function CoachingProvider({ children }) {
   };
 
   const approveMockExam = async (id) => {
-    await updateMockExam(id, { approvalStatus: 'approved' });
+    await updateMockExam(id, { approvalStatus: 'approved', approvedAt: new Date().toISOString() });
+  };
+
+  const rejectMockExam = async (id, reason = '') => {
+    await updateMockExam(id, { approvalStatus: 'rejected', rejectedReason: reason, rejectedAt: new Date().toISOString() });
   };
 
   const deleteMockExam = async (id) => {
@@ -271,6 +275,8 @@ export function CoachingProvider({ children }) {
       saveCoachingProfile,
       addMockExam,
       updateMockExam,
+      approveMockExam,
+      rejectMockExam,
       deleteMockExam,
       addCoachingMeeting,
       getCoachedStudentIds,
