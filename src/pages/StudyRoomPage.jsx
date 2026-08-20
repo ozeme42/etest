@@ -8,6 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
+import { checkIsTaskSolved } from '../components/ProgramCenter';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
   Sparkles, Flame, CheckCircle2, Clock, Music, Headphones, BookOpen,
@@ -15,7 +16,7 @@ import {
   Zap, Settings2, Bell, Award, ListTodo, Edit3, Shield, TreePine, Sprout,
   Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink,
   Gauge, Activity, TrendingUp, HelpCircle, History, BookMarked, PlayCircle,
-  Layers, ExternalLink, FileText, Search, Filter, Calendar
+  Layers, ExternalLink, FileText, Search, Filter, Calendar, Eye, EyeOff, MapPin
 } from 'lucide-react';
 
 // ─── AMBIENT SYNTHESIZER (Web Audio API) ───────────────────────────────────────
@@ -406,6 +407,7 @@ export default function StudyRoomPage() {
   const [hwSearchQuery, setHwSearchQuery] = useState('');
   const [hwFilterSubject, setHwFilterSubject] = useState('all');
   const [hwSourceTab, setHwSourceTab] = useState('program'); // Default to 'program' for weekly view
+  const [hideCompletedTasks, setHideCompletedTasks] = useState(true); // Çözülenler/bitenler varsayılan olarak gizli
   
   const todayDayMap = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
   const currentTodayKey = todayDayMap[new Date().getDay()] || 'Pzt';
@@ -506,13 +508,7 @@ export default function StudyRoomPage() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
 
       if (!isBook) {
-        const sub = (submissions || []).find(s => {
-          if (!isMatchStudent(s)) return false;
-          if (s.status === 'in_progress' || s.status === 'draft') return false;
-          return String(s.hwId || s.testId) === String(hw.id);
-        }) || (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
-
-        const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
+        const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
         const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
         const assignedDayKey = resolveDayKey(hw.dueDate || hw.startDate || hw.assignedAt);
 
@@ -536,8 +532,7 @@ export default function StudyRoomPage() {
             type: hw.type,
             isPhysical: hw.isPhysical || hw.type === 'physicalExam',
             realTestId: hw.realTestId || hw.testId || hw.id,
-            isCompleted,
-            submission: sub
+            isCompleted: isSolved
           });
         }
       }
@@ -569,13 +564,7 @@ export default function StudyRoomPage() {
       const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
 
       testsForBook.forEach(bt => {
-        const sub = (submissions || []).find(s => {
-          if (!isMatchStudent(s)) return false;
-          if (s.status === 'in_progress' || s.status === 'draft') return false;
-          return String(s.testId || s.bookTestId || s.realTestId) === String(bt.id);
-        });
-
-        const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
+        const isSolved = checkIsTaskSolved({ testId: bt.id, bookTestId: bt.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
         const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
 
         // Bu test için belirlenmiş bir gün veya teslim tarihi var mı?
@@ -613,8 +602,7 @@ export default function StudyRoomPage() {
             bookTestId: bt.id,
             realTestId: bt.id,
             bookId: book.id,
-            isCompleted,
-            submission: sub
+            isCompleted: isSolved
           });
         }
       });
@@ -632,6 +620,7 @@ export default function StudyRoomPage() {
         if (!seenTaskKeys.has(dedupeKey)) {
           seenTaskKeys.add(dedupeKey);
           const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
           
           // Link to book test if testId or bookTestId exists
           const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
@@ -653,15 +642,92 @@ export default function StudyRoomPage() {
             bookTestId: matchedBookTest?.id || item.bookTestId,
             realTestId: matchedBookTest?.id || item.realTestId || item.testId,
             bookTitle: matchedBook?.title,
-            isCompleted: Boolean(item.done),
+            isCompleted: isSolved,
             programItem: item
           });
         }
       });
     });
 
+    // D. Yol Haritası (Roadmap / Study Plans)
+    const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(currentUser.id) || toUUID(a.studentId) === studentUuidStr);
+    studentAssignments.forEach(assignment => {
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+
+      const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
+
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+      } else if (typeof assignment.topic === 'string') {
+        try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
+
+      (plan.subjects || []).forEach(subject => {
+        const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+        const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+        const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+        if (!hasChildTopics && subject.dueDate) {
+          const sDayKey = resolveDayKey(subject.dueDate);
+          const subId = `roadmap_sub_${assignment.id}_${subject.id}`;
+          if (!seenTaskKeys.has(subId)) {
+            seenTaskKeys.add(subId);
+            taskList.push({
+              id: subId,
+              dedupeKey: subId,
+              roadmapAssignmentId: assignment.id,
+              isRoadmapTask: true,
+              sourceType: 'roadmap',
+              sourceLabel: '🗺️ Yol Haritası',
+              subject: subject.name || plan.title || 'Genel',
+              topic: subject.name,
+              title: `${plan.title} • ${subject.name}`,
+              subtitle: `${plan.title} Yol Haritası`,
+              dayName: sDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === sDayKey)?.long : null,
+              dayKey: sDayKey,
+              questionCount: 20,
+              dueDate: subject.dueDate,
+              isCompleted: isSubjectCompleted
+            });
+          }
+        }
+
+        (subject.topics || []).forEach(topic => {
+          if (topic.dueDate) {
+            const tDayKey = resolveDayKey(topic.dueDate);
+            const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+            const topId = `roadmap_top_${assignment.id}_${topic.id}`;
+            if (!seenTaskKeys.has(topId)) {
+              seenTaskKeys.add(topId);
+              taskList.push({
+                id: topId,
+                dedupeKey: topId,
+                roadmapAssignmentId: assignment.id,
+                isRoadmapTask: true,
+                sourceType: 'roadmap',
+                sourceLabel: '🗺️ Yol Haritası',
+                subject: subject.name || plan.title || 'Genel',
+                topic: topic.name,
+                title: `${plan.title} • ${topic.name}`,
+                subtitle: `${plan.title} Yol Haritası`,
+                dayName: tDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === tDayKey)?.long : null,
+                dayKey: tDayKey,
+                questionCount: 20,
+                dueDate: topic.dueDate,
+                isCompleted
+              });
+            }
+          }
+        });
+      });
+    });
+
     return taskList;
-  }, [homeworks, books, bookTests, submissions, coachingProfile, currentUser, studentIdStr, studentUuidStr, weekDayDateMap, WEEK_DAYS_CONFIG]);
+  }, [homeworks, books, bookTests, submissions, coachingProfile, studyPlans, studyAssignments, currentUser, studentIdStr, studentUuidStr, weekDayDateMap, WEEK_DAYS_CONFIG]);
 
   // Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Tüm Kaynakları Birleştirir)
   const weeklyProgramGrouped = useMemo(() => {
@@ -676,6 +742,7 @@ export default function StudyRoomPage() {
     });
 
     const weeklyProg = coachingProfile?.weeklyProgram || [];
+    const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(currentUser.id) || toUUID(a.studentId) === studentUuidStr);
 
     return WEEK_DAYS_CONFIG.map(dayCfg => {
       const dayTasks = [];
@@ -694,6 +761,7 @@ export default function StudyRoomPage() {
             if (!seenKeys.has(dedupeKey)) {
               seenKeys.add(dedupeKey);
               const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+              const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
               const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
               const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
 
@@ -713,7 +781,7 @@ export default function StudyRoomPage() {
                 bookTestId: matchedBookTest?.id || item.bookTestId,
                 realTestId: matchedBookTest?.id || item.realTestId || item.testId,
                 bookTitle: matchedBook?.title,
-                isCompleted: Boolean(item.done),
+                isCompleted: isSolved,
                 programItem: item
               });
             }
@@ -742,12 +810,7 @@ export default function StudyRoomPage() {
                 seenKeys.add(dedupeKey);
                 const bt = (bookTests || []).find(b => String(b.id) === String(testId));
                 const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
-                const isSolved = (submissions || []).some(s => {
-                  const sId = String(s.studentId || s.student_id || s.user_id || '');
-                  if (sId !== studentIdStr && sId !== studentUuidStr) return false;
-                  if (s.status === 'in_progress' || s.status === 'draft') return false;
-                  return String(s.testId || s.bookTestId || s.realTestId) === String(testId);
-                });
+                const isSolved = checkIsTaskSolved({ testId: testId, bookTestId: testId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
 
                 dayTasks.push({
                   id: dedupeKey,
@@ -783,12 +846,7 @@ export default function StudyRoomPage() {
             if (!seenKeys.has(dedupeKey)) {
               seenKeys.add(dedupeKey);
               const qCount = Number(hw.questionCount || hw.totalQuestions) || 12;
-              const isSolved = (submissions || []).some(s => {
-                const sId = String(s.studentId || s.student_id || s.user_id || '');
-                if (sId !== studentIdStr && sId !== studentUuidStr) return false;
-                if (s.status === 'in_progress' || s.status === 'draft') return false;
-                return String(s.hwId || s.testId) === String(hw.id);
-              });
+              const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
 
               dayTasks.push({
                 id: dedupeKey,
@@ -812,7 +870,89 @@ export default function StudyRoomPage() {
         }
       });
 
-      // 3. allAssignedTasks içindeki gün atanmış diğer tüm görevleri ekle
+      // 3. Yol Haritası Görevleri (Roadmap Plan items with target dueDate for this day)
+      studentAssignments.forEach(assignment => {
+        if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+
+        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+        if (!plan) return;
+
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+        } else if (typeof assignment.topic === 'string') {
+          try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+        }
+        const completedTopicsSet = new Set(compTopics.map(String));
+
+        (plan.subjects || []).forEach(subject => {
+          const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+          const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+          if (!hasChildTopics && subject.dueDate) {
+            const sDayKey = resolveDayKey(subject.dueDate);
+            const isMatch = (dayInfo.ymd && subject.dueDate.startsWith(dayInfo.ymd)) || (sDayKey === dayCfg.key);
+            if (isMatch) {
+              const subId = `roadmap_sub_${assignment.id}_${subject.id}_${dayCfg.key}`;
+              if (!seenKeys.has(subId)) {
+                seenKeys.add(subId);
+                dayTasks.push({
+                  id: subId,
+                  dedupeKey: subId,
+                  roadmapAssignmentId: assignment.id,
+                  isRoadmapTask: true,
+                  sourceType: 'roadmap',
+                  sourceLabel: '🗺️ Yol Haritası',
+                  subject: subject.name || plan.title || 'Genel',
+                  topic: subject.name,
+                  title: `${plan.title} • ${subject.name}`,
+                  subtitle: `${dayCfg.long} Yol Haritası`,
+                  dayName: dayCfg.long,
+                  dayKey: dayCfg.key,
+                  questionCount: 20,
+                  dueDate: subject.dueDate,
+                  isCompleted: isSubjectCompleted
+                });
+              }
+            }
+          }
+
+          (subject.topics || []).forEach(topic => {
+            if (topic.dueDate) {
+              const tDayKey = resolveDayKey(topic.dueDate);
+              const isMatch = (dayInfo.ymd && topic.dueDate.startsWith(dayInfo.ymd)) || (tDayKey === dayCfg.key);
+              if (isMatch) {
+                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+                const topId = `roadmap_top_${assignment.id}_${topic.id}_${dayCfg.key}`;
+                if (!seenKeys.has(topId)) {
+                  seenKeys.add(topId);
+                  dayTasks.push({
+                    id: topId,
+                    dedupeKey: topId,
+                    roadmapAssignmentId: assignment.id,
+                    isRoadmapTask: true,
+                    sourceType: 'roadmap',
+                    sourceLabel: '🗺️ Yol Haritası',
+                    subject: subject.name || plan.title || 'Genel',
+                    topic: topic.name,
+                    title: `${plan.title} • ${topic.name}`,
+                    subtitle: `${dayCfg.long} Yol Haritası`,
+                    dayName: dayCfg.long,
+                    dayKey: dayCfg.key,
+                    questionCount: 20,
+                    dueDate: topic.dueDate,
+                    isCompleted
+                  });
+                }
+              }
+            }
+          });
+        });
+      });
+
+      // 4. allAssignedTasks içindeki gün atanmış diğer tüm görevleri ekle
       allAssignedTasks.forEach(t => {
         if (t.dayKey === dayCfg.key || t.dayName === dayCfg.long) {
           const dedupeKey = `merged_${dayCfg.key}_${t.dedupeKey || t.id}`;
@@ -832,7 +972,7 @@ export default function StudyRoomPage() {
         completedCount: dayTasks.filter(t => t.isCompleted).length
       };
     });
-  }, [allAssignedTasks, WEEK_DAYS_CONFIG, weekDayDateMap, homeworks, coachingProfile, books, bookTests, submissions, currentUser, studentIdStr, studentUuidStr]);
+  }, [allAssignedTasks, WEEK_DAYS_CONFIG, weekDayDateMap, homeworks, coachingProfile, books, bookTests, submissions, studyPlans, studyAssignments, currentUser, studentIdStr, studentUuidStr]);
 
   // Kitap Testlerini Kitap Bazında Gruplama
   const bookGroupedTests = useMemo(() => {
@@ -859,6 +999,7 @@ export default function StudyRoomPage() {
 
   const filteredTasksList = useMemo(() => {
     return allAssignedTasks.filter(task => {
+      if (hideCompletedTasks && task.isCompleted) return false;
       const matchSource = hwSourceTab === 'all' || task.sourceType === hwSourceTab;
       const matchSubject = hwFilterSubject === 'all' || (task.subject && task.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
       const matchQuery = !hwSearchQuery.trim() ||
@@ -869,7 +1010,7 @@ export default function StudyRoomPage() {
         (task.unit || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
       return matchSource && matchSubject && matchQuery;
     });
-  }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery]);
+  }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery, hideCompletedTasks]);
 
   // Görevi / Testi Seçerek Süre & Hedef Başlatma
   const handleSelectTask = (task, startImmediately = false) => {
@@ -4511,24 +4652,50 @@ export default function StudyRoomPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowHomeworkPickerModal(false)}
-                style={{
-                  background: 'var(--color-surface-hover, #f1f5f9)',
-                  border: 'none',
-                  borderRadius: 10,
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'var(--color-text)'
-                }}
-              >
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Bitenleri / Çözülenleri Gizle/Göster Butonu */}
+                <button
+                  type="button"
+                  onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
+                  title={hideCompletedTasks ? 'Çözülenleri Göster' : 'Çözülenleri Gizle'}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: 10,
+                    border: `1.5px solid ${hideCompletedTasks ? '#10b981' : 'var(--color-border, #e2e8f0)'}`,
+                    background: hideCompletedTasks ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'transparent',
+                    color: hideCompletedTasks ? '#10b981' : 'var(--color-text-muted)',
+                    fontWeight: 800,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {hideCompletedTasks ? <EyeOff size={13} color="#10b981" /> : <Eye size={13} />}
+                  <span>{hideCompletedTasks ? 'Bitenler Gizli' : 'Bitenleri Göster'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowHomeworkPickerModal(false)}
+                  style={{
+                    background: 'var(--color-surface-hover, #f1f5f9)',
+                    border: 'none',
+                    borderRadius: 10,
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--color-text)'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Ana Kategori Sekmeleri (Tabs) */}
@@ -4542,10 +4709,10 @@ export default function StudyRoomPage() {
               marginBottom: 12
             }}>
               {[
-                { id: 'program', label: '📅 Haftalık Program', count: allAssignedTasks.filter(t => t.sourceType === 'program' || t.dayKey).length },
-                { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest').length },
-                { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework').length },
-                { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.length }
+                { id: 'program', label: '📅 Haftalık Program', count: allAssignedTasks.filter(t => (t.sourceType === 'program' || t.sourceType === 'roadmap' || t.dayKey) && (!hideCompletedTasks || !t.isCompleted)).length },
+                { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest' && (!hideCompletedTasks || !t.isCompleted)).length },
+                { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length },
+                { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.filter(t => (!hideCompletedTasks || !t.isCompleted)).length }
               ].map(tab => {
                 const isTabActive = hwSourceTab === tab.id;
                 return (
@@ -4622,7 +4789,9 @@ export default function StudyRoomPage() {
                     const isSelected = selectedProgramDay === dayCfg.key;
                     const isToday = currentTodayKey === dayCfg.key;
                     const dayGroup = weeklyProgramGrouped.find(g => g.key === dayCfg.key);
-                    const taskCount = dayGroup?.tasks?.length || 0;
+                    const pendingCount = (dayGroup?.tasks || []).filter(t => !t.isCompleted).length;
+                    const totalCount = dayGroup?.tasks?.length || 0;
+                    const displayCount = hideCompletedTasks ? pendingCount : totalCount;
 
                     return (
                       <button
@@ -4649,7 +4818,7 @@ export default function StudyRoomPage() {
                         }}
                       >
                         <span>{dayCfg.icon} {dayCfg.long}</span>
-                        {taskCount > 0 && (
+                        {displayCount > 0 && (
                           <span style={{
                             fontSize: '0.66rem',
                             fontWeight: 900,
@@ -4658,7 +4827,7 @@ export default function StudyRoomPage() {
                             padding: '0.05rem 0.35rem',
                             borderRadius: 99
                           }}>
-                            {taskCount}
+                            {displayCount}
                           </span>
                         )}
                         {isToday && (
@@ -4677,6 +4846,8 @@ export default function StudyRoomPage() {
                     .filter(dayGroup => selectedProgramDay === 'all' || selectedProgramDay === dayGroup.key)
                     .map(dayGroup => {
                       const isToday = currentTodayKey === dayGroup.key;
+                      const visibleTasks = (dayGroup.tasks || []).filter(t => !hideCompletedTasks || !t.isCompleted);
+
                       return (
                         <div
                           key={dayGroup.key}
@@ -4697,6 +4868,11 @@ export default function StudyRoomPage() {
                               <span style={{ fontSize: '0.92rem', fontWeight: 900, color: dayGroup.color }}>
                                 {dayGroup.long}
                               </span>
+                              {dayGroup.dateLabel && (
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                  ({dayGroup.dateLabel})
+                                </span>
+                              )}
                               {isToday && (
                                 <span style={{ fontSize: '0.68rem', fontWeight: 900, background: '#f59e0b', color: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: 6 }}>
                                   BUGÜNÜN PROGRAMI
@@ -4714,7 +4890,7 @@ export default function StudyRoomPage() {
                           </div>
 
                           {/* Günün Görevleri */}
-                          {dayGroup.tasks.length === 0 ? (
+                          {visibleTasks.length === 0 ? (
                             <div style={{
                               padding: '0.9rem',
                               textAlign: 'center',
@@ -4724,7 +4900,13 @@ export default function StudyRoomPage() {
                               fontSize: '0.78rem',
                               color: 'var(--color-text-muted)'
                             }}>
-                              <span>🍃 Bu gün için tanımlı ders programı görevi bulunmuyor.</span>
+                              {dayGroup.tasks.length > 0 && hideCompletedTasks ? (
+                                <span style={{ color: '#10b981', fontWeight: 800 }}>
+                                  🎉 Bu günün tüm görevleri tamamlandı! ({dayGroup.tasks.length} Görev)
+                                </span>
+                              ) : (
+                                <span>🍃 Bu gün için tanımlı ders programı görevi bulunmuyor.</span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -4746,8 +4928,12 @@ export default function StudyRoomPage() {
                             </div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {dayGroup.tasks.map(task => {
+                              {visibleTasks.map(task => {
                                 const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
+                                const isRoadmap = task.sourceType === 'roadmap';
+                                const isBook = task.sourceType === 'bookTest';
+                                const isHw = task.sourceType === 'homework';
+
                                 return (
                                   <div
                                     key={task.dedupeKey || task.id}
@@ -4766,17 +4952,29 @@ export default function StudyRoomPage() {
                                     }}
                                   >
                                     <div style={{ flex: 1, minWidth: 180 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
                                         <span style={{
                                           fontSize: '0.68rem',
                                           fontWeight: 900,
-                                          background: 'rgba(59,130,246,0.12)',
-                                          color: '#3b82f6',
+                                          background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : isBook ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                          color: isRoadmap ? '#8b5cf6' : isBook ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
+                                          padding: '0.1rem 0.45rem',
+                                          borderRadius: 6
+                                        }}>
+                                          {task.sourceLabel || (isRoadmap ? '🗺️ Yol Haritası' : '📅 Ders Programı')}
+                                        </span>
+
+                                        <span style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 800,
+                                          background: 'var(--color-surface-hover, #f1f5f9)',
+                                          color: 'var(--color-text)',
                                           padding: '0.1rem 0.45rem',
                                           borderRadius: 6
                                         }}>
                                           {task.subject || 'Genel'}
                                         </span>
+
                                         {task.isCompleted ? (
                                           <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
                                             ✓ Tamamlandı
@@ -4787,12 +4985,15 @@ export default function StudyRoomPage() {
                                           </span>
                                         )}
                                       </div>
+
                                       <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
                                         {task.title}
                                       </div>
+
                                       <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
                                         {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
                                         {task.bookTitle ? ` • ${task.bookTitle}` : ''}
+                                        {task.topic ? ` • ${task.topic}` : ''}
                                       </div>
                                     </div>
 
@@ -4912,6 +5113,7 @@ export default function StudyRoomPage() {
                   ) : (
                     bookGroupedTests.map(bg => {
                       const matchingTests = bg.tests.filter(t => {
+                        if (hideCompletedTasks && t.isCompleted) return false;
                         const matchSubject = hwFilterSubject === 'all' || (t.subject && t.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
                         const matchQuery = !hwSearchQuery.trim() ||
                           (t.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
@@ -4941,7 +5143,7 @@ export default function StudyRoomPage() {
                               <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#3b82f6' }}>{bg.bookTitle}</span>
                             </div>
                             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                              {matchingTests.length} Test
+                              {matchingTests.length} Bekleyen Test
                             </span>
                           </div>
 
@@ -5092,11 +5294,17 @@ export default function StudyRoomPage() {
                   {filteredTasksList.length === 0 ? (
                     <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16 }}>
                       <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>Kriterlere uygun ödev / görev bulunamadı</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>
+                        {hideCompletedTasks ? 'Bekleyen ödev / görev bulunmuyor' : 'Kriterlere uygun ödev / görev bulunamadı'}
+                      </div>
                     </div>
                   ) : (
                     filteredTasksList.map(task => {
                       const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
+                      const isRoadmap = task.sourceType === 'roadmap';
+                      const isBook = task.sourceType === 'bookTest';
+                      const isHw = task.sourceType === 'homework';
+
                       return (
                         <div
                           key={task.dedupeKey || task.id}
@@ -5117,8 +5325,8 @@ export default function StudyRoomPage() {
                               <span style={{
                                 fontSize: '0.68rem',
                                 fontWeight: 900,
-                                background: task.sourceType === 'program' ? 'rgba(16, 185, 129, 0.15)' : task.sourceType === 'bookTest' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                                color: task.sourceType === 'program' ? '#10b981' : task.sourceType === 'bookTest' ? '#6366f1' : '#3b82f6',
+                                background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : isBook ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isRoadmap ? '#8b5cf6' : isBook ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
                                 padding: '0.12rem 0.5rem',
                                 borderRadius: 6
                               }}>
@@ -5178,26 +5386,28 @@ export default function StudyRoomPage() {
                               <Play size={13} fill="#ffffff" /> Odada Başlat
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleLaunchTaskQuiz(task)}
-                              style={{
-                                padding: '0.5rem 0.9rem',
-                                borderRadius: 10,
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                color: '#ffffff',
-                                border: 'none',
-                                fontWeight: 900,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
-                              }}
-                            >
-                              <PlayCircle size={14} /> {task.sourceType === 'program' ? 'Programda Başla' : 'Hemen Çöz'}
-                            </button>
+                            {(task.realTestId || task.bookTestId) && (
+                              <button
+                                type="button"
+                                onClick={() => handleLaunchTaskQuiz(task)}
+                                style={{
+                                  padding: '0.5rem 0.9rem',
+                                  borderRadius: 10,
+                                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 900,
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                                }}
+                              >
+                                <PlayCircle size={14} /> Hemen Çöz
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
