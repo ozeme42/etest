@@ -22,6 +22,7 @@ export default function StudentBookDetailsPage() {
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
   const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const [feedbackToast, setFeedbackToast] = useState(null);
+  const [mistakeModalTest, setMistakeModalTest] = useState(null);
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
@@ -543,7 +544,7 @@ export default function StudentBookDetailsPage() {
     });
   }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
 
-  // ── MISTAKE REASONS AGGREGATION ACROSS THE BOOK (DEEP RESILIENT SEARCH) ──
+  // ── MISTAKE REASONS AGGREGATION ACROSS THE BOOK (DEEP RESILIENT SEARCH IN CURRICULUM ORDER) ──
   const bookMistakeStats = useMemo(() => {
     const reasonDefs = {
       '⚡ İşlem Hatası': { key: '⚡ İşlem Hatası', label: 'İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a', count: 0 },
@@ -583,13 +584,33 @@ export default function StudentBookDetailsPage() {
     let totalWrongInBook = 0;
     let totalClassified = 0;
     const questionsList = [];
+    const testsWithMistakesList = [];
 
-    // Collect all tests of this book
-    const allBookTests = [];
+    // Collect all tests in EXACT book curriculum order (Subject -> Topic/Unit -> Test)
+    const allBookTestsHierarchical = [];
     (subjectProgress || []).forEach(subj => {
-      if (Array.isArray(subj.tests)) {
-        subj.tests.forEach(t => allBookTests.push({ ...t, subjectName: subj.name }));
-      }
+      // 1. Tests in topics (Units)
+      (subj.topics || []).forEach(topic => {
+        (topic.tests || []).forEach(t => {
+          allBookTestsHierarchical.push({
+            ...t,
+            subjectId: subj.id,
+            subjectName: subj.name,
+            topicId: topic.id,
+            topicName: topic.name || topic.title || ''
+          });
+        });
+      });
+      // 2. Direct tests in subject
+      (subj.directTests || []).forEach(t => {
+        allBookTestsHierarchical.push({
+          ...t,
+          subjectId: subj.id,
+          subjectName: subj.name,
+          topicId: null,
+          topicName: ''
+        });
+      });
     });
 
     const studentIdStr = String(studentId || '');
@@ -597,9 +618,7 @@ export default function StudentBookDetailsPage() {
     const currentUserIdStr = String(currentUser?.id || '');
     const currentUserUuidStr = String(toUUID(currentUser?.id) || '');
 
-    const unclassifiedList = [];
-
-    allBookTests.forEach(t => {
+    allBookTestsHierarchical.forEach(t => {
       const sub = t.bestSub || t.latestSub;
       const testWrong = t.isCompleted ? (sub?.wrongCount ?? 0) : 0;
       totalWrongInBook += testWrong;
@@ -709,43 +728,100 @@ export default function StudentBookDetailsPage() {
         }
       });
 
-      // Map to standardized reasons
-      Object.entries(testMergedReasons).forEach(([qNo, rawReason]) => {
-        const normKey = normalizeReason(rawReason);
-        if (normKey && reasonDefs[normKey]) {
-          reasonDefs[normKey].count++;
-          totalClassified++;
-          questionsList.push({
-            testId: t.id,
-            testName: t.name,
-            subjectName: t.subjectName,
-            qNo,
-            reasonKey: normKey,
-            reasonLabel: reasonDefs[normKey].label,
-            rawReason
-          });
-        }
-      });
+      // Collect all wrong questions for this test in order
+      const wrongQuestionsForTest = [];
+      const seenQNos = new Set();
 
-      // Collect unclassified wrong questions
       if (matchingSubs.length > 0) {
         matchingSubs.forEach(ms => {
           if (Array.isArray(ms.answers)) {
             ms.answers.forEach((a, aIdx) => {
               const qNum = a.questionNo || (aIdx + 1);
-              if (a.isCorrect === false && !testMergedReasons[qNum]) {
-                unclassifiedList.push({
+              if (a.isCorrect === false && !seenQNos.has(qNum)) {
+                seenQNos.add(qNum);
+                const rawReason = testMergedReasons[qNum] || a.reason || a.mistakeReason || null;
+                const normKey = normalizeReason(rawReason);
+                wrongQuestionsForTest.push({
                   testId: t.id,
                   testName: t.name,
                   subjectName: t.subjectName,
+                  topicName: t.topicName,
                   qNo: qNum,
                   subId: ms.id,
-                  userAnswer: a.userAnswer,
-                  correctAnswer: a.correctAnswer
+                  userAnswer: a.userAnswer || '—',
+                  correctAnswer: a.correctAnswer || '—',
+                  reason: normKey,
+                  rawReason: rawReason
                 });
+                if (normKey && reasonDefs[normKey]) {
+                  reasonDefs[normKey].count++;
+                  totalClassified++;
+                  questionsList.push({
+                    testId: t.id,
+                    testName: t.name,
+                    subjectName: t.subjectName,
+                    topicName: t.topicName,
+                    qNo: qNum,
+                    reasonKey: normKey,
+                    reasonLabel: reasonDefs[normKey].label,
+                    rawReason
+                  });
+                }
               }
             });
           }
+        });
+      }
+
+      // If no detailed answers array, but test has wrong count:
+      if (wrongQuestionsForTest.length === 0 && testWrong > 0) {
+        for (let qNum = 1; qNum <= testWrong; qNum++) {
+          const rawReason = testMergedReasons[qNum] || null;
+          const normKey = normalizeReason(rawReason);
+          wrongQuestionsForTest.push({
+            testId: t.id,
+            testName: t.name,
+            subjectName: t.subjectName,
+            topicName: t.topicName,
+            qNo: qNum,
+            subId: t.latestSubId,
+            userAnswer: '—',
+            correctAnswer: '—',
+            reason: normKey,
+            rawReason: rawReason
+          });
+          if (normKey && reasonDefs[normKey]) {
+            reasonDefs[normKey].count++;
+            totalClassified++;
+            questionsList.push({
+              testId: t.id,
+              testName: t.name,
+              subjectName: t.subjectName,
+              topicName: t.topicName,
+              qNo: qNum,
+              reasonKey: normKey,
+              reasonLabel: reasonDefs[normKey].label,
+              rawReason
+            });
+          }
+        }
+      }
+
+      if (wrongQuestionsForTest.length > 0) {
+        const pendingCount = wrongQuestionsForTest.filter(q => !q.reason).length;
+        const classifiedCount = wrongQuestionsForTest.filter(q => !!q.reason).length;
+        testsWithMistakesList.push({
+          testId: t.id,
+          testName: t.name,
+          subjectId: t.subjectId,
+          subjectName: t.subjectName,
+          topicId: t.topicId,
+          topicName: t.topicName,
+          latestSubId: t.latestSubId,
+          wrongCount: wrongQuestionsForTest.length,
+          pendingCount,
+          classifiedCount,
+          wrongQuestions: wrongQuestionsForTest
         });
       }
     });
@@ -776,6 +852,9 @@ export default function StudentBookDetailsPage() {
       }
     });
 
+    const pendingTestsList = testsWithMistakesList.filter(t => t.pendingCount > 0);
+    const classifiedTestsList = testsWithMistakesList.filter(t => t.classifiedCount > 0);
+
     return {
       reasonDefs,
       totalWrongInBook,
@@ -783,45 +862,67 @@ export default function StudentBookDetailsPage() {
       unclassifiedCount,
       topReason,
       questionsList,
-      unclassifiedList
+      testsWithMistakesList,
+      pendingTestsList,
+      classifiedTestsList
     };
   }, [subjectProgress, studentId, submissions, homeworks, currentUser]);
 
-  const handleQuickAssignMistakeReason = async (item, reasonLabel) => {
+  const handleAssignMistakeInModal = async (testItem, qNo, reasonLabel) => {
+    const currentQ = testItem.wrongQuestions?.find(q => q.qNo === qNo);
+    const nextReason = (currentQ?.reason === reasonLabel) ? null : reasonLabel;
+
+    // Update mistakeModalTest in local state so UI updates immediately
+    setMistakeModalTest(prev => {
+      if (!prev) return null;
+      const updatedWrongQ = (prev.wrongQuestions || []).map(q => {
+        if (q.qNo === qNo) return { ...q, reason: nextReason, rawReason: nextReason };
+        return q;
+      });
+      const newClassified = updatedWrongQ.filter(q => !!q.reason).length;
+      const newPending = updatedWrongQ.length - newClassified;
+      return {
+        ...prev,
+        wrongQuestions: updatedWrongQ,
+        classifiedCount: newClassified,
+        pendingCount: newPending
+      };
+    });
+
+    // Save to localStorage & Supabase
     try {
       const targetStudentId = String(targetStudent?.id || currentUser?.id || 'u1');
-      // 1. Write to localStorage
-      const key1 = `mistake_reasons_${item.testId}_${targetStudentId}`;
-      const key2 = `mistake_reasons_bt_${item.testId}_${targetStudentId}`;
+      const key1 = `mistake_reasons_${testItem.testId}_${targetStudentId}`;
+      const key2 = `mistake_reasons_bt_${testItem.testId}_${targetStudentId}`;
       let prevObj = {};
       try {
         prevObj = JSON.parse(localStorage.getItem(key1) || '{}') || {};
       } catch {}
-      const nextObj = { ...prevObj, [item.qNo]: reasonLabel };
+      const nextObj = { ...prevObj, [qNo]: nextReason };
       try {
         localStorage.setItem(key1, JSON.stringify(nextObj));
         localStorage.setItem(key2, JSON.stringify(nextObj));
       } catch {}
 
-      // 2. Sync to Supabase via updateSubmission
-      const subTarget = submissions.find(s => String(s.id) === String(item.subId) || String(s.testId) === String(item.testId) || String(s.bookTestId) === String(item.testId));
+      // Supabase sync
+      const subTarget = submissions.find(s => String(s.id) === String(testItem.latestSubId || testItem.subId) || String(s.testId) === String(testItem.testId) || String(s.bookTestId) === String(testItem.testId));
       if (subTarget && updateSubmission) {
         const updatedAnswers = (subTarget.answers || []).map(a => {
           const num = a.questionNo || a.questionIndex;
-          if (num === item.qNo || String(num) === String(item.qNo)) {
-            return { ...a, reason: reasonLabel, mistakeReason: reasonLabel };
+          if (num === qNo || String(num) === String(qNo)) {
+            return { ...a, reason: nextReason, mistakeReason: nextReason };
           }
           return a;
         });
-        const nextReasons = { ...(subTarget.mistakeReasons || {}), [item.qNo]: reasonLabel };
+        const nextReasons = { ...(subTarget.mistakeReasons || {}), [qNo]: nextReason };
         await updateSubmission(subTarget.id, {
           mistakeReasons: nextReasons,
           answers: updatedAnswers
         });
       }
 
-      setFeedbackToast(`✓ Soru ${item.qNo} için "${reasonLabel}" sebebi veritabanına kaydedildi!`);
-      setTimeout(() => setFeedbackToast(null), 3000);
+      setFeedbackToast(nextReason ? `✓ Soru ${qNo}: "${nextReason}" veritabanına kaydedildi!` : `Soru ${qNo} sebebi kaldırıldı`);
+      setTimeout(() => setFeedbackToast(null), 2500);
     } catch (e) {
       console.error(e);
     }
@@ -1511,78 +1612,151 @@ export default function StudentBookDetailsPage() {
           </div>
         )}
 
-        {/* Sınıflandırılan Soruların Listesi */}
-        {bookMistakeStats.questionsList.length > 0 && (
+        {/* 1. Bekleyen Yanlışlar — Test Bazlı & Kitap Sıralı Listesi */}
+        {bookMistakeStats.pendingTestsList && bookMistakeStats.pendingTestsList.length > 0 ? (
           <div style={{ marginTop: '0.85rem' }}>
-            <details style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 12, border: '1px solid var(--color-border, #e2e8f0)', overflow: 'hidden' }}>
-              <summary style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
-                <span>📋 Sınıflandırılan Soruların Listesi ({bookMistakeStats.questionsList.length} Soru)</span>
-                <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800 }}>Detayları Göster / Gizle ▼</span>
+            <details open style={{ background: '#fffbeb', borderRadius: 14, border: '1.5px solid #fde68a', overflow: 'hidden' }}>
+              <summary style={{ padding: '0.75rem 1.1rem', fontSize: '0.84rem', fontWeight: 900, color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+                  <span>Bekleyen Yanlışlar ({bookMistakeStats.pendingTestsList.length} Testte Toplam {bookMistakeStats.unclassifiedCount} Soru)</span>
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#d97706', fontWeight: 800 }}>Sıralı Test Listesi ▼</span>
               </summary>
-              <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
-                {bookMistakeStats.questionsList.map((q, qIdx) => (
-                  <div key={qIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.45rem 0.65rem', background: 'var(--color-surface, #ffffff)', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', fontSize: '0.76rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>{q.testName}</span>
-                      <span style={{ color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>• Soru {q.qNo}</span>
-                      {q.subjectName && <span style={{ fontSize: '0.68rem', background: 'var(--color-surface-hover, #f1f5f9)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>{q.subjectName}</span>}
+
+              <div style={{ padding: '0.85rem 1.1rem', borderTop: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 380, overflowY: 'auto' }}>
+                {bookMistakeStats.pendingTestsList.map((tItem, tIdx) => (
+                  <div
+                    key={tItem.testId || tIdx}
+                    onClick={() => setMistakeModalTest(tItem)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                      padding: '0.75rem 1rem',
+                      background: '#ffffff',
+                      borderRadius: 12,
+                      border: '1.5px solid #fef3c7',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#fef3c7'; e.currentTarget.style.transform = 'none'; }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>
+                        <span style={{ color: '#2563eb', background: '#eff6ff', padding: '1px 6px', borderRadius: 4 }}>
+                          📚 {tItem.subjectName}
+                        </span>
+                        {tItem.topicName && (
+                          <span style={{ color: '#475569', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                            🎯 {tItem.topicName}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.88rem' }}>
+                        📌 {tItem.testName}
+                      </div>
                     </div>
-                    <span style={{ fontWeight: 900, color: bookMistakeStats.reasonDefs[q.reasonKey]?.color || '#e11d48' }}>
-                      {q.rawReason || q.reasonKey}
-                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 900, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '3px 8px', borderRadius: 8 }}>
+                        ⏳ {tItem.pendingCount} Bekleyen Soru ({tItem.wrongCount} Yanlış)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setMistakeModalTest(tItem); }}
+                        style={{
+                          padding: '0.45rem 0.9rem',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          border: 'none',
+                          color: 'white',
+                          fontSize: '0.76rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                        }}
+                      >
+                        <span>⚡ Hata Analizi Yap</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </details>
           </div>
-        )}
+        ) : null}
 
-        {/* Bekleyen Sınıflandırılmamış Yanlış Sorular Listesi & Hızlı Sebep Seçme */}
-        {bookMistakeStats.unclassifiedList && bookMistakeStats.unclassifiedList.length > 0 && (
+        {/* 2. Sınıflandırılan Sorular — Test Bazlı & Kitap Sıralı Listesi */}
+        {bookMistakeStats.classifiedTestsList && bookMistakeStats.classifiedTestsList.length > 0 && (
           <div style={{ marginTop: '0.85rem' }}>
-            <details open style={{ background: '#fffbeb', borderRadius: 12, border: '1.5px solid #fde68a', overflow: 'hidden' }}>
-              <summary style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  ⚠️ Bekleyen Yanlış Sorular ({bookMistakeStats.unclassifiedList.length} Soru) — Hızlı Sebep Seç & Kaydet
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 800 }}>Detayları Göster / Gizle ▼</span>
+            <details style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, border: '1px solid var(--color-border, #e2e8f0)', overflow: 'hidden' }}>
+              <summary style={{ padding: '0.75rem 1.1rem', fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
+                <span>📋 Sınıflandırılan Sorular ({bookMistakeStats.totalClassified} Soru • {bookMistakeStats.classifiedTestsList.length} Test)</span>
+                <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800 }}>Test Listesini İncele ▼</span>
               </summary>
-              <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
-                {bookMistakeStats.unclassifiedList.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, padding: '0.5rem 0.75rem', background: '#ffffff', borderRadius: 10, border: '1px solid #fef3c7', fontSize: '0.76rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontWeight: 900, color: '#0f172a' }}>{item.testName}</span>
-                      <span style={{ color: '#dc2626', fontWeight: 900, background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>• Soru {item.qNo} (Yanlış)</span>
-                      {item.subjectName && <span style={{ fontSize: '0.68rem', background: '#f1f5f9', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>{item.subjectName}</span>}
+              <div style={{ padding: '0.85rem 1.1rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                {bookMistakeStats.classifiedTestsList.map((tItem, tIdx) => (
+                  <div
+                    key={tItem.testId || tIdx}
+                    onClick={() => setMistakeModalTest(tItem)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      padding: '0.65rem 0.9rem',
+                      background: 'var(--color-surface, #ffffff)',
+                      borderRadius: 10,
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
+                        <span style={{ color: '#2563eb' }}>📚 {tItem.subjectName}</span>
+                        {tItem.topicName && <span>• 🎯 {tItem.topicName}</span>}
+                      </div>
+                      <span style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                        📌 {tItem.testName}
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {[
-                        { label: '⚡ İşlem', color: '#d97706', bg: '#fffbeb', full: '⚡ İşlem Hatası' },
-                        { label: '⚠️ Dikkat', color: '#e11d48', bg: '#fff1f2', full: '⚠️ Dikkat Kaybı' },
-                        { label: '📖 Formül', color: '#0284c7', bg: '#f0f9ff', full: '📖 Formül / Bilgi' },
-                        { label: '🧠 Konu', color: '#7c3aed', bg: '#faf5ff', full: '🧠 Konu Eksiği' },
-                        { label: '⏱️ Zaman', color: '#db2777', bg: '#fdf2f8', full: '⏱️ Zaman Yetmedi' }
-                      ].map(r => (
-                        <button
-                          key={r.label}
-                          type="button"
-                          onClick={() => handleQuickAssignMistakeReason(item, r.full)}
-                          style={{
-                            padding: '0.2rem 0.45rem',
-                            fontSize: '0.64rem',
-                            fontWeight: 900,
-                            borderRadius: 6,
-                            border: `1.5px solid ${r.color}66`,
-                            background: r.bg,
-                            color: r.color,
-                            cursor: 'pointer',
-                            transition: 'all 0.12s ease'
-                          }}
-                          title={`Soru ${item.qNo} için "${r.full}" olarak veritabanına kaydet`}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#059669', fontWeight: 900, background: '#ecfdf5', padding: '2px 8px', borderRadius: 6, fontSize: '0.74rem' }}>
+                        ✓ {tItem.classifiedCount} Sınıflandırıldı
+                      </span>
+                      {tItem.pendingCount > 0 && (
+                        <span style={{ color: '#d97706', fontWeight: 900, background: '#fffbeb', padding: '2px 8px', borderRadius: 6, fontSize: '0.74rem' }}>
+                          ⏳ {tItem.pendingCount} Bekleyen
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setMistakeModalTest(tItem); }}
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: 8,
+                          background: 'var(--color-surface-hover, #f1f5f9)',
+                          border: '1px solid var(--color-border, #cbd5e1)',
+                          color: 'var(--color-text, #334155)',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        İncele / Düzenle ➔
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -2318,6 +2492,257 @@ export default function StudentBookDetailsPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button className="btn btn-outline" onClick={() => setIsEditTestModalOpen(false)} style={{ padding: '0.5rem 1rem', fontWeight: 700 }}>İptal</button>
               <button className="btn btn-primary" onClick={handleSaveEditTest} style={{ padding: '0.5rem 1.25rem', fontWeight: 800 }}>Kaydet</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TEST HATA ANALİZİ MODALI (AÇILAN PENCERE) ── */}
+      {mistakeModalTest && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            padding: '1rem'
+          }}
+          onClick={() => setMistakeModalTest(null)}
+        >
+          <div
+            className="modal-content card glass animate-fade-in"
+            style={{
+              width: '100%',
+              maxWidth: '720px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--color-surface, #ffffff)',
+              borderRadius: '1.25rem',
+              boxShadow: '0 20px 40px -15px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              border: '1.5px solid var(--color-border)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1.5px solid var(--color-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              background: 'var(--color-surface-hover, #f8fafc)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+                  <span style={{ color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: 6 }}>
+                    📚 {mistakeModalTest.subjectName}
+                  </span>
+                  {mistakeModalTest.topicName && (
+                    <span style={{ color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>
+                      🎯 {mistakeModalTest.topicName}
+                    </span>
+                  )}
+                </div>
+                <h3 style={{ margin: 0, color: 'var(--color-text)', fontSize: '1.2rem', fontWeight: 900 }}>
+                  📌 {mistakeModalTest.testName}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: 6, border: '1px solid #fecaca' }}>
+                    ❌ {mistakeModalTest.wrongCount || mistakeModalTest.wrongQuestions?.length || 0} Yanlış Soru
+                  </span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#fffbeb', color: '#d97706', padding: '2px 8px', borderRadius: 6, border: '1px solid #fde68a' }}>
+                    ⏳ {mistakeModalTest.pendingCount ?? 0} Bekleyen
+                  </span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 6, border: '1px solid #a7f3d0' }}>
+                    ✓ {mistakeModalTest.classifiedCount ?? 0} Sınıflandırıldı
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setMistakeModalTest(null)}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: '#eff6ff', border: '1px dashed #bfdbfe', borderRadius: 10, padding: '0.65rem 1rem', fontSize: '0.78rem', color: '#1e40af', fontWeight: 700 }}>
+                💡 Aşağıdaki yanlış yaptığınız her soru için hata nedenine tıklayın. Seçiminiz anında veritabanına kaydedilir.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(mistakeModalTest.wrongQuestions || []).map((qItem, qIdx) => {
+                  const reasonObj = qItem.reason ? bookMistakeStats.reasonDefs[qItem.reason] : null;
+
+                  return (
+                    <div
+                      key={qItem.qNo || qIdx}
+                      style={{
+                        background: 'var(--color-surface, #ffffff)',
+                        border: `1.5px solid ${reasonObj ? reasonObj.border : 'var(--color-border, #e2e8f0)'}`,
+                        borderRadius: 12,
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.6rem',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      {/* Top row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 900,
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            padding: '3px 10px',
+                            borderRadius: 8,
+                            border: '1px solid #fecaca'
+                          }}>
+                            Soru {qItem.qNo}
+                          </span>
+                          {qItem.userAnswer && qItem.userAnswer !== '—' && (
+                            <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              Öğrenci: <strong style={{ color: '#dc2626' }}>{qItem.userAnswer}</strong> • Doğru: <strong style={{ color: '#16a34a' }}>{qItem.correctAnswer}</strong>
+                            </span>
+                          )}
+                        </div>
+
+                        {reasonObj ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              fontSize: '0.76rem',
+                              fontWeight: 900,
+                              background: reasonObj.bg,
+                              color: reasonObj.color,
+                              padding: '3px 9px',
+                              borderRadius: 8,
+                              border: `1px solid ${reasonObj.border}`
+                            }}>
+                              ✓ {qItem.rawReason || reasonObj.key}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleAssignMistakeInModal(mistakeModalTest, qItem.qNo, qItem.reason)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#94a3b8',
+                                fontSize: '0.68rem',
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                fontWeight: 700
+                              }}
+                              title="Sebebi Kaldır"
+                            >
+                              Kaldır
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', background: '#fffbeb', padding: '2px 8px', borderRadius: 6 }}>
+                            ⏳ Sebep Seçilmedi
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Reasons buttons */}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {[
+                          { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+                          { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+                          { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+                          { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+                          { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+                        ].map(r => {
+                          const isSelected = qItem.reason === r.label;
+
+                          return (
+                            <button
+                              key={r.label}
+                              type="button"
+                              onClick={() => handleAssignMistakeInModal(mistakeModalTest, qItem.qNo, r.label)}
+                              style={{
+                                padding: '0.4rem 0.75rem',
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                borderRadius: 8,
+                                border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                background: isSelected ? r.color : r.bg,
+                                color: isSelected ? '#ffffff' : r.color,
+                                cursor: 'pointer',
+                                transition: 'all 0.12s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                boxShadow: isSelected ? `0 2px 8px ${r.color}40` : 'none'
+                              }}
+                            >
+                              {isSelected && <Check size={12} />}
+                              <span>{r.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1.5px solid var(--color-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--color-surface-hover, #f8fafc)'
+            }}>
+              <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                Veriler anında veritabanı ile senkronize edilir.
+              </span>
+              <button
+                type="button"
+                onClick={() => setMistakeModalTest(null)}
+                style={{
+                  padding: '0.55rem 1.35rem',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Check size={16} /> Tamamla & Kapat
+              </button>
             </div>
           </div>
         </div>
