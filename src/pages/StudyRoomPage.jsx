@@ -481,6 +481,112 @@ export default function StudyRoomPage() {
     });
   }, [calculatedQuestionBudgetMinutes]);
 
+  const [focusInputVal, setFocusInputVal] = useState(() => String(durations.pomodoro || 25));
+  const [breakInputVal, setBreakInputVal] = useState(() => String(durations.shortBreak || 10));
+
+  useEffect(() => {
+    setFocusInputVal(String(durations.pomodoro || calculatedQuestionBudgetMinutes || 25));
+  }, [durations.pomodoro, calculatedQuestionBudgetMinutes]);
+
+  useEffect(() => {
+    setBreakInputVal(String(durations.shortBreak || 10));
+  }, [durations.shortBreak]);
+
+  const handleAdjustFocus = (delta) => {
+    const current = Number(durations.pomodoro) || calculatedQuestionBudgetMinutes || 25;
+    const newVal = Math.min(180, Math.max(1, current + delta));
+    setDurations(p => ({ ...p, pomodoro: newVal }));
+    setFocusInputVal(String(newVal));
+    const newGoal = Math.max(1, Math.round(newVal / minutesPerQuestion));
+    setTargetGoalCount(newGoal);
+    setTargetInputVal(String(newGoal));
+    if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
+      setTimeLeft(newVal * 60);
+    }
+  };
+
+  const handleSetFocusPreset = (minutes) => {
+    const val = Math.min(180, Math.max(1, minutes));
+    setDurations(p => ({ ...p, pomodoro: val }));
+    setFocusInputVal(String(val));
+    const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
+    setTargetGoalCount(newGoal);
+    setTargetInputVal(String(newGoal));
+    if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
+      setTimeLeft(val * 60);
+    }
+  };
+
+  const handleFocusInputChange = (rawStr) => {
+    const clean = rawStr.replace(/[^0-9]/g, '');
+    setFocusInputVal(clean);
+    if (clean && Number(clean) >= 1) {
+      const val = Math.min(180, Number(clean));
+      setDurations(p => ({ ...p, pomodoro: val }));
+      const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
+      setTargetGoalCount(newGoal);
+      setTargetInputVal(String(newGoal));
+      if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
+        setTimeLeft(val * 60);
+      }
+    }
+  };
+
+  const handleFocusInputBlur = () => {
+    if (!focusInputVal || Number(focusInputVal) < 1) {
+      const fallback = Math.max(1, Number(durations.pomodoro) || calculatedQuestionBudgetMinutes || 25);
+      setFocusInputVal(String(fallback));
+      setDurations(p => ({ ...p, pomodoro: fallback }));
+    } else {
+      const clamped = Math.min(180, Math.max(1, Number(focusInputVal)));
+      setFocusInputVal(String(clamped));
+      setDurations(p => ({ ...p, pomodoro: clamped }));
+    }
+  };
+
+  const handleAdjustBreak = (delta) => {
+    const current = Number(durations.shortBreak) || 10;
+    const newVal = Math.min(90, Math.max(1, current + delta));
+    setDurations(p => ({ ...p, shortBreak: newVal, breakTime: newVal }));
+    setBreakInputVal(String(newVal));
+    if (!isRunning && activeStudyMode === 'break') {
+      setTimeLeft(newVal * 60);
+    }
+  };
+
+  const handleSetBreakPreset = (minutes) => {
+    const val = Math.min(90, Math.max(1, minutes));
+    setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
+    setBreakInputVal(String(val));
+    if (!isRunning && activeStudyMode === 'break') {
+      setTimeLeft(val * 60);
+    }
+  };
+
+  const handleBreakInputChange = (rawStr) => {
+    const clean = rawStr.replace(/[^0-9]/g, '');
+    setBreakInputVal(clean);
+    if (clean && Number(clean) >= 1) {
+      const val = Math.min(90, Number(clean));
+      setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
+      if (!isRunning && activeStudyMode === 'break') {
+        setTimeLeft(val * 60);
+      }
+    }
+  };
+
+  const handleBreakInputBlur = () => {
+    if (!breakInputVal || Number(breakInputVal) < 1) {
+      const fallback = Math.max(1, Number(durations.shortBreak) || 10);
+      setBreakInputVal(String(fallback));
+      setDurations(p => ({ ...p, shortBreak: fallback, breakTime: fallback }));
+    } else {
+      const clamped = Math.min(90, Math.max(1, Number(breakInputVal)));
+      setBreakInputVal(String(clamped));
+      setDurations(p => ({ ...p, shortBreak: clamped, breakTime: clamped }));
+    }
+  };
+
   // Dinamik Zaman Sayacı
   const [timeLeft, setTimeLeft] = useState(() => {
     const initMode = localStorage.getItem('study_master_mode') || 'question';
@@ -1945,80 +2051,254 @@ export default function StudyRoomPage() {
               borderRadius: 20,
               border: `1.5px solid ${themeObj.border}`,
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
               gap: 14,
               boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
             }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
-                  <span style={{ fontSize: '0.64rem', color: '#6366f1', fontWeight: 800 }}>Otomatik Eşitlenir</span>
+              {/* ODAK SÜRESİ */}
+              <div style={{
+                background: themeObj.cardBg,
+                padding: '0.85rem 1rem',
+                borderRadius: 16,
+                border: `1.5px solid ${themeObj.border}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
+                  <span style={{ fontSize: '0.64rem', color: '#6366f1', fontWeight: 800, background: 'rgba(99,102,241,0.1)', padding: '2px 6px', borderRadius: 6 }}>Otomatik Eşitlenir</span>
                 </div>
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={durations.pomodoro || calculatedQuestionBudgetMinutes}
-                  onChange={e => {
-                    const val = Math.max(1, Number(e.target.value) || 25);
-                    setDurations(p => ({ ...p, pomodoro: val }));
-                    const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
-                    setTargetGoalCount(newGoal);
-                    if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
-                      setTimeLeft(val * 60);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem',
-                    borderRadius: 12,
-                    border: `1.5px solid ${themeObj.border}`,
-                    background: themeObj.cardBg,
-                    color: themeObj.text,
-                    fontWeight: 900,
-                    fontSize: '0.95rem',
-                    textAlign: 'center',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <div style={{ fontSize: '0.64rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+
+                {/* Touch-friendly Stepper Control */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: themeObj.innerBg,
+                  borderRadius: 12,
+                  border: `1.5px solid ${themeObj.border}`,
+                  padding: 4
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustFocus(-5)}
+                    style={{
+                      minWidth: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      border: 'none',
+                      background: themeObj.cardBg,
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                    }}
+                    title="5 dk azalt"
+                  >
+                    <Minus size={16} />
+                  </button>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={focusInputVal}
+                    onChange={e => handleFocusInputChange(e.target.value)}
+                    onBlur={handleFocusInputBlur}
+                    style={{
+                      width: '100%',
+                      maxWidth: 90,
+                      padding: '0.4rem 0.2rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      fontSize: '1.15rem',
+                      textAlign: 'center',
+                      outline: 'none'
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustFocus(5)}
+                    style={{
+                      minWidth: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      border: 'none',
+                      background: themeObj.cardBg,
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                    }}
+                    title="5 dk artır"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* Quick Presets for Mobile */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[15, 25, 30, 42, 45, 60].map(mins => {
+                    const isActive = Number(durations.pomodoro) === mins;
+                    return (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => handleSetFocusPreset(mins)}
+                        style={{
+                          flex: 1,
+                          minWidth: 32,
+                          padding: '0.35rem 0.3rem',
+                          borderRadius: 8,
+                          border: `1.5px solid ${isActive ? '#6366f1' : themeObj.border}`,
+                          background: isActive ? '#6366f1' : themeObj.innerBg,
+                          color: isActive ? '#ffffff' : themeObj.subText,
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {mins}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ fontSize: '0.64rem', color: themeObj.subText, fontWeight: 700, lineHeight: 1.3 }}>
                   ⚡ Soru sayısına göre: {targetGoalCount} soru × {minutesPerQuestion} dk = {calculatedQuestionBudgetMinutes} dk
                 </div>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.text }}>☕ Mola Süresi (dk)</label>
-                  <span style={{ fontSize: '0.64rem', color: '#10b981', fontWeight: 800 }}>Tek Mola</span>
+              {/* MOLA SÜRESİ */}
+              <div style={{
+                background: themeObj.cardBg,
+                padding: '0.85rem 1rem',
+                borderRadius: 16,
+                border: `1.5px solid ${themeObj.border}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>☕ Mola Süresi (dk)</label>
+                  <span style={{ fontSize: '0.64rem', color: '#10b981', fontWeight: 800, background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: 6 }}>Tek Mola</span>
                 </div>
-                <input
-                  type="number"
-                  min="1"
-                  max="90"
-                  value={durations.shortBreak || 10}
-                  onChange={e => {
-                    const val = Math.max(1, Number(e.target.value) || 10);
-                    setDurations(p => ({ ...p, shortBreak: val, breakTime: val }));
-                    if (!isRunning && activeStudyMode === 'break') {
-                      setTimeLeft(val * 60);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem',
-                    borderRadius: 12,
-                    border: `1.5px solid ${themeObj.border}`,
-                    background: themeObj.cardBg,
-                    color: themeObj.text,
-                    fontWeight: 900,
-                    fontSize: '0.95rem',
-                    textAlign: 'center',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <div style={{ fontSize: '0.64rem', color: themeObj.subText, marginTop: 4, fontWeight: 700, lineHeight: 1.3 }}>
+
+                {/* Touch-friendly Stepper Control */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: themeObj.innerBg,
+                  borderRadius: 12,
+                  border: `1.5px solid ${themeObj.border}`,
+                  padding: 4
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustBreak(-1)}
+                    style={{
+                      minWidth: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      border: 'none',
+                      background: themeObj.cardBg,
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                    }}
+                    title="1 dk azalt"
+                  >
+                    <Minus size={16} />
+                  </button>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={breakInputVal}
+                    onChange={e => handleBreakInputChange(e.target.value)}
+                    onBlur={handleBreakInputBlur}
+                    style={{
+                      width: '100%',
+                      maxWidth: 90,
+                      padding: '0.4rem 0.2rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      fontSize: '1.15rem',
+                      textAlign: 'center',
+                      outline: 'none'
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustBreak(1)}
+                    style={{
+                      minWidth: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      border: 'none',
+                      background: themeObj.cardBg,
+                      color: themeObj.text,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                    }}
+                    title="1 dk artır"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* Quick Presets for Mobile */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[5, 8, 10, 15, 20].map(mins => {
+                    const isActive = Number(durations.shortBreak) === mins;
+                    return (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => handleSetBreakPreset(mins)}
+                        style={{
+                          flex: 1,
+                          minWidth: 32,
+                          padding: '0.35rem 0.3rem',
+                          borderRadius: 8,
+                          border: `1.5px solid ${isActive ? '#10b981' : themeObj.border}`,
+                          background: isActive ? '#10b981' : themeObj.innerBg,
+                          color: isActive ? '#ffffff' : themeObj.subText,
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {mins}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ fontSize: '0.64rem', color: themeObj.subText, fontWeight: 700, lineHeight: 1.3 }}>
                   🏖️ Erken bitirilen seansların artan dakikaları bu molaya otomatik eklenir.
                 </div>
               </div>
