@@ -3329,8 +3329,84 @@ export default function StudentDashboard() {
               )}
             </div>
 
+            {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.35)', color: 'white' }}>
+                    🗺️
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
+                      Yol Haritam & Konu Takibi
+                    </h2>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      Müfredat ve hedef sınav konu tamamlama ilerlemeniz
+                    </span>
+                  </div>
+                </div>
 
-            {/* 📝 BÖLÜM 2: SON ÇÖZÜLEN TESTLER */}
+                <span style={{ background: isDark ? 'rgba(124, 58, 237, 0.2)' : 'rgba(124, 58, 237, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                  {myRoadmaps.length} Harita
+                </span>
+              </div>
+
+              {myRoadmaps.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz atanmış bir yol haritanız yok
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+                    Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {myRoadmaps.map(({ assignment, plan, totalTopics, doneTopics, pct }) => (
+                    <div
+                      key={assignment.id}
+                      onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
+                      className="sd-card"
+                      style={{
+                        background: 'var(--color-surface, #ffffff)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
+                        borderRadius: 16,
+                        padding: '1rem 1.15rem',
+                        cursor: 'pointer',
+                        boxShadow: isDark ? '0 4px 14px -2px rgba(0,0,0,0.35)' : '0 4px 14px -2px rgba(0,0,0,0.03)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)' }}>
+                          {plan.title}
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#c084fc' }}>
+                          %{pct}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                        <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
+                        <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
+                          Detayları Gör <ChevronRight size={13} />
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 📝 BÖLÜM 5: SON ÇÖZÜLEN TESTLER */}
             <div className="sd-card" style={{
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
             }}>
@@ -3575,81 +3651,6 @@ export default function StudentDashboard() {
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
-
-            {/* 🗺️ BÖLÜM 3: YOL HARİTAM & KONU TAKİBİ */}
-            <div className="sd-card" style={{
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
-                    🗺️
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-                      Yol Haritam & Konu Takibi
-                    </h2>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      Müfredat ve hedef sınav konu tamamlama ilerlemeniz
-                    </span>
-                  </div>
-                </div>
-
-                <span style={{ background: 'rgba(124, 58, 237, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                  {myRoadmaps.length} Harita
-                </span>
-              </div>
-
-              {myRoadmaps.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
-                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
-                    Henüz atanmış bir yol haritanız yok
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
-                    Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {myRoadmaps.map(({ assignment, plan, totalTopics, doneTopics, pct }) => (
-                    <div
-                      key={assignment.id}
-                      onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
-                      className="sd-card"
-                      style={{
-                        background: 'var(--color-surface-hover, #f8fafc)',
-                        border: '1.5px solid var(--color-border, #e2e8f0)',
-                        borderRadius: 16,
-                        padding: '1rem 1.15rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)' }}>
-                          {plan.title}
-                        </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#c084fc' }}>
-                          %{pct}
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                        <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
-                        <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center', gap: 2 }}>
-                          Detayları Gör <ChevronRight size={13} />
-                        </span>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
