@@ -1831,6 +1831,7 @@ export default function StudentDashboard() {
 
     const countedSubIds = new Set();
 
+    // 1. All Evaluation Submissions
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
       if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
@@ -1874,6 +1875,7 @@ export default function StudentDashboard() {
       }
     });
 
+    // 2. All Homework Submissions
     (homeworks || []).forEach(hw => {
       const isBookHw = Boolean(hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook' || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)'));
       if (isBookHw) return; // Book assignments are counted via individual test submissions
@@ -1907,6 +1909,43 @@ export default function StudentDashboard() {
       });
     });
 
+    // 3. All Mock Exams (Deneme Sınavları)
+    (studentMockExams || []).forEach(m => {
+      if (!m) return;
+      const mId = m.id || `mock_${m.title}_${m.date}`;
+      if (countedSubIds.has(mId)) return;
+      countedSubIds.add(mId);
+
+      let qCount = 0;
+      if (m.totalCorrect !== undefined || m.totalWrong !== undefined) {
+        qCount = Number(m.totalCorrect || 0) + Number(m.totalWrong || 0) + Number(m.totalEmpty || 0);
+      }
+      if (qCount <= 0 && m.scores && typeof m.scores === 'object') {
+        Object.values(m.scores).forEach(sc => {
+          qCount += (Number(sc?.d || 0) + Number(sc?.y || 0) + Number(sc?.b || 0));
+        });
+      }
+      if (qCount <= 0) qCount = Number(m.totalQuestions || m.questionCount || 90);
+
+      const dateStr = m.date || m.createdAt;
+      const subDate = dateStr ? new Date(dateStr) : null;
+
+      totalCount += qCount;
+
+      if (subDate && !isNaN(subDate.getTime())) {
+        const subYMD = formatLocalYMD(subDate);
+        if (subYMD === todayYMD || isToday(subDate)) {
+          todayCount += qCount;
+        }
+        if (subDate >= startOfWeek) {
+          weekCount += qCount;
+        }
+        if (subDate >= startOfMonth) {
+          monthCount += qCount;
+        }
+      }
+    });
+
     const profile = getCoachingProfileForStudent(selectedStudent.id);
     if (profile?.dailyLogs && Array.isArray(profile.dailyLogs)) {
       profile.dailyLogs.forEach(log => {
@@ -1928,7 +1967,7 @@ export default function StudentDashboard() {
       thisMonth: monthCount,
       total: totalCount
     };
-  }, [selectedStudent, submissions, homeworks, tests, getCoachingProfileForStudent]);
+  }, [selectedStudent, submissions, homeworks, studentMockExams, tests, getCoachingProfileForStudent]);
 
   const goalTrackingData = useMemo(() => {
     if (!selectedStudent?.id) {

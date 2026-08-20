@@ -747,7 +747,7 @@ export default function GoalsAndSchedulePage() {
   const { goals, addGoal, deleteGoal, updateGoalProgress } = useGoal();
   const { users } = useUser();
   const { currentUser } = useAuth();
-  const { getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles } = useCoaching();
+  const { getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles, mockExams = [], getMockExamsForStudent } = useCoaching();
   const { submissions } = useEvaluation();
   const { homeworks } = useHomework();
 
@@ -761,7 +761,7 @@ export default function GoalsAndSchedulePage() {
 
   const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
 
-  /* ─── Real-Time Solved Questions Calculation ─── */
+  /* ─── Real-Time Solved Questions Calculation (Includes All Book Tests, Homeworks & Mock Exams) ─── */
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
     const studentIdStr = String(selectedStudent.id);
@@ -784,6 +784,7 @@ export default function GoalsAndSchedulePage() {
 
     const countedSubIds = new Set();
 
+    // 1. All Evaluation Submissions (Tracked Books, Online Quizzes, Physical Exams)
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
       if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
@@ -791,7 +792,18 @@ export default function GoalsAndSchedulePage() {
       if (countedSubIds.has(subId)) return;
       countedSubIds.add(subId);
 
-      let qCount = Number(s.totalQuestions || s.questionCount || (Array.isArray(s.answers) ? s.answers.length : 0) || 20);
+      let qCount = 0;
+      if (s.totalQuestions && Number(s.totalQuestions) > 0) {
+        qCount = Number(s.totalQuestions);
+      } else if (Array.isArray(s.answers) && s.answers.length > 0) {
+        qCount = s.answers.length;
+      } else if (Array.isArray(s.studentAnswers) && s.studentAnswers.length > 0) {
+        qCount = s.studentAnswers.length;
+      } else if (s.correctCount !== undefined && s.wrongCount !== undefined) {
+        qCount = Number(s.correctCount || 0) + Number(s.wrongCount || 0) + Number(s.emptyCount || s.blankCount || 0);
+      }
+      if (qCount <= 0) qCount = 20;
+
       const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
       const subDate = dateStr ? new Date(dateStr) : null;
       totalCount += qCount;
@@ -803,6 +815,7 @@ export default function GoalsAndSchedulePage() {
       }
     });
 
+    // 2. All Homework Submissions
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(sub => {
         const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
@@ -824,8 +837,41 @@ export default function GoalsAndSchedulePage() {
       });
     });
 
+    // 3. All Mock Exams (Denemeler)
+    const studentMocks = typeof getMockExamsForStudent === 'function' 
+      ? getMockExamsForStudent(selectedStudent.id) 
+      : (mockExams || []).filter(m => String(m.studentId) === studentIdStr || (studentUuidStr && String(m.studentId) === studentUuidStr));
+
+    (studentMocks || []).forEach(m => {
+      if (!m) return;
+      const mId = m.id || `mock_${m.title}_${m.date}`;
+      if (countedSubIds.has(mId)) return;
+      countedSubIds.add(mId);
+
+      let qCount = 0;
+      if (m.totalCorrect !== undefined || m.totalWrong !== undefined) {
+        qCount = Number(m.totalCorrect || 0) + Number(m.totalWrong || 0) + Number(m.totalEmpty || 0);
+      }
+      if (qCount <= 0 && m.scores && typeof m.scores === 'object') {
+        Object.values(m.scores).forEach(sc => {
+          qCount += (Number(sc?.d || 0) + Number(sc?.y || 0) + Number(sc?.b || 0));
+        });
+      }
+      if (qCount <= 0) qCount = Number(m.totalQuestions || m.questionCount || 90);
+
+      const dateStr = m.date || m.createdAt;
+      const subDate = dateStr ? new Date(dateStr) : null;
+      totalCount += qCount;
+      if (subDate && !isNaN(subDate.getTime())) {
+        const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+        if (subYMD === todayYMD) todayCount += qCount;
+        if (subDate >= startOfWeek) weekCount += qCount;
+        if (subDate >= startOfMonth) monthCount += qCount;
+      }
+    });
+
     return { today: todayCount, thisWeek: weekCount, thisMonth: monthCount, total: totalCount };
-  }, [selectedStudent, submissions, homeworks]);
+  }, [selectedStudent, submissions, homeworks, mockExams, getMockExamsForStudent]);
 
   // Academic Targets States
   const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || coachingProfile.goals?.examGoalType || 'LGS 2026');

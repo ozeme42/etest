@@ -637,19 +637,31 @@ export function computeStudentAnalyticsData({
   });
 
   // 3. Fiziki Deneme Modülü Sınavları
-  const manualExams = (studentMockExams || []).map(m => ({
-    id: m.id,
-    title: m.title || 'Fiziki Deneme Sınavı',
-    date: (m.date || m.createdAt || new Date().toISOString()).slice(0, 10),
-    totalNet: parseFloat(m.totalNet) || 0,
-    sourceType: 'manual',
-    approvalStatus: m.approvalStatus || (m.createdBy === 'student' ? 'pending' : 'approved'),
-    scores: m.scores || {},
-    totalCorrect: m.totalCorrect || 0,
-    totalWrong: m.totalWrong || 0,
-    totalEmpty: m.totalEmpty || 0,
-    isTrial: true
-  }));
+  const manualExams = (studentMockExams || []).map(m => {
+    let tD = m.totalCorrect ?? m.correctCount ?? m.correct ?? 0;
+    let tY = m.totalWrong ?? m.wrongCount ?? m.wrong ?? 0;
+    let tB = m.totalEmpty ?? m.emptyCount ?? m.blankCount ?? m.empty ?? 0;
+    if (tD === 0 && tY === 0 && tB === 0 && m.scores && typeof m.scores === 'object') {
+      Object.values(m.scores).forEach(sc => {
+        tD += Number(sc?.d || sc?.correct || 0);
+        tY += Number(sc?.y || sc?.wrong || 0);
+        tB += Number(sc?.b || sc?.empty || sc?.blank || 0);
+      });
+    }
+    return {
+      id: m.id,
+      title: m.title || 'Fiziki Deneme Sınavı',
+      date: (m.date || m.createdAt || new Date().toISOString()).slice(0, 10),
+      totalNet: parseFloat(m.totalNet) || 0,
+      sourceType: 'manual',
+      approvalStatus: m.approvalStatus || (m.createdBy === 'student' ? 'pending' : 'approved'),
+      scores: m.scores || {},
+      totalCorrect: tD,
+      totalWrong: tY,
+      totalEmpty: tB,
+      isTrial: true
+    };
+  });
 
   const seen = new Set();
   const all = [];
@@ -670,14 +682,6 @@ export function computeStudentAnalyticsData({
     } else if (item.isExamBook) {
       const groupKey = `${item.parentBookId}_${item.date}`;
       if (!groupedExams[groupKey]) {
-        const groupScores = {};
-        if (item.parentBookId) {
-          const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(item.parentBookId));
-          testsForBook.forEach(bt => {
-            groupScores[bt.name] = { d: 0, y: 0, b: bt.questionCount || 0, net: 0 };
-          });
-        }
-
         groupedExams[groupKey] = {
           id: `grp_${groupKey}`,
           title: item.title,
@@ -689,13 +693,13 @@ export function computeStudentAnalyticsData({
           sourceType: item.sourceType,
           approvalStatus: item.approvalStatus,
           isTrial: true,
-          scores: groupScores,
+          scores: {},
           submissions: []
         };
       }
 
       const group = groupedExams[groupKey];
-      const subj = item.subjectName || 'Genel';
+      const subj = item.subjectName || item.subject || 'Genel';
       group.scores[subj] = {
         d: item.correctCount || 0,
         y: item.wrongCount || 0,
@@ -705,6 +709,20 @@ export function computeStudentAnalyticsData({
       if (item.originalSubmissionId) group.submissions.push(item.originalSubmissionId);
     } else {
       if (item.isTrial) {
+        if (!item.scores) {
+          const sName = item.subject || item.subjectName || 'Genel';
+          item.scores = {
+            [sName]: {
+              d: item.correctCount || 0,
+              y: item.wrongCount || 0,
+              b: item.emptyCount || 0,
+              net: item.totalNet || 0
+            }
+          };
+        }
+        item.totalCorrect = item.totalCorrect ?? item.correctCount ?? 0;
+        item.totalWrong = item.totalWrong ?? item.wrongCount ?? 0;
+        item.totalEmpty = item.totalEmpty ?? item.emptyCount ?? 0;
         trials.push(item);
       } else {
         homeworksOnly.push(item);

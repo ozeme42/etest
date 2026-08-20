@@ -37,38 +37,57 @@ export default function PeriodicQuestionAnalytics({
     // Ödevler ve Konu Testleri
     (homeworkSubmissions || []).forEach(h => {
       if (!h) return;
-      const d = h.correctCount || 0;
-      const y = h.wrongCount || 0;
-      const b = h.emptyCount || 0;
-      const q = d + y + b;
+      const d = h.correctCount ?? h.correct ?? h.totalCorrect ?? 0;
+      const y = h.wrongCount ?? h.wrong ?? h.totalWrong ?? 0;
+      const b = h.emptyCount ?? h.blankCount ?? h.empty ?? h.totalEmpty ?? 0;
+      const q = d + y + b || h.totalQuestions || 0;
       if (q === 0) return;
 
       const dateStr = (h.date || h.submittedAt || h.createdAt || new Date().toISOString()).slice(0, 10);
       list.push({
-        id: h.id,
+        id: h.id || `hw_${Math.random()}`,
         title: h.title || 'Konu Testi',
         subject: h.subject || h.subjectName || 'Genel',
         date: dateStr,
         d, y, b, q,
         type: 'test',
-        net: h.totalNet || 0
+        net: parseFloat(h.totalNet || h.net || 0),
+        scores: h.scores || {}
       });
     });
 
     // Deneme Sınavları
     (mockExams || []).forEach(m => {
       if (!m) return;
-      const d = m.totalCorrect || 0;
-      const y = m.totalWrong || 0;
-      const b = m.totalEmpty || 0;
-      const q = d + y + b;
+      let d = m.totalCorrect ?? m.correctCount ?? m.correct ?? 0;
+      let y = m.totalWrong ?? m.wrongCount ?? m.wrong ?? 0;
+      let b = m.totalEmpty ?? m.emptyCount ?? m.blankCount ?? m.empty ?? 0;
+
+      // Extract from scores dictionary if available
+      if (m.scores && typeof m.scores === 'object' && Object.keys(m.scores).length > 0) {
+        let scoreD = 0, scoreY = 0, scoreB = 0;
+        Object.values(m.scores).forEach(sc => {
+          if (sc && typeof sc === 'object') {
+            scoreD += Number(sc.d || sc.correct || 0);
+            scoreY += Number(sc.y || sc.wrong || 0);
+            scoreB += Number(sc.b || sc.empty || sc.blank || 0);
+          }
+        });
+        if (scoreD > 0 || scoreY > 0 || scoreB > 0) {
+          d = Math.max(d, scoreD);
+          y = Math.max(y, scoreY);
+          b = Math.max(b, scoreB);
+        }
+      }
+
+      const q = d + y + b || Number(m.totalQuestions || m.questionCount || 0);
       if (q === 0) return;
 
       const dateStr = (m.date || m.createdAt || new Date().toISOString()).slice(0, 10);
       list.push({
-        id: m.id,
+        id: m.id || `mock_${Math.random()}`,
         title: m.title || m.examName || 'Deneme Sınavı',
-        subject: 'Deneme Sınavı',
+        subject: m.subject || 'Deneme Sınavı',
         date: dateStr,
         d, y, b, q,
         type: 'trial',
@@ -79,6 +98,26 @@ export default function PeriodicQuestionAnalytics({
 
     return list;
   }, [homeworkSubmissions, mockExams]);
+
+  // Helper: Extract accurate { d, y, b, q, net } for any item according to current subject filter
+  const getItemSubjectStats = (item, subj) => {
+    if (subj === 'all' || !subj) {
+      return { d: item.d, y: item.y, b: item.b, q: item.q, net: item.net };
+    }
+    if (item.scores && item.scores[subj]) {
+      const sc = item.scores[subj];
+      const sd = Number(sc.d || sc.correct || 0);
+      const sy = Number(sc.y || sc.wrong || 0);
+      const sb = Number(sc.b || sc.empty || sc.blank || 0);
+      const sq = sd + sy + sb;
+      const snet = sc.net !== undefined ? Number(sc.net) : (sd - (sy / 3));
+      return { d: sd, y: sy, b: sb, q: sq, net: snet };
+    }
+    if (item.subject === subj) {
+      return { d: item.d, y: item.y, b: item.b, q: item.q, net: item.net };
+    }
+    return { d: 0, y: 0, b: 0, q: 0, net: 0 };
+  };
 
   // Filtrelenmiş Liste (Ders Filtresine Göre)
   const filteredItems = useMemo(() => {
@@ -95,8 +134,10 @@ export default function PeriodicQuestionAnalytics({
     const set = new Set();
     unifiedItems.forEach(i => {
       if (i.subject && i.subject !== 'Deneme Sınavı') set.add(i.subject);
-      if (i.scores) {
-        Object.keys(i.scores).forEach(s => set.add(s));
+      if (i.scores && typeof i.scores === 'object') {
+        Object.keys(i.scores).forEach(s => {
+          if (s && s !== 'undefined') set.add(s);
+        });
       }
     });
     return Array.from(set);
@@ -116,10 +157,15 @@ export default function PeriodicQuestionAnalytics({
         const dayName = d.toLocaleString('tr-TR', { weekday: 'short' });
 
         const itemsOnDay = filteredItems.filter(item => item.date === ymd);
-        const dCount = itemsOnDay.reduce((acc, it) => acc + it.d, 0);
-        const yCount = itemsOnDay.reduce((acc, it) => acc + it.y, 0);
-        const bCount = itemsOnDay.reduce((acc, it) => acc + it.b, 0);
-        const qCount = dCount + yCount + bCount;
+        let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
+        itemsOnDay.forEach(it => {
+          const stats = getItemSubjectStats(it, selectedSubject);
+          dCount += stats.d;
+          yCount += stats.y;
+          bCount += stats.b;
+          qCount += stats.q;
+        });
+
         const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
         const testCount = itemsOnDay.length;
 
@@ -152,10 +198,15 @@ export default function PeriodicQuestionAnalytics({
         const label = i === 0 ? 'Bu Hafta' : i === 1 ? 'Geçen H.' : `${startDay.getDate()} ${startDay.toLocaleString('tr-TR', { month: 'short' })}`;
 
         const itemsInWeek = filteredItems.filter(item => item.date >= startYmd && item.date <= endYmd);
-        const dCount = itemsInWeek.reduce((acc, it) => acc + it.d, 0);
-        const yCount = itemsInWeek.reduce((acc, it) => acc + it.y, 0);
-        const bCount = itemsInWeek.reduce((acc, it) => acc + it.b, 0);
-        const qCount = dCount + yCount + bCount;
+        let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
+        itemsInWeek.forEach(it => {
+          const stats = getItemSubjectStats(it, selectedSubject);
+          dCount += stats.d;
+          yCount += stats.y;
+          bCount += stats.b;
+          qCount += stats.q;
+        });
+
         const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
         const testCount = itemsInWeek.length;
 
@@ -187,10 +238,15 @@ export default function PeriodicQuestionAnalytics({
         const fullLabel = d.toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
 
         const itemsInMonth = filteredItems.filter(item => item.date.startsWith(monthKey));
-        const dCount = itemsInMonth.reduce((acc, it) => acc + it.d, 0);
-        const yCount = itemsInMonth.reduce((acc, it) => acc + it.y, 0);
-        const bCount = itemsInMonth.reduce((acc, it) => acc + it.b, 0);
-        const qCount = dCount + yCount + bCount;
+        let dCount = 0, yCount = 0, bCount = 0, qCount = 0;
+        itemsInMonth.forEach(it => {
+          const stats = getItemSubjectStats(it, selectedSubject);
+          dCount += stats.d;
+          yCount += stats.y;
+          bCount += stats.b;
+          qCount += stats.q;
+        });
+
         const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
         const testCount = itemsInMonth.length;
 
@@ -211,7 +267,7 @@ export default function PeriodicQuestionAnalytics({
     }
 
     return [];
-  }, [period, dayRange, filteredItems]);
+  }, [period, dayRange, filteredItems, selectedSubject]);
 
   // 3. Seçili Periyot Özeti (Grand Totals)
   const totals = useMemo(() => {
@@ -225,17 +281,32 @@ export default function PeriodicQuestionAnalytics({
     return { totQ, totD, totY, totB, totTests, avgRate };
   }, [chartData]);
 
-  // 4. Ders Bazlı Dağılım Çubukları
+  // 4. Ders Bazlı Dağılım Çubukları (Denemelerin dersleri de ilgili derslere dağıtılır)
   const subjectBreakdown = useMemo(() => {
     const map = {};
-    filteredItems.forEach(it => {
-      const subj = it.subject || 'Genel';
-      if (!map[subj]) map[subj] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
-      map[subj].d += it.d;
-      map[subj].y += it.y;
-      map[subj].b += it.b;
-      map[subj].q += it.q;
-      map[subj].tests += 1;
+    unifiedItems.forEach(it => {
+      if (it.scores && Object.keys(it.scores).length > 0) {
+        Object.entries(it.scores).forEach(([sName, sc]) => {
+          if (!sName || sName === 'undefined') return;
+          if (!map[sName]) map[sName] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+          const sd = Number(sc?.d || sc?.correct || 0);
+          const sy = Number(sc?.y || sc?.wrong || 0);
+          const sb = Number(sc?.b || sc?.empty || sc?.blank || 0);
+          map[sName].d += sd;
+          map[sName].y += sy;
+          map[sName].b += sb;
+          map[sName].q += (sd + sy + sb);
+          map[sName].tests += 1;
+        });
+      } else {
+        const subj = it.subject || 'Genel';
+        if (!map[subj]) map[subj] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+        map[subj].d += it.d;
+        map[subj].y += it.y;
+        map[subj].b += it.b;
+        map[subj].q += it.q;
+        map[subj].tests += 1;
+      }
     });
     return Object.entries(map)
       .map(([name, stat]) => ({
@@ -243,8 +314,9 @@ export default function PeriodicQuestionAnalytics({
         ...stat,
         rate: stat.q > 0 ? Math.round((stat.d / stat.q) * 100) : 0
       }))
+      .filter(s => s.q > 0)
       .sort((a, b) => b.q - a.q);
-  }, [filteredItems]);
+  }, [unifiedItems]);
 
   // Custom Chart Tooltip (High Contrast)
   const CustomTooltip = ({ active, payload, label }) => {
