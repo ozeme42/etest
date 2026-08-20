@@ -766,6 +766,9 @@ export default function StudentDashboard() {
       const subIdStr = String(sub.id || '');
       if (subIdStr && processedSubIds.has(subIdStr)) return;
 
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
       const testId = String(sub.testId || sub.bookTestId || sub.realTestId || '');
       const hwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
       if (!testId && !hwId) return;
@@ -778,9 +781,6 @@ export default function StudentDashboard() {
 
       const isHw = allHomeworkIds.has(testId) || compositeSectionIds.has(testId) || (homeworks || []).some(h => String(h.id) === testId);
       if (isHw) return; // Homeworks are handled in Step 1
-
-      const raw = sub.raw_data || {};
-      if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
       // Skip sample mock submissions
       if (subIdStr.startsWith('sub_sample') || String(sub.id).startsWith('sub_sample')) {
