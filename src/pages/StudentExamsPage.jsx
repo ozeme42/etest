@@ -238,9 +238,13 @@ export default function StudentExamsPage() {
 
   /* ── Data derivations ─── */
   const bookAssignments = useMemo(() => homeworks.filter(hw => {
-    if (!hw.isBookAssignment) return false;
-    return isHomeworkForStudent(hw, currentUser, curData?.grades);
-  }), [homeworks, currentUser, curData?.grades]);
+    const isTarget = isHomeworkForStudent(hw, currentUser, curData?.grades);
+    if (!isTarget) return false;
+    const isDirectExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical || (hw.subjects && hw.subjects.length > 0);
+    const book = hw.bookId ? books.find(b => String(b.id) === String(hw.bookId)) : null;
+    const isExamBook = book && book.bookType === 'exam';
+    return isDirectExam || (hw.isBookAssignment && isExamBook);
+  }), [homeworks, currentUser, curData?.grades, books]);
 
   const studentSubmissions = useMemo(() => submissions.filter(s => {
     if (String(s.studentId) !== String(studentId) || s.status === 'in_progress' || s.status === 'draft') return false;
@@ -257,9 +261,25 @@ export default function StudentExamsPage() {
     const bookMap = {};
     bookAssignments.forEach(hw => {
       const book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType === 'exam');
-      if (!book) return;
-      if (!bookMap[book.id]) bookMap[book.id] = { ...book, assignedHomeworks: [], allAssignedTestIds: new Set(), allSolvedTestIds: new Set() };
-      bookMap[book.id].assignedHomeworks.push(hw);
+      const bookKey = book ? String(book.id) : `hw_${hw.id}`;
+      const bookTitle = book ? book.title : hw.title;
+      const bookSubjects = book ? book.subjects : hw.subjects;
+
+      if (!bookMap[bookKey]) {
+        bookMap[bookKey] = {
+          ...(book || {}),
+          id: book ? book.id : hw.id,
+          hwId: hw.id,
+          title: bookTitle,
+          subjects: bookSubjects,
+          assignedHomeworks: [],
+          allAssignedTestIds: new Set(),
+          allSolvedTestIds: new Set()
+        };
+      }
+      bookMap[bookKey].assignedHomeworks.push(hw);
+      if (hw.id) bookMap[bookKey].hwId = hw.id;
+
       let hwTestIdsRaw = [];
       const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
 
@@ -269,13 +289,19 @@ export default function StudentExamsPage() {
           .map(([tId, _]) => tId);
       } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
         hwTestIdsRaw = hw.tests;
-      } else if (hw.title?.includes('(Tüm Kitap Görevi)')) {
+      } else if (hw.title?.includes('(Tüm Kitap Görevi)') && book) {
         hwTestIdsRaw = bookTests.filter(bt => String(bt.bookId) === String(book.id)).map(bt => bt.id);
       }
-      hwTestIdsRaw.forEach(id => bookMap[book.id].allAssignedTestIds.add(String(id)));
-      const hwIdSet = new Set([String(hw.id)]);
-      const hwUUID = toUUID(hw.id);
-      if (hwUUID) hwIdSet.add(String(hwUUID));
+      hwTestIdsRaw.forEach(id => bookMap[bookKey].allAssignedTestIds.add(String(id)));
+
+      // If student has a direct submission in HomeworkContext or EvaluationContext:
+      const hwDirectSub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId));
+      const evalDirectSub = studentSubmissions.find(s => String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id));
+      if (hwDirectSub || evalDirectSub) {
+        hwTestIdsRaw.forEach(id => bookMap[bookKey].allSolvedTestIds.add(String(id)));
+        bookMap[bookKey].allSolvedTestIds.add(String(hw.id));
+      }
+
       studentSubmissions.forEach(s => {
         const candidateFields = [
           s.testId,
@@ -283,7 +309,8 @@ export default function StudentExamsPage() {
           s.bookTestId,
           s.metadata?.realTestId,
           s.metadata?.bookTestId,
-          s.metadata?.realId
+          s.metadata?.realId,
+          s.hwId
         ];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
 
@@ -291,20 +318,26 @@ export default function StudentExamsPage() {
           if (field == null) return;
           const raw = String(field);
           const uuid = toUUID(field);
+          if (raw === String(hw.id) || (uuid && String(toUUID(hw.id)) === String(uuid))) {
+            hwTestIdsRaw.forEach(id => bookMap[bookKey].allSolvedTestIds.add(String(id)));
+            bookMap[bookKey].allSolvedTestIds.add(raw);
+          }
           hwTestIdsRaw.forEach(id => {
             const strId = String(id);
             const uuidId = toUUID(id);
             if (strId === raw || (uuid && String(uuidId) === String(uuid))) {
-              bookMap[book.id].allSolvedTestIds.add(strId);
+              bookMap[bookKey].allSolvedTestIds.add(strId);
             }
           });
         });
       });
+
       if (hw.dueDate) {
         const d = new Date(hw.dueDate);
-        if (!bookMap[book.id].targetDueDate || d > bookMap[book.id].targetDueDate) bookMap[book.id].targetDueDate = d;
+        if (!bookMap[bookKey].targetDueDate || d > bookMap[bookKey].targetDueDate) bookMap[bookKey].targetDueDate = d;
       }
     });
+
     Object.values(bookMap).forEach(b => {
       b.totalAssignedTests = b.allAssignedTestIds.size;
       b.totalSolvedTests = Math.min(b.allSolvedTestIds.size, b.allAssignedTestIds.size);
@@ -312,7 +345,26 @@ export default function StudentExamsPage() {
         const diff = b.targetDueDate.getTime() - Date.now();
         b.remainingDays = Math.max(0, Math.ceil(diff / 86400000));
       }
+
       const bestSubsByKey = {};
+      // 1. Direct submissions in HomeworkContext
+      b.assignedHomeworks.forEach(hw => {
+        const hwSub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId));
+        if (hwSub) {
+          bestSubsByKey[`hw_${hw.id}`] = {
+            id: `hw_${hw.id}`,
+            hwId: hw.id,
+            testId: hw.id,
+            correctCount: hwSub.correctCount ?? hwSub.subjectStats?.totalCorrect ?? 0,
+            wrongCount: hwSub.wrongCount ?? hwSub.subjectStats?.totalWrong ?? 0,
+            blankCount: hwSub.blankCount ?? hwSub.subjectStats?.totalBlank ?? 0,
+            score: hwSub.score ?? hwSub.subjectStats?.totalNet ?? 0,
+            submittedAt: hwSub.submittedAt
+          };
+        }
+      });
+
+      // 2. Submissions in EvaluationContext
       studentSubmissions.forEach(s => {
         const candidates = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidates.push(...s.bookTestIds);
@@ -320,24 +372,41 @@ export default function StudentExamsPage() {
         candidates.forEach(field => {
           if (!field) return;
           if (b.allAssignedTestIds.has(String(field))) belongs = true;
-          b.assignedHomeworks.forEach(hw => { if (String(hw.id) === String(field) || String(toUUID(hw.id)) === String(field)) belongs = true; });
+          b.assignedHomeworks.forEach(hw => {
+            if (String(hw.id) === String(field) || String(toUUID(hw.id)) === String(field)) belongs = true;
+          });
         });
         if (belongs) {
           const key = String(s.testId || s.bookTestId || s.id);
           const ex = bestSubsByKey[key];
-          if (!ex || s.score > ex.score || (s.score === ex.score && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) bestSubsByKey[key] = s;
+          if (!ex || s.score > ex.score || (s.score === ex.score && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) {
+            bestSubsByKey[key] = s;
+          }
         }
       });
+
       let totalCorrect = 0, totalWrong = 0, totalBlank = 0;
-      Object.values(bestSubsByKey).forEach(sub => { totalCorrect += sub.correctCount || 0; totalWrong += sub.wrongCount || 0; totalBlank += sub.blankCount || 0; });
-      b.totalCorrect = totalCorrect; b.totalWrong = totalWrong; b.totalBlank = totalBlank;
-      const pct = b.totalAssignedTests > 0 ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0;
-      b.progressPct = pct;
+      Object.values(bestSubsByKey).forEach(sub => {
+        totalCorrect += sub.correctCount || 0;
+        totalWrong += sub.wrongCount || 0;
+        totalBlank += sub.blankCount || 0;
+      });
+      b.totalCorrect = totalCorrect;
+      b.totalWrong = totalWrong;
+      b.totalBlank = totalBlank;
+
+      const hasDirectHwSub = b.assignedHomeworks.some(hw => (hw.submissions || []).some(s => String(s.studentId) === String(studentId)));
+      const hasEvalSub = Object.keys(bestSubsByKey).length > 0 && (totalCorrect > 0 || totalWrong > 0 || totalBlank > 0);
+      const isCompleted = hasDirectHwSub || hasEvalSub || (b.totalAssignedTests > 0 && b.allSolvedTestIds.size >= b.totalAssignedTests);
+
+      b.progressPct = isCompleted ? 100 : (b.totalAssignedTests > 0 ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0);
+      b.isCompleted = isCompleted;
       b.penaltyRatio = /lgs|bursluluk/i.test(b.title) ? 3 : 4;
       b.net = parseFloat((totalCorrect - totalWrong / b.penaltyRatio).toFixed(2));
     });
+
     return Object.values(bookMap);
-  }, [bookAssignments, books, studentSubmissions, bookTests]);
+  }, [bookAssignments, books, studentSubmissions, bookTests, studentId]);
 
   const studentMockExams = useMemo(() => mockExams.filter(m => String(m.studentId) === String(studentId)), [mockExams, studentId]);
 
@@ -354,12 +423,47 @@ export default function StudentExamsPage() {
     assignedBooks.forEach(book => {
       const bestSubs = studentSubmissions.filter(sub => {
         const testId = sub.testId || sub.bookTestId || sub.id;
-        return book.allAssignedTestIds.has(String(testId));
+        const hwId = sub.hwId || sub.homeworkId;
+        return book.allAssignedTestIds.has(String(testId)) ||
+               book.assignedHomeworks.some(hw => String(hw.id) === String(hwId) || String(hw.id) === String(testId));
       });
-      list.push({ id: book.id, type: 'book', title: book.title, date: book.assignedHomeworks?.[0]?.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10), d: book.totalCorrect, y: book.totalWrong, b: book.totalBlank, net: book.net, isCompleted: book.progressPct >= 100, progressPct: book.progressPct, remainingDays: book.remainingDays, subjects: book.subjects, bestSubs, original: book });
+      const primaryHw = book.assignedHomeworks?.[0];
+      const isPhysical = primaryHw?.type === 'physicalExam' || primaryHw?.contentType === 'physicalExam' || primaryHw?.subjects?.length > 0 || book.bookType === 'exam';
+
+      list.push({
+        id: book.id,
+        hwId: book.hwId || primaryHw?.id,
+        type: 'book',
+        isPhysical: isPhysical,
+        title: book.title,
+        date: primaryHw?.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        d: book.totalCorrect,
+        y: book.totalWrong,
+        b: book.totalBlank,
+        net: book.net,
+        isCompleted: book.isCompleted || book.progressPct >= 100,
+        progressPct: book.progressPct,
+        remainingDays: book.remainingDays,
+        subjects: book.subjects,
+        assignedHomeworks: book.assignedHomeworks,
+        bestSubs,
+        original: book
+      });
     });
     return list.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [studentMockExams, assignedBooks, studentSubmissions]);
+
+  const handleOpenExam = (exam) => {
+    if (exam.type === 'mock') {
+      handleOpenMockModal(exam.original);
+    } else if (exam.hwId) {
+      navigate(`/physical-exam/${exam.hwId}`);
+    } else if (exam.assignedHomeworks?.[0]?.id) {
+      navigate(`/physical-exam/${exam.assignedHomeworks[0].id}`);
+    } else if (exam.type === 'book') {
+      navigate(`/student/books/${exam.id}`);
+    }
+  };
 
   const overallStats = useMemo(() => {
     let totalD = 0, totalY = 0, totalB = 0, totalNet = 0, maxNet = 0;
@@ -916,7 +1020,7 @@ export default function StudentExamsPage() {
                   }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 28px -4px rgba(0,0,0,0.08)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 16px -2px rgba(0,0,0,0.03)'; }}
-                  onClick={() => exam.type === 'book' && navigate(`/student/books/${exam.id}`)}
+                  onClick={() => handleOpenExam(exam)}
                 >
                   {/* Accent line */}
                   <div style={{ height: 4, background: `linear-gradient(90deg, ${p.from}, ${p.to})`, position: 'absolute', top: 0, left: 0, right: 0 }} />
@@ -983,9 +1087,9 @@ export default function StudentExamsPage() {
                   {/* CTA */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
                     {exam.type === 'book' ? (
-                      <button onClick={e => { e.stopPropagation(); navigate(`/student/books/${exam.id}`); }}
+                      <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
                         style={{ width: '100%', padding: '0.6rem', background: exam.isCompleted ? 'var(--color-surface-hover)' : `linear-gradient(135deg, ${p.from}, ${p.to})`, color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: exam.isCompleted ? 'none' : `0 4px 12px ${p.shadow}` }}>
-                        {exam.isCompleted ? '📋 Haritayı Görüntüle' : '▶ Devam Et'} <ArrowRight size={14} />
+                        {exam.isCompleted ? '📋 İncele' : '▶ Devam Et'} <ArrowRight size={14} />
                       </button>
                     ) : (
                       <div style={{ display: 'flex', gap: 6, width: '100%' }}>
@@ -1026,8 +1130,8 @@ export default function StudentExamsPage() {
                 <tbody>
                   {displayedExams.map((exam, idx) => (
                     <tr key={`${exam.type}-${exam.id}`}
-                      style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.15s', cursor: exam.type === 'book' ? 'pointer' : 'default' }}
-                      onClick={() => exam.type === 'book' && navigate(`/student/books/${exam.id}`)}
+                      style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.15s', cursor: 'pointer' }}
+                      onClick={() => handleOpenExam(exam)}
                     >
                       <td style={{ padding: '0.8rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: 'var(--color-text)' }}>
@@ -1047,8 +1151,8 @@ export default function StudentExamsPage() {
                       <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#8b5cf6', fontSize: '1rem' }}>{exam.net}</td>
                       <td style={{ padding: '0.8rem 1rem', textAlign: 'right' }}>
                         {exam.type === 'book' ? (
-                          <button onClick={e => { e.stopPropagation(); navigate(`/student/books/${exam.id}`); }}
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', padding: '0.38rem 0.9rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
+                          <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
+                            style={{ background: exam.isCompleted ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', padding: '0.38rem 0.9rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
                             {exam.isCompleted ? 'İncele' : 'Devam Et'}
                           </button>
                         ) : (
