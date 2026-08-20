@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
+import { useHomework } from '../context/HomeworkContext';
+import { useEvaluation } from '../context/EvaluationContext';
 import { useTheme } from '../context/ThemeContext';
+import { toUUID } from '../services/supabaseService';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
   Sparkles, Flame, CheckCircle2, Clock, Music, Headphones, BookOpen,
   Target, Coffee, Moon, Sun, ArrowLeft, Plus, Minus, Trash2, Check, BarChart2,
   Zap, Settings2, Bell, Award, ListTodo, Edit3, Shield, TreePine, Sprout,
   Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink,
-  Gauge, Activity, TrendingUp, HelpCircle, History
+  Gauge, Activity, TrendingUp, HelpCircle, History, BookMarked, PlayCircle,
+  Layers, ExternalLink, FileText, Search, Filter, Calendar
 } from 'lucide-react';
 
 // ─── AMBIENT SYNTHESIZER (Web Audio API) ───────────────────────────────────────
@@ -381,11 +385,127 @@ export default function StudyRoomPage() {
   const { isDark } = useTheme();
   const { books } = useTrackedBooks();
   const { studyPlans } = useStudyPlan();
+  const { homeworks = [] } = useHomework() || {};
+  const { submissions = [] } = useEvaluation() || {};
 
   const THEMES = useMemo(() => getThemeList(isDark), [isDark]);
 
   // ── 🎯 BİRLEŞİK ÇALIŞMA & HEDEF MODLARI: 'question' | 'book' | 'study' | 'break' | 'stopwatch' ──
   const [activeStudyMode, setActiveStudyMode] = useState(() => localStorage.getItem('study_master_mode') || 'question');
+
+  // ── 📝 ATANMIŞ ÖDEV SEÇİMİ VE YÖNETİMİ ──
+  const [selectedHomework, setSelectedHomework] = useState(null);
+  const [showHomeworkPickerModal, setShowHomeworkPickerModal] = useState(false);
+  const [hwSearchQuery, setHwSearchQuery] = useState('');
+  const [hwFilterSubject, setHwFilterSubject] = useState('all');
+
+  const studentIdStr = String(currentUser?.id || '');
+  const studentUuidStr = String(toUUID(currentUser?.id) || '');
+
+  // Öğrenciye atanan tüm ödevler ve tamamlanma durumları
+  const assignedHomeworks = useMemo(() => {
+    if (!currentUser) return [];
+
+    const isMatchStudent = (s) => {
+      if (!s) return false;
+      const sId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
+      if (!sId) return false;
+      if (sId === studentIdStr) return true;
+      if (studentUuidStr && (sId === studentUuidStr || toUUID(sId) === studentUuidStr)) return true;
+      if (studentIdStr && toUUID(studentIdStr) === sId) return true;
+      return false;
+    };
+
+    const isMatchHw = (hw) => {
+      if (!hw) return false;
+      if (hw.studentId === currentUser.id || hw.student_id === currentUser.id) return true;
+      if (studentUuidStr && (hw.studentId === studentUuidStr || hw.student_id === studentUuidStr)) return true;
+      if (Array.isArray(hw.targetIds)) {
+        if (hw.targetIds.includes(currentUser.id) || (studentUuidStr && hw.targetIds.includes(studentUuidStr))) return true;
+        if (hw.targetIds.some(tid => String(tid) === studentIdStr || (studentUuidStr && String(tid) === studentUuidStr))) return true;
+      }
+      return false;
+    };
+
+    return (homeworks || []).filter(isMatchHw).map(hw => {
+      // Find submission
+      const sub = (submissions || []).find(s => {
+        if (!isMatchStudent(s)) return false;
+        if (s.status === 'in_progress' || s.status === 'draft') return false;
+        return String(s.hwId || s.testId) === String(hw.id);
+      }) || (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
+
+      const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
+      
+      const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
+
+      return {
+        ...hw,
+        realTestId: hw.realTestId || hw.testId || hw.id,
+        questionCount: Number(qCount) || 10,
+        isCompleted,
+        submission: sub
+      };
+    });
+  }, [homeworks, submissions, currentUser, studentIdStr, studentUuidStr]);
+
+  const pendingAssignedHomeworks = useMemo(() => {
+    return assignedHomeworks.filter(h => !h.isCompleted);
+  }, [assignedHomeworks]);
+
+  const filteredHomeworksList = useMemo(() => {
+    return assignedHomeworks.filter(hw => {
+      const matchSubject = hwFilterSubject === 'all' || (hw.subject && hw.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
+      const matchQuery = !hwSearchQuery.trim() ||
+        (hw.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (hw.subject || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (hw.unit || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
+      return matchSubject && matchQuery;
+    });
+  }, [assignedHomeworks, hwFilterSubject, hwSearchQuery]);
+
+  // Atanmış Ödevi Seçerek Süre / Hedef Başlatma
+  const handleSelectHomework = (hw, startImmediately = false) => {
+    if (!hw) return;
+    setSelectedHomework(hw);
+    setShowHomeworkPickerModal(false);
+
+    // Dersi otomatik eşle
+    const hwSubject = hw.subject || '';
+    const matchedSubj = STUDY_SUBJECTS.find(s => s.id.toLowerCase() === hwSubject.toLowerCase() || hwSubject.toLowerCase().includes(s.id.toLowerCase()));
+    if (matchedSubj) {
+      setSelectedSubject(matchedSubj.id);
+      localStorage.setItem('study_selected_subject', matchedSubj.id);
+    }
+
+    // Hedef soru sayısını ayarla
+    const qCount = Math.max(1, Number(hw.questionCount) || 12);
+    handleSetNewTargetGoal(qCount, true);
+
+    // Soru moduna geç
+    setActiveStudyMode('question');
+    localStorage.setItem('study_master_mode', 'question');
+
+    if (startImmediately) {
+      setIsRunning(true);
+      ambientAudio.playChime();
+    }
+  };
+
+  const handleClearSelectedHomework = () => {
+    setSelectedHomework(null);
+  };
+
+  const handleLaunchHomeworkQuiz = (hw) => {
+    if (!hw) return;
+    if (hw.type === 'physicalExam' || hw.isPhysical) {
+      navigate(`/physical-exam/${hw.hwId || hw.realTestId || hw.id}?studentId=${currentUser.id}`);
+    } else if (hw.isBookAssignment || hw.sourceType === 'trackedBook') {
+      navigate(`/book-quiz/${hw.bookTestId || hw.realTestId || hw.testId || hw.id}?studentId=${currentUser.id}`);
+    } else {
+      navigate(`/quiz/${hw.realTestId || hw.hwId || hw.id}?studentId=${currentUser.id}`);
+    }
+  };
 
   // ── 📚 DERS BAZLI ÇALIŞMA & SORU SÜRESİ TAKİBİ ──
   const [selectedSubject, setSelectedSubject] = useState(() => localStorage.getItem('study_selected_subject') || 'Matematik');
@@ -1354,6 +1474,43 @@ export default function StudyRoomPage() {
           })}
         </div>
 
+        {/* Atanmış Ödev Seçici Butonu */}
+        <button
+          onClick={() => setShowHomeworkPickerModal(true)}
+          style={{
+            background: selectedHomework ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
+            border: `1.5px solid ${selectedHomework ? '#60a5fa' : themeObj.border}`,
+            color: selectedHomework ? '#ffffff' : themeObj.text,
+            borderRadius: 16,
+            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
+            fontWeight: 900,
+            whiteSpace: 'nowrap',
+            boxShadow: selectedHomework ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
+            transition: 'all 0.15s'
+          }}
+          title="Öğretmeninin atadığı ödevlerden birini seçerek süreli çalışmayı başlat"
+        >
+          <BookMarked size={17} color={selectedHomework ? '#ffffff' : '#3b82f6'} />
+          <span>{selectedHomework ? 'Ödev Seçili' : 'Atanmış Ödev'}</span>
+          {pendingAssignedHomeworks.length > 0 && (
+            <span style={{
+              background: selectedHomework ? 'rgba(255,255,255,0.25)' : '#ef4444',
+              color: '#ffffff',
+              fontSize: '0.68rem',
+              fontWeight: 900,
+              padding: '0.12rem 0.45rem',
+              borderRadius: 99
+            }}>
+              {pendingAssignedHomeworks.length}
+            </span>
+          )}
+        </button>
+
         {/* Zen Tam Ekran Butonu */}
         <button
           onClick={() => setIsCardFullscreen(!isCardFullscreen)}
@@ -1497,6 +1654,36 @@ export default function StudyRoomPage() {
                       </button>
                     )}
                   </div>
+
+                  {/* 🎯 SEÇİLİ ATANMIŞ ÖDEV ROZETİ */}
+                  {selectedHomework && (
+                    <div
+                      onClick={() => handleLaunchHomeworkQuiz(selectedHomework)}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        color: '#3b82f6',
+                        background: isDark ? 'rgba(59, 130, 246, 0.2)' : '#eff6ff',
+                        border: '1px solid #93c5fd',
+                        borderRadius: 8,
+                        padding: '2px 8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        maxWidth: 240,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        marginTop: 2
+                      }}
+                      title="Ödevi doğrudan çözmek için tıkla"
+                    >
+                      <BookMarked size={12} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedHomework.title}</span>
+                      <ChevronRight size={12} />
+                    </div>
+                  )}
 
                   {/* CANLI HIZ GÖSTERGESİ */}
                   {activeStudyMode === 'question' && currentProgressCount > 0 && (
@@ -1691,6 +1878,97 @@ export default function StudyRoomPage() {
               flexDirection: 'column',
               gap: 12
             }}>
+              {/* 🎯 AKTİF SEÇİLİ ATANMIŞ ÖDEV BİLGİ KARTI */}
+              {selectedHomework && (
+                <div style={{
+                  background: isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff',
+                  border: '1.5px solid #3b82f6',
+                  borderRadius: 14,
+                  padding: '0.75rem 0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(59,130,246,0.15)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 200, flex: 1 }}>
+                    <div style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <BookMarked size={16} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          🎯 Seçili Atanmış Ödev
+                        </span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(59,130,246,0.2)', color: '#2563eb', padding: '0.05rem 0.4rem', borderRadius: 6 }}>
+                          {selectedHomework.subject || 'Genel'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selectedHomework.title}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchHomeworkQuiz(selectedHomework)}
+                      style={{
+                        padding: '0.4rem 0.85rem',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 10,
+                        fontWeight: 900,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                        transition: 'transform 0.15s'
+                      }}
+                      title="Ödev çözüm ekranına git"
+                    >
+                      <PlayCircle size={14} /> Ödevi Doğrudan Çöz
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleClearSelectedHomework}
+                      style={{
+                        padding: '0.4rem 0.65rem',
+                        background: 'transparent',
+                        color: themeObj.subText,
+                        border: `1px solid ${themeObj.border}`,
+                        borderRadius: 10,
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                      title="Ödev seçimini kaldır"
+                    >
+                      <X size={13} /> Kaldır
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Ders Seçici & Geçmiş Ortalama Rozeti */}
               <div style={{
                 display: 'flex',
@@ -1929,6 +2207,76 @@ export default function StudyRoomPage() {
                     );
                   })}
                 </div>
+
+                {/* Bekleyen Atanmış Ödevler Hızlı Rafı */}
+                {pendingAssignedHomeworks.length > 0 && (
+                  <div style={{
+                    marginTop: 6,
+                    paddingTop: 10,
+                    borderTop: `1px dashed ${themeObj.border}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 900, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <BookMarked size={14} color="#3b82f6" /> Bekleyen Atanmış Ödevlerin ({pendingAssignedHomeworks.length}):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHomeworkPickerModal(true)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3b82f6',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        Tümünü İncele ➔
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+                      {pendingAssignedHomeworks.slice(0, 5).map(hw => {
+                        const isThisSelected = selectedHomework?.id === hw.id;
+                        return (
+                          <div
+                            key={hw.id}
+                            onClick={() => handleSelectHomework(hw, false)}
+                            style={{
+                              background: isThisSelected
+                                ? (isDark ? 'rgba(59,130,246,0.22)' : '#dbeafe')
+                                : themeObj.cardBg,
+                              border: `1.5px solid ${isThisSelected ? '#3b82f6' : themeObj.border}`,
+                              borderRadius: 10,
+                              padding: '0.45rem 0.75rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              whiteSpace: 'nowrap',
+                              transition: 'all 0.15s ease',
+                              flexShrink: 0
+                            }}
+                            onMouseEnter={e => !isThisSelected && (e.currentTarget.style.borderColor = '#3b82f6')}
+                            onMouseLeave={e => !isThisSelected && (e.currentTarget.style.borderColor = themeObj.border)}
+                          >
+                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#3b82f6' }}>{hw.subject || 'Ödev'}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.text, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {hw.title}
+                            </span>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: 6, color: themeObj.subText }}>
+                              {hw.questionCount} Soru
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -3766,6 +4114,282 @@ export default function StudyRoomPage() {
             >
               🏖️ {earnedBonusModal.totalBreakMinutes} Dakikalık Molayı Başlat!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ATANMIŞ ÖDEV SEÇİM VE BAŞLATMA MODALI ─── */}
+      {showHomeworkPickerModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.78)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'var(--color-surface, #ffffff)',
+            borderRadius: 24,
+            padding: '1.75rem 1.6rem',
+            maxWidth: 620,
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            border: '2px solid #3b82f6',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+            color: 'var(--color-text, #0f172a)',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Başlığı */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)'
+                }}>
+                  <BookMarked size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
+                    Atanmış Ödevlerim
+                  </h2>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', margin: '2px 0 0', fontWeight: 600 }}>
+                    Öğretmenin atadığı ödevlerden birini seçerek süreli çalışma başlat veya hemen çöz
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowHomeworkPickerModal(false)}
+                style={{
+                  background: 'var(--color-surface-hover, #f1f5f9)',
+                  border: 'none',
+                  borderRadius: 10,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text)'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Arama ve Ders Filtresi */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px' }}>
+                <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Ödev veya ders ara..."
+                  value={hwSearchQuery}
+                  onChange={e => setHwSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.75rem 0.55rem 2rem',
+                    background: 'var(--color-surface-hover, #f8fafc)',
+                    border: '1.5px solid var(--color-border, #e2e8f0)',
+                    borderRadius: 12,
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: 'var(--color-text)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <select
+                value={hwFilterSubject}
+                onChange={e => setHwFilterSubject(e.target.value)}
+                style={{
+                  padding: '0.55rem 0.85rem',
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: 12,
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">Tüm Dersler</option>
+                {STUDY_SUBJECTS.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Ödev Listesi */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              paddingRight: 4,
+              maxHeight: 380
+            }}>
+              {filteredHomeworksList.length === 0 ? (
+                <div style={{
+                  padding: '2.5rem 1rem',
+                  textAlign: 'center',
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  borderRadius: 16,
+                  border: '1.5px dashed var(--color-border, #cbd5e1)'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    Atanmış ödev bulunamadı
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+                    Şu an bekleyen veya aramanıza uygun atanmış ödev bulunmuyor.
+                  </div>
+                </div>
+              ) : (
+                filteredHomeworksList.map(hw => {
+                  const isSelected = selectedHomework?.id === hw.id;
+                  return (
+                    <div
+                      key={hw.id}
+                      style={{
+                        background: isSelected
+                          ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff')
+                          : 'var(--color-surface, #ffffff)',
+                        border: isSelected ? '2px solid #3b82f6' : '1.5px solid var(--color-border, #e2e8f0)',
+                        borderRadius: 16,
+                        padding: '0.9rem 1.1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 900,
+                            background: 'rgba(59,130,246,0.12)',
+                            color: '#3b82f6',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: 6
+                          }}>
+                            {hw.subject || 'Genel'}
+                          </span>
+                          {hw.isCompleted ? (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: 6 }}>
+                              ✓ Tamamlandı
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.15rem 0.45rem', borderRadius: 6 }}>
+                              ⏳ Bekliyor
+                            </span>
+                          )}
+                          {hw.dueDate && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                              📅 {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {hw.title}
+                        </div>
+
+                        <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                          {hw.questionCount} Soru • Yaklaşık {Math.round(hw.questionCount * minutesPerQuestion)} dk
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectHomework(hw, true)}
+                          style={{
+                            padding: '0.5rem 0.9rem',
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 900,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
+                          }}
+                        >
+                          <Play size={13} fill="#ffffff" /> Odada Başlat
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleLaunchHomeworkQuiz(hw)}
+                          style={{
+                            padding: '0.5rem 0.9rem',
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 900,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                          }}
+                        >
+                          <PlayCircle size={14} /> Hemen Çöz
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Alt Kapatma */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--color-border)' }}>
+              <button
+                type="button"
+                onClick={() => setShowHomeworkPickerModal(false)}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 12,
+                  background: 'var(--color-surface-hover, #f1f5f9)',
+                  color: 'var(--color-text)',
+                  border: '1.5px solid var(--color-border)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}
