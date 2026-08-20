@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
-  LayoutGrid
+  LayoutGrid, Plus, Edit3
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -27,6 +27,7 @@ import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/test
 import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
+import ManualTestModal from '../components/ManualTestModal';
 
 /* ── Subject Config ─────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
@@ -313,6 +314,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   }, [activeTargetStudentId, isStudentRole, currentUser, studentMembers]);
 
   const [selectedStudent, setSelectedStudent] = useState(initialStudent);
+  const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null });
 
   React.useEffect(() => {
     if (activeTargetStudentId) {
@@ -968,51 +970,74 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             </div>
           </div>
 
-          {/* Student Selector */}
-          {!isStudentRole ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
-                <GraduationCap size={15} color="#6366f1" /> Öğrenci:
-              </span>
-              <select
-                value={selectedStudent?.id || ''}
-                onChange={e => {
-                  const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                  if (s) {
-                    setSelectedStudent(s);
-                    if (!propStudentId) setSearchParams({ studentId: s.id });
-                  }
-                }}
-                style={{
-                  padding: '0.45rem 1.8rem 0.45rem 0.75rem',
-                  borderRadius: 10,
-                  border: '1.5px solid var(--color-border)',
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {studentMembers.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
-                <GraduationCap size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 14,
+                padding: '0.6rem 1.15rem',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
+            </button>
+
+            {/* Student Selector */}
+            {!isStudentRole ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+                  <GraduationCap size={15} color="#6366f1" /> Öğrenci:
+                </span>
+                <select
+                  value={selectedStudent?.id || ''}
+                  onChange={e => {
+                    const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                    if (s) {
+                      setSelectedStudent(s);
+                      if (!propStudentId) setSearchParams({ studentId: s.id });
+                    }
+                  }}
+                  style={{
+                    padding: '0.45rem 1.8rem 0.45rem 0.75rem',
+                    borderRadius: 10,
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text)',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {studentMembers.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
-                <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
+                  <GraduationCap size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── TABS ── */}
@@ -2091,6 +2116,13 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         {/* Bottom padding */}
         <div style={{ height: '2.5rem' }} />
       </div>
+
+      {/* Manuel Test Sonucu Ekleme Modalı */}
+      <ManualTestModal
+        isOpen={manualTestModalData.isOpen}
+        initialData={manualTestModalData.data}
+        onClose={() => setManualTestModalData({ isOpen: false, data: null })}
+      />
     </div>
   );
 }

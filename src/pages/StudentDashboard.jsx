@@ -24,6 +24,7 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import ManualTestModal from '../components/ManualTestModal';
 
 const SUBJECT_ROW_THEMES = {
   'matematik':       { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
@@ -240,6 +241,7 @@ export default function StudentDashboard() {
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser?.role === 'student') setSelectedStudent(currentUser);
@@ -3297,26 +3299,50 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => navigate('/student/results')}
-                  className="sd-btn"
-                  style={{
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#10b981',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    borderRadius: 99,
-                    padding: '0.3rem 0.8rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <span>Tüm Sonuçlar</span>
-                  <ChevronRight size={12} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    onClick={() => setIsManualTestModalOpen(true)}
+                    className="sd-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 99,
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.74rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <Plus size={13} />
+                    <span>Test Sonucu Ekle</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/student/results')}
+                    className="sd-btn"
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: 99,
+                      padding: '0.3rem 0.8rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>Tüm Sonuçlar</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
               </div>
 
               {recentSolvedTests.length === 0 ? (
@@ -3916,6 +3942,13 @@ export default function StudentDashboard() {
           </div>
         </div>
       )}
+
+      {/* Manuel Test Sonucu Ekleme Modalı */}
+      <ManualTestModal
+        isOpen={isManualTestModalOpen}
+        initialData={{ studentId: selectedStudent?.id }}
+        onClose={() => setIsManualTestModalOpen(false)}
+      />
     </div>
   );
 }

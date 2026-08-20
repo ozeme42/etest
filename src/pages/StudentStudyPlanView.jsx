@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
-import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles } from 'lucide-react';
+import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles, Edit3 } from 'lucide-react';
 import { isPast, parseISO } from 'date-fns';
+import ManualTestModal from '../components/ManualTestModal';
 import './StudyPlan.css';
 
 export default function StudentStudyPlanView() {
   const { assignmentId } = useParams();
   const navigate = useNavigate();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
+  const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null, topicId: null });
 
   const assignment = studyAssignments.find(a => String(a.id) === String(assignmentId));
   const plan = studyPlans.find(p => String(p.id) === String(assignment?.planId || assignment?.studyPlanId));
@@ -289,6 +291,39 @@ export default function StudentStudyPlanView() {
                             </a>
                           )}
 
+                          <button
+                            disabled={isLocked}
+                            onClick={() => {
+                              setManualTestModalData({
+                                isOpen: true,
+                                data: {
+                                  studentId: assignment.studentId,
+                                  bookTitle: plan.title,
+                                  subject: subject.name,
+                                  unitTopic: topic.name,
+                                  testName: `${topic.name} Testi`,
+                                  totalQuestions: 20
+                                },
+                                topicId: topic.id
+                              });
+                            }}
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              borderRadius: '0.65rem',
+                              background: 'var(--color-surface, #ffffff)',
+                              border: '1.5px solid #86efac',
+                              color: '#166534',
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              cursor: isLocked ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            <Edit3 size={13} /> {isCompleted ? 'D/Y Düzenle' : '⚡ Test Sonucu Gir'}
+                          </button>
+
                           {isCurrent && !isCompleted && (
                             <button
                               onClick={() => handleMarkCompleted(topic.id)}
@@ -329,6 +364,18 @@ export default function StudentStudyPlanView() {
         </div>
 
       </div>
+
+      {/* Manuel Test Sonucu Ekleme Modalı */}
+      <ManualTestModal
+        isOpen={manualTestModalData.isOpen}
+        initialData={manualTestModalData.data}
+        onClose={() => setManualTestModalData({ isOpen: false, data: null, topicId: null })}
+        onSaved={() => {
+          if (manualTestModalData.topicId) {
+            handleMarkCompleted(manualTestModalData.topicId);
+          }
+        }}
+      />
     </div>
   );
 }

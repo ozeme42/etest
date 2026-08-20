@@ -9,13 +9,14 @@ import { isHomeworkForStudent } from '../utils/testResolver';
 import {
   BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
-  ChevronRight, BookMarked, Search, Filter, RotateCcw, Award
+  ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Legend, RadialBarChart, RadialBar, Cell
 } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import ManualTestModal from '../components/ManualTestModal';
 
 const DEBUG_PROGRESS = false;
 
@@ -95,6 +96,7 @@ export default function StudentBooksPage() {
 
   const defaultOptionCount = (grade && String(grade).match(/^[5-8]/)) ? 4 : 5;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
   const [newBook, setNewBook] = useState({ title: '', publisher: '', optionCount: defaultOptionCount, subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -629,14 +631,24 @@ export default function StudentBooksPage() {
               Atanan kitapları adım adım çöz, başarı oranını izle ve hedeflerine ulaş! 🚀
             </p>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-          >
-            <Plus size={18} /> Kendi Kitabını Ekle
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setIsManualTestModalOpen(true)}
+              style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)', transition: 'transform 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+            >
+              <Edit3 size={18} /> Manuel Test Girişi
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)', transition: 'transform 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+            >
+              <Plus size={18} /> Kendi Kitabını Ekle
+            </button>
+          </div>
         </div>
 
         {/* ── STAT CARDS ── */}
@@ -1409,6 +1421,12 @@ export default function StudentBooksPage() {
           <style>{`@keyframes scaleIn { from { transform: scale(0.93) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }`}</style>
         </div>
       )}
+
+      {/* Manuel Test Sonucu Ekleme Modalı */}
+      <ManualTestModal
+        isOpen={isManualTestModalOpen}
+        onClose={() => setIsManualTestModalOpen(false)}
+      />
     </div>
   );
 }

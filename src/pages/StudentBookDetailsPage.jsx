@@ -7,10 +7,11 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
+import ManualTestModal from '../components/ManualTestModal';
 
 export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
@@ -23,6 +24,7 @@ export default function StudentBookDetailsPage() {
   const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const [feedbackToast, setFeedbackToast] = useState(null);
   const [mistakeModalTest, setMistakeModalTest] = useState(null);
+  const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null });
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
@@ -59,6 +61,39 @@ export default function StudentBookDetailsPage() {
       setIsEditTestModalOpen(false);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleOpenManualTest = (test = null, subjectName = '', topicName = '') => {
+    if (test) {
+      const bestSub = test.bestSub;
+      setManualTestModalData({
+        isOpen: true,
+        data: {
+          studentId: studentId,
+          bookId: book?.id,
+          bookTitle: book?.title,
+          testId: test.id,
+          testName: test.name,
+          subject: subjectName || test.subjectName || (book?.subjects && book.subjects[0]?.name) || 'Genel',
+          unitTopic: topicName || test.topicName || '',
+          totalQuestions: test.questionCount || 20,
+          correctCount: bestSub?.correctCount || 0,
+          wrongCount: bestSub?.wrongCount || 0,
+          emptyCount: bestSub?.blankCount ?? bestSub?.emptyCount ?? Math.max(0, (test.questionCount || 20) - ((bestSub?.correctCount || 0) + (bestSub?.wrongCount || 0))),
+          submissionId: test.latestSubId || bestSub?.id,
+          mistakeReasons: bestSub?.mistakeReasons || {}
+        }
+      });
+    } else {
+      setManualTestModalData({
+        isOpen: true,
+        data: {
+          studentId: studentId,
+          bookId: book?.id,
+          bookTitle: book?.title
+        }
+      });
     }
   };
 
@@ -1057,14 +1092,22 @@ export default function StudentBookDetailsPage() {
         >
           <ArrowLeft size={16} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
         </button>
-        {bookData.isSelfAdded && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setIsBulkSettingsModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
+            onClick={() => handleOpenManualTest(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
           >
-            <Settings size={16} /> Cevap Anahtarı Gir
+            <Plus size={16} /> Manuel Test Sonucu Ekle
           </button>
-        )}
+          {bookData.isSelfAdded && (
+            <button
+              onClick={() => setIsBulkSettingsModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
+            >
+              <Settings size={16} /> Cevap Anahtarı Gir
+            </button>
+          )}
+        </div>
       </div>
 
       {isFromTeacher && (
@@ -1898,13 +1941,23 @@ export default function StudentBookDetailsPage() {
 
                             <div style={{ flexShrink: 0 }}>
                               {test.isCompleted ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                   <button
                                     className="sbdp-btn-solve"
-                                    style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                     onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                   >
                                     <Eye size={13} /> Sonucu İncele
+                                  </button>
+                                  <button
+                                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    title="Doğru/Yanlış Sonucunu Düzenle"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenManualTest(test, subj.name, null);
+                                    }}
+                                  >
+                                    <Edit3 size={12} /> D/Y Düzenle
                                   </button>
                                   {isTeacherViewing && (
                                     <>
@@ -1952,7 +2005,17 @@ export default function StudentBookDetailsPage() {
                                   <Lock size={14} /> Kilitli
                                 </span>
                               ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                  <button
+                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    title="Doğru/Yanlış/Boş Sayılarını Gir"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenManualTest(test, subj.name, null);
+                                    }}
+                                  >
+                                    <Edit3 size={13} /> ⚡ D/Y Gir
+                                  </button>
                                   {isTeacherViewing && (
                                     <button
                                       style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
@@ -1967,7 +2030,7 @@ export default function StudentBookDetailsPage() {
                                   )}
                                   <button
                                     className="sbdp-btn-solve"
-                                    style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                    style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
                                     onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                   >
                                     <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
@@ -2068,13 +2131,23 @@ export default function StudentBookDetailsPage() {
 
                                     <div style={{ flexShrink: 0 }}>
                                       {test.isCompleted ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                           <button
                                             className="sbdp-btn-solve"
-                                            style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                             onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                           >
                                             <Eye size={13} /> Sonucu İncele
+                                          </button>
+                                          <button
+                                            style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            title="Doğru/Yanlış Sonucunu Düzenle"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleOpenManualTest(test, subj.name, topic.name);
+                                            }}
+                                          >
+                                            <Edit3 size={12} /> D/Y Düzenle
                                           </button>
                                           {isTeacherViewing && (
                                             <>
@@ -2122,7 +2195,17 @@ export default function StudentBookDetailsPage() {
                                           <Lock size={14} /> Kilitli
                                         </span>
                                       ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                          <button
+                                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            title="Doğru/Yanlış/Boş Sayılarını Gir"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleOpenManualTest(test, subj.name, topic.name);
+                                            }}
+                                          >
+                                            <Edit3 size={13} /> ⚡ D/Y Gir
+                                          </button>
                                           {isTeacherViewing && (
                                             <button
                                               style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
@@ -2137,7 +2220,7 @@ export default function StudentBookDetailsPage() {
                                           )}
                                           <button
                                             className="sbdp-btn-solve"
-                                            style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                            style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
                                             onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                           >
                                             <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
@@ -2204,13 +2287,23 @@ export default function StudentBookDetailsPage() {
 
                           <div style={{ flexShrink: 0 }}>
                             {test.isCompleted ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                 <button
                                   className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                   onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                 >
                                   <Eye size={13} /> Sonucu İncele
+                                </button>
+                                <button
+                                  style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  title="Doğru/Yanlış Sonucunu Düzenle"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenManualTest(test, null, null);
+                                  }}
+                                >
+                                  <Edit3 size={12} /> D/Y Düzenle
                                 </button>
                                 {isTeacherViewing && (
                                   <>
@@ -2258,7 +2351,17 @@ export default function StudentBookDetailsPage() {
                                 <Lock size={14} /> Kilitli
                               </span>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button
+                                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  title="Doğru/Yanlış/Boş Sayılarını Gir"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenManualTest(test, null, null);
+                                  }}
+                                >
+                                  <Edit3 size={13} /> ⚡ D/Y Gir
+                                </button>
                                 {isTeacherViewing && (
                                   <button
                                     style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
@@ -2273,7 +2376,7 @@ export default function StudentBookDetailsPage() {
                                 )}
                                 <button
                                   className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                  style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
                                   onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                 >
                                   <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
@@ -2747,6 +2850,13 @@ export default function StudentBookDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Manuel Test Sonucu Ekleme Modalı */}
+      <ManualTestModal
+        isOpen={manualTestModalData.isOpen}
+        initialData={manualTestModalData.data}
+        onClose={() => setManualTestModalData({ isOpen: false, data: null })}
+      />
     </div>
   );
 }
