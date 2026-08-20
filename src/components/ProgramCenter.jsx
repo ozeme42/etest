@@ -735,9 +735,9 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                       boxShadow: '0 2px 6px rgba(245,158,11,0.3)',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Bu görevi Çalışma Odası'nda başlat"
+                    title="Bu görevi Çalışma Odası'na aktar ve hazırla"
                   >
-                    <Play size={10} fill="#ffffff" /> Odada Başlat
+                    <Play size={10} fill="#ffffff" /> Odada Çalış
                   </button>
                 )}
                 {isQuizTask && onOpenResult && (
@@ -2391,9 +2391,9 @@ export function MonthlyListPanel({
                                       fontWeight: 800,
                                       boxShadow: '0 2px 6px rgba(245,158,11,0.3)'
                                     }}
-                                    title="Bu görevi Çalışma Odası'nda başlat"
+                                    title="Bu görevi Çalışma Odası'na aktar ve hazırla"
                                   >
-                                    <Play size={10} fill="#ffffff" /> Odada Başlat
+                                    <Play size={10} fill="#ffffff" /> Odada Çalış
                                   </button>
                                 )}
                               </div>
@@ -3960,9 +3960,9 @@ export default function ProgramCenter({
                                           gap: 3,
                                           boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
                                         }}
-                                        title="Bu görevi Çalışma Odası'nda başlat"
+                                        title="Bu görevi Çalışma Odası'na aktar ve hazırla"
                                       >
-                                        <Play size={11} fill="#ffffff" /> Odada Başlat
+                                        <Play size={11} fill="#ffffff" /> Odada Çalış
                                       </button>
                                     )}
                                     {isQuizTask && !item.done && (

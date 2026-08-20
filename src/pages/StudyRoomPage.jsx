@@ -1013,7 +1013,7 @@ export default function StudyRoomPage() {
     });
   }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery, hideCompletedTasks]);
 
-  // Görevi / Testi Seçerek Süre & Hedef Başlatma
+  // Görevi / Testi Seçerek Süre & Hedef Hazırlama
   const handleSelectTask = (task, startImmediately = false) => {
     if (!task) return;
     setSelectedTask(task);
@@ -1038,10 +1038,12 @@ export default function StudyRoomPage() {
     if (startImmediately) {
       setIsRunning(true);
       ambientAudio.playChime();
+    } else {
+      setIsRunning(false);
     }
   };
 
-  // Program sayfasından "Odada Başlat" ile gelindiğinde görevi otomatik yükle ve başlat
+  // Program sayfasından gelindiğinde görevi otomatik yükle ve hazırla (hemen başlatmaz, öğrenci hazır olunca başlatır)
   useEffect(() => {
     const incomingTask = location.state?.autoStartTask || (() => {
       try {
@@ -1055,7 +1057,7 @@ export default function StudyRoomPage() {
     })();
 
     if (incomingTask) {
-      handleSelectTask(incomingTask, true);
+      handleSelectTask(incomingTask, false);
     }
   }, [location.state]);
 
@@ -1070,7 +1072,7 @@ export default function StudyRoomPage() {
     } else if (task.type === 'physicalExam' || task.isPhysical) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${currentUser.id}`);
     } else if (task.sourceType === 'program') {
-      handleSelectTask(task, true);
+      handleSelectTask(task, false);
     } else {
       navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${currentUser.id}`);
     }
@@ -5091,7 +5093,7 @@ export default function StudyRoomPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                       <button
                                         type="button"
-                                        onClick={() => handleSelectTask(task, true)}
+                                        onClick={() => handleSelectTask(task, false)}
                                         style={{
                                           padding: '0.45rem 0.85rem',
                                           borderRadius: 10,
@@ -5107,7 +5109,7 @@ export default function StudyRoomPage() {
                                           boxShadow: '0 3px 10px rgba(245,158,11,0.25)'
                                         }}
                                       >
-                                        <Play size={12} fill="#ffffff" /> Odada Başlat
+                                        <Target size={13} /> Görevi Seç
                                       </button>
 
                                       {(task.realTestId || task.bookTestId) && (
@@ -5277,7 +5279,7 @@ export default function StudyRoomPage() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                     <button
                                       type="button"
-                                      onClick={() => handleSelectTask(test, true)}
+                                      onClick={() => handleSelectTask(test, false)}
                                       style={{
                                         flex: 1,
                                         padding: '0.4rem 0.6rem',
@@ -5294,7 +5296,7 @@ export default function StudyRoomPage() {
                                         gap: 4
                                       }}
                                     >
-                                      <Play size={11} fill="#ffffff" /> Odada Başlat
+                                      <Target size={12} /> Görevi Seç
                                     </button>
 
                                     <button
@@ -5458,7 +5460,7 @@ export default function StudyRoomPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <button
                               type="button"
-                              onClick={() => handleSelectTask(task, true)}
+                              onClick={() => handleSelectTask(task, false)}
                               style={{
                                 padding: '0.5rem 0.9rem',
                                 borderRadius: 10,
@@ -5474,7 +5476,7 @@ export default function StudyRoomPage() {
                                 boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
                               }}
                             >
-                              <Play size={13} fill="#ffffff" /> Odada Başlat
+                              <Target size={13} /> Görevi Seç
                             </button>
 
                             {(task.realTestId || task.bookTestId) && (
