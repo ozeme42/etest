@@ -1775,9 +1775,17 @@ export async function dbSaveMockExam(exam) {
 }
 
 export async function dbDeleteMockExam(id) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !id) return null;
   try {
-    const { error } = await supabase.from('mock_exams').delete().eq('id', String(id));
+    const idStr = String(id);
+    const uuidId = toUUID(idStr);
+    let q = supabase.from('mock_exams').delete();
+    if (uuidId && uuidId !== idStr) {
+      q = q.or(`id.eq.${idStr},id.eq.${uuidId}`);
+    } else {
+      q = q.eq('id', idStr);
+    }
+    const { error } = await q;
     if (error) throw error;
     return true;
   } catch (err) {

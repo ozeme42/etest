@@ -199,7 +199,16 @@ export function CoachingProvider({ children }) {
   };
 
   const deleteMockExam = async (id) => {
-    setMockExams(prev => prev.filter(m => m.id !== id));
+    if (!id) return;
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+
+    setMockExams(prev => {
+      const remaining = prev.filter(m => String(m.id) !== idStr && (!idUuid || String(toUUID(m.id)) !== idUuid));
+      safeSetItem('eTestMockExams', JSON.stringify(remaining));
+      return remaining;
+    });
+
     await dbDeleteMockExam(id);
   };
 

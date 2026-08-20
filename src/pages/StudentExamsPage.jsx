@@ -114,9 +114,9 @@ export default function StudentExamsPage() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
-  const { homeworks = [], addHomework } = useHomework();
-  const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
-  const { submissions = [] } = useEvaluation();
+  const { homeworks = [], addHomework, deleteHomework } = useHomework();
+  const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest, deleteTrackedBook } = useTrackedBooks();
+  const { submissions = [], deleteSubmission } = useEvaluation();
   const { mockExams = [], addMockExam, updateMockExam, deleteMockExam } = useCoaching();
 
   const studentId = currentUser?.id;
@@ -154,11 +154,45 @@ export default function StudentExamsPage() {
     setShowMockModal(true);
   };
 
+  const handleDeleteExam = async (e, exam) => {
+    e.stopPropagation();
+    if (!exam) return;
+    const title = exam.title || 'Deneme';
+    if (window.confirm(`"${title}" denemesini silmek istediğinize emin misiniz?\n\nBu işlem denemeyi hem öğrenci listesinden hem de soru/başarı istatistiklerinden tamamen silecektir.`)) {
+      try {
+        if (exam.type === 'mock') {
+          await deleteMockExam(exam.id);
+        } else {
+          // Kitap / Ödev bazlı deneme silme
+          if (exam.bestSubs && Array.isArray(exam.bestSubs)) {
+            for (const sub of exam.bestSubs) {
+              if (sub.id) await deleteSubmission(sub.id);
+              if (sub.supabaseId) await deleteSubmission(sub.supabaseId);
+            }
+          }
+          if (exam.hwId && typeof deleteHomework === 'function') {
+            await deleteHomework(exam.hwId);
+          }
+          if (exam.assignedHomeworks && Array.isArray(exam.assignedHomeworks)) {
+            for (const ahw of exam.assignedHomeworks) {
+              if (ahw.id && typeof deleteHomework === 'function') await deleteHomework(ahw.id);
+            }
+          }
+          if (exam.id && String(exam.id).startsWith('b_') && typeof deleteTrackedBook === 'function') {
+            await deleteTrackedBook(exam.id);
+          }
+        }
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   const handleDeleteMock = async (e, id) => {
     e.stopPropagation();
-    if (window.confirm('Bu denemeyi silmek istediğinize emin misiniz?')) {
-      try { await deleteMockExam(id); window.location.reload(); } catch (err) { console.error(err); }
-    }
+    const targetMock = mockExams.find(m => m.id === id);
+    handleDeleteExam(e, { id, type: 'mock', title: targetMock?.title || 'Fiziki Deneme' });
   };
 
   const addSubjectToMock = () => {
@@ -1635,17 +1669,24 @@ export default function StudentExamsPage() {
                   {/* CTA */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
                     {exam.type === 'book' ? (
-                      <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
-                        style={{ width: '100%', padding: '0.6rem', background: exam.isCompleted ? 'var(--color-surface-hover)' : `linear-gradient(135deg, ${p.from}, ${p.to})`, color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: exam.isCompleted ? 'none' : `0 4px 12px ${p.shadow}` }}>
-                        {exam.isCompleted ? '📋 İncele' : '▶ Devam Et'} <ArrowRight size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+                        <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
+                          style={{ flex: 1, padding: '0.6rem', background: exam.isCompleted ? 'var(--color-surface-hover)' : `linear-gradient(135deg, ${p.from}, ${p.to})`, color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: exam.isCompleted ? 'none' : `0 4px 12px ${p.shadow}` }}>
+                          {exam.isCompleted ? '📋 İncele' : '▶ Devam Et'} <ArrowRight size={14} />
+                        </button>
+                        <button onClick={e => handleDeleteExam(e, exam)}
+                          title="Denemeyi ve Sonuçlarını Sil"
+                          style={{ padding: '0.55rem 0.65rem', background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', gap: 6, width: '100%' }}>
                         <button onClick={e => { e.stopPropagation(); handleOpenMockModal(exam.original); }}
                           style={{ flex: 1, padding: '0.55rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Pencil size={13} /> Düzenle
                         </button>
-                        <button onClick={e => handleDeleteMock(e, exam.id)}
+                        <button onClick={e => handleDeleteExam(e, exam)}
                           style={{ flex: 1, padding: '0.55rem', background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Trash2 size={13} /> Sil
                         </button>
@@ -1699,17 +1740,24 @@ export default function StudentExamsPage() {
                       <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#8b5cf6', fontSize: '1rem' }}>{exam.net}</td>
                       <td style={{ padding: '0.8rem 1rem', textAlign: 'right' }}>
                         {exam.type === 'book' ? (
-                          <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
-                            style={{ background: exam.isCompleted ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', padding: '0.38rem 0.9rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
-                            {exam.isCompleted ? 'İncele' : 'Devam Et'}
-                          </button>
+                          <div style={{ display: 'inline-flex', gap: 5 }}>
+                            <button onClick={e => { e.stopPropagation(); handleOpenExam(exam); }}
+                              style={{ background: exam.isCompleted ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: exam.isCompleted ? 'var(--color-text)' : 'white', border: exam.isCompleted ? '1.5px solid var(--color-border-input)' : 'none', padding: '0.38rem 0.9rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
+                              {exam.isCompleted ? 'İncele' : 'Devam Et'}
+                            </button>
+                            <button onClick={e => handleDeleteExam(e, exam)}
+                              title="Denemeyi ve Sonuçlarını Sil"
+                              style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', padding: '0.38rem 0.55rem', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         ) : (
                           <div style={{ display: 'inline-flex', gap: 5 }}>
                             <button onClick={e => { e.stopPropagation(); handleOpenMockModal(exam.original); }}
                               style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', padding: '0.38rem 0.55rem', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Pencil size={13} />
                             </button>
-                            <button onClick={e => handleDeleteMock(e, exam.id)}
+                            <button onClick={e => handleDeleteExam(e, exam)}
                               style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', padding: '0.38rem 0.55rem', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={13} />
                             </button>
