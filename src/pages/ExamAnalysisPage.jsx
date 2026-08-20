@@ -40,52 +40,81 @@ export default function ExamAnalysisPage() {
       b = (books || []).find(x => String(x.id) === String(hw.bookId));
     }
 
+    const builtAnswerKey = { ...(hw?.answerKey || {}), ...(b?.answerKey || {}) };
+    const subjectMap = {};
+
+    // 1. From hw.subjects
+    if (hw?.subjects && Array.isArray(hw.subjects)) {
+      hw.subjects.forEach(s => {
+        if (s && s.name) {
+          subjectMap[s.name] = {
+            name: s.name,
+            count: Number(s.count || 15),
+            testId: s.testId || s.id,
+            answerKey: builtAnswerKey[s.name] || s.answerKey || []
+          };
+        }
+      });
+    }
+
+    // 2. From book.subjects
+    if (b?.subjects && Array.isArray(b.subjects)) {
+      b.subjects.forEach(s => {
+        if (s && s.name && !subjectMap[s.name]) {
+          subjectMap[s.name] = {
+            name: s.name,
+            count: Number(s.count || 15),
+            testId: s.testId || s.id,
+            answerKey: builtAnswerKey[s.name] || s.answerKey || []
+          };
+        }
+      });
+    }
+
+    // 3. From bookTests
     if (b) {
       const testsForBook = (bookTests || []).filter(t => String(t.bookId) === String(b.id));
-      const builtAnswerKey = {};
-      const subjectArray = [];
-
       testsForBook.forEach(t => {
         const subDef = b.subjects?.find(s => String(s.id) === String(t.subjectId));
         const subName = subDef ? subDef.name : t.name.replace(' Testi', '');
 
-        builtAnswerKey[subName] = [];
+        const aKeyList = [];
         if (t.answerKey) {
           if (Array.isArray(t.answerKey)) {
-            builtAnswerKey[subName] = t.answerKey;
+            aKeyList.push(...t.answerKey);
           } else if (typeof t.answerKey === 'object') {
-            for (let i = 1; i <= t.questionCount; i++) {
-              builtAnswerKey[subName].push(t.answerKey[i] || t.answerKey[String(i)] || '');
+            for (let i = 1; i <= (t.questionCount || 15); i++) {
+              aKeyList.push(t.answerKey[i] || t.answerKey[String(i)] || '');
             }
           }
         }
-        subjectArray.push({
-          name: subName,
-          count: t.questionCount || (Array.isArray(t.answerKey) ? t.answerKey.length : 15),
-          testId: t.id,
-          answerKey: builtAnswerKey[subName]
-        });
-      });
+        if (aKeyList.length > 0) {
+          builtAnswerKey[subName] = aKeyList;
+        }
 
-      return {
-        ...b,
-        answerKey: Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (hw?.answerKey || b.answerKey || {}),
-        subjects: subjectArray.length > 0 ? subjectArray : (hw?.subjects || b.subjects || []),
-        totalQuestions: subjectArray.length > 0
-          ? subjectArray.reduce((acc, curr) => acc + curr.count, 0)
-          : (b.totalQuestions || hw?.totalQuestions || 0)
-      };
+        subjectMap[subName] = {
+          name: subName,
+          count: Number(t.questionCount || aKeyList.length || subjectMap[subName]?.count || 15),
+          testId: t.id,
+          answerKey: builtAnswerKey[subName] || aKeyList
+        };
+      });
     }
 
-    if (hw) {
+    const finalSubjects = Object.values(subjectMap);
+
+    if (b || hw) {
+      const target = b || hw;
       return {
-        id: hw.id,
-        title: hw.title,
-        subjects: hw.subjects || [],
-        answerKey: hw.answerKey || {},
-        totalQuestions: hw.totalQuestions || 0,
-        penaltyRatio: hw.penaltyRatio || 3,
-        examType: hw.examType || 'LGS'
+        ...target,
+        id: b?.id || hw?.id || examId,
+        title: target.title || 'Fiziki Deneme',
+        answerKey: builtAnswerKey,
+        subjects: finalSubjects.length > 0 ? finalSubjects : (target.subjects || []),
+        totalQuestions: finalSubjects.length > 0
+          ? finalSubjects.reduce((acc, curr) => acc + (Number(curr.count) || 0), 0)
+          : (target.totalQuestions || 30),
+        penaltyRatio: target.penaltyRatio !== undefined ? target.penaltyRatio : 3
       };
     }
 
@@ -107,7 +136,34 @@ export default function ExamAnalysisPage() {
 
     const list = [];
 
-    // 1. Submissions from EvaluationContext
+    // 1. First add from homework.submissions (which has complete studentAnswers & subjectStats)
+    relatedHws.forEach(hw => {
+      const hwSubList = Array.isArray(hw.submissions)
+        ? hw.submissions
+        : (hw.submissions && typeof hw.submissions === 'object' ? Object.values(hw.submissions) : []);
+
+      hwSubList.forEach(subData => {
+        if (subData && (subData.studentId || subData.completed || subData.score !== undefined)) {
+          const stdId = String(subData.studentId || subData.id);
+          list.push({
+            id: `hw_sub_${hw.id}_${stdId}`,
+            hwId: hw.id,
+            testId: hw.id,
+            studentId: stdId,
+            score: subData.score ?? subData.subjectStats?.totalNet ?? 0,
+            correctCount: subData.correctCount ?? subData.subjectStats?.totalCorrect ?? 0,
+            wrongCount: subData.wrongCount ?? subData.subjectStats?.totalWrong ?? 0,
+            blankCount: subData.blankCount ?? subData.subjectStats?.totalBlank ?? subData.emptyCount ?? 0,
+            totalQuestions: hw.totalQuestions || resolvedExam?.totalQuestions || 30,
+            subjectStats: subData.subjectStats || {},
+            studentAnswers: subData.studentAnswers || {},
+            answers: subData.answers || []
+          });
+        }
+      });
+    });
+
+    // 2. Then merge / add from EvaluationContext (submissions)
     (submissions || []).forEach(s => {
       const match = 
         relatedHwIds.has(String(s.hwId)) || 
@@ -117,59 +173,50 @@ export default function ExamAnalysisPage() {
         (resolvedExam?.title && s.testTitle === resolvedExam.title);
 
       if (match) {
-        list.push(s);
+        const stdId = String(s.studentId);
+        const existing = list.find(x => String(x.studentId) === stdId);
+        if (existing) {
+          if (s.studentAnswers && Object.keys(s.studentAnswers).length > 0) {
+            existing.studentAnswers = { ...existing.studentAnswers, ...s.studentAnswers };
+          }
+          if (s.subjectStats) {
+            existing.subjectStats = s.subjectStats;
+          }
+          if (s.mistakeReasons) {
+            existing.mistakeReasons = s.mistakeReasons;
+          }
+          if (s.score !== undefined && existing.score === 0) {
+            existing.score = s.score;
+          }
+        } else {
+          list.push({ ...s });
+        }
       }
     });
 
-    // 2. Submissions directly embedded in homework.submissions (HomeworkContext)
-    relatedHws.forEach(hw => {
-      if (Array.isArray(hw.submissions)) {
-        hw.submissions.forEach(subData => {
-          if (subData && subData.studentId) {
-            const alreadyExists = list.some(s => String(s.studentId) === String(subData.studentId));
-            if (!alreadyExists) {
-              list.push({
-                id: `hw_sub_${hw.id}_${subData.studentId}`,
-                hwId: hw.id,
-                testId: hw.id,
-                studentId: subData.studentId,
-                score: subData.score ?? subData.subjectStats?.totalNet ?? 0,
-                correctCount: subData.correctCount ?? subData.subjectStats?.totalCorrect ?? 0,
-                wrongCount: subData.wrongCount ?? subData.subjectStats?.totalWrong ?? 0,
-                blankCount: subData.blankCount ?? subData.subjectStats?.totalBlank ?? 0,
-                totalQuestions: hw.totalQuestions || resolvedExam?.totalQuestions || 30,
-                subjectStats: subData.subjectStats || {},
-                studentAnswers: subData.studentAnswers || {},
-                answers: subData.answers || []
-              });
-            }
+    // 3. Fallback: check localStorage for direct submission
+    if (list.length === 0 && examId) {
+      try {
+        const rawLocal = localStorage.getItem(`homework_sub_${examId}`) || localStorage.getItem(`quiz_submission_${examId}`);
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (parsed) {
+            list.push({
+              id: `local_${examId}`,
+              hwId: examId,
+              studentId: parsed.studentId || '1',
+              score: parsed.score ?? parsed.totalNet ?? 0,
+              correctCount: parsed.correctCount ?? parsed.totalCorrect ?? 0,
+              wrongCount: parsed.wrongCount ?? parsed.totalWrong ?? 0,
+              blankCount: parsed.blankCount ?? parsed.totalBlank ?? 0,
+              subjectStats: parsed.subjectStats || {},
+              studentAnswers: parsed.studentAnswers || {},
+              answers: parsed.answers || []
+            });
           }
-        });
-      } else if (hw.submissions && typeof hw.submissions === 'object') {
-        Object.entries(hw.submissions).forEach(([stdId, subData]) => {
-          if (subData && (subData.completed || subData.studentId || subData.score !== undefined)) {
-            const studentId = subData.studentId || stdId;
-            const alreadyExists = list.some(s => String(s.studentId) === String(studentId));
-            if (!alreadyExists) {
-              list.push({
-                id: `hw_sub_${hw.id}_${studentId}`,
-                hwId: hw.id,
-                testId: hw.id,
-                studentId: studentId,
-                score: subData.score ?? subData.subjectStats?.totalNet ?? subData.totalNet ?? 0,
-                correctCount: subData.correctCount ?? subData.subjectStats?.totalCorrect ?? 0,
-                wrongCount: subData.wrongCount ?? subData.subjectStats?.totalWrong ?? 0,
-                blankCount: subData.blankCount ?? subData.subjectStats?.totalBlank ?? subData.emptyCount ?? 0,
-                totalQuestions: hw.totalQuestions || resolvedExam?.totalQuestions || 30,
-                subjectStats: subData.subjectStats || {},
-                studentAnswers: subData.studentAnswers || {},
-                answers: subData.answers || []
-              });
-            }
-          }
-        });
-      }
-    });
+        }
+      } catch (e) {}
+    }
 
     return list;
   }, [submissions, homeworks, examId, resolvedExam]);
@@ -245,13 +292,27 @@ export default function ExamAnalysisPage() {
         }
 
         // 2. If studentAnswers exist, calculate subject stats from student answers + answer keys
-        if (sub.studentAnswers && typeof sub.studentAnswers === 'object') {
-          const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
-          Object.entries(sub.studentAnswers).forEach(([subjName, ansData]) => {
-            if (combinedSubjectStats[subjName]?.count > 0 && combinedSubjectStats[subjName]?.net > 0) return;
+        let stdAnswers = sub.studentAnswers;
+        if ((!stdAnswers || Object.keys(stdAnswers).length === 0) && Array.isArray(sub.answers) && sub.answers.length > 0) {
+          stdAnswers = {};
+          let offset = 0;
+          (resolvedExam?.subjects || []).forEach(subj => {
+            const count = subj.count || 15;
+            stdAnswers[subj.name] = sub.answers.slice(offset, offset + count);
+            offset += count;
+          });
+        }
 
-            const aKey = resolvedExam?.answerKey?.[subjName] || [];
-            const subDef = (resolvedExam?.subjects || []).find(s => s.name === subjName);
+        if (stdAnswers && typeof stdAnswers === 'object') {
+          const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+          Object.entries(stdAnswers).forEach(([subjName, ansData]) => {
+            const subDef = (resolvedExam?.subjects || []).find(s => 
+              s.name?.toLowerCase().trim() === subjName?.toLowerCase().trim() ||
+              String(s.testId) === String(subjName) ||
+              String(s.id) === String(subjName)
+            );
+            const targetName = subDef ? subDef.name : subjName;
+            const aKey = subDef?.answerKey || resolvedExam?.answerKey?.[targetName] || resolvedExam?.answerKey?.[subjName] || [];
             const totalQ = subDef?.count || (Array.isArray(ansData) ? ansData.length : Object.keys(ansData).length) || 15;
 
             let corr = 0, wrg = 0, blk = 0;
@@ -282,14 +343,16 @@ export default function ExamAnalysisPage() {
             }
 
             const calcNet = corr - (penalty > 0 ? wrg / penalty : 0);
-            combinedSubjectStats[subjName] = {
-              name: subjName,
-              correct: corr,
-              wrong: wrg,
-              blank: blk,
-              net: Math.max(0, Number(calcNet.toFixed(2))),
-              count: totalQ
-            };
+            if (!combinedSubjectStats[targetName] || combinedSubjectStats[targetName].net === 0) {
+              combinedSubjectStats[targetName] = {
+                name: targetName,
+                correct: corr,
+                wrong: wrg,
+                blank: blk,
+                net: Math.max(0, Number(calcNet.toFixed(2))),
+                count: totalQ
+              };
+            }
           });
         }
 
@@ -332,6 +395,28 @@ export default function ExamAnalysisPage() {
         tCorrect = sSubmissions.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
         tWrong = sSubmissions.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
         tEmpty = sSubmissions.reduce((sum, s) => sum + (Number(s.blankCount || s.emptyCount) || 0), 0);
+
+        // Fallback: If combinedSubjectStats is empty but student has summary stats, distribute across resolvedExam.subjects!
+        if ((resolvedExam?.subjects || []).length > 0) {
+          const subs = resolvedExam.subjects;
+          const totalQExam = resolvedExam.totalQuestions || (subs.length * 15);
+          subs.forEach(subj => {
+            const ratio = (subj.count || 15) / (totalQExam || 1);
+            const corr = Math.round(tCorrect * ratio);
+            const wrg = Math.round(tWrong * ratio);
+            const blk = (subj.count || 15) - (corr + wrg);
+            const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+            const net = Math.max(0, Number((corr - (penalty > 0 ? wrg / penalty : 0)).toFixed(2)));
+            combinedSubjectStats[subj.name] = {
+              name: subj.name,
+              correct: corr,
+              wrong: wrg,
+              blank: Math.max(0, blk),
+              net: net,
+              count: subj.count || 15
+            };
+          });
+        }
       }
       const aScore = tScore;
 
@@ -373,8 +458,10 @@ export default function ExamAnalysisPage() {
 
     stats.forEach(st => {
       Object.entries(st.combinedSubjectStats).forEach(([subjName, sData]) => {
-        if (!subjMap[subjName]) {
-          subjMap[subjName] = {
+        let targetKey = Object.keys(subjMap).find(k => k.toLowerCase().trim() === subjName.toLowerCase().trim());
+        if (!targetKey) {
+          targetKey = subjName;
+          subjMap[targetKey] = {
             name: subjName,
             totalNet: 0,
             count: 0,
@@ -384,24 +471,27 @@ export default function ExamAnalysisPage() {
             questionCount: sData.count || 15
           };
         }
-        subjMap[subjName].totalNet += Number(sData.net || 0);
-        subjMap[subjName].totalCorrect += Number(sData.correct || 0);
-        subjMap[subjName].totalWrong += Number(sData.wrong || 0);
-        subjMap[subjName].totalBlank += Number(sData.blank || 0);
-        subjMap[subjName].count += 1;
-        if (sData.count) subjMap[subjName].questionCount = sData.count;
+        subjMap[targetKey].totalNet += Number(sData.net || 0);
+        subjMap[targetKey].totalCorrect += Number(sData.correct || 0);
+        subjMap[targetKey].totalWrong += Number(sData.wrong || 0);
+        subjMap[targetKey].totalBlank += Number(sData.blank || 0);
+        subjMap[targetKey].count += 1;
+        if (sData.count) subjMap[targetKey].questionCount = sData.count;
       });
     });
 
-    const subjChartData = Object.values(subjMap).map(s => ({
-      name: s.name,
-      'Ortalama Net': Number((s.count ? s.totalNet / s.count : 0).toFixed(2)),
-      'Soru Sayısı': s.questionCount,
-      totalNet: Number((s.count ? s.totalNet / s.count : 0).toFixed(2)),
-      avgCorrect: Number((s.count ? s.totalCorrect / s.count : 0).toFixed(1)),
-      avgWrong: Number((s.count ? s.totalWrong / s.count : 0).toFixed(1)),
-      avgBlank: Number((s.count ? s.totalBlank / s.count : 0).toFixed(1))
-    }));
+    const subjChartData = Object.values(subjMap).map(s => {
+      const avgNet = s.count ? s.totalNet / s.count : 0;
+      return {
+        name: s.name,
+        'Ortalama Net': Number(avgNet.toFixed(2)),
+        'Soru Sayısı': s.questionCount,
+        totalNet: Number(avgNet.toFixed(2)),
+        avgCorrect: Number((s.count ? s.totalCorrect / s.count : 0).toFixed(1)),
+        avgWrong: Number((s.count ? s.totalWrong / s.count : 0).toFixed(1)),
+        avgBlank: Number((s.count ? s.totalBlank / s.count : 0).toFixed(1))
+      };
+    });
 
     // Class Averages Breakdown
     const cStatsMap = {};
@@ -439,17 +529,33 @@ export default function ExamAnalysisPage() {
     }
 
     examSubmissions.forEach(sub => {
-      const stdAnswers = sub.studentAnswers || {};
+      let stdAnswers = sub.studentAnswers || {};
+
+      // If studentAnswers is empty but sub.answers has items, distribute across subjects!
+      if ((!stdAnswers || Object.keys(stdAnswers).length === 0) && Array.isArray(sub.answers) && sub.answers.length > 0) {
+        stdAnswers = {};
+        let offset = 0;
+        (resolvedExam?.subjects || []).forEach(subj => {
+          const count = subj.count || 15;
+          stdAnswers[subj.name] = sub.answers.slice(offset, offset + count);
+          offset += count;
+        });
+      }
+
       Object.entries(stdAnswers).forEach(([subjName, answersData]) => {
-        if (!qMap[subjName]) qMap[subjName] = {};
+        let targetSubjName = Object.keys(qMap).find(k => k.toLowerCase().trim() === subjName.toLowerCase().trim());
+        if (!targetSubjName) {
+          targetSubjName = subjName;
+          qMap[targetSubjName] = {};
+        }
 
         if (Array.isArray(answersData)) {
           answersData.forEach((ansVal, idx) => {
             const qNum = idx + 1;
-            if (!qMap[subjName][qNum]) {
-              const aKey = resolvedExam?.answerKey?.[subjName] || [];
+            if (!qMap[targetSubjName][qNum]) {
+              const aKey = resolvedExam?.answerKey?.[targetSubjName] || [];
               const correctKey = Array.isArray(aKey) ? (aKey[idx] || '') : (aKey[qNum] || '');
-              qMap[subjName][qNum] = {
+              qMap[targetSubjName][qNum] = {
                 qIndex: qNum,
                 correctAnswer: correctKey || '?',
                 correct: 0,
@@ -458,7 +564,7 @@ export default function ExamAnalysisPage() {
                 chosenOptions: { A: 0, B: 0, C: 0, D: 0, E: 0 }
               };
             }
-            const qEntry = qMap[subjName][qNum];
+            const qEntry = qMap[targetSubjName][qNum];
             const cleanAns = String(ansVal || '').toUpperCase().trim();
             if (!cleanAns) {
               qEntry.empty += 1;
@@ -475,10 +581,10 @@ export default function ExamAnalysisPage() {
           Object.entries(answersData).forEach(([qNumStr, ansVal]) => {
             const qNum = parseInt(qNumStr, 10);
             if (isNaN(qNum)) return;
-            if (!qMap[subjName][qNum]) {
-              const aKey = resolvedExam?.answerKey?.[subjName] || [];
+            if (!qMap[targetSubjName][qNum]) {
+              const aKey = resolvedExam?.answerKey?.[targetSubjName] || [];
               const correctKey = Array.isArray(aKey) ? (aKey[qNum - 1] || '') : (aKey[qNum] || '');
-              qMap[subjName][qNum] = {
+              qMap[targetSubjName][qNum] = {
                 qIndex: qNum,
                 correctAnswer: correctKey || '?',
                 correct: 0,
@@ -487,7 +593,7 @@ export default function ExamAnalysisPage() {
                 chosenOptions: { A: 0, B: 0, C: 0, D: 0, E: 0 }
               };
             }
-            const qEntry = qMap[subjName][qNum];
+            const qEntry = qMap[targetSubjName][qNum];
             const cleanAns = String(ansVal || '').toUpperCase().trim();
             if (!cleanAns) {
               qEntry.empty += 1;
