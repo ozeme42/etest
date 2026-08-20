@@ -396,12 +396,19 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       return Boolean(
         sub?.isEvaluatedByTeacher ||
         sub?.isEvaluated ||
+        sub?.raw_data?.isEvaluatedByTeacher ||
+        sub?.raw_data?.isEvaluated ||
         sub?.status === 'evaluated' ||
         sub?.status === 'graded' ||
+        sub?.raw_data?.status === 'evaluated' ||
+        sub?.raw_data?.status === 'graded' ||
         sub?.teacherFeedback ||
         sub?.teacherNote ||
+        sub?.raw_data?.teacherFeedback ||
+        sub?.raw_data?.teacherNote ||
         sub?.evaluatedAt ||
-        (Array.isArray(sub?.answers) && sub?.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+        sub?.raw_data?.evaluatedAt ||
+        (Array.isArray(sub?.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
       );
     };
     const results = [];

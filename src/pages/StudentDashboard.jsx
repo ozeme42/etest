@@ -636,7 +636,7 @@ export default function StudentDashboard() {
         sub.teacherNote ||
         raw.teacherFeedback ||
         raw.teacherNote ||
-        (Array.isArray(sub.answers) && sub.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
       );
 
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
@@ -647,10 +647,13 @@ export default function StudentDashboard() {
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         sub.answers.forEach(ans => {
-          if (ans.isCorrect === true) {
+          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
+          if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
             cCount++;
-          } else if (ans.isCorrect === false) {
-            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+          } else if (ans.evalStatus === 'empty') {
+            eCount++;
+          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+            const isB = (ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '') && !ans.userAnswerText;
             if (isB) eCount++;
             else wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
@@ -661,7 +664,7 @@ export default function StudentDashboard() {
                 wCount++;
               }
             } else if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
-              // Open ended response
+              // Unevaluated open ended
             } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
               cCount++;
             } else {
@@ -828,7 +831,7 @@ export default function StudentDashboard() {
         sub.teacherNote ||
         raw.teacherFeedback ||
         raw.teacherNote ||
-        (Array.isArray(sub.answers) && sub.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
       );
 
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
@@ -839,10 +842,13 @@ export default function StudentDashboard() {
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         sub.answers.forEach(ans => {
-          if (ans.isCorrect === true) {
+          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
+          if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
             cCount++;
-          } else if (ans.isCorrect === false) {
-            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+          } else if (ans.evalStatus === 'empty') {
+            eCount++;
+          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+            const isB = (ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '') && !ans.userAnswerText;
             if (isB) eCount++;
             else wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
@@ -853,7 +859,7 @@ export default function StudentDashboard() {
                 wCount++;
               }
             } else if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
-              // Open ended pending
+              // Unevaluated open ended
             } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
               cCount++;
             } else {
