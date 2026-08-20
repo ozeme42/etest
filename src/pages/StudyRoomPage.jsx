@@ -4196,150 +4196,42 @@ export default function StudyRoomPage() {
 
           </div>
 
-          {/* ─── RIGHT COLUMN: HEDEF GÖREV LİSTESİ, NOTLAR & MOTİVASYON ─── */}
+          {/* ─── RIGHT COLUMN: HIZLI NOTLAR & MOTİVASYON ─── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* 1. HEDEF GÖREV LİSTESİ & NOTLAR */}
+            {/* 1. HIZLI NOTLAR & KARALAMA */}
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
               borderRadius: 24,
               border: `1.5px solid ${themeObj.border}`,
               padding: '1.25rem',
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12
+              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ListTodo size={18} color="#10b981" />
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
-                    Hedef Görev Listesi
-                  </h3>
-                </div>
-                <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 800 }}>
-                  {todoList.filter(t => t.done).length}/{todoList.length} Tamamlandı
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Edit3 size={16} color={themeObj.accent} />
+                <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: themeObj.text }}>
+                  Hızlı Notlar & Karalama
+                </h3>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto' }}>
-                {todoList.map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => setTodoList(todoList.map(t => t.id === item.id ? { ...t, done: !t.done } : t))}
-                    style={{
-                      background: item.done ? (themeObj.isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4') : themeObj.innerBg,
-                      borderRadius: 12,
-                      padding: '0.5rem 0.75rem',
-                      border: `1.5px solid ${item.done ? (themeObj.isDark ? 'rgba(16, 185, 129, 0.4)' : '#bbf7d0') : themeObj.border}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                      <div style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 6,
-                        background: item.done ? '#10b981' : 'transparent',
-                        border: '2px solid #10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {item.done && <Check size={12} color="white" strokeWidth={3} />}
-                      </div>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: item.done ? '#10b981' : themeObj.text, textDecoration: item.done ? 'line-through' : 'none' }}>
-                        {item.text}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTodoList(todoList.filter(t => t.id !== item.id));
-                      }}
-                      style={{ background: 'none', border: 'none', color: themeObj.subText, cursor: 'pointer', padding: 2 }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add new todo */}
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  type="text"
-                  placeholder="Yeni hedef ekle..."
-                  value={newTodoText}
-                  onChange={e => setNewTodoText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && newTodoText.trim()) {
-                      setTodoList([...todoList, { id: String(Date.now()), text: newTodoText.trim(), done: false }]);
-                      setNewTodoText('');
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: 10,
-                    border: `1.5px solid ${themeObj.border}`,
-                    background: themeObj.innerBg,
-                    color: themeObj.text,
-                    fontSize: '0.78rem',
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    if (newTodoText.trim()) {
-                      setTodoList([...todoList, { id: String(Date.now()), text: newTodoText.trim(), done: false }]);
-                      setNewTodoText('');
-                    }
-                  }}
-                  style={{
-                    background: themeObj.accent,
-                    border: 'none',
-                    color: 'white',
-                    borderRadius: 10,
-                    padding: '0.5rem 0.8rem',
-                    fontWeight: 900,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Ekle
-                </button>
-              </div>
-
-              {/* Scratchpad Notes */}
-              <div style={{ marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <Edit3 size={15} color={themeObj.accent} />
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: themeObj.text }}>Hızlı Notlar & Karalama</span>
-                </div>
-                <textarea
-                  placeholder="Çalışırken aklına gelen formülleri veya önemli notları buraya yaz..."
-                  value={scratchNotes}
-                  onChange={e => setScratchNotes(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem',
-                    borderRadius: 12,
-                    border: `1.5px solid ${themeObj.border}`,
-                    background: themeObj.innerBg,
-                    color: themeObj.text,
-                    fontSize: '0.75rem',
-                    outline: 'none',
-                    resize: 'vertical',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
+              <textarea
+                placeholder="Çalışırken aklına gelen formülleri veya önemli notları buraya yaz..."
+                value={scratchNotes}
+                onChange={e => setScratchNotes(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.65rem',
+                  borderRadius: 12,
+                  border: `1.5px solid ${themeObj.border}`,
+                  background: themeObj.innerBg,
+                  color: themeObj.text,
+                  fontSize: '0.78rem',
+                  outline: 'none',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
 
             {/* 3. MOTIVATIONAL QUOTE BANNER */}
