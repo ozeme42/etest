@@ -441,7 +441,12 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                     </div>
 
                     {showMistakeSummary && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginTop: '0.65rem' }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))',
+                        gap: '0.5rem',
+                        marginTop: '0.65rem'
+                      }}>
                         {MISTAKE_REASON_OPTIONS.map(opt => {
                           const count = mistakeCounts.counts[opt.label] || 0;
                           return (

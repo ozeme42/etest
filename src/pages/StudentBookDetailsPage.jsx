@@ -789,6 +789,40 @@ export default function StudentBookDetailsPage() {
             padding: 0.85rem 0.5rem;
           }
         }
+
+        .sbdp-mistake-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
+        }
+        @media (max-width: 1024px) {
+          .sbdp-mistake-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .sbdp-mistake-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+          }
+          .sbdp-mistake-card {
+            padding: 0.65rem 0.75rem !important;
+            border-radius: 11px !important;
+          }
+          .sbdp-mistake-card:last-child {
+            grid-column: span 2;
+          }
+          .sbdp-mistake-card-title {
+            font-size: 0.72rem !important;
+          }
+          .sbdp-mistake-card-pct {
+            font-size: 0.82rem !important;
+          }
+          .sbdp-mistake-card-val {
+            font-size: 1.05rem !important;
+          }
+        }
       `}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -1282,12 +1316,13 @@ export default function StudentBookDetailsPage() {
         )}
 
         {/* Reason KPI Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <div className="sbdp-mistake-grid">
           {Object.values(bookMistakeStats.reasonDefs).map(r => {
             const pct = bookMistakeStats.totalClassified > 0 ? Math.round((r.count / bookMistakeStats.totalClassified) * 100) : 0;
             return (
               <div
                 key={r.key}
+                className="sbdp-mistake-card"
                 style={{
                   background: r.count > 0 ? r.bg : 'var(--color-surface-hover, #f8fafc)',
                   border: `1.5px solid ${r.count > 0 ? r.border : 'var(--color-border, #e2e8f0)'}`,
@@ -1299,15 +1334,15 @@ export default function StudentBookDetailsPage() {
                   transition: 'all 0.18s ease'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                  <span className="sbdp-mistake-card-title" style={{ fontSize: '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
                     {r.key}
                   </span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                  <span className="sbdp-mistake-card-pct" style={{ fontSize: '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
                     %{pct}
                   </span>
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                <div className="sbdp-mistake-card-val" style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   {r.count} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>soru</span>
                 </div>
               </div>
