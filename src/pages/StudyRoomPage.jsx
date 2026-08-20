@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
@@ -383,6 +383,7 @@ export const getSpeedEvaluation = (avgSec, defaultMinPerQ) => {
 
 export default function StudyRoomPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
@@ -1039,6 +1040,24 @@ export default function StudyRoomPage() {
       ambientAudio.playChime();
     }
   };
+
+  // Program sayfasından "Odada Başlat" ile gelindiğinde görevi otomatik yükle ve başlat
+  useEffect(() => {
+    const incomingTask = location.state?.autoStartTask || (() => {
+      try {
+        const raw = localStorage.getItem('study_active_selected_task');
+        if (raw) {
+          localStorage.removeItem('study_active_selected_task');
+          return JSON.parse(raw);
+        }
+      } catch(e) {}
+      return null;
+    })();
+
+    if (incomingTask) {
+      handleSelectTask(incomingTask, true);
+    }
+  }, [location.state]);
 
   const handleClearSelectedTask = () => {
     setSelectedTask(null);
@@ -2059,6 +2078,31 @@ export default function StudyRoomPage() {
               {pendingAssignedTasks.length}
             </span>
           )}
+        </button>
+
+        {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
+        <button
+          onClick={() => navigate('/student/program')}
+          style={{
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            border: 'none',
+            color: '#ffffff',
+            borderRadius: 16,
+            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
+            fontWeight: 900,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+            transition: 'all 0.15s'
+          }}
+          title="Haftalık ders programı sayfasına git ve oradan doğrudan görev seçip başlat"
+        >
+          <Calendar size={17} />
+          <span>📅 Program Sayfası</span>
         </button>
 
         {/* Zen Tam Ekran Butonu */}
@@ -4696,6 +4740,53 @@ export default function StudyRoomPage() {
                   <X size={18} />
                 </button>
               </div>
+            </div>
+
+            {/* Haftalık Program Sayfasına Hızlı Geçiş Banner'ı */}
+            <div style={{
+              background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(79, 70, 229, 0.18))' : 'linear-gradient(135deg, #eff6ff, #e0e7ff)',
+              border: '1.5px solid #818cf8',
+              borderRadius: 14,
+              padding: '0.6rem 0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              marginBottom: 10,
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.1rem' }}>📅</span>
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text)' }}>Haftalık Program Sayfasından Seç ve Başlat</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm haftalık planını tam sayfa görüp 'Odada Başlat' ile çalışma odasına dönebilirsin.</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHomeworkPickerModal(false);
+                  navigate('/student/program');
+                }}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.74rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>Program Sayfasına Git</span>
+                <ChevronRight size={13} />
+              </button>
             </div>
 
             {/* Ana Kategori Sekmeleri (Tabs) */}

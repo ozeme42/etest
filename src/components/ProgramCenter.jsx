@@ -534,7 +534,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
 }
 
 /* ─── DayCard ─── */
-export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick, onOpenResult, isDark = false }) {
+export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick, onOpenResult, onStartStudy, isDark = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const items = dayObj.items || [];
   const done = items.filter(i => i.done).length;
@@ -716,6 +716,30 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                {!item.done && onStartStudy && (
+                  <button
+                    type="button"
+                    onClick={() => onStartStudy(item)}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      padding: '0.22rem 0.55rem',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      boxShadow: '0 2px 6px rgba(245,158,11,0.3)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Bu görevi Çalışma Odası'nda başlat"
+                  >
+                    <Play size={10} fill="#ffffff" /> Odada Başlat
+                  </button>
+                )}
                 {isQuizTask && onOpenResult && (
                   <button
                     onClick={() => onOpenResult(item)}
@@ -1174,6 +1198,7 @@ export function MonthlyListPanel({
   onDelete,
   onEditClick,
   onOpenResult,
+  onStartStudy,
   isDark = false
 }) {
   const [monthOffset, setMonthOffset] = useState(0);
@@ -2348,6 +2373,29 @@ export function MonthlyListPanel({
                                     <ArrowRight size={11} />
                                   </button>
                                 )}
+                                {!item.done && onStartStudy && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onStartStudy(item)}
+                                    style={{
+                                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      color: '#ffffff',
+                                      padding: '3px 8px',
+                                      borderRadius: 6,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: '0.65rem',
+                                      fontWeight: 800,
+                                      boxShadow: '0 2px 6px rgba(245,158,11,0.3)'
+                                    }}
+                                    title="Bu görevi Çalışma Odası'nda başlat"
+                                  >
+                                    <Play size={10} fill="#ffffff" /> Odada Başlat
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2478,6 +2526,30 @@ export default function ProgramCenter({
       return;
     }
   }, [navigate, effectiveStudentId, allHomeworks]);
+
+  const handleStartInStudyRoom = useCallback((item) => {
+    if (!item) return;
+    const taskPayload = {
+      id: item.id,
+      title: item.bookName || item.subject || item.text || item.topic || 'Ders Çalışması',
+      subject: item.subject || item.bookName || 'Genel',
+      unit: item.unit || '',
+      topic: item.topic || item.text || '',
+      questionCount: Number(item.questionCount || item.targetQuestions) || 20,
+      testId: item.testId || item.realTestId || item.bookTestId || null,
+      bookTestId: item.bookTestId || item.testId || null,
+      hwId: item.hwId || null,
+      roadmapAssignmentId: item.roadmapAssignmentId || null,
+      sourceType: item.roadmapAssignmentId ? 'roadmap' : (item.testId || item.bookTestId) ? 'bookTest' : item.hwId ? 'homework' : 'program',
+      sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (item.testId || item.bookTestId) ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı'
+    };
+
+    try {
+      localStorage.setItem('study_active_selected_task', JSON.stringify(taskPayload));
+    } catch(e) {}
+
+    navigate('/study-room', { state: { autoStartTask: taskPayload } });
+  }, [navigate]);
 
   const weekInfo = useMemo(() => {
     const MONTHS_TR = [
@@ -3714,6 +3786,7 @@ export default function ProgramCenter({
                         onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
                         onAddClick={d => setAddingToDay(d)}
                         onOpenResult={handleOpenTaskResult}
+                        onStartStudy={handleStartInStudyRoom}
                         isDark={isDark} />
                     );
                   })}
@@ -3869,6 +3942,29 @@ export default function ProgramCenter({
                                         ✏️ {item.questionCount}
                                       </span>
                                     )}
+                                    {!item.done && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleStartInStudyRoom(item)}
+                                        style={{
+                                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          borderRadius: 8,
+                                          padding: '0.35rem 0.65rem',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 900,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
+                                        }}
+                                        title="Bu görevi Çalışma Odası'nda başlat"
+                                      >
+                                        <Play size={11} fill="#ffffff" /> Odada Başlat
+                                      </button>
+                                    )}
                                     {isQuizTask && !item.done && (
                                       <button
                                         type="button"
@@ -3946,6 +4042,7 @@ export default function ProgramCenter({
           onDelete={handleDelete}
           onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
           onOpenResult={handleOpenTaskResult}
+          onStartStudy={handleStartInStudyRoom}
           isDark={isDark}
         />
       )}

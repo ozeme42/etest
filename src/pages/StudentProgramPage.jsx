@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, CheckCircle2, Calendar, ArrowLeft, Layers, Target, BookOpen, CheckCircle } from 'lucide-react';
+import { Save, CheckCircle2, Calendar, ArrowLeft, Layers, Target, BookOpen, CheckCircle, Play, PlayCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
@@ -103,26 +103,49 @@ export default function StudentProgramPage() {
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
         {/* Top Action Bar */}
         <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => navigate('/student')}
-            style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: '0.75rem',
-              padding: '0.5rem 0.95rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              color: 'var(--color-text, #1e293b)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              transition: 'all 0.15s'
-            }}
-          >
-            <ArrowLeft size={16} /> Öğrenci Paneli
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/student')}
+              style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #cbd5e1)',
+                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                color: 'var(--color-text, #1e293b)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <ArrowLeft size={16} /> Öğrenci Paneli
+            </button>
+
+            <button
+              onClick={() => navigate('/study-room')}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: 'none',
+                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                color: '#ffffff',
+                boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Play size={15} fill="#ffffff" /> ⏱️ Çalışma Odası
+            </button>
+          </div>
 
           <div style={{
             display: 'inline-flex',
