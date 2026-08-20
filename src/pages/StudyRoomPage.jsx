@@ -2046,41 +2046,52 @@ export default function StudyRoomPage() {
         </div>
 
         {/* Atanmış Ödev / Kitap Testi / Program Seçici Butonu */}
-        <button
-          onClick={() => setShowHomeworkPickerModal(true)}
-          style={{
-            background: selectedTask ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
-            border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
-            color: selectedTask ? '#ffffff' : themeObj.text,
-            borderRadius: 16,
-            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
-            fontWeight: 900,
-            whiteSpace: 'nowrap',
-            boxShadow: selectedTask ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
-            transition: 'all 0.15s'
-          }}
-          title="Öğretmeninin atadığı ödevler, kitap testleri veya ders programından bir görev seçerek süreli çalışmayı başlat"
-        >
-          <BookMarked size={17} color={selectedTask ? '#ffffff' : '#3b82f6'} />
-          <span>{selectedTask ? (selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev Seçili') : '📋 Görev / Test Seç'}</span>
-          {pendingAssignedTasks.length > 0 && (
-            <span style={{
-              background: selectedTask ? 'rgba(255,255,255,0.25)' : '#ef4444',
-              color: '#ffffff',
-              fontSize: '0.68rem',
+        <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowHomeworkPickerModal(true)}
+            style={{
+              background: selectedTask ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
+              border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
+              color: selectedTask ? '#ffffff' : themeObj.text,
+              borderRadius: selectedTask ? '16px 0 0 16px' : 16,
+              padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
               fontWeight: 900,
-              padding: '0.12rem 0.45rem',
-              borderRadius: 99
-            }}>
-              {pendingAssignedTasks.length}
-            </span>
+              whiteSpace: 'nowrap',
+              boxShadow: selectedTask ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
+              transition: 'all 0.15s'
+            }}
+            title="Öğretmeninin atadığı ödevler, kitap testleri veya ders programından bir görev seç"
+          >
+            <BookMarked size={17} color={selectedTask ? '#ffffff' : '#3b82f6'} />
+            <span>{selectedTask ? (selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev Seçili') : '📋 Görev / Test Seç'}</span>
+          </button>
+          {selectedTask && (
+            <button
+              onClick={handleClearSelectedTask}
+              style={{
+                background: selectedTask ? 'linear-gradient(135deg, #2563eb, #1e40af)' : themeObj.buttonBg,
+                border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
+                borderLeft: 'none',
+                color: '#ffffff',
+                borderRadius: '0 16px 16px 0',
+                padding: isFullscreenView ? '0.85rem 0.65rem' : '0.75rem 0.55rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s'
+              }}
+              title="Seçili görevi kaldır"
+            >
+              <X size={15} />
+            </button>
           )}
-        </button>
+        </div>
 
         {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
         <button
