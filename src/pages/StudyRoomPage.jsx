@@ -5,6 +5,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
+import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import {
@@ -383,27 +384,34 @@ export default function StudyRoomPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
-  const { books } = useTrackedBooks();
-  const { studyPlans } = useStudyPlan();
+  const { books = [], bookTests = [] } = useTrackedBooks() || {};
+  const { studyPlans = [] } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
   const { submissions = [] } = useEvaluation() || {};
+  const { getCoachingProfileForStudent } = useCoaching() || {};
+
+  const coachingProfile = useMemo(() => {
+    if (!currentUser?.id || !getCoachingProfileForStudent) return {};
+    return getCoachingProfileForStudent(currentUser.id) || {};
+  }, [currentUser?.id, getCoachingProfileForStudent]);
 
   const THEMES = useMemo(() => getThemeList(isDark), [isDark]);
 
   // ── 🎯 BİRLEŞİK ÇALIŞMA & HEDEF MODLARI: 'question' | 'book' | 'study' | 'break' | 'stopwatch' ──
   const [activeStudyMode, setActiveStudyMode] = useState(() => localStorage.getItem('study_master_mode') || 'question');
 
-  // ── 📝 ATANMIŞ ÖDEV SEÇİMİ VE YÖNETİMİ ──
-  const [selectedHomework, setSelectedHomework] = useState(null);
+  // ── 📝 ATANMIŞ ÖDEV, KİTAP TESTİ & PROGRAM GÖREVLERİ SEÇİMİ ──
+  const [selectedTask, setSelectedTask] = useState(null);
   const [showHomeworkPickerModal, setShowHomeworkPickerModal] = useState(false);
   const [hwSearchQuery, setHwSearchQuery] = useState('');
   const [hwFilterSubject, setHwFilterSubject] = useState('all');
+  const [hwSourceTab, setHwSourceTab] = useState('all'); // 'all' | 'homework' | 'bookTest' | 'program'
 
   const studentIdStr = String(currentUser?.id || '');
   const studentUuidStr = String(toUUID(currentUser?.id) || '');
 
-  // Öğrenciye atanan tüm ödevler ve tamamlanma durumları
-  const assignedHomeworks = useMemo(() => {
+  // 1. Öğrenciye atanan tüm görevleri birleştir (Ödevler, Tüm Kitap Görevleri altındaki testler, Haftalık Ders Programı)
+  const allAssignedTasks = useMemo(() => {
     if (!currentUser) return [];
 
     const isMatchStudent = (s) => {
@@ -427,59 +435,174 @@ export default function StudyRoomPage() {
       return false;
     };
 
-    return (homeworks || []).filter(isMatchHw).map(hw => {
-      // Find submission
-      const sub = (submissions || []).find(s => {
-        if (!isMatchStudent(s)) return false;
-        if (s.status === 'in_progress' || s.status === 'draft') return false;
-        return String(s.hwId || s.testId) === String(hw.id);
-      }) || (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
+    const taskList = [];
+    const seenTaskKeys = new Set();
 
-      const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
-      
-      const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
+    // A. Atanmış Bireysel & Optik Ödevler
+    (homeworks || []).filter(isMatchHw).forEach(hw => {
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
 
-      return {
-        ...hw,
-        realTestId: hw.realTestId || hw.testId || hw.id,
-        questionCount: Number(qCount) || 10,
-        isCompleted,
-        submission: sub
-      };
+      if (!isBook) {
+        const sub = (submissions || []).find(s => {
+          if (!isMatchStudent(s)) return false;
+          if (s.status === 'in_progress' || s.status === 'draft') return false;
+          return String(s.hwId || s.testId) === String(hw.id);
+        }) || (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
+
+        const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
+        const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
+
+        const dedupeKey = `hw_${hw.id}`;
+        if (!seenTaskKeys.has(dedupeKey)) {
+          seenTaskKeys.add(dedupeKey);
+          taskList.push({
+            id: hw.id,
+            dedupeKey,
+            title: hw.title || 'Ödev',
+            subtitle: hw.subject || 'Ödev Görevi',
+            subject: hw.subject || 'Genel',
+            unit: hw.unit || '',
+            topic: hw.topic || '',
+            questionCount: Number(qCount) || 10,
+            dueDate: hw.dueDate,
+            sourceType: 'homework',
+            sourceLabel: '📝 Atanmış Ödev',
+            type: hw.type,
+            isPhysical: hw.isPhysical || hw.type === 'physicalExam',
+            realTestId: hw.realTestId || hw.testId || hw.id,
+            isCompleted,
+            submission: sub
+          });
+        }
+      }
     });
-  }, [homeworks, submissions, currentUser, studentIdStr, studentUuidStr]);
 
-  const pendingAssignedHomeworks = useMemo(() => {
-    return assignedHomeworks.filter(h => !h.isCompleted);
-  }, [assignedHomeworks]);
+    // B. Atanmış Kitap Görevleri & Kitap Testleri ("Tüm Kitap Görevi" içindeki tüm testler)
+    const assignedBookIds = new Set();
+    (homeworks || []).filter(isMatchHw).forEach(hw => {
+      if (hw.bookId) assignedBookIds.add(String(hw.bookId));
+      if (hw.isBookAssignment && hw.id) assignedBookIds.add(String(hw.id));
+    });
+    (books || []).forEach(b => {
+      if (assignedBookIds.has(String(b.id)) || (b.assignedStudents && b.assignedStudents.includes(currentUser?.id)) || (b.studentIds && b.studentIds.includes(currentUser?.id))) {
+        assignedBookIds.add(String(b.id));
+      }
+    });
 
-  const filteredHomeworksList = useMemo(() => {
-    return assignedHomeworks.filter(hw => {
-      const matchSubject = hwFilterSubject === 'all' || (hw.subject && hw.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
+    (books || []).forEach(book => {
+      const isAssigned = assignedBookIds.has(String(book.id)) || assignedBookIds.size === 0;
+      if (!isAssigned && (books.length > 6)) return;
+
+      const cleanBookTitle = (book.title || 'Kitap')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .trim();
+
+      const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+
+      testsForBook.forEach(bt => {
+        const sub = (submissions || []).find(s => {
+          if (!isMatchStudent(s)) return false;
+          if (s.status === 'in_progress' || s.status === 'draft') return false;
+          return String(s.testId || s.bookTestId || s.realTestId) === String(bt.id);
+        });
+
+        const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
+        const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
+
+        const dedupeKey = `bt_${bt.id}`;
+        if (!seenTaskKeys.has(dedupeKey)) {
+          seenTaskKeys.add(dedupeKey);
+          taskList.push({
+            id: bt.id,
+            dedupeKey,
+            title: `${cleanBookTitle} — ${bt.name || bt.title || 'Test'}`,
+            subtitle: `${cleanBookTitle} (${bt.name || 'Test'})`,
+            bookTitle: cleanBookTitle,
+            testName: bt.name || bt.title || 'Test',
+            subject: bt.subject || book.subject || 'Genel',
+            unit: bt.unit || bt.unitName || '',
+            topic: bt.topic || bt.topicName || '',
+            questionCount: qCount,
+            sourceType: 'bookTest',
+            sourceLabel: '📚 Kitap Testi',
+            isBookAssignment: true,
+            bookTestId: bt.id,
+            realTestId: bt.id,
+            bookId: book.id,
+            isCompleted,
+            submission: sub
+          });
+        }
+      });
+    });
+
+    // C. Haftalık Ders Programı Görevleri (ProgramCenter / Coaching Weekly Program)
+    const weeklyProg = coachingProfile?.weeklyProgram || [];
+    weeklyProg.forEach(dayObj => {
+      const dayName = dayObj.day || 'Gün';
+      (dayObj.items || []).forEach((item, idx) => {
+        const dedupeKey = `prog_${dayName}_${item.id || idx}_${item.text || item.topic}`;
+        if (!seenTaskKeys.has(dedupeKey)) {
+          seenTaskKeys.add(dedupeKey);
+          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          taskList.push({
+            id: dedupeKey,
+            dedupeKey,
+            title: `${dayName}: ${item.text || item.topic || 'Çalışma Görevi'}`,
+            subtitle: `${dayName} Programı`,
+            dayName,
+            subject: item.subject || 'Genel',
+            unit: item.unit || '',
+            topic: item.topic || item.text || '',
+            questionCount: qCount,
+            sourceType: 'program',
+            sourceLabel: '📅 Ders Programı',
+            isCompleted: Boolean(item.done),
+            programItem: item
+          });
+        }
+      });
+    });
+
+    return taskList;
+  }, [homeworks, books, bookTests, submissions, coachingProfile, currentUser, studentIdStr, studentUuidStr]);
+
+  const pendingAssignedTasks = useMemo(() => {
+    return allAssignedTasks.filter(t => !t.isCompleted);
+  }, [allAssignedTasks]);
+
+  const filteredTasksList = useMemo(() => {
+    return allAssignedTasks.filter(task => {
+      const matchSource = hwSourceTab === 'all' || task.sourceType === hwSourceTab;
+      const matchSubject = hwFilterSubject === 'all' || (task.subject && task.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
       const matchQuery = !hwSearchQuery.trim() ||
-        (hw.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
-        (hw.subject || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
-        (hw.unit || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
-      return matchSubject && matchQuery;
+        (task.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (task.subtitle || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (task.subject || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (task.topic || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+        (task.unit || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
+      return matchSource && matchSubject && matchQuery;
     });
-  }, [assignedHomeworks, hwFilterSubject, hwSearchQuery]);
+  }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery]);
 
-  // Atanmış Ödevi Seçerek Süre / Hedef Başlatma
-  const handleSelectHomework = (hw, startImmediately = false) => {
-    if (!hw) return;
-    setSelectedHomework(hw);
+  // Görevi / Testi Seçerek Süre & Hedef Başlatma
+  const handleSelectTask = (task, startImmediately = false) => {
+    if (!task) return;
+    setSelectedTask(task);
     setShowHomeworkPickerModal(false);
 
     // Dersi otomatik eşle
-    const hwSubject = hw.subject || '';
-    const matchedSubj = STUDY_SUBJECTS.find(s => s.id.toLowerCase() === hwSubject.toLowerCase() || hwSubject.toLowerCase().includes(s.id.toLowerCase()));
+    const taskSubject = task.subject || '';
+    const matchedSubj = STUDY_SUBJECTS.find(s => s.id.toLowerCase() === taskSubject.toLowerCase() || taskSubject.toLowerCase().includes(s.id.toLowerCase()));
     if (matchedSubj) {
       setSelectedSubject(matchedSubj.id);
       localStorage.setItem('study_selected_subject', matchedSubj.id);
     }
 
     // Hedef soru sayısını ayarla
-    const qCount = Math.max(1, Number(hw.questionCount) || 12);
+    const qCount = Math.max(1, Number(task.questionCount) || 12);
     handleSetNewTargetGoal(qCount, true);
 
     // Soru moduna geç
@@ -492,18 +615,20 @@ export default function StudyRoomPage() {
     }
   };
 
-  const handleClearSelectedHomework = () => {
-    setSelectedHomework(null);
+  const handleClearSelectedTask = () => {
+    setSelectedTask(null);
   };
 
-  const handleLaunchHomeworkQuiz = (hw) => {
-    if (!hw) return;
-    if (hw.type === 'physicalExam' || hw.isPhysical) {
-      navigate(`/physical-exam/${hw.hwId || hw.realTestId || hw.id}?studentId=${currentUser.id}`);
-    } else if (hw.isBookAssignment || hw.sourceType === 'trackedBook') {
-      navigate(`/book-quiz/${hw.bookTestId || hw.realTestId || hw.testId || hw.id}?studentId=${currentUser.id}`);
+  const handleLaunchTaskQuiz = (task) => {
+    if (!task) return;
+    if (task.sourceType === 'bookTest' || task.isBookAssignment) {
+      navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId || task.id}?studentId=${currentUser.id}`);
+    } else if (task.type === 'physicalExam' || task.isPhysical) {
+      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${currentUser.id}`);
+    } else if (task.sourceType === 'program') {
+      handleSelectTask(task, true);
     } else {
-      navigate(`/quiz/${hw.realTestId || hw.hwId || hw.id}?studentId=${currentUser.id}`);
+      navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${currentUser.id}`);
     }
   };
 
@@ -1474,13 +1599,13 @@ export default function StudyRoomPage() {
           })}
         </div>
 
-        {/* Atanmış Ödev Seçici Butonu */}
+        {/* Atanmış Ödev / Kitap Testi / Program Seçici Butonu */}
         <button
           onClick={() => setShowHomeworkPickerModal(true)}
           style={{
-            background: selectedHomework ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
-            border: `1.5px solid ${selectedHomework ? '#60a5fa' : themeObj.border}`,
-            color: selectedHomework ? '#ffffff' : themeObj.text,
+            background: selectedTask ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
+            border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
+            color: selectedTask ? '#ffffff' : themeObj.text,
             borderRadius: 16,
             padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
             cursor: 'pointer',
@@ -1490,23 +1615,23 @@ export default function StudyRoomPage() {
             fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
             fontWeight: 900,
             whiteSpace: 'nowrap',
-            boxShadow: selectedHomework ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
+            boxShadow: selectedTask ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
             transition: 'all 0.15s'
           }}
-          title="Öğretmeninin atadığı ödevlerden birini seçerek süreli çalışmayı başlat"
+          title="Öğretmeninin atadığı ödevler, kitap testleri veya ders programından bir görev seçerek süreli çalışmayı başlat"
         >
-          <BookMarked size={17} color={selectedHomework ? '#ffffff' : '#3b82f6'} />
-          <span>{selectedHomework ? 'Ödev Seçili' : 'Atanmış Ödev'}</span>
-          {pendingAssignedHomeworks.length > 0 && (
+          <BookMarked size={17} color={selectedTask ? '#ffffff' : '#3b82f6'} />
+          <span>{selectedTask ? (selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev Seçili') : '📋 Görev / Test Seç'}</span>
+          {pendingAssignedTasks.length > 0 && (
             <span style={{
-              background: selectedHomework ? 'rgba(255,255,255,0.25)' : '#ef4444',
+              background: selectedTask ? 'rgba(255,255,255,0.25)' : '#ef4444',
               color: '#ffffff',
               fontSize: '0.68rem',
               fontWeight: 900,
               padding: '0.12rem 0.45rem',
               borderRadius: 99
             }}>
-              {pendingAssignedHomeworks.length}
+              {pendingAssignedTasks.length}
             </span>
           )}
         </button>
@@ -1655,10 +1780,10 @@ export default function StudyRoomPage() {
                     )}
                   </div>
 
-                  {/* 🎯 SEÇİLİ ATANMIŞ ÖDEV ROZETİ */}
-                  {selectedHomework && (
+                  {/* 🎯 SEÇİLİ GÖREV / TEST ROZETİ */}
+                  {selectedTask && (
                     <div
-                      onClick={() => handleLaunchHomeworkQuiz(selectedHomework)}
+                      onClick={() => handleLaunchTaskQuiz(selectedTask)}
                       style={{
                         fontSize: '0.72rem',
                         fontWeight: 900,
@@ -1671,16 +1796,16 @@ export default function StudyRoomPage() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        maxWidth: 240,
+                        maxWidth: 260,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         marginTop: 2
                       }}
-                      title="Ödevi doğrudan çözmek için tıkla"
+                      title="Görevi / testi doğrudan çözmek için tıkla"
                     >
                       <BookMarked size={12} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedHomework.title}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedTask.title}</span>
                       <ChevronRight size={12} />
                     </div>
                   )}
@@ -1878,8 +2003,8 @@ export default function StudyRoomPage() {
               flexDirection: 'column',
               gap: 12
             }}>
-              {/* 🎯 AKTİF SEÇİLİ ATANMIŞ ÖDEV BİLGİ KARTI */}
-              {selectedHomework && (
+              {/* 🎯 AKTİF SEÇİLİ GÖREV / TEST BİLGİ KARTI */}
+              {selectedTask && (
                 <div style={{
                   background: isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff',
                   border: '1.5px solid #3b82f6',
@@ -1909,14 +2034,14 @@ export default function StudyRoomPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          🎯 Seçili Atanmış Ödev
+                          🎯 {selectedTask.sourceLabel || 'Seçili Görev'}
                         </span>
                         <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(59,130,246,0.2)', color: '#2563eb', padding: '0.05rem 0.4rem', borderRadius: 6 }}>
-                          {selectedHomework.subject || 'Genel'}
+                          {selectedTask.subject || 'Genel'}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {selectedHomework.title}
+                        {selectedTask.title}
                       </div>
                     </div>
                   </div>
@@ -1924,7 +2049,7 @@ export default function StudyRoomPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={() => handleLaunchHomeworkQuiz(selectedHomework)}
+                      onClick={() => handleLaunchTaskQuiz(selectedTask)}
                       style={{
                         padding: '0.4rem 0.85rem',
                         background: 'linear-gradient(135deg, #10b981, #059669)',
@@ -1940,14 +2065,14 @@ export default function StudyRoomPage() {
                         boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
                         transition: 'transform 0.15s'
                       }}
-                      title="Ödev çözüm ekranına git"
+                      title="Testi doğrudan çözmeye başla"
                     >
-                      <PlayCircle size={14} /> Ödevi Doğrudan Çöz
+                      <PlayCircle size={14} /> {selectedTask.sourceType === 'program' ? 'Programda Başla' : 'Testi Doğrudan Çöz'}
                     </button>
 
                     <button
                       type="button"
-                      onClick={handleClearSelectedHomework}
+                      onClick={handleClearSelectedTask}
                       style={{
                         padding: '0.4rem 0.65rem',
                         background: 'transparent',
@@ -1961,7 +2086,7 @@ export default function StudyRoomPage() {
                         alignItems: 'center',
                         gap: 4
                       }}
-                      title="Ödev seçimini kaldır"
+                      title="Seçimi kaldır"
                     >
                       <X size={13} /> Kaldır
                     </button>
@@ -2208,8 +2333,8 @@ export default function StudyRoomPage() {
                   })}
                 </div>
 
-                {/* Bekleyen Atanmış Ödevler Hızlı Rafı */}
-                {pendingAssignedHomeworks.length > 0 && (
+                {/* Bekleyen Görevler / Testler Hızlı Rafı */}
+                {pendingAssignedTasks.length > 0 && (
                   <div style={{
                     marginTop: 6,
                     paddingTop: 10,
@@ -2220,7 +2345,7 @@ export default function StudyRoomPage() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                       <span style={{ fontSize: '0.76rem', fontWeight: 900, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <BookMarked size={14} color="#3b82f6" /> Bekleyen Atanmış Ödevlerin ({pendingAssignedHomeworks.length}):
+                        <BookMarked size={14} color="#3b82f6" /> Bekleyen Görev & Testler ({pendingAssignedTasks.length}):
                       </span>
                       <button
                         type="button"
@@ -2240,12 +2365,12 @@ export default function StudyRoomPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-                      {pendingAssignedHomeworks.slice(0, 5).map(hw => {
-                        const isThisSelected = selectedHomework?.id === hw.id;
+                      {pendingAssignedTasks.slice(0, 6).map(task => {
+                        const isThisSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
                         return (
                           <div
-                            key={hw.id}
-                            onClick={() => handleSelectHomework(hw, false)}
+                            key={task.dedupeKey || task.id}
+                            onClick={() => handleSelectTask(task, false)}
                             style={{
                               background: isThisSelected
                                 ? (isDark ? 'rgba(59,130,246,0.22)' : '#dbeafe')
@@ -2264,12 +2389,14 @@ export default function StudyRoomPage() {
                             onMouseEnter={e => !isThisSelected && (e.currentTarget.style.borderColor = '#3b82f6')}
                             onMouseLeave={e => !isThisSelected && (e.currentTarget.style.borderColor = themeObj.border)}
                           >
-                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#3b82f6' }}>{hw.subject || 'Ödev'}</span>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.text, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {hw.title}
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6' }}>
+                              {task.sourceType === 'program' ? '📅 Program' : task.sourceType === 'bookTest' ? '📚 Kitap' : '📝 Ödev'}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.text, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {task.title}
                             </span>
                             <span style={{ fontSize: '0.68rem', fontWeight: 900, background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: 6, color: themeObj.subText }}>
-                              {hw.questionCount} Soru
+                              {task.questionCount} Soru
                             </span>
                           </div>
                         );
@@ -4118,7 +4245,7 @@ export default function StudyRoomPage() {
         </div>
       )}
 
-      {/* ─── ATANMIŞ ÖDEV SEÇİM VE BAŞLATMA MODALI ─── */}
+      {/* ─── ATANMIŞ ÖDEV, KİTAP TESTİ & PROGRAM SEÇİM VE BAŞLATMA MODALI ─── */}
       {showHomeworkPickerModal && (
         <div style={{
           position: 'fixed',
@@ -4135,7 +4262,7 @@ export default function StudyRoomPage() {
             background: 'var(--color-surface, #ffffff)',
             borderRadius: 24,
             padding: '1.75rem 1.6rem',
-            maxWidth: 620,
+            maxWidth: 680,
             width: '100%',
             maxHeight: '90vh',
             display: 'flex',
@@ -4147,11 +4274,11 @@ export default function StudyRoomPage() {
             overflow: 'hidden'
           }}>
             {/* Modal Başlığı */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   borderRadius: 12,
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: '#ffffff',
@@ -4164,10 +4291,10 @@ export default function StudyRoomPage() {
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
-                    Atanmış Ödevlerim
+                    Çalışma Görevi / Test Seç
                   </h2>
                   <p style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', margin: '2px 0 0', fontWeight: 600 }}>
-                    Öğretmenin atadığı ödevlerden birini seçerek süreli çalışma başlat veya hemen çöz
+                    Atanmış ödevlerden, kitap testlerinden veya haftalık programından birini seçerek süreli çalışma başlat
                   </p>
                 </div>
               </div>
@@ -4192,13 +4319,68 @@ export default function StudyRoomPage() {
               </button>
             </div>
 
+            {/* Kaynak Kategori Sekmeleri (Tabs) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 6,
+              background: 'var(--color-surface-hover, #f1f5f9)',
+              padding: 4,
+              borderRadius: 14,
+              marginBottom: 12
+            }}>
+              {[
+                { id: 'all', label: '🌟 Tümü', count: allAssignedTasks.length },
+                { id: 'homework', label: '📝 Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework').length },
+                { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest').length },
+                { id: 'program', label: '📅 Program', count: allAssignedTasks.filter(t => t.sourceType === 'program').length }
+              ].map(tab => {
+                const isTabActive = hwSourceTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setHwSourceTab(tab.id)}
+                    style={{
+                      padding: '0.5rem 0.4rem',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: isTabActive ? '#3b82f6' : 'transparent',
+                      color: isTabActive ? '#ffffff' : 'var(--color-text)',
+                      fontWeight: 900,
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    <span style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 900,
+                      background: isTabActive ? 'rgba(255,255,255,0.25)' : 'var(--color-border, #e2e8f0)',
+                      color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
+                      padding: '0.05rem 0.35rem',
+                      borderRadius: 99
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Arama ve Ders Filtresi */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '1 1 200px' }}>
                 <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Ödev veya ders ara..."
+                  placeholder="Görev, kitap, konu veya ders ara..."
                   value={hwSearchQuery}
                   onChange={e => setHwSearchQuery(e.target.value)}
                   style={{
@@ -4238,7 +4420,7 @@ export default function StudyRoomPage() {
               </select>
             </div>
 
-            {/* Ödev Listesi */}
+            {/* Görev & Test Listesi */}
             <div style={{
               flex: 1,
               overflowY: 'auto',
@@ -4248,7 +4430,7 @@ export default function StudyRoomPage() {
               paddingRight: 4,
               maxHeight: 380
             }}>
-              {filteredHomeworksList.length === 0 ? (
+              {filteredTasksList.length === 0 ? (
                 <div style={{
                   padding: '2.5rem 1rem',
                   textAlign: 'center',
@@ -4258,18 +4440,18 @@ export default function StudyRoomPage() {
                 }}>
                   <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Atanmış ödev bulunamadı
+                    Aradığınız kriterlere uygun görev / test bulunamadı
                   </div>
                   <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    Şu an bekleyen veya aramanıza uygun atanmış ödev bulunmuyor.
+                    Farklı bir arama veya sekme deneyebilirsiniz.
                   </div>
                 </div>
               ) : (
-                filteredHomeworksList.map(hw => {
-                  const isSelected = selectedHomework?.id === hw.id;
+                filteredTasksList.map(task => {
+                  const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
                   return (
                     <div
-                      key={hw.id}
+                      key={task.dedupeKey || task.id}
                       style={{
                         background: isSelected
                           ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff')
@@ -4286,46 +4468,60 @@ export default function StudyRoomPage() {
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{
-                            fontSize: '0.7rem',
+                            fontSize: '0.68rem',
                             fontWeight: 900,
-                            background: 'rgba(59,130,246,0.12)',
-                            color: '#3b82f6',
-                            padding: '0.15rem 0.5rem',
+                            background: task.sourceType === 'program' ? 'rgba(16, 185, 129, 0.15)' : task.sourceType === 'bookTest' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                            color: task.sourceType === 'program' ? '#10b981' : task.sourceType === 'bookTest' ? '#6366f1' : '#3b82f6',
+                            padding: '0.12rem 0.5rem',
                             borderRadius: 6
                           }}>
-                            {hw.subject || 'Genel'}
+                            {task.sourceLabel}
                           </span>
-                          {hw.isCompleted ? (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: 6 }}>
+
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            background: 'var(--color-surface-hover, #f1f5f9)',
+                            color: 'var(--color-text)',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: 6
+                          }}>
+                            {task.subject || 'Genel'}
+                          </span>
+
+                          {task.isCompleted ? (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
                               ✓ Tamamlandı
                             </span>
                           ) : (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.15rem 0.45rem', borderRadius: 6 }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
                               ⏳ Bekliyor
                             </span>
                           )}
-                          {hw.dueDate && (
+
+                          {task.dueDate && (
                             <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                              📅 {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
+                              📅 {new Date(task.dueDate).toLocaleDateString('tr-TR')}
                             </span>
                           )}
                         </div>
 
                         <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                          {hw.title}
+                          {task.title}
                         </div>
 
                         <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                          {hw.questionCount} Soru • Yaklaşık {Math.round(hw.questionCount * minutesPerQuestion)} dk
+                          {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                          {task.unit ? ` • ${task.unit}` : ''}
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <button
                           type="button"
-                          onClick={() => handleSelectHomework(hw, true)}
+                          onClick={() => handleSelectTask(task, true)}
                           style={{
                             padding: '0.5rem 0.9rem',
                             borderRadius: 10,
@@ -4346,7 +4542,7 @@ export default function StudyRoomPage() {
 
                         <button
                           type="button"
-                          onClick={() => handleLaunchHomeworkQuiz(hw)}
+                          onClick={() => handleLaunchTaskQuiz(task)}
                           style={{
                             padding: '0.5rem 0.9rem',
                             borderRadius: 10,
@@ -4362,7 +4558,7 @@ export default function StudyRoomPage() {
                             boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
                           }}
                         >
-                          <PlayCircle size={14} /> Hemen Çöz
+                          <PlayCircle size={14} /> {task.sourceType === 'program' ? 'Programda Başla' : 'Hemen Çöz'}
                         </button>
                       </div>
                     </div>
