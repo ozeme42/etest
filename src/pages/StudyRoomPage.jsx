@@ -405,7 +405,11 @@ export default function StudyRoomPage() {
   const [showHomeworkPickerModal, setShowHomeworkPickerModal] = useState(false);
   const [hwSearchQuery, setHwSearchQuery] = useState('');
   const [hwFilterSubject, setHwFilterSubject] = useState('all');
-  const [hwSourceTab, setHwSourceTab] = useState('all'); // 'all' | 'homework' | 'bookTest' | 'program'
+  const [hwSourceTab, setHwSourceTab] = useState('program'); // Default to 'program' for weekly view
+  
+  const todayDayMap = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+  const currentTodayKey = todayDayMap[new Date().getDay()] || 'Pzt';
+  const [selectedProgramDay, setSelectedProgramDay] = useState(currentTodayKey);
 
   const studentIdStr = String(currentUser?.id || '');
   const studentUuidStr = String(toUUID(currentUser?.id) || '');
@@ -539,26 +543,37 @@ export default function StudyRoomPage() {
     });
 
     // C. Haftalık Ders Programı Görevleri (ProgramCenter / Coaching Weekly Program)
+    const dayKeyAlias = { 'Pazartesi': 'Pzt', 'Salı': 'Sal', 'Çarşamba': 'Çrş', 'Perşembe': 'Prş', 'Cuma': 'Cum', 'Cumartesi': 'Cts', 'Pazar': 'Paz' };
     const weeklyProg = coachingProfile?.weeklyProgram || [];
     weeklyProg.forEach(dayObj => {
       const dayName = dayObj.day || 'Gün';
+      const dayKey = dayKeyAlias[dayName] || dayName;
       (dayObj.items || []).forEach((item, idx) => {
-        const dedupeKey = `prog_${dayName}_${item.id || idx}_${item.text || item.topic}`;
+        const dedupeKey = `prog_${dayKey}_${item.id || idx}_${item.text || item.topic}`;
         if (!seenTaskKeys.has(dedupeKey)) {
           seenTaskKeys.add(dedupeKey);
           const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          
+          // Link to book test if testId or bookTestId exists
+          const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
+          const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
+
           taskList.push({
             id: dedupeKey,
             dedupeKey,
-            title: `${dayName}: ${item.text || item.topic || 'Çalışma Görevi'}`,
+            title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
             subtitle: `${dayName} Programı`,
             dayName,
+            dayKey,
             subject: item.subject || 'Genel',
             unit: item.unit || '',
             topic: item.topic || item.text || '',
             questionCount: qCount,
-            sourceType: 'program',
-            sourceLabel: '📅 Ders Programı',
+            sourceType: matchedBookTest ? 'bookTest' : 'program',
+            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            bookTestId: matchedBookTest?.id || item.bookTestId,
+            realTestId: matchedBookTest?.id || item.realTestId || item.testId,
+            bookTitle: matchedBook?.title,
             isCompleted: Boolean(item.done),
             programItem: item
           });
@@ -568,6 +583,53 @@ export default function StudyRoomPage() {
 
     return taskList;
   }, [homeworks, books, bookTests, submissions, coachingProfile, currentUser, studentIdStr, studentUuidStr]);
+
+  const WEEK_DAYS_CONFIG = useMemo(() => [
+    { key: 'Pzt', long: 'Pazartesi', icon: '⚡', color: '#4f46e5', bg: isDark ? 'rgba(79, 70, 229, 0.15)' : '#eef2ff' },
+    { key: 'Sal', long: 'Salı', icon: '🎯', color: '#0891b2', bg: isDark ? 'rgba(8, 145, 178, 0.15)' : '#ecfeff' },
+    { key: 'Çrş', long: 'Çarşamba', icon: '🌿', color: '#059669', bg: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ecfdf5' },
+    { key: 'Prş', long: 'Perşembe', icon: '🔥', color: '#d97706', bg: isDark ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb' },
+    { key: 'Cum', long: 'Cuma', icon: '✨', color: '#7c3aed', bg: isDark ? 'rgba(124, 58, 237, 0.15)' : '#faf5ff' },
+    { key: 'Cts', long: 'Cumartesi', icon: '🚀', color: '#e11d48', bg: isDark ? 'rgba(225, 29, 72, 0.15)' : '#fff1f2' },
+    { key: 'Paz', long: 'Pazar', icon: '🏖️', color: '#2563eb', bg: isDark ? 'rgba(37, 99, 235, 0.15)' : '#eff6ff' }
+  ], [isDark]);
+
+  // Haftalık Program Görevlerini Gün Gün Gruplama
+  const weeklyProgramGrouped = useMemo(() => {
+    return WEEK_DAYS_CONFIG.map(dayCfg => {
+      const dayTasks = allAssignedTasks.filter(t => {
+        if (t.dayKey && t.dayKey === dayCfg.key) return true;
+        if (t.dayName && (t.dayName === dayCfg.key || t.dayName === dayCfg.long)) return true;
+        return false;
+      });
+
+      return {
+        ...dayCfg,
+        tasks: dayTasks,
+        totalQuestions: dayTasks.reduce((acc, t) => acc + (Number(t.questionCount) || 0), 0),
+        completedCount: dayTasks.filter(t => t.isCompleted).length
+      };
+    });
+  }, [allAssignedTasks, WEEK_DAYS_CONFIG]);
+
+  // Kitap Testlerini Kitap Bazında Gruplama
+  const bookGroupedTests = useMemo(() => {
+    const bookTestsOnly = allAssignedTasks.filter(t => t.sourceType === 'bookTest');
+    const groups = {};
+    bookTestsOnly.forEach(t => {
+      const bTitle = t.bookTitle || 'Kitap Testleri';
+      if (!groups[bTitle]) {
+        groups[bTitle] = {
+          bookTitle: bTitle,
+          bookId: t.bookId,
+          subject: t.subject,
+          tests: []
+        };
+      }
+      groups[bTitle].tests.push(t);
+    });
+    return Object.values(groups);
+  }, [allAssignedTasks]);
 
   const pendingAssignedTasks = useMemo(() => {
     return allAssignedTasks.filter(t => !t.isCompleted);
@@ -2332,78 +2394,6 @@ export default function StudyRoomPage() {
                     );
                   })}
                 </div>
-
-                {/* Bekleyen Görevler / Testler Hızlı Rafı */}
-                {pendingAssignedTasks.length > 0 && (
-                  <div style={{
-                    marginTop: 6,
-                    paddingTop: 10,
-                    borderTop: `1px dashed ${themeObj.border}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                      <span style={{ fontSize: '0.76rem', fontWeight: 900, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <BookMarked size={14} color="#3b82f6" /> Bekleyen Görev & Testler ({pendingAssignedTasks.length}):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowHomeworkPickerModal(true)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          padding: 0
-                        }}
-                      >
-                        Tümünü İncele ➔
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-                      {pendingAssignedTasks.slice(0, 6).map(task => {
-                        const isThisSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
-                        return (
-                          <div
-                            key={task.dedupeKey || task.id}
-                            onClick={() => handleSelectTask(task, false)}
-                            style={{
-                              background: isThisSelected
-                                ? (isDark ? 'rgba(59,130,246,0.22)' : '#dbeafe')
-                                : themeObj.cardBg,
-                              border: `1.5px solid ${isThisSelected ? '#3b82f6' : themeObj.border}`,
-                              borderRadius: 10,
-                              padding: '0.45rem 0.75rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              whiteSpace: 'nowrap',
-                              transition: 'all 0.15s ease',
-                              flexShrink: 0
-                            }}
-                            onMouseEnter={e => !isThisSelected && (e.currentTarget.style.borderColor = '#3b82f6')}
-                            onMouseLeave={e => !isThisSelected && (e.currentTarget.style.borderColor = themeObj.border)}
-                          >
-                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6' }}>
-                              {task.sourceType === 'program' ? '📅 Program' : task.sourceType === 'bookTest' ? '📚 Kitap' : '📝 Ödev'}
-                            </span>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.text, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {task.title}
-                            </span>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 900, background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: 6, color: themeObj.subText }}>
-                              {task.questionCount} Soru
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -4245,7 +4235,7 @@ export default function StudyRoomPage() {
         </div>
       )}
 
-      {/* ─── ATANMIŞ ÖDEV, KİTAP TESTİ & PROGRAM SEÇİM VE BAŞLATMA MODALI ─── */}
+      {/* ─── ATANMIŞ ÖDEV, KİTAP TESTİ & HAFTALIK PROGRAM SEÇİM VE BAŞLATMA MODALI ─── */}
       {showHomeworkPickerModal && (
         <div style={{
           position: 'fixed',
@@ -4262,9 +4252,9 @@ export default function StudyRoomPage() {
             background: 'var(--color-surface, #ffffff)',
             borderRadius: 24,
             padding: '1.75rem 1.6rem',
-            maxWidth: 680,
+            maxWidth: 720,
             width: '100%',
-            maxHeight: '90vh',
+            maxHeight: '92vh',
             display: 'flex',
             flexDirection: 'column',
             border: '2px solid #3b82f6',
@@ -4291,10 +4281,10 @@ export default function StudyRoomPage() {
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
-                    Çalışma Görevi / Test Seç
+                    Çalışma Görevi / Test / Program Seç
                   </h2>
                   <p style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', margin: '2px 0 0', fontWeight: 600 }}>
-                    Atanmış ödevlerden, kitap testlerinden veya haftalık programından birini seçerek süreli çalışma başlat
+                    Haftalık ders programından gün seçerek veya ödevlerinden birini seçerek çalışmayı başlat
                   </p>
                 </div>
               </div>
@@ -4319,7 +4309,7 @@ export default function StudyRoomPage() {
               </button>
             </div>
 
-            {/* Kaynak Kategori Sekmeleri (Tabs) */}
+            {/* Ana Kategori Sekmeleri (Tabs) */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
@@ -4330,10 +4320,10 @@ export default function StudyRoomPage() {
               marginBottom: 12
             }}>
               {[
-                { id: 'all', label: '🌟 Tümü', count: allAssignedTasks.length },
-                { id: 'homework', label: '📝 Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework').length },
+                { id: 'program', label: '📅 Haftalık Program', count: allAssignedTasks.filter(t => t.sourceType === 'program' || t.dayKey).length },
                 { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest').length },
-                { id: 'program', label: '📅 Program', count: allAssignedTasks.filter(t => t.sourceType === 'program').length }
+                { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework').length },
+                { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.length }
               ].map(tab => {
                 const isTabActive = hwSourceTab === tab.id;
                 return (
@@ -4342,7 +4332,7 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => setHwSourceTab(tab.id)}
                     style={{
-                      padding: '0.5rem 0.4rem',
+                      padding: '0.55rem 0.4rem',
                       borderRadius: 10,
                       border: 'none',
                       background: isTabActive ? '#3b82f6' : 'transparent',
@@ -4374,198 +4364,626 @@ export default function StudyRoomPage() {
               })}
             </div>
 
-            {/* Arama ve Ders Filtresi */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', flex: '1 1 200px' }}>
-                <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                <input
-                  type="text"
-                  placeholder="Görev, kitap, konu veya ders ara..."
-                  value={hwSearchQuery}
-                  onChange={e => setHwSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem 0.75rem 0.55rem 2rem',
-                    background: 'var(--color-surface-hover, #f8fafc)',
-                    border: '1.5px solid var(--color-border, #e2e8f0)',
-                    borderRadius: 12,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    color: 'var(--color-text)',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <select
-                value={hwFilterSubject}
-                onChange={e => setHwFilterSubject(e.target.value)}
-                style={{
-                  padding: '0.55rem 0.85rem',
-                  background: 'var(--color-surface-hover, #f8fafc)',
-                  border: '1.5px solid var(--color-border, #e2e8f0)',
-                  borderRadius: 12,
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="all">Tüm Dersler</option>
-                {STUDY_SUBJECTS.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Görev & Test Listesi */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              paddingRight: 4,
-              maxHeight: 380
-            }}>
-              {filteredTasksList.length === 0 ? (
+            {/* 1. GÖRÜNÜM: HAFTALIK DERS PROGRAMI (GÜN GÜN SEÇİM & LİSTE) */}
+            {hwSourceTab === 'program' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
+                {/* Gün Seçici Yatay Çubuk */}
                 <div style={{
-                  padding: '2.5rem 1rem',
-                  textAlign: 'center',
-                  background: 'var(--color-surface-hover, #f8fafc)',
-                  borderRadius: 16,
-                  border: '1.5px dashed var(--color-border, #cbd5e1)'
+                  display: 'flex',
+                  gap: 5,
+                  overflowX: 'auto',
+                  paddingBottom: 4,
+                  borderBottom: '1px solid var(--color-border, #e2e8f0)'
                 }}>
-                  <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Aradığınız kriterlere uygun görev / test bulunamadı
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    Farklı bir arama veya sekme deneyebilirsiniz.
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProgramDay('all')}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: 10,
+                      border: `1.5px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
+                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff') : 'transparent',
+                      color: selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-text)',
+                      fontWeight: 900,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>🌟 Tüm Hafta</span>
+                  </button>
+
+                  {WEEK_DAYS_CONFIG.map(dayCfg => {
+                    const isSelected = selectedProgramDay === dayCfg.key;
+                    const isToday = currentTodayKey === dayCfg.key;
+                    const dayGroup = weeklyProgramGrouped.find(g => g.key === dayCfg.key);
+                    const taskCount = dayGroup?.tasks?.length || 0;
+
+                    return (
+                      <button
+                        key={dayCfg.key}
+                        type="button"
+                        onClick={() => setSelectedProgramDay(dayCfg.key)}
+                        style={{
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: 10,
+                          border: `1.5px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
+                          background: isSelected
+                            ? (isDark ? 'rgba(59,130,246,0.2)' : dayCfg.bg)
+                            : isToday
+                              ? (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb')
+                              : 'transparent',
+                          color: isSelected ? dayCfg.color : 'var(--color-text)',
+                          fontWeight: 900,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <span>{dayCfg.icon} {dayCfg.long}</span>
+                        {taskCount > 0 && (
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 900,
+                            background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
+                            color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
+                            padding: '0.05rem 0.35rem',
+                            borderRadius: 99
+                          }}>
+                            {taskCount}
+                          </span>
+                        )}
+                        {isToday && (
+                          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.2)', padding: '0.05rem 0.3rem', borderRadius: 4 }}>
+                            BUGÜN
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : (
-                filteredTasksList.map(task => {
-                  const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
-                  return (
-                    <div
-                      key={task.dedupeKey || task.id}
-                      style={{
-                        background: isSelected
-                          ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff')
-                          : 'var(--color-surface, #ffffff)',
-                        border: isSelected ? '2px solid #3b82f6' : '1.5px solid var(--color-border, #e2e8f0)',
-                        borderRadius: 16,
-                        padding: '0.9rem 1.1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 10,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 900,
-                            background: task.sourceType === 'program' ? 'rgba(16, 185, 129, 0.15)' : task.sourceType === 'bookTest' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                            color: task.sourceType === 'program' ? '#10b981' : task.sourceType === 'bookTest' ? '#6366f1' : '#3b82f6',
-                            padding: '0.12rem 0.5rem',
-                            borderRadius: 6
-                          }}>
-                            {task.sourceLabel}
-                          </span>
 
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            background: 'var(--color-surface-hover, #f1f5f9)',
-                            color: 'var(--color-text)',
-                            padding: '0.12rem 0.45rem',
-                            borderRadius: 6
-                          }}>
-                            {task.subject || 'Genel'}
-                          </span>
+                {/* Günlerin Görev Listesi */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4, maxHeight: 380 }}>
+                  {weeklyProgramGrouped
+                    .filter(dayGroup => selectedProgramDay === 'all' || selectedProgramDay === dayGroup.key)
+                    .map(dayGroup => {
+                      const isToday = currentTodayKey === dayGroup.key;
+                      return (
+                        <div
+                          key={dayGroup.key}
+                          style={{
+                            background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                            border: `1.5px solid ${isToday ? dayGroup.color : 'var(--color-border, #e2e8f0)'}`,
+                            borderRadius: 16,
+                            padding: '0.85rem 1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8
+                          }}
+                        >
+                          {/* Gün Başlığı & İlerleme Özeti */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: '1rem' }}>{dayGroup.icon}</span>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 900, color: dayGroup.color }}>
+                                {dayGroup.long}
+                              </span>
+                              {isToday && (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: '#f59e0b', color: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: 6 }}>
+                                  BUGÜNÜN PROGRAMI
+                                </span>
+                              )}
+                            </div>
 
-                          {task.isCompleted ? (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
-                              ✓ Tamamlandı
-                            </span>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                              {dayGroup.tasks.length > 0 ? (
+                                <span>{dayGroup.completedCount} / {dayGroup.tasks.length} Tamamlandı ({dayGroup.totalQuestions} Soru)</span>
+                              ) : (
+                                <span>Görev Yok</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Günün Görevleri */}
+                          {dayGroup.tasks.length === 0 ? (
+                            <div style={{
+                              padding: '0.9rem',
+                              textAlign: 'center',
+                              background: 'var(--color-surface, #ffffff)',
+                              borderRadius: 12,
+                              border: '1px dashed var(--color-border, #cbd5e1)',
+                              fontSize: '0.78rem',
+                              color: 'var(--color-text-muted)'
+                            }}>
+                              <span>🍃 Bu gün için tanımlı ders programı görevi bulunmuyor.</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowHomeworkPickerModal(false);
+                                  setActiveStudyMode('question');
+                                }}
+                                style={{
+                                  marginLeft: 8,
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#3b82f6',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  fontSize: '0.78rem'
+                                }}
+                              >
+                                Serbest Çalışma Başlat ➔
+                              </button>
+                            </div>
                           ) : (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
-                              ⏳ Bekliyor
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {dayGroup.tasks.map(task => {
+                                const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
+                                return (
+                                  <div
+                                    key={task.dedupeKey || task.id}
+                                    style={{
+                                      background: isSelected
+                                        ? (isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff')
+                                        : 'var(--color-surface, #ffffff)',
+                                      border: isSelected ? '2px solid #3b82f6' : '1px solid var(--color-border, #e2e8f0)',
+                                      borderRadius: 12,
+                                      padding: '0.75rem 0.95rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      flexWrap: 'wrap',
+                                      gap: 8
+                                    }}
+                                  >
+                                    <div style={{ flex: 1, minWidth: 180 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                        <span style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 900,
+                                          background: 'rgba(59,130,246,0.12)',
+                                          color: '#3b82f6',
+                                          padding: '0.1rem 0.45rem',
+                                          borderRadius: 6
+                                        }}>
+                                          {task.subject || 'Genel'}
+                                        </span>
+                                        {task.isCompleted ? (
+                                          <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
+                                            ✓ Tamamlandı
+                                          </span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
+                                            ⏳ Bekliyor
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                                        {task.title}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
+                                        {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                                        {task.bookTitle ? ` • ${task.bookTitle}` : ''}
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSelectTask(task, true)}
+                                        style={{
+                                          padding: '0.45rem 0.85rem',
+                                          borderRadius: 10,
+                                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          fontWeight: 900,
+                                          fontSize: '0.76rem',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 5,
+                                          boxShadow: '0 3px 10px rgba(245,158,11,0.25)'
+                                        }}
+                                      >
+                                        <Play size={12} fill="#ffffff" /> Odada Başlat
+                                      </button>
+
+                                      {(task.realTestId || task.bookTestId) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleLaunchTaskQuiz(task)}
+                                          style={{
+                                            padding: '0.45rem 0.85rem',
+                                            borderRadius: 10,
+                                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            fontWeight: 900,
+                                            fontSize: '0.76rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 5,
+                                            boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                                          }}
+                                        >
+                                          <PlayCircle size={13} /> Hemen Çöz
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
-
-                          {task.dueDate && (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                              📅 {new Date(task.dueDate).toLocaleDateString('tr-TR')}
-                            </span>
-                          )}
                         </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
-                        <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                          {task.title}
-                        </div>
+            {/* 2. GÖRÜNÜM: KİTAP TESTLERİ (KİTAP BAZINDA GRUPLU) */}
+            {hwSourceTab === 'bookTest' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
+                {/* Arama & Ders Filtresi */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: '1 1 200px' }}>
+                    <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Kitap veya test adı ara..."
+                      value={hwSearchQuery}
+                      onChange={e => setHwSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem 0.5rem 2rem',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
+                        borderRadius: 12,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: 'var(--color-text)',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
 
-                        <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                          {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
-                          {task.unit ? ` • ${task.unit}` : ''}
-                        </div>
-                      </div>
+                  <select
+                    value={hwFilterSubject}
+                    onChange={e => setHwFilterSubject(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.85rem',
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: 12,
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Tüm Dersler</option>
+                    {STUDY_SUBJECTS.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTask(task, true)}
-                          style={{
-                            padding: '0.5rem 0.9rem',
-                            borderRadius: 10,
-                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            color: '#ffffff',
-                            border: 'none',
-                            fontWeight: 900,
-                            fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
-                          }}
-                        >
-                          <Play size={13} fill="#ffffff" /> Odada Başlat
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleLaunchTaskQuiz(task)}
-                          style={{
-                            padding: '0.5rem 0.9rem',
-                            borderRadius: 10,
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                            color: '#ffffff',
-                            border: 'none',
-                            fontWeight: 900,
-                            fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
-                          }}
-                        >
-                          <PlayCircle size={14} /> {task.sourceType === 'program' ? 'Programda Başla' : 'Hemen Çöz'}
-                        </button>
-                      </div>
+                {/* Kitaplar ve Testleri */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4, maxHeight: 380 }}>
+                  {bookGroupedTests.length === 0 ? (
+                    <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16 }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 6 }}>📚</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>Kitap testi bulunamadı</div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  ) : (
+                    bookGroupedTests.map(bg => {
+                      const matchingTests = bg.tests.filter(t => {
+                        const matchSubject = hwFilterSubject === 'all' || (t.subject && t.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
+                        const matchQuery = !hwSearchQuery.trim() ||
+                          (t.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+                          (bg.bookTitle || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
+                          (t.testName || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
+                        return matchSubject && matchQuery;
+                      });
+
+                      if (matchingTests.length === 0) return null;
+
+                      return (
+                        <div
+                          key={bg.bookTitle}
+                          style={{
+                            background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                            border: '1.5px solid var(--color-border, #e2e8f0)',
+                            borderRadius: 16,
+                            padding: '0.85rem 1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: '1.1rem' }}>📖</span>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#3b82f6' }}>{bg.bookTitle}</span>
+                            </div>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                              {matchingTests.length} Test
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+                            {matchingTests.map(test => {
+                              const isSelected = selectedTask?.id === test.id || selectedTask?.dedupeKey === test.dedupeKey;
+                              return (
+                                <div
+                                  key={test.id}
+                                  style={{
+                                    background: isSelected ? (isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff') : 'var(--color-surface, #ffffff)',
+                                    border: isSelected ? '2px solid #3b82f6' : '1px solid var(--color-border, #e2e8f0)',
+                                    borderRadius: 12,
+                                    padding: '0.75rem 0.85rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between',
+                                    gap: 8
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                                      <span style={{ fontSize: '0.66rem', fontWeight: 900, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
+                                        {test.subject || bg.subject || 'Genel'}
+                                      </span>
+                                      {test.isCompleted ? (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#10b981' }}>✓ Çözüldü</span>
+                                      ) : (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#d97706' }}>⏳ Bekliyor</span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                                      {test.testName || test.title}
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                      {test.questionCount} Soru • Yaklaşık {Math.round(test.questionCount * minutesPerQuestion)} dk
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectTask(test, true)}
+                                      style={{
+                                        flex: 1,
+                                        padding: '0.4rem 0.6rem',
+                                        borderRadius: 8,
+                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontWeight: 900,
+                                        fontSize: '0.74rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 4
+                                      }}
+                                    >
+                                      <Play size={11} fill="#ffffff" /> Odada Başlat
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLaunchTaskQuiz(test)}
+                                      style={{
+                                        flex: 1,
+                                        padding: '0.4rem 0.6rem',
+                                        borderRadius: 8,
+                                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontWeight: 900,
+                                        fontSize: '0.74rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 4
+                                      }}
+                                    >
+                                      <PlayCircle size={12} /> Hemen Çöz
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 3. GÖRÜNÜM: ATANMIŞ ÖDEVLER & 4. TÜM LİSTE */}
+            {(hwSourceTab === 'homework' || hwSourceTab === 'all') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
+                {/* Arama ve Ders Filtresi */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: '1 1 200px' }}>
+                    <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Ödev, konu veya ders ara..."
+                      value={hwSearchQuery}
+                      onChange={e => setHwSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem 0.5rem 2rem',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
+                        borderRadius: 12,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: 'var(--color-text)',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <select
+                    value={hwFilterSubject}
+                    onChange={e => setHwFilterSubject(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.85rem',
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: 12,
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Tüm Dersler</option>
+                    {STUDY_SUBJECTS.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Görev Listesi */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4, maxHeight: 380 }}>
+                  {filteredTasksList.length === 0 ? (
+                    <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16 }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>Kriterlere uygun ödev / görev bulunamadı</div>
+                    </div>
+                  ) : (
+                    filteredTasksList.map(task => {
+                      const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
+                      return (
+                        <div
+                          key={task.dedupeKey || task.id}
+                          style={{
+                            background: isSelected ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff') : 'var(--color-surface, #ffffff)',
+                            border: isSelected ? '2px solid #3b82f6' : '1.5px solid var(--color-border, #e2e8f0)',
+                            borderRadius: 16,
+                            padding: '0.85rem 1.05rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 10
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 200 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 900,
+                                background: task.sourceType === 'program' ? 'rgba(16, 185, 129, 0.15)' : task.sourceType === 'bookTest' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                color: task.sourceType === 'program' ? '#10b981' : task.sourceType === 'bookTest' ? '#6366f1' : '#3b82f6',
+                                padding: '0.12rem 0.5rem',
+                                borderRadius: 6
+                              }}>
+                                {task.sourceLabel}
+                              </span>
+
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
+                                {task.subject || 'Genel'}
+                              </span>
+
+                              {task.isCompleted ? (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
+                                  ✓ Tamamlandı
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fef3c7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
+                                  ⏳ Bekliyor
+                                </span>
+                              )}
+
+                              {task.dueDate && (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                  📅 {new Date(task.dueDate).toLocaleDateString('tr-TR')}
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                              {task.title}
+                            </div>
+
+                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                              {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                              {task.unit ? ` • ${task.unit}` : ''}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectTask(task, true)}
+                              style={{
+                                padding: '0.5rem 0.9rem',
+                                borderRadius: 10,
+                                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
+                              }}
+                            >
+                              <Play size={13} fill="#ffffff" /> Odada Başlat
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleLaunchTaskQuiz(task)}
+                              style={{
+                                padding: '0.5rem 0.9rem',
+                                borderRadius: 10,
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                              }}
+                            >
+                              <PlayCircle size={14} /> {task.sourceType === 'program' ? 'Programda Başla' : 'Hemen Çöz'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Modal Alt Kapatma */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--color-border)' }}>
