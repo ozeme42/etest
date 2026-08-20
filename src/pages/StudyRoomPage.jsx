@@ -4196,80 +4196,10 @@ export default function StudyRoomPage() {
 
           </div>
 
-          {/* ─── RIGHT COLUMN: AMBİYANS SESLERİ, GÖREV LİSTESİ & NOTLAR & MOTİVASYON ─── */}
+          {/* ─── RIGHT COLUMN: HEDEF GÖREV LİSTESİ, NOTLAR & MOTİVASYON ─── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* 1. ARKA PLAN ODAK SESLERİ (AMBIENT GENERATOR) */}
-            <div className="sr-card" style={{
-              background: themeObj.cardBg,
-              backdropFilter: 'blur(20px)',
-              borderRadius: 24,
-              border: `1.5px solid ${themeObj.border}`,
-              padding: '1.25rem',
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Headphones size={18} color={themeObj.accent} />
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
-                    Arka Plan Odak Sesleri
-                  </h3>
-                </div>
-                <button
-                  onClick={handleMuteAll}
-                  style={{
-                    background: themeObj.buttonBg,
-                    border: `1px solid ${themeObj.border}`,
-                    color: themeObj.text,
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: 8,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {Object.values(soundVolumes).some(v => v > 0) ? '🔇 Sustur' : '🔊 Hızlı Aç'}
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {[
-                  { key: 'rain', label: 'Yağmur Sesi', icon: '🌧️' },
-                  { key: 'waves', label: 'Okyanus Dalgası', icon: '🌊' },
-                  { key: 'fire', label: 'Şömine Çıtırtısı', icon: '🔥' },
-                  { key: 'binaural', label: '432Hz Derin Odak (Alpha)', icon: '🧠' },
-                  { key: 'whitenoise', label: 'Beyaz Gürültü (Zen)', icon: '💨' }
-                ].map(snd => {
-                  const vol = soundVolumes[snd.key] || 0;
-                  return (
-                    <div key={snd.key} style={{ background: themeObj.innerBg, borderRadius: 14, padding: '0.6rem 0.8rem', border: `1.5px solid ${themeObj.border}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{snd.icon}</span> {snd.label}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: vol > 0 ? themeObj.accent : themeObj.subText }}>
-                          {vol > 0 ? `%${vol}` : 'Kapalı'}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={vol}
-                        onChange={e => handleVolumeChange(snd.key, e.target.value)}
-                        style={{
-                          width: '100%',
-                          accentColor: themeObj.accent,
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2. HEDEF GÖREV LİSTESİ & NOTLAR */}
+            {/* 1. HEDEF GÖREV LİSTESİ & NOTLAR */}
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
