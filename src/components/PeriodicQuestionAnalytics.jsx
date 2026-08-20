@@ -493,8 +493,8 @@ export default function PeriodicQuestionAnalytics({
       {/* ── 4'LÜ MİKRO KPI ÖZET KARTLARI (YÜKSEK KONTRAST & AÇIK TEMADA BELİRGİN) ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-        gap: isMobile ? '0.45rem' : '0.75rem',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(130px, 1fr))',
+        gap: isMobile ? '0.45rem' : '0.65rem',
         marginBottom: isMobile ? '0.75rem' : '1.1rem'
       }}>
         {/* Toplam Soru */}
@@ -503,28 +503,31 @@ export default function PeriodicQuestionAnalytics({
             ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.08) 100%)'
             : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
           border: isDark ? '1.5px solid rgba(59, 130, 246, 0.35)' : '1.5px solid #bfdbfe',
-          borderRadius: isMobile ? '0.75rem' : '0.9rem',
-          padding: isMobile ? '0.55rem 0.65rem' : '0.8rem 0.95rem',
+          borderRadius: '0.85rem',
+          padding: isMobile ? '0.55rem 0.65rem' : '0.7rem 0.85rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          minHeight: isMobile ? '64px' : '72px',
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(59, 130, 246, 0.08)'
         }}>
-          <div style={{ fontSize: isMobile ? '0.64rem' : '0.72rem', fontWeight: 900, color: isDark ? '#60a5fa' : '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 900, color: isDark ? '#60a5fa' : '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Toplam Soru
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: isDark ? '#93c5fd' : '#1e3a8a', lineHeight: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 3 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', fontWeight: 900, color: isDark ? '#93c5fd' : '#1e3a8a', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totQ}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.64rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.68rem',
               fontWeight: 900,
               color: isDark ? '#bfdbfe' : '#1d4ed8',
               background: isDark ? 'rgba(59, 130, 246, 0.25)' : '#ffffff',
-              padding: '0.15rem 0.45rem',
+              padding: '0.15rem 0.4rem',
               borderRadius: '0.4rem',
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid #bfdbfe'
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid #bfdbfe',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}>
               {totals.totTests} Test
             </span>
@@ -537,28 +540,31 @@ export default function PeriodicQuestionAnalytics({
             ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.08) 100%)'
             : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
           border: isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid #a7f3d0',
-          borderRadius: isMobile ? '0.75rem' : '0.9rem',
-          padding: isMobile ? '0.55rem 0.65rem' : '0.8rem 0.95rem',
+          borderRadius: '0.85rem',
+          padding: isMobile ? '0.55rem 0.65rem' : '0.7rem 0.85rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          minHeight: isMobile ? '64px' : '72px',
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(16, 185, 129, 0.08)'
         }}>
-          <div style={{ fontSize: isMobile ? '0.64rem' : '0.72rem', fontWeight: 900, color: isDark ? '#34d399' : '#047857', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 900, color: isDark ? '#34d399' : '#047857', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Doğru (D)
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#064e3b', lineHeight: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 3 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#064e3b', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totD}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.64rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.68rem',
               fontWeight: 900,
               color: isDark ? '#a7f3d0' : '#047857',
               background: isDark ? 'rgba(16, 185, 129, 0.25)' : '#ffffff',
-              padding: '0.15rem 0.45rem',
+              padding: '0.15rem 0.4rem',
               borderRadius: '0.4rem',
-              border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #a7f3d0'
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #a7f3d0',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}>
               %{totals.totQ > 0 ? Math.round((totals.totD / totals.totQ) * 100) : 0} D
             </span>
@@ -571,28 +577,31 @@ export default function PeriodicQuestionAnalytics({
             ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.08) 100%)'
             : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
           border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca',
-          borderRadius: isMobile ? '0.75rem' : '0.9rem',
-          padding: isMobile ? '0.55rem 0.65rem' : '0.8rem 0.95rem',
+          borderRadius: '0.85rem',
+          padding: isMobile ? '0.55rem 0.65rem' : '0.7rem 0.85rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          minHeight: isMobile ? '64px' : '72px',
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.08)'
         }}>
-          <div style={{ fontSize: isMobile ? '0.64rem' : '0.72rem', fontWeight: 900, color: isDark ? '#f87171' : '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 900, color: isDark ? '#f87171' : '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Yanlış / Boş
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#7f1d1d', lineHeight: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 3 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#7f1d1d', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totY}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.64rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.68rem',
               fontWeight: 900,
               color: isDark ? '#fecaca' : '#991b1b',
               background: isDark ? 'rgba(239, 68, 68, 0.25)' : '#ffffff',
-              padding: '0.15rem 0.45rem',
+              padding: '0.15rem 0.4rem',
               borderRadius: '0.4rem',
-              border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca'
+              border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}>
               {totals.totB} Boş
             </span>
@@ -607,39 +616,46 @@ export default function PeriodicQuestionAnalytics({
           border: totals.avgRate >= 70
             ? (isDark ? '1.5px solid rgba(168, 85, 247, 0.35)' : '1.5px solid #e9d5ff')
             : (isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a'),
-          borderRadius: isMobile ? '0.75rem' : '0.9rem',
-          padding: isMobile ? '0.55rem 0.65rem' : '0.8rem 0.95rem',
+          borderRadius: '0.85rem',
+          padding: isMobile ? '0.55rem 0.65rem' : '0.7rem 0.85rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          minHeight: isMobile ? '64px' : '72px',
           boxShadow: isDark ? 'none' : (totals.avgRate >= 70 ? '0 2px 8px rgba(168, 85, 247, 0.08)' : '0 2px 8px rgba(245, 158, 11, 0.08)')
         }}>
           <div style={{
-            fontSize: isMobile ? '0.64rem' : '0.72rem',
+            fontSize: isMobile ? '0.64rem' : '0.7rem',
             fontWeight: 900,
             color: totals.avgRate >= 70 ? (isDark ? '#c084fc' : '#6b21a8') : (isDark ? '#fbbf24' : '#b45309'),
             textTransform: 'uppercase',
-            letterSpacing: '0.04em'
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
           }}>
             Başarı Oranı
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 3 }}>
             <span style={{
-              fontSize: isMobile ? '1.35rem' : '1.65rem',
+              fontSize: isMobile ? '1.25rem' : '1.45rem',
               fontWeight: 900,
               color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#581c87') : (isDark ? '#fef3c7' : '#78350f'),
-              lineHeight: 1
+              lineHeight: 1,
+              whiteSpace: 'nowrap'
             }}>
               %{totals.avgRate}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.64rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.68rem',
               fontWeight: 900,
               color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#7e22ce') : (isDark ? '#fef3c7' : '#92400e'),
               background: isDark ? (totals.avgRate >= 70 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(245, 158, 11, 0.25)') : '#ffffff',
-              padding: '0.15rem 0.45rem',
+              padding: '0.15rem 0.4rem',
               borderRadius: '0.4rem',
-              border: isDark ? (totals.avgRate >= 70 ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)') : (totals.avgRate >= 70 ? '1px solid #e9d5ff' : '1px solid #fde68a')
+              border: isDark ? (totals.avgRate >= 70 ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)') : (totals.avgRate >= 70 ? '1px solid #e9d5ff' : '1px solid #fde68a'),
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}>
               {totals.avgRate >= 70 ? '🌟 Süper' : totals.avgRate >= 50 ? '📈 İyi' : '⚠️ Dikkat'}
             </span>
