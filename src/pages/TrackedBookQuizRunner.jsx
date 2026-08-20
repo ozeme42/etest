@@ -681,12 +681,13 @@ export default function TrackedBookQuizRunner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
               onClick={() => {
-                if (resolvedBook) navigate(`/student/books/${resolvedBook.id}`);
+                if (resolvedBook?.bookType === 'exam') navigate('/student/exams');
+                else if (resolvedBook) navigate(`/student/books/${resolvedBook.id}`);
                 else if (window.history.length > 1) navigate(-1);
-                else navigate('/student/books');
+                else navigate('/student/exams');
               }}
               style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title="Kitaba Dön"
+              title={resolvedBook?.bookType === 'exam' ? "Denemelere Dön" : "Kitaba Dön"}
             >
               <ArrowLeft size={isMobile ? 18 : 22} />
             </button>
@@ -1017,12 +1018,16 @@ export default function TrackedBookQuizRunner() {
                   {/* Action buttons after submission */}
                   <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button 
-                      onClick={() => navigate(`/student/books/${resolvedBook?.id || ''}`)}
+                      onClick={() => {
+                        if (resolvedBook?.bookType === 'exam') navigate('/student/exams');
+                        else if (resolvedBook?.id) navigate(`/student/books/${resolvedBook.id}`);
+                        else navigate('/student/exams');
+                      }}
                       style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
-                      <BookOpen size={16} /> Kitap Testlerine Dön
+                      <Trophy size={16} /> {resolvedBook?.bookType === 'exam' ? 'Denemelerime Dön' : 'Kitap Testlerine Dön'}
                     </button>
                   </div>
                 </div>

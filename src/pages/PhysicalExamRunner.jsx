@@ -1348,14 +1348,14 @@ export default function PhysicalExamRunner() {
                   <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button 
                       onClick={() => {
-                        if (homework.bookId) navigate(`/student/books/${homework.bookId}`);
+                        if (isTeacherOrAdmin) navigate('/physical-exam');
                         else navigate('/student/exams');
                       }}
                       style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
-                      <BookOpen size={16} /> Denemelere / Kitaba Dön
+                      <Trophy size={16} /> Denemelerime Dön
                     </button>
                   </div>
                 </div>

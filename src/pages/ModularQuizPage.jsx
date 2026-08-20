@@ -1425,10 +1425,12 @@ export default function ModularQuizPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (submittedResult.bookId) {
+                    if (bookForTest?.bookType === 'exam' || submittedResult?.isExam) {
+                      navigate('/student/exams');
+                    } else if (submittedResult.bookId) {
                       navigate(`/student/books/${submittedResult.bookId}`);
                     } else {
-                      navigate('/student');
+                      navigate('/student/exams');
                     }
                   }}
                   style={{
