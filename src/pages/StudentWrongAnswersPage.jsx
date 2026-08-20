@@ -908,6 +908,42 @@ export default function StudentWrongAnswersPage() {
       });
     });
 
+    // 2.5. Scan homeworks in HomeworkContext
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(hs => {
+        const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
+        if (!isMatch) return;
+        if (!hs.mistakeReasons || typeof hs.mistakeReasons !== 'object') return;
+
+        Object.entries(hs.mistakeReasons).forEach(([subKey, reason]) => {
+          if (!reason || typeof reason !== 'string') return;
+          const dedupeKey = `hw_${hw.id}_${subKey}`;
+          if (countedKeys.has(dedupeKey)) return;
+          countedKeys.add(dedupeKey);
+
+          const matchedKey = Object.keys(reasonDefs).find(rk =>
+            reason.includes(rk) || rk.includes(reason) ||
+            (reason.includes('İşlem') && rk.includes('İşlem')) ||
+            (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+            (reason.includes('Formül') && rk.includes('Formül')) ||
+            (reason.includes('Konu') && rk.includes('Konu')) ||
+            (reason.includes('Zaman') && rk.includes('Zaman'))
+          );
+          if (matchedKey) {
+            reasonDefs[matchedKey].count++;
+            questionsList.push({
+              id: dedupeKey,
+              testTitle: hw.title || 'Ödev / Test',
+              subject: subKey.includes('_') ? subKey.split('_')[0] : (hw.subject || 'Soru'),
+              qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+              reason: matchedKey,
+              def: reasonDefs[matchedKey]
+            });
+          }
+        });
+      });
+    });
+
     // 3. Scan studentErrors (Görsel Hata Defteri)
     (studentErrors || []).forEach(err => {
       if (!err.reason) return;

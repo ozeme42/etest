@@ -856,6 +856,42 @@ export default function StudentExamsPage() {
       }
     });
 
+    // 3. Scan Homeworks
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(hs => {
+        const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
+        if (!isMatch) return;
+        if (!hs.mistakeReasons || typeof hs.mistakeReasons !== 'object') return;
+
+        Object.entries(hs.mistakeReasons).forEach(([subKey, reason]) => {
+          if (!reason || typeof reason !== 'string') return;
+          const dedupeKey = `hw_${hw.id}_${subKey}`;
+          if (countedKeys.has(dedupeKey)) return;
+          countedKeys.add(dedupeKey);
+
+          const matchedKey = Object.keys(reasonDefs).find(rk =>
+            reason.includes(rk) || rk.includes(reason) ||
+            (reason.includes('İşlem') && rk.includes('İşlem')) ||
+            (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+            (reason.includes('Formül') && rk.includes('Formül')) ||
+            (reason.includes('Konu') && rk.includes('Konu')) ||
+            (reason.includes('Zaman') && rk.includes('Zaman'))
+          );
+          if (matchedKey) {
+            reasonDefs[matchedKey].count++;
+            questionsList.push({
+              id: dedupeKey,
+              examTitle: hw.title || 'Deneme / Ödev',
+              subject: subKey.includes('_') ? subKey.split('_')[0] : (hw.subject || 'Deneme'),
+              qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+              reason: matchedKey,
+              def: reasonDefs[matchedKey]
+            });
+          }
+        });
+      });
+    });
+
     const totalClassified = Object.values(reasonDefs).reduce((acc, r) => acc + r.count, 0);
     const unclassifiedCount = Math.max(0, totalWrongAndBlank - totalClassified);
 

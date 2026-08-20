@@ -607,7 +607,7 @@ export default function StudentBookDetailsPage() {
 
       const foundReasonsList = [];
 
-      // A. Check from submissions
+      // A. Check from submissions (EvaluationContext)
       const matchingSubs = (submissions || []).filter(s => {
         const isMatchStudent = String(s.studentId) === studentIdStr ||
           (studentUuidStr && String(s.studentId) === studentUuidStr) ||
@@ -650,10 +650,45 @@ export default function StudentBookDetailsPage() {
         }
       });
 
-      // B. Check from localStorage entries matching this test ID
+      // B. Check from homeworks (HomeworkContext)
+      (homeworks || []).forEach(hw => {
+        const isMatchHwTest = String(hw.id) === tIdStr ||
+          String(hw.testId) === tIdStr ||
+          String(hw.bookTestId) === tIdStr ||
+          (tCleanId && (String(hw.id) === tCleanId || String(hw.testId) === tCleanId)) ||
+          (tUuidStr && (String(hw.id) === tUuidStr || String(hw.testId) === tUuidStr));
+
+        if (isMatchHwTest && Array.isArray(hw.submissions)) {
+          hw.submissions.forEach(hs => {
+            const isMatchStudent = String(hs.studentId) === studentIdStr ||
+              (studentUuidStr && String(hs.studentId) === studentUuidStr) ||
+              (currentUserIdStr && String(hs.studentId) === currentUserIdStr) ||
+              (currentUserUuidStr && String(hs.studentId) === currentUserUuidStr);
+            if (isMatchStudent) {
+              if (hs.mistakeReasons && typeof hs.mistakeReasons === 'object') {
+                foundReasonsList.push(hs.mistakeReasons);
+              }
+              if (Array.isArray(hs.answers)) {
+                const aObj = {};
+                hs.answers.forEach((a, aIdx) => {
+                  const qNum = a.questionNo || (aIdx + 1);
+                  const r = a.reason || a.mistakeReason || a.hataNedeni || a.hata_sebebi;
+                  if (r) aObj[qNum] = r;
+                });
+                if (Object.keys(aObj).length > 0) foundReasonsList.push(aObj);
+              }
+            }
+          });
+        }
+      });
+
+      // C. Check from localStorage entries matching this test ID
       Object.entries(localMap).forEach(([k, val]) => {
         if (!val || typeof val !== 'object') return;
-        const isTestMatch = k.includes(tIdStr) || (tCleanId && k.includes(tCleanId)) || (tUuidStr && k.includes(tUuidStr));
+        const isTestMatch = k.includes(tIdStr) || 
+          (tCleanId && k.includes(tCleanId)) || 
+          (tUuidStr && k.includes(tUuidStr)) ||
+          (t.name && k.toLowerCase().includes(t.name.toLowerCase().trim()));
         if (isTestMatch) {
           foundReasonsList.push(val);
         }
