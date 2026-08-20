@@ -99,6 +99,8 @@ export default function ExamManager() {
   const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
   const [examPdfUrl, setExamPdfUrl] = useState('');
   const [penaltyRatio, setPenaltyRatio] = useState(3);
+  const [optionCount, setOptionCount] = useState(4);
+  const [timePerQuestion, setTimePerQuestion] = useState(2);
 
   const [subjects, setSubjects] = useState(EXAM_PRESETS.LGS.subjects);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
@@ -177,6 +179,9 @@ export default function ExamManager() {
     setExamType(newType);
     const newPreset = EXAM_PRESETS[newType] || EXAM_PRESETS.LGS;
     setPenaltyRatio(newPreset.penaltyRatio);
+    const optCount = newType === 'LGS' ? 4 : (newType === 'TYT' || newType === 'AYT' || newType === 'YKS' ? 5 : 4);
+    setOptionCount(optCount);
+    setTimePerQuestion(newType === 'TYT' ? 1.35 : 2);
     setSubjects(newPreset.subjects);
     setActiveSubjectIndex(0);
 
@@ -359,6 +364,8 @@ export default function ExamManager() {
       subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
       bookType: 'exam',
       penaltyRatio,
+      optionCount,
+      timePerQuestion,
       pdfUrl: examPdfUrl.trim() || '',
       createdBy: currentUser?.id,
       teacherId: currentUser?.id
@@ -378,6 +385,8 @@ export default function ExamManager() {
              subjectId: subId,
              name: `${subject.name} Testi`,
              questionCount: subject.count,
+             optionCount,
+             timePerQuestion,
              isOpenEnded: false,
              answerKey: ak
           })
@@ -398,7 +407,9 @@ export default function ExamManager() {
       title: exam.title || '',
       publisher: exam.publisher || 'LGS',
       pdfUrl: exam.pdfUrl || '',
-      penaltyRatio: exam.penaltyRatio || 3
+      penaltyRatio: exam.penaltyRatio !== undefined ? exam.penaltyRatio : 3,
+      optionCount: exam.optionCount || (exam.publisher === 'LGS' ? 4 : 5),
+      timePerQuestion: Number(exam.timePerQuestion) || 2
     });
     
     const inlines = {};
@@ -412,6 +423,10 @@ export default function ExamManager() {
   const handleSaveExamEdits = async () => {
     if (!viewingExamDetails) return;
     const finalPdfUrl = editingExamMeta.pdfUrl ? editingExamMeta.pdfUrl.trim() : '';
+    const finalOptionCount = Number(editingExamMeta.optionCount) || 4;
+    const finalTimePerQuestion = Number(editingExamMeta.timePerQuestion) || 2;
+    const finalPenaltyRatio = editingExamMeta.penaltyRatio !== undefined ? Number(editingExamMeta.penaltyRatio) : 3;
+
     const testPromises = [];
     (viewingExamDetails.subjects || []).forEach(sub => {
        const ak = {};
@@ -422,7 +437,9 @@ export default function ExamManager() {
        if (sub.testId) {
          testPromises.push(updateTrackedBookTest(sub.testId, { 
            answerKey: ak,
-           pdfUrl: finalPdfUrl
+           pdfUrl: finalPdfUrl,
+           optionCount: finalOptionCount,
+           timePerQuestion: finalTimePerQuestion
          }));
        }
     });
@@ -432,16 +449,21 @@ export default function ExamManager() {
       title: editingExamMeta.title,
       publisher: editingExamMeta.publisher,
       pdfUrl: finalPdfUrl,
-      penaltyRatio: editingExamMeta.penaltyRatio
+      penaltyRatio: finalPenaltyRatio,
+      optionCount: finalOptionCount,
+      timePerQuestion: finalTimePerQuestion
     });
 
-    // Also update any assigned homeworks for this book so students immediately get the new PDF link
+    // Also update any assigned homeworks for this book so students immediately get the new settings
     const relatedHws = (homeworks || []).filter(h => String(h.bookId) === String(viewingExamDetails.id));
     for (const rhw of relatedHws) {
       if (typeof updateHomework === 'function') {
         updateHomework(rhw.id, {
           title: editingExamMeta.title,
-          pdfUrl: finalPdfUrl
+          pdfUrl: finalPdfUrl,
+          penaltyRatio: finalPenaltyRatio,
+          optionCount: finalOptionCount,
+          timePerQuestion: finalTimePerQuestion
         });
       }
     }
@@ -451,11 +473,13 @@ export default function ExamManager() {
       title: editingExamMeta.title,
       publisher: editingExamMeta.publisher,
       pdfUrl: finalPdfUrl,
-      penaltyRatio: editingExamMeta.penaltyRatio
+      penaltyRatio: finalPenaltyRatio,
+      optionCount: finalOptionCount,
+      timePerQuestion: finalTimePerQuestion
     } : null);
 
     setIsEditingExam(false);
-    alert('✅ Deneme başarıyla güncellendi!');
+    alert('✅ Deneme sınavı bilgileri başarıyla güncellendi!');
   };
 
   const handleQuickAssign = async () => {
@@ -956,6 +980,35 @@ export default function ExamManager() {
                   <option value={5}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
                 </select>
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', textTransform: 'uppercase', marginBottom: 4 }}>Şık Sayısı</label>
+                <select
+                  value={optionCount}
+                  onChange={e => setOptionCount(Number(e.target.value))}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', fontWeight: 800, outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value={4}>4 Şık (A, B, C, D — LGS & Ortaokul)</option>
+                  <option value={5}>5 Şık (A, B, C, D, E — YKS & Lise)</option>
+                  <option value={3}>3 Şık (A, B, C — İlkokul)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', textTransform: 'uppercase', marginBottom: 4 }}>Soru Başına Süre</label>
+                <select
+                  value={timePerQuestion}
+                  onChange={e => setTimePerQuestion(Number(e.target.value))}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', fontWeight: 800, outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value={1}>1.0 dk / Soru</option>
+                  <option value={1.35}>1.35 dk / Soru (TYT Standart)</option>
+                  <option value={1.5}>1.5 dk / Soru</option>
+                  <option value={2}>2.0 dk / Soru (LGS Standart)</option>
+                  <option value={2.5}>2.5 dk / Soru</option>
+                  <option value={3}>3.0 dk / Soru</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1273,30 +1326,80 @@ export default function ExamManager() {
             </div>
 
             {/* QUICK SPECS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', textAlign: 'center' }}>
-              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.75rem', borderRadius: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.55rem', textAlign: 'center' }}>
+              
+              {/* Toplam Soru */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Toplam Soru</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>{viewingExamDetails.totalQuestions} Soru</span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>{viewingExamDetails.totalQuestions} Soru</span>
               </div>
-              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.75rem', borderRadius: '0.85rem' }}>
+
+              {/* Ceza Kuralı */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Ceza Kuralı</span>
                 {isEditingExam ? (
                   <select
                     value={editingExamMeta.penaltyRatio}
                     onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
-                    style={{ marginTop: 4, width: '100%', padding: '0.25rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: '#fbbf24', fontSize: '0.8rem', fontWeight: 900, outline: 'none' }}
+                    style={{ marginTop: 4, width: '100%', padding: '0.25rem 0.1rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
                   >
-                    <option value={3}>3 Yanlış 1 Doğru (LGS)</option>
-                    <option value={4}>4 Yanlış 1 Doğru (YKS)</option>
+                    <option value={3}>3Y = 1D (LGS)</option>
+                    <option value={4}>4Y = 1D (YKS)</option>
                     <option value={0}>Ceza Yok</option>
+                    <option value={2}>2Y = 1D</option>
                   </select>
                 ) : (
-                  <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fbbf24' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
                 )}
               </div>
-              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.75rem', borderRadius: '0.85rem' }}>
+
+              {/* Şık Sayısı */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Şık Sayısı</span>
+                {isEditingExam ? (
+                  <select
+                    value={editingExamMeta.optionCount || 4}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, optionCount: Number(e.target.value) }))}
+                    style={{ marginTop: 4, width: '100%', padding: '0.25rem 0.1rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
+                  >
+                    <option value={4}>4 Şık (A-D)</option>
+                    <option value={5}>5 Şık (A-E)</option>
+                    <option value={3}>3 Şık (A-C)</option>
+                  </select>
+                ) : (
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#60a5fa' }}>
+                    {viewingExamDetails.optionCount ? `${viewingExamDetails.optionCount} Şık` : (viewingExamDetails.publisher === 'LGS' ? '4 Şık (A-D)' : '5 Şık (A-E)')}
+                  </span>
+                )}
+              </div>
+
+              {/* Soru Başına Süre */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Soru Başı Süre</span>
+                {isEditingExam ? (
+                  <select
+                    value={editingExamMeta.timePerQuestion || 2}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, timePerQuestion: Number(e.target.value) }))}
+                    style={{ marginTop: 4, width: '100%', padding: '0.25rem 0.1rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: '#34d399', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
+                  >
+                    <option value={1}>1.0 dk / Soru</option>
+                    <option value={1.35}>1.35 dk / Soru</option>
+                    <option value={1.5}>1.5 dk / Soru</option>
+                    <option value={2}>2.0 dk / Soru</option>
+                    <option value={2.5}>2.5 dk / Soru</option>
+                    <option value={3}>3.0 dk / Soru</option>
+                  </select>
+                ) : (
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#34d399' }}>
+                    ~{viewingExamDetails.timePerQuestion || 2} dk
+                  </span>
+                )}
+              </div>
+
+              {/* Ders Sayısı */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Ders Sayısı</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#818cf8' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#818cf8' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
               </div>
             </div>
 

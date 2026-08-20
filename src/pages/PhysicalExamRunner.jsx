@@ -91,6 +91,8 @@ export default function PhysicalExamRunner() {
         title: matchingBook.title || 'Fiziki Deneme',
         examType: matchingBook.publisher || 'LGS / YKS',
         type: 'physicalExam',
+        optionCount: matchingBook.optionCount || (matchingBook.publisher === 'LGS' ? 4 : 5),
+        timePerQuestion: Number(matchingBook.timePerQuestion) || 2,
         subjects: subs.map((s, idx) => ({
           ...s,
           name: s.name || `Ders ${idx + 1}`,
@@ -109,6 +111,8 @@ export default function PhysicalExamRunner() {
         ...hw,
         type: 'physicalExam',
         pdfUrl: pdfUrl,
+        optionCount: hw.optionCount || matchingBook?.optionCount || (hw.examType === 'LGS' ? 4 : 5),
+        timePerQuestion: Number(hw.timePerQuestion || matchingBook?.timePerQuestion) || 2,
         subjects: subs.map((s, idx) => ({
           ...s,
           name: s.name || `Ders ${idx + 1}`,
