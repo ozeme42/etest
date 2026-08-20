@@ -18,15 +18,14 @@ function getAnsIndex(val) {
   return null;
 }
 
-function getQuestionColumns(totalCount, isMobile = false) {
+function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000) {
   if (totalCount <= 0) return [[]];
-  if (isMobile) {
+  // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
+  if (isMobile || containerWidth < 680) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  // Soru sayısına göre 2 eşit/dengeli sütuna böl:
-  // 1. Sütun: 1'den yarıya kadar (Örn: 15 soruda 1..8, 20 soruda 1..10)
-  // 2. Sütun: Yarıdan sonuna kadar (Örn: 15 soruda 9..15, 20 soruda 11..20)
+  // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
   const perCol = Math.ceil(totalCount / 2);
   const col1 = [];
   const col2 = [];
@@ -171,11 +170,37 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
   const scorePct = submission?.score ?? (qCount > 0 ? Math.round((correctCount / qCount) * 100) : 0);
   const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
-  const netScore = Math.max(0, Number((correctCount - (penaltyRatio > 0 ? wrongCount / penaltyRatio : 0)).toFixed(2)));
+  const opticalContainerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(1000);
+
+  useEffect(() => {
+    if (!opticalContainerRef.current) return;
+    const updateSize = () => {
+      if (opticalContainerRef.current) {
+        setContainerWidth(opticalContainerRef.current.clientWidth);
+      }
+    };
+    updateSize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.contentRect) {
+            setContainerWidth(entry.contentRect.width);
+          }
+        }
+      });
+      observer.observe(opticalContainerRef.current);
+      return () => observer.disconnect();
+    } else {
+      window.addEventListener('resize', updateSize);
+      return () => window.removeEventListener('resize', updateSize);
+    }
+  }, [showOptikForm, effectivePdfMode]);
 
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(qCount, isMobile);
-  }, [qCount, isMobile]);
+    return getQuestionColumns(qCount, isMobile, containerWidth);
+  }, [qCount, isMobile, containerWidth]);
 
   const isExplicitFive = Boolean(
     Number(test?.optionCount) === 5 ||
@@ -372,8 +397,19 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
 
         {/* Optical Form Area */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg, #f8fafc)' }}>
-            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div 
+            ref={opticalContainerRef}
+            style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              minWidth: 0, 
+              background: 'var(--color-bg, #f8fafc)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
               
               {/* SCORECARD HERO BANNER */}
               <div style={{
@@ -491,62 +527,72 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                 border: '1.5px solid var(--color-border, #e2e8f0)',
                 boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
               }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(questionColumns.length, 3)}, 1fr)`,
-                  gap: isMobile ? '0.75rem' : '1.25rem',
-                  alignItems: 'start'
-                }}>
-                  {questionColumns.map((colQuestions, colIdx) => (
-                    <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                      {colQuestions.map(qNo => {
-                        const qIdx = qNo - 1;
-                        const qObj = questions[qIdx] || {};
-                        const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
+                {(() => {
+                  const isVeryNarrow = isMobile || containerWidth < 460;
+                  const isCompact = containerWidth < 680;
+                  const bubbleSize = isVeryNarrow ? 28 : isCompact ? 32 : (questionColumns.length === 1 ? 38 : 34);
+                  const bubbleFontSize = isVeryNarrow ? '0.76rem' : isCompact ? '0.82rem' : '0.88rem';
 
-                        const userAnsIndex = getAnsIndex(ansObj.userAnswer);
-                        const userAnsLetter = (ansObj.userAnswer !== null && ansObj.userAnswer !== undefined && ansObj.userAnswer !== '')
-                          ? (typeof ansObj.userAnswer === 'string' ? ansObj.userAnswer.toUpperCase() : String.fromCharCode(65 + ansObj.userAnswer))
-                          : null;
-                        const textAns = ansObj.userAnswerText;
+                  return (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: questionColumns.length === 1 ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
+                      gap: isCompact ? '0.65rem' : '1rem',
+                      alignItems: 'start',
+                      width: '100%'
+                    }}>
+                      {questionColumns.map((colQuestions, colIdx) => (
+                        <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
+                          {colQuestions.map(qNo => {
+                            const qIdx = qNo - 1;
+                            const qObj = questions[qIdx] || {};
+                            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
 
-                        // Answer Key Resolution
-                        let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
-                        if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
-                        if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
-                        if (correctAnsIndex === null && (test?.answerKey || resolvedBook?.answerKey)) {
-                          const ak = test?.answerKey || resolvedBook?.answerKey;
-                          const keyVal = Array.isArray(ak) ? ak[qIdx] : (ak[qNo] || ak[String(qNo)] || ak[qIdx]);
-                          correctAnsIndex = getAnsIndex(keyVal);
-                        }
+                            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
+                            const userAnsLetter = (ansObj.userAnswer !== null && ansObj.userAnswer !== undefined && ansObj.userAnswer !== '')
+                              ? (typeof ansObj.userAnswer === 'string' ? ansObj.userAnswer.toUpperCase() : String.fromCharCode(65 + ansObj.userAnswer))
+                              : null;
+                            const textAns = ansObj.userAnswerText;
 
-                        let isCorrect = ansObj.isCorrect;
-                        if (isCorrect === null || isCorrect === undefined) {
-                          if (userAnsIndex !== null && correctAnsIndex !== null) {
-                            isCorrect = userAnsIndex === correctAnsIndex;
-                          } else if (userAnsLetter && correctAnsIndex !== null) {
-                            isCorrect = userAnsLetter === String.fromCharCode(65 + correctAnsIndex);
-                          }
-                        }
+                            // Answer Key Resolution
+                            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+                            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+                            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+                            if (correctAnsIndex === null && (test?.answerKey || resolvedBook?.answerKey)) {
+                              const ak = test?.answerKey || resolvedBook?.answerKey;
+                              const keyVal = Array.isArray(ak) ? ak[qIdx] : (ak[qNo] || ak[String(qNo)] || ak[qIdx]);
+                              correctAnsIndex = getAnsIndex(keyVal);
+                            }
 
-                        const isWrong = isCorrect === false && (userAnsIndex !== null || userAnsLetter !== null);
-                        const isBlank = userAnsIndex === null && !userAnsLetter && !textAns;
-                        const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
+                            let isCorrect = ansObj.isCorrect;
+                            if (isCorrect === null || isCorrect === undefined) {
+                              if (userAnsIndex !== null && correctAnsIndex !== null) {
+                                isCorrect = userAnsIndex === correctAnsIndex;
+                              } else if (userAnsLetter && correctAnsIndex !== null) {
+                                isCorrect = userAnsLetter === String.fromCharCode(65 + correctAnsIndex);
+                              }
+                            }
 
-                        return (
-                          <div
-                            key={qNo}
-                            style={{
-                              background: isCorrect === true ? 'rgba(16, 185, 129, 0.04)' : isWrong ? 'rgba(239, 68, 68, 0.04)' : 'var(--color-surface, #ffffff)',
-                              padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 0.8rem',
-                              borderRadius: '0.85rem',
-                              border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.35rem',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
+                            const isWrong = isCorrect === false && (userAnsIndex !== null || userAnsLetter !== null);
+                            const isBlank = userAnsIndex === null && !userAnsLetter && !textAns;
+                            const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
+
+                            return (
+                              <div
+                                key={qNo}
+                                style={{
+                                  background: isCorrect === true ? 'rgba(16, 185, 129, 0.04)' : isWrong ? 'rgba(239, 68, 68, 0.04)' : 'var(--color-surface, #ffffff)',
+                                  padding: isVeryNarrow ? '0.4rem 0.6rem' : isCompact ? '0.48rem 0.7rem' : '0.55rem 0.8rem',
+                                  borderRadius: '0.85rem',
+                                  border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.35rem',
+                                  transition: 'all 0.15s ease',
+                                  boxSizing: 'border-box',
+                                  width: '100%'
+                                }}
+                              >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                               {/* Question Number Badge */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 48, flexShrink: 0 }}>
@@ -679,10 +725,12 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             )}
                           </div>
                         );
-                      })}
+                          })}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
 
             </div>

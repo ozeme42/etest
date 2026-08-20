@@ -18,15 +18,14 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-function getQuestionColumns(totalCount, isMobile = false) {
+function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000) {
   if (totalCount <= 0) return [[]];
-  if (isMobile) {
+  // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
+  if (isMobile || containerWidth < 680) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  // Soru sayısına göre 2 eşit/dengeli sütuna böl:
-  // 1. Sütun: 1'den yarıya kadar (Örn: 15 soruda 1..8, 20 soruda 1..10)
-  // 2. Sütun: Yarıdan sonuna kadar (Örn: 15 soruda 9..15, 20 soruda 11..20)
+  // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
   const perCol = Math.ceil(totalCount / 2);
   const col1 = [];
   const col2 = [];
@@ -406,13 +405,41 @@ export default function PhysicalExamRunner() {
     }
   }, [answers, isSubmitted, draftKey, isTeacherReviewing]);
 
+  const opticalContainerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(1000);
+
+  useEffect(() => {
+    if (!opticalContainerRef.current) return;
+    const updateSize = () => {
+      if (opticalContainerRef.current) {
+        setContainerWidth(opticalContainerRef.current.clientWidth);
+      }
+    };
+    updateSize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.contentRect) {
+            setContainerWidth(entry.contentRect.width);
+          }
+        }
+      });
+      observer.observe(opticalContainerRef.current);
+      return () => observer.disconnect();
+    } else {
+      window.addEventListener('resize', updateSize);
+      return () => window.removeEventListener('resize', updateSize);
+    }
+  }, [showOptikForm, effectivePdfMode]);
+
   const subjects = homework?.subjects || [];
   const activeSubject = subjects[activeSubjectIndex] || subjects[0];
 
   const questionColumns = useMemo(() => {
     const totalCount = activeSubject?.count || 0;
-    return getQuestionColumns(totalCount, isMobile);
-  }, [activeSubject?.count, isMobile]);
+    return getQuestionColumns(totalCount, isMobile, containerWidth);
+  }, [activeSubject?.count, isMobile, containerWidth]);
 
   const activeSubjectMistakeStats = useMemo(() => {
     if (!activeSubject) return { classified: 0, totalTarget: 0, counts: {} };
@@ -900,8 +927,19 @@ export default function PhysicalExamRunner() {
 
         {/* RIGHT/BOTTOM: Optical Form Area */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
-            <div style={{ maxWidth: pdfMode === 'hidden' ? 1200 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div 
+            ref={opticalContainerRef}
+            style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              minWidth: 0, 
+              background: 'var(--color-bg)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ maxWidth: pdfMode === 'hidden' ? 1200 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
               
               {/* 1. SCORECARD HERO (AFTER SUBMISSION) */}
               {isSubmitted && results && (
@@ -978,145 +1016,105 @@ export default function PhysicalExamRunner() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
                 {subjects.map((sub, idx) => {
                   const isActive = activeSubjectIndex === idx;
-                  const subAns = answers[sub.name] || [];
-                  const filled = subAns.filter(Boolean).length;
-                  const sStat = results?.subjectStats?.find(s => s.name === sub.name);
+                  const count = sub.count || 0;
+                  const filledCount = (answers[sub.name] || []).filter(Boolean).length;
+                  const isDone = filledCount === count && count > 0;
 
                   return (
                     <button
-                      key={sub.name}
-                      type="button"
+                      key={idx}
                       onClick={() => setActiveSubjectIndex(idx)}
                       style={{
+                        padding: isMobile ? '0.45rem 0.85rem' : '0.6rem 1.15rem',
+                        borderRadius: '0.9rem',
+                        border: isActive ? '2px solid #2563eb' : '1.5px solid var(--color-border)',
+                        background: isActive ? '#2563eb' : 'var(--color-surface)',
+                        color: isActive ? '#ffffff' : 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: isMobile ? '0.78rem' : '0.86rem',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 6,
-                        padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1rem',
-                        borderRadius: '0.75rem',
-                        background: isActive ? '#4f46e5' : '#ffffff',
-                        border: `1.5px solid ${isActive ? '#4338ca' : '#cbd5e1'}`,
-                        color: isActive ? 'white' : '#475569',
-                        fontWeight: 900,
-                        fontSize: isMobile ? '0.75rem' : '0.82rem',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
+                        gap: '0.5rem',
+                        boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.25)' : 'none',
                         transition: 'all 0.15s ease',
-                        boxShadow: isActive ? '0 4px 12px rgba(79,70,229,0.3)' : '0 1px 3px rgba(0,0,0,0.04)'
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                       }}
                     >
                       <span>{sub.name}</span>
-                      {isSubmitted && sStat ? (
-                        <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.25)', padding: '1px 6px', borderRadius: 6, fontWeight: 800 }}>
-                          {sStat.net} Net
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.65rem', background: isActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9', padding: '1px 6px', borderRadius: 6, color: isActive ? 'white' : '#64748b', fontWeight: 800 }}>
-                          {filled}/{sub.count}
-                        </span>
-                      )}
+                      <span style={{
+                        fontSize: '0.68rem',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: 99,
+                        background: isActive ? 'rgba(255,255,255,0.2)' : isDone ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)',
+                        color: isActive ? '#ffffff' : isDone ? '#10b981' : 'var(--color-text-muted)',
+                        fontWeight: 900
+                      }}>
+                        {filledCount}/{count}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* 3. OPTICAL QUESTIONS GRID FOR ACTIVE SUBJECT */}
+              {/* 3. OPTICAL FORM CARD */}
               {activeSubject && (
-                <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  
-                  {/* Header & Progress Bar */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#2563eb' }} />
-                        <span style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text)', letterSpacing: '-0.01em' }}>
-                          {activeSubject.name} — Optik Form
-                        </span>
-                        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '0.25rem 0.7rem', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
-                          {activeSubject.count} Soru
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {activeSubjectFlaggedCount > 0 && !isSubmitted && (
-                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.3rem 0.7rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <Flag size={13} fill="#d97706" /> {activeSubjectFlaggedCount} Şüpheli
-                          </div>
-                        )}
-                        {!isSubmitted ? (
-                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: subjectAnsweredCount === activeSubject.count ? '#15803d' : '#2563eb', background: subjectAnsweredCount === activeSubject.count ? '#f0fdf4' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: `1px solid ${subjectAnsweredCount === activeSubject.count ? '#bbf7d0' : '#bfdbfe'}` }}>
-                            {subjectAnsweredCount}/{activeSubject.count} Kodlandı {activeSubject.count > 0 ? `(%${Math.round((subjectAnsweredCount / activeSubject.count) * 100)})` : ''}
-                          </div>
-                        ) : results && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', fontWeight: 900 }}>
-                            <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
-                              {results.subjectStats.find(s => s.name === activeSubject.name)?.correct || 0} D
-                            </span>
-                            <span style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
-                              {results.subjectStats.find(s => s.name === activeSubject.name)?.wrong || 0} Y
-                            </span>
-                            <span style={{ color: '#475569', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
-                              {results.subjectStats.find(s => s.name === activeSubject.name)?.blank || 0} B
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                <div style={{
+                  background: 'var(--color-surface)',
+                  borderRadius: '1.25rem',
+                  border: '1.5px solid var(--color-border)',
+                  padding: isMobile ? '0.9rem' : '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+                }}>
+                  {/* Subject Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} />
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {activeSubject.name} — Optik Form
+                      </h3>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                        ({activeSubject.count} Soru)
+                      </span>
                     </div>
 
-                    {/* Progress Bar */}
-                    {!isSubmitted && activeSubject.count > 0 && (
-                      <div style={{ width: '100%', height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                        <div 
-                          style={{ 
-                            width: `${Math.min(100, Math.round((subjectAnsweredCount / activeSubject.count) * 100))}%`, 
-                            height: '100%', 
-                            background: subjectAnsweredCount === activeSubject.count ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #2563eb, #3b82f6)', 
-                            transition: 'width 0.25s ease' 
-                          }} 
-                        />
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                        {(answers[activeSubject.name] || []).filter(Boolean).length}/{activeSubject.count} Kodlandı (%{Math.round(((answers[activeSubject.name] || []).filter(Boolean).length / (activeSubject.count || 1)) * 100)})
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Mistake Reasons Accordion Summary for Active Subject */}
-                  {isSubmitted && (
+                  {/* Mistake Diagnostic Summary Bar for Active Subject */}
+                  {isSubmitted && activeSubjectMistakeStats.totalTarget > 0 && (
                     <div style={{
                       background: 'var(--color-surface-hover, #f8fafc)',
                       border: '1.5px solid var(--color-border, #e2e8f0)',
-                      borderRadius: 14,
+                      borderRadius: 12,
                       padding: '0.75rem 1rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 8
+                      gap: '0.5rem'
                     }}>
-                      <div
-                        onClick={() => setShowMistakeSummary(p => !p)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          cursor: 'pointer',
-                          userSelect: 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                            🤔 {activeSubject.name} Hata & Boş Sebepleri
-                          </span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '2px 8px', borderRadius: 99 }}>
-                            {activeSubjectMistakeStats.classified}/{activeSubjectMistakeStats.totalTarget} Sınıflandırıldı
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 2 }}>
-                          {showMistakeSummary ? 'Gizle' : 'Göster'} {showMistakeSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          📊 {activeSubject.name} Hata &amp; Boş Analizi Dağılımı
+                        </span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: activeSubjectMistakeStats.classified === activeSubjectMistakeStats.totalTarget ? '#16a34a' : '#d97706', background: activeSubjectMistakeStats.classified === activeSubjectMistakeStats.totalTarget ? '#f0fdf4' : '#fffbeb', border: `1px solid ${activeSubjectMistakeStats.classified === activeSubjectMistakeStats.totalTarget ? '#bbf7d0' : '#fde68a'}`, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                          {activeSubjectMistakeStats.classified} / {activeSubjectMistakeStats.totalTarget} Neden Belirtildi
                         </span>
                       </div>
 
-                      {showMistakeSummary && (
+                      {activeSubjectMistakeStats.classified > 0 && (
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-                          gap: '0.5rem',
-                          marginTop: 4
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                          gap: '0.45rem',
+                          marginTop: '0.25rem'
                         }}>
                           {MISTAKE_REASON_OPTIONS.map(opt => {
                             const count = activeSubjectMistakeStats.counts[opt.label] || 0;
@@ -1147,255 +1145,270 @@ export default function PhysicalExamRunner() {
                     </div>
                   )}
 
-                  {/* Natural Question Columns Grid (Top to Bottom Flow) */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
-                    gap: '1rem',
-                    alignItems: 'start'
-                  }}>
-                    {questionColumns.map((col, colIdx) => (
-                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {col.map(qNo => {
-                          const qIdx = qNo - 1;
-                          const selected = currentAnswers[qIdx];
-                          const isFlagged = Boolean(flagged[`${activeSubject.name}_${qNo}`]);
-                          
-                          let isCorrect = false;
-                          let isWrong = false;
-                          let correctKey = '';
+                  {/* Natural Question Columns Grid (Dynamic 1 or 2 Columns based on container width) */}
+                  {(() => {
+                    const isVeryNarrow = isMobile || containerWidth < 460;
+                    const isCompact = containerWidth < 680;
+                    const bubbleSize = isVeryNarrow ? 30 : isCompact ? 36 : (questionColumns.length === 1 ? 42 : 38);
+                    const bubbleFontSize = isVeryNarrow ? '0.8rem' : isCompact ? '0.9rem' : '1rem';
 
-                          if (isSubmitted) {
-                            correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
-                            isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
-                            isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
-                          }
+                    return (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: questionColumns.length === 1 ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
+                        gap: isCompact ? '0.65rem' : '1rem',
+                        alignItems: 'start',
+                        width: '100%'
+                      }}>
+                        {questionColumns.map((col, colIdx) => (
+                          <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
+                            {col.map(qNo => {
+                              const qIdx = qNo - 1;
+                              const currentAnswers = answers[activeSubject.name] || [];
+                              const selected = currentAnswers[qIdx];
+                              const isFlagged = Boolean(flagged[`${activeSubject.name}_${qNo}`]);
+                              
+                              let isCorrect = false;
+                              let isWrong = false;
+                              let correctKey = '';
 
-                          const explicitCount = Number(homework.optionCount || homework.optionsCount || activeSubject.optionCount);
-                          const optionsList = (activeSubject.options && activeSubject.options.length > 0) 
-                            ? activeSubject.options 
-                            : (explicitCount === 4 || (explicitCount !== 5 && homework.examType === 'LGS'))
-                              ? ['A', 'B', 'C', 'D']
-                              : ['A', 'B', 'C', 'D', 'E'];
+                              if (isSubmitted) {
+                                correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
+                                isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
+                                isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
+                              }
 
-                          return (
-                            <div 
-                              key={qNo} 
-                              style={{
-                                background: isFlagged && !isSubmitted
-                                  ? '#fffbeb'
-                                  : selected 
-                                    ? 'rgba(37,99,235,0.12)' 
-                                    : 'var(--color-surface-hover)',
-                                padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
-                                borderRadius: '1rem',
-                                border: isCorrect 
-                                  ? '1.5px solid #bbf7d0' 
-                                  : isWrong 
-                                  ? '1.5px solid #fecaca' 
-                                  : isFlagged && !isSubmitted
-                                  ? '1.5px solid #fde68a'
-                                  : selected 
-                                  ? '1.5px solid #93c5fd' 
-                                  : '1.5px solid var(--color-border)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.45rem',
-                                transition: 'all 0.15s ease',
-                                boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.08)' : 'none'
-                              }}
-                            >
-                              {/* Top Question Row */}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.75rem' }}>
-                                {/* Question Number Badge & Flag */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, minWidth: isMobile ? 48 : 70, flexShrink: 0 }}>
-                                  <div style={{
-                                    width: isMobile ? 26 : 32,
-                                    height: isMobile ? 26 : 32,
-                                    borderRadius: isMobile ? '0.45rem' : '0.6rem',
-                                    background: selected ? '#2563eb' : 'var(--color-surface)',
-                                    color: selected ? '#ffffff' : 'var(--color-text)',
+                              const explicitCount = Number(homework.optionCount || homework.optionsCount || activeSubject.optionCount);
+                              const optionsList = (activeSubject.options && activeSubject.options.length > 0) 
+                                ? activeSubject.options 
+                                : (explicitCount === 4 || (explicitCount !== 5 && homework.examType === 'LGS'))
+                                  ? ['A', 'B', 'C', 'D']
+                                  : ['A', 'B', 'C', 'D', 'E'];
+
+                              return (
+                                <div 
+                                  key={qNo} 
+                                  style={{
+                                    background: isFlagged && !isSubmitted
+                                      ? '#fffbeb'
+                                      : selected 
+                                        ? 'rgba(37,99,235,0.12)' 
+                                        : 'var(--color-surface-hover)',
+                                    padding: isVeryNarrow ? '0.5rem 0.65rem' : isCompact ? '0.6rem 0.8rem' : '0.65rem 1rem',
+                                    borderRadius: '1rem',
+                                    border: isCorrect 
+                                      ? '1.5px solid #bbf7d0' 
+                                      : isWrong 
+                                      ? '1.5px solid #fecaca' 
+                                      : isFlagged && !isSubmitted
+                                      ? '1.5px solid #fde68a'
+                                      : selected 
+                                      ? '1.5px solid #93c5fd' 
+                                      : '1.5px solid var(--color-border)',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 900,
-                                    fontSize: isMobile ? '0.78rem' : '0.85rem',
-                                    border: selected ? 'none' : '1.5px solid var(--color-border-input)',
-                                    boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
-                                  }}>
-                                    {qNo}
-                                  </div>
-
-                                  {!isSubmitted && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); toggleFlag(activeSubject.name, qNo); }}
-                                      title={isFlagged ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
-                                      style={{
-                                        background: isFlagged ? '#fffbeb' : 'transparent',
-                                        border: isFlagged ? '1px solid #fde68a' : 'none',
-                                        borderRadius: '0.4rem',
-                                        padding: isMobile ? '2px' : '4px',
-                                        cursor: 'pointer',
+                                    flexDirection: 'column',
+                                    gap: '0.45rem',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.08)' : 'none',
+                                    boxSizing: 'border-box',
+                                    width: '100%'
+                                  }}
+                                >
+                                  {/* Top Question Row */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isVeryNarrow ? '0.35rem' : '0.65rem' }}>
+                                    {/* Question Number Badge & Flag */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: isVeryNarrow ? 3 : 5, minWidth: isVeryNarrow ? 44 : 64, flexShrink: 0 }}>
+                                      <div style={{
+                                        width: isVeryNarrow ? 24 : 30,
+                                        height: isVeryNarrow ? 24 : 30,
+                                        borderRadius: '0.5rem',
+                                        background: selected ? '#2563eb' : 'var(--color-surface)',
+                                        color: selected ? '#ffffff' : 'var(--color-text)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        color: isFlagged ? '#d97706' : '#94a3b8'
-                                      }}
-                                    >
-                                      <Flag size={isMobile ? 12 : 14} fill={isFlagged ? '#d97706' : 'none'} />
-                                    </button>
-                                  )}
+                                        fontWeight: 900,
+                                        fontSize: isVeryNarrow ? '0.74rem' : '0.84rem',
+                                        border: selected ? 'none' : '1.5px solid var(--color-border-input)',
+                                        boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                                      }}>
+                                        {qNo}
+                                      </div>
 
-                                  {isSubmitted && (
-                                    <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
-                                      {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Option Bubbles */}
-                                <div style={{ display: 'flex', gap: isMobile ? '0.22rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                                  {optionsList.map((opt) => {
-                                    const isSelected = selected === opt;
-                                    const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                                    let bubbleBg = 'var(--color-surface)';
-                                    let bubbleBorder = '1.5px solid var(--color-border-input)';
-                                    let bubbleColor = 'var(--color-text)';
-                                    let bubbleShadow = 'none';
-
-                                    if (isSelected) {
-                                      bubbleBg = '#2563eb';
-                                      bubbleBorder = '2px solid #1d4ed8';
-                                      bubbleColor = '#ffffff';
-                                      bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
-                                    }
-
-                                    if (isSubmitted) {
-                                      if (isThisOptCorrect) {
-                                        bubbleBg = '#16a34a';
-                                        bubbleBorder = '2px solid #15803d';
-                                        bubbleColor = '#ffffff';
-                                        bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
-                                      } else if (isSelected && !isThisOptCorrect) {
-                                        bubbleBg = '#dc2626';
-                                        bubbleBorder = '2px solid #b91c1c';
-                                        bubbleColor = '#ffffff';
-                                        bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
-                                      }
-                                    }
-
-                                    return (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        disabled={isSubmitted}
-                                        onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
-                                        style={{
-                                          width: isMobile ? 32 : 44,
-                                          height: isMobile ? 32 : 44,
-                                          borderRadius: '50%',
-                                          fontWeight: 900,
-                                          fontSize: isMobile ? '0.85rem' : '1.05rem',
-                                          cursor: isSubmitted ? 'default' : 'pointer',
-                                          border: bubbleBorder,
-                                          background: bubbleBg,
-                                          color: bubbleColor,
-                                          transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
-                                          boxShadow: bubbleShadow,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          padding: 0
-                                        }}
-                                      >
-                                        {opt}
-                                      </button>
-                                    );
-                                  })}
-
-                                  {!isSubmitted && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleClearOption(activeSubject.name, qIdx)}
-                                      disabled={!selected}
-                                      title="İşareti Kaldır"
-                                      style={{
-                                        width: isMobile ? 24 : 28,
-                                        height: isMobile ? 24 : 28,
-                                        borderRadius: '50%',
-                                        background: selected ? '#fef2f2' : 'transparent',
-                                        border: selected ? '1px solid #fecaca' : 'none',
-                                        color: selected ? '#dc2626' : 'transparent',
-                                        cursor: selected ? 'pointer' : 'default',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        pointerEvents: selected ? 'auto' : 'none',
-                                        transition: 'all 0.12s ease',
-                                        marginLeft: 1,
-                                        padding: 0
-                                      }}
-                                    >
-                                      <XIcon size={isMobile ? 12 : 14} />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Mistake Diagnostic Selector for Wrong OR Blank questions */}
-                              {isSubmitted && (isWrong || !selected) && (
-                                <div style={{
-                                  width: '100%',
-                                  marginTop: '0.45rem',
-                                  paddingTop: '0.45rem',
-                                  borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #cbd5e1',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  flexWrap: 'wrap',
-                                  gap: '0.35rem'
-                                }}>
-                                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
-                                  </span>
-                                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                                    {MISTAKE_REASON_OPTIONS.map(r => {
-                                      const key = `${activeSubject.name}_${qNo}`;
-                                      const isSelected = mistakeReasons[key] === r.label;
-                                      return (
+                                      {!isSubmitted && (
                                         <button
-                                          key={r.label}
                                           type="button"
-                                          onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(activeSubject.name, qNo, r.label); }}
+                                          onClick={(e) => { e.stopPropagation(); toggleFlag(activeSubject.name, qNo); }}
+                                          title={isFlagged ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
                                           style={{
-                                            padding: isMobile ? '0.15rem 0.4rem' : '0.18rem 0.5rem',
-                                            fontSize: isMobile ? '0.58rem' : '0.62rem',
-                                            fontWeight: 800,
-                                            borderRadius: 6,
-                                            border: `1.5px solid ${isSelected ? r.color : r.border}`,
-                                            background: isSelected ? r.color : r.bg,
-                                            color: isSelected ? '#ffffff' : r.color,
+                                            background: isFlagged ? '#fffbeb' : 'transparent',
+                                            border: isFlagged ? '1px solid #fde68a' : 'none',
+                                            borderRadius: '0.4rem',
+                                            padding: isVeryNarrow ? '1px' : '3px',
                                             cursor: 'pointer',
-                                            boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
-                                            transition: 'all 0.15s'
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: isFlagged ? '#d97706' : '#94a3b8'
                                           }}
-                                          title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
                                         >
-                                          {r.label}
+                                          <Flag size={isVeryNarrow ? 11 : 13} fill={isFlagged ? '#d97706' : 'none'} />
                                         </button>
-                                      );
-                                    })}
+                                      )}
+
+                                      {isSubmitted && (
+                                        <span style={{ fontSize: isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                                          {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Option Bubbles */}
+                                    <div style={{ display: 'flex', gap: isVeryNarrow ? '0.2rem' : isCompact ? '0.35rem' : '0.45rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                      {optionsList.map((opt) => {
+                                        const isSelected = selected === opt;
+                                        const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                        let bubbleBg = 'var(--color-surface)';
+                                        let bubbleBorder = '1.5px solid var(--color-border-input)';
+                                        let bubbleColor = 'var(--color-text)';
+                                        let bubbleShadow = 'none';
+
+                                        if (isSelected) {
+                                          bubbleBg = '#2563eb';
+                                          bubbleBorder = '2px solid #1d4ed8';
+                                          bubbleColor = '#ffffff';
+                                          bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
+                                        }
+
+                                        if (isSubmitted) {
+                                          if (isThisOptCorrect) {
+                                            bubbleBg = '#16a34a';
+                                            bubbleBorder = '2px solid #15803d';
+                                            bubbleColor = '#ffffff';
+                                            bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
+                                          } else if (isSelected && !isThisOptCorrect) {
+                                            bubbleBg = '#dc2626';
+                                            bubbleBorder = '2px solid #b91c1c';
+                                            bubbleColor = '#ffffff';
+                                            bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
+                                          }
+                                        }
+
+                                        return (
+                                          <button
+                                            key={opt}
+                                            type="button"
+                                            disabled={isSubmitted}
+                                            onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                                            style={{
+                                              width: bubbleSize,
+                                              height: bubbleSize,
+                                              borderRadius: '50%',
+                                              fontWeight: 900,
+                                              fontSize: bubbleFontSize,
+                                              cursor: isSubmitted ? 'default' : 'pointer',
+                                              border: bubbleBorder,
+                                              background: bubbleBg,
+                                              color: bubbleColor,
+                                              transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                              boxShadow: bubbleShadow,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              padding: 0,
+                                              flexShrink: 0
+                                            }}
+                                          >
+                                            {opt}
+                                          </button>
+                                        );
+                                      })}
+
+                                      {!isSubmitted && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleClearOption(activeSubject.name, qIdx)}
+                                          disabled={!selected}
+                                          title="İşareti Kaldır"
+                                          style={{
+                                            width: isVeryNarrow ? 20 : 24,
+                                            height: isVeryNarrow ? 24 : 24,
+                                            borderRadius: '50%',
+                                            background: selected ? '#fef2f2' : 'transparent',
+                                            border: selected ? '1px solid #fecaca' : 'none',
+                                            color: selected ? '#dc2626' : 'transparent',
+                                            cursor: selected ? 'pointer' : 'default',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            pointerEvents: selected ? 'auto' : 'none',
+                                            transition: 'all 0.12s ease',
+                                            marginLeft: 1,
+                                            padding: 0,
+                                            flexShrink: 0
+                                          }}
+                                        >
+                                          <XIcon size={isVeryNarrow ? 10 : 12} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
+
+                                  {/* Mistake Diagnostic Selector for Wrong OR Blank questions */}
+                                  {isSubmitted && (isWrong || !selected) && (
+                                    <div style={{
+                                      width: '100%',
+                                      marginTop: '0.45rem',
+                                      paddingTop: '0.45rem',
+                                      borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #cbd5e1',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      flexWrap: 'wrap',
+                                      gap: '0.35rem'
+                                    }}>
+                                      <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
+                                      </span>
+                                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                        {MISTAKE_REASON_OPTIONS.map(r => {
+                                          const key = `${activeSubject.name}_${qNo}`;
+                                          const isSelected = mistakeReasons[key] === r.label;
+                                          return (
+                                            <button
+                                              key={r.label}
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(activeSubject.name, qNo, r.label); }}
+                                              style={{
+                                                padding: isVeryNarrow ? '0.12rem 0.35rem' : '0.18rem 0.5rem',
+                                                fontSize: isVeryNarrow ? '0.55rem' : '0.62rem',
+                                                fontWeight: 800,
+                                                borderRadius: 6,
+                                                border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                                background: isSelected ? r.color : r.bg,
+                                                color: isSelected ? '#ffffff' : r.color,
+                                                cursor: 'pointer',
+                                                boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                                transition: 'all 0.15s'
+                                              }}
+                                              title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                                            >
+                                              {r.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                              );
+                            })}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
 
