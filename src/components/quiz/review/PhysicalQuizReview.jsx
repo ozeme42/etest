@@ -170,6 +170,9 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
   const scorePct = submission?.score ?? (qCount > 0 ? Math.round((correctCount / qCount) * 100) : 0);
   const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
+  const netScore = submission?.netScore !== undefined && submission?.netScore !== null
+    ? Number(submission.netScore)
+    : Number((correctCount - (penaltyRatio > 0 ? wrongCount / penaltyRatio : 0)).toFixed(2));
   const opticalContainerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(1000);
 
