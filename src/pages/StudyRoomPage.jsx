@@ -2045,37 +2045,34 @@ export default function StudyRoomPage() {
           })}
         </div>
 
-        {/* Atanmış Ödev / Kitap Testi / Program Seçici Butonu */}
-        <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-          <button
-            onClick={() => setShowHomeworkPickerModal(true)}
-            style={{
-              background: selectedTask ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : themeObj.buttonBg,
-              border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
-              color: selectedTask ? '#ffffff' : themeObj.text,
-              borderRadius: selectedTask ? '16px 0 0 16px' : 16,
-              padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
-              fontWeight: 900,
-              whiteSpace: 'nowrap',
-              boxShadow: selectedTask ? '0 6px 16px rgba(59,130,246,0.35)' : 'none',
-              transition: 'all 0.15s'
-            }}
-            title="Öğretmeninin atadığı ödevler, kitap testleri veya ders programından bir görev seç"
-          >
-            <BookMarked size={17} color={selectedTask ? '#ffffff' : '#3b82f6'} />
-            <span>{selectedTask ? (selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev Seçili') : '📋 Görev / Test Seç'}</span>
-          </button>
-          {selectedTask && (
+        {/* Seçili Görev Bilgisi (Yalnızca Programdan bir görev aktarılmışsa gösterilir) */}
+        {selectedTask && (
+          <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                border: `1.5px solid #60a5fa`,
+                color: '#ffffff',
+                borderRadius: '16px 0 0 16px',
+                padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
+                fontWeight: 900,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 6px 16px rgba(59,130,246,0.35)'
+              }}
+              title={selectedTask.title || selectedTask.topic}
+            >
+              <BookMarked size={17} color="#ffffff" />
+              <span>{selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev'}</span>
+            </div>
             <button
               onClick={handleClearSelectedTask}
               style={{
-                background: selectedTask ? 'linear-gradient(135deg, #2563eb, #1e40af)' : themeObj.buttonBg,
-                border: `1.5px solid ${selectedTask ? '#60a5fa' : themeObj.border}`,
+                background: 'linear-gradient(135deg, #2563eb, #1e40af)',
+                border: `1.5px solid #60a5fa`,
                 borderLeft: 'none',
                 color: '#ffffff',
                 borderRadius: '0 16px 16px 0',
@@ -2090,8 +2087,8 @@ export default function StudyRoomPage() {
             >
               <X size={15} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
         <button
