@@ -13,7 +13,7 @@ import {
   ArrowLeft, CheckCircle2, AlertCircle, Clock, 
   Send, X as XIcon, LayoutTemplate, Trophy, BarChart3, ListTree, 
   ChevronRight, ChevronDown, ChevronUp, FileText, PanelLeft, PanelTop, Maximize2,
-  EyeOff, Eye, Pencil, FileSpreadsheet
+  EyeOff, Eye, Pencil, FileSpreadsheet, Flag, BookOpen
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -155,6 +155,12 @@ export default function PhysicalExamRunner() {
   const [results, setResults] = useState(null);
   const [savedFeedbackToast, setSavedFeedbackToast] = useState(null);
   const [showMistakeSummary, setShowMistakeSummary] = useState(true);
+  const [flagged, setFlagged] = useState({});
+
+  const toggleFlag = (subjectName, qNo) => {
+    const key = `${subjectName}_${qNo}`;
+    setFlagged(p => ({ ...p, [key]: !p[key] }));
+  };
 
   // Mistake reasons state: { "Türkçe_1": "⚡ İşlem Hatası", "1": "⚡ İşlem Hatası", ... }
   const [mistakeReasons, setMistakeReasons] = useState(() => {
@@ -427,6 +433,21 @@ export default function PhysicalExamRunner() {
 
     return { classified, totalTarget, counts };
   }, [activeSubject, answers, homework, isSubmitted, mistakeReasons]);
+
+  const activeSubjectFlaggedCount = useMemo(() => {
+    if (!activeSubject) return 0;
+    let count = 0;
+    for (let i = 1; i <= activeSubject.count; i++) {
+      if (flagged[`${activeSubject.name}_${i}`]) count++;
+    }
+    return count;
+  }, [flagged, activeSubject]);
+
+  const subjectAnsweredCount = useMemo(() => {
+    if (!activeSubject) return 0;
+    const subAns = answers[activeSubject.name] || [];
+    return subAns.filter(Boolean).length;
+  }, [answers, activeSubject]);
 
   // Overall statistics for progress bar
   const totalAnsweredCount = useMemo(() => {
@@ -864,41 +885,76 @@ export default function PhysicalExamRunner() {
 
         {/* RIGHT/BOTTOM: Optical Form Area */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#f8fafc' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 1200 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
               {/* 1. SCORECARD HERO (AFTER SUBMISSION) */}
               {isSubmitted && results && (
-                <div style={{ background: 'var(--color-surface)', borderRadius: '1.25rem', padding: '1rem 1.25rem', color: 'var(--color-text)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fef3c7', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Trophy size={22} color="#b45309" />
+                <div style={{ background: 'var(--color-surface)', borderRadius: '1.4rem', padding: '1.25rem 1.4rem', color: 'var(--color-text)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.25rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fef3c7', border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trophy size={26} color="#b45309" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)' }}>Sonuç Karnesi</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>{homework.title}</div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.15)', border: '1px solid #3b82f6', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>SINAV TAMAMLANDI</span>
+                        </div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>{homework.title}</div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#15803d' }}>{results.totalCorrect}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#16a34a' }}>Doğru</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {/* Doğru */}
+                      <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1 }}>{results.totalCorrect}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
                       </div>
-                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#b91c1c' }}>{results.totalWrong}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#dc2626' }}>Yanlış</div>
+
+                      {/* Yanlış */}
+                      <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1.1 }}>{results.totalWrong}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
                       </div>
-                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#475569' }}>{results.totalBlank}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748b' }}>Boş</div>
+
+                      {/* Boş */}
+                      <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#475569', lineHeight: 1.1 }}>{results.totalBlank}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
                       </div>
-                      <div style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', borderRadius: 12, padding: '0.4rem 1.1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>{results.totalNet}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2, color: '#e0e7ff' }}>Toplam Net</div>
+
+                      {/* Toplam Net */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        borderRadius: 16,
+                        padding: '0.55rem 1.25rem',
+                        textAlign: 'center',
+                        minWidth: 95,
+                        boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                          {results.totalNet}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                          🎯 TOPLAM NET
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Action buttons after submission */}
+                  <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => {
+                        if (homework.bookId) navigate(`/student/books/${homework.bookId}`);
+                        else navigate('/student/exams');
+                      }}
+                      style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                    >
+                      <BookOpen size={16} /> Denemelere / Kitaba Dön
+                    </button>
                   </div>
                 </div>
               )}
@@ -950,31 +1006,58 @@ export default function PhysicalExamRunner() {
 
               {/* 3. OPTICAL QUESTIONS GRID FOR ACTIVE SUBJECT */}
               {activeSubject && (
-                <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   
-                  {/* Subject Title Bar inside Optic Panel */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4f46e5' }} />
-                      <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                        {activeSubject.name} — Optik Form
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                        ({activeSubject.count} Soru)
-                      </span>
+                  {/* Header & Progress Bar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#2563eb' }} />
+                        <span style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text)', letterSpacing: '-0.01em' }}>
+                          {activeSubject.name} — Optik Form
+                        </span>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '0.25rem 0.7rem', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
+                          {activeSubject.count} Soru
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {activeSubjectFlaggedCount > 0 && !isSubmitted && (
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.3rem 0.7rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <Flag size={13} fill="#d97706" /> {activeSubjectFlaggedCount} Şüpheli
+                          </div>
+                        )}
+                        {!isSubmitted ? (
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: subjectAnsweredCount === activeSubject.count ? '#15803d' : '#2563eb', background: subjectAnsweredCount === activeSubject.count ? '#f0fdf4' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: `1px solid ${subjectAnsweredCount === activeSubject.count ? '#bbf7d0' : '#bfdbfe'}` }}>
+                            {subjectAnsweredCount}/{activeSubject.count} Kodlandı {activeSubject.count > 0 ? `(%${Math.round((subjectAnsweredCount / activeSubject.count) * 100)})` : ''}
+                          </div>
+                        ) : results && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', fontWeight: 900 }}>
+                            <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
+                              {results.subjectStats.find(s => s.name === activeSubject.name)?.correct || 0} D
+                            </span>
+                            <span style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
+                              {results.subjectStats.find(s => s.name === activeSubject.name)?.wrong || 0} Y
+                            </span>
+                            <span style={{ color: '#475569', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.25rem 0.6rem', borderRadius: '0.5rem' }}>
+                              {results.subjectStats.find(s => s.name === activeSubject.name)?.blank || 0} B
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {isSubmitted && results && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 800 }}>
-                        <span style={{ color: '#15803d' }}>
-                          {results.subjectStats.find(s => s.name === activeSubject.name)?.correct} D
-                        </span>
-                        <span style={{ color: '#b91c1c' }}>
-                          {results.subjectStats.find(s => s.name === activeSubject.name)?.wrong} Y
-                        </span>
-                        <span style={{ color: '#475569' }}>
-                          {results.subjectStats.find(s => s.name === activeSubject.name)?.blank} B
-                        </span>
+                    {/* Progress Bar */}
+                    {!isSubmitted && activeSubject.count > 0 && (
+                      <div style={{ width: '100%', height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                        <div 
+                          style={{ 
+                            width: `${Math.min(100, Math.round((subjectAnsweredCount / activeSubject.count) * 100))}%`, 
+                            height: '100%', 
+                            background: subjectAnsweredCount === activeSubject.count ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #2563eb, #3b82f6)', 
+                            transition: 'width 0.25s ease' 
+                          }} 
+                        />
                       </div>
                     )}
                   </div>
@@ -1057,10 +1140,11 @@ export default function PhysicalExamRunner() {
                     alignItems: 'start'
                   }}>
                     {questionColumns.map((col, colIdx) => (
-                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {col.map(qNo => {
                           const qIdx = qNo - 1;
                           const selected = currentAnswers[qIdx];
+                          const isFlagged = Boolean(flagged[`${activeSubject.name}_${qNo}`]);
                           
                           let isCorrect = false;
                           let isWrong = false;
@@ -1068,8 +1152,8 @@ export default function PhysicalExamRunner() {
 
                           if (isSubmitted) {
                             correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
-                            isCorrect = selected && selected === correctKey;
-                            isWrong = selected && selected !== correctKey;
+                            isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
+                            isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
                           }
 
                           const explicitCount = Number(homework.optionCount || homework.optionsCount || activeSubject.optionCount);
@@ -1083,36 +1167,109 @@ export default function PhysicalExamRunner() {
                             <div 
                               key={qNo} 
                               style={{
-                                background: selected ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)',
-                                padding: isMobile ? '0.65rem 0.75rem' : '0.7rem 0.85rem',
-                                borderRadius: '0.85rem',
-                                border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border)',
+                                background: isFlagged && !isSubmitted
+                                  ? '#fffbeb'
+                                  : selected 
+                                    ? 'rgba(37,99,235,0.12)' 
+                                    : 'var(--color-surface-hover)',
+                                padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
+                                borderRadius: '1rem',
+                                border: isCorrect 
+                                  ? '1.5px solid #bbf7d0' 
+                                  : isWrong 
+                                  ? '1.5px solid #fecaca' 
+                                  : isFlagged && !isSubmitted
+                                  ? '1.5px solid #fde68a'
+                                  : selected 
+                                  ? '1.5px solid #93c5fd' 
+                                  : '1.5px solid var(--color-border)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '0.45rem',
-                                transition: 'all 0.12s ease'
+                                transition: 'all 0.15s ease',
+                                boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.08)' : 'none'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65, flexShrink: 0 }}>
-                                  <span style={{
+                              {/* Top Question Row */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.75rem' }}>
+                                {/* Question Number Badge & Flag */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, minWidth: isMobile ? 48 : 70, flexShrink: 0 }}>
+                                  <div style={{
+                                    width: isMobile ? 26 : 32,
+                                    height: isMobile ? 26 : 32,
+                                    borderRadius: isMobile ? '0.45rem' : '0.6rem',
+                                    background: selected ? '#2563eb' : 'var(--color-surface)',
+                                    color: selected ? '#ffffff' : 'var(--color-text)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     fontWeight: 900,
-                                    fontSize: '0.84rem',
-                                    color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
+                                    fontSize: isMobile ? '0.78rem' : '0.85rem',
+                                    border: selected ? 'none' : '1.5px solid var(--color-border-input)',
+                                    boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
                                   }}>
-                                    Soru {qNo}
-                                  </span>
+                                    {qNo}
+                                  </div>
+
+                                  {!isSubmitted && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); toggleFlag(activeSubject.name, qNo); }}
+                                      title={isFlagged ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
+                                      style={{
+                                        background: isFlagged ? '#fffbeb' : 'transparent',
+                                        border: isFlagged ? '1px solid #fde68a' : 'none',
+                                        borderRadius: '0.4rem',
+                                        padding: isMobile ? '2px' : '4px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: isFlagged ? '#d97706' : '#94a3b8'
+                                      }}
+                                    >
+                                      <Flag size={isMobile ? 12 : 14} fill={isFlagged ? '#d97706' : 'none'} />
+                                    </button>
+                                  )}
+
                                   {isSubmitted && (
-                                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
+                                    <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
                                       {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
                                     </span>
                                   )}
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {/* Option Bubbles */}
+                                <div style={{ display: 'flex', gap: isMobile ? '0.22rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
                                   {optionsList.map((opt) => {
                                     const isSelected = selected === opt;
                                     const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                    let bubbleBg = 'var(--color-surface)';
+                                    let bubbleBorder = '1.5px solid var(--color-border-input)';
+                                    let bubbleColor = 'var(--color-text)';
+                                    let bubbleShadow = 'none';
+
+                                    if (isSelected) {
+                                      bubbleBg = '#2563eb';
+                                      bubbleBorder = '2px solid #1d4ed8';
+                                      bubbleColor = '#ffffff';
+                                      bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
+                                    }
+
+                                    if (isSubmitted) {
+                                      if (isThisOptCorrect) {
+                                        bubbleBg = '#16a34a';
+                                        bubbleBorder = '2px solid #15803d';
+                                        bubbleColor = '#ffffff';
+                                        bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
+                                      } else if (isSelected && !isThisOptCorrect) {
+                                        bubbleBg = '#dc2626';
+                                        bubbleBorder = '2px solid #b91c1c';
+                                        bubbleColor = '#ffffff';
+                                        bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
+                                      }
+                                    }
 
                                     return (
                                       <button
@@ -1121,17 +1278,17 @@ export default function PhysicalExamRunner() {
                                         disabled={isSubmitted}
                                         onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
                                         style={{
-                                          width: 32,
-                                          height: 32,
+                                          width: isMobile ? 32 : 44,
+                                          height: isMobile ? 32 : 44,
                                           borderRadius: '50%',
                                           fontWeight: 900,
-                                          fontSize: '0.8rem',
+                                          fontSize: isMobile ? '0.85rem' : '1.05rem',
                                           cursor: isSubmitted ? 'default' : 'pointer',
-                                          border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
-                                          background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
-                                          color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
-                                          transition: 'all 0.12s ease',
-                                          boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none',
+                                          border: bubbleBorder,
+                                          background: bubbleBg,
+                                          color: bubbleColor,
+                                          transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                          boxShadow: bubbleShadow,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
@@ -1150,8 +1307,8 @@ export default function PhysicalExamRunner() {
                                       disabled={!selected}
                                       title="İşareti Kaldır"
                                       style={{
-                                        width: 26,
-                                        height: 26,
+                                        width: isMobile ? 24 : 28,
+                                        height: isMobile ? 24 : 28,
                                         borderRadius: '50%',
                                         background: selected ? '#fef2f2' : 'transparent',
                                         border: selected ? '1px solid #fecaca' : 'none',
@@ -1166,7 +1323,7 @@ export default function PhysicalExamRunner() {
                                         padding: 0
                                       }}
                                     >
-                                      <XIcon size={12} />
+                                      <XIcon size={isMobile ? 12 : 14} />
                                     </button>
                                   )}
                                 </div>
@@ -1176,7 +1333,7 @@ export default function PhysicalExamRunner() {
                               {isSubmitted && (isWrong || !selected) && (
                                 <div style={{
                                   width: '100%',
-                                  marginTop: '0.4rem',
+                                  marginTop: '0.45rem',
                                   paddingTop: '0.45rem',
                                   borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #cbd5e1',
                                   display: 'flex',
@@ -1185,15 +1342,8 @@ export default function PhysicalExamRunner() {
                                   flexWrap: 'wrap',
                                   gap: '0.35rem'
                                 }}>
-                                  <span style={{
-                                    fontSize: isMobile ? '0.64rem' : '0.7rem',
-                                    fontWeight: 800,
-                                    color: isWrong ? '#b91c1c' : '#475569',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4
-                                  }}>
-                                    {isWrong ? '❌ Yanlış Sebebi:' : '○ Boş Sebebi:'}
+                                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
                                   </span>
                                   <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                     {MISTAKE_REASON_OPTIONS.map(r => {
@@ -1205,8 +1355,8 @@ export default function PhysicalExamRunner() {
                                           type="button"
                                           onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(activeSubject.name, qNo, r.label); }}
                                           style={{
-                                            padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
-                                            fontSize: isMobile ? '0.56rem' : '0.62rem',
+                                            padding: isMobile ? '0.15rem 0.4rem' : '0.18rem 0.5rem',
+                                            fontSize: isMobile ? '0.58rem' : '0.62rem',
                                             fontWeight: 800,
                                             borderRadius: 6,
                                             border: `1.5px solid ${isSelected ? r.color : r.border}`,
@@ -1214,7 +1364,7 @@ export default function PhysicalExamRunner() {
                                             color: isSelected ? '#ffffff' : r.color,
                                             cursor: 'pointer',
                                             boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
-                                            transition: 'all 0.15s ease'
+                                            transition: 'all 0.15s'
                                           }}
                                           title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
                                         >
