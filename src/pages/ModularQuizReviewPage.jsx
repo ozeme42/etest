@@ -472,7 +472,30 @@ export default function ModularQuizReviewPage() {
     (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('pdf'))
   );
 
-  const isMultiSection = Boolean(
+  const isQuestionBankAssignment = Boolean(
+    test?.isQuestionBank ||
+    test?.sourceType === 'questionBank' ||
+    submission?.sourceType === 'questionBank' ||
+    (test?.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 0 && typeof test.selectedQuestions[0] === 'string' && !test.selectedQuestions[0].startsWith('bt_'))
+  );
+
+  const isTrackedBook = !isQuestionBankAssignment && Boolean(
+    submission?.sourceType === 'trackedBook' ||
+    submission?.bookTestId ||
+    test?.bookId ||
+    test?.isBookTest ||
+    test?.sourceType === 'trackedBook' ||
+    (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
+      String(bt.id) === String(test?.id) || 
+      String(bt.id) === String(submission?.testId) || 
+      String(bt.id) === String(submission?.bookTestId) ||
+      toUUID(bt.id) === String(test?.id) ||
+      toUUID(bt.id) === String(submission?.testId)
+    )) ||
+    (submission?.hwId && homeworks?.some(hw => String(hw.id) === String(submission.hwId) && (hw.isBookAssignment || hw.bookId)))
+  );
+
+  const isMultiSection = !isTrackedBook && Boolean(
     String(targetId || '').trim().startsWith('hw_') ||
     String(test?.id || '').trim().startsWith('hw_') ||
     String(submission?.hwId || '').trim().startsWith('hw_') ||
@@ -489,13 +512,13 @@ export default function ModularQuizReviewPage() {
     submission?.sourceType === 'questionBank'
   );
 
-  const isPhysical = !isMultiSection && Boolean(
+  const isPhysical = isTrackedBook || (!isMultiSection && Boolean(
     test.sourceFormat === 'physicalExam' ||
     test.contentType === 'physicalExam' ||
     test.type === 'physicalExam' ||
     test.bookType === 'exam' ||
     (test.questionType === 'optik_form' && (!questions || questions.length === 0 || !questions[0]?.text))
-  );
+  ));
 
   const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
     q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')

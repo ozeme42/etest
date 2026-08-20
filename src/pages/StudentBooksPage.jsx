@@ -179,54 +179,10 @@ export default function StudentBooksPage() {
       if (!book) return;
 
       if (!bookMap[book.id]) {
-        bookMap[book.id] = { ...book, assignedHomeworks: [], allAssignedTestIds: new Set(), allSolvedTestIds: new Set() };
+        bookMap[book.id] = { ...book, assignedHomeworks: [] };
       }
 
       bookMap[book.id].assignedHomeworks.push(hw);
-
-      let hwTestIdsRaw = [];
-      const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
-
-      if (hasTestDueDates) {
-        // Kitap takibinden tarih girilmiş testler: Sadece tarihi girilen testler görünsün
-        hwTestIdsRaw = Object.entries(hw.testDueDates)
-          .filter(([_, dStr]) => dStr && String(dStr).trim() !== '')
-          .map(([tId, _]) => tId);
-      } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-        hwTestIdsRaw = hw.tests;
-      } else if (hw.title?.includes('(Tüm Kitap Görevi)')) {
-        hwTestIdsRaw = bookTests.filter(bt => String(bt.bookId) === String(book.id)).map(bt => bt.id);
-      }
-      hwTestIdsRaw.forEach(id => bookMap[book.id].allAssignedTestIds.add(String(id)));
-
-      const hwIdSet = new Set([String(hw.id)]);
-      const hwUUID = toUUID(hw.id);
-      if (hwUUID) hwIdSet.add(String(hwUUID));
-
-      studentSubmissions.forEach(s => {
-        const candidateFields = [
-          s.testId,
-          s.realTestId,
-          s.bookTestId,
-          s.metadata?.realTestId,
-          s.metadata?.bookTestId,
-          s.metadata?.realId
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
-
-        candidateFields.forEach(field => {
-          if (field === undefined || field === null) return;
-          const raw = String(field);
-          const uuid = toUUID(field);
-          hwTestIdsRaw.forEach(id => {
-            const strId = String(id);
-            const uuidId = toUUID(id);
-            if (strId === raw || (uuid && String(uuidId) === String(uuid))) {
-              bookMap[book.id].allSolvedTestIds.add(strId);
-            }
-          });
-        });
-      });
 
       if (hw.dueDate) {
         const dueDate = new Date(hw.dueDate);
@@ -235,49 +191,94 @@ export default function StudentBooksPage() {
     });
 
     Object.values(bookMap).forEach(b => {
-      b.totalAssignedTests = b.allAssignedTestIds.size;
-      b.totalSolvedTests = Math.min(b.allSolvedTestIds.size, b.allAssignedTestIds.size);
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(b.id));
+      const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || 1);
+
       if (b.targetDueDate) {
         const diff = b.targetDueDate.getTime() - new Date().getTime();
         b.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
       }
 
-      const bestSubsByKey = {};
-      studentSubmissions.forEach(s => {
-        const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
-        let belongs = false;
-        candidateFields.forEach(field => {
-          if (!field) return;
-          if (b.allAssignedTestIds.has(String(field))) belongs = true;
-          b.assignedHomeworks.forEach(hw => {
-            if (String(hw.id) === String(field) || String(toUUID(hw.id)) === String(field)) belongs = true;
-          });
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalBlank = 0;
+      let totalSolvedTests = 0;
+
+      testsInBook.forEach(t => {
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(t.id) || '');
+
+        const solvedSubs = studentSubmissions.filter(s => {
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
+          }
+
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) ||
+            toUUID(f) === tIdStr ||
+            (tUuidStr && toUUID(f) === tUuidStr)
+          ));
         });
-        if (belongs) {
-          const key = String(s.testId || s.bookTestId || s.id);
-          const ex = bestSubsByKey[key];
-          if (!ex || s.score > ex.score || (s.score === ex.score && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) bestSubsByKey[key] = s;
+
+        let hwSub = null;
+        for (const hw of homeworks) {
+          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
+          const match = hw.submissions.find(s => {
+            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+          });
+          if (match) {
+            hwSub = match;
+            break;
+          }
+        }
+
+        const isCompleted = solvedSubs.length > 0 || !!hwSub;
+        if (isCompleted) {
+          totalSolvedTests++;
+          let bestSub = null;
+          if (solvedSubs.length > 0) {
+            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
+          } else if (hwSub) {
+            bestSub = hwSub;
+          }
+
+          if (bestSub) {
+            totalCorrect += bestSub.correctCount || 0;
+            totalWrong += bestSub.wrongCount || 0;
+            totalBlank += bestSub.blankCount || 0;
+          }
         }
       });
 
-      let totalCorrect = 0, totalWrong = 0, totalBlank = 0;
-      Object.values(bestSubsByKey).forEach(sub => {
-        totalCorrect += sub.correctCount || 0;
-        totalWrong += sub.wrongCount || 0;
-        totalBlank += sub.blankCount || 0;
-      });
+      b.totalAssignedTests = totalBookTests;
+      b.totalBookTests = totalBookTests;
+      b.totalSolvedTests = totalSolvedTests;
       b.totalCorrect = totalCorrect;
       b.totalWrong = totalWrong;
       b.totalBlank = totalBlank;
-      b.successRate = (totalCorrect + totalWrong + totalBlank) > 0
-        ? Math.round((totalCorrect / (totalCorrect + totalWrong + totalBlank)) * 100) : 0;
-      b.progressPct = b.totalAssignedTests > 0
-        ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0;
+
+      const totalQuestions = totalCorrect + totalWrong + totalBlank;
+      b.successRate = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+      b.progressPct = totalBookTests > 0 ? Math.round((totalSolvedTests / totalBookTests) * 100) : 0;
     });
 
     return Object.values(bookMap);
-  }, [bookAssignments, books, studentSubmissions, bookTests]);
+  }, [bookAssignments, books, studentSubmissions, bookTests, homeworks, studentIdStr, studentUuidStr]);
 
   const overallStats = useMemo(() => {
     let totalD = 0, totalY = 0, totalB = 0, totalAssigned = 0, totalSolved = 0;

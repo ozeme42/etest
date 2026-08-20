@@ -542,6 +542,190 @@ export default function StudentBookDetailsPage() {
     });
   }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
 
+  // ── MISTAKE REASONS AGGREGATION ACROSS THE BOOK (DEEP RESILIENT SEARCH) ──
+  const bookMistakeStats = useMemo(() => {
+    const reasonDefs = {
+      '⚡ İşlem Hatası': { key: '⚡ İşlem Hatası', label: 'İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a', count: 0 },
+      '⚠️ Dikkat Kaybı': { key: '⚠️ Dikkat Kaybı', label: 'Dikkat Kaybı / Yanlış Okuma', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', count: 0 },
+      '📖 Formül / Bilgi': { key: '📖 Formül / Bilgi', label: 'Formül / Bilgi Eksikliği', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', count: 0 },
+      '🧠 Konu Eksiği': { key: '🧠 Konu Eksiği', label: 'Konu Eksiği Var', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', count: 0 },
+      '⏱️ Zaman Yetmedi': { key: '⏱️ Zaman Yetmedi', label: 'Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', count: 0 },
+    };
+
+    const normalizeReason = (r) => {
+      if (!r) return null;
+      const str = String(r).toLowerCase().trim();
+      if (str.includes('işlem') || str.includes('islem') || str.includes('hesap')) return '⚡ İşlem Hatası';
+      if (str.includes('dikkat') || str.includes('okuma') || str.includes('yanlış okuma')) return '⚠️ Dikkat Kaybı';
+      if (str.includes('formül') || str.includes('formul') || str.includes('bilgi') || str.includes('unutul')) return '📖 Formül / Bilgi';
+      if (str.includes('konu') || str.includes('anlamadım') || str.includes('kavram') || str.includes('tarz')) return '🧠 Konu Eksiği';
+      if (str.includes('zaman') || str.includes('süre') || str.includes('sure') || str.includes('yetmedi') || str.includes('yetiş')) return '⏱️ Zaman Yetmedi';
+      return '⚡ İşlem Hatası';
+    };
+
+    // 1. Collect all mistake reason dictionaries from localStorage
+    const localMap = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('mistake_reasons_') || k.startsWith('mistake_reason_'))) {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(k));
+            if (parsed && typeof parsed === 'object') {
+              localMap[k] = parsed;
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    let totalWrongInBook = 0;
+    let totalClassified = 0;
+    const questionsList = [];
+
+    // Collect all tests of this book
+    const allBookTests = [];
+    (subjectProgress || []).forEach(subj => {
+      if (Array.isArray(subj.tests)) {
+        subj.tests.forEach(t => allBookTests.push({ ...t, subjectName: subj.name }));
+      }
+    });
+
+    const studentIdStr = String(studentId || '');
+    const studentUuidStr = String(toUUID(studentId) || '');
+    const currentUserIdStr = String(currentUser?.id || '');
+    const currentUserUuidStr = String(toUUID(currentUser?.id) || '');
+
+    allBookTests.forEach(t => {
+      const sub = t.bestSub || t.latestSub;
+      const testWrong = t.isCompleted ? (sub?.wrongCount ?? 0) : 0;
+      totalWrongInBook += testWrong;
+
+      const tIdStr = String(t.id);
+      const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+      const tUuidStr = String(toUUID(t.id) || '');
+
+      const foundReasonsList = [];
+
+      // A. Check from submissions
+      const matchingSubs = (submissions || []).filter(s => {
+        const isMatchStudent = String(s.studentId) === studentIdStr ||
+          (studentUuidStr && String(s.studentId) === studentUuidStr) ||
+          (currentUserIdStr && String(s.studentId) === currentUserIdStr) ||
+          (currentUserUuidStr && String(s.studentId) === currentUserUuidStr);
+        if (!isMatchStudent) return false;
+
+        const matchFields = [
+          String(s.testId || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || ''),
+          String(s.metadata?.realTestId || ''),
+          String(s.metadata?.bookTestId || ''),
+          String(s.metadata?.realId || '')
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) matchFields.push(...s.bookTestIds.map(String));
+
+        return matchFields.some(f => f && (
+          f === tIdStr ||
+          f === tCleanId ||
+          f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+          (tUuidStr && f === tUuidStr) ||
+          toUUID(f) === tIdStr ||
+          (tUuidStr && toUUID(f) === tUuidStr)
+        ));
+      });
+
+      matchingSubs.forEach(s => {
+        if (s.mistakeReasons && typeof s.mistakeReasons === 'object') {
+          foundReasonsList.push(s.mistakeReasons);
+        }
+        if (Array.isArray(s.answers)) {
+          const aObj = {};
+          s.answers.forEach((a, aIdx) => {
+            const qNum = a.questionNo || (aIdx + 1);
+            const r = a.reason || a.mistakeReason || a.hataNedeni || a.hata_sebebi;
+            if (r) aObj[qNum] = r;
+          });
+          if (Object.keys(aObj).length > 0) foundReasonsList.push(aObj);
+        }
+      });
+
+      // B. Check from localStorage entries matching this test ID
+      Object.entries(localMap).forEach(([k, val]) => {
+        if (!val || typeof val !== 'object') return;
+        const isTestMatch = k.includes(tIdStr) || (tCleanId && k.includes(tCleanId)) || (tUuidStr && k.includes(tUuidStr));
+        if (isTestMatch) {
+          foundReasonsList.push(val);
+        }
+      });
+
+      // Merge all reasons found for this test
+      const testMergedReasons = {};
+      foundReasonsList.forEach(rObj => {
+        if (rObj && typeof rObj === 'object') {
+          Object.entries(rObj).forEach(([qNo, r]) => {
+            if (r && !testMergedReasons[qNo]) {
+              testMergedReasons[qNo] = r;
+            }
+          });
+        }
+      });
+
+      // Map to standardized reasons
+      Object.entries(testMergedReasons).forEach(([qNo, rawReason]) => {
+        const normKey = normalizeReason(rawReason);
+        if (normKey && reasonDefs[normKey]) {
+          reasonDefs[normKey].count++;
+          totalClassified++;
+          questionsList.push({
+            testId: t.id,
+            testName: t.name,
+            subjectName: t.subjectName,
+            qNo,
+            reasonKey: normKey,
+            reasonLabel: reasonDefs[normKey].label,
+            rawReason
+          });
+        }
+      });
+    });
+
+    // Fallback: If still 0 classified but there are mistake_reasons_ keys in localStorage, aggregate all of them
+    if (totalClassified === 0 && Object.keys(localMap).length > 0) {
+      Object.values(localMap).forEach(parsed => {
+        if (parsed && typeof parsed === 'object') {
+          Object.entries(parsed).forEach(([qNo, rawReason]) => {
+            const normKey = normalizeReason(rawReason);
+            if (normKey && reasonDefs[normKey]) {
+              reasonDefs[normKey].count++;
+              totalClassified++;
+            }
+          });
+        }
+      });
+    }
+
+    const unclassifiedCount = Math.max(0, totalWrongInBook - totalClassified);
+
+    let topReason = null;
+    let maxCount = 0;
+    Object.values(reasonDefs).forEach(r => {
+      if (r.count > maxCount) {
+        maxCount = r.count;
+        topReason = r;
+      }
+    });
+
+    return {
+      reasonDefs,
+      totalWrongInBook,
+      totalClassified,
+      unclassifiedCount,
+      topReason,
+      questionsList
+    };
+  }, [subjectProgress, studentId, submissions, currentUser]);
+
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
       <style>{`
@@ -1024,6 +1208,176 @@ export default function StudentBookDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* ════════════════════════════════════════════
+          YANLIŞ & HATA SEBEPLERİ ANALİZİ (DİKKAT KAYBI, BİLGİ EKSİKLİĞİ VB.)
+      ════════════════════════════════════════════ */}
+      <div className="sbdp-anim" style={{
+        background: 'var(--color-surface)',
+        borderRadius: '1.4rem',
+        border: '1.5px solid var(--color-border)',
+        padding: '1.5rem 1.75rem',
+        marginBottom: '2rem',
+        boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.15rem',
+              color: 'white',
+              boxShadow: '0 4px 14px rgba(225, 29, 72, 0.3)'
+            }}>
+              🤔
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                Yanlış & Hata Sebepleri Analizi
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e11d48', background: '#ffe4e6', border: '1px solid #fecdd3', borderRadius: 99, padding: '2px 8px' }}>
+                  {bookMistakeStats.totalClassified} Sebep Kayıtlı
+                </span>
+              </h3>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                Testleri çözerken optik formda yanlış sorular için işaretlenen hata nedenleri
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+            <span>Toplam Yanlış: <strong style={{ color: '#dc2626' }}>{bookMistakeStats.totalWrongInBook}</strong></span>
+            <span>•</span>
+            <span>Sınıflandırılan: <strong style={{ color: '#059669' }}>{bookMistakeStats.totalClassified}</strong></span>
+            {bookMistakeStats.unclassifiedCount > 0 && (
+              <>
+                <span>•</span>
+                <span style={{ color: '#d97706' }}>Bekleyen: {bookMistakeStats.unclassifiedCount}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Multi-segment breakdown bar */}
+        {bookMistakeStats.totalClassified > 0 && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ height: 10, width: '100%', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
+              {Object.values(bookMistakeStats.reasonDefs).map(r => {
+                if (r.count === 0) return null;
+                const pct = ((r.count / bookMistakeStats.totalClassified) * 100).toFixed(1);
+                return (
+                  <div
+                    key={r.key}
+                    style={{ width: `${pct}%`, background: r.color, height: '100%' }}
+                    title={`${r.key}: ${r.count} soru (%${pct})`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Reason KPI Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          {Object.values(bookMistakeStats.reasonDefs).map(r => {
+            const pct = bookMistakeStats.totalClassified > 0 ? Math.round((r.count / bookMistakeStats.totalClassified) * 100) : 0;
+            return (
+              <div
+                key={r.key}
+                style={{
+                  background: r.count > 0 ? r.bg : 'var(--color-surface-hover, #f8fafc)',
+                  border: `1.5px solid ${r.count > 0 ? r.border : 'var(--color-border, #e2e8f0)'}`,
+                  borderRadius: 14,
+                  padding: '0.85rem 1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  transition: 'all 0.18s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                    {r.key}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                    %{pct}
+                  </span>
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  {r.count} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>soru</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Insight / Coaching Tip */}
+        {bookMistakeStats.topReason && bookMistakeStats.topReason.count > 0 ? (
+          <div style={{
+            background: 'var(--color-surface-hover, #f8fafc)',
+            border: '1.5px dashed var(--color-border, #cbd5e1)',
+            borderRadius: 12,
+            padding: '0.75rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: '0.82rem',
+            color: 'var(--color-text)'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>💡</span>
+            <div>
+              <strong>Hata Analiz İpucu:</strong> Bu kitaptaki en yaygın hata nedeniniz <strong style={{ color: bookMistakeStats.topReason.color }}>{bookMistakeStats.topReason.key}</strong> (%{Math.round((bookMistakeStats.topReason.count / bookMistakeStats.totalClassified) * 100)}).
+              {bookMistakeStats.topReason.key.includes('Dikkat') && ' Sorulardaki olumsuz köklere ("değildir", "ulaşılamaz") ve işlem adımlarına ekstra özen göstermeniz netlerinizi hızla artıracaktır.'}
+              {bookMistakeStats.topReason.key.includes('İşlem') && ' Basit işlem adımlarını zihinden değil, kağıt üzerine yazarak çözmeniz hata payını sıfırlayacaktır.'}
+              {bookMistakeStats.topReason.key.includes('Konu') && ' Bu konudaki konu özetlerini tekrar gözden geçirmeniz ve kavram haritalarını incelemeniz önerilir.'}
+              {bookMistakeStats.topReason.key.includes('Formül') && ' Formül ve kural kartları hazırlayarak soru çözmeden önce 2 dakika tekrar yapmanız faydalı olacaktır.'}
+              {bookMistakeStats.topReason.key.includes('Zaman') && ' Turlama tekniği kullanarak uzun soruları ikinci tura bırakmanız zaman yönetimini güçlendirecektir.'}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--color-surface-hover, #f8fafc)',
+            border: '1px dashed var(--color-border, #cbd5e1)',
+            borderRadius: 12,
+            padding: '0.75rem 1rem',
+            fontSize: '0.78rem',
+            color: 'var(--color-text-muted)',
+            textAlign: 'center'
+          }}>
+            📝 Testleri bitirdikten sonra optik form ekranında yanlış yaptığınız soruların yanındaki <strong>"🤔 Yanlış Sebebi"</strong> butonlarına basarak nedenini (Dikkat, İşlem, Konu Eksiği vb.) seçtiğinizde detaylı analiz grafiğiniz burada otomatik olarak oluşacaktır.
+          </div>
+        )}
+
+        {/* Sınıflandırılan Soruların Listesi */}
+        {bookMistakeStats.questionsList.length > 0 && (
+          <div style={{ marginTop: '0.85rem' }}>
+            <details style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 12, border: '1px solid var(--color-border, #e2e8f0)', overflow: 'hidden' }}>
+              <summary style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
+                <span>📋 Sınıflandırılan Soruların Listesi ({bookMistakeStats.questionsList.length} Soru)</span>
+                <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800 }}>Detayları Göster / Gizle ▼</span>
+              </summary>
+              <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                {bookMistakeStats.questionsList.map((q, qIdx) => (
+                  <div key={qIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.45rem 0.65rem', background: 'var(--color-surface, #ffffff)', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', fontSize: '0.76rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>{q.testName}</span>
+                      <span style={{ color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>• Soru {q.qNo}</span>
+                      {q.subjectName && <span style={{ fontSize: '0.68rem', background: 'var(--color-surface-hover, #f1f5f9)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>{q.subjectName}</span>}
+                    </div>
+                    <span style={{ fontWeight: 900, color: bookMistakeStats.reasonDefs[q.reasonKey]?.color || '#e11d48' }}>
+                      {q.rawReason || q.reasonKey}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
+      </div>
 
       {book.pdfUrl && showBookPdf && (
         <div style={{ marginBottom: '2rem' }}>

@@ -416,7 +416,18 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     const allHomeworkIds = new Set();
     const compositeSectionIds = new Set();
 
+    const isBookHomework = (hw) => Boolean(
+      hw?.isBookAssignment ||
+      hw?.bookId ||
+      hw?.sourceType === 'trackedBook' ||
+      hw?.title?.includes('(Tüm Kitap Görevi)') ||
+      hw?.title?.includes('(Tüm Kitap)') ||
+      hw?.title?.includes('(Kendi Eklediğim)')
+    );
+
     activeHws.forEach(hw => {
+      if (isBookHomework(hw)) return;
+
       allHomeworkIds.add(String(hw.id));
       if (toUUID(hw.id)) allHomeworkIds.add(String(toUUID(hw.id)));
 
@@ -439,7 +450,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
     // 1. Process regular non-book homeworks
     activeHws.forEach(hw => {
-      if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Kendi Eklediğim)')) {
+      if (isBookHomework(hw)) {
         return;
       }
 
@@ -622,7 +633,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const testName = testObj?.name || sub.testTitle || raw.testTitle || 'Test';
 
       const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
-      const topicName = topicObj?.name || '';
+      const topicName = topicObj?.name || testObj?.topicName || testObj?.unit || testObj?.unitName || sub.topic || sub.unit || sub.topicName || sub.unitName || raw.topic || raw.unit || '';
 
       const fullTestTitle = topicName
         ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})`

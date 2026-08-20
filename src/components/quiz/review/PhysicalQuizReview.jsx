@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
-import { ArrowLeft, CheckCircle, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ArrowLeft, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, Trophy, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useAuth } from '../../../context/AuthContext';
+import { useTrackedBooks } from '../../../context/TrackedBookContext';
+import ResizablePdfPanel from '../../ResizablePdfPanel';
+import { toUUID } from '../../../services/supabaseService';
 
 function getAnsIndex(val) {
   if (val === null || val === undefined || val === '') return null;
@@ -13,7 +18,8 @@ function getAnsIndex(val) {
   return null;
 }
 
-function getQuestionColumns(totalCount, maxPerCol = 10) {
+function getQuestionColumns(totalCount, isMobile) {
+  const maxPerCol = isMobile ? 10 : 10;
   let perCol = maxPerCol;
   if (totalCount <= 10) perCol = totalCount;
   else if (totalCount <= 14) perCol = Math.ceil(totalCount / 2);
@@ -32,10 +38,103 @@ function getQuestionColumns(totalCount, maxPerCol = 10) {
   return columns;
 }
 
+const MISTAKE_REASON_OPTIONS = [
+  { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+];
+
 export default function PhysicalQuizReview({ submission, test, questions = [], onClose }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const navigate = useNavigate();
   const location = useLocation();
+  const { updateSubmission } = useEvaluation();
+  const { currentUser } = useAuth();
+  const { books, bookTests } = useTrackedBooks();
+
+  const studentId = submission?.studentId || currentUser?.id || 'u1';
+  const testId = test?.id || submission?.testId || submission?.bookTestId || 'test_1';
+  const testKey = String(testId).replace(/^bt_/, '');
+
+  // ── Resolve Book & PDF ──
+  const resolvedBook = useMemo(() => {
+    if (test?.book) return test.book;
+    if (test?.bookId && books) {
+      return books.find(b => String(b.id) === String(test.bookId) || toUUID(b.id) === toUUID(test.bookId)) || null;
+    }
+    if (books && Array.isArray(books)) {
+      return books.find(b => (bookTests || []).some(bt => String(bt.bookId) === String(b.id) && (String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId)))) || null;
+    }
+    return null;
+  }, [test, books, bookTests, testId]);
+
+  const pdfUrl = test?.pdfUrl || resolvedBook?.pdfUrl || submission?.pdfUrl || '';
+  const hasPdf = Boolean(pdfUrl);
+
+  const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
+  const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
+  const [showOptikForm, setShowOptikForm] = useState(true);
+  const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+  const [showMistakeSummary, setShowMistakeSummary] = useState(true);
+  const [savedFeedbackToast, setSavedFeedbackToast] = useState(null);
+
+  // ── Load Mistake Reasons State ──
+  const [mistakeReasons, setMistakeReasons] = useState(() => {
+    if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
+      return submission.mistakeReasons;
+    }
+    try {
+      const keysToTry = [
+        `mistake_reasons_${testId}_${studentId}`,
+        `mistake_reasons_bt_${testKey}_${studentId}`,
+        `mistake_reasons_${testKey}_${studentId}`,
+        `mistake_reasons_${toUUID(testId)}_${toUUID(studentId)}`,
+        `mistake_reasons_${testId}`
+      ];
+      for (const k of keysToTry) {
+        const saved = localStorage.getItem(k);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') return parsed;
+        }
+      }
+    } catch {}
+    return {};
+  });
+
+  // ── Save Mistake Reason Handler ──
+  const handleSetMistakeReason = useCallback(async (qNo, reason) => {
+    const next = { ...mistakeReasons, [qNo]: mistakeReasons[qNo] === reason ? null : reason };
+    setMistakeReasons(next);
+
+    // 1. Save to LocalStorage
+    try {
+      localStorage.setItem(`mistake_reasons_${testId}_${studentId}`, JSON.stringify(next));
+      localStorage.setItem(`mistake_reasons_bt_${testKey}_${studentId}`, JSON.stringify(next));
+      localStorage.setItem(`mistake_reasons_${testKey}_${studentId}`, JSON.stringify(next));
+    } catch {}
+
+    // 2. Sync to Supabase Evaluation Context
+    if (submission && updateSubmission) {
+      const updatedAnswers = (submission.answers || []).map(a => {
+        const num = a.questionNo || a.questionIndex;
+        if (num === qNo || String(num) === String(qNo)) {
+          return { ...a, reason: next[qNo], mistakeReason: next[qNo] };
+        }
+        return a;
+      });
+
+      await updateSubmission(submission.id, {
+        mistakeReasons: next,
+        answers: updatedAnswers
+      });
+    }
+
+    setSavedFeedbackToast(next[qNo] ? `Soru ${qNo}: "${reason}" sebebi kaydedildi` : `Soru ${qNo}: Sebep kaldırıldı`);
+    setTimeout(() => setSavedFeedbackToast(null), 2500);
+  }, [mistakeReasons, testId, testKey, studentId, submission, updateSubmission]);
 
   const handleGoBack = () => {
     if (onClose) {
@@ -67,42 +166,61 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const wrongCount = submission?.wrongCount ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
   const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
   const scorePct = submission?.score ?? (qCount > 0 ? Math.round((correctCount / qCount) * 100) : 0);
+  const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
+  const netScore = Math.max(0, Number((correctCount - (penaltyRatio > 0 ? wrongCount / penaltyRatio : 0)).toFixed(2)));
 
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(qCount, 10);
-  }, [qCount]);
+    return getQuestionColumns(qCount, isMobile);
+  }, [qCount, isMobile]);
 
   const isExplicitFive = Boolean(
     Number(test?.optionCount) === 5 ||
     Number(test?.optionsCount) === 5 ||
-    Number(test?.book?.optionCount) === 5 ||
-    String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+    Number(resolvedBook?.optionCount) === 5 ||
+    String(test?.optionCount || test?.optionsCount || resolvedBook?.optionCount || '').includes('5') ||
     test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-    test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
-    Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-    Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+    resolvedBook?.publisher === 'TYT' || resolvedBook?.publisher === 'AYT' || resolvedBook?.publisher === 'YKS' ||
+    Boolean(String(test?.grade || resolvedBook?.grade || '').match(/^(9|10|11|12)/)) ||
+    Boolean(String(test?.title || test?.name || resolvedBook?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
   );
   const optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
+  // Mistake Statistics for this test
+  const mistakeCounts = useMemo(() => {
+    const counts = {};
+    MISTAKE_REASON_OPTIONS.forEach(opt => { counts[opt.label] = 0; });
+    let classified = 0;
+    Object.entries(mistakeReasons).forEach(([q, r]) => {
+      if (r) {
+        let matched = MISTAKE_REASON_OPTIONS.find(opt => opt.label === r || r.includes(opt.label.slice(2).trim()));
+        if (matched) {
+          counts[matched.label] = (counts[matched.label] || 0) + 1;
+          classified++;
+        }
+      }
+    });
+    return { counts, classified, unclassified: Math.max(0, wrongCount - classified) };
+  }, [mistakeReasons, wrongCount]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg, #f8fafc)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
       
-      {/* HEADER */}
+      {/* ════════════════════════════════════════════
+          1. TOP NAVIGATION & SCORECARD HEADER
+      ════════════════════════════════════════════ */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 2rem',
-        background: '#ffffff',
-        borderBottom: '1.5px solid #e2e8f0',
+        padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
+        background: 'var(--color-surface, #ffffff)',
+        borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexShrink: 0,
         gap: isMobile ? '0.4rem' : '1rem',
-        minHeight: isMobile ? '48px' : '62px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
+        minHeight: isMobile ? '48px' : '58px',
         boxSizing: 'border-box',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        zIndex: 20
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
@@ -110,65 +228,87 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
             style={{
               padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              color: '#475569',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
+              color: 'var(--color-text, #475569)',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
-              flexShrink: 0
+              gap: '0.35rem',
+              flexShrink: 0,
+              transition: 'all 0.15s'
             }}
             title="Geri Dön"
           >
             <ArrowLeft size={isMobile ? 15 : 16} />
             {!isMobile && "Geri Dön"}
           </button>
+          
           <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+                📖 KİTAP OPTİK İNCELEME
+              </span>
+              {resolvedBook?.title && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {resolvedBook.title}
+                </span>
+              )}
+            </div>
             <h2 style={{
-              fontSize: isMobile ? '0.85rem' : '1.1rem',
+              fontSize: isMobile ? '0.85rem' : '1.05rem',
               fontWeight: 900,
               margin: 0,
-              color: '#0f172a',
+              color: 'var(--color-text, #0f172a)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
               {test?.title || test?.name || submission?.testTitle || 'Optik Form İnceleme'}
-              {!isMobile && " — Optik Form İnceleme"}
             </h2>
           </div>
         </div>
 
         {/* METRICS ROW */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.6rem', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f0fdf4', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
-            <CheckCircle2 size={isMobile ? 13 : 15} color="#16a34a" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#15803d' }}>
-              {correctCount}D
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
+          {/* Net */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#eff6ff', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bfdbfe' }}>
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#1d4ed8' }}>
+              {netScore} Net
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#fef2f2', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
-            <XCircle size={isMobile ? 13 : 15} color="#dc2626" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#b91c1c' }}>
-              {wrongCount}Y
+          {/* Doğru */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f0fdf4', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
+            <CheckCircle2 size={isMobile ? 12 : 14} color="#16a34a" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#15803d' }}>
+              {correctCount} D
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f8fafc', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-            <HelpCircle size={isMobile ? 13 : 15} color="#64748b" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#475569' }}>
-              {blankCount}B
+          {/* Yanlış */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#fef2f2', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
+            <XCircle size={isMobile ? 12 : 14} color="#dc2626" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#b91c1c' }}>
+              {wrongCount} Y
             </span>
           </div>
 
+          {/* Boş */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+            <HelpCircle size={isMobile ? 12 : 14} color="#64748b" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#475569' }}>
+              {blankCount} B
+            </span>
+          </div>
+
+          {/* Başarı % */}
           <div style={{
             background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
             color: 'white',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.85rem',
             borderRadius: '0.5rem',
             fontWeight: 900,
             fontSize: isMobile ? '0.72rem' : '0.82rem',
@@ -179,165 +319,366 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
         </div>
       </header>
 
-      {/* BODY */}
-      <div style={{ maxWidth: '1600px', width: '100%', margin: '0 auto', padding: isMobile ? '0.75rem' : '1.25rem 2rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-        
-        {/* BANNER WITH COLOR LEGEND */}
-        <div style={{ background: 'linear-gradient(135deg, #0f766e, #047857)', borderRadius: '1rem', padding: '0.85rem 1.25rem', color: 'white', boxShadow: '0 6px 20px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <FileSpreadsheet size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem' }}>Optik Form Sonuç Görünümü</h3>
-              <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
-                İşaretlediğiniz kabarcıklar ve doğru cevap anahtarı sütun sıralamasıyla listelenmiştir:
-              </p>
-            </div>
-          </div>
-
-          {/* COLOR LEGEND GUIDES */}
-          <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(0,0,0,0.25)', padding: '0.35rem 0.75rem', borderRadius: '0.6rem', fontSize: '0.74rem', fontWeight: 800, flexWrap: 'wrap' }}>
-            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /> Doğru
-            </span>
-            <span style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
-            </span>
-            <span style={{ color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
-            </span>
-          </div>
-        </div>
-
-        {/* NATURAL COMPACT OPTICAL FORM */}
+      {/* FEEDBACK TOAST */}
+      {savedFeedbackToast && (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))`,
-          gap: '0.85rem',
-          alignItems: 'start'
+          position: 'fixed',
+          top: 66,
+          right: 20,
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '0.55rem 1rem',
+          borderRadius: 10,
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          zIndex: 999,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          animation: 'fadeIn 0.2s ease'
         }}>
-          {Array.from({ length: qCount }).map((_, idx) => {
-            const qNo = idx + 1;
-            const qObj = questions[idx] || {};
-            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
+          <Check size={14} color="#10b981" />
+          {savedFeedbackToast}
+        </div>
+      )}
 
-            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
-            const textAns = ansObj.userAnswerText;
+      {/* ════════════════════════════════════════════
+          2. MAIN SPLIT BODY (PDF + OPTICAL FORM)
+      ════════════════════════════════════════════ */}
+      <div style={{
+        display: 'flex',
+        flexDirection: (effectivePdfMode === 'top' || isMobile) ? 'column' : 'row',
+        flex: 1,
+        overflow: 'hidden',
+        minHeight: 0
+      }}>
+        {/* PDF Panel if PDF exists */}
+        {hasPdf && (
+          <ResizablePdfPanel
+            pdfUrl={pdfUrl}
+            title={test?.title || test?.name || resolvedBook?.title || 'Kitap PDF'}
+            mode={effectivePdfMode}
+            onModeChange={setPdfMode}
+            isFullScreen={!showOptikForm}
+            onToggleDrawing={() => setIsDrawingOpen(p => !p)}
+            isDrawingOpen={isDrawingOpen}
+          />
+        )}
 
-            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
-            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
-            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
-            if (correctAnsIndex === null && test?.answerKey) {
-              const ak = test.answerKey;
-              const keyVal = Array.isArray(ak) ? ak[idx] : (ak[qNo] || ak[String(qNo)]);
-              correctAnsIndex = getAnsIndex(keyVal);
-            }
-
-            let isCorrect = ansObj.isCorrect;
-            if (isCorrect === null || isCorrect === undefined) {
-              if (userAnsIndex !== null && correctAnsIndex !== null) {
-                isCorrect = userAnsIndex === correctAnsIndex;
-              }
-            }
-
-            const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
-
-            return (
-              <div
-                key={qNo}
-                style={{
-                  background: '#ffffff',
-                  padding: isMobile ? '0.5rem 0.75rem' : '0.6rem 0.9rem',
-                  borderRadius: '0.85rem',
-                  border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.6rem',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 50, flexShrink: 0 }}>
-                  <div style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: '0.5rem',
-                    background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#f8fafc',
-                    color: isCorrect === true ? '#16a34a' : isCorrect === false ? '#dc2626' : '#64748b',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    fontSize: '0.85rem',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    {qNo}
+        {/* Optical Form Area */}
+        {showOptikForm && (
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg, #f8fafc)' }}>
+            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              {/* SCORECARD HERO BANNER */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                borderRadius: '1.25rem',
+                padding: '1.1rem 1.35rem',
+                color: 'var(--color-text, #0f172a)',
+                boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)',
+                border: '1.5px solid var(--color-border, #e2e8f0)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: scorePct >= 70 ? '#f0fdf4' : scorePct >= 50 ? '#fffbeb' : '#fef2f2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: scorePct >= 70 ? '1.5px solid #bbf7d0' : scorePct >= 50 ? '1.5px solid #fde68a' : '1.5px solid #fecaca'
+                    }}>
+                      <Trophy size={24} color={scorePct >= 70 ? '#15803d' : scorePct >= 50 ? '#b45309' : '#b91c1c'} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.1)', border: '1px solid #93c5fd', borderRadius: 99, padding: '0.1rem 0.55rem', marginBottom: 3 }}>
+                        <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#2563eb' }}>OPTİK FORM DEĞERLENDİRMESİ</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                        {test?.title || test?.name || submission?.testTitle || 'Test Sonucu'}
+                      </div>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isCorrect === false ? '#dc2626' : '#64748b' }}>
-                    {isCorrect === true ? '✓' : isCorrect === false ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
-                  </span>
+
+                  {/* COLOR LEGEND GUIDES */}
+                  <div style={{ display: 'flex', gap: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', padding: '0.4rem 0.75rem', borderRadius: '0.6rem', fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#10b981' }} /> Doğru
+                    </span>
+                    <span style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
+                    </span>
+                    <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
+                    </span>
+                  </div>
                 </div>
 
-                {textAns ? (
-                  <div style={{ fontSize: '0.8rem', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.35rem 0.6rem', borderRadius: '0.5rem', flex: 1 }}>
-                    {textAns}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: isMobile ? '0.3rem' : '0.45rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {optionsList.map((opt, optIdx) => {
-                      const isUserMarked = userAnsIndex === optIdx;
-                      const isAnswerKey = correctAnsIndex === optIdx;
+                {/* MISTAKE DIAGNOSTIC SUMMARY ACCORDION */}
+                {wrongCount > 0 && (
+                  <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--color-border, #e2e8f0)' }}>
+                    <div
+                      onClick={() => setShowMistakeSummary(p => !p)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                          🤔 Bu Testteki Yanlış Sebepleri ({mistakeCounts.classified}/{wrongCount} Sınıflandırıldı)
+                        </span>
+                        {mistakeCounts.unclassified > 0 && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: 99 }}>
+                            {mistakeCounts.unclassified} bekleyen
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {showMistakeSummary ? 'Gizle' : 'Göster'} {showMistakeSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </span>
+                    </div>
 
-                      let bg = '#f8fafc';
-                      let color = '#64748b';
-                      let border = '1.5px solid #cbd5e1';
-                      let shadow = 'none';
-
-                      if (isUserMarked && isAnswerKey) {
-                        bg = 'linear-gradient(135deg, #10b981, #059669)';
-                        color = '#ffffff';
-                        border = '2px solid #059669';
-                        shadow = '0 3px 10px rgba(16,185,129,0.25)';
-                      } else if (isUserMarked && !isAnswerKey) {
-                        bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                        color = '#ffffff';
-                        border = '2px solid #dc2626';
-                        shadow = '0 3px 10px rgba(239,68,68,0.25)';
-                      } else if (!isUserMarked && isAnswerKey) {
-                        bg = '#f0fdf4';
-                        color = '#16a34a';
-                        border = '2px dashed #16a34a';
-                      }
-
-                      return (
-                        <div
-                          key={opt}
-                          style={{
-                            width: isMobile ? 32 : 38,
-                            height: isMobile ? 32 : 38,
-                            borderRadius: '50%',
-                            background: bg,
-                            color: color,
-                            border: border,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 900,
-                            fontSize: isMobile ? '0.85rem' : '0.95rem',
-                            boxShadow: shadow
-                          }}
-                        >
-                          {opt}
-                        </div>
-                      );
-                    })}
+                    {showMistakeSummary && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginTop: '0.65rem' }}>
+                        {MISTAKE_REASON_OPTIONS.map(opt => {
+                          const count = mistakeCounts.counts[opt.label] || 0;
+                          return (
+                            <div
+                              key={opt.label}
+                              style={{
+                                background: count > 0 ? opt.bg : 'var(--color-surface-hover, #f8fafc)',
+                                border: `1.5px solid ${count > 0 ? opt.border : 'var(--color-border, #e2e8f0)'}`,
+                                borderRadius: 10,
+                                padding: '0.45rem 0.65rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                              }}
+                            >
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: count > 0 ? opt.color : 'var(--color-text-muted, #64748b)' }}>
+                                {opt.label}
+                              </span>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 900, color: count > 0 ? opt.color : 'var(--color-text-muted, #64748b)' }}>
+                                {count}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            );
-          })}
-        </div>
+
+              {/* ════════════════════════════════════════════
+                  3. OPTICAL FORM COLUMNS & BUBBLE ROWS
+              ════════════════════════════════════════════ */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                borderRadius: '1.25rem',
+                padding: isMobile ? '0.75rem' : '1.25rem',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(questionColumns.length, 3)}, 1fr)`,
+                  gap: isMobile ? '0.75rem' : '1.25rem',
+                  alignItems: 'start'
+                }}>
+                  {questionColumns.map((colQuestions, colIdx) => (
+                    <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {colQuestions.map(qNo => {
+                        const qIdx = qNo - 1;
+                        const qObj = questions[qIdx] || {};
+                        const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
+
+                        const userAnsIndex = getAnsIndex(ansObj.userAnswer);
+                        const userAnsLetter = (ansObj.userAnswer !== null && ansObj.userAnswer !== undefined && ansObj.userAnswer !== '')
+                          ? (typeof ansObj.userAnswer === 'string' ? ansObj.userAnswer.toUpperCase() : String.fromCharCode(65 + ansObj.userAnswer))
+                          : null;
+                        const textAns = ansObj.userAnswerText;
+
+                        // Answer Key Resolution
+                        let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+                        if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+                        if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+                        if (correctAnsIndex === null && (test?.answerKey || resolvedBook?.answerKey)) {
+                          const ak = test?.answerKey || resolvedBook?.answerKey;
+                          const keyVal = Array.isArray(ak) ? ak[qIdx] : (ak[qNo] || ak[String(qNo)] || ak[qIdx]);
+                          correctAnsIndex = getAnsIndex(keyVal);
+                        }
+
+                        let isCorrect = ansObj.isCorrect;
+                        if (isCorrect === null || isCorrect === undefined) {
+                          if (userAnsIndex !== null && correctAnsIndex !== null) {
+                            isCorrect = userAnsIndex === correctAnsIndex;
+                          } else if (userAnsLetter && correctAnsIndex !== null) {
+                            isCorrect = userAnsLetter === String.fromCharCode(65 + correctAnsIndex);
+                          }
+                        }
+
+                        const isWrong = isCorrect === false && (userAnsIndex !== null || userAnsLetter !== null);
+                        const isBlank = userAnsIndex === null && !userAnsLetter && !textAns;
+                        const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
+
+                        return (
+                          <div
+                            key={qNo}
+                            style={{
+                              background: isCorrect === true ? 'rgba(16, 185, 129, 0.04)' : isWrong ? 'rgba(239, 68, 68, 0.04)' : 'var(--color-surface, #ffffff)',
+                              padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 0.8rem',
+                              borderRadius: '0.85rem',
+                              border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.35rem',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                              {/* Question Number Badge */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 48, flexShrink: 0 }}>
+                                <div style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
+                                  color: isCorrect === true ? '#15803d' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 900,
+                                  fontSize: '0.82rem',
+                                  border: `1px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`
+                                }}>
+                                  {qNo}
+                                </div>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)' }}>
+                                  {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
+                                </span>
+                              </div>
+
+                              {/* Bubble Options */}
+                              {textAns ? (
+                                <div style={{ fontSize: '0.78rem', color: 'var(--color-text, #0f172a)', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', padding: '0.3rem 0.55rem', borderRadius: '0.45rem', flex: 1 }}>
+                                  {textAns}
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', gap: isMobile ? '0.25rem' : '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  {optionsList.map((opt, optIdx) => {
+                                    const isUserMarked = userAnsIndex === optIdx || userAnsLetter === opt;
+                                    const isAnswerKey = correctAnsIndex === optIdx;
+
+                                    let bg = 'var(--color-surface, #ffffff)';
+                                    let color = 'var(--color-text-muted, #64748b)';
+                                    let border = '1.5px solid var(--color-border, #cbd5e1)';
+                                    let shadow = 'none';
+
+                                    if (isUserMarked && isAnswerKey) {
+                                      bg = 'linear-gradient(135deg, #10b981, #059669)';
+                                      color = '#ffffff';
+                                      border = '2px solid #059669';
+                                      shadow = '0 2px 8px rgba(16,185,129,0.3)';
+                                    } else if (isUserMarked && !isAnswerKey) {
+                                      bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                                      color = '#ffffff';
+                                      border = '2px solid #dc2626';
+                                      shadow = '0 2px 8px rgba(239,68,68,0.3)';
+                                    } else if (!isUserMarked && isAnswerKey) {
+                                      bg = '#f0fdf4';
+                                      color = '#16a34a';
+                                      border = '2px dashed #16a34a';
+                                    }
+
+                                    return (
+                                      <div
+                                        key={opt}
+                                        style={{
+                                          width: isMobile ? 30 : 34,
+                                          height: isMobile ? 30 : 34,
+                                          borderRadius: '50%',
+                                          background: bg,
+                                          color: color,
+                                          border: border,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 900,
+                                          fontSize: isMobile ? '0.8rem' : '0.88rem',
+                                          boxShadow: shadow,
+                                          userSelect: 'none'
+                                        }}
+                                      >
+                                        {opt}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* ════════════════════════════════════════════
+                                MISTAKE DIAGNOSTIC SELECTOR (INTERACTIVE IN REVIEW)
+                            ════════════════════════════════════════════ */}
+                            {isWrong && (
+                              <div style={{
+                                width: '100%',
+                                marginTop: '0.35rem',
+                                paddingTop: '0.35rem',
+                                borderTop: '1px dashed #fecaca',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.3rem'
+                              }}>
+                                <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  🤔 Yanlış Sebebi:
+                                </span>
+                                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                  {MISTAKE_REASON_OPTIONS.map(r => {
+                                    const currentVal = mistakeReasons[qNo];
+                                    const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
+                                    return (
+                                      <button
+                                        key={r.label}
+                                        type="button"
+                                        onClick={() => handleSetMistakeReason(qNo, r.label)}
+                                        style={{
+                                          padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
+                                          fontSize: isMobile ? '0.56rem' : '0.62rem',
+                                          fontWeight: 800,
+                                          borderRadius: 6,
+                                          border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                          background: isSelected ? r.color : r.bg,
+                                          color: isSelected ? '#ffffff' : r.color,
+                                          cursor: 'pointer',
+                                          boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                          transition: 'all 0.15s ease'
+                                        }}
+                                        title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                                      >
+                                        {r.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

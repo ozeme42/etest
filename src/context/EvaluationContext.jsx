@@ -34,10 +34,46 @@ export function EvaluationProvider({ children }) {
     try {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
-        setSubmissions(dbSubsList);
+        // Auto-sync any local mistake reasons into submissions and Supabase
+        let hasNewReasonsToSync = false;
+        const updatedSubs = dbSubsList.map(sub => {
+          const testId = String(sub.testId || sub.realTestId || sub.bookTestId || '');
+          const cleanTId = testId.replace(/^bt_/, '').replace(/^q_/, '');
+          let subMistakeReasons = (sub.mistakeReasons && typeof sub.mistakeReasons === 'object') ? { ...sub.mistakeReasons } : {};
+          let changed = false;
+
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && (k.startsWith('mistake_reasons_') || k.startsWith('mistake_reason_'))) {
+                if (k.includes(testId) || (cleanTId && k.includes(cleanTId))) {
+                  const parsed = JSON.parse(localStorage.getItem(k));
+                  if (parsed && typeof parsed === 'object') {
+                    Object.entries(parsed).forEach(([qNo, r]) => {
+                      if (r && subMistakeReasons[qNo] !== r) {
+                        subMistakeReasons[qNo] = r;
+                        changed = true;
+                        hasNewReasonsToSync = true;
+                      }
+                    });
+                  }
+                }
+              }
+            }
+          } catch {}
+
+          if (changed && Object.keys(subMistakeReasons).length > 0) {
+            const updated = { ...sub, mistakeReasons: subMistakeReasons };
+            dbSaveSubmission(updated);
+            return updated;
+          }
+          return sub;
+        });
+
+        setSubmissions(updatedSubs);
         try {
-          localStorage.setItem('eTestSubmissions', JSON.stringify(dbSubsList));
-          localStorage.setItem('etest_submissions', JSON.stringify(dbSubsList));
+          localStorage.setItem('eTestSubmissions', JSON.stringify(updatedSubs));
+          localStorage.setItem('etest_submissions', JSON.stringify(updatedSubs));
         } catch {}
       }
     } catch (err) {

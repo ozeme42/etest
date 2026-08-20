@@ -101,13 +101,26 @@ const getThemeKey = (cat) => {
 const avatarColors = ['#6366f1', '#3b82f6', '#10b981', '#f97316', '#a855f7', '#f43f5e'];
 
 const BOOK_PALETTES = [
-  { gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: '#818cf8', shadow: 'rgba(99, 102, 241, 0.35)' },
-  { gradient: 'linear-gradient(135deg, #059669, #10b981)', border: '#34d399', shadow: 'rgba(16, 185, 129, 0.35)' },
-  { gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', border: '#fbbf24', shadow: 'rgba(245, 158, 11, 0.35)' },
-  { gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', border: '#fb7185', shadow: 'rgba(244, 63, 94, 0.35)' },
-  { gradient: 'linear-gradient(135deg, #7c3aed, #9333ea)', border: '#c084fc', shadow: 'rgba(147, 51, 234, 0.35)' },
-  { gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', border: '#38bdf8', shadow: 'rgba(6, 182, 212, 0.35)' },
+  { from: '#4f46e5', to: '#6366f1', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: '#818cf8', shadow: 'rgba(99, 102, 241, 0.35)', tag: '#6366f1' },
+  { from: '#059669', to: '#10b981', gradient: 'linear-gradient(135deg, #059669, #10b981)', border: '#34d399', shadow: 'rgba(16, 185, 129, 0.35)', tag: '#10b981' },
+  { from: '#d97706', to: '#f59e0b', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', border: '#fbbf24', shadow: 'rgba(245, 158, 11, 0.35)', tag: '#f59e0b' },
+  { from: '#e11d48', to: '#f43f5e', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', border: '#fb7185', shadow: 'rgba(244, 63, 94, 0.35)', tag: '#f43f5e' },
+  { from: '#7c3aed', to: '#9333ea', gradient: 'linear-gradient(135deg, #7c3aed, #9333ea)', border: '#c084fc', shadow: 'rgba(147, 51, 234, 0.35)', tag: '#7c3aed' },
+  { from: '#0891b2', to: '#06b6d4', gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', border: '#38bdf8', shadow: 'rgba(6, 182, 212, 0.35)', tag: '#0891b2' },
 ];
+
+function MiniCircularProgress({ pct, size = 56, stroke = 5, color = '#6366f1' }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const validPct = Math.min(100, Math.max(0, isNaN(pct) ? 0 : Number(pct)));
+  const offset = circ - (validPct / 100) * circ;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+    </svg>
+  );
+}
 
 const DAYS_OF_WEEK = [
   { key: 'Pzt', name: 'Pazartesi', short: 'Pzt' },
@@ -369,7 +382,7 @@ export default function StudentDashboard() {
         }];
       }
 
-      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj) || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)');
 
       if (isBook) {
         return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor
@@ -527,35 +540,187 @@ export default function StudentDashboard() {
   const assignedBooksList = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return [];
     
-    const studentIdStr = String(selectedStudent.id);
+    const studentIdStr = String(selectedStudent.id || '');
     const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
     const studentSubs = (submissions || []).filter(s => {
-      const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+      const sid = String(s?.studentId || s?.student_id || s?.userId || s?.user_id || '');
+      const isMatchStudent = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
       return isMatchStudent && s.status !== 'in_progress' && s.status !== 'draft';
     });
 
-    const solvedTestIds = new Set(studentSubs.map(s => String(s.bookTestId || s.testId || '')));
+    const bookAssignments = (homeworks || []).filter(hw => {
+      if (!hw.isBookAssignment && !hw.bookId && !hw.title?.includes('(Tüm Kitap Görevi)') && !hw.title?.includes('(Tüm Kitap)') && !hw.title?.includes('(Kendi Eklediğim)') && hw.sourceType !== 'trackedBook') return false;
+      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
+    });
 
-    return books.filter(b => b.bookType !== 'exam').map((book, idx) => {
-      const testsInBook = (bookTests || []).filter(t => String(t.bookId) === String(book.id));
-      const solvedCount = testsInBook.filter(t => solvedTestIds.has(String(t.id))).length;
-      const totalTests = Math.max(testsInBook.length, 1);
-      const pct = Math.round((solvedCount / totalTests) * 100);
-      const nextTest = testsInBook.find(t => !solvedTestIds.has(String(t.id))) || testsInBook[0];
+    const bookMap = {};
+
+    // 1. Process books assigned via homeworks
+    bookAssignments.forEach(hw => {
+      let book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+      if (!book && hw.title) {
+        book = books.find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
+      }
+      if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
+        const matchedBt = bookTests.find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
+        if (matchedBt) {
+          book = books.find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
+        }
+      }
+      if (!book) return;
+
+      if (!bookMap[book.id]) {
+        bookMap[book.id] = { ...book, assignedHomeworks: [] };
+      }
+      bookMap[book.id].assignedHomeworks.push(hw);
+
+      if (hw.dueDate) {
+        const dueDate = new Date(hw.dueDate);
+        if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) bookMap[book.id].targetDueDate = dueDate;
+      }
+    });
+
+    // 2. Also include any non-exam book with solved tests
+    books.filter(b => b.bookType !== 'exam').forEach(book => {
+      if (bookMap[book.id]) return;
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+      const hasSolvedTest = testsInBook.some(t => {
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(t.id) || '');
+        return studentSubs.some(s => {
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
+          }
+          return matchFields.some(f => f && (
+            f === tIdStr || f === tCleanId || f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) || toUUID(f) === tIdStr || (tUuidStr && toUUID(f) === tUuidStr)
+          ));
+        });
+      });
+
+      if (hasSolvedTest) {
+        bookMap[book.id] = { ...book, assignedHomeworks: [] };
+      }
+    });
+
+    // Compute statistics for each book
+    const list = Object.values(bookMap).map((book, idx) => {
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+      const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (book.totalTests || 1);
+
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalBlank = 0;
+      let totalSolvedTests = 0;
+      let nextTest = null;
+
+      testsInBook.forEach(t => {
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(t.id) || '');
+
+        const solvedSubs = studentSubs.filter(s => {
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
+          }
+
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) ||
+            toUUID(f) === tIdStr ||
+            (tUuidStr && toUUID(f) === tUuidStr)
+          ));
+        });
+
+        let hwSub = null;
+        for (const hw of homeworks) {
+          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
+          const match = hw.submissions.find(s => {
+            const sid = String(s.studentId || s.student_id || s.user_id || '');
+            const isMatchStudent = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+          });
+          if (match) {
+            hwSub = match;
+            break;
+          }
+        }
+
+        const isCompleted = solvedSubs.length > 0 || !!hwSub;
+        if (isCompleted) {
+          totalSolvedTests++;
+          let bestSub = null;
+          if (solvedSubs.length > 0) {
+            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
+          } else if (hwSub) {
+            bestSub = hwSub;
+          }
+
+          if (bestSub) {
+            totalCorrect += bestSub.correctCount || 0;
+            totalWrong += bestSub.wrongCount || 0;
+            totalBlank += bestSub.blankCount || 0;
+          }
+        } else if (!nextTest) {
+          nextTest = t;
+        }
+      });
+
+      if (!nextTest && testsInBook.length > 0) {
+        nextTest = testsInBook[0];
+      }
+
+      const totalQuestions = totalCorrect + totalWrong + totalBlank;
+      const successRate = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+      const progressPct = totalBookTests > 0 ? Math.round((totalSolvedTests / totalBookTests) * 100) : 0;
+
+      let remainingDays = null;
+      if (book.targetDueDate) {
+        const diff = book.targetDueDate.getTime() - new Date().getTime();
+        remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
+      }
 
       return {
         ...book,
-        totalTests: testsInBook.length,
-        solvedCount,
-        pct,
+        totalBookTests,
+        totalSolvedTests,
+        totalCorrect,
+        totalWrong,
+        totalBlank,
+        totalQuestions,
+        successRate,
+        progressPct,
         nextTest,
+        remainingDays,
         paletteIdx: idx
       };
-    }).sort((a, b) => b.solvedCount - a.solvedCount);
-  }, [selectedStudent, books, bookTests, submissions]);
+    });
 
-  /* ─── Son Çözülen 5 Test ─── */
+    return list.sort((a, b) => b.totalSolvedTests - a.totalSolvedTests || b.progressPct - a.progressPct);
+  }, [selectedStudent, books, bookTests, submissions, homeworks, curData]);
+
   /* ─── Son Çözülen 5 Test ─── */
   const recentSolvedTests = useMemo(() => {
     if (!selectedStudent) return [];
@@ -563,9 +728,18 @@ export default function StudentDashboard() {
     const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
     const isMatchStudent = (s) => {
-      const sId = String(s?.studentId || '');
+      const sId = String(s?.studentId || s?.student_id || s?.userId || s?.user_id || '');
       return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
     };
+
+    const isBookHomework = (hw) => Boolean(
+      hw?.isBookAssignment ||
+      hw?.bookId ||
+      hw?.sourceType === 'trackedBook' ||
+      hw?.title?.includes('(Tüm Kitap Görevi)') ||
+      hw?.title?.includes('(Tüm Kitap)') ||
+      hw?.title?.includes('(Kendi Eklediğim)')
+    );
 
     const solvedList = [];
     const processedSubIds = new Set();
@@ -574,6 +748,8 @@ export default function StudentDashboard() {
     const compositeSectionIds = new Set();
 
     (homeworks || []).forEach(hw => {
+      if (isBookHomework(hw)) return;
+
       allHomeworkIds.add(String(hw.id));
       if (toUUID(hw.id)) allHomeworkIds.add(String(toUUID(hw.id)));
 
@@ -624,8 +800,9 @@ export default function StudentDashboard() {
       );
     };
 
-    // 1. Process Homeworks
+    // 1. Process Non-Book Homeworks
     (homeworks || []).forEach(hw => {
+      if (isBookHomework(hw)) return;
       if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
 
       const allMatchingSubs = [
@@ -661,12 +838,9 @@ export default function StudentDashboard() {
       const raw = sub.raw_data || {};
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || hw.createdAt;
 
-      const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || sub.bookId));
-      const cleanBookTitle = (bookObj?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
-
       const title = hw.title || sub.testTitle || raw.testTitle || 'Ödev Testi';
-      const subject = hw.subject || raw.subject || sub.subject || bookObj?.subject || 'Genel Testler';
-      const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
+      const subject = hw.subject || raw.subject || sub.subject || 'Genel Testler';
+      const subTitle = null;
 
       // Detect open-ended vs multiple choice test
       const isExplicitMCQ = Boolean(
@@ -694,7 +868,6 @@ export default function StudentDashboard() {
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
-
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
       let cCount = 0;
@@ -771,12 +944,15 @@ export default function StudentDashboard() {
         return;
       }
 
+      const unitTopic = (hw.unitTopic || hw.topic || hw.unit || sub.unitTopic || sub.topic || sub.unit || '').trim();
+
       solvedList.push({
         id: sub.id || hw.id,
         testId: hw.id,
         submissionId: sub.id,
         title,
         subject,
+        unitTopic: unitTopic || null,
         subTitle,
         date: dateVal,
         correctCount: cCount,
@@ -786,12 +962,12 @@ export default function StudentDashboard() {
         pct,
         isOpenEnded,
         isPendingEvaluation,
-        type: hw.isBookAssignment ? 'kitap' : 'ödev',
+        type: 'ödev',
         isPhysical: hw.type === 'physicalExam' || hw.isPhysical
       });
     });
 
-    // 2. Process Standalone Submissions (Book tests, Question Bank tests)
+    // 2. Process All Test & Book Submissions
     (submissions || []).forEach(sub => {
       if (!isMatchStudent(sub) || sub.status === 'in_progress' || sub.status === 'draft') return;
 
@@ -801,54 +977,57 @@ export default function StudentDashboard() {
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      const testId = String(sub.testId || sub.bookTestId || sub.realTestId || '');
+      const testId = String(sub.testId || sub.bookTestId || sub.realTestId || raw.testId || raw.bookTestId || '');
       const hwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
       if (!testId && !hwId) return;
 
-      // If this submission belongs to an assigned homework or was part of a composite homework, do not list separately
+      // If this submission belongs to a regular non-book assigned homework that was already handled in Step 1, do not duplicate
       if (hwId && allHomeworkIds.has(hwId)) return;
       if (allHomeworkIds.has(testId)) return;
       if (compositeSectionIds.has(testId)) return;
       if (testId && (processedTestKeys.has(testId) || (toUUID(testId) && processedTestKeys.has(String(toUUID(testId)))))) return;
 
-      const isHw = allHomeworkIds.has(testId) || compositeSectionIds.has(testId) || (homeworks || []).some(h => String(h.id) === testId);
-      if (isHw) return; // Homeworks are handled in Step 1
+      const isNonBookHw = allHomeworkIds.has(testId) || compositeSectionIds.has(testId);
+      if (isNonBookHw) return;
 
       // Skip sample mock submissions
       if (subIdStr.startsWith('sub_sample') || String(sub.id).startsWith('sub_sample')) {
         return;
       }
 
-      // Check submission origin
-      const isBookSub = Boolean(sub.bookId || sub.bookTestId || String(sub.testId).startsWith('bt_') || String(sub.testId).startsWith('book_') || sub.type === 'book' || sub.type === 'kitap');
-
-      if (isBookSub) {
-        const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
-        const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
-        if (!targetBook && !targetTest) {
-          return; // Silinmiş kitap/test
-        }
-      } else {
-        const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
-        const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
-        if (!targetCurTest && !targetBankQ) {
-          return; // Silinmiş test
-        }
-      }
-
-      const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
-      const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
+      const targetTest = (bookTests || []).find(t => 
+        String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
+        (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
+      );
+      const targetBook = (books || []).find(b => 
+        String(b.id) === String(sub.bookId || raw.bookId || targetTest?.bookId) ||
+        (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || targetTest?.bookId))
+      );
       const targetHw = (homeworks || []).find(h => String(h.id) === String(sub.hwId || sub.homeworkId || sub.testId || testId));
       const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
+      const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
+
+      const isBookSub = Boolean(targetBook || targetTest || sub.bookId || sub.bookTestId || String(sub.testId).startsWith('bt_') || String(sub.testId).startsWith('book_') || sub.type === 'book' || sub.type === 'kitap' || isBookHomework(targetHw));
+
+      if (!isBookSub && !targetCurTest && !targetBankQ && !targetHw) {
+        return; // Deleted test
+      }
 
       if (sub.id) processedSubIds.add(String(sub.id));
       if (testId) processedTestKeys.add(testId);
 
       const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
-      const cleanBookTitle = (targetBook?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(targetTest?.topicId || raw.topicId || sub.topicId));
+      const unitTopic = (topicObj?.name || targetTest?.topicName || targetTest?.unit || targetTest?.unitName || sub.topic || sub.unit || sub.topicName || sub.unitName || raw.topic || raw.unit || raw.topicName || raw.unitName || '').trim();
+      const cleanBookTitle = (targetBook?.title || targetHw?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
-      const title = sub.testTitle || raw.testTitle || targetTest?.name || targetHw?.title || targetCurTest?.title || sub.title || 'Test Çözümü';
-      const subject = subjObj?.name || sub.subject || raw.subject || targetHw?.subject || targetBook?.subject || cleanBookTitle || 'Genel Testler';
+      let title = targetTest?.name || sub.testTitle || raw.testTitle || sub.title;
+      if (!title || title === targetHw?.title || title.includes('(Tüm Kitap')) {
+        title = targetTest?.name || sub.testTitle || raw.testTitle || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
+      }
+      title = title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+
+      const subject = subjObj?.name || sub.subject || raw.subject || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || cleanBookTitle || 'Genel Testler';
       const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
@@ -918,7 +1097,7 @@ export default function StudentDashboard() {
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = cCount + wCount + eCount;
-      const rawTotal = sub.totalQuestions || raw.totalQuestions || targetTest?.questionCount || targetHw?.totalQuestions || (Array.isArray(sub.questions) ? sub.questions.length : 0);
+      const rawTotal = targetTest?.questionCount || sub.totalQuestions || raw.totalQuestions || (targetHw && !isBookHomework(targetHw) ? targetHw.totalQuestions : 0) || (Array.isArray(sub.questions) ? sub.questions.length : 0);
       const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
 
       if (cCount > qCount && qCount > 0) {
@@ -953,6 +1132,7 @@ export default function StudentDashboard() {
         submissionId: sub.id,
         title,
         subject,
+        unitTopic: unitTopic || null,
         subTitle,
         date: dateVal,
         correctCount: cCount,
@@ -962,7 +1142,7 @@ export default function StudentDashboard() {
         pct,
         isOpenEnded,
         isPendingEvaluation,
-        type: sub.type || (sub.bookTestId ? 'kitap' : 'test'),
+        type: sub.type || (sub.bookTestId || targetTest ? 'kitap' : 'test'),
         isPhysical: sub.type === 'physicalExam' || sub.isPhysical
       });
     });
@@ -1595,6 +1775,9 @@ export default function StudentDashboard() {
     });
 
     (homeworks || []).forEach(hw => {
+      const isBookHw = Boolean(hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook' || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)'));
+      if (isBookHw) return; // Book assignments are counted via individual test submissions
+
       (hw.submissions || []).forEach(sub => {
         const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
         if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
@@ -2639,6 +2822,261 @@ export default function StudentDashboard() {
             </div>
 
 
+            {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI */}
+            <div className="sd-card" style={{
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+                    color: 'white'
+                  }}>
+                    <BookOpen size={17} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
+                      Kitaplarım & İlerleme Haritası
+                    </h2>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      Takip ettiğiniz kitapların test, soru ve genel başarı ilerlemesi
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/student/books')}
+                  className="sd-btn"
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    color: '#6366f1',
+                    border: '1px solid rgba(165, 180, 252, 0.35)',
+                    borderRadius: 99,
+                    padding: '0.3rem 0.8rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <span>Tüm Kitaplar ({assignedBooksList.length})</span>
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+
+              {assignedBooksList.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📚</div>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz kayıtlı veya atanmış bir kitap bulunmuyor
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+                    Kitap eklendiğinde veya ödev verildiğinde kitap ilerleme haritanız burada listelenecektir.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {assignedBooksList.map((book, idx) => {
+                    const pal = BOOK_PALETTES[idx % BOOK_PALETTES.length];
+                    const isCompleted = book.progressPct >= 100;
+
+                    return (
+                      <div
+                        key={book.id || idx}
+                        onClick={() => navigate(`/student/books/${book.id}`)}
+                        className="sd-card"
+                        style={{
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          border: '1.5px solid var(--color-border, #e2e8f0)',
+                          borderRadius: 18,
+                          padding: isMobile ? '1rem' : '1.25rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.9rem',
+                          transition: 'all 0.2s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 14px -2px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        {/* Top Header: Title, Publisher, Remaining Days */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 900, fontSize: isMobile ? '0.95rem' : '1.05rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                                {book.title}
+                              </div>
+                              {book.publisher && (
+                                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>
+                                  {book.publisher}
+                                </div>
+                              )}
+                            </div>
+
+                            {book.remainingDays !== null && (
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: 99,
+                                background: book.remainingDays <= 3 ? '#fee2e2' : '#f0fdf4',
+                                color: book.remainingDays <= 3 ? '#b91c1c' : '#15803d',
+                                border: `1px solid ${book.remainingDays <= 3 ? '#fca5a5' : '#86efac'}`,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}>
+                                {book.remainingDays === 0 ? '🔥 Bugün Son' : `⏳ ${book.remainingDays} gün kaldı`}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Subjects */}
+                          {(book.subjects || []).length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                              {(book.subjects || []).slice(0, 3).map((subj, sIdx) => (
+                                <span
+                                  key={subj.id || sIdx}
+                                  style={{
+                                    background: 'var(--color-surface, #ffffff)',
+                                    color: 'var(--color-text-muted, #475569)',
+                                    border: '1px solid var(--color-border, #cbd5e1)',
+                                    borderRadius: 6,
+                                    padding: '1px 6px',
+                                    fontSize: '0.64rem',
+                                    fontWeight: 700
+                                  }}
+                                >
+                                  {subj.name}
+                                </span>
+                              ))}
+                              {(book.subjects || []).length > 3 && (
+                                <span style={{
+                                  background: 'var(--color-surface, #ffffff)',
+                                  color: 'var(--color-text-muted, #64748b)',
+                                  border: '1px solid var(--color-border, #cbd5e1)',
+                                  borderRadius: 6,
+                                  padding: '1px 5px',
+                                  fontSize: '0.64rem',
+                                  fontWeight: 800
+                                }}>
+                                  +{(book.subjects || []).length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Test Progress Box */}
+                        <div style={{
+                          background: 'var(--color-surface, #ffffff)',
+                          borderRadius: 14,
+                          padding: '0.85rem 1rem',
+                          border: '1px solid var(--color-border, #e2e8f0)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.9rem'
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                Test İlerlemesi
+                              </span>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 900, color: isCompleted ? '#10b981' : pal.tag }}>
+                                %{book.progressPct}
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', marginBottom: 6 }}>
+                              {book.totalSolvedTests} / {book.totalBookTests} test <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>({book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} kaldı` : 'Tamamlandı'})</span>
+                            </div>
+
+                            <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${book.progressPct}%`,
+                                height: '100%',
+                                background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
+                                borderRadius: 99,
+                                transition: 'width 0.6s ease'
+                              }} />
+                            </div>
+                          </div>
+
+                          <div style={{ position: 'relative', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <MiniCircularProgress pct={book.progressPct} size={50} stroke={5} color={isCompleted ? '#10b981' : pal.tag} />
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #0f172a)' }}>
+                              %{book.progressPct}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#16a34a', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#16a34a', marginTop: 1 }}>{book.totalCorrect}</div>
+                          </div>
+                          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#dc2626', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#dc2626', marginTop: 1 }}>{book.totalWrong}</div>
+                          </div>
+                          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#64748b', marginTop: 1 }}>{book.totalBlank}</div>
+                          </div>
+                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#2563eb', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#2563eb', marginTop: 1 }}>%{book.successRate}</div>
+                          </div>
+                        </div>
+
+                        {/* Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/student/books/${book.id}`);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.65rem',
+                            background: isCompleted ? 'var(--color-surface, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+                            color: isCompleted ? 'var(--color-text, #334155)' : '#ffffff',
+                            border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none',
+                            borderRadius: 12,
+                            fontWeight: 900,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            boxShadow: isCompleted ? 'none' : `0 3px 12px ${pal.shadow}`,
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <span>{isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'}</span>
+                          <ChevronRight size={15} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+
             {/* 📝 BÖLÜM 2: SON ÇÖZÜLEN TESTLER */}
             <div className="sd-card" style={{
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem'
@@ -2727,7 +3165,7 @@ export default function StudentDashboard() {
                         }}
                       >
                         <div style={{ minWidth: 180, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                             <span style={{
                               background: 'rgba(99, 102, 241, 0.12)',
                               color: '#6366f1',
@@ -2739,6 +3177,19 @@ export default function StudentDashboard() {
                             }}>
                               {test.subject}
                             </span>
+                            {test.unitTopic && (
+                              <span style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: '#b45309',
+                                border: '1px solid rgba(245, 158, 11, 0.30)',
+                                borderRadius: 6,
+                                fontSize: '0.65rem',
+                                fontWeight: 800,
+                                padding: '1px 6px'
+                              }}>
+                                📌 {test.unitTopic}
+                              </span>
+                            )}
                             {test.date && (
                               <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                                 🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
@@ -2750,8 +3201,16 @@ export default function StudentDashboard() {
                             {test.title}
                           </div>
                           {test.subTitle && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span>📖 {test.subTitle}</span>
+                              {test.unitTopic && !test.title.includes(test.unitTopic) && (
+                                <span>• 📌 {test.unitTopic}</span>
+                              )}
+                            </div>
+                          )}
+                          {!test.subTitle && test.unitTopic && !test.title.includes(test.unitTopic) && (
                             <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
-                              {test.subTitle}
+                              📌 {test.unitTopic}
                             </div>
                           )}
 

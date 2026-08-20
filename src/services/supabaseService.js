@@ -595,6 +595,7 @@ export async function dbGetSubmissions(studentId) {
         totalScorePoints: s.total_score_points || null,
         maxPossibleScore: s.max_possible_score || null,
         answers: (s.answers || []).filter(a => a.type !== 'metadata'),
+        mistakeReasons: meta?.mistakeReasons || s.mistake_reasons || null,
         bookTestId: meta?.bookTestId || null,
         bookTestIds: meta?.bookTestIds || [],
         questions: s.questions || [],
@@ -614,6 +615,13 @@ export async function dbGetSubmissions(studentId) {
 export async function dbSaveSubmission(sub) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const rawMistakeReasons = sub.mistakeReasons || null;
+    const cleanAnswers = (sub.answers || []).filter(a => a.type !== 'metadata').map(a => {
+      const qNo = a.questionNo;
+      const r = (rawMistakeReasons && qNo && rawMistakeReasons[qNo]) ? rawMistakeReasons[qNo] : a.reason || a.mistakeReason || null;
+      return r ? { ...a, reason: r, mistakeReason: r } : a;
+    });
+
     const payload = {
       id: toUUID(sub.id || `sub_${Date.now()}`),
       test_id: toUUID(sub.testId || 'test_1'),
@@ -632,7 +640,7 @@ export async function dbSaveSubmission(sub) {
       is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
       homework_id: (sub.hwId || sub.homeworkId) ? String(sub.hwId || sub.homeworkId) : null,
       answers: [
-        ...(sub.answers || []).filter(a => a.type !== 'metadata'),
+        ...cleanAnswers,
         {
           type: 'metadata',
           realId: sub.id,
@@ -640,6 +648,7 @@ export async function dbSaveSubmission(sub) {
           hwId: sub.hwId || sub.homeworkId || null,
           bookTestId: sub.bookTestId || null,
           bookTestIds: sub.bookTestIds || [],
+          mistakeReasons: rawMistakeReasons,
           status: sub.status || 'pending_evaluation'
         }
       ],

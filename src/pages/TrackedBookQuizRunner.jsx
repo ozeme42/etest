@@ -47,7 +47,7 @@ export default function TrackedBookQuizRunner() {
 
   const { books, bookTests, loading: booksLoading } = useTrackedBooks();
   const { homeworks, submitHomework, loading: hwLoading } = useHomework();
-  const { submissions, addSubmission } = useEvaluation();
+  const { submissions, addSubmission, updateSubmission } = useEvaluation();
   const { users } = useUser();
   const { currentUser } = useAuth();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -225,6 +225,16 @@ export default function TrackedBookQuizRunner() {
       try {
         localStorage.setItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`, JSON.stringify(next));
       } catch {}
+
+      // Also persist to evaluation submission if exists
+      const testId = resolvedTest?.id || testKey;
+      const sub = submissions.find(s =>
+        (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || toUUID(s.testId) === toUUID(testId)) &&
+        (String(s.studentId) === String(studentId) || toUUID(s.studentId) === toUUID(studentId))
+      );
+      if (sub && updateSubmission) {
+        updateSubmission(sub.id, { mistakeReasons: next });
+      }
       return next;
     });
   };
@@ -503,6 +513,7 @@ export default function TrackedBookQuizRunner() {
         totalQuestions: calculated.totalQuestions,
         answers: answersList,
         studentAnswers: answers,
+        mistakeReasons: mistakeReasons,
         sourceType: 'trackedBook'
       });
     } catch (e) {
