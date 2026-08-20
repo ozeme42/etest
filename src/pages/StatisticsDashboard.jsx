@@ -57,8 +57,8 @@ function Avatar({ name, index, size = 36 }) {
 function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge }) {
   return (
     <div style={{
-      background: '#ffffff',
-      border: `1.5px solid ${border || '#e2e8f0'}`,
+      background: 'var(--color-surface, #ffffff)',
+      border: `1.5px solid ${border || 'var(--color-border, #e2e8f0)'}`,
       borderRadius: '1.25rem',
       padding: '1.1rem 1.25rem',
       display: 'flex',
@@ -70,7 +70,7 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge 
     }}>
       <div style={{
         width: 50, height: 50, borderRadius: '1rem',
-        background: bg || '#eff6ff',
+        background: bg || 'rgba(99, 102, 241, 0.12)',
         color: color || '#6366f1',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
@@ -80,7 +80,7 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge 
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
             {label}
           </span>
           {badge && (
@@ -89,10 +89,10 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge 
             </span>
           )}
         </div>
-        <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2, marginTop: 2 }}>
+        <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'block', lineHeight: 1.2, marginTop: 2 }}>
           {value}
         </span>
-        {sub && <span style={{ fontSize: '0.72rem', color: color || '#64748b', fontWeight: 700, marginTop: 1, display: 'block' }}>{sub}</span>}
+        {sub && <span style={{ fontSize: '0.72rem', color: color || 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 1, display: 'block' }}>{sub}</span>}
       </div>
     </div>
   );
@@ -134,6 +134,7 @@ function getSubjectKey(s) {
 ══════════════════════════════════════════════════════════════════════════════ */
 export default function StatisticsDashboard() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const studentIdParam = searchParams.get('studentId');
 
@@ -548,7 +549,7 @@ export default function StatisticsDashboard() {
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: '1rem',
-        background: '#ffffff'
+        background: 'var(--color-surface, #ffffff)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <button
@@ -557,8 +558,8 @@ export default function StatisticsDashboard() {
               else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
             }}
             style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border-input, #cbd5e1)',
               borderRadius: '0.75rem',
               padding: '0.55rem 0.9rem',
               cursor: 'pointer',
@@ -566,7 +567,7 @@ export default function StatisticsDashboard() {
               alignItems: 'center',
               gap: '0.4rem',
               fontWeight: 800,
-              color: '#334155',
+              color: 'var(--color-text, #334155)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
             }}
           >
@@ -574,13 +575,13 @@ export default function StatisticsDashboard() {
           </button>
 
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(165, 180, 252, 0.3)', color: '#818cf8', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
               <Sparkles size={13} /> LMS 360° Akıllı Analitik & Performans Masası
             </div>
-            <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+            <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
               Gelişmiş İstatistikler & Çok Boyutlu Başarı Analizi 📊
             </h1>
-            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)' }}>
               Ödevler, Kitap Takibi, Deneme Netleri, Yol Haritası ve Periyodik Gelişim Eğrileri.
             </p>
           </div>
@@ -598,9 +599,9 @@ export default function StatisticsDashboard() {
               style={{
                 padding: '0.5rem 1.6rem 0.5rem 0.85rem',
                 borderRadius: '0.75rem',
-                border: '1.5px solid #6366f1',
-                background: '#f5f3ff',
-                color: '#4f46e5',
+                border: '1.5px solid var(--color-border-input, #6366f1)',
+                background: 'var(--color-surface, #f5f3ff)',
+                color: 'var(--color-text, #4f46e5)',
                 fontSize: '0.78rem',
                 fontWeight: 900,
                 cursor: 'pointer',
@@ -618,17 +619,17 @@ export default function StatisticsDashboard() {
           </div>
 
           {/* Sınıf Filtresi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid #e2e8f0', paddingLeft: '0.75rem' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid var(--color-border, #e2e8f0)', paddingLeft: '0.75rem' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', marginRight: 4 }}>
               Sınıf:
             </span>
             <button
               onClick={() => setSelectedGradeFilter('ALL')}
               style={{
                 padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
-                border: selectedGradeFilter === 'ALL' ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
-                background: selectedGradeFilter === 'ALL' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
-                color: selectedGradeFilter === 'ALL' ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                border: selectedGradeFilter === 'ALL' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                background: selectedGradeFilter === 'ALL' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface, #ffffff)',
+                color: selectedGradeFilter === 'ALL' ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
                 boxShadow: selectedGradeFilter === 'ALL' ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
               }}
             >
@@ -642,9 +643,9 @@ export default function StatisticsDashboard() {
                   onClick={() => setSelectedGradeFilter(g.id)}
                   style={{
                     padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
-                    border: isSel ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
-                    background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
-                    color: isSel ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                    border: isSel ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                    background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface, #ffffff)',
+                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
                     boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
                   }}
                 >
@@ -655,8 +656,8 @@ export default function StatisticsDashboard() {
           </div>
 
           {/* Zaman Aralığı Filtresi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid #e2e8f0', paddingLeft: '0.75rem' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid var(--color-border, #e2e8f0)', paddingLeft: '0.75rem' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', marginRight: 4 }}>
               Zaman:
             </span>
             {[
@@ -672,9 +673,9 @@ export default function StatisticsDashboard() {
                   onClick={() => setTimeRange(t.id)}
                   style={{
                     padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
-                    border: isSel ? '1.5px solid #10b981' : '1.5px solid #cbd5e1',
-                    background: isSel ? 'linear-gradient(135deg,#10b981,#059669)' : '#ffffff',
-                    color: isSel ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                    border: isSel ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                    background: isSel ? 'linear-gradient(135deg,#10b981,#059669)' : 'var(--color-surface, #ffffff)',
+                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
                     boxShadow: isSel ? '0 4px 14px rgba(16,185,129,0.25)' : 'none'
                   }}
                 >
@@ -690,10 +691,10 @@ export default function StatisticsDashboard() {
       <div style={{
         display: 'flex',
         gap: 6,
-        background: '#ffffff',
+        background: 'var(--color-surface, #ffffff)',
         padding: '0.45rem',
         borderRadius: '1.15rem',
-        border: '1.5px solid #e2e8f0',
+        border: '1.5px solid var(--color-border, #e2e8f0)',
         overflowX: 'auto',
         boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
       }}>
@@ -726,7 +727,7 @@ export default function StatisticsDashboard() {
                 gap: 6,
                 transition: 'all 0.15s',
                 background: active ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
-                color: active ? '#ffffff' : '#64748b',
+                color: active ? '#ffffff' : 'var(--color-text-muted, #64748b)',
                 boxShadow: active ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
                 whiteSpace: 'nowrap'
               }}
@@ -808,12 +809,12 @@ export default function StatisticsDashboard() {
           
           {/* Top Podium Cards */}
           {topPodium.length > 0 && (
-            <div className="stats-glass-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#ffffff' }}>
+            <div className="stats-glass-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--color-surface, #ffffff)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Trophy size={18} color="#d97706" /> En Başarılı Öğrenciler Kürsüsü (Top 3)
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                   Genel soru çözümü ve sınav doğruluk yüzdesine göre sıralanmıştır
                 </span>
               </div>
@@ -821,9 +822,9 @@ export default function StatisticsDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
                 {topPodium.map((std, rank) => {
                   const medals = [
-                    { title: '1. Birincilik', icon: '🥇', grad: '#fffbeb', border: '#fde68a', text: '#b45309' },
-                    { title: '2. İkincilik', icon: '🥈', grad: '#f8fafc', border: '#cbd5e1', text: '#475569' },
-                    { title: '3. Üçüncülük', icon: '🥉', grad: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+                    { title: '1. Birincilik', icon: '🥇', grad: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fffbeb', border: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a', text: '#f59e0b' },
+                    { title: '2. İkincilik', icon: '🥈', grad: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? 'rgba(148, 163, 184, 0.3)' : '#cbd5e1', text: isDark ? '#cbd5e1' : '#475569' },
+                    { title: '3. Üçüncülük', icon: '🥉', grad: isDark ? 'rgba(249, 115, 22, 0.12)' : '#fff7ed', border: isDark ? 'rgba(249, 115, 22, 0.35)' : '#fed7aa', text: '#f97316' },
                   ];
                   const m = medals[rank];
                   return (
@@ -846,16 +847,16 @@ export default function StatisticsDashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: m.text, textTransform: 'uppercase' }}>{m.title}</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>· {std.gradeName}</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>· {std.gradeName}</span>
                         </div>
-                        <h4 style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <h4 style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {std.name}
                         </h4>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                           <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a' }}>
                             %{std.avgScore} Başarı · {std.totalQ} Soru
                           </span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                             Karnesi <ChevronRight size={12} />
                           </span>
                         </div>
@@ -871,12 +872,12 @@ export default function StatisticsDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
             
             {/* Ders Başarı Çubuk Grafiği */}
-            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: '#ffffff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: 'var(--color-surface, #ffffff)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <BarChart3 size={18} color="#4f46e5" /> Ders Bazlı Başarı Oranı & Soru Hacmi
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                   Branş Yetkinliği
                 </span>
               </div>
@@ -884,12 +885,12 @@ export default function StatisticsDashboard() {
               <div style={{ height: 260, width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={subjectAggregates} margin={{ top: 20, right: 15, left: -20, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} dy={8} />
-                    <YAxis axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `%${v}`} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'} />
+                    <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} tickFormatter={v => `%${v}`} />
                     <Tooltip 
                       formatter={(val, name, props) => [`%${val} (Toplam ${props.payload.totalQ} Soru)`, 'Başarı Oranı']}
-                      contentStyle={{ borderRadius: '12px', border: '1.5px solid #e2e8f0', fontWeight: 800 }}
+                      contentStyle={{ borderRadius: '12px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }}
                     />
                     <Bar dataKey="Başarı %" radius={[8, 8, 0, 0]} barSize={28}>
                       {subjectAggregates.map((entry, index) => (
@@ -902,12 +903,12 @@ export default function StatisticsDashboard() {
             </div>
 
             {/* Kaynak Dağılımı (Ödev vs Kitap vs Deneme) */}
-            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: '#ffffff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: 'var(--color-surface, #ffffff)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <PieIcon size={18} color="#059669" /> Soru Kaynakları Dağılımı
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                   Ödev · Kitap · Deneme
                 </span>
               </div>
@@ -926,15 +927,15 @@ export default function StatisticsDashboard() {
                       paddingAngle={4}
                     >
                       {sourceBreakdownData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--color-surface, #ffffff)" strokeWidth={2} />
                       ))}
                     </Pie>
                     <Tooltip 
                       formatter={(val) => [`${val} Soru`, 'Çözülen Miktar']}
-                      contentStyle={{ borderRadius: '12px', border: '1.5px solid #e2e8f0', fontWeight: 800 }}
+                      contentStyle={{ borderRadius: '12px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }}
                     />
                     <Legend 
-                      formatter={(val) => <span style={{ color: '#0f172a', fontSize: '0.78rem', fontWeight: 800, padding: '2px 8px' }}>{val}</span>}
+                      formatter={(val) => <span style={{ color: 'var(--color-text, #0f172a)', fontSize: '0.78rem', fontWeight: 800, padding: '2px 8px' }}>{val}</span>}
                       layout="horizontal"
                       align="center"
                       verticalAlign="bottom"
@@ -948,9 +949,9 @@ export default function StatisticsDashboard() {
 
           {/* ⚠️ Erken Uyarı Radarı & Destek Bekleyen Konular */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
-            <div className="stats-glass-card" style={{ border: '1.5px solid #fecaca', background: '#fffafa' }}>
-              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertTriangle size={18} color="#dc2626" /> Sınıfın En Çok Zorlandığı Kritik Konular (%65 Altı)
+            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca', background: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fffafa' }}>
+              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertTriangle size={18} color="#ef4444" /> Sınıfın En Çok Zorlandığı Kritik Konular (%65 Altı)
               </h3>
               {criticalWeakInsights.weakTopics.length === 0 ? (
                 <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 700, padding: '1rem 0' }}>
@@ -959,14 +960,14 @@ export default function StatisticsDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {criticalWeakInsights.weakTopics.map((top, i) => (
-                    <div key={i} style={{ background: '#ffffff', borderRadius: 12, padding: '0.65rem 0.95rem', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 12, padding: '0.65rem 0.95rem', border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase' }}>{top.subject}</span>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{top.name}</div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase' }}>{top.subject}</span>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>{top.name}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#dc2626' }}>%{top.accuracy} Başarı</span>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>{top.totalQ} Soru Çözüldü</div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#ef4444' }}>%{top.accuracy} Başarı</span>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} Soru Çözüldü</div>
                       </div>
                     </div>
                   ))}
@@ -974,9 +975,9 @@ export default function StatisticsDashboard() {
               )}
             </div>
 
-            <div className="stats-glass-card" style={{ border: '1.5px solid #fde68a', background: '#fffdf5' }}>
-              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldAlert size={18} color="#d97706" /> Bireysel Destek & Takip Gerektiren Öğrenciler
+            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a', background: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffdf5' }}>
+              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShieldAlert size={18} color="#f59e0b" /> Bireysel Destek & Takip Gerektiren Öğrenciler
               </h3>
               {criticalWeakInsights.strugglingStudents.length === 0 ? (
                 <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 700, padding: '1rem 0' }}>
@@ -985,18 +986,18 @@ export default function StatisticsDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {criticalWeakInsights.strugglingStudents.map((std, i) => (
-                    <div key={i} style={{ background: '#ffffff', borderRadius: 12, padding: '0.65rem 0.95rem', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 12, padding: '0.65rem 0.95rem', border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Avatar name={std.name} index={std.idx} size={32} />
                         <div>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a' }}>{std.name}</div>
-                          <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>{std.gradeName} · {std.totalQ} Soru</span>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{std.name}</div>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{std.gradeName} · {std.totalQ} Soru</span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleSelectStudentForResults(std.id)}
                         style={{
-                          background: '#fffbeb', border: '1px solid #fde68a', color: '#d97706',
+                          background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a', color: '#f59e0b',
                           borderRadius: 8, padding: '0.3rem 0.65rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer'
                         }}
                       >
@@ -1016,13 +1017,13 @@ export default function StatisticsDashboard() {
       {activeTab === 'periodic' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: '#ffffff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <TrendingUp size={20} color="#6366f1" /> Günlük Soru Çözüm Hacmi & İlerleme Eğrisi
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
                   Sınıf genelinde gün gün çözülen toplam soru miktarı ve doğruluk trendi
                 </p>
               </div>
@@ -1031,10 +1032,10 @@ export default function StatisticsDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#16a34a' }}>
                   <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /> Doğru Soru
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#dc2626' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#ef4444' }}>
                   <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} /> Yanlış Soru
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#6366f1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#818cf8' }}>
                   <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }} /> Toplam Soru
                 </div>
               </div>
@@ -1053,10 +1054,10 @@ export default function StatisticsDashboard() {
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                  <Tooltip contentStyle={{ borderRadius: '14px', border: '1.5px solid #e2e8f0', fontWeight: 800 }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={8} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} />
+                  <Tooltip contentStyle={{ borderRadius: '14px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }} />
                   <Area type="monotone" dataKey="Toplam Soru" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorTotalQ)" />
                   <Area type="monotone" dataKey="Doğru" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCorrectQ)" />
                   <Area type="monotone" dataKey="Yanlış" stroke="#ef4444" strokeWidth={2} fillOpacity={0} />
@@ -1076,15 +1077,15 @@ export default function StatisticsDashboard() {
             {subjectAggregates.map(subj => {
               const isExpanded = expandedSubjectCard === subj.subject;
               return (
-                <div key={subj.subject} className="stats-glass-card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div key={subj.subject} className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: `${subj.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
                         {SUBJECT_COLORS[subj.subject]?.icon || '📚'}
                       </div>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: '#0f172a' }}>{subj.subject}</h4>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>{subj.totalQ} Soru Çözüldü</span>
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{subj.subject}</h4>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{subj.totalQ} Soru Çözüldü</span>
                       </div>
                     </div>
 
@@ -1097,15 +1098,15 @@ export default function StatisticsDashboard() {
                   </div>
 
                   {/* Soru Dağılım Çubuğu */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800, color: '#64748b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>
                     <span style={{ color: '#16a34a' }}>✓ {subj.correct} D</span>
                     <span>·</span>
-                    <span style={{ color: '#dc2626' }}>✗ {subj.wrong} Y</span>
+                    <span style={{ color: '#ef4444' }}>✗ {subj.wrong} Y</span>
                     <span>·</span>
-                    <span style={{ color: '#64748b' }}>— {subj.blank} B</span>
+                    <span style={{ color: 'var(--color-text-muted, #64748b)' }}>— {subj.blank} B</span>
                   </div>
 
-                  <div style={{ height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: 99, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${subj.accuracy}%`, background: subj.color, borderRadius: 99 }} />
                   </div>
 
@@ -1116,9 +1117,9 @@ export default function StatisticsDashboard() {
                       marginTop: 4,
                       padding: '0.45rem',
                       borderRadius: 8,
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
-                      color: '#475569',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      color: 'var(--color-text, #475569)',
                       fontWeight: 800,
                       fontSize: '0.75rem',
                       cursor: 'pointer',
@@ -1134,19 +1135,19 @@ export default function StatisticsDashboard() {
 
                   {/* Genişletilmiş Konu Tablosu */}
                   {isExpanded && (
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--color-border, #f1f5f9)', paddingTop: 8 }}>
                       {subj.topicList.length === 0 ? (
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
                           Ayrıntılı konu etiketi bulunmuyor
                         </div>
                       ) : (
                         subj.topicList.map((top, tIdx) => (
-                          <div key={tIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0.35rem 0.5rem', background: '#f8fafc', borderRadius: 6 }}>
-                            <span style={{ fontWeight: 700, color: '#334155', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div key={tIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0.35rem 0.5rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 6 }}>
+                            <span style={{ fontWeight: 700, color: 'var(--color-text, #334155)', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {top.name}
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>{top.totalQ} S</span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} S</span>
                               <span style={{ fontWeight: 900, color: top.accuracy >= 70 ? '#16a34a' : top.accuracy >= 50 ? '#d97706' : '#dc2626' }}>
                                 %{top.accuracy}
                               </span>
@@ -1168,24 +1169,24 @@ export default function StatisticsDashboard() {
       {activeTab === 'books' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: '#ffffff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <BookCheck size={20} color="#10b981" /> Takip Edilen Fiziksel Soru Bankaları & Testler
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
                   Öğrencilere tanımlı kaynak kitaplar, çözülen test miktarları ve başarı durumları
                 </p>
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 {allBooks.length} Kitap Tanımlı
               </span>
             </div>
 
             {allBooks.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontWeight: 700 }}>
                 Henüz sisteme eklenmiş takip kitabı bulunmuyor.
               </div>
             ) : (
@@ -1193,22 +1194,22 @@ export default function StatisticsDashboard() {
                 {allBooks.map(b => {
                   const testsInBook = (allBookTests || []).filter(t => String(t.bookId) === String(b.id));
                   return (
-                    <div key={b.id} style={{ background: '#f8fafc', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={b.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: '1.5rem' }}>📚</span>
                           <div>
-                            <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: '#0f172a' }}>{b.title}</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 800 }}>{b.publisher || b.subject || 'Soru Bankası'}</span>
+                            <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{b.title}</h4>
+                            <span style={{ fontSize: '0.7rem', color: '#818cf8', fontWeight: 800 }}>{b.publisher || b.subject || 'Soru Bankası'}</span>
                           </div>
                         </div>
-                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.7rem', border: '1px solid #bfdbfe' }}>
+                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: 8, background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', fontWeight: 800, fontSize: '0.7rem', border: '1px solid rgba(165, 180, 252, 0.3)' }}>
                           {testsInBook.length} Test
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginTop: 4 }}>
-                        Ders: <strong>{b.subject || 'Genel'}</strong> {b.grade ? `· ${b.grade}. Sınıf` : ''}
+                      <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 4 }}>
+                        Ders: <strong style={{ color: 'var(--color-text, #0f172a)' }}>{b.subject || 'Genel'}</strong> {b.grade ? `· ${b.grade}. Sınıf` : ''}
                       </div>
                     </div>
                   );
@@ -1224,26 +1225,26 @@ export default function StatisticsDashboard() {
       {activeTab === 'exams' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: '#ffffff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Award size={20} color="#8b5cf6" /> Sınıf Genel Deneme Sınavları & Net Gelişimi
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
                   Tüm LGS ve branş deneme sınavlarının sınıf net ortalamaları
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
                   Ort. {classKPIs.overallExamNet} Net
                 </span>
               </div>
             </div>
 
             {classKPIs.totalExamsCount === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontWeight: 700 }}>
                 Henüz değerlendirilmiş deneme sınavı kaydı bulunmuyor.
               </div>
             ) : (
@@ -1252,18 +1253,18 @@ export default function StatisticsDashboard() {
                   const stdExams = unifiedStudentData.find(s => s.id === std.id)?.filteredExams || [];
                   if (stdExams.length === 0) return null;
                   return (
-                    <div key={std.id} style={{ background: '#f8fafc', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Avatar name={std.name} size={32} />
-                          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>{std.name}</span>
+                          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
                         </div>
-                        <span style={{ fontWeight: 900, color: '#7c3aed', fontSize: '0.95rem' }}>
+                        <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: '0.95rem' }}>
                           {unifiedStudentData.find(s => s.id === std.id)?.avgExamNet} Net
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                         {stdExams.length} Deneme Çözdü · Son Deneme: {stdExams[0]?.title || 'LGS Denemesi'}
                       </div>
                     </div>
@@ -1280,40 +1281,40 @@ export default function StatisticsDashboard() {
       {activeTab === 'roadmap' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: '#ffffff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Compass size={20} color="#d97706" /> Çalışma Programı & Yol Haritası Görev Durumu
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
                   Öğrencilere tanımlanan haftalık hedefler, konu kazanımları ve tamamlama oranları
                 </p>
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
                 % {classKPIs.overallRoadmapPct} Tamamlanma
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               {searchedAndSortedStudents.map(std => (
-                <div key={std.id} style={{ background: '#f8fafc', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Avatar name={std.name} size={32} />
-                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>{std.name}</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
                     </div>
                     <span style={{ fontWeight: 900, color: std.roadmapPct >= 70 ? '#16a34a' : '#d97706', fontSize: '0.88rem' }}>
                       %{std.roadmapPct}
                     </span>
                   </div>
 
-                  <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${std.roadmapPct}%`, background: std.roadmapPct >= 70 ? '#10b981' : '#f59e0b', borderRadius: 99 }} />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                     <span>{std.completedTasks} / {std.totalTasks} Görev Tamamlandı</span>
                     <span>{std.gradeName}</span>
                   </div>
@@ -1327,16 +1328,16 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 7: 👥 ÖĞRENCİ KARŞILAŞTIRMA & SIRALAMA TABLOSU ─── */}
       {(activeTab === 'students' || activeTab === 'overview') && (
-        <section className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: '#ffffff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <section className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'var(--color-surface, #ffffff)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={20} color="#16a34a" /> Öğrenci Bazlı Kapsamlı Başarı & Karne Matrisi
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                   {searchedAndSortedStudents.length} Öğrenci
                 </span>
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted, #64748b)' }}>
                 Öğrenciye tıklayarak veya "Detaylı Karne"ye basarak tüm sonuçlarını görüntüleyebilirsiniz.
               </p>
             </div>
@@ -1349,9 +1350,9 @@ export default function StatisticsDashboard() {
                 style={{
                   padding: '0.5rem 1.4rem 0.5rem 0.75rem',
                   borderRadius: '0.75rem',
-                  border: '1.5px solid #cbd5e1',
-                  background: '#ffffff',
-                  color: '#334155',
+                  border: '1.5px solid var(--color-border-input, #cbd5e1)',
+                  background: 'var(--color-surface, #ffffff)',
+                  color: 'var(--color-text, #334155)',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   outline: 'none',
@@ -1365,13 +1366,13 @@ export default function StatisticsDashboard() {
               </select>
 
               <div style={{ position: 'relative', minWidth: 200 }}>
-                <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <Search size={15} color="var(--color-text-muted, #94a3b8)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type="text"
                   placeholder="Öğrenci veya sınıf ara..."
                   value={studentSearchQ}
                   onChange={e => setStudentSearchQ(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.85rem 0.5rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.5rem 0.85rem 0.5rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface, #ffffff)', color: 'var(--color-text, #0f172a)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -1380,20 +1381,20 @@ export default function StatisticsDashboard() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '880px' }}>
               <thead>
-                <tr style={{ borderBottom: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıf</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Soru</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Doğruluk %</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Deneme Neti</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Yol Haritası</th>
-                  <th style={{ padding: '0.85rem 1rem', color: '#0f172a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
+                <tr style={{ borderBottom: '1.5px solid var(--color-border, #e2e8f0)', background: 'var(--color-surface-hover, #f8fafc)' }}>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıf</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Soru</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Doğruluk %</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Deneme Neti</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Yol Haritası</th>
+                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
                 </tr>
               </thead>
               <tbody>
                 {searchedAndSortedStudents.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>
+                    <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
                       Kayıtlı veya aramayla eşleşen öğrenci bulunamadı.
                     </td>
                   </tr>
@@ -1402,7 +1403,7 @@ export default function StatisticsDashboard() {
                     const isHigh = student.avgScore >= 75;
                     const isMid = student.avgScore >= 55;
                     return (
-                      <tr key={student.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s' }}>
+                      <tr key={student.id} style={{ borderBottom: '1px solid var(--color-border, #e2e8f0)', transition: 'background 0.15s' }}>
                         <td style={{ padding: '0.85rem 1rem' }}>
                           <div
                             onClick={() => handleSelectStudentForResults(student.id)}
@@ -1411,39 +1412,39 @@ export default function StatisticsDashboard() {
                           >
                             <Avatar name={student.name} index={student.idx} size={36} />
                             <div>
-                              <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem', display: 'block' }}>{student.name}</span>
-                              <span style={{ fontSize: '0.68rem', color: '#4f46e5', fontWeight: 700 }}>Detaylı Karnesi ↗</span>
+                              <span style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', display: 'block' }}>{student.name}</span>
+                              <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 700 }}>Detaylı Karnesi ↗</span>
                             </div>
                           </div>
                         </td>
                         <td style={{ padding: '0.85rem 1rem' }}>
-                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: 99, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', fontWeight: 800, fontSize: '0.72rem' }}>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: 99, background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)', fontWeight: 800, fontSize: '0.72rem' }}>
                             {student.gradeName}
                           </span>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                          <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.85rem' }}>{student.totalQ} Soru</div>
-                          <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>✓{student.totalCorrect} · ✗{student.totalWrong}</div>
+                          <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem' }}>{student.totalQ} Soru</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>✓{student.totalCorrect} · ✗{student.totalWrong}</div>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                           <span style={{
                             padding: '0.25rem 0.65rem', borderRadius: '0.5rem',
-                            background: isHigh ? '#f0fdf4' : isMid ? '#fffbeb' : '#fef2f2',
-                            color: isHigh ? '#16a34a' : isMid ? '#d97706' : '#dc2626',
-                            border: `1px solid ${isHigh ? '#bbf7d0' : isMid ? '#fde68a' : '#fecaca'}`,
+                            background: isHigh ? 'rgba(16, 185, 129, 0.15)' : isMid ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: isHigh ? '#10b981' : isMid ? '#f59e0b' : '#ef4444',
+                            border: `1px solid ${isHigh ? 'rgba(16, 185, 129, 0.35)' : isMid ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
                             fontWeight: 900, fontSize: '0.82rem'
                           }}>
                             %{student.avgScore}
                           </span>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                          <span style={{ fontWeight: 900, color: '#7c3aed', fontSize: '0.85rem' }}>
+                          <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: '0.85rem' }}>
                             {student.avgExamNet} Net
                           </span>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', minWidth: 140 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{ flex: 1, height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
                               <div style={{
                                 height: '100%', borderRadius: 99, width: `${student.roadmapPct}%`,
                                 background: student.roadmapPct >= 70 ? 'linear-gradient(90deg,#10b981,#059669)'
@@ -1452,7 +1453,7 @@ export default function StatisticsDashboard() {
                                 transition: 'width 0.6s ease'
                               }} />
                             </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#64748b', minWidth: 32 }}>%{student.roadmapPct}</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', minWidth: 32 }}>%{student.roadmapPct}</span>
                           </div>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
@@ -1479,11 +1480,11 @@ export default function StatisticsDashboard() {
                             </button>
                             <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
                               <button style={{
-                                background: '#eff6ff',
-                                border: '1px solid #bfdbfe',
+                                background: 'rgba(99, 102, 241, 0.12)',
+                                border: '1px solid rgba(165, 180, 252, 0.3)',
                                 borderRadius: '0.6rem', padding: '0.38rem 0.75rem',
                                 cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
-                                color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 4
+                                color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 4
                               }}>
                                 Koçluk <ArrowUpRight size={13} />
                               </button>
