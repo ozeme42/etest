@@ -594,13 +594,61 @@ export default function StudentDashboard() {
       });
     });
 
+    const isEval = (s, isOE = false) => {
+      if (!s) return false;
+      if (!isOE) return true;
+      const rawObj = s.raw_data || {};
+      return Boolean(
+        s.isEvaluatedByTeacher ||
+        s.isEvaluated ||
+        rawObj.isEvaluatedByTeacher ||
+        rawObj.isEvaluated ||
+        s.status === 'evaluated' ||
+        s.status === 'graded' ||
+        rawObj.status === 'evaluated' ||
+        rawObj.status === 'graded' ||
+        s.evaluatedAt ||
+        rawObj.evaluatedAt ||
+        s.teacherFeedback ||
+        s.teacherNote ||
+        rawObj.teacherFeedback ||
+        rawObj.teacherNote ||
+        (Array.isArray(s.answers) && s.answers.length > 0 && s.answers.some(a => 
+          a.evaluatedAt || 
+          a.teacherNote || 
+          a.teacher_note || 
+          a.feedback || 
+          (a.score !== undefined && a.score !== null) || 
+          (a.evalStatus && a.evalStatus !== 'pending')
+        ))
+      );
+    };
+
     // 1. Process Homeworks
     (homeworks || []).forEach(hw => {
       if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
-      const subInHw = (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
-      const subInGlobal = (submissions || []).find(s => isMatchStudent(s) && (String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.id)) && s.status !== 'in_progress' && s.status !== 'draft');
 
-      const sub = subInGlobal || subInHw;
+      const allMatchingSubs = [
+        ...(hw.submissions || []).filter(isMatchStudent),
+        ...(submissions || []).filter(s => isMatchStudent(s) && (
+          String(s.hwId) === String(hw.id) ||
+          String(s.homeworkId) === String(hw.id) ||
+          String(s.testId) === String(hw.id) ||
+          String(s.id) === String(hw.id) ||
+          String(s.id) === `hw_sub_${hw.id}_${studentIdStr}`
+        ))
+      ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
+
+      allMatchingSubs.sort((a, b) => {
+        const aEval = isEval(a, true) ? 1 : 0;
+        const bEval = isEval(b, true) ? 1 : 0;
+        if (aEval !== bEval) return bEval - aEval;
+        const aDate = new Date(a.submittedAt || a.completedAt || a.createdAt || 0).getTime();
+        const bDate = new Date(b.submittedAt || b.completedAt || b.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
+
+      const sub = allMatchingSubs[0];
       if (!sub) return;
 
       const subIdStr = String(sub.id || `hw_${hw.id}_${studentIdStr}`);
@@ -645,23 +693,7 @@ export default function StudentDashboard() {
         (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
       );
 
-      const isEvaluated = !isOpenEnded || Boolean(
-        sub.isEvaluatedByTeacher ||
-        sub.isEvaluated ||
-        raw.isEvaluatedByTeacher ||
-        raw.isEvaluated ||
-        sub.status === 'evaluated' ||
-        sub.status === 'graded' ||
-        raw.status === 'evaluated' ||
-        raw.status === 'graded' ||
-        sub.evaluatedAt ||
-        raw.evaluatedAt ||
-        sub.teacherFeedback ||
-        sub.teacherNote ||
-        raw.teacherFeedback ||
-        raw.teacherNote ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
-      );
+      const isEvaluated = isEval(sub, isOpenEnded);
 
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
@@ -843,23 +875,7 @@ export default function StudentDashboard() {
         (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
       );
 
-      const isEvaluated = !isOpenEnded || Boolean(
-        sub.isEvaluatedByTeacher ||
-        sub.isEvaluated ||
-        raw.isEvaluatedByTeacher ||
-        raw.isEvaluated ||
-        sub.status === 'evaluated' ||
-        sub.status === 'graded' ||
-        raw.status === 'evaluated' ||
-        raw.status === 'graded' ||
-        sub.evaluatedAt ||
-        raw.evaluatedAt ||
-        sub.teacherFeedback ||
-        sub.teacherNote ||
-        raw.teacherFeedback ||
-        raw.teacherNote ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
-      );
+      const isEvaluated = isEval(sub, isOpenEnded);
 
       const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
