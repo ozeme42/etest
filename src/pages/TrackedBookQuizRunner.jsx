@@ -18,26 +18,26 @@ import {
 
 function getQuestionColumns(totalCount, isMobile = false) {
   if (totalCount <= 0) return [[]];
-  if (isMobile || totalCount <= 6) {
+  if (isMobile) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  let numCols = 2;
-  if (totalCount <= 6) numCols = 1;
-  else if (totalCount <= 24) numCols = 2;
-  else if (totalCount <= 36) numCols = 3;
-  else numCols = 4;
+  // Soru sayısına göre 2 eşit/dengeli sütuna böl:
+  // 1. Sütun: 1'den yarıya kadar (Örn: 15 soruda 1..8, 20 soruda 1..10)
+  // 2. Sütun: Yarıdan sonuna kadar (Örn: 15 soruda 9..15, 20 soruda 11..20)
+  const perCol = Math.ceil(totalCount / 2);
+  const col1 = [];
+  const col2 = [];
 
-  const perCol = Math.ceil(totalCount / numCols);
-  const cols = [];
-  for (let i = 0; i < totalCount; i += perCol) {
-    const col = [];
-    for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
-      col.push(j + 1);
+  for (let i = 1; i <= totalCount; i++) {
+    if (i <= perCol) {
+      col1.push(i);
+    } else {
+      col2.push(i);
     }
-    cols.push(col);
   }
-  return cols;
+
+  return col2.length > 0 ? [col1, col2] : [col1];
 }
 
 export default function TrackedBookQuizRunner() {

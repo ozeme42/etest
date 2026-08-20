@@ -18,24 +18,28 @@ function getAnsIndex(val) {
   return null;
 }
 
-function getQuestionColumns(totalCount, isMobile) {
-  const maxPerCol = isMobile ? 10 : 10;
-  let perCol = maxPerCol;
-  if (totalCount <= 10) perCol = totalCount;
-  else if (totalCount <= 14) perCol = Math.ceil(totalCount / 2);
-  else if (totalCount <= 20) perCol = 10;
-  else if (totalCount <= 30) perCol = 10;
-  else perCol = Math.ceil(totalCount / Math.ceil(totalCount / 10));
-
-  const columns = [];
-  for (let i = 0; i < totalCount; i += perCol) {
-    const col = [];
-    for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
-      col.push(j + 1);
-    }
-    columns.push(col);
+function getQuestionColumns(totalCount, isMobile = false) {
+  if (totalCount <= 0) return [[]];
+  if (isMobile) {
+    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
-  return columns;
+
+  // Soru sayısına göre 2 eşit/dengeli sütuna böl:
+  // 1. Sütun: 1'den yarıya kadar (Örn: 15 soruda 1..8, 20 soruda 1..10)
+  // 2. Sütun: Yarıdan sonuna kadar (Örn: 15 soruda 9..15, 20 soruda 11..20)
+  const perCol = Math.ceil(totalCount / 2);
+  const col1 = [];
+  const col2 = [];
+
+  for (let i = 1; i <= totalCount; i++) {
+    if (i <= perCol) {
+      col1.push(i);
+    } else {
+      col2.push(i);
+    }
+  }
+
+  return col2.length > 0 ? [col1, col2] : [col1];
 }
 
 const MISTAKE_REASON_OPTIONS = [
