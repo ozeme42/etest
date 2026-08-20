@@ -1300,8 +1300,8 @@ export default function QuestionBank() {
       <div
         key={q.id}
         style={{
-          background: '#ffffff',
-          border: `1.5px solid ${cfg.border || '#e2e8f0'}`,
+          background: 'var(--color-surface)',
+          border: `1.5px solid ${cfg.border || 'var(--color-border)'}`,
           borderRadius: '1.25rem',
           overflow: 'hidden',
           boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
@@ -1332,7 +1332,7 @@ export default function QuestionBank() {
 
             <div style={{ flex: 1, minWidth: 0 }}>
               {/* Title */}
-              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', lineHeight: 1.3, marginBottom: '0.35rem' }}>
+              <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', lineHeight: 1.3, marginBottom: '0.35rem' }}>
                 {q.title || q.name || cfg.label}
               </div>
 
@@ -1353,9 +1353,9 @@ export default function QuestionBank() {
                   {cfg.label}
                 </span>
                 <span style={{
-                  background: q.type === 'coktan_secmeli' ? '#f0fdf4' : '#fffbeb',
-                  color: q.type === 'coktan_secmeli' ? '#15803d' : '#b45309',
-                  border: `1px solid ${q.type === 'coktan_secmeli' ? '#bbf7d0' : '#fde68a'}`,
+                  background: q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: q.type === 'coktan_secmeli' ? '#10b981' : '#f59e0b',
+                  border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
                   fontSize: '0.7rem', fontWeight: 900, padding: '0.18rem 0.55rem', borderRadius: '20px'
                 }}>
                   {q.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📝 Açık Uçlu'}
@@ -1365,7 +1365,7 @@ export default function QuestionBank() {
 
             {/* Thumbnail (image tests only) */}
             {thumbUrl && (
-              <div style={{ width: '56px', height: '56px', borderRadius: '0.75rem', overflow: 'hidden', border: `1.5px solid ${cfg.border}`, flexShrink: 0 }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '0.75rem', overflow: 'hidden', border: `1.5px solid ${cfg.border || 'var(--color-border)'}`, flexShrink: 0 }}>
                 <img src={thumbUrl} alt="önizleme" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
               </div>
             )}
@@ -1374,32 +1374,32 @@ export default function QuestionBank() {
           {/* ROW 2: STATS CHIPS */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {qCount && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f8fafc', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-surface-hover)', border: `1px solid ${cfg.border || 'var(--color-border)'}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>📊</span>
                 <span>{qCount} Soru</span>
               </div>
             )}
             {q.contentType === 'gorsel' && imgCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f8fafc', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-surface-hover)', border: `1px solid ${cfg.border || 'var(--color-border)'}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🖼️</span>
                 <span>{imgCount} Görsel</span>
               </div>
             )}
             {getAnswerKeyCount(q.answerKey) > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f8fafc', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-surface-hover)', border: `1px solid ${cfg.border || 'var(--color-border)'}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🗝️</span>
                 <span>Cevap Anahtarlı</span>
               </div>
             )}
             {q.contentType === 'text' && q.questionText && (
-              <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 700, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '0.25rem 0.7rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '20px', padding: '0.25rem 0.7rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 "{q.questionText}"
               </div>
             )}
           </div>
 
           {/* ROW 3: ACTIONS */}
-          <div className="card-actions-row" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+          <div className="card-actions-row" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
             <button
               onClick={() => handlePreviewQuestion(q)}
               style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}33` }}
@@ -1414,13 +1414,13 @@ export default function QuestionBank() {
             </button>
             <button
               onClick={() => openEditModal(q)}
-              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
             >
               <Edit2 size={14} /> Düzenle
             </button>
             <button
               onClick={() => deleteQuestion(q.id)}
-              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
             >
               <Trash2 size={14} />
             </button>
@@ -1445,14 +1445,14 @@ export default function QuestionBank() {
         alignItems: 'center',
         gap: '0.75rem',
         padding: '0.65rem 1rem',
-        borderBottom: '1px solid #f1f5f9',
-        background: idx % 2 === 0 ? '#ffffff' : '#f8fafc',
+        borderBottom: '1px solid var(--color-border)',
+        background: idx % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-hover)',
         transition: 'background 0.15s',
       }}
       className="qbank-row-item hover:bg-slate-100"
       >
         {/* # */}
-        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textAlign: 'right' }}>{idx + 1}</span>
+        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textAlign: 'right' }}>{idx + 1}</span>
 
         {/* Type icon badge */}
         <div style={{ width: '36px', height: '36px', borderRadius: '0.6rem', background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
@@ -1463,7 +1463,7 @@ export default function QuestionBank() {
 
         {/* Title + breadcrumb */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {q.title || q.name || cfg.label}
           </div>
           {hierarchyBadge && (
@@ -1479,13 +1479,13 @@ export default function QuestionBank() {
         </span>
 
         {/* Question type chip */}
-        <span style={{ background: q.type === 'coktan_secmeli' ? '#f0fdf4' : '#fffbeb', color: q.type === 'coktan_secmeli' ? '#15803d' : '#b45309', border: `1px solid ${q.type === 'coktan_secmeli' ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span style={{ background: q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: q.type === 'coktan_secmeli' ? '#10b981' : '#f59e0b', border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`, fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
           {q.type === 'coktan_secmeli' ? '🔘 ÇS' : '📝 AÇ'}
         </span>
 
         {/* Soru sayısı */}
         {qCount
-          ? <span style={{ fontSize: '0.72rem', fontWeight: 900, color: cfg.accent, background: '#f8fafc', border: `1px solid ${cfg.border}`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>📊 {qCount}</span>
+          ? <span style={{ fontSize: '0.72rem', fontWeight: 900, color: cfg.accent, background: 'var(--color-surface-hover)', border: `1px solid ${cfg.border || 'var(--color-border)'}`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>📊 {qCount}</span>
           : <span />
         }
 
@@ -1497,10 +1497,10 @@ export default function QuestionBank() {
           <button onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })} title="Ödev Ata" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Calendar size={13} /> Ata
           </button>
-          <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Edit2 size={13} />
           </button>
-          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Trash2 size={13} />
           </button>
         </div>
@@ -1512,16 +1512,16 @@ export default function QuestionBank() {
   const renderQList = (items, bgColor = 'transparent') => {
     if (viewMode === 'row') {
       return (
-        <div style={{ background: '#ffffff', borderRadius: '1rem', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: '1rem', overflow: 'hidden', border: '1.5px solid var(--color-border)' }}>
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '32px 44px 1fr auto auto auto auto', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', textAlign: 'right' }}>#</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tür</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Başlık / Konu</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İçerik</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Format</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soru</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İşlemler</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 44px 1fr auto auto auto auto', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textAlign: 'right' }}>#</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tür</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Başlık / Konu</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İçerik</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Format</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soru</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İşlemler</span>
           </div>
           {items.map((q, idx) => renderQuestionRow(q, idx))}
         </div>
@@ -1536,28 +1536,28 @@ export default function QuestionBank() {
 
   const renderSearchResults = () => (
     <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto 2.5rem auto' }}>
-      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', padding: '1.25rem 1.75rem', borderRadius: '1.25rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', padding: '1.25rem 1.75rem', borderRadius: '1.25rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Search size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.25rem' }}>
+            <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1.25rem' }}>
               "{searchQuery}" Arama Sonuçları
             </h3>
-            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 700 }}>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
               {filteredQuestions.length} içerik/test bulundu.
             </p>
           </div>
         </div>
-        <button onClick={() => setSearchQuery('')} style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <button onClick={() => setSearchQuery('')} style={{ background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <X size={16} /> Aramayı Temizle
         </button>
       </div>
       {filteredQuestions.length === 0 ? (
-        <div style={{ padding: '3.5rem', textAlign: 'center', background: '#ffffff', borderRadius: '1.5rem', border: '1.5px dashed #cbd5e1' }}>
-          <Search size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#0f172a' }}>Sonuç bulunamadı.</h3>
+        <div style={{ padding: '3.5rem', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-border-input)' }}>
+          <Search size={48} color="var(--color-text-muted)" style={{ marginBottom: '1rem' }} />
+          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: 'var(--color-text)' }}>Sonuç bulunamadı.</h3>
         </div>
       ) : renderQList(filteredQuestions, 'transparent')}
     </div>
@@ -1574,8 +1574,8 @@ export default function QuestionBank() {
           
           {/* Top Sticky Header */}
           <header className="qbank-hero-header" style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: '1.5rem',
             padding: '1.25rem 1.75rem',
             display: 'flex',
@@ -1592,8 +1592,8 @@ export default function QuestionBank() {
                   else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
                 }}
                 style={{
-                  background: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
+                  background: 'var(--color-surface-hover)',
+                  border: '1.5px solid var(--color-border-input)',
                   borderRadius: '0.75rem',
                   padding: '0.55rem 0.9rem',
                   cursor: 'pointer',
@@ -1601,7 +1601,7 @@ export default function QuestionBank() {
                   alignItems: 'center',
                   gap: '0.4rem',
                   fontWeight: 800,
-                  color: '#334155',
+                  color: 'var(--color-text)',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                 }}
               >
@@ -1609,20 +1609,20 @@ export default function QuestionBank() {
               </button>
 
               <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#6366f1', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                   <Sparkles size={13} /> LMS Akıllı Soru Havuzu & Test Merkezi
                 </div>
-                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
                   Soru Bankası &amp; Ders Portalı 📚
                 </h1>
-                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                   Soruları görüntülemek, yönetmek ve yeni içerik eklemek için bir ders veya sınıf kartına giriş yapın.
                 </p>
               </div>
             </div>
 
             {currentUser?.role === 'teacher' && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '0.4rem 0.9rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#6366f1', padding: '0.4rem 0.9rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800 }}>
                 <span>🔒 Öğretmen Özel Bankası: Yalnızca kendi içerikleriniz</span>
               </div>
             )}
@@ -1631,83 +1631,83 @@ export default function QuestionBank() {
           {/* 4 LIVE KPI HERO METRIC CARDS */}
           <div className="qbank-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
             <div className="qbank-kpi-card" style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
-              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <BookOpen size={24} />
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam İçerik</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{questions.length} Soru / Test</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam İçerik</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{questions.length} Soru / Test</span>
                 <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 700 }}>Aktif soru havuzu</span>
               </div>
             </div>
 
             <div className="qbank-kpi-card" style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
-              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <GraduationCap size={24} />
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınıf Seviyeleri</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{curData.grades.length} Kademe</span>
-                <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>5, 6, 7, 8 & LGS</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınıf Seviyeleri</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{curData.grades.length} Kademe</span>
+                <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700 }}>5, 6, 7, 8 & LGS</span>
               </div>
             </div>
 
             <div className="qbank-kpi-card" style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
-              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FolderTree size={24} />
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Müfredat Dersleri</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{curData.subjects.length} Branş</span>
-                <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700 }}>Tüm ünite & konular</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Müfredat Dersleri</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{curData.subjects.length} Branş</span>
+                <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 700 }}>Tüm ünite & konular</span>
               </div>
             </div>
 
             <div className="qbank-kpi-card" style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
-              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Layers size={24} />
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Format Desteği</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>5 Farklı Tür</span>
-                <span style={{ fontSize: '0.72rem', color: '#db2777', fontWeight: 700 }}>Görsel, PDF, HTML, Metin</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Format Desteği</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>5 Farklı Tür</span>
+                <span style={{ fontSize: '0.72rem', color: '#ec4899', fontWeight: 700 }}>Görsel, PDF, HTML, Metin</span>
               </div>
             </div>
           </div>
 
           {/* SEARCH BAR ON MAIN PORTAL */}
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: '1.25rem', padding: '0.85rem 1.25rem',
             boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
           }}>
             <div style={{ position: 'relative', width: '100%' }}>
-              <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+              <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 value={searchQuery}
@@ -1717,11 +1717,11 @@ export default function QuestionBank() {
                   width: '100%',
                   padding: '0.75rem 2.75rem 0.75rem 2.85rem',
                   borderRadius: '0.85rem',
-                  border: '1.5px solid #cbd5e1',
+                  border: '1.5px solid var(--color-border-input)',
                   fontSize: '0.92rem',
                   fontWeight: 700,
-                  background: '#ffffff',
-                  color: '#0f172a',
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
                   outline: 'none',
                   boxSizing: 'border-box'
                 }}
@@ -1729,7 +1729,7 @@ export default function QuestionBank() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'var(--color-surface)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <X size={16} />
                 </button>
@@ -1864,7 +1864,7 @@ export default function QuestionBank() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <button
               onClick={() => setActiveGradeId(null)}
-              style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
             >
               <ArrowLeft size={18} /> Tüm Sınıf Portalı'na Dön
             </button>
@@ -2036,10 +2036,10 @@ export default function QuestionBank() {
             })}
             
             {curData.subjects.filter(s => s.gradeId === activeGradeId).length === 0 && (
-              <div style={{ padding: '3.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.5rem', border: '1.5px dashed rgba(255,255,255,0.16)', gridColumn: '1 / -1' }}>
-                <BookOpen size={48} color="rgba(255,255,255,0.4)" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#ffffff' }}>Bu sınıfa ait ders bulunamadı.</h3>
-                <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
+              <div style={{ padding: '3.5rem', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-border-input)', gridColumn: '1 / -1' }}>
+                <BookOpen size={48} color="var(--color-text-muted)" style={{ marginBottom: '1rem' }} />
+                <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: 'var(--color-text)' }}>Bu sınıfa ait ders bulunamadı.</h3>
+                <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                   Yönetici panelinden bu sınıfa yeni dersler ekleyebilirsiniz.
                 </p>
               </div>
@@ -2056,7 +2056,7 @@ export default function QuestionBank() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <button
               onClick={() => setActiveSubjectId(null)}
-              style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
             >
               <ArrowLeft size={18} /> Tüm Ders Portalı'na Dön
             </button>
@@ -2127,7 +2127,7 @@ export default function QuestionBank() {
 
               {/* SEARCH INPUT BAR */}
               <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
+                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -2137,11 +2137,11 @@ export default function QuestionBank() {
                     width: '100%',
                     padding: '0.55rem 2rem 0.55rem 2.25rem',
                     borderRadius: '0.75rem',
-                    border: '1.5px solid rgba(255, 255, 255, 0.16)',
+                    border: '1.5px solid var(--color-border-input)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    background: 'rgba(255, 255, 255, 0.07)',
-                    color: '#ffffff',
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -2149,7 +2149,7 @@ export default function QuestionBank() {
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0.2rem' }}
+                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.2rem' }}
                   >
                     <X size={14} />
                   </button>
@@ -2198,11 +2198,11 @@ export default function QuestionBank() {
               </select>
 
               {/* View toggle */}
-              <div style={{ display: 'flex', gap: '0.3rem', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid #cbd5e1' }}>
-                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'card' ? '#ffffff' : '#475569', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid var(--color-border-input)' }}>
+                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'card' ? '#ffffff' : 'var(--color-text-muted)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
                   <LayoutGrid size={15} /> Kart
                 </button>
-                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'row' ? '#ffffff' : '#475569', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'row' ? '#ffffff' : 'var(--color-text-muted)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
                   <List size={15} /> Satır
                 </button>
               </div>
@@ -2219,22 +2219,22 @@ export default function QuestionBank() {
                 <div key={group.key} className="qbank-glass-card" style={{ padding: '1.25rem' }}>
                   
                   {/* Category Header */}
-                  <div style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ background: 'var(--color-surface-hover)', padding: '1rem 1.25rem', borderRadius: '1rem', border: '1.5px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '0.65rem', background: activeSubjectTheme.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <BookOpen size={18} />
                       </div>
                       <div>
-                        <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.1rem' }}>
+                        <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1.1rem' }}>
                           {group.title}
                         </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.82rem', color: '#64748b', fontWeight: 700 }}>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                           {group.subtitle}
                         </p>
                       </div>
                     </div>
 
-                    <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 900, fontSize: '0.82rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid #bfdbfe' }}>
+                    <span style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', fontWeight: 900, fontSize: '0.82rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
                       {group.items.length} İçerik / Test
                     </span>
                   </div>
@@ -2246,12 +2246,12 @@ export default function QuestionBank() {
               ))}
 
               {groupedPageQuestions.length === 0 && (
-                <div className="card glass empty-state" style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1' }}>
-                  <BookOpen size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>
+                <div className="card glass empty-state" style={{ padding: '3.5rem', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '1.5rem', border: '2px dashed var(--color-border-input)' }}>
+                  <BookOpen size={48} color="var(--color-text-muted)" style={{ marginBottom: '1rem' }} />
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: 'var(--color-text)' }}>
                     {activeSubject?.name} dersinde bu filtrelere uygun soru bulunamadı.
                   </h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b' }}>
+                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                     Hemen yeni bir soru, PDF dokümanı veya test paketi ekleyebilirsiniz.
                   </p>
                   <button

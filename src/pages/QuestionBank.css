@@ -59,7 +59,7 @@
 
 .filter-title {
   font-weight: 900;
-  color: #0f172a;
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -78,12 +78,12 @@
   min-width: 140px;
   padding: 0.65rem 0.9rem;
   border-radius: 0.75rem;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--color-border-input);
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0f172a;
-  background-color: #ffffff;
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
   outline: none;
   transition: all 0.15s ease;
 }
@@ -96,7 +96,7 @@
 .filter-divider {
   width: 1px;
   height: 36px;
-  background: #e2e8f0;
+  background: var(--color-border);
   margin: 0 0.25rem;
 }
 
@@ -110,8 +110,8 @@
 }
 
 .qbank-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
   border-radius: 1.25rem;
   box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -120,7 +120,7 @@
 
 .qbank-card:hover {
   transform: translateY(-4px) scale(1.01);
-  border-color: #cbd5e1;
+  border-color: var(--color-border-input);
   box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.07);
 }
 
@@ -143,13 +143,13 @@
   align-items: center;
   margin-bottom: 1.25rem;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .count-badge {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 0.35rem 0.85rem;
   border-radius: 99px;
   font-weight: 800;
@@ -167,16 +167,16 @@
   align-items: center;
   gap: 1.25rem;
   padding: 1rem 1.25rem;
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
   border-radius: 1.15rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: all 0.15s ease;
 }
 
 .compact-item:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-input);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
 }
@@ -185,13 +185,13 @@
   width: 44px;
   height: 44px;
   border-radius: 0.85rem;
-  background: #eff6ff;
+  background: rgba(99, 102, 241, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #6366f1;
   flex-shrink: 0;
-  border: 1px solid #bfdbfe;
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 .compact-item:hover .ci-icon {
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #0f172a;
+  color: var(--color-text);
   font-weight: 800;
   font-size: 0.92rem;
 }
@@ -227,14 +227,14 @@
 }
 
 .ci-type-badge.outline {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-input);
 }
 
 .ci-preview {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -262,7 +262,7 @@
   justify-content: center;
   padding: 4rem 2rem;
   text-align: center;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* Modal Form Styles */
@@ -287,7 +287,7 @@
 .form-group label {
   font-weight: 800;
   font-size: 0.78rem;
-  color: #0f172a;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -297,11 +297,11 @@
 .form-group textarea {
   padding: 0.65rem 0.85rem;
   border-radius: 0.75rem;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--color-border-input);
   font-family: inherit;
   font-size: 0.88rem;
-  color: #0f172a;
-  background-color: #ffffff;
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
   outline: none;
   transition: all 0.15s ease;
 }
@@ -322,7 +322,7 @@
 .options-container label {
   font-weight: 800;
   font-size: 0.78rem;
-  color: #0f172a;
+  color: var(--color-text);
   text-transform: uppercase;
 }
 
@@ -340,10 +340,10 @@
 .option-input-group input[type="text"] {
   flex: 1;
   padding: 0.65rem 0.85rem;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--color-border-input);
   border-radius: 0.75rem;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
   font-family: inherit;
   font-size: 0.88rem;
   outline: none;

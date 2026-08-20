@@ -117,9 +117,9 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: isMobile ? '0.2rem 0.5rem' : '0.45rem 0.85rem',
-        background: '#f8fafc',
-        borderBottom: '1px solid #e2e8f0',
-        color: '#0f172a',
+        background: 'var(--color-surface-hover)',
+        borderBottom: '1px solid var(--color-border)',
+        color: 'var(--color-text)',
         flexWrap: 'nowrap',
         gap: '0.35rem',
         minHeight: isMobile ? '30px' : '42px',
@@ -129,7 +129,7 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0 }}>
           <FileText size={isMobile ? 13 : 16} style={{ color: '#ef4444', flexShrink: 0 }} />
           {!isMobile && (
-            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {title}
             </span>
           )}
@@ -137,12 +137,12 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.35rem', flexShrink: 0 }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomOut size={isMobile ? 12 : 15} />
             </button>
@@ -150,7 +150,7 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
               type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
             >
               <RotateCcw size={isMobile ? 10 : 12} style={{ marginRight: '0.15rem' }} /> {zoomLevel}%
             </button>
@@ -158,7 +158,7 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
               type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomIn size={isMobile ? 12 : 15} />
             </button>
@@ -203,7 +203,7 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
               target="_blank"
               rel="noopener noreferrer"
               title="Yeni Sekmede Aç"
-              style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
             >
               <ExternalLink size={13} />
             </a>

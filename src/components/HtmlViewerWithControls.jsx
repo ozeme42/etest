@@ -224,9 +224,9 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: isMobile ? '0.2rem 0.5rem' : '0.45rem 0.85rem',
-        background: '#f8fafc',
-        borderBottom: '1px solid #e2e8f0',
-        color: '#0f172a',
+        background: 'var(--color-surface-hover)',
+        borderBottom: '1px solid var(--color-border)',
+        color: 'var(--color-text)',
         flexWrap: 'nowrap',
         gap: '0.35rem',
         minHeight: isMobile ? '30px' : '42px',
@@ -236,7 +236,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0 }}>
           <Globe size={isMobile ? 13 : 16} style={{ color: '#059669', flexShrink: 0 }} />
           {!isMobile && (
-            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {title}
             </span>
           )}
@@ -244,12 +244,12 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.35rem', flexShrink: 0 }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomOut size={isMobile ? 12 : 15} />
             </button>
@@ -257,7 +257,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
               type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
             >
               <RotateCcw size={isMobile ? 10 : 12} style={{ marginRight: '0.15rem' }} /> {zoomLevel}%
             </button>
@@ -265,7 +265,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
               type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomIn size={isMobile ? 12 : 15} />
             </button>
@@ -298,7 +298,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, htmlContent
       </div>
 
       {/* Direct HTML Iframe - Smooth CSS Zoom Without Unmounting */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#f8fafc' }}>
+      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: 'var(--color-surface-hover)' }}>
         <div
           style={{
             width: `${zoomLevel}%`,
