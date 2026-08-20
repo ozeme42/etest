@@ -602,6 +602,33 @@ export default function StudyRoomPage() {
   const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
   const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
 
+  // ⏸️ Seans Başı Maksimum Duraklatma Hakkı Sınırı
+  const [maxPauses, setMaxPauses] = useState(() => {
+    const s = localStorage.getItem('study_max_pauses');
+    return s !== null ? Number(s) : 3;
+  });
+  const [pauseCount, setPauseCount] = useState(0);
+  const [pauseWarningToast, setPauseWarningToast] = useState(null);
+
+  const remainingPauses = Math.max(0, maxPauses - pauseCount);
+
+  const handleToggleRunning = () => {
+    if (!isRunning) {
+      setIsRunning(true);
+      setPauseWarningToast(null);
+    } else {
+      if (remainingPauses <= 0) {
+        setPauseWarningToast(`🚫 Bu seansta duraklatma hakkınız doldu (${maxPauses}/${maxPauses} kullanıldı). Odaklanmanızı korumak için lütfen seansı tamamlayın!`);
+        setTimeout(() => {
+          setPauseWarningToast(null);
+        }, 4000);
+        return;
+      }
+      setPauseCount(c => c + 1);
+      setIsRunning(false);
+    }
+  };
+
   // 🌟 SADECE BU KARTI TAM EKRAN (ZEN ODAK MODU) YAPMA STATE'İ
   const [isCardFullscreen, setIsCardFullscreen] = useState(false);
 
@@ -988,11 +1015,15 @@ export default function StudyRoomPage() {
       const baseBreak = Number(durations.shortBreak || durations.breakTime) || 10;
       setTimeLeft(baseBreak * 60);
       setSessionElapsedSeconds(0);
+      setPauseCount(0);
+      setPauseWarningToast(null);
     } else {
       // Mola bitti, soru veya konu moduna dön
       setActiveStudyMode('question');
       setTimeLeft(calculatedQuestionBudgetMinutes * 60);
       setSessionElapsedSeconds(0);
+      setPauseCount(0);
+      setPauseWarningToast(null);
     }
   };
 
@@ -1017,6 +1048,8 @@ export default function StudyRoomPage() {
     setActiveStudyMode(mode);
     localStorage.setItem('study_master_mode', mode);
     setSessionElapsedSeconds(0);
+    setPauseCount(0);
+    setPauseWarningToast(null);
 
     if (mode === 'question') {
       setTimeLeft(calculatedQuestionBudgetMinutes * 60);
@@ -1035,6 +1068,8 @@ export default function StudyRoomPage() {
   const resetTimer = () => {
     setIsRunning(false);
     setSessionElapsedSeconds(0);
+    setPauseCount(0);
+    setPauseWarningToast(null);
     if (activeStudyMode === 'question') {
       setTimeLeft(calculatedQuestionBudgetMinutes * 60);
     } else if (activeStudyMode === 'book') {
@@ -1486,12 +1521,14 @@ export default function StudyRoomPage() {
             </button>
 
             <button
-              onClick={() => setIsRunning(!isRunning)}
+              onClick={handleToggleRunning}
               className="sr-action-btn-main"
               style={{
                 padding: isFullscreenView ? '1.1rem 3.2rem' : '0.9rem 2.5rem',
                 borderRadius: 20,
-                background: isRunning ? '#ef4444' : (activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)'),
+                background: isRunning 
+                  ? (remainingPauses === 0 ? 'linear-gradient(135deg, #64748b, #475569)' : '#ef4444') 
+                  : (activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)'),
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
@@ -1500,10 +1537,25 @@ export default function StudyRoomPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                boxShadow: `0 8px 25px ${isRunning ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.4)'}`
+                boxShadow: isRunning 
+                  ? (remainingPauses === 0 ? '0 8px 25px rgba(100,116,139,0.35)' : '0 8px 25px rgba(239,68,68,0.45)') 
+                  : '0 8px 25px rgba(245,158,11,0.4)',
+                transition: 'all 0.25s ease'
               }}
             >
-              {isRunning ? <><Pause size={isFullscreenView ? 24 : 20} fill="white" /> Duraklat</> : <><Play size={isFullscreenView ? 24 : 20} fill="white" /> Başlat</>}
+              {isRunning ? (
+                remainingPauses === 0 ? (
+                  <><Shield size={isFullscreenView ? 24 : 20} fill="white" /> Duraklatma Kilitli (0 Hak)</>
+                ) : (
+                  <><Pause size={isFullscreenView ? 24 : 20} fill="white" /> Duraklat ({remainingPauses} Hak)</>
+                )
+              ) : (
+                sessionElapsedSeconds > 0 ? (
+                  <><Play size={isFullscreenView ? 24 : 20} fill="white" /> Devam Et</>
+                ) : (
+                  <><Play size={isFullscreenView ? 24 : 20} fill="white" /> Başlat</>
+                )
+              )}
             </button>
 
             <button
@@ -1525,6 +1577,65 @@ export default function StudyRoomPage() {
             >
               <Settings2 size={isFullscreenView ? 22 : 18} />
             </button>
+          </div>
+
+          {/* Duraklatma Hakkı Göstergesi & Uyarı */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            marginTop: 10
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              color: themeObj.subText,
+              background: themeObj.innerBg,
+              padding: '0.3rem 0.8rem',
+              borderRadius: 99,
+              border: `1px solid ${themeObj.border}`
+            }}>
+              <span>⏸️ Seans Başı Duraklatma:</span>
+              <span style={{
+                padding: '1px 7px',
+                borderRadius: 99,
+                background: remainingPauses === 0 
+                  ? 'rgba(239, 68, 68, 0.18)' 
+                  : remainingPauses === 1 
+                    ? 'rgba(245, 158, 11, 0.18)' 
+                    : 'rgba(16, 185, 129, 0.18)',
+                color: remainingPauses === 0 
+                  ? '#ef4444' 
+                  : remainingPauses === 1 
+                    ? '#f59e0b' 
+                    : '#10b981',
+                fontWeight: 900
+              }}>
+                {remainingPauses} / {maxPauses} Kalan Hak
+              </span>
+            </div>
+
+            {pauseWarningToast && (
+              <div style={{
+                marginTop: 6,
+                padding: '0.55rem 0.9rem',
+                borderRadius: 12,
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                color: '#ef4444',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                textAlign: 'center',
+                maxWidth: 360,
+                lineHeight: 1.35
+              }}>
+                {pauseWarningToast}
+              </div>
+            )}
           </div>
         </div>
 
@@ -2359,6 +2470,72 @@ export default function StudyRoomPage() {
                 >
                   {questionChimeEnabled ? '🔔 Ses Açık' : '🔕 Kapalı'}
                 </button>
+              </div>
+
+              {/* 🛑 Seans Başı Duraklatma Limiti Ayarı */}
+              <div style={{
+                gridColumn: '1 / -1',
+                background: themeObj.cardBg,
+                borderRadius: 14,
+                padding: '0.75rem 1rem',
+                border: `1.5px solid ${themeObj.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ef4444'
+                  }}>
+                    <Pause size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 900, color: themeObj.text }}>
+                      Seans Başı Duraklatma Sınırı
+                    </div>
+                    <div style={{ fontSize: '0.66rem', color: themeObj.subText, fontWeight: 700 }}>
+                      Öğrencinin odaklanmasını korumak için seans başına duraklatma hakkı
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[2, 3, 5].map(limit => {
+                    const isActive = maxPauses === limit;
+                    return (
+                      <button
+                        key={limit}
+                        type="button"
+                        onClick={() => {
+                          setMaxPauses(limit);
+                          localStorage.setItem('study_max_pauses', String(limit));
+                        }}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: 8,
+                          border: `1.5px solid ${isActive ? '#ef4444' : themeObj.border}`,
+                          background: isActive ? '#ef4444' : themeObj.innerBg,
+                          color: isActive ? '#ffffff' : themeObj.subText,
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          boxShadow: isActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
+                        }}
+                      >
+                        {limit} Hak {limit === 3 ? '(Önerilen)' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Ekran Kapanmama Bilgi Şeridi */}
