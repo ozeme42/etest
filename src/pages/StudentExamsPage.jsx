@@ -129,6 +129,7 @@ export default function StudentExamsPage() {
   const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
 
   const [chartMetric, setChartMetric] = useState('Toplam Net');
+  const [examChartViewMode, setExamChartViewMode] = useState('exams'); // 'exams' | 'subjects'
   const [examChartMetric, setExamChartMetric] = useState('grouped'); // 'grouped' | 'net' | 'rate'
   const [showChart, setShowChart] = useState(true);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
@@ -542,6 +543,119 @@ export default function StudentExamsPage() {
     });
   }, [allExamsList]);
 
+  /* ── Exam Subject Chart Data (Derslere Göre) ─── */
+  const examSubjectChartData = useMemo(() => {
+    const subMap = {};
+
+    allExamsList.forEach(exam => {
+      // 1. If manual mock exam
+      if (exam.type === 'mock' && exam.scores) {
+        Object.entries(exam.scores).forEach(([sName, sc]) => {
+          if (!subMap[sName]) {
+            subMap[sName] = {
+              name: sName,
+              fullName: sName,
+              Doğru: 0,
+              Yanlış: 0,
+              Boş: 0,
+              net: 0,
+              totalQ: 0,
+              examCount: 0
+            };
+          }
+          const d = Number(sc.d) || 0;
+          const y = Number(sc.y) || 0;
+          const b = Number(sc.b) || 0;
+          const net = parseFloat(sc.net || (d - y / 4).toFixed(2));
+          subMap[sName].Doğru += d;
+          subMap[sName].Yanlış += y;
+          subMap[sName].Boş += b;
+          subMap[sName].net += net;
+          subMap[sName].totalQ += (d + y + b);
+          subMap[sName].examCount += 1;
+        });
+      }
+
+      // 2. If physical / book exam
+      if (exam.type === 'book') {
+        const primaryHw = exam.assignedHomeworks?.[0];
+        const subs = exam.subjects || primaryHw?.subjects || [];
+        
+        let foundSubjectStats = false;
+        if (exam.bestSubs && exam.bestSubs.length > 0) {
+          exam.bestSubs.forEach(sub => {
+            const stats = sub.subjectStats?.subjectStats || sub.subjectStats || sub.metadata?.subjectStats;
+            if (stats && typeof stats === 'object') {
+              Object.entries(stats).forEach(([sName, sData]) => {
+                if (sName === 'totalCorrect' || sName === 'totalWrong' || sName === 'totalBlank' || sName === 'totalNet') return;
+                foundSubjectStats = true;
+                if (!subMap[sName]) {
+                  subMap[sName] = {
+                    name: sName,
+                    fullName: sName,
+                    Doğru: 0,
+                    Yanlış: 0,
+                    Boş: 0,
+                    net: 0,
+                    totalQ: 0,
+                    examCount: 0
+                  };
+                }
+                const d = Number(sData.correct ?? sData.d ?? sData.correctCount) || 0;
+                const y = Number(sData.wrong ?? sData.y ?? sData.wrongCount) || 0;
+                const b = Number(sData.blank ?? sData.b ?? sData.blankCount) || 0;
+                const net = Number(sData.net ?? sData.score) || parseFloat((d - y / (exam.penaltyRatio || 3)).toFixed(2));
+                subMap[sName].Doğru += d;
+                subMap[sName].Yanlış += y;
+                subMap[sName].Boş += b;
+                subMap[sName].net += net;
+                subMap[sName].totalQ += (d + y + b);
+                subMap[sName].examCount += 1;
+              });
+            }
+          });
+        }
+
+        if (!foundSubjectStats && (exam.d || exam.y || exam.b)) {
+          const sName = subs[0]?.name || exam.title || 'Genel Sınav';
+          if (!subMap[sName]) {
+            subMap[sName] = {
+              name: sName,
+              fullName: sName,
+              Doğru: 0,
+              Yanlış: 0,
+              Boş: 0,
+              net: 0,
+              totalQ: 0,
+              examCount: 0
+            };
+          }
+          subMap[sName].Doğru += exam.d || 0;
+          subMap[sName].Yanlış += exam.y || 0;
+          subMap[sName].Boş += exam.b || 0;
+          subMap[sName].net += Number(exam.net) || 0;
+          subMap[sName].totalQ += (exam.d + exam.y + exam.b);
+          subMap[sName].examCount += 1;
+        }
+      }
+    });
+
+    return Object.values(subMap).map(item => {
+      const totalQ = item.Doğru + item.Yanlış + item.Boş;
+      const rate = totalQ > 0 ? Math.round((item.Doğru / totalQ) * 100) : 0;
+      const avgNet = item.examCount > 0 ? parseFloat((item.net / item.examCount).toFixed(2)) : 0;
+      return {
+        ...item,
+        totalQ,
+        rate,
+        avgNet,
+        net: parseFloat(item.net.toFixed(2))
+      };
+    }).sort((a, b) => b.totalQ - a.totalQ);
+  }, [allExamsList]);
+
+  const activeExamChartData = examChartViewMode === 'exams' ? examChartData : examSubjectChartData;
+
   const displayedExams = useMemo(() => {
     return allExamsList.filter(exam => {
       const sectionOk = activeSection === 'all' || exam.type === activeSection;
@@ -723,12 +837,54 @@ export default function StudentExamsPage() {
             <div
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
             >
-              <div
-                onClick={() => setShowChart(c => !c)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
-              >
-                <BarChart2 size={20} color="#818cf8" /> Denemelere Göre Soru & Net Dağılımı
-                <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div
+                  onClick={() => setShowChart(c => !c)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
+                >
+                  <BarChart2 size={20} color="#818cf8" /> 
+                  {examChartViewMode === 'exams' ? 'Denemelere Göre Soru & Net Dağılımı' : 'Derslere Göre Soru & Net Dağılımı'}
+                  <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                </div>
+
+                {showChart && (
+                  <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                    <button
+                      onClick={() => setExamChartViewMode('exams')}
+                      style={{
+                        padding: '0.3rem 0.75rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: examChartViewMode === 'exams' ? '#6366f1' : 'transparent',
+                        color: examChartViewMode === 'exams' ? '#ffffff' : 'var(--color-text-muted)',
+                        boxShadow: examChartViewMode === 'exams' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      🏆 Denemelere Göre
+                    </button>
+                    <button
+                      onClick={() => setExamChartViewMode('subjects')}
+                      style={{
+                        padding: '0.3rem 0.75rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: examChartViewMode === 'subjects' ? '#6366f1' : 'transparent',
+                        color: examChartViewMode === 'subjects' ? '#ffffff' : 'var(--color-text-muted)',
+                        boxShadow: examChartViewMode === 'subjects' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      🎓 Derslere Göre
+                    </button>
+                  </div>
+                )}
               </div>
 
               {showChart && (
@@ -790,9 +946,9 @@ export default function StudentExamsPage() {
 
             {showChart && (
               <div style={{ padding: '1.25rem 1.4rem' }}>
-                {/* Interactive Mini Exam Cards */}
+                {/* Interactive Mini Exam / Subject Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
-                  {examChartData.map((item, idx) => {
+                  {activeExamChartData.map((item, idx) => {
                     const rateColor = item.rate >= 70 ? '#10b981' : item.rate >= 50 ? '#f59e0b' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
                     const rateBg = isDark
                       ? (item.rate >= 70 ? 'rgba(16,185,129,0.1)' : item.rate >= 50 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)')
@@ -809,7 +965,11 @@ export default function StudentExamsPage() {
                     return (
                       <div
                         key={idx}
-                        onClick={() => handleOpenExam(item.original)}
+                        onClick={() => {
+                          if (examChartViewMode === 'exams' && item.original) {
+                            handleOpenExam(item.original);
+                          }
+                        }}
                         style={{
                           background: rateBg,
                           border: `1.5px solid ${rateBorder}`,
@@ -819,10 +979,10 @@ export default function StudentExamsPage() {
                           flexDirection: 'column',
                           gap: 6,
                           boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                          cursor: 'pointer',
+                          cursor: examChartViewMode === 'exams' ? 'pointer' : 'default',
                           transition: 'all 0.18s ease'
                         }}
-                        title={`${item.fullName} açmak için tıkla`}
+                        title={examChartViewMode === 'exams' ? `${item.fullName} açmak için tıkla` : item.fullName}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -847,7 +1007,7 @@ export default function StudentExamsPage() {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                          <span>{item.date || 'Tarih yok'}</span>
+                          <span>{examChartViewMode === 'exams' ? (item.date || 'Tarih yok') : `${item.examCount || 1} Deneme`}</span>
                           <span style={{ display: 'flex', gap: 6, fontWeight: 800 }}>
                             <span style={{ color: '#10b981' }}>{item.Doğru}D</span>
                             <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span>
@@ -862,7 +1022,7 @@ export default function StudentExamsPage() {
                 {/* Recharts Bar Chart */}
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={examChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <BarChart data={activeExamChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                       <defs>
                         <linearGradient id="examsCorrectGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
@@ -902,13 +1062,13 @@ export default function StudentExamsPage() {
                         </>
                       ) : examChartMetric === 'net' ? (
                         <Bar dataKey="net" name="📈 Toplam Net" fill="url(#examsNetGrad)" radius={[6, 6, 0, 0]}>
-                          {examChartData.map((entry, idx) => (
+                          {activeExamChartData.map((entry, idx) => (
                             <Cell key={`cell-net-${idx}`} fill={entry.net >= 60 ? '#10b981' : entry.net >= 40 ? '#6366f1' : entry.net >= 20 ? '#f59e0b' : '#ef4444'} />
                           ))}
                         </Bar>
                       ) : (
                         <Bar dataKey="rate" name="🎯 Başarı Oranı (%)" fill="#6366f1" radius={[6, 6, 0, 0]}>
-                          {examChartData.map((entry, idx) => {
+                          {activeExamChartData.map((entry, idx) => {
                             const col = entry.rate >= 70 ? '#10b981' : entry.rate >= 50 ? '#f59e0b' : '#ef4444';
                             return <Cell key={`cell-bk-${idx}`} fill={col} />;
                           })}

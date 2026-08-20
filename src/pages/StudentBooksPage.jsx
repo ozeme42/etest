@@ -100,6 +100,7 @@ export default function StudentBooksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'title' | 'recent'
   const [showChart, setShowChart] = useState(true);
+  const [bookChartViewMode, setBookChartViewMode] = useState('books'); // 'books' | 'subjects'
   const [bookChartMetric, setBookChartMetric] = useState('grouped'); // 'grouped' | 'rate'
 
   const handleSaveNewBook = async () => {
@@ -309,7 +310,7 @@ export default function StudentBooksPage() {
     return list;
   }, [assignedBooks, searchQuery, sortBy]);
 
-  /* ── Bar chart data ─── */
+  /* ── Bar chart data (Kitaplara Göre) ─── */
   const chartData = useMemo(() =>
     assignedBooks.map(b => {
       const d = b.totalCorrect || 0;
@@ -333,6 +334,112 @@ export default function StudentBooksPage() {
       };
     })
     , [assignedBooks]);
+
+  /* ── Subject chart data (Derslere Göre) ─── */
+  const subjectChartData = useMemo(() => {
+    const subMap = {};
+
+    assignedBooks.forEach(b => {
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(b.id));
+
+      testsInBook.forEach(t => {
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(t.id) || '');
+
+        const subObj = (b.subjects || []).find(s => String(s.id) === String(t.subjectId)) || { name: t.name || 'Genel' };
+        let subjectName = subObj.name || t.name || 'Genel';
+        if (/^test\s*\d+/i.test(subjectName) && b.subjects && b.subjects.length > 0) {
+          subjectName = b.subjects[0]?.name || subjectName;
+        }
+
+        if (!subMap[subjectName]) {
+          subMap[subjectName] = {
+            id: `sub_${subjectName}`,
+            name: subjectName,
+            fullName: subjectName,
+            Doğru: 0,
+            Yanlış: 0,
+            Boş: 0,
+            totalQ: 0,
+            rate: 0,
+            totalSolvedTests: 0,
+            totalAssignedTests: 0
+          };
+        }
+
+        subMap[subjectName].totalAssignedTests++;
+
+        const solvedSubs = studentSubmissions.filter(s => {
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
+          }
+
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) ||
+            toUUID(f) === tIdStr ||
+            (tUuidStr && toUUID(f) === tUuidStr)
+          ));
+        });
+
+        let hwSub = null;
+        for (const hw of homeworks) {
+          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
+          const match = hw.submissions.find(s => {
+            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+          });
+          if (match) {
+            hwSub = match;
+            break;
+          }
+        }
+
+        if (solvedSubs.length > 0 || !!hwSub) {
+          subMap[subjectName].totalSolvedTests++;
+          let bestSub = null;
+          if (solvedSubs.length > 0) {
+            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
+          } else if (hwSub) {
+            bestSub = hwSub;
+          }
+
+          if (bestSub) {
+            subMap[subjectName].Doğru += bestSub.correctCount || 0;
+            subMap[subjectName].Yanlış += bestSub.wrongCount || 0;
+            subMap[subjectName].Boş += bestSub.blankCount || 0;
+          }
+        }
+      });
+    });
+
+    return Object.values(subMap).map(item => {
+      const totalQ = item.Doğru + item.Yanlış + item.Boş;
+      const rate = totalQ > 0 ? Math.round((item.Doğru / totalQ) * 100) : 0;
+      const progress = item.totalAssignedTests > 0 ? Math.round((item.totalSolvedTests / item.totalAssignedTests) * 100) : 0;
+      return {
+        ...item,
+        totalQ,
+        rate,
+        progress
+      };
+    }).sort((a, b) => b.totalQ - a.totalQ);
+  }, [assignedBooks, bookTests, studentSubmissions, homeworks, studentIdStr, studentUuidStr]);
+
+  const activeChartData = bookChartViewMode === 'books' ? chartData : subjectChartData;
 
   /* ════════════════════════
      RENDER
@@ -382,12 +489,54 @@ export default function StudentBooksPage() {
               <div
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
               >
-                <div
-                  onClick={() => setShowChart(c => !c)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
-                >
-                  <BarChart2 size={20} color="#6366f1" /> Kitaplara Göre Soru Dağılımı
-                  <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <div
+                    onClick={() => setShowChart(c => !c)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
+                  >
+                    <BarChart2 size={20} color="#6366f1" /> 
+                    {bookChartViewMode === 'books' ? 'Kitaplara Göre Soru Dağılımı' : 'Derslere Göre Soru Dağılımı'}
+                    <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </div>
+
+                  {showChart && (
+                    <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                      <button
+                        onClick={() => setBookChartViewMode('books')}
+                        style={{
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          background: bookChartViewMode === 'books' ? '#4f46e5' : 'transparent',
+                          color: bookChartViewMode === 'books' ? '#ffffff' : 'var(--color-text-muted)',
+                          boxShadow: bookChartViewMode === 'books' ? '0 2px 8px rgba(79,70,229,0.25)' : 'none',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        📚 Kitaplara Göre
+                      </button>
+                      <button
+                        onClick={() => setBookChartViewMode('subjects')}
+                        style={{
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          background: bookChartViewMode === 'subjects' ? '#4f46e5' : 'transparent',
+                          color: bookChartViewMode === 'subjects' ? '#ffffff' : 'var(--color-text-muted)',
+                          boxShadow: bookChartViewMode === 'subjects' ? '0 2px 8px rgba(79,70,229,0.25)' : 'none',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        🎓 Derslere Göre
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {showChart && (
@@ -432,9 +581,9 @@ export default function StudentBooksPage() {
 
               {showChart && (
                 <div style={{ padding: '1.25rem 1.4rem' }}>
-                  {/* Interactive Mini Book Cards */}
+                  {/* Interactive Mini Cards (Books or Subjects) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
-                    {chartData.map((item, idx) => {
+                    {activeChartData.map((item, idx) => {
                       const rateColor = item.rate >= 70 ? '#10b981' : item.rate >= 50 ? '#f59e0b' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
                       const rateBg = item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fff1f2';
                       const rateBorder = item.rate >= 70 ? '#bbf7d0' : item.rate >= 50 ? '#fde68a' : item.totalQ === 0 ? '#e2e8f0' : '#fecdd3';
@@ -447,7 +596,11 @@ export default function StudentBooksPage() {
                       return (
                         <div
                           key={idx}
-                          onClick={() => item.id && navigate(`/student/books/${item.id}`)}
+                          onClick={() => {
+                            if (bookChartViewMode === 'books' && item.id) {
+                              navigate(`/student/books/${item.id}`);
+                            }
+                          }}
                           style={{
                             background: rateBg,
                             border: `1.5px solid ${rateBorder}`,
@@ -457,10 +610,10 @@ export default function StudentBooksPage() {
                             flexDirection: 'column',
                             gap: 6,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                            cursor: item.id ? 'pointer' : 'default',
+                            cursor: bookChartViewMode === 'books' && item.id ? 'pointer' : 'default',
                             transition: 'all 0.18s ease'
                           }}
-                          title={`${item.fullName} detaylarına gitmek için tıkla`}
+                          title={bookChartViewMode === 'books' && item.id ? `${item.fullName} detaylarına gitmek için tıkla` : item.fullName}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -500,7 +653,7 @@ export default function StudentBooksPage() {
                   {/* Recharts Bar Chart */}
                   <div style={{ width: '100%', height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                      <BarChart data={activeChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                         <defs>
                           <linearGradient id="booksCorrectGrad" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
@@ -525,7 +678,7 @@ export default function StudentBooksPage() {
                         <Tooltip
                           cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
                           contentStyle={{ background: '#ffffff', borderRadius: 14, border: '1.5px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}
-                          formatter={(value, name, props) => [
+                          formatter={(value, name) => [
                             bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
                             name
                           ]}
@@ -537,13 +690,10 @@ export default function StudentBooksPage() {
                             <Bar dataKey="Doğru" name="🟢 Doğru" fill="url(#booksCorrectGrad)" radius={[8, 8, 2, 2]} />
                             <Bar dataKey="Yanlış" name="🔴 Yanlış" fill="url(#booksWrongGrad)" radius={[8, 8, 2, 2]} />
                             <Bar dataKey="Boş" name="⚪ Boş" fill="url(#booksBlankGrad)" radius={[8, 8, 2, 2]} />
-                            <Bar dataKey="Doğru" name="🟢 Doğru" fill="#10b981" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Yanlış" name="🔴 Yanlış" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Boş" name="⚪ Boş" fill="#94a3b8" radius={[4, 4, 0, 0]} />
                           </>
                         ) : (
                           <Bar dataKey="rate" name="🎯 Başarı Oranı (%)" fill="#6366f1" radius={[4, 4, 0, 0]}>
-                            {chartData.map((entry, idx) => {
+                            {activeChartData.map((entry, idx) => {
                               const col = entry.rate >= 70 ? '#10b981' : entry.rate >= 50 ? '#f59e0b' : '#ef4444';
                               return <Cell key={`cell-bk-${idx}`} fill={col} />;
                             })}
