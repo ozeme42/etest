@@ -602,11 +602,45 @@ export default function StudyRoomPage() {
   const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
   const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
 
-  // ⏸️ Seans Başı Maksimum Duraklatma Hakkı Sınırı
-  const [maxPauses, setMaxPauses] = useState(() => {
-    const s = localStorage.getItem('study_max_pauses');
-    return s !== null ? Number(s) : 3;
+  // ⏸️ Seans Başı Maksimum Duraklatma Hakkı Sınırı (Süreye Göre Otomatik Artan/Azalan Dinamik Ölçek)
+  const [pauseLimitMode, setPauseLimitMode] = useState(() => {
+    const s = localStorage.getItem('study_pause_limit_mode');
+    return s || 'auto';
   });
+
+  const currentSessionMinutes = useMemo(() => {
+    if (activeStudyMode === 'question') {
+      return Number(durations.pomodoro || calculatedQuestionBudgetMinutes) || 25;
+    }
+    if (activeStudyMode === 'study') {
+      return Number(durations.pomodoro) || 25;
+    }
+    if (activeStudyMode === 'book') {
+      return 25;
+    }
+    if (activeStudyMode === 'break') {
+      return Number(durations.shortBreak || 10);
+    }
+    return 25;
+  }, [activeStudyMode, durations.pomodoro, durations.shortBreak, calculatedQuestionBudgetMinutes]);
+
+  const calculateDynamicMaxPauses = (mins) => {
+    if (mins <= 15) return 1;       // 1 - 15 dk: 1 hak
+    if (mins <= 30) return 2;       // 16 - 30 dk: 2 hak (Örn: 25 dk Pomodoro)
+    if (mins <= 45) return 3;       // 31 - 45 dk: 3 hak (Örn: 42 dk soru)
+    if (mins <= 65) return 4;       // 46 - 65 dk: 4 hak (Örn: 60 dk ders)
+    if (mins <= 90) return 5;       // 66 - 90 dk: 5 hak
+    return Math.min(8, Math.floor(mins / 15)); // 90+ dk: her 15 dk için 1 hak
+  };
+
+  const maxPauses = useMemo(() => {
+    if (pauseLimitMode !== 'auto') {
+      const num = Number(pauseLimitMode);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return calculateDynamicMaxPauses(currentSessionMinutes);
+  }, [pauseLimitMode, currentSessionMinutes]);
+
   const [pauseCount, setPauseCount] = useState(0);
   const [pauseWarningToast, setPauseWarningToast] = useState(null);
 
@@ -1595,11 +1629,13 @@ export default function StudyRoomPage() {
               fontWeight: 800,
               color: themeObj.subText,
               background: themeObj.innerBg,
-              padding: '0.3rem 0.8rem',
+              padding: '0.3rem 0.85rem',
               borderRadius: 99,
-              border: `1px solid ${themeObj.border}`
+              border: `1px solid ${themeObj.border}`,
+              flexWrap: 'wrap',
+              justifyContent: 'center'
             }}>
-              <span>⏸️ Seans Başı Duraklatma:</span>
+              <span>⏸️ Duraklatma Hakkı:</span>
               <span style={{
                 padding: '1px 7px',
                 borderRadius: 99,
@@ -1616,6 +1652,9 @@ export default function StudyRoomPage() {
                 fontWeight: 900
               }}>
                 {remainingPauses} / {maxPauses} Kalan Hak
+              </span>
+              <span style={{ fontSize: '0.67rem', color: themeObj.subText, opacity: 0.85 }}>
+                ({currentSessionMinutes} dk için {maxPauses} Hak)
               </span>
             </div>
 
@@ -2503,21 +2542,26 @@ export default function StudyRoomPage() {
                       Seans Başı Duraklatma Sınırı
                     </div>
                     <div style={{ fontSize: '0.66rem', color: themeObj.subText, fontWeight: 700 }}>
-                      Öğrencinin odaklanmasını korumak için seans başına duraklatma hakkı
+                      Süre arttıkça hak otomatik artar (Örn: ≤15 dk=1, 25 dk=2, 42 dk=3, 60 dk=4 Hak)
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {[2, 3, 5].map(limit => {
-                    const isActive = maxPauses === limit;
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'auto', label: '⚡ Süreye Göre (Otomatik)' },
+                    { key: '2', label: '2 Hak' },
+                    { key: '3', label: '3 Hak' },
+                    { key: '5', label: '5 Hak' }
+                  ].map(opt => {
+                    const isActive = pauseLimitMode === opt.key;
                     return (
                       <button
-                        key={limit}
+                        key={opt.key}
                         type="button"
                         onClick={() => {
-                          setMaxPauses(limit);
-                          localStorage.setItem('study_max_pauses', String(limit));
+                          setPauseLimitMode(opt.key);
+                          localStorage.setItem('study_pause_limit_mode', opt.key);
                         }}
                         style={{
                           padding: '0.35rem 0.65rem',
@@ -2531,7 +2575,7 @@ export default function StudyRoomPage() {
                           boxShadow: isActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
                         }}
                       >
-                        {limit} Hak {limit === 3 ? '(Önerilen)' : ''}
+                        {opt.label}
                       </button>
                     );
                   })}
