@@ -1041,12 +1041,12 @@ export default function StudentExamsPage() {
                           <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.9} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 800 }} dy={8} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text)', fontWeight: 800 }} dy={8} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => examChartMetric === 'rate' ? `%${v}` : v} domain={examChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                       <Tooltip
                         cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
-                        contentStyle={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}
+                        contentStyle={{ background: 'var(--color-surface)', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}
                         formatter={(value, name) => [
                           examChartMetric === 'rate' ? `%${value} Başarı` : examChartMetric === 'net' ? `${value} Net` : `${value} Soru`,
                           name
@@ -1104,7 +1104,7 @@ export default function StudentExamsPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} dy={8} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text)', fontWeight: 700 }} dy={8} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 600 }} domain={['dataMin - 2', 'dataMax + 5']} />
                 <Tooltip content={<ChartTip />} />
                 <Area type="monotone" dataKey="Net" stroke="#7c3aed" strokeWidth={3} fillOpacity={1} fill="url(#netGrad)" dot={{ fill: '#7c3aed', r: 4 }} activeDot={{ r: 7, fill: '#6d28d9', stroke: '#ffffff', strokeWidth: 2 }} />

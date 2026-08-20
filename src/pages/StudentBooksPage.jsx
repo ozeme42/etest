@@ -672,12 +672,12 @@ export default function StudentBooksPage() {
                             <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#ffffff', fontWeight: 800 }} dy={8} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text)', fontWeight: 800 }} dy={8} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                         <Tooltip
                           cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
-                          contentStyle={{ background: '#ffffff', borderRadius: 14, border: '1.5px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}
+                          contentStyle={{ background: 'var(--color-surface)', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}
                           formatter={(value, name) => [
                             bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
                             name

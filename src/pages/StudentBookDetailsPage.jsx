@@ -1146,13 +1146,13 @@ export default function StudentBookDetailsPage() {
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer>
               <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 800 }} dy={10} tickFormatter={v => v.length > 24 ? v.substring(0, 24) + '…' : v} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text)', fontWeight: 800 }} dy={10} tickFormatter={v => v.length > 24 ? v.substring(0, 24) + '…' : v} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                 <Tooltip 
-                  cursor={{ fill: '#f8fafc' }} 
-                  contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.83rem', color: '#0f172a' }} 
-                  formatter={(value, name, props) => [
+                  cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} 
+                  contentStyle={{ background: 'var(--color-surface)', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.83rem', color: 'var(--color-text)' }} 
+                  formatter={(value, name) => [
                     bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
                     name
                   ]}
