@@ -186,54 +186,154 @@ export default function ExamAnalysisPage() {
       const sSubmissions = examSubmissions.filter(s => String(s.studentId) === String(studentId));
       const student = students.find(u => String(u.id) === String(studentId));
       
-      const tScore = sSubmissions.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-      const aScore = sSubmissions.length ? tScore / sSubmissions.length : 0;
-      
-      const tCorrect = sSubmissions.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
-      const tWrong = sSubmissions.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
-      const tEmpty = sSubmissions.reduce((sum, s) => sum + (Number(s.blankCount || s.emptyCount) || 0), 0);
-      
       const rawClassId = student?.classId || student?.gradeId || student?.className;
       const gradeObj = curData?.grades?.find(g => g.id === rawClassId);
       const className = gradeObj ? gradeObj.name : (rawClassId || '8. Sınıf');
       
-      // Combine subject breakdowns from submissions (Array or Object)
+      // Combine subject breakdowns from submissions
       const combinedSubjectStats = {};
+
       sSubmissions.forEach(sub => {
-        if (!sub.subjectStats) return;
-
+        // 1. Direct sub.subjectStats (Array or Object or nested)
         let rawStats = sub.subjectStats;
-        if (rawStats.subjectStats) rawStats = rawStats.subjectStats;
+        if (rawStats && rawStats.subjectStats) rawStats = rawStats.subjectStats;
 
-        if (Array.isArray(rawStats)) {
+        if (Array.isArray(rawStats) && rawStats.length > 0) {
           rawStats.forEach(sObj => {
-            if (sObj && sObj.name) {
-              combinedSubjectStats[sObj.name] = {
-                name: sObj.name,
-                correct: Number(sObj.correct || 0),
-                wrong: Number(sObj.wrong || 0),
-                blank: Number(sObj.blank || 0),
-                net: Number(sObj.net || 0),
-                count: Number(sObj.count || 15)
+            if (sObj && (sObj.name || sObj.subjectName || sObj.title)) {
+              const sName = sObj.name || sObj.subjectName || sObj.title;
+              const corr = Number(sObj.correct ?? sObj.correctCount ?? 0);
+              const wrg = Number(sObj.wrong ?? sObj.wrongCount ?? 0);
+              const blk = Number(sObj.blank ?? sObj.blankCount ?? sObj.emptyCount ?? 0);
+              const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+              const calcNet = sObj.net !== undefined ? Number(sObj.net) : (corr - (penalty > 0 ? wrg / penalty : 0));
+              const cnt = Number(sObj.count || sObj.questionCount || (corr + wrg + blk) || 15);
+
+              combinedSubjectStats[sName] = {
+                name: sName,
+                correct: corr,
+                wrong: wrg,
+                blank: blk,
+                net: Math.max(0, Number(calcNet.toFixed(2))),
+                count: cnt
               };
             }
           });
-        } else if (typeof rawStats === 'object') {
-          Object.entries(rawStats).forEach(([subjName, sObj]) => {
-            if (sObj && typeof sObj === 'object') {
-              const actualName = sObj.name || subjName;
-              combinedSubjectStats[actualName] = {
-                name: actualName,
-                correct: Number(sObj.correct || 0),
-                wrong: Number(sObj.wrong || 0),
-                blank: Number(sObj.blank || 0),
-                net: Number(sObj.net || 0),
-                count: Number(sObj.count || 15)
-              };
+        } else if (rawStats && typeof rawStats === 'object' && !Array.isArray(rawStats)) {
+          Object.entries(rawStats).forEach(([key, val]) => {
+            if (val && typeof val === 'object') {
+              const sName = val.name || val.subjectName || val.title || key;
+              if (sName && isNaN(Number(sName))) {
+                const corr = Number(val.correct ?? val.correctCount ?? 0);
+                const wrg = Number(val.wrong ?? val.wrongCount ?? 0);
+                const blk = Number(val.blank ?? val.blankCount ?? val.emptyCount ?? 0);
+                const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+                const calcNet = val.net !== undefined ? Number(val.net) : (corr - (penalty > 0 ? wrg / penalty : 0));
+                const cnt = Number(val.count || val.questionCount || (corr + wrg + blk) || 15);
+
+                combinedSubjectStats[sName] = {
+                  name: sName,
+                  correct: corr,
+                  wrong: wrg,
+                  blank: blk,
+                  net: Math.max(0, Number(calcNet.toFixed(2))),
+                  count: cnt
+                };
+              }
             }
           });
         }
+
+        // 2. If studentAnswers exist, calculate subject stats from student answers + answer keys
+        if (sub.studentAnswers && typeof sub.studentAnswers === 'object') {
+          const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+          Object.entries(sub.studentAnswers).forEach(([subjName, ansData]) => {
+            if (combinedSubjectStats[subjName]?.count > 0 && combinedSubjectStats[subjName]?.net > 0) return;
+
+            const aKey = resolvedExam?.answerKey?.[subjName] || [];
+            const subDef = (resolvedExam?.subjects || []).find(s => s.name === subjName);
+            const totalQ = subDef?.count || (Array.isArray(ansData) ? ansData.length : Object.keys(ansData).length) || 15;
+
+            let corr = 0, wrg = 0, blk = 0;
+            if (Array.isArray(ansData)) {
+              for (let i = 0; i < totalQ; i++) {
+                const a = String(ansData[i] || '').toUpperCase().trim();
+                const k = String(Array.isArray(aKey) ? (aKey[i] || '') : (aKey[i + 1] || '')).toUpperCase().trim();
+                if (!a) {
+                  blk++;
+                } else if (k && a === k) {
+                  corr++;
+                } else {
+                  wrg++;
+                }
+              }
+            } else if (ansData && typeof ansData === 'object') {
+              for (let i = 1; i <= totalQ; i++) {
+                const a = String(ansData[i] || ansData[String(i)] || '').toUpperCase().trim();
+                const k = String(Array.isArray(aKey) ? (aKey[i - 1] || '') : (aKey[i] || aKey[String(i)] || '')).toUpperCase().trim();
+                if (!a) {
+                  blk++;
+                } else if (k && a === k) {
+                  corr++;
+                } else {
+                  wrg++;
+                }
+              }
+            }
+
+            const calcNet = corr - (penalty > 0 ? wrg / penalty : 0);
+            combinedSubjectStats[subjName] = {
+              name: subjName,
+              correct: corr,
+              wrong: wrg,
+              blank: blk,
+              net: Math.max(0, Number(calcNet.toFixed(2))),
+              count: totalQ
+            };
+          });
+        }
+
+        // 3. If single test submission (e.g. sub.testId or sub.testTitle is one subject)
+        if (resolvedExam?.subjects) {
+          const matchedSubject = resolvedExam.subjects.find(s => 
+            String(s.testId) === String(sub.testId) ||
+            String(s.name) === String(sub.testTitle?.replace(' Testi', '')) ||
+            String(s.name) === String(sub.testTitle)
+          );
+          if (matchedSubject && !combinedSubjectStats[matchedSubject.name]) {
+            const corr = Number(sub.correctCount || 0);
+            const wrg = Number(sub.wrongCount || 0);
+            const blk = Number(sub.blankCount || sub.emptyCount || 0);
+            const penalty = resolvedExam?.penaltyRatio !== undefined ? resolvedExam.penaltyRatio : 3;
+            const net = sub.score !== undefined ? Number(sub.score) : (corr - (penalty > 0 ? wrg / penalty : 0));
+            combinedSubjectStats[matchedSubject.name] = {
+              name: matchedSubject.name,
+              correct: corr,
+              wrong: wrg,
+              blank: blk,
+              net: Math.max(0, Number(net.toFixed(2))),
+              count: matchedSubject.count || (corr + wrg + blk) || 15
+            };
+          }
+        }
       });
+
+      const subEntries = Object.values(combinedSubjectStats);
+      let tScore = 0, tCorrect = 0, tWrong = 0, tEmpty = 0;
+      if (subEntries.length > 0) {
+        subEntries.forEach(se => {
+          tScore += Number(se.net || 0);
+          tCorrect += Number(se.correct || 0);
+          tWrong += Number(se.wrong || 0);
+          tEmpty += Number(se.blank || 0);
+        });
+      } else {
+        tScore = sSubmissions.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+        tCorrect = sSubmissions.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
+        tWrong = sSubmissions.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
+        tEmpty = sSubmissions.reduce((sum, s) => sum + (Number(s.blankCount || s.emptyCount) || 0), 0);
+      }
+      const aScore = tScore;
 
       return {
         studentId,
@@ -647,6 +747,11 @@ export default function ExamAnalysisPage() {
                   <div>
                     <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>{subj.name}</div>
                     <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>Toplam {subj['Soru Sayısı']} Soru</div>
+                    <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.35rem', fontSize: '0.72rem', fontWeight: 800 }}>
+                      <span style={{ color: '#10b981' }}>{subj.avgCorrect ?? 0} D</span>
+                      <span style={{ color: '#ef4444' }}>{subj.avgWrong ?? 0} Y</span>
+                      <span style={{ color: 'var(--color-text-muted)' }}>{subj.avgBlank ?? 0} B</span>
+                    </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{subj['Ortalama Net']}</div>
