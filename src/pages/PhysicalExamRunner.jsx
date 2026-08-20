@@ -13,7 +13,7 @@ import {
   ArrowLeft, CheckCircle2, AlertCircle, Clock, 
   Send, X as XIcon, LayoutTemplate, Trophy, BarChart3, ListTree, 
   ChevronRight, ChevronDown, ChevronUp, FileText, PanelLeft, PanelTop, Maximize2,
-  EyeOff, Eye, Pencil, FileSpreadsheet, Flag, BookOpen
+  EyeOff, Eye, Pencil, FileSpreadsheet, Flag, BookOpen, Play, Cloud, ShieldCheck, Sparkles, Check
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -202,6 +202,31 @@ export default function PhysicalExamRunner() {
     setTimeout(() => setSavedFeedbackToast(null), 2200);
   }, [mistakeReasons, hwId, studentId, homework, evalSubmissions, updateSubmission]);
 
+  // Start Screen State (exam doesn't count down or start until student presses "Sınava Başla")
+  const [isStarted, setIsStarted] = useState(() => {
+    if (isTeacherReviewing || isRetake) return true;
+    try {
+      const started = localStorage.getItem(`${draftKey}_started`);
+      if (started === 'true') return true;
+      const draftStr = localStorage.getItem(draftKey);
+      if (draftStr) {
+        const parsed = JSON.parse(draftStr);
+        if (parsed && typeof parsed === 'object') {
+          const hasAnswers = Object.values(parsed).some(arr => Array.isArray(arr) && arr.some(Boolean));
+          if (hasAnswers) return true;
+        }
+      }
+    } catch {}
+    return false;
+  });
+
+  const handleStartExam = () => {
+    setIsStarted(true);
+    try {
+      localStorage.setItem(`${draftKey}_started`, 'true');
+    } catch {}
+  };
+
   // Timer state
   const durationMinutes = (homework?.timePerQuestion || 2) * (homework?.totalQuestions || 90);
   const totalSeconds = durationMinutes * 60 || 5400;
@@ -286,6 +311,7 @@ export default function PhysicalExamRunner() {
     if (isRetake) {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
+      localStorage.removeItem(`${draftKey}_started`);
       const init = {};
       homework.subjects?.forEach(sub => {
         init[sub.name] = Array(sub.count).fill('');
@@ -293,6 +319,7 @@ export default function PhysicalExamRunner() {
       setAnswers(init);
       setIsSubmitted(false);
       setResults(null);
+      setIsStarted(true);
       initializedRef.current = true;
       return;
     }
@@ -370,7 +397,7 @@ export default function PhysicalExamRunner() {
 
   // Timer interval
   useEffect(() => {
-    if (isSubmitted || timeLeft <= 0 || isTeacherReviewing) return;
+    if (!isStarted || isSubmitted || timeLeft <= 0 || isTeacherReviewing) return;
     try {
       localStorage.setItem(`${draftKey}_time`, String(timeLeft));
     } catch {}
@@ -386,7 +413,7 @@ export default function PhysicalExamRunner() {
       });
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [timeLeft, isSubmitted, isTeacherReviewing, draftKey]);
+  }, [isStarted, timeLeft, isSubmitted, isTeacherReviewing, draftKey]);
 
   const formatTime = (seconds) => {
     if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';
@@ -591,6 +618,7 @@ export default function PhysicalExamRunner() {
     try {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
+      localStorage.removeItem(`${draftKey}_started`);
     } catch {}
 
     setResults(calculated);
@@ -612,6 +640,288 @@ export default function PhysicalExamRunner() {
         >
           Geri Dön
         </button>
+      </div>
+    );
+  }
+
+  // ── PRE-EXAM START SCREEN (Sınava Başlama Ekranı) ──
+  if (!isStarted && !isSubmitted && !isTeacherReviewing) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Top Header */}
+        <header style={{
+          padding: isMobile ? '0.75rem 1rem' : '1rem 2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--color-surface)',
+          borderBottom: '1.5px solid var(--color-border)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        }}>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate('/');
+            }}
+            style={{
+              background: 'var(--color-surface-hover)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: '0.65rem',
+              padding: '0.45rem 0.85rem',
+              color: 'var(--color-text)',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <ArrowLeft size={16} /> Geri Dön
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', padding: '0.2rem 0.65rem', borderRadius: '0.45rem' }}>
+              FİZİKİ DENEME
+            </span>
+          </div>
+        </header>
+
+        {/* Start Screen Main Content */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: isMobile ? '1rem' : '2rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            maxWidth: 720,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}>
+            
+            {/* Hero Card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #4f46e5, #3730a3)',
+              borderRadius: '1.5rem',
+              padding: isMobile ? '1.5rem 1.25rem' : '2rem',
+              color: 'white',
+              boxShadow: '0 10px 30px rgba(79, 70, 229, 0.25)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                width: 140,
+                height: 140,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.08)',
+                pointerEvents: 'none'
+              }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.04em' }}>
+                  {homework.examType || 'GENEL DENEME'}
+                </span>
+                <span style={{ background: '#10b981', color: 'white', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 900 }}>
+                  HAZIR
+                </span>
+              </div>
+
+              <h1 style={{ margin: 0, fontSize: isMobile ? '1.35rem' : '1.8rem', fontWeight: 900, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
+                {homework.title}
+              </h1>
+
+              <p style={{ margin: '0.5rem 0 0 0', color: '#e0e7ff', fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 500, lineHeight: 1.5 }}>
+                Sınava başlamadan önce aşağıdaki bilgileri ve kuralları gözden geçiriniz. "Sınava Başla" butonuna bastığınızda sınav başlayacaktır.
+              </p>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: '0.75rem'
+            }}>
+              {/* Stat 1: Soru */}
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>TOPLAM SORU</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)' }}>{homework.totalQuestions} Soru</span>
+                <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>{subjects.length} Farklı Ders</span>
+              </div>
+
+              {/* Stat 2: Süre */}
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>TOPLAM SÜRE</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)' }}>{durationMinutes} Dk</span>
+                <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>Soru başı ~{homework.timePerQuestion || 2} dk</span>
+              </div>
+
+              {/* Stat 3: Net Kuralı */}
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>NET CEZA ORANI</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  {homework.penaltyRatio > 0 ? `${homework.penaltyRatio}Y = 1D` : 'Ceza Yok'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: homework.penaltyRatio > 0 ? '#b45309' : '#10b981', fontWeight: 700 }}>
+                  {homework.penaltyRatio > 0 ? `${homework.penaltyRatio} yanlış 1 doğru götürür` : 'Yanlışlar doğruyu götürmez'}
+                </span>
+              </div>
+
+              {/* Stat 4: Kitapçık */}
+              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>DOKÜMAN</span>
+                <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  {hasPdf ? 'PDF Kitapçık' : 'Sadece Optik'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: hasPdf ? '#2563eb' : '#64748b', fontWeight: 700 }}>
+                  {hasPdf ? 'Ekranda PDF Mevcut' : 'Fiziki Kitapçık'}
+                </span>
+              </div>
+            </div>
+
+            {/* Subject Breakdown Card */}
+            <div style={{
+              background: 'var(--color-surface)',
+              borderRadius: '1.25rem',
+              border: '1.5px solid var(--color-border)',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ListTree size={16} color="#6366f1" /> Sınav Ders Dağılımı
+              </h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '0.5rem'
+              }}>
+                {subjects.map((sub, idx) => (
+                  <div 
+                    key={idx}
+                    style={{
+                      background: 'var(--color-surface-hover)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '0.75rem',
+                      padding: '0.65rem 0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                      {sub.name}
+                    </span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', background: 'rgba(79, 70, 229, 0.1)', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                      {sub.count} Soru
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Instructions & Autosave Reassurance Box */}
+            <div style={{
+              background: 'var(--color-surface)',
+              borderRadius: '1.25rem',
+              border: '1.5px solid var(--color-border)',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} color="#10b981" /> Önemli Bilgiler & Yönergeler
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem', color: 'var(--color-text)', lineHeight: 1.45 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <Cloud size={12} />
+                  </div>
+                  <div>
+                    <strong>Anlık Otomatik Kayıt:</strong> İşaretlediğiniz her şık anında kaydedilir. İnternetiniz kopsa veya sayfayı yenileseniz dahi hiçbir cevabınız kaybolmaz.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem', color: 'var(--color-text)', lineHeight: 1.45 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <Flag size={12} />
+                  </div>
+                  <div>
+                    <strong>Şüpheli Soru İşareti:</strong> Kararsız kaldığınız soruları bayrak butonu ile işaretleyebilir ve test sırasında kolayca geri dönebilirsiniz.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem', color: 'var(--color-text)', lineHeight: 1.45 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <Clock size={12} />
+                  </div>
+                  <div>
+                    <strong>Süre Akışı:</strong> "Sınava Başla" butonuna bastığınız anda süreniz başlayacak, süre dolduğunda sınavınız otomatik teslim edilecektir.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Bar (Sınava Başla) */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.75rem',
+              paddingTop: '0.5rem',
+              paddingBottom: '2rem'
+            }}>
+              <button
+                onClick={handleStartExam}
+                style={{
+                  width: '100%',
+                  maxWidth: 420,
+                  padding: '1rem 2rem',
+                  borderRadius: '1.25rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  boxShadow: '0 6px 25px rgba(16, 185, 129, 0.35)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
+                <Play size={22} fill="white" />
+                {totalAnsweredCount > 0 ? `Sınava Devam Et (%${progressPercent} Kodlandı)` : 'Sınava Başla'}
+              </button>
+
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                {totalAnsweredCount > 0 ? 'Daha önce kaydettiğiniz cevaplarla devam edeceksiniz.' : 'Butona bastığınızda sınav başlatılacak ve süre akmaya başlayacaktır.'}
+              </span>
+            </div>
+
+          </div>
+        </div>
       </div>
     );
   }
@@ -704,6 +1014,29 @@ export default function PhysicalExamRunner() {
         {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           
+          {/* Autosave Status Indicator */}
+          {!isSubmitted && !isTeacherReviewing && (
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: isMobile ? '0.68rem' : '0.74rem',
+                fontWeight: 800,
+                color: '#059669',
+                background: '#f0fdf4',
+                border: '1.5px solid #bbf7d0',
+                padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.75rem',
+                borderRadius: '0.65rem',
+                boxShadow: '0 2px 6px rgba(16,185,129,0.1)'
+              }} 
+              title="İşaretlediğiniz tüm cevaplar anlık olarak otomatik kaydedilir"
+            >
+              <Cloud size={isMobile ? 12 : 14} color="#10b981" />
+              <span>Anlık Kaydediliyor</span>
+            </div>
+          )}
+
           {/* Timer */}
           {!isSubmitted && !isTeacherReviewing && (
             <div style={{
