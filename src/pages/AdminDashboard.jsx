@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useCurriculum } from '../context/CurriculumContext';
+import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
@@ -265,9 +265,10 @@ function CurriculumManager() {
   const [jsonText, setJsonText] = useState('');
   const [editModal, setEditModal] = useState({ open: false, type: '', typeLabel: '', id: '', name: '' });
 
-  const filteredSubjects = useMemo(() => data.subjects.filter(s => s.gradeId === selectedGrade), [data.subjects, selectedGrade]);
-  const filteredUnits = useMemo(() => data.units.filter(u => u.subjectId === selectedSubject), [data.units, selectedSubject]);
-  const filteredTopics = useMemo(() => data.topics.filter(t => t.unitId === selectedUnit), [data.topics, selectedUnit]);
+  const sortedGrades = useMemo(() => [...(data.grades || [])].sort(naturalSort), [data.grades]);
+  const filteredSubjects = useMemo(() => data.subjects.filter(s => s.gradeId === selectedGrade).sort(naturalSort), [data.subjects, selectedGrade]);
+  const filteredUnits = useMemo(() => data.units.filter(u => u.subjectId === selectedSubject).sort(naturalSort), [data.units, selectedSubject]);
+  const filteredTopics = useMemo(() => data.topics.filter(t => t.unitId === selectedUnit).sort(naturalSort), [data.topics, selectedUnit]);
 
   // Selected names for breadcrumb
   const currentGradeObj = data.grades.find(g => g.id === selectedGrade);
@@ -391,12 +392,12 @@ function CurriculumManager() {
               <FolderTree size={18} /> 1. Sınıflar / Düzeyler
             </div>
             <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-              {data.grades.length} Sınıf
+              {sortedGrades.length} Sınıf
             </span>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
-            {data.grades.map(grade => {
+            {sortedGrades.map(grade => {
               const count = data.subjects.filter(s => s.gradeId === grade.id).length;
               const isActive = selectedGrade === grade.id;
               return (

@@ -170,21 +170,23 @@ export async function dbGetCurriculum() {
   if (!isSupabaseConfigured()) return null;
   try {
     const [gRes, sRes, uRes, tRes] = await Promise.all([
-      supabase.from('grades').select('*').order('created_at', { ascending: true }),
-      supabase.from('subjects').select('*').order('created_at', { ascending: true }),
-      supabase.from('units').select('*').order('created_at', { ascending: true }),
-      supabase.from('topics').select('*').order('created_at', { ascending: true })
+      supabase.from('grades').select('*'),
+      supabase.from('subjects').select('*'),
+      supabase.from('units').select('*'),
+      supabase.from('topics').select('*')
     ]);
 
     if (gRes.error || sRes.error || uRes.error || tRes.error) {
       return null;
     }
 
+    const sortFn = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+
     return {
-      grades: (gRes.data || []).map(g => ({ id: g.id, name: g.name })),
-      subjects: (sRes.data || []).map(s => ({ id: s.id, gradeId: s.grade_id, name: s.name })),
-      units: (uRes.data || []).map(u => ({ id: u.id, subjectId: u.subject_id, name: u.name })),
-      topics: (tRes.data || []).map(t => ({ id: t.id, unitId: t.unit_id, name: t.name })),
+      grades: (gRes.data || []).map(g => ({ id: g.id, name: g.name })).sort(sortFn),
+      subjects: (sRes.data || []).map(s => ({ id: s.id, gradeId: s.grade_id, name: s.name })).sort(sortFn),
+      units: (uRes.data || []).map(u => ({ id: u.id, subjectId: u.subject_id, name: u.name })).sort(sortFn),
+      topics: (tRes.data || []).map(t => ({ id: t.id, unitId: t.unit_id, name: t.name })).sort(sortFn),
       tests: []
     };
   } catch (err) {

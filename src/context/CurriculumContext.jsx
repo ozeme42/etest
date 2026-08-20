@@ -32,6 +32,12 @@ const INITIAL_DATA = {
 
 const MOCK_IDS = new Set(['g1', 'g2', 's1', 's2', 'u1', 't1']);
 
+export const naturalSort = (a, b) => {
+  const nameA = String(a?.name || a?.grade || a?.title || a || '').trim();
+  const nameB = String(b?.name || b?.grade || b?.title || b || '').trim();
+  return nameA.localeCompare(nameB, 'tr', { numeric: true, sensitivity: 'base' });
+};
+
 const generateUniqueId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
 export function CurriculumProvider({ children }) {
@@ -48,10 +54,10 @@ export function CurriculumProvider({ children }) {
             // Only use cache if data hasn't been fetched from DB yet
             if (prev.grades.length > 0) return prev;
             return {
-              grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)),
-              subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)),
-              units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)),
-              topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)),
+              grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
+              subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
+              units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
+              topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
               tests: (parsed.tests || []).filter(t => !MOCK_IDS.has(t.id))
             };
           });
@@ -63,7 +69,13 @@ export function CurriculumProvider({ children }) {
       // 2. Fetch latest from Supabase
       const dbCurData = await dbGetCurriculum();
       if (dbCurData && dbCurData.grades.length > 0) {
-        setData(dbCurData);
+        setData({
+          grades: (dbCurData.grades || []).sort(naturalSort),
+          subjects: (dbCurData.subjects || []).sort(naturalSort),
+          units: (dbCurData.units || []).sort(naturalSort),
+          topics: (dbCurData.topics || []).sort(naturalSort),
+          tests: dbCurData.tests || []
+        });
       }
     }
     initCurriculum();
@@ -81,7 +93,7 @@ export function CurriculumProvider({ children }) {
     setData(prev => {
       const exists = (prev.grades || []).some(g => g.name.toLowerCase() === name.trim().toLowerCase());
       if (exists) return prev;
-      return { ...prev, grades: [...(prev.grades || []), newGrade] };
+      return { ...prev, grades: [...(prev.grades || []), newGrade].sort(naturalSort) };
     });
     await dbAddGrade(newGrade);
   };
@@ -91,7 +103,7 @@ export function CurriculumProvider({ children }) {
     const trimmed = name.trim();
     setData(prev => ({
       ...prev,
-      grades: (prev.grades || []).map(g => g.id === id ? { ...g, name: trimmed } : g)
+      grades: (prev.grades || []).map(g => g.id === id ? { ...g, name: trimmed } : g).sort(naturalSort)
     }));
     await dbAddGrade({ id, name: trimmed });
   };
@@ -99,7 +111,7 @@ export function CurriculumProvider({ children }) {
   const addSubject = async (gradeId, name) => {
     if (!name || !name.trim()) return;
     const newSubject = { id: generateUniqueId('s'), gradeId, name: name.trim() };
-    setData(prev => ({ ...prev, subjects: [...(prev.subjects || []), newSubject] }));
+    setData(prev => ({ ...prev, subjects: [...(prev.subjects || []), newSubject].sort(naturalSort) }));
     await dbAddSubject(newSubject);
   };
 
@@ -112,7 +124,7 @@ export function CurriculumProvider({ children }) {
       if (existing) currentGradeId = existing.gradeId;
       return {
         ...prev,
-        subjects: (prev.subjects || []).map(s => s.id === id ? { ...s, name: trimmed } : s)
+        subjects: (prev.subjects || []).map(s => s.id === id ? { ...s, name: trimmed } : s).sort(naturalSort)
       };
     });
     await dbAddSubject({ id, gradeId: currentGradeId, name: trimmed });
@@ -121,7 +133,7 @@ export function CurriculumProvider({ children }) {
   const addUnit = async (subjectId, name) => {
     if (!name || !name.trim()) return;
     const newUnit = { id: generateUniqueId('u'), subjectId, name: name.trim() };
-    setData(prev => ({ ...prev, units: [...(prev.units || []), newUnit] }));
+    setData(prev => ({ ...prev, units: [...(prev.units || []), newUnit].sort(naturalSort) }));
     await dbAddUnit(newUnit);
   };
 
@@ -134,7 +146,7 @@ export function CurriculumProvider({ children }) {
       if (existing) currentSubjectId = existing.subjectId;
       return {
         ...prev,
-        units: (prev.units || []).map(u => u.id === id ? { ...u, name: trimmed } : u)
+        units: (prev.units || []).map(u => u.id === id ? { ...u, name: trimmed } : u).sort(naturalSort)
       };
     });
     await dbAddUnit({ id, subjectId: currentSubjectId, name: trimmed });
@@ -143,7 +155,7 @@ export function CurriculumProvider({ children }) {
   const addTopic = async (unitId, name) => {
     if (!name || !name.trim()) return;
     const newTopic = { id: generateUniqueId('t'), unitId, name: name.trim() };
-    setData(prev => ({ ...prev, topics: [...(prev.topics || []), newTopic] }));
+    setData(prev => ({ ...prev, topics: [...(prev.topics || []), newTopic].sort(naturalSort) }));
     await dbAddTopic(newTopic);
   };
 
@@ -156,7 +168,7 @@ export function CurriculumProvider({ children }) {
       if (existing) currentUnitId = existing.unitId;
       return {
         ...prev,
-        topics: (prev.topics || []).map(t => t.id === id ? { ...t, name: trimmed } : t)
+        topics: (prev.topics || []).map(t => t.id === id ? { ...t, name: trimmed } : t).sort(naturalSort)
       };
     });
     await dbAddTopic({ id, unitId: currentUnitId, name: trimmed });
@@ -235,10 +247,10 @@ export function CurriculumProvider({ children }) {
 
     setData(prev => ({
       ...prev,
-      grades: [...(prev.grades || []), ...newGrades],
-      subjects: [...(prev.subjects || []), ...newSubjects],
-      units: [...(prev.units || []), ...newUnits],
-      topics: [...(prev.topics || []), ...newTopics]
+      grades: [...(prev.grades || []), ...newGrades].sort(naturalSort),
+      subjects: [...(prev.subjects || []), ...newSubjects].sort(naturalSort),
+      units: [...(prev.units || []), ...newUnits].sort(naturalSort),
+      topics: [...(prev.topics || []), ...newTopics].sort(naturalSort)
     }));
 
     // Perform DB insertions in background
