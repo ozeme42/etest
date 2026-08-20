@@ -387,7 +387,50 @@ export default function StudentDashboard() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj) || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)');
 
       if (isBook) {
-        return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor
+        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+          return hw.tests.map(testId => {
+            const btObj = (bookTests || []).find(bt => String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId));
+            const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId)) ||
+              (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, testId));
+
+            return {
+              ...hw,
+              id: `${hw.id}_${testId}`,
+              realTestId: testId,
+              testId: testId,
+              hwId: hw.id,
+              bookId: hw.bookId || bookObj?.id,
+              bookTitle: bookObj?.title || hw.title,
+              title: btObj?.name ? `${btObj.name} (${bookObj?.title || hw.title})` : (hw.title || 'Kitap Testi'),
+              status: sub ? 'Sonuçlandı' : 'Atandı',
+              questionCount: btObj?.questionCount || 20,
+              correctAnswers: sub ? (sub.score || sub.correctCount || 0) : 0,
+              submissionId: sub?.id,
+              dueDate: hw.dueDate,
+              isBookAssignment: true
+            };
+          });
+        }
+
+        const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
+          (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
+
+        return [{
+          ...hw,
+          id: hw.id,
+          realTestId: hw.id,
+          testId: hw.id,
+          hwId: hw.id,
+          bookId: hw.bookId || bookObj?.id,
+          bookTitle: bookObj?.title || hw.title,
+          title: hw.title || 'Kitap Görevi',
+          status: sub ? 'Sonuçlandı' : 'Atandı',
+          questionCount: hw.totalQuestions || 20,
+          correctAnswers: sub ? (sub.score || sub.correctCount || 0) : 0,
+          submissionId: sub?.id,
+          dueDate: hw.dueDate,
+          isBookAssignment: true
+        }];
       }
 
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
@@ -500,43 +543,11 @@ export default function StudentDashboard() {
     return 0;
   }, [otherHomeworkSubmissions, generalTrialExams]);
 
-  /* ─── Hero Date & Task Stats for Top KPI Cards ─── */
+  /* ─── Hero Date for Top Welcome Banner ─── */
   const heroDateStr = useMemo(() => {
     const d = new Date();
     return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
   }, []);
-
-  const taskStats = useMemo(() => {
-    const totalCount = tests.length;
-    const completedCount = tests.filter(t => t.status === 'Sonuçlandı' || t.status === 'Tamamlandı').length;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    let overdueCount = 0;
-    let pendingCount = 0;
-
-    tests.forEach(t => {
-      const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı';
-      if (!isDone) {
-        const dueDateObj = parseSafeDate(t.dueDate);
-        if (dueDateObj && dueDateObj < now) {
-          overdueCount++;
-        } else {
-          pendingCount++;
-        }
-      }
-    });
-
-    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (completedCount > 0 ? 100 : 0);
-
-    return {
-      totalCount,
-      completedCount,
-      pendingCount,
-      overdueCount,
-      completionRate
-    };
-  }, [tests]);
 
   /* ─── Assigned Books Summary List for Student ─── */
   const assignedBooksList = useMemo(() => {
@@ -1836,9 +1847,83 @@ export default function StudentDashboard() {
     return map;
   }, [fullProcessedWeekMap]);
 
-  const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
-  const overdueCount = pendingTasks.filter(t => isPast(t.dueDateObj) && !isToday(t.dueDateObj)).length;
-  const pendingCount = pendingTasks.length;
+  /* ─── Hero Date & Task Stats for Top KPI Cards (Weekly Program, Roadmaps & Homeworks) ─── */
+  const taskStats = useMemo(() => {
+    const seenKeys = new Set();
+    let totalCount = 0;
+    let completedCount = 0;
+    let overdueCount = 0;
+    let pendingCount = 0;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // 1. Weekly Program & Roadmap Items across all 7 days of the week
+    DAYS_OF_WEEK.forEach(day => {
+      const dayData = fullProcessedWeekMap[day.key];
+      if (dayData && Array.isArray(dayData.items)) {
+        dayData.items.forEach(item => {
+          const itemKey = String(item.uniqueKey || item.id || `${item.hwId}_${item.testId}_${day.key}`);
+          if (seenKeys.has(itemKey)) return;
+          seenKeys.add(itemKey);
+
+          totalCount++;
+          if (item.done) {
+            completedCount++;
+          } else {
+            let isItemOverdue = Boolean(item.isOverdue);
+            if (!isItemOverdue && item.dueDate) {
+              const dObj = parseSafeDate(item.dueDate);
+              if (dObj && dObj < now) isItemOverdue = true;
+            }
+            if (isItemOverdue) overdueCount++;
+            else pendingCount++;
+          }
+        });
+      }
+    });
+
+    // 2. Standalone Assigned Homeworks & Exams (tests listesi)
+    (tests || []).forEach(t => {
+      const tKey = String(t.id || t.realTestId || t.hwId);
+      if (seenKeys.has(tKey) || Array.from(seenKeys).some(k => k.includes(tKey))) return;
+      seenKeys.add(tKey);
+
+      totalCount++;
+      const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı' || Boolean(t.submissionId);
+      if (isDone) {
+        completedCount++;
+      } else {
+        const dueDateObj = parseSafeDate(t.dueDate);
+        if (dueDateObj && dueDateObj < now) {
+          overdueCount++;
+        } else {
+          pendingCount++;
+        }
+      }
+    });
+
+    // 3. Fallback: If no weekly tasks were found, check today's dayProgramInfo directly
+    if (totalCount === 0 && dayProgramInfo?.totalCount > 0) {
+      totalCount = dayProgramInfo.totalCount;
+      completedCount = dayProgramInfo.completedCount;
+      pendingCount = Math.max(0, totalCount - completedCount);
+    }
+
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (completedCount > 0 ? 100 : 0);
+
+    return {
+      totalCount,
+      completedCount,
+      pendingCount,
+      overdueCount,
+      completionRate
+    };
+  }, [fullProcessedWeekMap, tests, dayProgramInfo]);
+
+  const completedCount = taskStats.completedCount;
+  const overdueCount = taskStats.overdueCount;
+  const pendingCount = taskStats.pendingCount;
   const gradeLabel = curData?.grades?.find(g => g.id === selectedStudent?.gradeId)?.name || '';
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
   const todayStr = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
