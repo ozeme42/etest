@@ -161,13 +161,19 @@ export default function PhysicalExamRunner() {
     setFlagged(p => ({ ...p, [key]: !p[key] }));
   };
 
-  // Mistake reasons state: { "Türkçe_1": "⚡ İşlem Hatası", "1": "⚡ İşlem Hatası", ... }
+  // Mistake reasons state: { "Türkçe_1": "⚡ İşlem Hatası", "Matematik_1": "⚠️ Dikkat Kaybı", ... }
   const [mistakeReasons, setMistakeReasons] = useState(() => {
     try {
       const saved = localStorage.getItem(`mistake_reasons_${hwId}_${studentId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          const cleaned = {};
+          Object.entries(parsed).forEach(([k, v]) => {
+            if (k && k.includes('_')) cleaned[k] = v;
+          });
+          return cleaned;
+        }
       }
     } catch {}
     return {};
@@ -177,9 +183,9 @@ export default function PhysicalExamRunner() {
     const key = `${subjectName}_${qNo}`;
     const next = {
       ...mistakeReasons,
-      [key]: mistakeReasons[key] === reason ? null : reason,
-      [qNo]: mistakeReasons[qNo] === reason ? null : reason
+      [key]: mistakeReasons[key] === reason ? null : reason
     };
+
     setMistakeReasons(next);
 
     try {
@@ -193,7 +199,7 @@ export default function PhysicalExamRunner() {
       updateSubmission(subTarget.id, { mistakeReasons: next });
     }
 
-    setSavedFeedbackToast(`Soru ${qNo} için "${reason}" kaydedildi ✓`);
+    setSavedFeedbackToast(`${subjectName} Soru ${qNo} için "${reason}" kaydedildi ✓`);
     setTimeout(() => setSavedFeedbackToast(null), 2200);
   }, [mistakeReasons, hwId, studentId, homework, evalSubmissions, updateSubmission]);
 
@@ -334,6 +340,16 @@ export default function PhysicalExamRunner() {
         };
       }
 
+      if (submission.mistakeReasons && typeof submission.mistakeReasons === 'object') {
+        setMistakeReasons(prev => {
+          const merged = { ...prev };
+          Object.entries(submission.mistakeReasons).forEach(([k, v]) => {
+            if (k && k.includes('_')) merged[k] = v;
+          });
+          return merged;
+        });
+      }
+
       setResults(calc);
       initializedRef.current = true;
     } else {
@@ -422,7 +438,7 @@ export default function PhysicalExamRunner() {
 
       if (isSubmitted && (isWrong || isBlank)) {
         totalTarget++;
-        const r = mistakeReasons[`${activeSubject.name}_${qNo}`] || mistakeReasons[qNo];
+        const r = mistakeReasons[`${activeSubject.name}_${qNo}`];
         if (r && counts[r] !== undefined) {
           counts[r]++;
           classified++;
@@ -1347,7 +1363,7 @@ export default function PhysicalExamRunner() {
                                   <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                     {MISTAKE_REASON_OPTIONS.map(r => {
                                       const key = `${activeSubject.name}_${qNo}`;
-                                      const isSelected = mistakeReasons[key] === r.label || mistakeReasons[qNo] === r.label;
+                                      const isSelected = mistakeReasons[key] === r.label;
                                       return (
                                         <button
                                           key={r.label}
@@ -1631,7 +1647,7 @@ export default function PhysicalExamRunner() {
                           <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                             {MISTAKE_REASON_OPTIONS.map(r => {
                               const key = `${activeSubject.name}_${qNo}`;
-                              const isSelected = mistakeReasons[key] === r.label || mistakeReasons[qNo] === r.label;
+                              const isSelected = mistakeReasons[key] === r.label;
                               return (
                                 <button
                                   key={r.label}
