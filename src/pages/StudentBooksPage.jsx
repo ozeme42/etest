@@ -462,6 +462,116 @@ export default function StudentBooksPage() {
 
   const activeChartData = bookChartViewMode === 'books' ? chartData : subjectChartData;
 
+  const [showClassifiedQuestions, setShowClassifiedQuestions] = useState(false);
+
+  const bookMistakeStats = useMemo(() => {
+    const studentIdStr = String(studentId || '');
+    const studentUuidStr = String(toUUID(studentId) || '');
+
+    const reasonDefs = {
+      '⚡ İşlem Hatası': { key: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a', count: 0 },
+      '⚠️ Dikkat Kaybı': { key: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', count: 0 },
+      '📖 Formül / Bilgi': { key: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', count: 0 },
+      '🧠 Konu Eksiği': { key: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', count: 0 },
+      '⏱️ Zaman Yetmedi': { key: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', count: 0 }
+    };
+
+    let totalWrongAndBlank = (overallStats.totalY || 0) + (overallStats.totalB || 0);
+    const questionsList = [];
+    const countedKeys = new Set();
+
+    // 1. Scan LocalStorage for mistake reasons of all book tests
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || (!k.startsWith('mistake_reasons_') && !k.startsWith('book_mistake_reasons_'))) continue;
+        const valStr = localStorage.getItem(k);
+        if (!valStr) continue;
+        try {
+          const parsed = JSON.parse(valStr);
+          if (parsed && typeof parsed === 'object') {
+            Object.entries(parsed).forEach(([subKey, reason]) => {
+              if (!reason || typeof reason !== 'string') return;
+              const dedupeKey = `${k}_${subKey}`;
+              if (countedKeys.has(dedupeKey)) return;
+              countedKeys.add(dedupeKey);
+
+              const matchedKey = Object.keys(reasonDefs).find(rk =>
+                reason.includes(rk) || rk.includes(reason) ||
+                (reason.includes('İşlem') && rk.includes('İşlem')) ||
+                (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+                (reason.includes('Formül') && rk.includes('Formül')) ||
+                (reason.includes('Konu') && rk.includes('Konu')) ||
+                (reason.includes('Zaman') && rk.includes('Zaman'))
+              );
+              if (matchedKey) {
+                reasonDefs[matchedKey].count++;
+                questionsList.push({
+                  id: dedupeKey,
+                  bookTitle: 'Kitap Testi',
+                  subject: subKey.includes('_') ? subKey.split('_')[0] : 'Soru',
+                  qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+                  reason: matchedKey,
+                  def: reasonDefs[matchedKey]
+                });
+              }
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // 2. Scan Submissions in EvaluationContext
+    (submissions || []).forEach(sub => {
+      const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
+      if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!sub.mistakeReasons || typeof sub.mistakeReasons !== 'object') return;
+
+      Object.entries(sub.mistakeReasons).forEach(([subKey, reason]) => {
+        if (!reason || typeof reason !== 'string') return;
+        const dedupeKey = `sub_${sub.id || sub.testId}_${subKey}`;
+        if (countedKeys.has(dedupeKey)) return;
+        countedKeys.add(dedupeKey);
+
+        const matchedKey = Object.keys(reasonDefs).find(rk =>
+          reason.includes(rk) || rk.includes(reason) ||
+          (reason.includes('İşlem') && rk.includes('İşlem')) ||
+          (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+          (reason.includes('Formül') && rk.includes('Formül')) ||
+          (reason.includes('Konu') && rk.includes('Konu')) ||
+          (reason.includes('Zaman') && rk.includes('Zaman'))
+        );
+        if (matchedKey) {
+          reasonDefs[matchedKey].count++;
+          questionsList.push({
+            id: dedupeKey,
+            bookTitle: sub.testTitle || sub.bookTitle || 'Kitap Testi',
+            subject: subKey.includes('_') ? subKey.split('_')[0] : (sub.testTitle || 'Soru'),
+            qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+            reason: matchedKey,
+            def: reasonDefs[matchedKey]
+          });
+        }
+      });
+    });
+
+    const totalClassified = Object.values(reasonDefs).reduce((acc, r) => acc + r.count, 0);
+    const unclassifiedCount = Math.max(0, totalWrongAndBlank - totalClassified);
+
+    const sortedReasons = Object.values(reasonDefs).sort((a, b) => b.count - a.count);
+    const topReason = sortedReasons[0]?.count > 0 ? sortedReasons[0] : null;
+
+    return {
+      reasonDefs,
+      totalWrongAndBlank,
+      totalClassified,
+      unclassifiedCount,
+      topReason,
+      sortedReasons,
+      questionsList
+    };
+  }, [submissions, overallStats.totalY, overallStats.totalB, studentId]);
+
   /* ════════════════════════
      RENDER
   ════════════════════════ */
@@ -723,6 +833,260 @@ export default function StudentBooksPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+              )}
+            </div>
+
+            <style>{`
+              .sb-mistake-grid {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 0.75rem;
+                margin-bottom: 1.25rem;
+              }
+              @media (max-width: 1024px) {
+                .sb-mistake-grid {
+                  grid-template-columns: repeat(3, 1fr);
+                }
+              }
+              @media (max-width: 640px) {
+                .sb-mistake-grid {
+                  grid-template-columns: repeat(2, 1fr);
+                  gap: 0.5rem;
+                }
+                .sb-mistake-card {
+                  padding: 0.65rem 0.75rem !important;
+                  border-radius: 11px !important;
+                }
+                .sb-mistake-card:last-child {
+                  grid-column: span 2;
+                }
+                .sb-mistake-card-title {
+                  font-size: 0.72rem !important;
+                }
+                .sb-mistake-card-pct {
+                  font-size: 0.82rem !important;
+                }
+                .sb-mistake-card-val {
+                  font-size: 1.05rem !important;
+                }
+              }
+            `}</style>
+
+            {/* 🤔 KİTAP & TEST HATA & YANLIŞ SEBEPLERİ ANALİZİ WIDGET */}
+            <div style={{
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 20,
+              padding: '1.4rem 1.6rem',
+              marginBottom: 22,
+              boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(217,119,6,0.3)'
+                  }}>
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      🤔 Kitap & Test Hata & Yanlış Sebepleri Analizi
+                    </h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      Kitap testlerinde işaretlediğiniz yanlış ve boş soruların teşhis analizi
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 800 }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>
+                    Toplam Yanlış & Boş: <strong style={{ color: 'var(--color-text)' }}>{bookMistakeStats.totalWrongAndBlank}</strong>
+                  </span>
+                  <span>•</span>
+                  <span style={{ color: '#10b981' }}>
+                    Sınıflandırılan: <strong>{bookMistakeStats.totalClassified}</strong>
+                  </span>
+                  <span>•</span>
+                  <span style={{ color: '#f59e0b' }}>
+                    Bekleyen: <strong>{bookMistakeStats.unclassifiedCount}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Multi-segment Progress Bar */}
+              {bookMistakeStats.totalClassified > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    width: '100%',
+                    height: 10,
+                    borderRadius: 99,
+                    background: 'var(--color-surface-hover, #f1f5f9)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    border: '1px solid var(--color-border, #e2e8f0)'
+                  }}>
+                    {Object.values(bookMistakeStats.reasonDefs).map(r => {
+                      if (r.count <= 0) return null;
+                      const pct = (r.count / bookMistakeStats.totalClassified) * 100;
+                      return (
+                        <div
+                          key={r.key}
+                          style={{
+                            width: `${pct}%`,
+                            height: '100%',
+                            background: r.color,
+                            transition: 'width 0.3s ease'
+                          }}
+                          title={`${r.key}: ${r.count} soru (%${Math.round(pct)})`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Reason KPI Cards Grid */}
+              <div className="sb-mistake-grid">
+                {Object.values(bookMistakeStats.reasonDefs).map(r => {
+                  const pct = bookMistakeStats.totalClassified > 0 ? Math.round((r.count / bookMistakeStats.totalClassified) * 100) : 0;
+                  return (
+                    <div
+                      key={r.key}
+                      className="sb-mistake-card"
+                      style={{
+                        background: r.count > 0 ? r.bg : 'var(--color-surface-hover, #f8fafc)',
+                        border: `1.5px solid ${r.count > 0 ? r.border : 'var(--color-border, #e2e8f0)'}`,
+                        borderRadius: 14,
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        transition: 'all 0.18s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                        <span className="sb-mistake-card-title" style={{ fontSize: '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                          {r.key}
+                        </span>
+                        <span className="sb-mistake-card-pct" style={{ fontSize: '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                          %{pct}
+                        </span>
+                      </div>
+                      <div className="sb-mistake-card-val" style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {r.count} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>soru</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Coaching Tip */}
+              {bookMistakeStats.topReason && bookMistakeStats.topReason.count > 0 ? (
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px dashed var(--color-border, #cbd5e1)',
+                  borderRadius: 12,
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: '0.82rem',
+                  color: 'var(--color-text)',
+                  marginBottom: bookMistakeStats.questionsList.length > 0 ? 12 : 0
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>💡</span>
+                  <div>
+                    <strong>Kitap Çalışma İpucu:</strong> Testlerdeki en yaygın hata nedeniniz <strong style={{ color: bookMistakeStats.topReason.color }}>{bookMistakeStats.topReason.key}</strong> (%{Math.round((bookMistakeStats.topReason.count / bookMistakeStats.totalClassified) * 100)}).
+                    {bookMistakeStats.topReason.key.includes('Dikkat') && ' Sorulardaki kök kelimelere ve altı çizili ifadelere odaklanarak test çözmek dikkat kaynaklı kayıpları sıfıra indirecektir.'}
+                    {bookMistakeStats.topReason.key.includes('İşlem') && ' Karalama alanını düzenli kullanarak işlem basamaklarını alt alta yazmanız işlem hatası oranını düşürecektir.'}
+                    {bookMistakeStats.topReason.key.includes('Konu') && ' Bu konudaki konu özetlerini ve çözümlü test örneklerini tekrar çalıştıktan sonra yeni teste geçmeniz önerilir.'}
+                    {bookMistakeStats.topReason.key.includes('Formül') && ' Formül özet kağıdınızı masanıza asarak test çözmeden önce 2 dakika gözden geçirebilirsiniz.'}
+                    {bookMistakeStats.topReason.key.includes('Zaman') && ' Test çözerken soru başına 1-1.5 dakika kuralı koyup süre tutarak çalışmanız pratikliğinizi artıracaktır.'}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Collapsible Classified Questions List */}
+              {bookMistakeStats.questionsList.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowClassifiedQuestions(p => !p)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#6366f1',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: 0
+                    }}
+                  >
+                    <span>{showClassifiedQuestions ? '▲ Soru Listesini Gizle' : `▼ Sınıflandırılan Soruları İncele (${bookMistakeStats.questionsList.length} Soru)`}</span>
+                  </button>
+
+                  {showClassifiedQuestions && (
+                    <div style={{
+                      marginTop: 10,
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      borderRadius: 12,
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      padding: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      maxHeight: 280,
+                      overflowY: 'auto'
+                    }}>
+                      {bookMistakeStats.questionsList.map(item => (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: 'var(--color-surface, #ffffff)',
+                            border: `1.5px solid ${item.def.border}`,
+                            borderRadius: 8,
+                            padding: '0.45rem 0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{item.bookTitle}</span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>•</span>
+                            <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>{item.subject}</span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>•</span>
+                            <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>Soru {item.qNo}</span>
+                          </div>
+                          <span style={{
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: 6,
+                            background: item.def.bg,
+                            color: item.def.color,
+                            fontWeight: 800,
+                            fontSize: '0.7rem',
+                            border: `1px solid ${item.def.border}`
+                          }}>
+                            {item.reason}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
