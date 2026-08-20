@@ -265,7 +265,15 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
   const handleOptionSelect = (secIdx, qNo, optIdx) => {
     const key = getGlobalKey(secIdx, qNo);
     setAnswers(prev => {
-      const updated = { ...prev, [key]: optIdx, [String(key)]: optIdx };
+      const currentAns = prev[key];
+      const updated = { ...prev };
+      if (currentAns === optIdx) {
+        delete updated[key];
+        delete updated[String(key)];
+      } else {
+        updated[key] = optIdx;
+        updated[String(key)] = optIdx;
+      }
       triggerAutoSave(updated, openEndedText);
       return updated;
     });
@@ -299,8 +307,8 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
         const qObj = secQs[idx] || {};
         const key = getGlobalKey(secIdx, qNo);
 
-        const userAns = answers[key] !== undefined ? answers[key] : (answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)]);
-        const textAns = openEndedText[key] || openEndedText[qNo] || openEndedText[String(qNo)] || null;
+        const userAns = answers[key] !== undefined ? answers[key] : (sections.length === 1 ? (answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)]) : undefined);
+        const textAns = openEndedText[key] || (sections.length === 1 ? (openEndedText[qNo] || openEndedText[String(qNo)]) : null) || null;
 
         let correctOpt = qObj.correctAnswer;
         if (correctOpt === null || correctOpt === undefined) {

@@ -109,11 +109,15 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   const targetId = String(submission.testId || submission.homeworkId || submission.questionId || submission.id || '');
   const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+  const loadedTargetIdRef = React.useRef(null);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadTestData() {
+      if (loadedTargetIdRef.current === targetId && test) {
+        return;
+      }
       setLoading(true);
 
       let foundHw = (homeworks || []).find(h =>
@@ -148,32 +152,46 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
       let resolved = foundHw || foundBankQ || titleMatchBankQ || foundBookTest || foundCurTest || null;
 
-      let contentPayload = isValidPayloadString(submission.contentPayload) ? submission.contentPayload : (isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null);
-      let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
-      let htmlPayload = isValidPayloadString(submission.htmlPayload) ? submission.htmlPayload : (isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null);
+      if (!resolved && (foundBankQ?.bankQId || foundHw?.bankQId)) {
+        const altId = String(foundBankQ?.bankQId || foundHw?.bankQId);
+        resolved = (allBankQuestions || []).find(q => String(q.id) === altId);
+      }
+
+      if (!resolved) {
+        const idbTest = await idbGetPayload(targetId);
+        if (idbTest && typeof idbTest === 'object') {
+          resolved = idbTest;
+        }
+      }
+
+      if (!resolved) {
+        resolved = {
+          id: targetId,
+          title: submission.testTitle || submission.title || 'Ödev / Sınav',
+          subject: submission.subject || 'Genel',
+          totalQuestions: submission.answers?.length || 1,
+          questionCount: submission.answers?.length || 1,
+          questionsList: submission.answers || []
+        };
+      }
+
+      let contentPayload = isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null;
+      let pdfPayload = isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null;
+      let htmlPayload = isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null;
 
       if (!contentPayload && !pdfPayload && !htmlPayload) {
-        const rawCandidateIds = [
-          targetId, normTargetId, submission.id, submission.testId,
-          submission.homeworkId, submission.questionId, resolved?.id,
-          resolved?.questionId, resolved?.testId, foundHw?.id,
-          foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id
-        ];
+        const rawKeys = [
+          targetId,
+          normTargetId,
+          foundHw?.id,
+          foundBankQ?.id,
+          foundHw?.questionId,
+          resolved?.id
+        ].filter(Boolean);
 
-        const expandedIds = new Set();
-        rawCandidateIds.filter(Boolean).forEach(id => {
-          const str = String(id);
-          const clean = str.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-          expandedIds.add(str);
-          expandedIds.add(clean);
-          expandedIds.add(`q_${clean}`);
-          expandedIds.add(`hw_${clean}`);
-          expandedIds.add(`test_${clean}`);
-        });
-
-        for (const cid of expandedIds) {
+        for (const k of rawKeys) {
           try {
-            const val = await idbGetPayload(cid);
+            const val = await idbGetPayload(k);
             if (isValidPayloadString(val)) {
               contentPayload = val;
               if (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF')) {
@@ -187,15 +205,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         }
       }
 
-      if (contentPayload && !pdfPayload && (contentPayload.startsWith('data:application/pdf') || contentPayload.includes('.pdf') || contentPayload.startsWith('%PDF'))) {
-        pdfPayload = contentPayload;
-      }
-      if (contentPayload && !htmlPayload && (contentPayload.includes('<html') || contentPayload.startsWith('<!DOCTYPE') || contentPayload.startsWith('data:text/html'))) {
-        htmlPayload = contentPayload;
-      }
-
-      let sections = resolved?.sections || resolved?.tests || null;
       let generatedQuestions = [];
+      let sections = resolved?.sections || resolved?.tests || null;
 
       if (Array.isArray(sections) && sections.length > 0) {
         const mappedSections = [];
@@ -205,18 +216,12 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           const sec = sections[i];
           const secQId = typeof sec === 'object' ? (sec.questionId || sec.id) : sec;
           const secBankQ = (allBankQuestions || []).find(q => String(q.id) === String(secQId));
-          let secPayload = isValidPayloadString(sec?.contentPayload) ? sec.contentPayload : (isValidPayloadString(secBankQ?.contentPayload) ? secBankQ.contentPayload : null);
-          if (!secPayload) {
-            secPayload = await idbGetPayload(secQId);
-            if (!isValidPayloadString(secPayload)) secPayload = null;
-          }
-
           const secResolvedQs = secBankQ ? resolveTestQuestions(secBankQ, allBankQuestions) : [];
           const secImages = (secBankQ?.imageUrls && Array.isArray(secBankQ.imageUrls)) ? secBankQ.imageUrls : [];
           const secCount = resolveExactQuestionCount(sec, secBankQ, secBankQ, secResolvedQs, secImages);
 
-          const secPdf = (isValidPayloadString(secBankQ?.pdfPayload) ? secBankQ.pdfPayload : null) || (secPayload && (secPayload.startsWith('data:application/pdf') || secPayload.includes('.pdf')) ? secPayload : null) || pdfPayload;
-          const secHtml = (isValidPayloadString(secBankQ?.htmlPayload) ? secBankQ.htmlPayload : null) || (secPayload && secPayload.includes('<html') ? secPayload : null) || htmlPayload;
+          const secPdf = (isValidPayloadString(secBankQ?.pdfPayload) ? secBankQ.pdfPayload : null) || pdfPayload;
+          const secHtml = (isValidPayloadString(secBankQ?.htmlPayload) ? secBankQ.htmlPayload : null) || htmlPayload;
           const isSecOE = isItemOpenEnded(secBankQ) || isItemOpenEnded(sec);
 
           for (let qIdx = 0; qIdx < secCount; qIdx++) {
@@ -238,100 +243,89 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
               pdfPayload: secPdf,
               htmlPayload: secHtml,
               imageUrl: qImg,
-              imageUrls: secImages,
-              isOpenEnded: isSecOE || isItemOpenEnded(existingQ),
-              options: existingQ.options || ['A', 'B', 'C', 'D']
+              isOpenEnded: isSecOE || existingQ.isOpenEnded,
+              options: existingQ.options || (isSecOE ? [] : ['A', 'B', 'C', 'D']),
+              correctAnswer: existingQ.correctAnswer ?? (isSecOE ? null : 0)
             });
           }
 
           mappedSections.push({
-            id: secQId || `sec_${i}`,
-            title: sec?.title || secBankQ?.title || `${i + 1}. Bölüm`,
-            bankQ: secBankQ ? { ...secBankQ, contentPayload: secPayload || secBankQ.contentPayload } : { id: secQId, title: sec?.title },
-            questions: secResolvedQs,
+            ...sec,
+            id: secQId,
+            bankQ: secBankQ || sec,
             questionCount: secCount,
-            contentPayload: secPayload,
-            isOpenEnded: isSecOE
+            pdfPayload: secPdf,
+            htmlPayload: secHtml
           });
         }
-        sections = mappedSections;
+
+        resolved = {
+          ...resolved,
+          sections: mappedSections,
+          totalQuestions: runningQIndex,
+          questionCount: runningQIndex
+        };
       } else {
-        const baseResolvedQs = resolveTestQuestions(resolved || submission, allBankQuestions);
-        const ansList = Array.isArray(submission.answers) ? submission.answers : [];
-        const baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
-        
-        const exactCount = resolveExactQuestionCount(
-          resolved || {},
-          resolved || {},
-          resolved || {},
-          baseResolvedQs,
-          baseImages,
-          resolved || {}
-        );
+        const resolvedQs = resolveTestQuestions(resolved, allBankQuestions);
+        const images = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
+        const count = resolveExactQuestionCount(resolved, resolved, resolved, resolvedQs, images);
 
-        const isSingleOE = isItemOpenEnded(resolved) || isItemOpenEnded(submission);
-
-        for (let i = 0; i < exactCount; i++) {
-          const existingQ = baseResolvedQs[i] || baseResolvedQs[0] || {};
-          const ans = ansList[i] || {};
-          const qImg = baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
+        for (let qIdx = 0; qIdx < count; qIdx++) {
+          const existingQ = resolvedQs[qIdx] || {};
+          const qImg = images[qIdx] || (images.length === 1 ? images[0] : null) || existingQ.imageUrl || null;
+          const isSingleOE = isItemOpenEnded(resolved) || existingQ.isOpenEnded;
 
           generatedQuestions.push({
             ...existingQ,
-            id: existingQ.id ? `${existingQ.id}_q${i + 1}` : `q_${i + 1}`,
-            globalIndex: i + 1,
-            questionNo: i + 1,
-            subIndex: i,
-            sectionIndex: 0,
-            sectionTitle: submission.testTitle || resolved?.title || 'Sınav',
-            title: existingQ.title || existingQ.name || existingQ.questionText || `Soru ${i + 1}`,
-            questionText: existingQ.questionText && exactCount === 1 ? existingQ.questionText : `Soru ${i + 1}`,
-            pdfPayload: existingQ.pdfPayload || pdfPayload,
-            htmlPayload: existingQ.htmlPayload || htmlPayload,
+            id: existingQ.id || `${targetId}_q${qIdx + 1}`,
+            globalIndex: qIdx + 1,
+            questionNo: qIdx + 1,
+            subIndex: qIdx,
+            title: existingQ.title || existingQ.name || existingQ.questionText || `Soru ${qIdx + 1}`,
+            questionText: existingQ.questionText || (count === 1 ? (resolved?.questionText || resolved?.title) : `Soru ${qIdx + 1}`),
+            pdfPayload,
+            htmlPayload,
             imageUrl: qImg,
-            imageUrls: baseImages,
-            isOpenEnded: isSingleOE || isItemOpenEnded(existingQ, ans),
-            options: existingQ.options || ['A', 'B', 'C', 'D']
+            isOpenEnded: isSingleOE,
+            options: existingQ.options || (isSingleOE ? [] : ['A', 'B', 'C', 'D']),
+            correctAnswer: existingQ.correctAnswer ?? (isSingleOE ? null : 0)
           });
         }
+
+        resolved = {
+          ...resolved,
+          totalQuestions: count,
+          questionCount: count
+        };
       }
 
-      const finalTestObj = {
-        ...(resolved || {}),
-        id: targetId,
-        title: submission.testTitle || resolved?.title || resolved?.name || 'Sınav İncelemesi',
-        contentType: submission.contentType || resolved?.contentType || (pdfPayload ? 'pdf' : (htmlPayload ? 'html' : 'standard')),
-        sourceFormat: submission.sourceFormat || resolved?.sourceFormat || 'standard',
-        contentPayload,
-        pdfPayload,
-        htmlPayload,
-        imageUrl: submission.imageUrl || resolved?.imageUrl || null,
-        imageUrls: submission.imageUrls || resolved?.imageUrls || [],
-        sections,
-        questionCount: generatedQuestions.length || 1
-      };
-
       if (isMounted) {
-        setTest(finalTestObj);
+        setTest(resolved);
         setQuestions(generatedQuestions);
 
         const scores = {};
         const notes = {};
-        const qCount = Math.max(1, generatedQuestions.length);
-        for (let i = 1; i <= qCount; i++) {
-          const ans = (submission.answers || [])[i - 1];
-          if (ans) {
-            scores[i] = ans.score !== undefined ? Number(ans.score) : (ans.isCorrect === true ? 10 : 0);
-            notes[i] = ans.teacherNote || '';
-          } else {
-            scores[i] = 0;
-            notes[i] = '';
-          }
+
+        if (submission.answers && Array.isArray(submission.answers)) {
+          submission.answers.forEach((a, idx) => {
+            const qNo = a.questionNo || a.questionNoInSection || (idx + 1);
+            if (a.score !== undefined && a.score !== null) {
+              scores[qNo] = Number(a.score);
+            } else if (a.isCorrect === true) {
+              scores[qNo] = 10;
+            } else if (a.isCorrect === false) {
+              scores[qNo] = 0;
+            }
+            if (a.teacherNote || a.teacher_note || a.feedback) {
+              notes[qNo] = a.teacherNote || a.teacher_note || a.feedback;
+            }
+          });
         }
 
         setQuestionScores(scores);
         setTeacherNotes(notes);
         setOverallFeedback(submission.teacherFeedback || submission.teacherNote || '');
+        loadedTargetIdRef.current = targetId;
         setLoading(false);
       }
     }
@@ -458,9 +452,11 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         ...submission,
         answers: updatedAnswers,
         score: percentage,
+        scorePercentage: percentage,
         rawScore: totalPoints,
         maxScore: maxPoints,
         status: 'evaluated',
+        isEvaluated: true,
         isEvaluatedByTeacher: true,
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
@@ -696,7 +692,14 @@ export default function EvaluationManager() {
         }
       }
 
-      const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
+      const isAlreadyEvaluated = Boolean(
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        sub.status === 'completed' ||
+        sub.isEvaluatedByTeacher === true ||
+        sub.isEvaluated === true ||
+        sub.evaluatedAt
+      );
       let hasWrittenAnswers = false;
       if (Array.isArray(sub.answers)) {
         hasWrittenAnswers = sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);

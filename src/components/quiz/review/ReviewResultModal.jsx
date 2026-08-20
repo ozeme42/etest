@@ -14,13 +14,15 @@ export default function ReviewResultModal({
   totalQuestions = 0,
   overallFeedback = '',
   sectionStats = [],
-  isTeacher = true
+  isTeacher = false,
+  isPending = false
 }) {
   if (!isOpen) return null;
 
+  const isPendingEvaluation = isPending || (score === null && correctCount === 0 && wrongCount === 0);
   const total = totalQuestions || (correctCount + wrongCount + blankCount) || 1;
   const net = netScore !== null && netScore !== undefined ? Number(netScore) : Math.max(0, correctCount - (wrongCount * 0.25));
-  const scorePct = Math.max(0, Math.min(100, Math.round(score)));
+  const scorePct = Math.max(0, Math.min(100, Math.round(score || 0)));
 
   const getStatus = (pct) => {
     if (pct >= 85) return { label: 'Mükemmel 🌟', color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' };
@@ -66,17 +68,17 @@ export default function ReviewResultModal({
             width: 60,
             height: 60,
             borderRadius: '50%',
-            background: status.bg,
-            border: `2px solid ${status.border}`,
+            background: isPendingEvaluation ? 'rgba(124, 58, 237, 0.12)' : status.bg,
+            border: `2px solid ${isPendingEvaluation ? 'rgba(124, 58, 237, 0.3)' : status.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '1.8rem'
           }}>
-            🎉
+            {isPendingEvaluation ? '⏳' : '🎉'}
           </div>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-            {isTeacher ? 'Değerlendirme Başarıyla Kaydedildi!' : 'Sınav Sonuç Raporu'}
+            {isTeacher ? 'Değerlendirme Başarıyla Kaydedildi!' : (isPendingEvaluation ? 'Sınav Değerlendirmede' : 'Sınav Sonuç Raporu')}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
@@ -91,81 +93,161 @@ export default function ReviewResultModal({
         {/* SUMMARY METRICS CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.75rem' }}>
           {/* Card 1: BAŞARI DURUMU */}
-          <div style={{
-            background: '#f8fafc',
-            border: `1.5px solid ${status.border}`,
-            borderRadius: '1rem',
-            padding: '0.85rem 0.65rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.2rem'
-          }}>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              BAŞARI DURUMU
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: status.color, lineHeight: 1.1 }}>
-              %{scorePct}
-            </div>
-            <span style={{
-              fontSize: '0.72rem', fontWeight: 900,
-              color: status.color, background: status.bg,
-              border: `1px solid ${status.border}`,
-              padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
+          {isPendingEvaluation ? (
+            <div style={{
+              background: '#f5f3ff',
+              border: '1.5px solid #ddd6fe',
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
             }}>
-              {status.label}
-            </span>
-          </div>
+              <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                DURUM
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#7c3aed', lineHeight: 1.1 }}>
+                ⏳
+              </div>
+              <span style={{
+                fontSize: '0.72rem', fontWeight: 900,
+                color: '#7c3aed', background: '#ede9fe',
+                border: '1px solid #ddd6fe',
+                padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
+              }}>
+                Değerlendirmede
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              background: '#f8fafc',
+              border: `1.5px solid ${status.border}`,
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                BAŞARI DURUMU
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: status.color, lineHeight: 1.1 }}>
+                %{scorePct}
+              </div>
+              <span style={{
+                fontSize: '0.72rem', fontWeight: 900,
+                color: status.color, background: status.bg,
+                border: `1px solid ${status.border}`,
+                padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
+              }}>
+                {status.label}
+              </span>
+            </div>
+          )}
 
           {/* Card 2: DOĞRU / YANLIŞ */}
-          <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '1rem',
-            padding: '0.85rem 0.65rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.2rem'
-          }}>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              DOĞRU / YANLIŞ
+          {isPendingEvaluation ? (
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                AÇIK UÇLU
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.1rem' }}>
+                {total} Soru
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                Öğretmen İncelemesinde
+              </span>
             </div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.1rem' }}>
-              {correctCount} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {wrongCount} Y</span>
+          ) : (
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                DOĞRU / YANLIŞ
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.1rem' }}>
+                {correctCount} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {wrongCount} Y</span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                {blankCount > 0 ? `(${blankCount} Boş Soru)` : '(Boş Soru Yok)'}
+              </span>
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-              {blankCount > 0 ? `(${blankCount} Boş Soru)` : '(Boş Soru Yok)'}
-            </span>
-          </div>
+          )}
 
           {/* Card 3: NET PUAN */}
-          <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '1rem',
-            padding: '0.85rem 0.65rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.2rem'
-          }}>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              NET PUAN
+          {isPendingEvaluation ? (
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                SONUÇ / PUAN
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1.1 }}>
+                —
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                Puanlama Sonrası
+              </span>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>
-              {net.toFixed(2)}
+          ) : (
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '1rem',
+              padding: '0.85rem 0.65rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.2rem'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                NET PUAN
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>
+                {net.toFixed(2)}
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                Toplam {total} Soru
+              </span>
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-              Toplam {total} Soru
-            </span>
-          </div>
+          )}
         </div>
 
         {/* TEACHER FEEDBACK NOTE (IF ANY) */}
@@ -260,7 +342,7 @@ export default function ReviewResultModal({
             marginTop: '0.25rem'
           }}
         >
-          <CheckCircle2 size={18} /> İncelemeyi Tamamla & Listeye Dön
+          <CheckCircle2 size={18} /> {isTeacher ? 'İncelemeyi Tamamla & Listeye Dön' : 'Kapat & Sonuçlara Dön'}
         </button>
       </div>
     </div>

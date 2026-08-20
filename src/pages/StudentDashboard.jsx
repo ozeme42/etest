@@ -573,6 +573,7 @@ export default function StudentDashboard() {
 
     // 1. Process Homeworks
     (homeworks || []).forEach(hw => {
+      if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
       const subInHw = (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
       const subInGlobal = (submissions || []).find(s => isMatchStudent(s) && (String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.id)) && s.status !== 'in_progress' && s.status !== 'draft');
 
@@ -595,19 +596,50 @@ export default function StudentDashboard() {
       const subject = hw.subject || raw.subject || sub.subject || bookObj?.subject || 'Genel Testler';
       const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
-      // Detect open-ended / written test
-      const isOpenEnded = Boolean(
+      // Detect open-ended vs multiple choice test
+      const isExplicitMCQ = Boolean(
+        hw.questionType === 'coktan_secmeli' ||
+        hw.type === 'coktan_secmeli' ||
+        hw.contentType === 'coktan_secmeli' ||
+        sub.questionType === 'coktan_secmeli' ||
+        sub.type === 'coktan_secmeli' ||
+        sub.contentType === 'coktan_secmeli' ||
+        raw.questionType === 'coktan_secmeli' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
+      );
+
+      const isOpenEnded = !isExplicitMCQ && Boolean(
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
         hw.contentType === 'acik_uclu' ||
         sub.isOpenEnded ||
         raw.isOpenEnded ||
         sub.questionType === 'acik_uclu' ||
-        sub.status === 'pending' ||
+        sub.type === 'acik_uclu' ||
+        sub.contentType === 'acik_uclu' ||
         sub.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
       );
-      const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
+
+      const isEvaluated = !isOpenEnded || Boolean(
+        sub.isEvaluatedByTeacher ||
+        sub.isEvaluated ||
+        raw.isEvaluatedByTeacher ||
+        raw.isEvaluated ||
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        raw.status === 'evaluated' ||
+        raw.status === 'graded' ||
+        sub.evaluatedAt ||
+        raw.evaluatedAt ||
+        sub.teacherFeedback ||
+        sub.teacherNote ||
+        raw.teacherFeedback ||
+        raw.teacherNote ||
+        (Array.isArray(sub.answers) && sub.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+      );
+
+      const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
       let cCount = 0;
       let wCount = 0;
@@ -622,10 +654,16 @@ export default function StudentDashboard() {
             if (isB) eCount++;
             else wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
-            if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
+            if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.correctAnswer !== undefined) {
+              if (String(ans.userAnswer).trim().toUpperCase() === String(ans.correctAnswer).trim().toUpperCase()) {
+                cCount++;
+              } else {
+                wCount++;
+              }
+            } else if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
               // Open ended response
             } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
-              // Answer given
+              cCount++;
             } else {
               eCount++;
             }
@@ -654,18 +692,25 @@ export default function StudentDashboard() {
       }
 
       let pct = 0;
-      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
-        pct = Math.round(Number(sub.scorePercentage));
-      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
-        pct = Math.round(Number(raw.scorePercentage));
+      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage)) {
+        pct = Math.round(sub.scorePercentage);
+      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage)) {
+        pct = Math.round(raw.scorePercentage);
+      } else if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0)) {
+        pct = Math.round((cCount / qCount) * 100);
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+        pct = Math.round(sub.score);
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+        pct = Math.round(raw.score);
       } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
         pct = Math.round(Number(sub.accuracy));
-      } else if (qCount > 0 && !isPendingEvaluation) {
-        pct = Math.round((cCount / qCount) * 100);
-      } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
-        pct = Math.round(sub.score);
       }
       pct = Math.min(100, Math.max(0, pct));
+
+      // Do not include if totally empty
+      if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
+        return;
+      }
 
       solvedList.push({
         id: sub.id || hw.id,
@@ -700,32 +745,93 @@ export default function StudentDashboard() {
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      if (sub.id) processedSubIds.add(String(sub.id));
-      if (testId) processedTestKeys.add(testId);
+      // Skip sample mock submissions
+      if (subIdStr.startsWith('sub_sample') || String(sub.id).startsWith('sub_sample')) {
+        return;
+      }
+
+      // Check submission origin
+      const isHwSub = Boolean(sub.hwId || sub.homeworkId || String(sub.testId).startsWith('hw_') || sub.type === 'homework' || sub.type === 'ödev');
+      const isBookSub = Boolean(sub.bookId || sub.bookTestId || String(sub.testId).startsWith('bt_') || String(sub.testId).startsWith('book_') || sub.type === 'book' || sub.type === 'kitap');
+
+      if (isHwSub) {
+        const targetHw = (homeworks || []).find(h => String(h.id) === String(sub.hwId || sub.homeworkId || sub.testId));
+        if (!targetHw) {
+          return; // Silinmiş ödev
+        }
+      } else if (isBookSub) {
+        const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
+        const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
+        if (!targetBook && !targetTest) {
+          return; // Silinmiş kitap/test
+        }
+      } else {
+        const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
+        const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
+        const targetHw = (homeworks || []).find(h => String(h.id) === String(testId));
+        if (!targetCurTest && !targetBankQ && !targetHw) {
+          return; // Silinmiş test
+        }
+      }
 
       const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
       const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
+      const targetHw = (homeworks || []).find(h => String(h.id) === String(sub.hwId || sub.homeworkId || sub.testId || testId));
+      const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
+
+      if (sub.id) processedSubIds.add(String(sub.id));
+      if (testId) processedTestKeys.add(testId);
 
       const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
       const cleanBookTitle = (targetBook?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-      const title = sub.testTitle || raw.testTitle || targetTest?.name || sub.title || 'Test Çözümü';
-      const subject = subjObj?.name || sub.subject || raw.subject || targetBook?.subject || cleanBookTitle || 'Genel Testler';
+      const title = sub.testTitle || raw.testTitle || targetTest?.name || targetHw?.title || targetCurTest?.title || sub.title || 'Test Çözümü';
+      const subject = subjObj?.name || sub.subject || raw.subject || targetHw?.subject || targetBook?.subject || cleanBookTitle || 'Genel Testler';
       const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
 
-      const isOpenEnded = Boolean(
+      const isExplicitMCQ = Boolean(
+        targetTest?.questionType === 'coktan_secmeli' ||
+        targetHw?.questionType === 'coktan_secmeli' ||
+        sub.questionType === 'coktan_secmeli' ||
+        sub.type === 'coktan_secmeli' ||
+        sub.contentType === 'coktan_secmeli' ||
+        raw.questionType === 'coktan_secmeli' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
+      );
+
+      const isOpenEnded = !isExplicitMCQ && Boolean(
         sub.isOpenEnded ||
         raw.isOpenEnded ||
+        targetTest?.isOpenEnded ||
+        targetHw?.isOpenEnded ||
         sub.questionType === 'acik_uclu' ||
         sub.type === 'acik_uclu' ||
         sub.contentType === 'acik_uclu' ||
-        sub.status === 'pending' ||
         sub.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
       );
-      const isPendingEvaluation = isOpenEnded && sub.status !== 'completed' && sub.scorePercentage === undefined;
+
+      const isEvaluated = !isOpenEnded || Boolean(
+        sub.isEvaluatedByTeacher ||
+        sub.isEvaluated ||
+        raw.isEvaluatedByTeacher ||
+        raw.isEvaluated ||
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        raw.status === 'evaluated' ||
+        raw.status === 'graded' ||
+        sub.evaluatedAt ||
+        raw.evaluatedAt ||
+        sub.teacherFeedback ||
+        sub.teacherNote ||
+        raw.teacherFeedback ||
+        raw.teacherNote ||
+        (Array.isArray(sub.answers) && sub.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+      );
+
+      const isPendingEvaluation = isOpenEnded && !isEvaluated;
 
       let cCount = 0;
       let wCount = 0;
@@ -740,10 +846,16 @@ export default function StudentDashboard() {
             if (isB) eCount++;
             else wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
-            if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
+            if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.correctAnswer !== undefined) {
+              if (String(ans.userAnswer).trim().toUpperCase() === String(ans.correctAnswer).trim().toUpperCase()) {
+                cCount++;
+              } else {
+                wCount++;
+              }
+            } else if (ans.userAnswerText && (ans.userAnswer === null || ans.userAnswer === undefined)) {
               // Open ended pending
             } else if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') {
-              // Answer given
+              cCount++;
             } else {
               eCount++;
             }
@@ -757,7 +869,7 @@ export default function StudentDashboard() {
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = cCount + wCount + eCount;
-      const rawTotal = sub.totalQuestions || raw.totalQuestions || targetTest?.questionCount || (Array.isArray(sub.questions) ? sub.questions.length : 0);
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || targetTest?.questionCount || targetHw?.totalQuestions || (Array.isArray(sub.questions) ? sub.questions.length : 0);
       const qCount = Math.max(rawTotal, ansCount, sumCount, 1);
 
       if (cCount > qCount && qCount > 0) {
@@ -766,18 +878,25 @@ export default function StudentDashboard() {
       }
 
       let pct = 0;
-      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
-        pct = Math.round(Number(sub.scorePercentage));
-      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
-        pct = Math.round(Number(raw.scorePercentage));
+      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage)) {
+        pct = Math.round(sub.scorePercentage);
+      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage)) {
+        pct = Math.round(raw.scorePercentage);
+      } else if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0)) {
+        pct = Math.round((cCount / qCount) * 100);
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+        pct = Math.round(sub.score);
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+        pct = Math.round(raw.score);
       } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
         pct = Math.round(Number(sub.accuracy));
-      } else if (qCount > 0 && !isPendingEvaluation) {
-        pct = Math.round((cCount / qCount) * 100);
-      } else if (typeof sub.score === 'number' && sub.score <= 100 && !isPendingEvaluation) {
-        pct = Math.round(sub.score);
       }
       pct = Math.min(100, Math.max(0, pct));
+
+      // Do not include if totally empty
+      if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
+        return;
+      }
 
       solvedList.push({
         id: sub.id || testId,
@@ -802,7 +921,7 @@ export default function StudentDashboard() {
     return solvedList
       .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
       .slice(0, 5);
-  }, [selectedStudent, submissions, homeworks, books, bookTests]);
+  }, [selectedStudent, submissions, homeworks, books, bookTests, curData, allQuestions]);
 
 
   /* ─── Pending Tasks ─── */
@@ -2592,6 +2711,20 @@ export default function StudentDashboard() {
                               <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Öğretmen Değerlendirmesinde
                               </span>
+                            ) : test.isOpenEnded ? (
+                              <>
+                                <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 900 }}>
+                                  ✓ Öğretmen Değerlendirdi
+                                </span>
+                                {test.correctCount > 0 && (
+                                  <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                    • ✓ {test.correctCount} D
+                                  </span>
+                                )}
+                                <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
+                                  • {test.totalQuestions} Soru
+                                </span>
+                              </>
                             ) : (
                               <>
                                 <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>

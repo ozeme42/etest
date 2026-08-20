@@ -38,6 +38,7 @@ export default function ModularQuizPage() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
+  const [submittedResult, setSubmittedResult] = useState(null);
   const isSubmittingRef = useRef(false);
 
   // Grace period for initial context data load (4 seconds)
@@ -220,16 +221,19 @@ export default function ModularQuizPage() {
   }, [completedSub, navigate, testId, studentId]);
 
   const resolvedTestIdRef = useRef(null);
-
+  const prevBankQCountRef = useRef(0);
   useEffect(() => {
     resolvedTestIdRef.current = null;
   }, [testId]);
 
   useEffect(() => {
     const cleanTestId = String(testId || '').trim();
-    if (resolvedTestIdRef.current === cleanTestId && test) {
+    const bankQLen = allBankQuestions?.length || 0;
+    if (resolvedTestIdRef.current === cleanTestId && test && prevBankQCountRef.current === bankQLen) {
       return;
     }
+    resolvedTestIdRef.current = cleanTestId;
+    prevBankQCountRef.current = bankQLen;
     const uuidTestId = toUUID(cleanTestId);
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 
@@ -487,15 +491,16 @@ export default function ModularQuizPage() {
           sections = questionIdList.map((item, idx) => {
             const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
             const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
-            const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : [];
-            const title = bankQ?.title || bankQ?.name || (typeof item === 'object' ? (item.title || item.name) : null) || `${idx + 1}. Bölüm`;
-            const qCount = bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
+            const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (item?.questions || item?.questionsList || []);
+            const title = (typeof item === 'object' ? (item.title || item.name) : null) || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`;
+            const qCount = (typeof item === 'object' ? (item.questionCount || item.totalQuestions || item.qCount) : null) || bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
 
             return {
+              ...(typeof item === 'object' ? item : {}),
               id: itemId || `sec_${idx}`,
               questionId: itemId,
               title,
-              bankQ: bankQ || { id: itemId, title },
+              bankQ: bankQ || (typeof item === 'object' ? item : { id: itemId, title }),
               questionCount: qCount,
               questions: resolvedQuestions
             };
@@ -618,18 +623,16 @@ export default function ModularQuizPage() {
       const qNo = ans.questionNo || (idx + 1);
 
       let isCorrect = ans.isCorrect;
-      if (isCorrect === undefined) {
-        if (userAns !== null && userAns !== undefined && userAns !== '') {
-          const effectiveTest = {
-            ...test,
-            answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers
-          };
-          isCorrect = checkIsAnswerCorrect(userAns, qObj, effectiveTest, qNo);
-        } else if (textVal) {
-          isCorrect = null; // Open ended pending
-        } else {
-          isCorrect = false; // Blank
-        }
+      if (userAns !== null && userAns !== undefined && userAns !== '') {
+        const effectiveTest = {
+          ...test,
+          answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers
+        };
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, effectiveTest, qNo);
+      } else if (textVal) {
+        isCorrect = null; // Open ended pending
+      } else {
+        isCorrect = null; // Blank
       }
 
       if (isCorrect === true) correctCount++;
@@ -716,18 +719,7 @@ export default function ModularQuizPage() {
         } catch (e) {}
       }
 
-      // Doğrudan yönlendir - ikinci sonuç ekranı olmadan
-      if (options?.review) {
-        navigate(`/quiz-review/${test.id}?studentId=${studentId}`, {
-          state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' }
-        });
-      } else {
-        if (test?.bookId) {
-          navigate(`/student/books/${test.bookId}`);
-        } else {
-          navigate('/student');
-        }
-      }
+      setSubmittedResult(submissionData);
     } catch (err) {
       console.error('Error saving submission:', err);
       isSubmittingRef.current = false;
@@ -742,14 +734,12 @@ export default function ModularQuizPage() {
       const qNo = ans.questionNo || (idx + 1);
 
       let isCorrect = ans.isCorrect;
-      if (isCorrect === undefined) {
-        if (userAns !== null && userAns !== undefined && userAns !== '') {
-          isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-        } else if (textVal) {
-          isCorrect = null;
-        } else {
-          isCorrect = false;
-        }
+      if (userAns !== null && userAns !== undefined && userAns !== '') {
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+      } else if (textVal) {
+        isCorrect = null;
+      } else {
+        isCorrect = null;
       }
 
       return {
@@ -1066,5 +1056,406 @@ export default function ModularQuizPage() {
     );
   }
 
-  return renderRunner();
+  return (
+    <>
+      {renderRunner()}
+      {submittedResult && (() => {
+        const cCount = submittedResult.correctCount || 0;
+        const wCount = submittedResult.wrongCount || 0;
+        const bCount = submittedResult.blankCount || 0;
+        const pCount = submittedResult.pendingCount || 0;
+        const totQ = submittedResult.totalQuestions || (cCount + wCount + bCount + pCount) || 1;
+        const scorePct = submittedResult.score !== undefined && submittedResult.score !== null ? submittedResult.score : Math.round((cCount / totQ) * 100);
+        const net = Math.max(0, cCount - (wCount * 0.25));
+
+        const getStatus = (pct) => {
+          if (pct >= 85) return { label: 'Mükemmel 🌟', color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' };
+          if (pct >= 70) return { label: 'Çok İyi 🎯', color: '#0284c7', bg: 'rgba(2,132,199,0.12)', border: 'rgba(2,132,199,0.3)' };
+          if (pct >= 50) return { label: 'Başarılı 👍', color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(217,119,6,0.3)' };
+          return { label: 'Geliştirilmeli 📈', color: '#dc2626', bg: 'rgba(220,38,38,0.12)', border: 'rgba(220,38,38,0.3)' };
+        };
+
+        const status = getStatus(scorePct);
+
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.82)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+            overflowY: 'auto',
+            fontFamily: "'Inter', sans-serif"
+          }}>
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '1.5rem',
+              width: '100%',
+              maxWidth: '680px',
+              color: '#0f172a',
+              padding: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+              margin: 'auto'
+            }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  background: submittedResult.isOpenEnded ? 'rgba(124, 58, 237, 0.12)' : status.bg,
+                  border: `2px solid ${submittedResult.isOpenEnded ? 'rgba(167, 139, 250, 0.4)' : status.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem'
+                }}>
+                  {submittedResult.isOpenEnded ? '⏳' : '🎉'}
+                </div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                  {submittedResult.isOpenEnded ? 'Sınav Başarıyla Gönderildi!' : 'Sınav Sonuç Raporu'}
+                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
+                    🎓 {submittedResult.studentName || 'Öğrenci'}
+                  </span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 800 }}>
+                    {submittedResult.testTitle}
+                  </span>
+                </div>
+              </div>
+
+              {/* Open Ended Evaluation Banner */}
+              {submittedResult.isOpenEnded ? (
+                <div style={{
+                  background: 'rgba(124, 58, 237, 0.08)',
+                  border: '1.5px solid rgba(167, 139, 250, 0.4)',
+                  borderRadius: '1rem',
+                  padding: '1.15rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.85rem'
+                }}>
+                  <div style={{ fontSize: '1.6rem' }}>📝</div>
+                  <div>
+                    <h4 style={{ margin: '0 0 0.3rem 0', fontWeight: 900, color: '#7c3aed', fontSize: '0.95rem' }}>
+                      Yazılı / Açık Uçlu Cevaplarınız Öğretmen Değerlendirmesine İletildi
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.84rem', color: '#475569', lineHeight: 1.5 }}>
+                      Açık uçlu ({submittedResult.pendingCount || submittedResult.totalQuestions} soru) cevaplarınız öğretmeniniz tarafından incelenip puanlandıktan sonra karne ve başarı durumunuza yansıyacaktır.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.75rem' }}>
+                {/* Card 1: BAŞARI DURUMU */}
+                {submittedResult.isOpenEnded ? (
+                  <div style={{
+                    background: '#f5f3ff',
+                    border: '1.5px solid #ddd6fe',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      DURUM
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#7c3aed', lineHeight: 1.1 }}>
+                      ⏳
+                    </div>
+                    <span style={{
+                      fontSize: '0.72rem', fontWeight: 900,
+                      color: '#7c3aed', background: '#ede9fe',
+                      border: '1px solid #ddd6fe',
+                      padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
+                    }}>
+                      Değerlendirmede
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: `1.5px solid ${status.border}`,
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      BAŞARI DURUMU
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: status.color, lineHeight: 1.1 }}>
+                      %{scorePct}
+                    </div>
+                    <span style={{
+                      fontSize: '0.72rem', fontWeight: 900,
+                      color: status.color, background: status.bg,
+                      border: `1px solid ${status.border}`,
+                      padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
+                    }}>
+                      {status.label}
+                    </span>
+                  </div>
+                )}
+
+                {/* Card 2: DOĞRU / YANLIŞ / BOŞ */}
+                {submittedResult.isOpenEnded ? (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      AÇIK UÇLU
+                    </div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.1rem' }}>
+                      {submittedResult.totalQuestions || total} Soru
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      Öğretmen İncelemesinde
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      DOĞRU / YANLIŞ
+                    </div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.1rem' }}>
+                      {cCount} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {wCount} Y</span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      {bCount > 0 ? `(${bCount} Boş Soru)` : '(Tümü Yanıtlandı)'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Card 3: NET PUAN */}
+                {submittedResult.isOpenEnded ? (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      SONUÇ / PUAN
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1.1 }}>
+                      —
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      Puanlama Sonrası
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      NET PUAN
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>
+                      {net.toFixed(2)}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      Net
+                    </span>
+                  </div>
+                )}
+
+                {/* Card 4: Open Ended if applicable */}
+                {submittedResult.isOpenEnded && (
+                  <div style={{
+                    background: 'rgba(124, 58, 237, 0.08)',
+                    border: '1px solid rgba(167, 139, 250, 0.35)',
+                    borderRadius: '1rem',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#7c3aed', marginTop: 2 }}>
+                      {pCount || totQ} Soru
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 700 }}>
+                      ⏳ Değerlendirmede
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION BREAKDOWN */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.88rem', color: '#334155' }}>
+                  📊 Bölüm Bazlı Sonuç Özeti
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.75rem',
+                    padding: '0.65rem 0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.45rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span style={{ padding: '0.15rem 0.45rem', background: submittedResult.isOpenEnded ? '#7c3aed' : '#0284c7', borderRadius: '0.35rem', fontSize: '0.68rem', fontWeight: 900, color: 'white' }}>
+                        {submittedResult.isOpenEnded ? '✍️ Yazılı Bölüm' : '📝 Test Bölümü'}
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>
+                        {submittedResult.testTitle}
+                      </span>
+                    </div>
+
+                    {submittedResult.isOpenEnded ? (
+                      <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.4rem', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(167, 139, 250, 0.4)', color: '#7c3aed', fontSize: '0.75rem', fontWeight: 900 }}>
+                        ⏳ Öğretmen Değerlendirmesinde
+                      </span>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.78rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                        <span style={{ color: '#16a34a' }}>{cCount} Doğru</span>
+                        <span style={{ color: '#dc2626' }}>{wCount} Yanlış</span>
+                        <span style={{ color: '#64748b' }}>{bCount} Boş</span>
+                        <span style={{
+                          padding: '0.15rem 0.45rem',
+                          background: status.bg,
+                          border: `1px solid ${status.border}`,
+                          color: status.color,
+                          borderRadius: '0.4rem',
+                          fontWeight: 900,
+                          fontSize: '0.75rem'
+                        }}>
+                          %{scorePct} Başarı
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}`, {
+                      state: { from: submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student' }
+                    });
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: 150,
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '0.85rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#334155',
+                    fontWeight: 900,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <Eye size={17} /> Cevapları İncele
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (submittedResult.bookId) {
+                      navigate(`/student/books/${submittedResult.bookId}`);
+                    } else {
+                      navigate('/student');
+                    }
+                  }}
+                  style={{
+                    flex: 1.3,
+                    minWidth: 160,
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '0.85rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
+                  }}
+                >
+                  <CheckCircle2 size={18} /> Öğrenci Paneline Dön
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </>
+  );
 }

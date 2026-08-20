@@ -140,9 +140,16 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
   const openEndedText = sectionAnswers.openEndedText || {};
 
   const handleSelect = (qNo, optIdx) => {
+    const current = answers[qNo];
+    const newAnswers = { ...answers };
+    if (current === optIdx) {
+      delete newAnswers[qNo];
+    } else {
+      newAnswers[qNo] = optIdx;
+    }
     onAnswerChange({
       ...sectionAnswers,
-      answers: { ...answers, [qNo]: optIdx }
+      answers: newAnswers
     });
   };
 
@@ -270,7 +277,14 @@ const PdfSection = React.memo(function PdfSection({ bankQ, totalCount, sectionAn
   const openEndedText = sectionAnswers.openEndedText || {};
 
   const handleSelect = (qNo, optIdx) => {
-    onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: optIdx } });
+    const current = answers[qNo];
+    const newAnswers = { ...answers };
+    if (current === optIdx) {
+      delete newAnswers[qNo];
+    } else {
+      newAnswers[qNo] = optIdx;
+    }
+    onAnswerChange({ ...sectionAnswers, answers: newAnswers });
   };
   const handleText = (qNo, val) => {
     onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
@@ -327,7 +341,16 @@ const HtmlSection = React.memo(function HtmlSection({ bankQ, totalCount, section
 
   const answers = sectionAnswers.answers || {};
   const openEndedText = sectionAnswers.openEndedText || {};
-  const handleSelect = (qNo, optIdx) => onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: optIdx } });
+  const handleSelect = (qNo, optIdx) => {
+    const current = answers[qNo];
+    const newAnswers = { ...answers };
+    if (current === optIdx) {
+      delete newAnswers[qNo];
+    } else {
+      newAnswers[qNo] = optIdx;
+    }
+    onAnswerChange({ ...sectionAnswers, answers: newAnswers });
+  };
   const handleText = (qNo, val) => onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
 
   return (
@@ -371,9 +394,16 @@ const ImageSection = React.memo(function ImageSection({ bankQ, resolvedQuestions
 
   const handleSelect = (_qNo, optIdx) => {
     const qNo = currentIdx + 1;
-    const correctAns = activeQ.correctAnswer;
-    const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
-    onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: activeQ.id } } });
+    const current = answers[qNo]?.userAnswer !== undefined ? answers[qNo]?.userAnswer : answers[qNo];
+    const newAnswers = { ...answers };
+    if (current === optIdx) {
+      delete newAnswers[qNo];
+    } else {
+      const correctAns = activeQ.correctAnswer;
+      const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
+      newAnswers[qNo] = { userAnswer: optIdx, isCorrect, questionId: activeQ.id };
+    }
+    onAnswerChange({ ...sectionAnswers, answers: newAnswers });
   };
   const handleText = (_qNo, val) => {
     const qNo = currentIdx + 1;
@@ -420,11 +450,18 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
   const openEndedText = sectionAnswers.openEndedText || {};
 
   const handleSelect = (qNo, optIdx, qObj) => {
-    const correctAns = qObj.correctAnswer;
-    const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
+    const current = answers[qNo]?.userAnswer !== undefined ? answers[qNo]?.userAnswer : answers[qNo];
+    const newAnswers = { ...answers };
+    if (current === optIdx) {
+      delete newAnswers[qNo];
+    } else {
+      const correctAns = qObj.correctAnswer;
+      const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
+      newAnswers[qNo] = { userAnswer: optIdx, isCorrect, questionId: qObj.id };
+    }
     onAnswerChange({
       ...sectionAnswers,
-      answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj.id } }
+      answers: newAnswers
     });
   };
 

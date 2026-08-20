@@ -361,18 +361,26 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => {
-      const updated = {
-        ...prev,
-        [currentIndex + 1]: {
+      const currentAns = prev[currentIndex + 1]?.userAnswer;
+      const nextOpt = currentAns === optionIdx ? null : optionIdx;
+
+      const updated = { ...prev };
+      if (nextOpt === null) {
+        // İki kez tıklanınca seçimi geri al
+        delete updated[currentIndex + 1];
+      } else {
+        updated[currentIndex + 1] = {
           questionId: activeQuestion.id || `q_${currentIndex + 1}`,
-          userAnswer: optionIdx,
-          isCorrect: activeQuestion.correctAnswer !== undefined ? optionIdx === activeQuestion.correctAnswer : null
-        }
-      };
+          userAnswer: nextOpt,
+          isCorrect: activeQuestion.correctAnswer !== undefined ? nextOpt === activeQuestion.correctAnswer : null
+        };
+      }
       
       const simplifiedAnswers = {};
       Object.keys(updated).forEach(k => {
-        simplifiedAnswers[k] = updated[k]?.userAnswer;
+        if (updated[k]?.userAnswer !== null && updated[k]?.userAnswer !== undefined) {
+          simplifiedAnswers[k] = updated[k].userAnswer;
+        }
       });
       triggerAutoSave(simplifiedAnswers, openEndedText);
       return updated;
@@ -414,7 +422,9 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
       const qNo = idx + 1;
       const qObj = resolvedQuestions[idx] || questions[idx] || {};
-      const savedAns = answers[qNo] !== undefined ? answers[qNo] : (answers[String(qNo)] !== undefined ? answers[String(qNo)] : answers[idx]);
+      const savedAns = Array.isArray(answers)
+        ? (answers[qNo] ?? answers[idx])
+        : (answers[qNo] !== undefined ? answers[qNo] : (answers[String(qNo)] !== undefined ? answers[String(qNo)] : undefined));
       const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
       const userAns = (savedAns !== null && typeof savedAns === 'object' && savedAns.userAnswer !== undefined)

@@ -19,11 +19,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const { updateHomeworkSubmission } = useHomework();
 
   const isTeacherMode = Boolean(
-    location.state?.isTeacher ||
-    location.state?.fromTeacher ||
-    location.search.includes('teacher=true') ||
-    currentUser?.role === 'teacher' ||
-    currentUser?.role === 'admin'
+    currentUser?.role !== 'student' &&
+    (
+      location.state?.isTeacher ||
+      location.state?.fromTeacher ||
+      location.search.includes('teacher=true') ||
+      currentUser?.role === 'teacher' ||
+      currentUser?.role === 'admin'
+    )
   );
 
   const handleGoBack = () => {
@@ -260,7 +263,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         ...submission,
         answers: updatedAnswers,
         score: scorePercentage,
+        scorePercentage: scorePercentage,
         status: 'evaluated',
+        isEvaluated: true,
         isEvaluatedByTeacher: true,
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
@@ -356,7 +361,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <div style={{
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
             color: '#ffffff',
             padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
             borderRadius: '0.5rem',
@@ -364,7 +369,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             fontSize: isMobile ? '0.78rem' : '0.9rem',
             boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
           }}>
-            %{scorePercentage} Puan
+            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Puan`}
           </div>
 
           {isTeacherMode && (
@@ -600,6 +605,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                     </div>
                   )}
 
+                  {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
+                  {!isTeacherMode && teacherNotes[qNo] && (
+                    <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
+                      <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[qNo]}
+                    </div>
+                  )}
+
                   {qObj.solutionText && (
                     <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '0.8rem', color: '#1e40af' }}>
                       <strong style={{ color: '#1d4ed8' }}>Çözüm Açıklaması: </strong> {qObj.solutionText}
@@ -610,7 +622,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             })}
 
             {/* Genel Değerlendirme Notu & Kaydet */}
-            {isTeacherMode && (
+            {isTeacherMode ? (
               <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
                 <textarea
@@ -629,7 +641,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
                 </button>
               </div>
-            )}
+            ) : overallFeedback ? (
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>👨‍🏫 Öğretmen Değerlendirme Notu / Karne Görüşü:</div>
+                <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
+                  {overallFeedback}
+                </div>
+              </div>
+            ) : null}
           </div>
         }
       />
@@ -639,13 +658,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         onClose={handleGoBack}
         studentName={submission.studentName || 'Öğrenci'}
         testTitle={test.title || submission.testTitle || 'PDF Sınavı'}
-        score={scorePercentage}
+        score={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? null : scorePercentage}
         correctCount={correctCount}
         wrongCount={wrongCount}
         blankCount={blankCount}
         totalQuestions={qCount}
         overallFeedback={overallFeedback}
         isTeacher={isTeacherMode}
+        isPending={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0}
       />
     </div>
   );

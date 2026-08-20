@@ -325,18 +325,26 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => {
-      const updated = {
-        ...prev,
-        [currentIndex + 1]: {
+      const currentAns = prev[currentIndex + 1]?.userAnswer;
+      const nextOpt = currentAns === optionIdx ? null : optionIdx;
+
+      const updated = { ...prev };
+      if (nextOpt === null) {
+        delete updated[currentIndex + 1];
+      } else {
+        updated[currentIndex + 1] = {
           questionId: activeQuestion.id || `q_${currentIndex + 1}`,
-          userAnswer: optionIdx,
-          isCorrect: activeQuestion.correctAnswer !== undefined ? optionIdx === activeQuestion.correctAnswer : null
-        }
-      };
+          userAnswer: nextOpt,
+          isCorrect: activeQuestion.correctAnswer !== undefined ? nextOpt === activeQuestion.correctAnswer : null
+        };
+      }
+
       // Format current Answers properly for triggerAutoSave
       const simplifiedAnswers = {};
       Object.keys(updated).forEach(k => {
-        simplifiedAnswers[k] = updated[k]?.userAnswer;
+        if (updated[k]?.userAnswer !== null && updated[k]?.userAnswer !== undefined) {
+          simplifiedAnswers[k] = updated[k].userAnswer;
+        }
       });
       triggerAutoSave(simplifiedAnswers, openEndedText);
       return updated;

@@ -26,43 +26,78 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   const userIdx = normalizeAns(userAns);
   if (userIdx === null) return null;
 
-  // --- Adım 1: Tüm olası answerKey kaynaklarını topla ---
-  const candidateKeys = [
+  // --- Adım 1: Bireysel soru nesnesi (qObj) üzerindeki doğrudan doğru cevap ---
+  // qObj, ilgili soru numarasına ait spesifik soru nesnesi olduğu için en yüksek önceliğe sahiptir.
+  if (qObj && typeof qObj === 'object') {
+    const qTarget = qObj.correctAnswer ?? qObj.correct_answer ?? qObj.correctAnswerLetter ?? qObj.correct_answer_letter ?? qObj.correctOption ?? qObj.correct_option;
+    if (qTarget !== undefined && qTarget !== null && qTarget !== '') {
+      const targetIdx = normalizeAns(qTarget);
+      if (targetIdx !== null) return userIdx === targetIdx;
+    }
+
+    // Seçenekler (options) listesi içinde isCorrect / is_correct bayrağı
+    if (Array.isArray(qObj.options) && qObj.options.length > 0) {
+      const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+      if (cIdx !== -1) return userIdx === cIdx;
+    }
+
+    // qObj'nin kendi answerKey veya opticAnswers'ı
+    const qCandidateKeys = [
+      qObj.answerKey,
+      qObj.answer_key,
+      qObj.opticAnswers,
+      qObj.imageAnswers,
+      qObj.correctAnswers,
+      qObj.contentPayload?.answerKey,
+      qObj.contentPayload?.answer_key,
+      qObj.raw_data?.answerKey,
+      qObj.raw_data?.answer_key
+    ];
+    for (const keySource of qCandidateKeys) {
+      if (!keySource) continue;
+      let targetKeyVal = null;
+      if (Array.isArray(keySource)) {
+        targetKeyVal = keySource[qNo - 1] ?? keySource[String(qNo - 1)];
+      } else if (typeof keySource === 'object' && keySource !== null) {
+        targetKeyVal = keySource[qNo] ?? keySource[String(qNo)] ?? keySource[qNo - 1] ?? keySource[String(qNo - 1)];
+      } else if (typeof keySource === 'string' && keySource.trim().length > 0) {
+        const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
+        targetKeyVal = clean[qNo - 1];
+      }
+      if (targetKeyVal !== null && targetKeyVal !== undefined && targetKeyVal !== '') {
+        const targetIdx = normalizeAns(targetKeyVal);
+        if (targetIdx !== null) return userIdx === targetIdx;
+      }
+    }
+  }
+
+  // --- Adım 2: test / bankQ seviyesindeki answerKey kaynakları ---
+  const testCandidateKeys = [
+    test?.bankQ?.answerKey,
+    test?.bankQ?.answer_key,
+    test?.bankQ?.opticAnswers,
+    test?.bankQ?.contentPayload?.answerKey,
+    test?.bankQ?.raw_data?.answerKey,
     test?.answerKey,
     test?.answer_key,
-    qObj?.answerKey,
-    qObj?.answer_key,
     test?.opticAnswers,
-    qObj?.opticAnswers,
     test?.imageAnswers,
-    qObj?.imageAnswers,
     test?.correctAnswers,
-    qObj?.correctAnswers,
     test?.contentPayload?.answerKey,
     test?.contentPayload?.answer_key,
     test?.htmlPayload?.answerKey,
     test?.htmlPayload?.answer_key,
     test?.pdfPayload?.answerKey,
     test?.pdfPayload?.answer_key,
-    qObj?.contentPayload?.answerKey,
-    qObj?.contentPayload?.answer_key,
     test?.metadata?.answerKey,
     test?.metadata?.answer_key,
     test?.raw_data?.answerKey,
     test?.raw_data?.answer_key,
-    qObj?.raw_data?.answerKey,
-    qObj?.raw_data?.answer_key,
-    test?.bankQ?.answerKey,
-    test?.bankQ?.answer_key,
-    test?.bankQ?.opticAnswers,
-    test?.bankQ?.contentPayload?.answerKey,
-    test?.bankQ?.raw_data?.answerKey,
-    test?.bankQ?.raw_data?.answer_key,
     test?.book?.answerKey,
     test?.book?.answer_key
   ];
 
-  for (const keySource of candidateKeys) {
+  for (const keySource of testCandidateKeys) {
     if (!keySource) continue;
     let targetKeyVal = null;
 
@@ -109,7 +144,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
   }
 
-  // --- Adım 2: bulkAnswerKey dene ---
+  // --- Adım 3: bulkAnswerKey ---
   const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey, test?.raw_data?.bulkAnswerKey];
   for (const bulkStr of bulkSources) {
     if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
@@ -125,26 +160,10 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
   }
 
-  // --- Adım 3: Bireysel soru seviyesi correctAnswer ---
-  const isIndividualQuestion = Boolean(
-    (qObj?.questionNo === qNo || qObj?.questionNoInSection === qNo || String(qObj?.id || '').includes(`_${qNo}`) || String(qObj?.id || '').includes(`sub_${qNo}`)) &&
-    !qObj?.isBundle && !qObj?.sections && !qObj?.questions
-  );
-
-  if (isIndividualQuestion || qNo === 1) {
-    const qTarget = qObj?.correctAnswer ?? qObj?.correctAnswerLetter;
-    if (qTarget !== undefined && qTarget !== null && qTarget !== '') {
-      const targetIdx = normalizeAns(qTarget);
-      if (targetIdx !== null) {
-        return userIdx === targetIdx;
-      }
-    }
-  }
-
   // --- Adım 4: test.questionsList içinde bireysel soru doğrusu ---
   const subQ = test?.questionsList?.[qNo - 1] || test?.questions?.[qNo - 1] || test?.resolvedQuestions?.[qNo - 1];
   if (subQ) {
-    const subTarget = subQ.correctAnswer ?? subQ.correctAnswerLetter;
+    const subTarget = subQ.correctAnswer ?? subQ.correct_answer ?? subQ.correctAnswerLetter;
     if (subTarget !== undefined && subTarget !== null && subTarget !== '') {
       const targetIdx = normalizeAns(subTarget);
       if (targetIdx !== null) return userIdx === targetIdx;

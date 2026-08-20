@@ -366,7 +366,13 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
 
   const handleOptionSelect = (qNo, optionIdx) => {
     setAnswers(prev => {
-      const updated = { ...prev, [qNo]: optionIdx };
+      const currentAns = prev[qNo];
+      const updated = { ...prev };
+      if (currentAns === optionIdx) {
+        delete updated[qNo];
+      } else {
+        updated[qNo] = optionIdx;
+      }
       triggerAutoSave(updated, openEndedText);
       return updated;
     });

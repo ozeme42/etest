@@ -50,6 +50,25 @@ function checkIsOE(obj) {
   return (isOE || hasOEWord) && !isExplicitlyMultipleChoice;
 }
 
+// Safely unwraps user answer to a primitive number index (0, 1, 2, 3...) or null
+function unwrapUserAnswer(val) {
+  if (val === undefined || val === null) return null;
+  let curr = val;
+  while (curr && typeof curr === 'object' && !Array.isArray(curr)) {
+    const next = curr.userAnswer ?? curr.user_answer ?? curr.userAns ?? curr.user_ans ?? curr.answer ?? curr.selectedOption ?? curr.selected_option ?? curr.selectedAnswer ?? curr.studentAnswer ?? curr.option ?? curr.value ?? curr.selected;
+    if (next === undefined || next === curr) break;
+    curr = next;
+  }
+  if (curr === undefined || curr === null || curr === '') return null;
+  if (typeof curr === 'string' && /^[A-Ea-e]$/.test(curr.trim())) {
+    return curr.trim().toUpperCase().charCodeAt(0) - 65;
+  }
+  if (!isNaN(Number(curr)) && String(curr).trim() !== '') {
+    return Number(curr);
+  }
+  return curr;
+}
+
 // Helper to check PDF section (always true if PDF payload/contentType exists, whether MC or Open-Ended)
 function isPdfSection(bankQ) {
   if (!bankQ) return false;
@@ -106,7 +125,7 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
 
   const sectionObjects = [foundInBank, bankQ, sec, bankQ?.bankQ, sec?.bankQ].filter(Boolean);
 
-  // 1. Check Title Regex FIRST (e.g. "(2 Soru)", "2 Soru", "Görsel Soru Seti (2 Soru)")
+  // 1. Check Title Regex FIRST (e.g. "(4 Soru)", "4 Soru")
   for (const obj of sectionObjects) {
     const titles = [obj?.title, obj?.name];
     for (const t of titles) {
@@ -132,29 +151,7 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     }
   }
 
-  // 2. Extract all valid images from all section candidate sources
-  const allImagesFromSources = [
-    ...(Array.isArray(secImages) ? secImages : []),
-    ...sectionObjects.flatMap(obj => [
-      ...(Array.isArray(obj?.imageUrls) ? obj.imageUrls : []),
-      obj?.imageUrl,
-      obj?.image,
-      obj?.url,
-      ...extractImageUrls(obj?.contentPayload),
-      ...extractImageUrls(obj?.raw_data?.contentPayload),
-      ...extractImageUrls(obj?.raw_data?.imageUrls)
-    ]).filter(Boolean)
-  ];
-  const uniqueImages = extractImageUrls(allImagesFromSources);
-  const realImgCount = uniqueImages.length;
-
-  // Helper to extract questionsList count from an object
-  const getQuestionsListCount = (obj) => {
-    if (!obj || !Array.isArray(obj.questionsList)) return 0;
-    return obj.questionsList.length;
-  };
-
-  // Helper to extract answer key count from an object
+  // 2. Answer key count (Most reliable for test questions)
   const getAkCount = (obj) => {
     if (!obj || !obj.answerKey) return 0;
     const ak = obj.answerKey;
@@ -166,8 +163,10 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     if (typeof ak === 'object') return Object.keys(ak).length;
     return 0;
   };
+  const realAkCount = Math.max(...sectionObjects.map(getAkCount), 0);
+  if (realAkCount > 0) return realAkCount;
 
-  // Helper to extract numeric question count from an object
+  // 3. Direct numeric questionCount on section or bank question
   const getRawCount = (obj) => {
     if (!obj) return 0;
     const val = obj.questionCount ?? obj.totalQuestions ?? obj.questionsCount ?? obj.qCount ?? obj.soruSayisi ?? obj._qCountHint;
@@ -177,31 +176,49 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     }
     return 0;
   };
-
-  const realQListCount = Math.max(...sectionObjects.map(getQuestionsListCount), 0);
-  const realAkCount = Math.max(...sectionObjects.map(getAkCount), 0);
-  const resolvedCount = Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0;
-
-  // 3. If section has multiple images or explicit sub-questions, that MUST be the question count
-  if (realImgCount > 1) return realImgCount;
-  if (realQListCount > 1) return realQListCount;
-  if (realAkCount > 1) return realAkCount;
-  if (resolvedCount > 1) return resolvedCount;
-
-  // 4. Direct assignment question count from section or bank question
   const secDirectCount = getRawCount(sec);
   const bankRawCount = Math.max(getRawCount(foundInBank), getRawCount(bankQ), getRawCount(bankQ?.bankQ), getRawCount(sec?.bankQ), 0);
-  const parentRawCount = getRawCount(parentTest);
-
   if (secDirectCount > 0) return secDirectCount;
   if (bankRawCount > 0) return bankRawCount;
+
+  // 4. Questions list count
+  const getQuestionsListCount = (obj) => {
+    if (!obj) return 0;
+    if (Array.isArray(obj.questionsList) && obj.questionsList.length > 0) return obj.questionsList.length;
+    if (Array.isArray(obj.questions) && obj.questions.length > 0 && typeof obj.questions[0] === 'object') return obj.questions.length;
+    return 0;
+  };
+  const realQListCount = Math.max(...sectionObjects.map(getQuestionsListCount), 0);
+  if (realQListCount > 0) return realQListCount;
+
+  // 5. Resolved questions array count
+  const resolvedCount = Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0;
+  if (resolvedCount > 0) return resolvedCount;
+
+  // 6. Only for Image section: count valid image files
+  const isImageSec = sectionObjects.some(obj => 
+    obj?.contentType === 'gorsel' || obj?.formatType === 'image' || obj?.sourceFormat === 'image' || obj?.type === 'gorsel' || obj?.questionType === 'gorsel_klasik'
+  );
+
+  if (isImageSec) {
+    const allImagesFromSources = [
+      ...(Array.isArray(secImages) ? secImages : []),
+      ...sectionObjects.flatMap(obj => [
+        ...(Array.isArray(obj?.imageUrls) ? obj.imageUrls : []),
+        obj?.imageUrl,
+        obj?.image,
+        obj?.url
+      ]).filter(Boolean)
+    ];
+    const uniqueImages = extractImageUrls(allImagesFromSources);
+    if (uniqueImages.length > 0) return uniqueImages.length;
+  }
+
+  // 7. Single section fallback to parentTest
+  const parentRawCount = getRawCount(parentTest);
   if (isSingleSection && parentRawCount > 0) return parentRawCount;
 
-  if (realQListCount > 0) return realQListCount;
-  if (realAkCount > 0) return realAkCount;
-  if (realImgCount > 0) return realImgCount;
-
-  // 5. Multi-section parentCount partitioning fallback
+  // 8. Multi-section parentCount partitioning fallback
   if (parentRawCount > 0) {
     const numSections = Array.isArray(parentSecs) && parentSecs.length > 0 ? parentSecs.length : 1;
     return Math.max(1, Math.round(parentRawCount / numSections));
@@ -333,6 +350,7 @@ function RightOptikPanel({
   isOpenEnded,
   resolvedQuestions,
   bankQ,
+  test = {},
   onOptionSelect,
   onTextChange,
   onNextSection,
@@ -341,6 +359,7 @@ function RightOptikPanel({
   activeSecIdx,
   totalSections,
   isReviewMode = false,
+  isTeacherMode = false,
   teacherScores = {},
   onScoreChange,
   teacherNotes = {},
@@ -429,21 +448,30 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
           const isQOE = isOpenEnded || checkIsOE(qObj);
 
-          const userAnsObj = answers[qNo];
-          const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-          const textVal = openEndedText[qNo] || '';
-
-          const isAnswered = (userAns !== undefined && userAns !== null && userAns !== '') || Boolean(textVal);
+          const userAnsObj = Array.isArray(answers)
+            ? (answers[qNo] ?? answers[idx])
+            : (answers?.[qNo] ?? answers?.[String(qNo)]);
+          const rawUserAns = unwrapUserAnswer(userAnsObj);
+          const numericUserAns = typeof rawUserAns === 'number' ? rawUserAns : null;
+          const hasUserAns = numericUserAns !== null && !isNaN(numericUserAns);
+          const rawTextVal = openEndedText?.[qNo] ?? openEndedText?.[String(qNo)] ?? (typeof userAnsObj === 'object' ? (userAnsObj?.userAnswerText ?? userAnsObj?.user_answer_text ?? userAnsObj?.textAns) : undefined);
+          const textVal = (rawTextVal !== undefined && rawTextVal !== null) ? String(rawTextVal) : '';
+          const hasUserText = textVal.trim() !== '';
+          const isAnswered = hasUserAns || hasUserText;
 
           let isCorrect = null;
-          if (isReviewMode && userAns !== undefined && userAns !== null && userAns !== '') {
-            const evalResult = checkIsAnswerCorrect(userAns, qObj, bankQ || test, qNo);
-            if (evalResult !== null) {
-              isCorrect = evalResult;
-            } else if (userAnsObj && userAnsObj.isCorrect !== undefined) {
-              isCorrect = userAnsObj.isCorrect;
+          if (isReviewMode && isAnswered) {
+            if (hasUserAns) {
+              const evalResult = checkIsAnswerCorrect(numericUserAns, qObj, bankQ || test, qNo);
+              if (evalResult !== null) {
+                isCorrect = evalResult;
+              } else if (userAnsObj && userAnsObj.isCorrect !== undefined && userAnsObj.isCorrect !== null) {
+                isCorrect = userAnsObj.isCorrect;
+              }
+            } else if (hasUserText) {
+              isCorrect = null;
             }
-          } else if (userAnsObj && userAnsObj.isCorrect !== undefined) {
+          } else if (isAnswered && userAnsObj && userAnsObj.isCorrect !== undefined && userAnsObj.isCorrect !== null) {
             isCorrect = userAnsObj.isCorrect;
           }
 
@@ -451,7 +479,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
           const currentTeacherScore = hasTeacherGraded
             ? teacherSc
-            : (isAnswered ? (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined)) : 'empty');
+            : (isQOE ? undefined : (!isAnswered ? 'empty' : (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined))));
 
           return (
             <div
@@ -461,7 +489,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
                 borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
-                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 0 || isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isAnswered && !hasTeacherGraded) ? '1.5px solid #e2e8f0' : (isQOE && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
@@ -493,21 +521,25 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
                 <div>
                   {isReviewMode ? (
-                    currentTeacherScore === 10 ? (
+                    currentTeacherScore === 10 || isCorrect === true ? (
                       <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                     ) : currentTeacherScore === 5 ? (
                       <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                    ) : currentTeacherScore === 0 ? (
-                      <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                    ) : currentTeacherScore === 'empty' ? (
+                    ) : currentTeacherScore === 'empty' || (!isAnswered && !hasTeacherGraded) ? (
                       <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                    ) : isQOE ? (
-                      <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                    ) : userAns !== undefined && userAns !== null ? (
-                      isCorrect ? (
-                        <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU</span>
+                    ) : isQOE && !hasTeacherGraded ? (
+                      isTeacherMode ? (
+                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                       ) : (
-                        <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ</span>
+                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
+                      )
+                    ) : currentTeacherScore === 0 || isCorrect === false ? (
+                      <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                    ) : isQOE ? (
+                      isTeacherMode ? (
+                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
                       )
                     ) : (
                       <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>— BOŞ</span>
@@ -516,7 +548,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                     isAnswered ? (
                       <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
-                        {isQOE ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + userAns)}`}
+                        {isQOE ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + (numericUserAns ?? 0))}`}
                       </span>
                     ) : (
                       <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
@@ -569,47 +601,67 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                     const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
 
                     return optList.map((opt, optIdx) => {
-                      const isSelected = userAns === optIdx;
+                      const isSelected = hasUserAns && numericUserAns === optIdx;
 
                       let correctAns = null;
-                      const keySources = [
-                        bankQ?.answerKey,
-                        bankQ?.answer_key,
-                        bankQ?.opticAnswers,
-                        bankQ?.contentPayload?.answerKey,
-                        bankQ?.contentPayload?.answer_key,
-                        bankQ?.htmlPayload?.answerKey,
-                        bankQ?.pdfPayload?.answerKey,
-                        bankQ?.raw_data?.answerKey,
-                        bankQ?.raw_data?.answer_key,
-                        bankQ?.bankQ?.answerKey,
-                        bankQ?.bankQ?.answer_key,
-                        bankQ?.bankQ?.opticAnswers,
-                        bankQ?.bankQ?.pdfPayload?.answerKey
-                      ];
 
-                      for (const ks of keySources) {
-                        if (!ks) continue;
-                        let val = null;
-                        if (Array.isArray(ks)) {
-                          val = ks[idx] ?? ks[qNo - 1];
-                        } else if (typeof ks === 'object') {
-                          val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
-                        } else if (typeof ks === 'string' && ks.trim().length > 0) {
-                          const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
-                          val = clean[idx] ?? clean[qNo - 1];
-                        }
-                        if (val !== undefined && val !== null && val !== '') {
-                          if (typeof val === 'number') correctAns = val;
-                          else if (typeof val === 'string') {
-                            const s = val.trim().toUpperCase();
-                            if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
-                            else if (!isNaN(Number(s))) correctAns = Number(s);
+                      // 1. Direct question-level correct answer (highest priority)
+                      if (qObj.correctAnswerLetter) {
+                        const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                        if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                      } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                        correctAns = qObj.correctAnswer;
+                      } else if (qObj.correct_answer !== undefined && qObj.correct_answer !== null) {
+                        correctAns = qObj.correct_answer;
+                      }
+
+                      if (correctAns === null && Array.isArray(qObj.options) && qObj.options.length > 0) {
+                        const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+                        if (cIdx !== -1) correctAns = cIdx;
+                      }
+
+                      // 2. Section-level candidate key sources
+                      if (correctAns === null) {
+                        const keySources = [
+                          bankQ?.answerKey,
+                          bankQ?.answer_key,
+                          bankQ?.opticAnswers,
+                          bankQ?.contentPayload?.answerKey,
+                          bankQ?.contentPayload?.answer_key,
+                          bankQ?.htmlPayload?.answerKey,
+                          bankQ?.pdfPayload?.answerKey,
+                          bankQ?.raw_data?.answerKey,
+                          bankQ?.raw_data?.answer_key,
+                          bankQ?.bankQ?.answerKey,
+                          bankQ?.bankQ?.answer_key,
+                          bankQ?.bankQ?.opticAnswers,
+                          bankQ?.bankQ?.pdfPayload?.answerKey
+                        ];
+
+                        for (const ks of keySources) {
+                          if (!ks) continue;
+                          let val = null;
+                          if (Array.isArray(ks)) {
+                            val = ks[qNo - 1] ?? ks[idx];
+                          } else if (typeof ks === 'object') {
+                            val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                          } else if (typeof ks === 'string' && ks.trim().length > 0) {
+                            const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                            val = clean[qNo - 1] ?? clean[idx];
                           }
-                          if (correctAns !== null) break;
+                          if (val !== undefined && val !== null && val !== '') {
+                            if (typeof val === 'number') correctAns = val;
+                            else if (typeof val === 'string') {
+                              const s = val.trim().toUpperCase();
+                              if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                              else if (!isNaN(Number(s))) correctAns = Number(s);
+                            }
+                            if (correctAns !== null) break;
+                          }
                         }
                       }
 
+                      // 3. User answer object fallback
                       if (correctAns === null) {
                         const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
                         if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
@@ -622,18 +674,38 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         }
                       }
 
-                      if (correctAns === null) {
-                        if (qObj.correctAnswerLetter) {
-                          const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                          if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
-                        } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-                          correctAns = qObj.correctAnswer;
+                      // 4. Global test-level answerKey (with proper section offset)
+                      if (correctAns === null && test?.answerKey) {
+                        const ak = test.answerKey;
+                        const secStart = secOffsets[activeSecIdx] || 0;
+                        let val = null;
+                        if (Array.isArray(ak)) {
+                          val = ak[secStart + (qNo - 1)] ?? (sections.length === 1 ? ak[qNo - 1] : null);
+                        } else if (typeof ak === 'object') {
+                          val = ak[secStart + qNo] ?? ak[String(secStart + qNo)];
+                        }
+                        if (val !== undefined && val !== null && val !== '') {
+                          if (typeof val === 'number') correctAns = val;
+                          else if (typeof val === 'string') {
+                            const s = val.trim().toUpperCase();
+                            if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(s))) correctAns = Number(s);
+                          }
                         }
                       }
 
+                      if (correctAns === null && Array.isArray(qObj.options)) {
+                        const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect || o.is_correct)));
+                        if (cIdx !== -1) correctAns = cIdx;
+                      }
+
+                      const numericCorrectAns = (typeof correctAns === 'string' && /^[A-Ea-e]$/.test(correctAns.trim()))
+                        ? correctAns.trim().toUpperCase().charCodeAt(0) - 65
+                        : (correctAns !== undefined && correctAns !== null && !isNaN(Number(correctAns)) && String(correctAns).trim() !== '' ? Number(correctAns) : correctAns);
+
                       const isCorrectOpt = (isReviewMode && isCorrect === true && isSelected)
                         ? true
-                        : (correctAns !== undefined && correctAns !== null && correctAns === optIdx);
+                        : (numericCorrectAns !== undefined && numericCorrectAns !== null && numericCorrectAns === optIdx);
 
                       let bg = '#ffffff';
                       let border = '1.5px solid #cbd5e1';
@@ -646,7 +718,11 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         } else if (isSelected && !isCorrectOpt) {
                           bg = 'linear-gradient(135deg, #ef4444, #dc2626)'; border = 'none'; color = 'white'; shadow = '0 3px 10px rgba(239,68,68,0.35)';
                         } else if (isCorrectOpt) {
-                          bg = '#f0fdf4'; border = '2px solid #16a34a'; color = '#15803d';
+                          if (hasUserAns) {
+                            bg = '#f0fdf4'; border = '2px solid #16a34a'; color = '#15803d'; shadow = '0 2px 6px rgba(22,163,74,0.15)';
+                          } else {
+                            bg = '#f0f9ff'; border = '1.5px dashed #0284c7'; color = '#0369a1'; shadow = 'none';
+                          }
                         }
                       } else if (isSelected) {
                         bg = 'linear-gradient(135deg, #10b981, #059669)';
@@ -675,11 +751,11 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             boxShadow: shadow,
-                            transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)'
                           }}
                           className={!isReviewMode ? "hover:scale-105 active:scale-95" : ""}
+                          title={isReviewMode && isCorrectOpt && !hasUserAns ? `Cevap Anahtarı: ${opt}` : undefined}
                         >
-                          {opt}
+                          {isReviewMode && isSelected && isCorrectOpt ? `${opt} ✓` : isReviewMode && isSelected && !isCorrectOpt ? `${opt} ✗` : isReviewMode && isCorrectOpt ? (hasUserAns ? `${opt} ✓` : `${opt} 🔑`) : opt}
                         </button>
                       );
                     });
@@ -687,8 +763,8 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 </div>
               )}
 
-              {/* Öğretmen Puanlama Butonları (Review Modunda) */}
-              {isReviewMode && (
+              {/* Öğretmen Puanlama Butonları (Sadece Öğretmen Modunda) */}
+              {isTeacherMode && (
                 <div style={{ marginTop: '0.45rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isQOE ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 4 }}>
                     <button
@@ -791,6 +867,13 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                   />
                 </div>
               )}
+
+              {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
+              {!isTeacherMode && isReviewMode && teacherNotes?.[qNo] && (
+                <div style={{ marginTop: '0.45rem', padding: '0.45rem 0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.45rem', fontSize: '0.74rem', color: '#1e40af' }}>
+                  <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[qNo]}
+                </div>
+              )}
             </div>
           );
         })}
@@ -834,7 +917,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
         {(totalSections === 1 || isLastSec) && (
           <button
-            onClick={isReviewMode ? (onSaveEvaluation || onSubmit) : onSubmit}
+            onClick={isReviewMode ? (isTeacherMode ? (onSaveEvaluation || onSubmit) : onSubmit) : onSubmit}
             style={{
               width: '100%',
               padding: isMobile ? '0.45rem 0.8rem' : '0.75rem 1.25rem',
@@ -854,7 +937,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} />
-            {isReviewMode ? '💾 Değerlendirmeyi Kaydet & Sonucu Gör' : 'Sınavı Bitir ve Gönder'}
+            {isReviewMode ? (isTeacherMode ? '💾 Değerlendirmeyi Kaydet & Sonucu Gör' : '📊 Sınav Sonuç Raporunu Gör') : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
@@ -863,7 +946,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 }
 
 // ─── MULTI RESULT MODAL COMPONENT ─────────────────────────────────────────────
-function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview, teacherScores = {}, teacherNotes = {}, overallFeedback = '', isReviewMode = false }) {
+function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview, teacherScores = {}, teacherNotes = {}, overallFeedback = '', isReviewMode = false, isTeacher = false }) {
   let totalAllQuestions = 0;
   let totalAllEarnedPts = 0;
   let totalAllMaxPts = 0;
@@ -1027,13 +1110,13 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
             🎉
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text, #0f172a)' }}>
-            {isReviewMode ? 'Değerlendirme Başarıyla Kaydedildi!' : 'Sınav Başarıyla Tamamlandı!'}
+            {isReviewMode ? (isTeacher ? 'Değerlendirme Başarıyla Kaydedildi!' : 'Sınav Sonuç Raporu') : 'Sınav Başarıyla Tamamlandı!'}
           </h2>
           <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted, #64748b)', margin: 0, fontWeight: 700 }}>{test.title || test.name}</p>
         </div>
 
         {/* TEACHER EVALUATION ALERT BANNER (If not yet graded) */}
-        {hasOE && totalOEEvaluated === 0 && !isReviewMode && (
+        {hasOE && totalOEEvaluated === 0 && (!isReviewMode || !isTeacher) && (
           <div style={{ background: 'rgba(124, 58, 237, 0.08)', border: '1.5px solid rgba(167, 139, 250, 0.4)', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{ fontSize: '1.8rem' }}>⏳</div>
             <div>
@@ -1062,46 +1145,79 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
         {/* OVERALL SUMMARY CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
           
-          {/* Card 1: BAŞARI DURUMU */}
-          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: `1.5px solid ${overallStatus.badgeBorder}`, borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>BAŞARI DURUMU</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: overallStatus.color, lineHeight: 1.1 }}>%{overallAccuracy}</div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallStatus.color, background: overallStatus.badgeBg, border: `1px solid ${overallStatus.badgeBorder}`, padding: '0.15rem 0.55rem', borderRadius: '12px', marginTop: '0.2rem' }}>
-              {overallStatus.label}
-            </span>
-          </div>
-
-          {/* Card 2: DOĞRU / YANLIŞ / BOŞ */}
-          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>DOĞRU / YANLIŞ</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a', marginTop: '0.15rem' }}>
-              {totalDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalYanlış} Y</span>
-            </div>
-            {totalBoş > 0 ? (
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>({totalBoş} Boş Soru)</span>
-            ) : (
-              <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>(Tümü Yanıtlandı)</span>
-            )}
-          </div>
-
-          {/* Card 3: NET PUAN */}
-          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>NET PUAN</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>{totalMCNet.toFixed(2)}</div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Net</span>
-          </div>
-
-          {/* Card 4: AÇIK UÇLU YANIT (if any) */}
-          {hasOE && (
-            <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>AÇIK UÇLU YANIT</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.15rem' }}>
-                {totalOEEvaluated > 0 ? `${totalOEEvaluated} / ${totalOEQuestions} Puanlandı` : `${totalOECevaplanan} / ${totalOEQuestions}`}
+          {hasOE && totalMCQuestions === 0 && totalOEEvaluated === 0 && (!isReviewMode || !isTeacher) ? (
+            <>
+              {/* Pure Open-Ended Pending Evaluation Cards */}
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid rgba(124, 58, 237, 0.3)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>DURUM</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#7c3aed', lineHeight: 1.1 }}>⏳</div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#7c3aed', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.25)', padding: '0.15rem 0.55rem', borderRadius: '12px', marginTop: '0.2rem' }}>
+                  Değerlendirmede
+                </span>
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>
-                {totalOEEvaluated > 0 ? '✓ Öğretmen Değerlendirdi' : 'Öğretmen Bekleniyor'}
-              </span>
-            </div>
+
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>AÇIK UÇLU YANIT</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.15rem' }}>
+                  {totalOECevaplanan} / {totalOEQuestions}
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                  (Öğretmen İncelemesinde)
+                </span>
+              </div>
+
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>SONUÇ / PUAN</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1.1 }}>—</div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                  Puanlama Sonrası
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Card 1: BAŞARI DURUMU */}
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: `1.5px solid ${overallStatus.badgeBorder}`, borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>BAŞARI DURUMU</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: overallStatus.color, lineHeight: 1.1 }}>%{overallAccuracy}</div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallStatus.color, background: overallStatus.badgeBg, border: `1px solid ${overallStatus.badgeBorder}`, padding: '0.15rem 0.55rem', borderRadius: '12px', marginTop: '0.2rem' }}>
+                  {overallStatus.label}
+                </span>
+              </div>
+
+              {/* Card 2: DOĞRU / YANLIŞ / BOŞ */}
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>DOĞRU / YANLIŞ</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a', marginTop: '0.15rem' }}>
+                  {totalDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalYanlış} Y</span>
+                </div>
+                {totalBoş > 0 ? (
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>({totalBoş} Boş Soru)</span>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>(Tümü Yanıtlandı)</span>
+                )}
+              </div>
+
+              {/* Card 3: NET PUAN */}
+              <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>NET PUAN</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>{totalMCNet.toFixed(2)}</div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Net</span>
+              </div>
+
+              {/* Card 4: AÇIK UÇLU YANIT (if mixed) */}
+              {hasOE && (
+                <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', padding: '1rem 0.75rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>AÇIK UÇLU YANIT</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.15rem' }}>
+                    {totalOEEvaluated > 0 ? `${totalOEEvaluated} / ${totalOEQuestions} Puanlandı` : `${totalOECevaplanan} / ${totalOEQuestions}`}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>
+                    {totalOEEvaluated > 0 ? '✓ Öğretmen Değerlendirdi' : 'Öğretmen Bekleniyor'}
+                  </span>
+                </div>
+              )}
+            </>
           )}
 
         </div>
@@ -1131,7 +1247,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.85rem', fontWeight: 800, flexWrap: 'wrap' }}>
                       <span style={{ color: '#16a34a' }}>{secStat.secDoğru} Doğru</span>
                       <span style={{ color: '#dc2626' }}>{secStat.secYanlış} Yanlış</span>
-                      {secStat.secBoş > 0 && <span style={{ color: '#64748b' }}>{secStat.secBoş} Boş</span>}
+                      <span style={{ color: '#64748b' }}>{secStat.secBoş} Boş</span>
                       
                       <span style={{
                         padding: '0.25rem 0.65rem',
@@ -1201,7 +1317,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
               gap: '0.5rem'
             }}
           >
-            <CheckCircle2 size={20} /> Sonuçları Onayla ve Tamamla
+            <CheckCircle2 size={20} /> {isReviewMode ? (isTeacher ? 'Değerlendirmeyi Onayla & Tamamla' : 'Kapat & Sonuçlara Dön') : 'Sınavı Tamamla & Listeye Dön'}
           </button>
         </div>
       </div>
@@ -1212,6 +1328,8 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
 export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers, bookPdfUrl = '', onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { currentUser } = useAuth();
+  const isTeacherMode = isReviewMode && Boolean(currentUser?.role === 'teacher' || currentUser?.role === 'admin');
   const { questions: allBankQuestions } = useQuestionBank();
   const { homeworks, updateHomeworkSubmission } = useHomework();
   const { updateSubmission } = useEvaluation();
@@ -1222,20 +1340,24 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const findInAllSources = useMemo(() => (targetId) => {
     if (!targetId) return null;
     const strId = String(targetId);
+    // Never match the parent homework ID or generic section IDs
+    if (strId === String(test?.id) || strId === String(test?.hwId) || strId.startsWith('sec_') || strId.startsWith('section_')) {
+      return null;
+    }
     const normId = strId.replace(/^hw_/, '').replace(/^q_?/, '');
 
-    let found = allBankQuestions?.find(q => String(q.id) === strId || normId === String(q.id).replace(/^q_?/, ''));
-    if (!found && homeworks) {
-      found = homeworks.find(h => String(h.id) === strId || normId === String(h.id).replace(/^hw_/, ''));
-    }
+    let found = allBankQuestions?.find(q => String(q.id) === strId || (normId && normId.length > 2 && normId === String(q.id).replace(/^q_?/, '')));
     if (!found && curriculumData?.tests) {
-      found = curriculumData.tests.find(t => String(t.id) === strId || normId === String(t.id).replace(/^q_?/, ''));
+      found = curriculumData.tests.find(t => String(t.id) === strId || (normId && normId.length > 2 && normId === String(t.id).replace(/^q_?/, '')));
     }
     if (!found && bookTests) {
-      found = bookTests.find(b => String(b.id) === strId || normId === String(b.id).replace(/^q_?/, ''));
+      found = bookTests.find(b => String(b.id) === strId || (normId && normId.length > 2 && normId === String(b.id).replace(/^q_?/, '')));
+    }
+    if (!found && homeworks) {
+      found = homeworks.find(h => String(h.id) !== String(test?.id) && (String(h.id) === strId || (normId && normId.length > 2 && normId === String(h.id).replace(/^hw_/, ''))));
     }
     return found || null;
-  }, [allBankQuestions, homeworks, curriculumData, bookTests]);
+  }, [allBankQuestions, homeworks, curriculumData, bookTests, test?.id, test?.hwId]);
 
   // 1. Build sections cleanly
   const sections = useMemo(() => {
@@ -1244,10 +1366,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (!rawSections || (Array.isArray(rawSections) && rawSections.length === 0)) {
       const ids = test.testIds || test.questionIds || test.selectedQuestionIds;
       if (Array.isArray(ids) && ids.length > 0) {
-        // Provide a per-section questionCount hint so that when findInAllSources fails
-        // or the bank question has no questionCount field, the section still knows its count.
-        // Single section: use test.totalQuestions directly.
-        // Multi-section: use test.totalQuestions / N as a rough hint (bankQ data will override).
         const perSecHint = (test.totalQuestions || test.questionCount || 0) > 0
           ? Math.round((test.totalQuestions || test.questionCount) / ids.length)
           : undefined;
@@ -1267,10 +1385,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
       return rawSections.map((sec, idx) => {
         const qId = sec.questionId || sec.id || sec.testId || sec.bankQId;
-        let foundInBank = qId ? findInAllSources(qId) : null;
+        const isGenericSecId = typeof qId === 'string' && (qId.startsWith('sec_') || qId.startsWith('section_') || qId === String(test?.id) || qId === String(test?.hwId));
+        let foundInBank = (!isGenericSecId && qId) ? findInAllSources(qId) : null;
 
-        if (!foundInBank && (sec.id || sec.questionId)) {
-          foundInBank = findInAllSources(sec.id) || findInAllSources(sec.questionId);
+        if (!foundInBank && sec.id && !String(sec.id).startsWith('sec_') && String(sec.id) !== String(test?.id)) {
+          foundInBank = findInAllSources(sec.id);
+        }
+        if (!foundInBank && sec.questionId && !String(sec.questionId).startsWith('sec_') && String(sec.questionId) !== String(test?.id)) {
+          foundInBank = findInAllSources(sec.questionId);
         }
 
         // Merge strategy:
@@ -1345,7 +1467,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           return [];
         };
 
-        const secImages = getFirstValidImages([
+        // ONLY unbundle images if this section is explicitly an image question/set
+        const isImageSection = Boolean(
+          sec.contentType === 'gorsel' || sec.formatType === 'image' || sec.sourceFormat === 'image' ||
+          bankQ?.contentType === 'gorsel' || bankQ?.formatType === 'image' || bankQ?.sourceFormat === 'image' ||
+          (sec.imageUrls && Array.isArray(sec.imageUrls) && sec.imageUrls.length > 0 && !sec.questionText && (!sec.options || sec.options.length === 0)) ||
+          (bankQ?.imageUrls && Array.isArray(bankQ?.imageUrls) && bankQ?.imageUrls.length > 0 && !bankQ?.questionText && (!bankQ?.options || bankQ?.options.length === 0))
+        );
+
+        const secImages = isImageSection ? getFirstValidImages([
           bankQ?.imageUrls,
           sec.imageUrls,
           bankQ?.imageUrl,
@@ -1354,9 +1484,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           sec.contentPayload,
           bankQ?.bankQ?.imageUrls,
           bankQ?.bankQ?.imageUrl
-        ]);
+        ]) : [];
 
-        if (secImages.length > 1) {
+        if (isImageSection && secImages.length > 1) {
           resolvedQuestions = secImages.map((imgUrl, imgIdx) => {
             const existingQ = (resolvedQuestions && resolvedQuestions[imgIdx]) || {};
             return {
@@ -1477,49 +1607,50 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       sections.forEach(s => { initialMap[s.id] = { answers: {}, openEndedText: {} }; });
 
       if (Array.isArray(rawAns) && rawAns.length > 0) {
-        // Build lookup maps for fast section matching
-        const secById = {};
-        const secByBankId = {};
-        const secByTitle = {};
-        sections.forEach(s => {
-          secById[String(s.id)] = s;
-          if (s.bankQ?.id) secByBankId[String(s.bankQ.id)] = s;
-          if (s.bankQ?.questionId) secByBankId[String(s.bankQ.questionId)] = s;
-          if (s.title) secByTitle[s.title] = s;
-        });
-
-        // Precompute cumulative offsets for sequential fallback
+        // Precompute cumulative offsets for sequential matching
         const secOffsets = [];
         let acc = 0;
-        sections.forEach(s => { secOffsets.push(acc); acc += s.qCount; });
+        sections.forEach(s => { secOffsets.push(acc); acc += (s.qCount || 1); });
 
-        rawAns.forEach((item, idx) => {
-          // 1. Try direct ID match
-          let targetSec =
-            secById[String(item.sectionId)] ||
-            secByBankId[String(item.sectionId)] ||
-            secByTitle[item.sectionTitle];
-
-          // 2. If no match, try normalized IDs (strip prefixes)
-          if (!targetSec && item.sectionId) {
+        const findTargetSec = (item, itemIdx) => {
+          // 1. Direct ID match
+          if (item.sectionId) {
+            const byId = sections.find(s => String(s.id) === String(item.sectionId) || (s.bankQ?.id && String(s.bankQ.id) === String(item.sectionId)));
+            if (byId) return byId;
             const normItemSecId = String(item.sectionId).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
-            targetSec = sections.find(s => {
+            const byNormId = sections.find(s => {
               const normSecId = String(s.id).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
               const normBankId = String(s.bankQ?.id || '').replace(/^hw_/, '').replace(/^q_?/, '');
-              return normSecId === normItemSecId || normBankId === normItemSecId;
+              return (normSecId && normSecId === normItemSecId) || (normBankId && normBankId === normItemSecId);
             });
+            if (byNormId) return byNormId;
           }
 
-          // 3. Fallback: assign sequentially based on global question index
-          if (!targetSec) {
-            for (let si = sections.length - 1; si >= 0; si--) {
-              if (idx >= secOffsets[si]) {
-                targetSec = sections[si];
-                break;
-              }
-            }
-            if (!targetSec) targetSec = sections[0];
+          // 2. Sequential range match based on global questionNo
+          const isItemOE = Boolean(item.isOpenEnded || item.is_open_ended || item.userAnswerText || item.user_answer_text || item.textAns);
+          const globalQNo = item.questionNo ? Number(item.questionNo) : (item.qNo ? Number(item.qNo) : null);
+          if (globalQNo && globalQNo > 0) {
+            const byGNo = sections.find((s, si) => (globalQNo - 1) >= secOffsets[si] && (globalQNo - 1) < (secOffsets[si] + (s.qCount || 1)));
+            if (byGNo) return byGNo;
           }
+
+          // 3. Sequential index range match
+          const byIdx = sections.find((s, si) => itemIdx >= secOffsets[si] && itemIdx < (secOffsets[si] + (s.qCount || 1)));
+          if (byIdx) return byIdx;
+
+          // 4. Title AND question-type match (ensure written doesn't match MCQ with same title)
+          if (item.sectionTitle) {
+            const byTitleType = sections.find(s => s.title === item.sectionTitle && Boolean(s.isOpenEnded || s.is_open_ended || s.bankQ?.isOpenEnded) === isItemOE);
+            if (byTitleType) return byTitleType;
+            const byTitle = sections.find(s => s.title === item.sectionTitle);
+            if (byTitle) return byTitle;
+          }
+
+          return sections[0];
+        };
+
+        rawAns.forEach((item, idx) => {
+          const targetSec = findTargetSec(item, idx);
 
           if (targetSec) {
             const secId = targetSec.id;
@@ -1532,7 +1663,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               const secStartIdx = secOffsets[sections.indexOf(targetSec)];
               if (globalQNo && globalQNo > 0) {
                 const localQNo = globalQNo - secStartIdx;
-                qNo = localQNo >= 1 ? localQNo : ((idx - secStartIdx) + 1);
+                qNo = (localQNo >= 1 && localQNo <= (targetSec.qCount || 1)) ? localQNo : ((idx - secStartIdx) + 1);
               } else {
                 qNo = (idx - secStartIdx) + 1;
               }
@@ -1540,35 +1671,34 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
 
             // Populate open-ended text
-            const oeText = item.userAnswerText || item.textAns || item.openEndedText || item.writtenAnswer || null;
+            const oeText = item.userAnswerText || item.user_answer_text || item.textAns || item.openEndedText || item.writtenAnswer || null;
             if (oeText) {
               initialMap[secId].openEndedText[qNo] = oeText;
             }
 
             // Populate multiple-choice answer
-            const userAns = item.userAnswer !== undefined ? item.userAnswer : item.userAns;
-            if (userAns !== undefined && userAns !== null) {
-              // Resolve correctAnswer - try multiple sources
-              let correctAns = item.correctAnswer;
-              if ((correctAns === undefined || correctAns === null) && item.correctAnswerLetter) {
-                const letter = String(item.correctAnswerLetter).trim().toUpperCase();
+            const numUserAns = unwrapUserAnswer(item);
+
+            if (numUserAns !== null && typeof numUserAns === 'number') {
+              let correctAns = item.correctAnswer ?? item.correct_answer ?? item.correctAns;
+              if ((correctAns === undefined || correctAns === null) && (item.correctAnswerLetter || item.correct_answer_letter)) {
+                const letter = String(item.correctAnswerLetter || item.correct_answer_letter).trim().toUpperCase();
                 if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
               }
+
               initialMap[secId].answers[qNo] = {
-                userAnswer: typeof userAns === 'string' && /^[A-Ea-e]$/.test(userAns.trim())
-                  ? userAns.trim().toUpperCase().charCodeAt(0) - 65
-                  : userAns,
-                isCorrect: item.isCorrect,
+                userAnswer: numUserAns,
+                isCorrect: item.isCorrect ?? item.is_correct,
                 correctAnswer: correctAns,
-                questionId: item.questionId
+                questionId: item.questionId || item.id
               };
             } else if (oeText) {
               // Open-ended: store a marker so we know it was answered
               initialMap[secId].answers[qNo] = {
                 userAnswer: null,
-                isCorrect: item.isCorrect,
+                isCorrect: item.isCorrect ?? item.is_correct,
                 correctAnswer: null,
-                questionId: item.questionId,
+                questionId: item.questionId || item.id,
                 isOpenEnded: true
               };
             }
@@ -1586,15 +1716,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             if (!isNaN(qNo)) {
               const val = rawAns[k];
               if (typeof val === 'object' && val !== null) {
-                const oeText = val.userAnswerText || val.textAns || val.openEndedText;
+                const oeText = val.userAnswerText || val.user_answer_text || val.textAns || val.openEndedText;
                 if (oeText) initialMap[secId].openEndedText[qNo] = oeText;
-                if (val.userAnswer !== undefined && val.userAnswer !== null) {
-                  initialMap[secId].answers[qNo] = { userAnswer: val.userAnswer !== undefined ? val.userAnswer : val.userAns, isCorrect: val.isCorrect, correctAnswer: val.correctAnswer };
+                const uAns = val.userAnswer ?? val.user_answer ?? val.userAns ?? val.answer ?? val.selectedOption ?? val.selectedAnswer ?? val.studentAnswer;
+                if (uAns !== undefined && uAns !== null && uAns !== '') {
+                  const numUAns = (typeof uAns === 'string' && /^[A-Ea-e]$/.test(uAns.trim()))
+                    ? uAns.trim().toUpperCase().charCodeAt(0) - 65
+                    : (!isNaN(Number(uAns)) && String(uAns).trim() !== '' ? Number(uAns) : uAns);
+
+                  initialMap[secId].answers[qNo] = {
+                    userAnswer: numUAns,
+                    isCorrect: val.isCorrect ?? val.is_correct,
+                    correctAnswer: val.correctAnswer ?? val.correct_answer
+                  };
                 }
-              } else if (typeof val === 'string') {
-                initialMap[secId].openEndedText[qNo] = val;
+              } else if (typeof val === 'string' && /^[A-Ea-e]$/.test(val.trim())) {
+                initialMap[secId].answers[qNo] = { userAnswer: val.trim().toUpperCase().charCodeAt(0) - 65 };
               } else if (typeof val === 'number') {
                 initialMap[secId].answers[qNo] = { userAnswer: val };
+              } else if (typeof val === 'string') {
+                initialMap[secId].openEndedText[qNo] = val;
               }
             }
           });
@@ -1608,41 +1749,33 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (!isReviewMode && draftAnswers && draftAnswers.length > 0) {
       initSa = {};
       sections.forEach(sec => {
-        const secAns = draftAnswers.filter(a =>
-          String(a.sectionId) === String(sec.id) ||
-          String(a.sectionId) === String(sec.questionId) ||
-          (a.questionId && (String(a.questionId).startsWith(String(sec.id)) || String(a.questionId).startsWith(String(sec.questionId)))) ||
-          a.sectionTitle === sec.title
-        );
+        initSa[sec.id] = { answers: {}, openEndedText: {} };
+      });
 
-        if (secAns.length > 0) {
-          const ansMap = {};
-          const txtMap = {};
-          secAns.forEach((a, aIdx) => {
-            let qNo = a.questionNoInSection;
-            if (!qNo) {
-              qNo = Number(a.questionNo);
-              let accumulated = 0;
-              const sIdx = sections.findIndex(s => s.id === sec.id);
-              for(let i=0; i<sIdx; i++) accumulated += sections[i].qCount;
-              
-              if (qNo > accumulated && qNo <= accumulated + sec.qCount) {
-                qNo = qNo - accumulated;
-              } else if (qNo > sec.qCount) {
-                qNo = ((qNo - 1) % sec.qCount) + 1;
-              } else if (isNaN(qNo)) {
-                qNo = aIdx + 1;
-              }
+      draftAnswers.forEach((a, idx) => {
+        const targetSec = findTargetSec(a, idx);
+        if (targetSec) {
+          const secId = targetSec.id;
+          let qNo = a.questionNoInSection ? Number(a.questionNoInSection) : null;
+          if (!qNo || isNaN(qNo) || qNo < 1) {
+            const globalQNo = a.questionNo || a.qNo;
+            const secStartIdx = secOffsets[sections.indexOf(targetSec)];
+            if (globalQNo && globalQNo > 0) {
+              const localQNo = globalQNo - secStartIdx;
+              qNo = (localQNo >= 1 && localQNo <= (targetSec.qCount || 1)) ? localQNo : ((idx - secStartIdx) + 1);
+            } else {
+              qNo = (idx - secStartIdx) + 1;
             }
+            if (qNo < 1) qNo = 1;
+          }
 
-            if (a.userAnswer !== null && a.userAnswer !== undefined) {
-              ansMap[qNo] = { userAnswer: a.userAnswer, isCorrect: a.isCorrect, questionId: a.questionId };
-            }
-            if (a.userAnswerText) {
-              txtMap[qNo] = a.userAnswerText;
-            }
-          });
-          initSa[sec.id] = { answers: ansMap, openEndedText: txtMap };
+          if (a.userAnswer !== null && a.userAnswer !== undefined) {
+            const unwrapped = unwrapUserAnswer(a);
+            initSa[secId].answers[qNo] = { userAnswer: unwrapped, isCorrect: a.isCorrect, questionId: a.questionId };
+          }
+          if (a.userAnswerText) {
+            initSa[secId].openEndedText[qNo] = a.userAnswerText;
+          }
         }
       });
     }
@@ -1799,7 +1932,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (isReviewMode) return;
     setSectionAnswers(prev => {
       const secState = prev[secId] || { answers: {}, openEndedText: {} };
-      const newAnswers = { ...secState.answers, [qNo]: optIdx };
+      const currentAns = secState.answers?.[qNo];
+      const newAnswers = { ...secState.answers };
+      if (currentAns === optIdx) {
+        // İki kez tıklanınca seçimi geri al (boş bırak)
+        delete newAnswers[qNo];
+      } else {
+        newAnswers[qNo] = optIdx;
+      }
       const updated = { ...prev, [secId]: { ...secState, answers: newAnswers } };
       
       try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
@@ -1836,18 +1976,83 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (isReviewMode && userAnswers) {
       const rawAns = userAnswers.answers || userAnswers.formattedAnswers || [];
       if (Array.isArray(rawAns)) {
-        rawAns.forEach(a => {
-          const sId = a.sectionId || 'sec_1';
-          const qNo = a.questionNoInSection || a.questionNo;
+        const secOffsets = [];
+        let acc = 0;
+        sections.forEach(s => { secOffsets.push(acc); acc += (s.qCount || 1); });
+
+        const findTargetSec = (item, itemIdx) => {
+          if (item.sectionId) {
+            const byId = sections.find(s => String(s.id) === String(item.sectionId) || (s.bankQ?.id && String(s.bankQ.id) === String(item.sectionId)));
+            if (byId) return byId;
+            const normItemSecId = String(item.sectionId).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+            const byNormId = sections.find(s => {
+              const normSecId = String(s.id).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+              const normBankId = String(s.bankQ?.id || '').replace(/^hw_/, '').replace(/^q_?/, '');
+              return (normSecId && normSecId === normItemSecId) || (normBankId && normBankId === normItemSecId);
+            });
+            if (byNormId) return byNormId;
+          }
+
+          const isItemOE = Boolean(item.isOpenEnded || item.is_open_ended || item.userAnswerText || item.user_answer_text || item.textAns);
+          const globalQNo = item.questionNo ? Number(item.questionNo) : (item.qNo ? Number(item.qNo) : null);
+          if (globalQNo && globalQNo > 0) {
+            const byGNo = sections.find((s, si) => (globalQNo - 1) >= secOffsets[si] && (globalQNo - 1) < (secOffsets[si] + (s.qCount || 1)));
+            if (byGNo) return byGNo;
+          }
+
+          const byIdx = sections.find((s, si) => itemIdx >= secOffsets[si] && itemIdx < (secOffsets[si] + (s.qCount || 1)));
+          if (byIdx) return byIdx;
+
+          if (item.sectionTitle) {
+            const byTitleType = sections.find(s => s.title === item.sectionTitle && Boolean(s.isOpenEnded || s.is_open_ended || s.bankQ?.isOpenEnded) === isItemOE);
+            if (byTitleType) return byTitleType;
+            const byTitle = sections.find(s => s.title === item.sectionTitle);
+            if (byTitle) return byTitle;
+          }
+
+          return sections[0];
+        };
+
+        rawAns.forEach((a, idx) => {
+          const targetSec = findTargetSec(a, idx);
+          const sId = targetSec ? targetSec.id : (a.sectionId || 'sec_1');
+          
+          let qNo = a.questionNoInSection ? Number(a.questionNoInSection) : null;
+          if (!qNo || isNaN(qNo) || qNo < 1) {
+            const secStartIdx = targetSec ? secOffsets[sections.indexOf(targetSec)] : 0;
+            const globalQNo = a.questionNo || a.qNo;
+            if (globalQNo && globalQNo > 0) {
+              const localQNo = globalQNo - secStartIdx;
+              qNo = (localQNo >= 1 && localQNo <= (targetSec.qCount || 1)) ? localQNo : ((idx - secStartIdx) + 1);
+            } else {
+              qNo = (idx - secStartIdx) + 1;
+            }
+            if (qNo < 1) qNo = 1;
+          }
+
           if (!map[sId]) map[sId] = {};
-          if (a.evalStatus === 'empty' || (a.isCorrect === null && !a.userAnswer && !a.userAnswerText)) {
+
+          const rawUserAns = unwrapUserAnswer(a);
+          const hasUserAns = rawUserAns !== null && typeof rawUserAns === 'number';
+          const hasUserText = (a.userAnswerText || a.user_answer_text || a.textAns) && String(a.userAnswerText || a.user_answer_text || a.textAns).trim() !== '';
+          const isItemOE = Boolean(a.isOpenEnded || a.is_open_ended || a.userAnswerText || a.user_answer_text || a.textAns || (targetSec && (targetSec.isOpenEnded || targetSec.is_open_ended)));
+
+          if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty' || (!hasUserAns && !hasUserText && (a.isCorrect === null || a.isCorrect === undefined))) {
             map[sId][qNo] = 'empty';
-          } else if (a.score !== undefined && a.score !== null) {
+          } else if (a.score !== undefined && a.score !== null && a.score !== '') {
             map[sId][qNo] = Number(a.score);
-          } else if (a.isCorrect === true) {
+          } else if (a.isCorrect === true || a.is_correct === true) {
             map[sId][qNo] = 10;
-          } else if (a.isCorrect === false) {
+          } else if (a.isCorrect === false || a.is_correct === false) {
             map[sId][qNo] = 0;
+          } else if (!hasUserAns && !hasUserText) {
+            map[sId][qNo] = 'empty';
+          } else if (isItemOE) {
+            // Açık uçlu soru henüz öğretmen tarafından değerlendirilmemiş: map'e 0 koyma, undefined kalsın!
+          } else if (hasUserAns) {
+            map[sId][qNo] = 0;
+          } else {
+            map[sId][qNo] = 'empty';
           }
         });
       }
@@ -1860,11 +2065,64 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (isReviewMode && userAnswers) {
       const rawAns = userAnswers.answers || userAnswers.formattedAnswers || [];
       if (Array.isArray(rawAns)) {
-        rawAns.forEach(a => {
-          const sId = a.sectionId || 'sec_1';
-          const qNo = a.questionNoInSection || a.questionNo;
+        const secOffsets = [];
+        let acc = 0;
+        sections.forEach(s => { secOffsets.push(acc); acc += (s.qCount || 1); });
+
+        const findTargetSec = (item, itemIdx) => {
+          if (item.sectionId) {
+            const byId = sections.find(s => String(s.id) === String(item.sectionId) || (s.bankQ?.id && String(s.bankQ.id) === String(item.sectionId)));
+            if (byId) return byId;
+            const normItemSecId = String(item.sectionId).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+            const byNormId = sections.find(s => {
+              const normSecId = String(s.id).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+              const normBankId = String(s.bankQ?.id || '').replace(/^hw_/, '').replace(/^q_?/, '');
+              return (normSecId && normSecId === normItemSecId) || (normBankId && normBankId === normItemSecId);
+            });
+            if (byNormId) return byNormId;
+          }
+
+          const isItemOE = Boolean(item.isOpenEnded || item.is_open_ended || item.userAnswerText || item.user_answer_text || item.textAns);
+          const globalQNo = item.questionNo ? Number(item.questionNo) : (item.qNo ? Number(item.qNo) : null);
+          if (globalQNo && globalQNo > 0) {
+            const byGNo = sections.find((s, si) => (globalQNo - 1) >= secOffsets[si] && (globalQNo - 1) < (secOffsets[si] + (s.qCount || 1)));
+            if (byGNo) return byGNo;
+          }
+
+          const byIdx = sections.find((s, si) => itemIdx >= secOffsets[si] && itemIdx < (secOffsets[si] + (s.qCount || 1)));
+          if (byIdx) return byIdx;
+
+          if (item.sectionTitle) {
+            const byTitleType = sections.find(s => s.title === item.sectionTitle && Boolean(s.isOpenEnded || s.is_open_ended || s.bankQ?.isOpenEnded) === isItemOE);
+            if (byTitleType) return byTitleType;
+            const byTitle = sections.find(s => s.title === item.sectionTitle);
+            if (byTitle) return byTitle;
+          }
+
+          return sections[0];
+        };
+
+        rawAns.forEach((a, idx) => {
+          const targetSec = findTargetSec(a, idx);
+          const sId = targetSec ? targetSec.id : (a.sectionId || 'sec_1');
+          
+          let qNo = a.questionNoInSection ? Number(a.questionNoInSection) : null;
+          if (!qNo || isNaN(qNo) || qNo < 1) {
+            const secStartIdx = targetSec ? secOffsets[sections.indexOf(targetSec)] : 0;
+            const globalQNo = a.questionNo || a.qNo;
+            if (globalQNo && globalQNo > 0) {
+              const localQNo = globalQNo - secStartIdx;
+              qNo = (localQNo >= 1 && localQNo <= (targetSec.qCount || 1)) ? localQNo : ((idx - secStartIdx) + 1);
+            } else {
+              qNo = (idx - secStartIdx) + 1;
+            }
+            if (qNo < 1) qNo = 1;
+          }
+
           if (!map[sId]) map[sId] = {};
-          if (a.teacherNote) map[sId][qNo] = a.teacherNote;
+          if (a.teacherNote || a.teacher_note || a.feedback) {
+            map[sId][qNo] = a.teacherNote || a.teacher_note || a.feedback;
+          }
         });
       }
     }
@@ -1880,17 +2138,23 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     let correct = 0;
     let wrong = 0;
     let blank = 0;
+    let pending = 0;
+    let totalOE = 0;
 
     sections.forEach(sec => {
       const sa = sectionAnswers[sec.id] || {};
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
       const count = sec.qCount || secQs.length || 1;
+      const secOE = Boolean(sec.isOpenEnded || sec.is_open_ended || bankQ?.isOpenEnded || test?.isOpenEnded);
 
       for (let i = 1; i <= count; i++) {
         maxPts += 10;
+        const qObj = secQs[i - 1] || {};
+        const isQOE = secOE || checkIsOE(qObj);
+
         const teacherSc = teacherScores[sec.id]?.[i];
-        if (teacherSc !== undefined && teacherSc !== null) {
+        if (isQOE && teacherSc !== undefined && teacherSc !== null) {
           if (teacherSc === 'empty') {
             blank++;
           } else {
@@ -1899,12 +2163,20 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             if (numSc >= 5) correct++;
             else wrong++;
           }
+        } else if (isQOE) {
+          totalOE++;
+          const textAns = sa.openEndedText?.[i] || sa.openEndedText?.[String(i)];
+          const hasText = textAns !== undefined && textAns !== null && String(textAns).trim() !== '';
+          if (hasText) {
+            pending++;
+          } else {
+            blank++;
+          }
         } else {
-          const userAns = sa.answers?.[i];
-          const textAns = sa.openEndedText?.[i];
-          const hasAns = (userAns !== undefined && userAns !== null && userAns !== '') || (textAns !== undefined && textAns !== null && String(textAns).trim() !== '');
-          const qObj = secQs[i - 1] || {};
-          const isCorr = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
+          const userAnsObj = sa.answers?.[i];
+          const numUAns = unwrapUserAnswer(userAnsObj);
+          const hasAns = typeof numUAns === 'number';
+          const isCorr = hasAns ? checkIsAnswerCorrect(numUAns, qObj, bankQ, i) : null;
           if (isCorr === true) {
             totalPts += 10;
             correct++;
@@ -1917,10 +2189,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     });
 
+    const isPending = pending > 0;
     const pct = maxPts > 0 ? Math.min(100, Math.round((totalPts / maxPts) * 100)) : 0;
     const net = Math.max(0, correct - (wrong * 0.25));
 
-    return { totalPts, maxPts, pct, correct, wrong, blank, net };
+    return { totalPts, maxPts, pct, correct, wrong, blank, net, pending, isPending, totalOE };
   }, [sections, sectionAnswers, teacherScores, test]);
 
   const handleSaveTeacherGrading = async () => {
@@ -1930,17 +2203,32 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       let totalPts = 0;
       let maxPts = 0;
 
-      const updatedAnswers = sections.flatMap((sec) => {
+      const secOffsets = [];
+      let acc = 0;
+      sections.forEach(s => { secOffsets.push(acc); acc += (s.qCount || 1); });
+
+      let globalNo = 1;
+      const updatedAnswers = sections.flatMap((sec, sIdx) => {
         const sa = sectionAnswers[sec.id] || {};
         const secQs = sec.resolvedQuestions || [];
         const count = sec.qCount || secQs.length || 1;
+        const secStartIdx = secOffsets[sIdx];
 
         return Array.from({ length: count }).map((_, idx) => {
           const qNo = idx + 1;
-          const existingAns = (Array.isArray(rawAns) ? rawAns.find(a => (a.sectionId === sec.id && (a.questionNoInSection === qNo || a.questionNo === qNo))) : null) || {};
+          const currentGlobalNo = globalNo++;
+          const existingAns = (Array.isArray(rawAns) ? rawAns.find(a => 
+            (String(a.sectionId) === String(sec.id) && Number(a.questionNoInSection || a.questionNo) === qNo) ||
+            Number(a.questionNo) === (secStartIdx + qNo)
+          ) : null) || {};
           
-          const userAns = sa.answers?.[qNo] !== undefined ? sa.answers[qNo] : existingAns.userAnswer;
-          const textAns = sa.openEndedText?.[qNo] !== undefined ? sa.openEndedText[qNo] : existingAns.userAnswerText;
+          const rawSaAns = sa.answers?.[qNo];
+          const userAns = rawSaAns !== undefined 
+            ? (typeof rawSaAns === 'object' ? rawSaAns.userAnswer : rawSaAns)
+            : existingAns.userAnswer;
+          const textAns = sa.openEndedText?.[qNo] !== undefined 
+            ? sa.openEndedText[qNo] 
+            : (existingAns.userAnswerText || null);
           
           const teacherSc = teacherScores[sec.id]?.[qNo];
           let score = 0;
@@ -1959,7 +2247,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           } else if (existingAns.score !== undefined && existingAns.score !== null) {
             score = Number(existingAns.score);
             isCorrect = score >= 5;
-            evalStatus = score >= 5 ? 'correct' : 'wrong';
+            evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
             totalPts += score;
           } else if (existingAns.isCorrect === true) {
             score = 10;
@@ -1980,11 +2268,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
           return {
             ...existingAns,
+            questionId: existingAns.questionId || (secQs[idx]?.id || `${sec.id}_${qNo}`),
             sectionId: sec.id,
             sectionTitle: sec.title,
-            questionNo: qNo,
+            questionNo: currentGlobalNo,
             questionNoInSection: qNo,
-            userAnswer: userAns,
+            userAnswer: userAns !== undefined ? userAns : null,
             userAnswerText: textAns,
             score,
             isCorrect,
@@ -2010,9 +2299,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         studentId: studentId,
         answers: updatedAnswers,
         score: percentage,
+        scorePercentage: percentage,
         rawScore: totalPts,
         maxScore: maxPts,
         status: 'evaluated',
+        isEvaluated: true,
         isEvaluatedByTeacher: true,
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
@@ -2079,28 +2370,71 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)
           : null;
 
-        // Resolve correctAnswer letter for review display - prioritize bankQ / section answerKey first
+        // Resolve correctAnswer letter for review display - prioritize question object / section answerKey
         let correctAns = null;
-        const keySources = [
-          bankQ?.answerKey,
-          sec?.answerKey,
-          bankQ?.opticAnswers,
-          sec?.opticAnswers,
-          bankQ?.contentPayload?.answerKey,
-          test?.answerKey,
-          test?.opticAnswers
-        ];
 
-        for (const ks of keySources) {
-          if (!ks) continue;
+        // 1. Direct question-level correct answer (highest priority)
+        if (qObj.correctAnswerLetter) {
+          const letter = String(qObj.correctAnswerLetter).trim().toUpperCase();
+          if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
+        } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+          correctAns = qObj.correctAnswer;
+        } else if (qObj.correct_answer !== undefined && qObj.correct_answer !== null) {
+          correctAns = qObj.correct_answer;
+        }
+
+        if (correctAns === null && Array.isArray(qObj.options) && qObj.options.length > 0) {
+          const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+          if (cIdx !== -1) correctAns = cIdx;
+        }
+
+        // 2. Section-level candidate key sources
+        if (correctAns === null) {
+          const keySources = [
+            bankQ?.answerKey,
+            sec?.answerKey,
+            bankQ?.opticAnswers,
+            sec?.opticAnswers,
+            bankQ?.contentPayload?.answerKey,
+            bankQ?.htmlPayload?.answerKey,
+            bankQ?.pdfPayload?.answerKey,
+            bankQ?.raw_data?.answerKey,
+            bankQ?.bankQ?.answerKey,
+            bankQ?.bankQ?.opticAnswers
+          ];
+
+          for (const ks of keySources) {
+            if (!ks) continue;
+            let val = null;
+            if (Array.isArray(ks)) {
+              val = ks[idx] ?? ks[qNo - 1];
+            } else if (typeof ks === 'object') {
+              val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+            } else if (typeof ks === 'string' && ks.trim().length > 0) {
+              const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+              val = clean[idx] ?? clean[qNo - 1];
+            }
+            if (val !== undefined && val !== null && val !== '') {
+              if (typeof val === 'number') correctAns = val;
+              else if (typeof val === 'string') {
+                const s = val.trim().toUpperCase();
+                if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                else if (!isNaN(Number(s))) correctAns = Number(s);
+              }
+              if (correctAns !== null) break;
+            }
+          }
+        }
+
+        // 3. Global test-level answerKey fallback
+        if (correctAns === null && test?.answerKey) {
+          const ak = test.answerKey;
+          const secStart = secOffsets[sections.indexOf(sec)] || 0;
           let val = null;
-          if (Array.isArray(ks)) {
-            val = ks[idx] ?? ks[qNo - 1];
-          } else if (typeof ks === 'object') {
-            val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
-          } else if (typeof ks === 'string' && ks.trim().length > 0) {
-            const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
-            val = clean[idx] ?? clean[qNo - 1];
+          if (Array.isArray(ak)) {
+            val = ak[secStart + idx] ?? (sections.length === 1 ? ak[idx] : null);
+          } else if (typeof ak === 'object') {
+            val = ak[secStart + qNo] ?? ak[String(secStart + qNo)];
           }
           if (val !== undefined && val !== null && val !== '') {
             if (typeof val === 'number') correctAns = val;
@@ -2109,16 +2443,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
               else if (!isNaN(Number(s))) correctAns = Number(s);
             }
-            if (correctAns !== null) break;
-          }
-        }
-
-        if (correctAns === null) {
-          if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-            correctAns = qObj.correctAnswer;
-          } else if (qObj.correctAnswerLetter) {
-            const letter = String(qObj.correctAnswerLetter).trim().toUpperCase();
-            if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
           }
         }
 
@@ -2193,7 +2517,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     return null;
   }, [findInAllSources, test?.id]);
 
-  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || extractPayload(test) || test?.pdfPayload || test?.pdfUrl || test?.contentPayload || bookPdfUrl || idbPayload;
+  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || (sections.length === 1 ? (extractPayload(test) || test?.pdfPayload || test?.pdfUrl || test?.contentPayload) : null) || bookPdfUrl || idbPayload;
 
   const handleManualPdfUpload = useCallback((file) => {
     if (!file) return;
@@ -2214,29 +2538,36 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   }, [activeSec.id, activeBankQ?.id, test?.id]);
 
   // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
-  const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || isPdfSection(test) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
+  const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || (sections.length === 1 && isPdfSection(test)) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
   
   // Güçlü HTML Tespiti - Herhangi bir kaynakta HTML varsa zorla HTML moduna geç
   const stringToSearch = [
-    activeBankQ?.contentPayload, activeSec?.contentPayload, test?.contentPayload,
-    activeBankQ?.htmlPayload, activeSec?.htmlPayload, test?.htmlPayload,
-    idbPayload
+    activeBankQ?.contentPayload, activeSec?.contentPayload,
+    activeBankQ?.htmlPayload, activeSec?.htmlPayload,
+    idbPayload,
+    ...(sections.length === 1 ? [test?.contentPayload, test?.htmlPayload] : [])
   ].filter(c => typeof c === 'string' && c.length > 10).join(' ');
 
   const isHtml = !isPdf && (
     isHtmlSection(activeBankQ) || 
     isHtmlSection(activeSec) || 
-    isHtmlSection(test) || 
+    (sections.length === 1 && isHtmlSection(test)) || 
     stringToSearch.includes('<!DOCTYPE') || 
     stringToSearch.includes('<html') || 
     stringToSearch.includes('<body') || 
     stringToSearch.includes('<head') ||
     stringToSearch.startsWith('data:text/html') ||
-    test?.contentType === 'html' ||
-    activeBankQ?.contentType === 'html'
+    activeBankQ?.contentType === 'html' ||
+    activeSec?.contentType === 'html' ||
+    (sections.length === 1 && test?.contentType === 'html')
   );
 
-  const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec) || isImageSection(test) || Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image')));
+  const isImage = !isPdf && !isHtml && (
+    isImageSection(activeBankQ) || 
+    isImageSection(activeSec) || 
+    (sections.length === 1 && isImageSection(test)) || 
+    Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image'))
+  );
 
   const effectiveSecImages = useMemo(() => {
     const candidates = [
@@ -2276,10 +2607,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     const payloadSources = [
       activeSec.contentPayload,
       activeBankQ?.contentPayload,
-      test?.contentPayload,
       idbPayload,
       activeSec.raw_data?.contentPayload,
-      activeBankQ?.raw_data?.contentPayload
+      activeBankQ?.raw_data?.contentPayload,
+      ...(sections.length === 1 ? [test?.contentPayload] : [])
     ];
 
     for (const p of payloadSources) {
@@ -2300,8 +2631,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
 
-    // Try questionsList from activeSec, activeBankQ, or test
-    const listSources = [activeSec.questionsList, activeBankQ?.questionsList, test?.questionsList, activeSec.questions, activeBankQ?.questions, test?.questions];
+    // Try questionsList from activeSec, activeBankQ, or test (single-sec only)
+    const listSources = [
+      activeSec.questionsList,
+      activeBankQ?.questionsList,
+      activeSec.questions,
+      activeBankQ?.questions,
+      ...(sections.length === 1 ? [test?.questionsList, test?.questions] : [])
+    ];
     for (const list of listSources) {
       if (Array.isArray(list) && list.length > 0 && typeof list[0] === 'object') {
         return list.map((item, idx) => ({
@@ -2326,10 +2663,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         });
       }
       finalQs = filled;
+    } else if (finalQs.length > effectiveQCount && effectiveQCount > 0) {
+      finalQs = finalQs.slice(0, effectiveQCount);
     }
 
     return finalQs;
-  }, [activeSec, activeBankQ, test, idbPayload, effectiveQCount]);
+  }, [activeSec, activeBankQ, test, idbPayload, effectiveQCount, sections.length]);
 
   // IDB loader runs ALWAYS on section change regardless of isPdf.
   // This breaks the chicken-and-egg: isPdf can't be true without idbPayload,
@@ -2338,31 +2677,41 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     const targetObj = activeBankQ.id ? activeBankQ : activeSec;
     // If direct payload already available for THIS section, no need to hit IDB
     if (extractPayload(targetObj)) return;
-    // Bug 1 Fix: Do NOT early-exit on test?.pdfPayload — that's from the FIRST section only
-    // and would prevent IDB loading for section 2, 3, etc. in bundled homeworks.
-    // Only skip if the CURRENT section's own URL/payload is directly available.
+    
+    // If this section is explicitly a standard text/MCQ question (has options/text and not an image/pdf/html type), do not load IDB
+    const isExplicitTextSec = Boolean(
+      (activeSec.questionText || activeBankQ?.questionText) &&
+      (activeSec.options?.length > 0 || activeBankQ?.options?.length > 0) &&
+      activeSec.contentType !== 'gorsel' && activeSec.contentType !== 'pdf' && activeSec.contentType !== 'html' &&
+      activeBankQ?.contentType !== 'gorsel' && activeBankQ?.contentType !== 'pdf' && activeBankQ?.contentType !== 'html'
+    );
+    if (isExplicitTextSec) return;
+
     if (activeBankQ?.pdfUrl && !activeBankQ.pdfUrl.startsWith('data:')) return;
     if (idbPayload) return;
-
 
     let isMounted = true;
     async function load() {
       setIdbLoading(true);
+      const isMulti = sections.length > 1;
       const baseIds = [
         targetObj.id,
         activeBankQ?.id,
         activeSec?.id,
         activeBankQ?.questionId,
         activeSec?.questionId,
-        test?.id,
-        ...(test?.questionIds || []),
-        ...(test?.questions || []).map(q => q.id),
-        ...(test?.questionsList || []).map(q => q.id)
+        ...(!isMulti ? [
+          test?.id,
+          ...(test?.questionIds || []),
+          ...(test?.questions || []).map(q => q?.id),
+          ...(test?.questionsList || []).map(q => q?.id)
+        ] : [])
       ].filter(Boolean);
       const idsToTry = [];
       
       baseIds.forEach(id => {
         const strId = String(id);
+        if (strId.startsWith('sec_') || strId.startsWith('section_')) return;
         idsToTry.push(strId);
         idsToTry.push(strId.replace(/^q_?/, ''));
         idsToTry.push(strId.replace(/^q_?/, 'q'));
@@ -2374,7 +2723,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         idsToTry.push(`q${strId}`);
       });
 
-      const uniqueIds = [...new Set(idsToTry)];
+      const uniqueIds = [...new Set(idsToTry)].filter(id => id && id.length > 1);
 
       // 1st pass: try specific IDs
       for (const idToTry of uniqueIds) {
@@ -2388,24 +2737,25 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         } catch (e) {}
       }
 
-      // 2nd pass: scan ALL IDB keys and fuzzy-match against our IDs
-      // This catches cases where the stored key doesn't exactly match any known ID variant
-      try {
-        const allKeys = await idbGetAllKeys();
-        const normIds = uniqueIds.map(id => String(id).replace(/^(hw_|q_|q)/, '').toLowerCase());
-        for (const key of allKeys) {
-          const normKey = String(key).replace(/^(hw_|q_|q)/, '').toLowerCase();
-          const isMatch = normIds.some(nid => nid === normKey || normKey.includes(nid) || nid.includes(normKey));
-          if (isMatch) {
-            const val = await idbGetPayload(key);
-            if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
-              setIdbPayload(val);
-              setIdbLoading(false);
-              return;
+      // 2nd pass: scan ALL IDB keys and match against our IDs (single section only)
+      if (!isMulti) {
+        try {
+          const allKeys = await idbGetAllKeys();
+          const normIds = uniqueIds.map(id => String(id).replace(/^(hw_|q_|q)/, '').toLowerCase()).filter(id => id.length >= 4);
+          for (const key of allKeys) {
+            const normKey = String(key).replace(/^(hw_|q_|q)/, '').toLowerCase();
+            const isMatch = normIds.some(nid => nid === normKey);
+            if (isMatch) {
+              const val = await idbGetPayload(key);
+              if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+                setIdbPayload(val);
+                setIdbLoading(false);
+                return;
+              }
             }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
 
       if (isMounted) setIdbLoading(false);
     }
@@ -2538,44 +2888,54 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           {isReviewMode ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.65rem' }}>
               <div style={{
-                background: '#f8fafc',
-                border: '1.5px solid #cbd5e1',
+                background: liveReviewStats.isPending ? '#f5f3ff' : '#f8fafc',
+                border: liveReviewStats.isPending ? '1.5px solid #ddd6fe' : '1.5px solid #cbd5e1',
                 borderRadius: '0.65rem',
                 padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.65rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem'
               }}>
-                <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: liveReviewStats.pct >= 70 ? '#16a34a' : (liveReviewStats.pct >= 50 ? '#d97706' : '#dc2626') }}>
-                  %{liveReviewStats.pct}
-                </span>
-                <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: '#64748b' }}>
-                  ({liveReviewStats.correct} D / {liveReviewStats.wrong} Y)
-                </span>
+                {liveReviewStats.isPending ? (
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.84rem', fontWeight: 900, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    ⏳ Öğretmen Değerlendirmesinde
+                  </span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: liveReviewStats.pct >= 70 ? '#16a34a' : (liveReviewStats.pct >= 50 ? '#d97706' : '#dc2626') }}>
+                      %{liveReviewStats.pct}
+                    </span>
+                    <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: '#64748b' }}>
+                      ({liveReviewStats.correct} D / {liveReviewStats.wrong} Y)
+                    </span>
+                  </>
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleSaveTeacherGrading}
-                disabled={isSavingTeacherGrading}
-                style={{
-                  padding: isMobile ? '0.3rem 0.6rem' : '0.45rem 1.15rem',
-                  borderRadius: '0.65rem',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.72rem' : '0.85rem',
-                  cursor: isSavingTeacherGrading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)'
-                }}
-              >
-                <Save size={isMobile ? 12 : 15} /> 
-                {isSavingTeacherGrading ? 'Kaydediliyor...' : isMobile ? 'Kaydet' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
-              </button>
+              {isTeacherMode && (
+                <button
+                  type="button"
+                  onClick={handleSaveTeacherGrading}
+                  disabled={isSavingTeacherGrading}
+                  style={{
+                    padding: isMobile ? '0.3rem 0.6rem' : '0.45rem 1.15rem',
+                    borderRadius: '0.65rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.72rem' : '0.85rem',
+                    cursor: isSavingTeacherGrading ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)'
+                  }}
+                >
+                  <Save size={isMobile ? 12 : 15} /> 
+                  {isSavingTeacherGrading ? 'Kaydediliyor...' : isMobile ? 'Kaydet' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
+                </button>
+              )}
 
               <button
                 type="button"
@@ -2594,7 +2954,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   gap: '0.25rem'
                 }}
               >
-                Kapat
+                {isReviewMode && !isTeacherMode ? 'Kapat / Sonuç' : 'Kapat'}
               </button>
             </div>
           ) : (
@@ -2797,7 +3157,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 isOpenEnded={secOE}
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
+                test={test}
                 isReviewMode={isReviewMode}
+                isTeacherMode={isTeacherMode}
                 teacherScores={teacherScores[activeSec.id] || {}}
                 onScoreChange={(qNo, sc) => {
                   setTeacherScores(p => ({
@@ -2860,7 +3222,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 isOpenEnded={secOE}
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
+                test={test}
                 isReviewMode={isReviewMode}
+                isTeacherMode={isTeacherMode}
                 teacherScores={teacherScores[activeSec.id] || {}}
                 onScoreChange={(qNo, sc) => {
                   setTeacherScores(p => ({
@@ -2996,43 +3360,73 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     }
                     const imageUrls = extractImageUrls(questionImageUrls);
 
-                    const userAnsObj = activeSecState.answers?.[qNo];
-                    const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
-                    const textVal = activeSecState.openEndedText?.[qNo] || '';
+                    const userAnsObj = Array.isArray(activeSecState.answers)
+                      ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
+                      : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
+                    const rawSelectedOpt = unwrapUserAnswer(userAnsObj);
+                    const numericSelectedOpt = typeof rawSelectedOpt === 'number' ? rawSelectedOpt : null;
+                    const hasVisualAns = numericSelectedOpt !== null && !isNaN(numericSelectedOpt);
+                    const rawTextVal = activeSecState.openEndedText?.[qNo] ?? activeSecState.openEndedText?.[String(qNo)] ?? (typeof userAnsObj === 'object' ? (userAnsObj?.userAnswerText ?? userAnsObj?.user_answer_text ?? userAnsObj?.textAns) : undefined);
+                    const textVal = (rawTextVal !== undefined && rawTextVal !== null) ? String(rawTextVal) : '';
+                    const hasVisualText = textVal.trim() !== '';
+                    const isQAnswered = hasVisualAns || hasVisualText;
 
                     let correctAns = null;
-                    const keySources = [
-                      activeSec?.bankQ?.answerKey,
-                      activeSec?.answerKey,
-                      activeSec?.bankQ?.opticAnswers,
-                      activeSec?.opticAnswers,
-                      activeSec?.bankQ?.contentPayload?.answerKey,
-                      test?.answerKey,
-                      test?.opticAnswers
-                    ];
 
-                    for (const ks of keySources) {
-                      if (!ks) continue;
-                      let val = null;
-                      if (Array.isArray(ks)) {
-                        val = ks[idx] ?? ks[qNo - 1];
-                      } else if (typeof ks === 'object') {
-                        val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
-                      } else if (typeof ks === 'string') {
-                        const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
-                        val = clean[idx] ?? clean[qNo - 1];
-                      }
-                      if (val !== undefined && val !== null && val !== '') {
-                        if (typeof val === 'number') correctAns = val;
-                        else if (typeof val === 'string') {
-                          const s = val.trim().toUpperCase();
-                          if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
-                          else if (!isNaN(Number(s))) correctAns = Number(s);
+                    // 1. Direct question-level correct answer (highest priority)
+                    if (qObj.correctAnswerLetter) {
+                      const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                      if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                    } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                      correctAns = qObj.correctAnswer;
+                    } else if (qObj.correct_answer !== undefined && qObj.correct_answer !== null) {
+                      correctAns = qObj.correct_answer;
+                    }
+
+                    if (correctAns === null && Array.isArray(qObj.options) && qObj.options.length > 0) {
+                      const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+                      if (cIdx !== -1) correctAns = cIdx;
+                    }
+
+                    // 2. Section-level candidate key sources
+                    if (correctAns === null) {
+                      const keySources = [
+                        activeSec?.bankQ?.answerKey,
+                        activeSec?.answerKey,
+                        activeSec?.bankQ?.opticAnswers,
+                        activeSec?.opticAnswers,
+                        activeSec?.bankQ?.contentPayload?.answerKey,
+                        activeSec?.bankQ?.htmlPayload?.answerKey,
+                        activeSec?.bankQ?.pdfPayload?.answerKey,
+                        activeSec?.bankQ?.raw_data?.answerKey,
+                        activeSec?.bankQ?.bankQ?.answerKey,
+                        activeSec?.bankQ?.bankQ?.opticAnswers
+                      ];
+
+                      for (const ks of keySources) {
+                        if (!ks) continue;
+                        let val = null;
+                        if (Array.isArray(ks)) {
+                          val = ks[idx] ?? ks[qNo - 1];
+                        } else if (typeof ks === 'object') {
+                          val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                        } else if (typeof ks === 'string') {
+                          const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                          val = clean[idx] ?? clean[qNo - 1];
                         }
-                        if (correctAns !== null) break;
+                        if (val !== undefined && val !== null && val !== '') {
+                          if (typeof val === 'number') correctAns = val;
+                          else if (typeof val === 'string') {
+                            const s = val.trim().toUpperCase();
+                            if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(s))) correctAns = Number(s);
+                          }
+                          if (correctAns !== null) break;
+                        }
                       }
                     }
 
+                    // 3. User answer object fallback
                     if (correctAns === null) {
                       const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
                       if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
@@ -3045,30 +3439,44 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       }
                     }
 
-                    if (correctAns === null) {
-                      if (qObj.correctAnswerLetter) {
-                        const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                        if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
-                      } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-                        correctAns = qObj.correctAnswer;
+                    // 4. Global test-level answerKey (with proper section offset)
+                    if (correctAns === null && test?.answerKey) {
+                      const ak = test.answerKey;
+                      const secStart = secOffsets[activeSecIdx] || 0;
+                      let val = null;
+                      if (Array.isArray(ak)) {
+                        val = ak[secStart + idx] ?? (sections.length === 1 ? ak[idx] : null);
+                      } else if (typeof ak === 'object') {
+                        val = ak[secStart + qNo] ?? ak[String(secStart + qNo)];
+                      }
+                      if (val !== undefined && val !== null && val !== '') {
+                        if (typeof val === 'number') correctAns = val;
+                        else if (typeof val === 'string') {
+                          const s = val.trim().toUpperCase();
+                          if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                          else if (!isNaN(Number(s))) correctAns = Number(s);
+                        }
                       }
                     }
 
-                    const isQAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                    const numericCorrectAns = (typeof correctAns === 'string' && /^[A-Ea-e]$/.test(correctAns.trim()))
+                      ? correctAns.trim().toUpperCase().charCodeAt(0) - 65
+                      : (correctAns !== undefined && correctAns !== null && !isNaN(Number(correctAns)) && String(correctAns).trim() !== '' ? Number(correctAns) : correctAns);
+
                     const isQCorrect = isReviewMode && isQAnswered
-                      ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (correctAns !== null && correctAns !== undefined && selectedOpt === correctAns))
+                      ? (numericCorrectAns !== null && numericCorrectAns !== undefined && hasVisualAns ? numericSelectedOpt === numericCorrectAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
                       : null;
 
                     const teacherSc = teacherScores[activeSec.id]?.[qNo];
                     const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
-                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : (isQAnswered ? 0 : 'empty')));
+                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQOpenEnded ? undefined : (isQAnswered ? (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : 0)) : 'empty'));
 
                     return (
                       <div style={{
                         background: '#ffffff',
                         borderRadius: '1.25rem',
                         border: isReviewMode
-                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #cbd5e1' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isQAnswered && !hasTeacherGraded) ? '1.5px solid #cbd5e1' : (isQOpenEnded && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                           : '1.5px solid #e2e8f0',
                         padding: isMobile ? '1rem' : '1.5rem',
                         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -3091,22 +3499,28 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                           </div>
 
                           {isReviewMode ? (
-                            currentTeacherScore === 10 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                            ) : currentTeacherScore === 5 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                            ) : currentTeacherScore === 'empty' ? (
-                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                            ) : currentTeacherScore === 0 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                            ) : isQOpenEnded ? (
-                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                            ) : isQAnswered ? (
-                              isQCorrect
-                                ? <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900 }}>✓ DOĞRU</span>
-                                : <span style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 900 }}>✗ YANLIŞ</span>
+                            isQOpenEnded ? (
+                              currentTeacherScore === 10 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                              ) : currentTeacherScore === 5 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                              ) : currentTeacherScore === 'empty' || (!isQAnswered && !hasTeacherGraded) ? (
+                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                              ) : currentTeacherScore === 0 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                              ) : isTeacherMode ? (
+                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
+                              ) : (
+                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
+                              )
                             ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                              !isQAnswered ? (
+                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                              ) : isQCorrect === true ? (
+                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                              ) : (
+                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                              )
                             )
                           ) : (
                             isQAnswered || textVal ? (
@@ -3139,10 +3553,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               const isFourOptions = !isExplicitFive;
                               const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                               return optList.map((opt, optIdx) => {
-                                const isSelected = selectedOpt === optIdx;
+                                const isSelected = hasVisualAns && numericSelectedOpt === optIdx;
                                 const isCorrectOpt = (isReviewMode && isQCorrect && isSelected)
                                   ? true
-                                  : (correctAns !== null && correctAns !== undefined && correctAns === optIdx);
+                                  : (numericCorrectAns !== null && numericCorrectAns !== undefined && numericCorrectAns === optIdx);
 
                                 let bg = '#ffffff';
                                 let border = '1.5px solid #cbd5e1';
@@ -3151,7 +3565,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                 if (isReviewMode) {
                                   if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
                                   else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
-                                  else if (isCorrectOpt) { bg = '#f0fdf4'; border = '1.5px solid #16a34a'; color = '#16a34a'; }
+                                  else if (isCorrectOpt) {
+                                    if (hasVisualAns) {
+                                      bg = '#f0fdf4'; border = '2.5px solid #16a34a'; color = '#15803d';
+                                    } else {
+                                      bg = '#f0f9ff'; border = '2px dashed #0284c7'; color = '#0369a1';
+                                    }
+                                  }
                                 } else if (isSelected) {
                                   bg = '#059669';
                                   border = 'none'; color = 'white';
@@ -3178,8 +3598,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                       justifyContent: 'center',
                                       boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.25)' : 'none'
                                     }}
+                                    title={isReviewMode && isCorrectOpt && !hasVisualAns ? `Cevap Anahtarı: ${opt}` : undefined}
                                   >
-                                    {opt}
+                                    {isReviewMode && isSelected && isCorrectOpt ? `${opt} ✓` : isReviewMode && isSelected && !isCorrectOpt ? `${opt} ✗` : isReviewMode && isCorrectOpt ? (hasVisualAns ? `${opt} ✓` : `${opt} 🔑`) : opt}
                                   </button>
                                 );
                               });
@@ -3211,8 +3632,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                           </div>
                         )}
 
-                        {/* Öğretmen Puanlama Butonları (Review Modunda) */}
-                        {isReviewMode && (
+                        {/* Öğretmen Puanlama Butonları (Sadece Öğretmen Modunda) */}
+                        {isTeacherMode && (
                           <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
@@ -3325,6 +3746,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                             />
                           </div>
                         )}
+
+                        {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
+                        {!isTeacherMode && isReviewMode && teacherNotes[activeSec.id]?.[qNo] && (
+                          <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
+                            <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[activeSec.id]?.[qNo]}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -3377,13 +3805,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         Sonraki Bölüm <ChevronRight size={18} />
                       </button>
                     ) : isReviewMode ? (
-                      <button
-                        onClick={handleSaveTeacherGrading}
-                        disabled={isSavingTeacherGrading}
-                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-                      >
-                        <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
-                      </button>
+                      isTeacherMode ? (
+                        <button
+                          onClick={handleSaveTeacherGrading}
+                          disabled={isSavingTeacherGrading}
+                          style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                        >
+                          <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleSubmit}
+                          style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                        >
+                          <CheckCircle2 size={18} /> 📊 Sınav Sonuç Raporunu Gör
+                        </button>
+                      )
                     ) : (
                       <button
                         onClick={handleSubmit}
@@ -3404,7 +3841,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 isOpenEnded={secOE}
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
+                test={test}
                 isReviewMode={isReviewMode}
+                isTeacherMode={isTeacherMode}
                 teacherScores={teacherScores[activeSec.id] || {}}
                 onScoreChange={(qNo, sc) => {
                   setTeacherScores(p => ({
@@ -3494,44 +3933,74 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     ? (isFourOpts && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
                     : (isFourOpts ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
 
-                  const userAnsObj = activeSecState.answers?.[qNo];
-                  const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-                  const textVal = activeSecState.openEndedText?.[qNo] || '';
+                  const userAnsObj = Array.isArray(activeSecState.answers)
+                    ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
+                    : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
+                  const rawSelectedOpt = unwrapUserAnswer(userAnsObj);
+                  const numericSelectedOpt = typeof rawSelectedOpt === 'number' ? rawSelectedOpt : null;
+                  const hasStdAns = numericSelectedOpt !== null && !isNaN(numericSelectedOpt);
+                  const rawTextVal = activeSecState.openEndedText?.[qNo] ?? activeSecState.openEndedText?.[String(qNo)] ?? (typeof userAnsObj === 'object' ? (userAnsObj?.userAnswerText ?? userAnsObj?.user_answer_text ?? userAnsObj?.textAns) : undefined);
+                  const textVal = (rawTextVal !== undefined && rawTextVal !== null) ? String(rawTextVal) : '';
+                  const hasStdText = textVal !== undefined && textVal !== null && String(textVal).trim() !== '';
+                  const isStdAnswered = hasStdAns || hasStdText;
 
                   // Review mode: resolve correctAnswer
                   let corrAns = null;
-                  const keySources = [
-                    activeSec?.bankQ?.answerKey,
-                    activeSec?.answerKey,
-                    activeSec?.bankQ?.opticAnswers,
-                    activeSec?.opticAnswers,
-                    activeSec?.bankQ?.contentPayload?.answerKey,
-                    test?.answerKey,
-                    test?.opticAnswers
-                  ];
 
-                  for (const ks of keySources) {
-                    if (!ks) continue;
-                    let val = null;
-                    if (Array.isArray(ks)) {
-                      val = ks[idx] ?? ks[qNo - 1];
-                    } else if (typeof ks === 'object') {
-                      val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
-                    } else if (typeof ks === 'string') {
-                      const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
-                      val = clean[idx] ?? clean[qNo - 1];
-                    }
-                    if (val !== undefined && val !== null && val !== '') {
-                      if (typeof val === 'number') corrAns = val;
-                      else if (typeof val === 'string') {
-                        const s = val.trim().toUpperCase();
-                        if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
-                        else if (!isNaN(Number(s))) corrAns = Number(s);
+                  // 1. Direct question-level correct answer (highest priority)
+                  if (qObj.correctAnswerLetter) {
+                    const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                    if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
+                  } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+                    corrAns = qObj.correctAnswer;
+                  } else if (qObj.correct_answer !== undefined && qObj.correct_answer !== null) {
+                    corrAns = qObj.correct_answer;
+                  }
+
+                  if (corrAns === null && Array.isArray(qObj.options) && qObj.options.length > 0) {
+                    const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+                    if (cIdx !== -1) corrAns = cIdx;
+                  }
+
+                  // 2. Section-level candidate key sources
+                  if (corrAns === null) {
+                    const keySources = [
+                      activeSec?.bankQ?.answerKey,
+                      activeSec?.answerKey,
+                      activeSec?.bankQ?.opticAnswers,
+                      activeSec?.opticAnswers,
+                      activeSec?.bankQ?.contentPayload?.answerKey,
+                      activeSec?.bankQ?.htmlPayload?.answerKey,
+                      activeSec?.bankQ?.pdfPayload?.answerKey,
+                      activeSec?.bankQ?.raw_data?.answerKey,
+                      activeSec?.bankQ?.bankQ?.answerKey,
+                      activeSec?.bankQ?.bankQ?.opticAnswers
+                    ];
+
+                    for (const ks of keySources) {
+                      if (!ks) continue;
+                      let val = null;
+                      if (Array.isArray(ks)) {
+                        val = ks[idx] ?? ks[qNo - 1];
+                      } else if (typeof ks === 'object') {
+                        val = ks[qNo] ?? ks[String(qNo)] ?? ks[idx] ?? ks[String(idx)];
+                      } else if (typeof ks === 'string') {
+                        const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+                        val = clean[idx] ?? clean[qNo - 1];
                       }
-                      if (corrAns !== null) break;
+                      if (val !== undefined && val !== null && val !== '') {
+                        if (typeof val === 'number') corrAns = val;
+                        else if (typeof val === 'string') {
+                          const s = val.trim().toUpperCase();
+                          if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
+                          else if (!isNaN(Number(s))) corrAns = Number(s);
+                        }
+                        if (corrAns !== null) break;
+                      }
                     }
                   }
 
+                  // 3. User answer object fallback
                   if (corrAns === null) {
                     const rawSubCorr = userAnsObj?.correctAnswerLetter || userAnsObj?.correctAnswer;
                     if (rawSubCorr !== undefined && rawSubCorr !== null && rawSubCorr !== '') {
@@ -3544,32 +4013,46 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     }
                   }
 
-                  if (corrAns === null) {
-                    if (qObj.correctAnswerLetter) {
-                      const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                      if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
-                    } else if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-                      corrAns = qObj.correctAnswer;
+                  // 4. Global test-level answerKey (with proper section offset)
+                  if (corrAns === null && test?.answerKey) {
+                    const ak = test.answerKey;
+                    const secStart = secOffsets[activeSecIdx] || 0;
+                    let val = null;
+                    if (Array.isArray(ak)) {
+                      val = ak[secStart + idx] ?? (sections.length === 1 ? ak[idx] : null);
+                    } else if (typeof ak === 'object') {
+                      val = ak[secStart + qNo] ?? ak[String(secStart + qNo)];
+                    }
+                    if (val !== undefined && val !== null && val !== '') {
+                      if (typeof val === 'number') corrAns = val;
+                      else if (typeof val === 'string') {
+                        const s = val.trim().toUpperCase();
+                        if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
+                        else if (!isNaN(Number(s))) corrAns = Number(s);
+                      }
                     }
                   }
 
-                  const isStdAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                  const numericCorrAns = (typeof corrAns === 'string' && /^[A-Ea-e]$/.test(corrAns.trim()))
+                    ? corrAns.trim().toUpperCase().charCodeAt(0) - 65
+                    : (corrAns !== undefined && corrAns !== null && !isNaN(Number(corrAns)) && String(corrAns).trim() !== '' ? Number(corrAns) : corrAns);
+
                   const isStdCorrect = isReviewMode && isStdAnswered
-                    ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (corrAns !== null && corrAns !== undefined && selectedOpt === corrAns))
+                    ? (numericCorrAns !== null && numericCorrAns !== undefined && hasStdAns ? numericSelectedOpt === numericCorrAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
                     : null;
 
                   const teacherSc = teacherScores[activeSec.id]?.[qNo];
                   const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
                   const currentTeacherScore = hasTeacherGraded
                     ? teacherSc
-                    : (isQOpenEnded ? undefined : (isStdCorrect === true ? 10 : (isStdCorrect === false ? 0 : (isStdAnswered ? 0 : 'empty'))));
+                    : (isQOpenEnded ? undefined : (isStdAnswered ? (isStdCorrect === true ? 10 : (isStdCorrect === false ? 0 : 0)) : 'empty'));
 
                   return (
                     <div key={qNo} style={{
                       background: '#ffffff',
                       borderRadius: '1.1rem',
                       border: isReviewMode
-                        ? (currentTeacherScore === 10 || isStdCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #cbd5e1' : (currentTeacherScore === 0 || isStdCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                        ? (currentTeacherScore === 10 || isStdCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isStdAnswered && !hasTeacherGraded) ? '1.5px solid #cbd5e1' : (isQOpenEnded && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isStdCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                         : '1.5px solid #e2e8f0',
                       padding: '1.5rem',
                       boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -3590,22 +4073,28 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         </div>
 
                         {isReviewMode ? (
-                          currentTeacherScore === 10 ? (
-                            <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                          ) : currentTeacherScore === 5 ? (
-                            <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                          ) : currentTeacherScore === 'empty' ? (
-                            <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                          ) : currentTeacherScore === 0 ? (
-                            <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                          ) : isQOpenEnded ? (
-                            <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                          ) : isStdAnswered ? (
-                            isStdCorrect
-                              ? <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 900 }}>✓ DOĞRU</span>
-                              : <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 900 }}>✗ YANLIŞ</span>
+                          isQOpenEnded ? (
+                            currentTeacherScore === 10 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                            ) : currentTeacherScore === 5 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                            ) : currentTeacherScore === 'empty' || (!isStdAnswered && !hasTeacherGraded) ? (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                            ) : currentTeacherScore === 0 ? (
+                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                            ) : isTeacherMode ? (
+                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
+                            )
                           ) : (
-                            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                            !isStdAnswered ? (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                            ) : isStdCorrect === true ? (
+                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                            )
                           )
                         ) : (
                           isStdAnswered || textVal ? (
@@ -3630,10 +4119,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       {!isQOpenEnded ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
                           {options.map((opt, optIdx) => {
-                            const isSelected = selectedOpt === optIdx;
+                            const isSelected = hasStdAns && numericSelectedOpt === optIdx;
                             const isCorrectOpt = (isReviewMode && isStdCorrect && isSelected)
                               ? true
-                              : (corrAns !== null && corrAns !== undefined && corrAns === optIdx);
+                              : (numericCorrAns !== null && numericCorrAns !== undefined && numericCorrAns === optIdx);
                             const optLetter = String.fromCharCode(65 + optIdx);
                             let optText = '';
                             if (typeof opt === 'string') optText = opt;
@@ -3647,7 +4136,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                             if (isReviewMode) {
                               if (isSelected && isCorrectOpt) { bg = '#f0fdf4'; border = '2px solid #22c55e'; color = '#15803d'; }
                               else if (isSelected && !isCorrectOpt) { bg = '#fef2f2'; border = '2px solid #ef4444'; color = '#b91c1c'; }
-                              else if (isCorrectOpt) { bg = '#f0fdf4'; border = '1.5px solid #86efac'; color = '#15803d'; }
+                              else if (isCorrectOpt) {
+                                if (hasStdAns) {
+                                  bg = '#f0fdf4'; border = '2.5px solid #16a34a'; color = '#15803d';
+                                } else {
+                                  bg = '#f0f9ff'; border = '2px dashed #0284c7'; color = '#0369a1';
+                                }
+                              }
                             } else if (isSelected) {
                               bg = '#eff6ff'; border = '2px solid #2563eb'; color = '#1d4ed8';
                             }
@@ -3663,14 +4158,31 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                   border, background: bg, color, transition: 'all 0.15s ease',
                                   display: 'flex', alignItems: 'center'
                                 }}>
-                                <span style={{ fontWeight: 900, color: isSelected ? '#2563eb' : (isCorrectOpt && isReviewMode ? '#15803d' : '#64748b'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                                <span style={{ fontWeight: 900, color: isSelected ? '#2563eb' : (isCorrectOpt && isReviewMode ? (hasStdAns ? '#15803d' : '#0369a1') : '#64748b'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
                                   {optLetter})
                                 </span>
                                 <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
                                   {showText ? optText : `Seçenek ${optLetter}`}
                                 </span>
+                                {isReviewMode && isSelected && isCorrectOpt && (
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#15803d', background: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', fontWeight: 900 }}>✓ Doğru Yanıtınız</span>
+                                )}
+                                {isReviewMode && isSelected && !isCorrectOpt && (
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#b91c1c', background: '#fee2e2', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', fontWeight: 900 }}>✗ Yanlış Yanıtınız</span>
+                                )}
                                 {isReviewMode && isCorrectOpt && !isSelected && (
-                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#15803d', fontWeight: 900 }}>✓ Doğru Yanıt</span>
+                                  <span style={{
+                                    marginLeft: 'auto',
+                                    fontSize: '0.72rem',
+                                    color: hasStdAns ? '#15803d' : '#0369a1',
+                                    background: hasStdAns ? '#dcfce7' : '#e0f2fe',
+                                    border: hasStdAns ? '1px solid #86efac' : '1px solid #bae6fd',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '0.35rem',
+                                    fontWeight: 900
+                                  }}>
+                                    {hasStdAns ? '✓ Doğru Şık (Cevap Anahtarı)' : '🔑 Doğru Cevap (Boş Bıraktınız)'}
+                                  </span>
                                 )}
                               </button>
                             );
@@ -3700,8 +4212,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         </div>
                       )}
 
-                      {/* Öğretmen Puanlama Butonları (Review Modunda) */}
-                      {isReviewMode && (
+                      {/* Öğretmen Puanlama Butonları (Sadece Öğretmen Modunda) */}
+                      {isTeacherMode && (
                         <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
@@ -3820,6 +4332,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                           />
                         </div>
                       )}
+
+                      {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
+                      {!isTeacherMode && isReviewMode && teacherNotes[activeSec.id]?.[qNo] && (
+                        <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
+                          <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[activeSec.id]?.[qNo]}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -3842,13 +4361,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       Sonraki Bölüm <ChevronRight size={18} />
                     </button>
                   ) : isReviewMode ? (
-                    <button
-                      onClick={handleSaveTeacherGrading}
-                      disabled={isSavingTeacherGrading}
-                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-                    >
-                      <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
-                    </button>
+                    isTeacherMode ? (
+                      <button
+                        onClick={handleSaveTeacherGrading}
+                        disabled={isSavingTeacherGrading}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: isSavingTeacherGrading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                      >
+                        <Save size={18} /> {isSavingTeacherGrading ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Sonucu Gör'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSubmit}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                      >
+                        <CheckCircle2 size={18} /> 📊 Sınav Sonuç Raporunu Gör
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={handleSubmit}
@@ -3868,7 +4396,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 isOpenEnded={secOE}
                 resolvedQuestions={effectiveResolvedQuestions}
                 bankQ={activeSec.bankQ || test}
+                test={test}
                 isReviewMode={isReviewMode}
+                isTeacherMode={isTeacherMode}
                 teacherScores={teacherScores[activeSec.id] || {}}
                 onScoreChange={(qNo, sc) => {
                   setTeacherScores(p => ({
@@ -3914,6 +4444,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           teacherNotes={teacherNotes}
           overallFeedback={overallFeedback}
           isReviewMode={isReviewMode}
+          isTeacher={isTeacherMode}
           onConfirmClose={handleConfirmCloseResult}
           onReview={handleReviewResult}
         />

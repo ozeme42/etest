@@ -391,7 +391,19 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
     });
 
-    const isEval = (sub) => Boolean(sub?.isEvaluatedByTeacher || sub?.status === 'evaluated' || sub?.status === 'graded' || sub?.teacherFeedback || sub?.teacherNote);
+    const isEval = (sub, isOpenEnded = false) => {
+      if (!isOpenEnded) return true;
+      return Boolean(
+        sub?.isEvaluatedByTeacher ||
+        sub?.isEvaluated ||
+        sub?.status === 'evaluated' ||
+        sub?.status === 'graded' ||
+        sub?.teacherFeedback ||
+        sub?.teacherNote ||
+        sub?.evaluatedAt ||
+        (Array.isArray(sub?.answers) && sub?.answers.some(a => a.evaluatedAt || a.teacherNote || (a.evalStatus && a.evalStatus !== 'pending' && a.evalStatus !== 'empty')))
+      );
+    };
     const results = [];
     const processedTestKeys = new Set();
 
@@ -418,7 +430,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       });
 
       let sub = subInGlobal;
-      if (!sub || (subInHw && isEval(subInHw) && !isEval(subInGlobal))) {
+      if (!sub || (subInHw && isEval(subInHw, true) && !isEval(subInGlobal, true))) {
         sub = subInHw || subInGlobal;
       }
       if (!sub) return;
@@ -429,15 +441,26 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      const isEvaluated = isEval(sub);
-      const isOpenEnded = Boolean(
+      const isExplicitMCQ = Boolean(
+        hw.questionType === 'coktan_secmeli' ||
+        hw.type === 'coktan_secmeli' ||
+        hw.contentType === 'coktan_secmeli' ||
+        sub.questionType === 'coktan_secmeli' ||
+        sub.type === 'coktan_secmeli' ||
+        sub.contentType === 'coktan_secmeli' ||
+        raw.questionType === 'coktan_secmeli' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
+      );
+
+      const isOpenEnded = !isExplicitMCQ && Boolean(
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
         hw.contentType === 'acik_uclu' ||
         sub.isOpenEnded ||
         sub.questionType === 'acik_uclu' ||
-        (Array.isArray(sub.answers) && sub.answers.some(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
       );
+      const isEvaluated = isEval(sub, isOpenEnded);
       const isPendingEval = isOpenEnded && !isEvaluated;
 
       let correct = sub.correctCount ?? raw.correctCount ?? 0;
@@ -467,6 +490,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
       } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
         score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+        score = Math.min(100, Math.max(0, Math.round(sub.score)));
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+        score = Math.min(100, Math.max(0, Math.round(raw.score)));
       } else if (total > 0) {
         score = Math.min(100, Math.round((correct / total) * 100));
       }
@@ -538,6 +565,14 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
+      const curInfo = allCurTestsMap.get(bTestId);
+      const isHw = activeHws.some(h => String(h.id) === bTestId);
+
+      const testExists = Boolean(testObj || bookObj || curInfo || isHw);
+      if (!testExists) {
+        return; // Silinmiş test ve ödevlerin eski kayıtları gösterilmez
+      }
+
       const cleanBookTitle = (bookObj?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
       const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
@@ -561,6 +596,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
       } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+        scorePct = Math.min(100, Math.max(0, Math.round(raw.score)));
       } else if (total > 0) {
         scorePct = Math.min(100, Math.round((correct / total) * 100));
       }

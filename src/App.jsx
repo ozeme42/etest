@@ -499,7 +499,8 @@ function AppContent() {
               <Route path="/student/exams" element={<RequireAuth><StudentExamsPage /></RequireAuth>} />
               <Route path="/student/exams/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/homeworks" element={<RequireAuth><HomeworkManager /></RequireAuth>} />
-              <Route path="/evaluations" element={<RequireAuth><EvaluationManager /></RequireAuth>} />
+              <Route path="/evaluations" element={<RequireRole roles={['teacher', 'admin']}><EvaluationManager /></RequireRole>} />
+              <Route path="/evaluation" element={<Navigate to="/evaluations" replace />} />
               <Route path="/questions" element={<RequireAuth><QuestionBank /></RequireAuth>} />
               <Route path="/quiz/:testId" element={<RequireAuth><ModularQuizPage /></RequireAuth>} />
               <Route path="/book-quiz/:testId" element={<RequireAuth><TrackedBookQuizRunner /></RequireAuth>} />

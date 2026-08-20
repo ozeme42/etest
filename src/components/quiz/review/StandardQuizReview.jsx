@@ -11,6 +11,24 @@ import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
 
+function unwrapUserAnswer(val) {
+  if (val === undefined || val === null) return null;
+  let curr = val;
+  while (curr && typeof curr === 'object' && !Array.isArray(curr)) {
+    const next = curr.userAnswer ?? curr.user_answer ?? curr.userAns ?? curr.user_ans ?? curr.answer ?? curr.selectedOption ?? curr.selected_option ?? curr.selectedAnswer ?? curr.studentAnswer ?? curr.option ?? curr.value ?? curr.selected;
+    if (next === undefined || next === curr) break;
+    curr = next;
+  }
+  if (curr === undefined || curr === null || curr === '') return null;
+  if (typeof curr === 'string' && /^[A-Ea-e]$/.test(curr.trim())) {
+    return curr.trim().toUpperCase().charCodeAt(0) - 65;
+  }
+  if (!isNaN(Number(curr)) && String(curr).trim() !== '') {
+    return Number(curr);
+  }
+  return curr;
+}
+
 export default function StandardQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,11 +40,14 @@ export default function StandardQuizReview({ submission, test, questions = [], o
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const isTeacherMode = Boolean(
-    location.state?.isTeacher ||
-    location.state?.fromTeacher ||
-    location.search.includes('teacher=true') ||
-    currentUser?.role === 'teacher' ||
-    currentUser?.role === 'admin'
+    currentUser?.role !== 'student' &&
+    (
+      location.state?.isTeacher ||
+      location.state?.fromTeacher ||
+      location.search.includes('teacher=true') ||
+      currentUser?.role === 'teacher' ||
+      currentUser?.role === 'admin'
+    )
   );
 
   const handleGoBack = () => {
@@ -87,7 +108,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     for (let i = 1; i <= qCount; i++) {
       const a = answers[i - 1];
       const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
-      if (a?.evalStatus === 'empty' || (a?.isCorrect === null && !hasAns)) scores[i] = 'empty';
+      if (a?.evalStatus === 'empty' || a?.eval_status === 'empty' || a?.score === 'empty' || (!hasAns && (a?.isCorrect === null || a?.isCorrect === undefined))) scores[i] = 'empty';
       else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
       else if (a?.isCorrect === true) scores[i] = 10;
       else if (a?.isCorrect === false) scores[i] = 0;
@@ -112,9 +133,10 @@ export default function StandardQuizReview({ submission, test, questions = [], o
   const activeQuestion = resolvedQuestions[currentIndex] || resolvedQuestions[0] || {};
   const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
 
-  const userAns = activeAnsObj.userAnswer;
+  const rawUserAns = unwrapUserAnswer(activeAnsObj);
+  const userAns = typeof rawUserAns === 'number' ? rawUserAns : activeAnsObj.userAnswer;
   const textAns = activeAnsObj.userAnswerText;
-  const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+  const hasAnswer = typeof rawUserAns === 'number' || (userAns !== null && userAns !== undefined && userAns !== '');
 
   const isOpenEndedMode = useMemo(() => {
     if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
@@ -194,7 +216,9 @@ export default function StandardQuizReview({ submission, test, questions = [], o
         ...submission,
         answers: updatedAnswers,
         score: scorePercentage,
+        scorePercentage: scorePercentage,
         status: 'evaluated',
+        isEvaluated: true,
         isEvaluatedByTeacher: true,
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
@@ -292,6 +316,36 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     return collected;
   }, [activeQuestion]);
 
+  const numericUserAns = useMemo(() => {
+    const unwrapped = unwrapUserAnswer(userAns ?? activeAnsObj);
+    return typeof unwrapped === 'number' ? unwrapped : null;
+  }, [userAns, activeAnsObj]);
+
+  const resolvedCorrectAns = useMemo(() => {
+    let corr = null;
+    const answerKey = test?.answerKey || questions[0]?.answerKey;
+    if (Array.isArray(answerKey)) {
+      corr = answerKey[currentQNo - 1];
+    } else if (typeof answerKey === 'object' && answerKey !== null) {
+      corr = answerKey[currentQNo] ?? answerKey[String(currentQNo)];
+    }
+    if (corr === null || corr === undefined) {
+      corr = activeAnsObj?.correctAnswerLetter || activeAnsObj?.correctAnswer || activeQuestion?.correctAnswerLetter || activeQuestion?.correctAnswer;
+    }
+    if (corr !== null && corr !== undefined) {
+      if (typeof corr === 'string' && /^[A-Ea-e]$/.test(corr.trim())) {
+        return corr.trim().toUpperCase().charCodeAt(0) - 65;
+      } else if (!isNaN(Number(corr))) {
+        return Number(corr);
+      }
+    }
+    if (Array.isArray(optionsList) && optionsList.length > 0) {
+      const cIdx = optionsList.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect || o.is_correct)));
+      if (cIdx !== -1) return cIdx;
+    }
+    return null;
+  }, [test, questions, currentQNo, activeAnsObj, activeQuestion, optionsList]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* Header */}
@@ -351,7 +405,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <div style={{
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
             color: '#ffffff',
             padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
             borderRadius: '0.5rem',
@@ -359,7 +413,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
             fontSize: isMobile ? '0.78rem' : '0.9rem',
             boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
           }}>
-            %{scorePercentage} Puan
+            {isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Puan`}
           </div>
 
           {isTeacherMode && (
@@ -426,16 +480,85 @@ export default function StandardQuizReview({ submission, test, questions = [], o
             </div>
           )}
 
-          {/* Öğrencinin Yazılı Yanıtı */}
-          <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #bfdbfe' }}>
-            <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 900, textTransform: 'uppercase', marginBottom: 4 }}>✍️ ÖĞRENCİNİN CEVABI:</div>
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {textAns || activeAnsObj.userAnswer || '(Öğrenci bu soruya yanıt vermedi - Boş)'}
+          {optionsList && optionsList.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {optionsList.map((opt, optIdx) => {
+                const optLetter = String.fromCharCode(65 + optIdx);
+                let optText = '';
+                if (typeof opt === 'string') optText = opt;
+                else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
+                const showText = Boolean(optText && optText.trim() !== optLetter);
+
+                const isSelected = hasAnswer && numericUserAns === optIdx;
+                const isCorrectOpt = resolvedCorrectAns === optIdx;
+
+                let bg = '#ffffff';
+                let border = '1.5px solid #cbd5e1';
+                let color = '#334155';
+                let badge = null;
+
+                if (isSelected && isCorrectOpt) {
+                  bg = '#f0fdf4';
+                  border = '2px solid #16a34a';
+                  color = '#15803d';
+                  badge = <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 900, color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.55rem', borderRadius: '0.4rem' }}>✓ Doğru Yanıtınız</span>;
+                } else if (isSelected && !isCorrectOpt) {
+                  bg = '#fef2f2';
+                  border = '2px solid #ef4444';
+                  color = '#b91c1c';
+                  badge = <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 900, color: '#dc2626', background: '#fee2e2', padding: '0.2rem 0.55rem', borderRadius: '0.4rem' }}>✗ İşaretlediğiniz Yanlış Şık</span>;
+                } else if (isCorrectOpt) {
+                  if (hasAnswer) {
+                    bg = '#f0fdf4';
+                    border = '2.5px solid #16a34a';
+                    color = '#15803d';
+                    badge = <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 900, color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.55rem', borderRadius: '0.4rem' }}>✓ Doğru Cevap ({optLetter})</span>;
+                  } else {
+                    bg = '#f0f9ff';
+                    border = '2px dashed #0284c7';
+                    color = '#0369a1';
+                    badge = <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 900, color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd', padding: '0.2rem 0.55rem', borderRadius: '0.4rem' }}>🔑 Doğru Cevap ({optLetter}) - Boş Bıraktınız</span>;
+                  }
+                }
+
+                return (
+                  <div
+                    key={optIdx}
+                    style={{
+                      padding: '0.9rem 1.25rem',
+                      borderRadius: '0.75rem',
+                      border,
+                      background: bg,
+                      color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontWeight: (isSelected || isCorrectOpt) ? 900 : 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    <span style={{ fontWeight: 900, marginRight: '0.65rem', minWidth: '24px', color: isSelected ? (isCorrectOpt ? '#16a34a' : '#dc2626') : (isCorrectOpt ? '#16a34a' : '#64748b') }}>
+                      {optLetter})
+                    </span>
+                    {showText ? <span>{optText}</span> : <span>Şık {optLetter}</span>}
+                    {badge}
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          ) : (
+            /* Öğrencinin Yazılı Yanıtı (Açık Uçlu) */
+            <div style={{ background: hasAnswer ? '#eff6ff' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: hasAnswer ? '1.5px solid #bfdbfe' : '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.75rem', color: hasAnswer ? '#1d4ed8' : '#64748b', fontWeight: 900, textTransform: 'uppercase', marginBottom: 4 }}>
+                ✍️ ÖĞRENCİNİN CEVABI:
+              </div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: hasAnswer ? '#0f172a' : '#94a3b8', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                {textAns || (hasAnswer ? `Şık ${String.fromCharCode(65 + (numericUserAns ?? 0))}` : '(Öğrenci bu soruya yanıt vermedi - Boş)')}
+              </div>
+            </div>
+          )}
 
           {/* Öğretmen Puanlama Butonları & Not */}
-          {isTeacherMode && (
+          {isTeacherMode ? (
             <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>🎯 Puan Ver:</span>
@@ -479,11 +602,15 @@ export default function StandardQuizReview({ submission, test, questions = [], o
                 style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
-          )}
+          ) : teacherNotes[currentQNo] ? (
+            <div style={{ padding: '0.75rem 1rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.75rem', fontSize: '0.85rem', color: '#1e40af' }}>
+              <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[currentQNo]}
+            </div>
+          ) : null}
         </div>
 
         {/* Genel Karne & İleri/Geri */}
-        {isTeacherMode && (
+        {isTeacherMode ? (
           <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
             <textarea
@@ -502,7 +629,14 @@ export default function StandardQuizReview({ submission, test, questions = [], o
               <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
             </button>
           </div>
-        )}
+        ) : overallFeedback ? (
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#334155' }}>👨‍🏫 Öğretmen Değerlendirme Notu / Karne Görüşü:</div>
+            <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
+              {overallFeedback}
+            </div>
+          </div>
+        ) : null}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2rem' }}>
           <button
@@ -530,13 +664,14 @@ export default function StandardQuizReview({ submission, test, questions = [], o
         onClose={handleGoBack}
         studentName={submission.studentName || 'Öğrenci'}
         testTitle={test.title || submission.testTitle || 'Test Sınavı'}
-        score={scorePercentage}
+        score={isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? null : scorePercentage}
         correctCount={correctCount}
         wrongCount={wrongCount}
         blankCount={blankCount}
         totalQuestions={qCount}
         overallFeedback={overallFeedback}
         isTeacher={isTeacherMode}
+        isPending={isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0}
       />
     </div>
   );

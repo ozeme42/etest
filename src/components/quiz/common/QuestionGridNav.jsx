@@ -81,7 +81,9 @@ export default function QuestionGridNav({
       >
         {Array.from({ length: totalQuestions }).map((_, idx) => {
           const isActive = idx === currentIndex;
-          const userAns = answers[idx + 1] || answers[idx];
+          const userAns = Array.isArray(answers)
+            ? (answers[idx] ?? answers[idx + 1])
+            : (answers[idx + 1] ?? answers[String(idx + 1)]);
 
           let isAnswered = false;
           let isCorrect = null;
@@ -96,15 +98,19 @@ export default function QuestionGridNav({
           let textColor = darkMode ? '#94a3b8' : '#475569';
           let borderColor = darkMode ? '#334155' : '#e2e8f0';
 
-          if (isReviewMode && isCorrect !== null) {
-            if (isCorrect === true) {
+          if (isReviewMode) {
+            if (isAnswered && isCorrect === true) {
               bgColor = darkMode ? '#064e3b' : '#f0fdf4';
               textColor = darkMode ? '#34d399' : '#15803d';
               borderColor = darkMode ? '#059669' : '#bbf7d0';
-            } else if (isCorrect === false) {
+            } else if (isAnswered && isCorrect === false) {
               bgColor = darkMode ? '#7f1d1d' : '#fef2f2';
               textColor = darkMode ? '#f87171' : '#b91c1c';
               borderColor = darkMode ? '#dc2626' : '#fecaca';
+            } else if (!isAnswered) {
+              bgColor = darkMode ? '#0f172a' : '#f8fafc';
+              textColor = darkMode ? '#94a3b8' : '#64748b';
+              borderColor = darkMode ? '#334155' : '#e2e8f0';
             }
           } else if (isAnswered) {
             bgColor = darkMode ? '#312e81' : '#eff6ff';

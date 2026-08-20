@@ -13,67 +13,7 @@ export function useEvaluation() {
   return context;
 }
 
-const DEFAULT_SAMPLE_SUBMISSIONS = [
-  {
-    id: 'sub_sample_open_1',
-    testId: 't4',
-    studentId: 'u1',
-    studentName: 'Ahmet Yılmaz',
-    testTitle: 'Din Kültürü ve Ahlak Bilgisi Açık Uçlu Sınavı',
-    title: 'Din Kültürü ve Ahlak Bilgisi Açık Uçlu Sınavı',
-    subject: 'Din Kültürü',
-    score: 0,
-    correctCount: 0,
-    wrongCount: 0,
-    emptyCount: 0,
-    pendingCount: 2,
-    totalQuestions: 2,
-    status: 'pending_evaluation',
-    isOpenEnded: true,
-    isEvaluatedByTeacher: false,
-    submittedAt: new Date().toISOString(),
-    answers: [
-      {
-        questionId: 'q1',
-        questionNo: 1,
-        questionText: '1) İslam dininde infak ve sadakanın toplumsal dayanışmaya katkılarını açıklayınız.',
-        userAnswerText: 'İnfak ve sadaka zenginler ile fakirler arasında sevgi ve kardeşlik bağını güçlendirir, toplumdaki ekonomik adaletsizlikleri azaltır.'
-      },
-      {
-        questionId: 'q2',
-        questionNo: 2,
-        questionText: '2) Hz. Muhammed\'in (s.a.v.) adaletli ve güvenilir bir lider olmasının toplumsal yansımalarını yazınız.',
-        userAnswerText: 'Peygamber efendimizin El-Emin sıfatı toplumda yüksek bir güven ortamı oluşturmuştur. Her konuda hakkaniyetli davranmıştır.'
-      }
-    ]
-  },
-  {
-    id: 'sub_sample_1',
-    testId: 't1',
-    studentId: 'u1',
-    testTitle: 'LGS Matematik Çarpanlar ve Katlar Genel Tarama Sınavı',
-    title: 'LGS Matematik Çarpanlar ve Katlar Genel Tarama Sınavı',
-    subject: 'Matematik',
-    score: 70,
-    correctCount: 7,
-    wrongCount: 2,
-    emptyCount: 1,
-    totalQuestions: 10,
-    submittedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    answers: [
-      { questionId: 'q1', isCorrect: true, userAnswer: 'A' },
-      { questionId: 'q2', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'q3', isCorrect: false, userAnswer: 'C', subIndex: 2 },
-      { questionId: 'q4', isCorrect: true, userAnswer: 'D' },
-      { questionId: 'q5', isCorrect: false, userAnswer: 'A', subIndex: 4 },
-      { questionId: 'q6', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'q7', isCorrect: true, userAnswer: 'C' },
-      { questionId: 'q8', isCorrect: false, userAnswer: '', subIndex: 7 },
-      { questionId: 'q9', isCorrect: true, userAnswer: 'A' },
-      { questionId: 'q10', isCorrect: true, userAnswer: 'B' }
-    ]
-  }
-];
+const DEFAULT_SAMPLE_SUBMISSIONS = [];
 
 export function EvaluationProvider({ children }) {
   const [submissions, setSubmissions] = useState(() => {
@@ -81,10 +21,10 @@ export function EvaluationProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.length > 0 ? parsed : DEFAULT_SAMPLE_SUBMISSIONS;
+        return Array.isArray(parsed) ? parsed.filter(s => !String(s?.id).startsWith('sub_sample')) : [];
       } catch (e) {}
     }
-    return DEFAULT_SAMPLE_SUBMISSIONS;
+    return [];
   });
 
   const [isSyncing, setIsSyncing] = useState(true);

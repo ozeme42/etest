@@ -381,7 +381,13 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
   const handleOptionSelect = (qNo, optionIdx) => {
     setAnswers(prev => {
-      const updated = { ...prev, [qNo]: optionIdx };
+      const currentAns = prev[qNo];
+      const updated = { ...prev };
+      if (currentAns === optionIdx) {
+        delete updated[qNo];
+      } else {
+        updated[qNo] = optionIdx;
+      }
       triggerAutoSave(updated, openEndedText);
       return updated;
     });

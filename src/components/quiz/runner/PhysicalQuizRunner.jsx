@@ -166,11 +166,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
   const handleOptionSelect = (qNo, optIdx) => {
     setAnswers(prev => {
-      const updated = {
-        ...prev,
-        [qNo]: optIdx,
-        [String(qNo)]: optIdx
-      };
+      const current = prev[qNo];
+      const updated = { ...prev };
+      if (current === optIdx) {
+        delete updated[qNo];
+        delete updated[String(qNo)];
+      } else {
+        updated[qNo] = optIdx;
+        updated[String(qNo)] = optIdx;
+      }
       try {
         localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated));
         if (test.id) localStorage.setItem(`draft_quiz_${test.id}_ans`, JSON.stringify(updated));
