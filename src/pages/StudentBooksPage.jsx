@@ -16,6 +16,7 @@ import {
   Legend, RadialBarChart, RadialBar, Cell
 } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import { useTheme } from '../context/ThemeContext';
 import ManualTestModal from '../components/ManualTestModal';
 
 const DEBUG_PROGRESS = false;
@@ -38,45 +39,55 @@ function StatCard({ icon, label, value, gradient, shadow, border, sub, iconBg = 
   return (
     <div style={{
       background: 'var(--color-surface)',
-      borderRadius: 18,
-      padding: '1.1rem 1.3rem',
-      border: '1.5px solid var(--color-border)',
-      boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
+      border: `1.5px solid ${border || 'var(--color-border)'}`,
+      borderRadius: 16,
+      padding: '1.1rem 1.25rem',
       display: 'flex',
       alignItems: 'center',
       gap: 14,
+      boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
       position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{
-        width: 48,
-        height: 48,
-        borderRadius: 14,
+        width: 44,
+        height: 44,
+        borderRadius: 12,
         background: iconBg,
+        color: iconColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        flexShrink: 0
+        flexShrink: 0,
+        fontSize: '1.2rem'
       }}>
-        {React.cloneElement(icon, { size: 22, color: iconColor })}
+        {icon}
       </div>
-      <div>
-        <div style={{ fontSize: '1.55rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2, marginTop: 2 }}>
+          {value}
+        </div>
+        {sub && (
+          <div style={{ fontSize: '0.72rem', color: iconColor, fontWeight: 700, marginTop: 1 }}>
+            {sub}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Circular progress ─── */
-function CircularProgress({ pct, size = 64, stroke = 6, color }) {
+/* ── Mini Circular Progress Bar ─── */
+function CircularProgress({ pct, size = 56, stroke = 5, color = '#6366f1' }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
+  const offset = circ - (Math.min(100, Math.max(0, pct)) / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-border, rgba(0,0,0,0.06))" strokeWidth={stroke} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
     </svg>
   );
@@ -84,6 +95,7 @@ function CircularProgress({ pct, size = 64, stroke = 6, color }) {
 
 export default function StudentBooksPage() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { currentUser } = useAuth();
   const { homeworks = [], addHomework } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
@@ -1216,15 +1228,15 @@ export default function StudentBooksPage() {
                   <div style={{ height: 4, background: `linear-gradient(90deg, ${pal.from}, ${pal.to})`, position: 'absolute', top: 0, left: 0, right: 0 }} />
 
                   {isCompleted ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Star size={11} fill="#16a34a" color="#16a34a" /> TAMAMLANDI
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={11} fill="#10b981" color="#10b981" /> TAMAMLANDI
                     </div>
                   ) : urgentDue ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fff1f2', color: '#ef4444', border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecdd3', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
                       ⚡ {book.remainingDays} gün kaldı
                     </div>
                   ) : book.remainingDays !== undefined ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb', color: '#f59e0b', border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
                       <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />{book.remainingDays} gün
                     </div>
                   ) : null}
@@ -1270,10 +1282,10 @@ export default function StudentBooksPage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
                     {[
-                      { label: 'Doğru',  value: book.totalCorrect, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-                      { label: 'Yanlış', value: book.totalWrong,   color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-                      { label: 'Boş',    value: book.totalBlank,   color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
-                      { label: 'Başarı', value: `%${book.successRate}`, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+                      { label: 'Doğru',  value: book.totalCorrect, color: '#10b981', bg: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0' },
+                      { label: 'Yanlış', value: book.totalWrong,   color: '#ef4444', bg: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', border: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca' },
+                      { label: 'Boş',    value: book.totalBlank,   color: 'var(--color-text-muted, #64748b)', bg: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? 'rgba(148, 163, 184, 0.3)' : '#e2e8f0' },
+                      { label: 'Başarı', value: `%${book.successRate}`, color: '#3b82f6', bg: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff', border: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe' },
                     ].map((s, i) => (
                       <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '0.62rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
@@ -1284,7 +1296,7 @@ export default function StudentBooksPage() {
 
                   <button
                     onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                    style={{ width: '100%', padding: '0.75rem', background: isCompleted ? '#f1f5f9' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`, color: isCompleted ? '#334155' : 'white', border: isCompleted ? '1.5px solid #cbd5e1' : 'none', borderRadius: 12, fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`, transition: 'all 0.2s ease' }}
+                    style={{ width: '100%', padding: '0.75rem', background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`, color: isCompleted ? 'var(--color-text, #334155)' : 'white', border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none', borderRadius: 12, fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`, transition: 'all 0.2s ease' }}
                   >
                     {isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'} <ArrowRight size={16} />
                   </button>

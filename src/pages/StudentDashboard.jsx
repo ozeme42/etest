@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import ManualTestModal from '../components/ManualTestModal';
@@ -117,7 +118,7 @@ function MiniCircularProgress({ pct, size = 56, stroke = 5, color = '#6366f1' })
   const offset = circ - (validPct / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-border, rgba(0,0,0,0.08))" strokeWidth={stroke} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
     </svg>
   );
@@ -212,6 +213,7 @@ export function extractItemYMD(item) {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
@@ -3143,7 +3145,7 @@ export default function StudentDashboard() {
                         onClick={() => navigate(`/student/books/${book.id}`)}
                         className="sd-card"
                         style={{
-                          background: 'var(--color-surface-hover, #f8fafc)',
+                          background: 'var(--color-surface, #ffffff)',
                           border: '1.5px solid var(--color-border, #e2e8f0)',
                           borderRadius: 18,
                           padding: isMobile ? '1rem' : '1.25rem',
@@ -3154,7 +3156,7 @@ export default function StudentDashboard() {
                           transition: 'all 0.2s ease',
                           position: 'relative',
                           overflow: 'hidden',
-                          boxShadow: '0 4px 14px -2px rgba(0,0,0,0.03)'
+                          boxShadow: isDark ? '0 4px 14px -2px rgba(0,0,0,0.35)' : '0 4px 14px -2px rgba(0,0,0,0.03)'
                         }}
                       >
                         {/* Top Header: Title, Publisher, Remaining Days */}
@@ -3177,9 +3179,13 @@ export default function StudentDashboard() {
                                 fontWeight: 800,
                                 padding: '2px 8px',
                                 borderRadius: 99,
-                                background: book.remainingDays <= 3 ? '#fee2e2' : '#f0fdf4',
-                                color: book.remainingDays <= 3 ? '#b91c1c' : '#15803d',
-                                border: `1px solid ${book.remainingDays <= 3 ? '#fca5a5' : '#86efac'}`,
+                                background: book.remainingDays <= 3 
+                                  ? (isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2') 
+                                  : (isDark ? 'rgba(16, 185, 129, 0.18)' : '#f0fdf4'),
+                                color: book.remainingDays <= 3 ? '#ef4444' : '#10b981',
+                                border: isDark 
+                                  ? (book.remainingDays <= 3 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)') 
+                                  : (book.remainingDays <= 3 ? '1px solid #fca5a5' : '1px solid #86efac'),
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0
                               }}>
@@ -3195,8 +3201,8 @@ export default function StudentDashboard() {
                                 <span
                                   key={subj.id || sIdx}
                                   style={{
-                                    background: 'var(--color-surface, #ffffff)',
-                                    color: 'var(--color-text-muted, #475569)',
+                                    background: 'var(--color-surface-hover, #f1f5f9)',
+                                    color: 'var(--color-text, #475569)',
                                     border: '1px solid var(--color-border, #cbd5e1)',
                                     borderRadius: 6,
                                     padding: '1px 6px',
@@ -3209,7 +3215,7 @@ export default function StudentDashboard() {
                               ))}
                               {(book.subjects || []).length > 3 && (
                                 <span style={{
-                                  background: 'var(--color-surface, #ffffff)',
+                                  background: 'var(--color-surface-hover, #f1f5f9)',
                                   color: 'var(--color-text-muted, #64748b)',
                                   border: '1px solid var(--color-border, #cbd5e1)',
                                   borderRadius: 6,
@@ -3226,7 +3232,7 @@ export default function StudentDashboard() {
 
                         {/* Test Progress Box */}
                         <div style={{
-                          background: 'var(--color-surface, #ffffff)',
+                          background: 'var(--color-surface-hover, #f8fafc)',
                           borderRadius: 14,
                           padding: '0.85rem 1rem',
                           border: '1px solid var(--color-border, #e2e8f0)',
@@ -3270,21 +3276,21 @@ export default function StudentDashboard() {
 
                         {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.6rem', color: '#16a34a', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
-                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#16a34a', marginTop: 1 }}>{book.totalCorrect}</div>
+                          <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4', border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
                           </div>
-                          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.6rem', color: '#dc2626', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
-                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#dc2626', marginTop: 1 }}>{book.totalWrong}</div>
+                          <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecaca', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
                           </div>
-                          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
-                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#64748b', marginTop: 1 }}>{book.totalBlank}</div>
+                          <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? '1px solid rgba(148, 163, 184, 0.3)' : '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #64748b)', marginTop: 1 }}>{book.totalBlank}</div>
                           </div>
-                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.6rem', color: '#2563eb', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
-                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#2563eb', marginTop: 1 }}>%{book.successRate}</div>
+                          <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff', border: isDark ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #bfdbfe', borderRadius: 10, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#3b82f6', marginTop: 1 }}>%{book.successRate}</div>
                           </div>
                         </div>
 
@@ -3298,7 +3304,7 @@ export default function StudentDashboard() {
                           style={{
                             width: '100%',
                             padding: '0.65rem',
-                            background: isCompleted ? 'var(--color-surface, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+                            background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
                             color: isCompleted ? 'var(--color-text, #334155)' : '#ffffff',
                             border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none',
                             borderRadius: 12,
