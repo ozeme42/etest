@@ -162,24 +162,24 @@ export default function AdminHomeworkTracker() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '280px', flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                    <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                     <input 
                         type="text" 
                         placeholder="Öğrenci veya ödev ara..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.6rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.6rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box' }}
                     />
                 </div>
                 <select 
                     value={filterStatus} 
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', outline: 'none', cursor: 'pointer', fontWeight: 700 }}
+                    style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', outline: 'none', cursor: 'pointer', fontWeight: 700 }}
                 >
-                    <option value="all">Tüm Durumlar</option>
-                    <option value="completed">Çözüldü</option>
-                    <option value="pending">Bekliyor</option>
-                    <option value="overdue">Süresi Geçti</option>
+                    <option value="all" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Tüm Durumlar</option>
+                    <option value="completed" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Çözüldü</option>
+                    <option value="pending" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Bekliyor</option>
+                    <option value="overdue" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Süresi Geçti</option>
                 </select>
             </div>
             
@@ -206,8 +206,8 @@ export default function AdminHomeworkTracker() {
 
         {/* Table Card */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.25rem',
           boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
           overflowX: 'auto',
@@ -216,39 +216,39 @@ export default function AdminHomeworkTracker() {
             {filteredData.length > 0 ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
                     <thead>
-                        <tr style={{ borderBottom: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Ödev Başlığı</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Durum</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Atanma / Teslim</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Puan</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Yanlış/Boş</th>
-                            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>İşlem</th>
+                        <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Ödev Başlığı</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Durum</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Atanma / Teslim</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Puan</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Yanlış/Boş</th>
+                            <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredData.map(row => {
                             let statusBadgeStyle, StatusIcon, statusText;
                             if (row.status === 'completed') {
-                                statusBadgeStyle = { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' };
+                                statusBadgeStyle = { background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' };
                                 StatusIcon = CheckCircle;
                                 statusText = 'Çözüldü';
                             } else if (row.status === 'overdue') {
-                                statusBadgeStyle = { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
+                                statusBadgeStyle = { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' };
                                 StatusIcon = XCircle;
                                 statusText = 'Süresi Geçti';
                             } else {
-                                statusBadgeStyle = { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' };
+                                statusBadgeStyle = { background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' };
                                 StatusIcon = Clock3;
                                 statusText = 'Bekliyor';
                             }
 
                             return (
-                                <tr key={row.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s' }}>
-                                    <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: '#0f172a' }}>{row.studentName}</td>
+                                <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}>
+                                    <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: 'var(--color-text)' }}>{row.studentName}</td>
                                     <td style={{ padding: '0.9rem 1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', marginBottom: 2 }}>{row.hwTitle}</div>
-                                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{row.sourceType === 'trackedBook' ? '📚 Fiziki Kitap' : '💻 Dijital Test'}</div>
+                                        <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', marginBottom: 2 }}>{row.hwTitle}</div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{row.sourceType === 'trackedBook' ? '📚 Fiziki Kitap' : '💻 Dijital Test'}</div>
                                     </td>
                                     <td style={{ padding: '0.9rem 1rem' }}>
                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, ...statusBadgeStyle }}>
@@ -256,21 +256,21 @@ export default function AdminHomeworkTracker() {
                                         </div>
                                     </td>
                                     <td style={{ padding: '0.9rem 1rem', fontSize: '0.78rem' }}>
-                                        <div style={{ color: '#64748b', marginBottom: 2 }}>Atanma: {new Date(row.assignedAt).toLocaleDateString('tr-TR')}</div>
-                                        <div style={{ color: row.status === 'overdue' ? '#dc2626' : '#334155', fontWeight: row.status === 'overdue' ? 800 : 600 }}>
+                                        <div style={{ color: 'var(--color-text-muted)', marginBottom: 2 }}>Atanma: {new Date(row.assignedAt).toLocaleDateString('tr-TR')}</div>
+                                        <div style={{ color: row.status === 'overdue' ? '#ef4444' : 'var(--color-text-secondary)', fontWeight: row.status === 'overdue' ? 800 : 600 }}>
                                             Son: {new Date(row.dueDate).toLocaleDateString('tr-TR')}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '0.9rem 1rem', textAlign: 'center', fontSize: '1.1rem', fontWeight: 900, color: row.score !== null ? '#6366f1' : '#94a3b8' }}>
+                                    <td style={{ padding: '0.9rem 1rem', textAlign: 'center', fontSize: '1.1rem', fontWeight: 900, color: row.score !== null ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
                                         {row.score ?? '-'}
                                     </td>
                                     <td style={{ padding: '0.9rem 1rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
                                         {row.status === 'completed' ? (
                                             <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                                                <span style={{ color: '#dc2626' }}>{row.mistakes} Y</span>
-                                                <span style={{ color: '#64748b' }}>{row.blanks} B</span>
+                                                <span style={{ color: '#ef4444' }}>{row.mistakes} Y</span>
+                                                <span style={{ color: 'var(--color-text-muted)' }}>{row.blanks} B</span>
                                             </div>
-                                        ) : <span style={{ color: '#94a3b8' }}>-</span>}
+                                        ) : <span style={{ color: 'var(--color-text-muted)' }}>-</span>}
                                     </td>
                                     <td style={{ padding: '0.9rem 1rem', textAlign: 'center' }}>
                                         {row.submissionIds && row.submissionIds.length > 0 && (
@@ -278,9 +278,9 @@ export default function AdminHomeworkTracker() {
                                                 style={{
                                                     padding: '0.35rem 0.75rem',
                                                     borderRadius: '0.6rem',
-                                                    background: '#eff6ff',
-                                                    border: '1px solid #bfdbfe',
-                                                    color: '#1d4ed8',
+                                                    background: 'rgba(59, 130, 246, 0.15)',
+                                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                                    color: '#3b82f6',
                                                     fontSize: '0.75rem',
                                                     fontWeight: 800,
                                                     display: 'inline-flex',
@@ -306,7 +306,7 @@ export default function AdminHomeworkTracker() {
                     </tbody>
                 </table>
             ) : (
-                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--color-text-muted)' }}>
                     <Search size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem auto' }} />
                     <p style={{ margin: 0, fontWeight: 700 }}>Kriterlere uygun ödev ataması bulunamadı.</p>
                 </div>

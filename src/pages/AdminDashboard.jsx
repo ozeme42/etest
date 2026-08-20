@@ -32,9 +32,9 @@ export default function AdminDashboard() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#0f172a',
+      color: 'var(--color-text)',
       padding: '1.5rem 1rem 5rem 1rem',
       boxSizing: 'border-box'
     }}>
@@ -42,8 +42,8 @@ export default function AdminDashboard() {
         
         {/* TOP CONTROL CENTER HEADER */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.5rem',
           padding: '1.25rem 1.75rem',
           boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.04)',
@@ -63,27 +63,27 @@ export default function AdminDashboard() {
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
-              border: '2px solid #ffffff',
+              border: '2px solid var(--color-surface)',
               flexShrink: 0
             }}>
               <ShieldCheck size={26} color="white" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
                   Admin Kontrol Merkezi
                 </h1>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
                   PRO CONTROL
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b', fontWeight: 500 }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
                 Müfredat Hiyerarşisi, Kullanıcı Yetkilendirmeleri, Öğretmen-Öğrenci Eşleşmeleri ve Sistem Yönetimi
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {pendingTeachers.length > 0 && (
               <button
                 onClick={() => setActiveTab('users')}
@@ -93,9 +93,9 @@ export default function AdminDashboard() {
                   gap: 6,
                   padding: '0.5rem 0.9rem',
                   borderRadius: '0.85rem',
-                  background: '#fffbeb',
-                  border: '1.5px solid #fde68a',
-                  color: '#b45309',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1.5px solid rgba(245, 158, 11, 0.35)',
+                  color: '#f59e0b',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   cursor: 'pointer'
@@ -110,9 +110,9 @@ export default function AdminDashboard() {
               gap: 6,
               padding: '0.45rem 0.85rem',
               borderRadius: '0.85rem',
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              color: '#16a34a',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#10b981',
               fontSize: '0.78rem',
               fontWeight: 800
             }}>
@@ -124,17 +124,17 @@ export default function AdminDashboard() {
         {/* 5 GLOWING KPI METRIC CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
           {[
-            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğretmen`, icon: Users, color: '#0284c7', bg: '#eff6ff', border: '#bfdbfe' },
-            { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
-            { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
-            { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
-            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğretmen`, icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)' },
+            { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.3)' },
+            { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)' },
+            { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.3)' },
+            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)' },
           ].map(kpi => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} style={{
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: '1.25rem',
                 padding: '1rem 1.25rem',
                 display: 'flex',
@@ -142,13 +142,13 @@ export default function AdminDashboard() {
                 gap: '1rem',
                 boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
               }}>
-                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, border: `1px solid ${kpi.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon size={22} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{kpi.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
-                  <span style={{ fontSize: '0.72rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#d97706' : '#94a3b8', fontWeight: 600 }}>{kpi.sub}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{kpi.label}</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
+                  <span style={{ fontSize: '0.72rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#f59e0b' : 'var(--color-text-muted)', fontWeight: 600 }}>{kpi.sub}</span>
                 </div>
               </div>
             );
@@ -160,10 +160,10 @@ export default function AdminDashboard() {
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          background: '#ffffff',
+          background: 'var(--color-surface)',
           padding: '0.45rem',
           borderRadius: '1.25rem',
-          border: '1.5px solid #e2e8f0',
+          border: '1.5px solid var(--color-border)',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
           overflowX: 'auto'
         }}>
@@ -186,19 +186,19 @@ export default function AdminDashboard() {
                   gap: '0.55rem',
                   padding: '0.65rem 1.15rem',
                   borderRadius: '0.9rem',
-                  border: active ? '1.5px solid #bfdbfe' : '1.5px solid transparent',
-                  background: active ? '#eff6ff' : '#ffffff',
-                  color: active ? '#1d4ed8' : '#64748b',
+                  border: active ? '1.5px solid rgba(99, 102, 241, 0.4)' : '1.5px solid transparent',
+                  background: active ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                  color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
                   fontWeight: 800,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
-                  boxShadow: active ? '0 2px 8px rgba(37,99,235,0.12)' : 'none',
+                  boxShadow: active ? '0 2px 8px rgba(99,102,241,0.15)' : 'none',
                   transition: 'all 0.15s'
                 }}
               >
-                <Icon size={16} color={active ? '#1d4ed8' : '#64748b'} />
+                <Icon size={16} color={active ? 'var(--color-primary)' : 'var(--color-text-muted)'} />
                 <span>{tab.label}</span>
                 {tab.count && (
                   <span style={{
@@ -206,8 +206,8 @@ export default function AdminDashboard() {
                     fontWeight: 900,
                     padding: '0.15rem 0.5rem',
                     borderRadius: 99,
-                    background: active ? '#dbeafe' : '#f1f5f9',
-                    color: active ? '#1e40af' : '#475569'
+                    background: active ? 'rgba(99, 102, 241, 0.25)' : 'var(--color-surface-hover)',
+                    color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)'
                   }}>
                     {tab.count}
                   </span>
@@ -233,8 +233,8 @@ export default function AdminDashboard() {
           {activeTab === 'matrix' && <TeacherStudentMatrix />}
           {activeTab === 'summaries' && (
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.5rem',
               padding: '1.25rem',
               boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
@@ -312,8 +312,8 @@ function CurriculumManager() {
       
       {/* ACTION & BREADCRUMB BAR */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
         padding: '1rem 1.25rem',
         display: 'flex',
@@ -324,24 +324,24 @@ function CurriculumManager() {
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             📍 Aktif Yol:
           </span>
-          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedGrade ? '#1e40af' : '#94a3b8', background: selectedGrade ? '#eff6ff' : '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedGrade ? '1px solid #bfdbfe' : '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedGrade ? '#3b82f6' : 'var(--color-text-muted)', background: selectedGrade ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedGrade ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--color-border)' }}>
             {currentGradeObj?.name || 'Sınıf Seçilmedi'}
           </span>
           {selectedGrade && (
             <>
-              <ChevronRight size={14} color="#94a3b8" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedSubject ? '#0369a1' : '#94a3b8', background: selectedSubject ? '#f0f9ff' : '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedSubject ? '1px solid #bae6fd' : '1px solid #e2e8f0' }}>
+              <ChevronRight size={14} color="var(--color-text-muted)" />
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedSubject ? '#0284c7' : 'var(--color-text-muted)', background: selectedSubject ? 'rgba(2, 132, 199, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedSubject ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid var(--color-border)' }}>
                 {currentSubjectObj?.name || 'Ders Seçilmedi'}
               </span>
             </>
           )}
           {selectedSubject && (
             <>
-              <ChevronRight size={14} color="#94a3b8" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedUnit ? '#6d28d9' : '#94a3b8', background: selectedUnit ? '#faf5ff' : '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedUnit ? '1px solid #e9d5ff' : '1px solid #e2e8f0' }}>
+              <ChevronRight size={14} color="var(--color-text-muted)" />
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedUnit ? '#8b5cf6' : 'var(--color-text-muted)', background: selectedUnit ? 'rgba(139, 92, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedUnit ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--color-border)' }}>
                 {currentUnitObj?.name || 'Ünite Seçilmedi'}
               </span>
             </>
@@ -357,9 +357,9 @@ function CurriculumManager() {
               gap: 6,
               padding: '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: '#eff6ff',
-              border: '1.5px solid #bfdbfe',
-              color: '#1d4ed8',
+              background: 'rgba(59, 130, 246, 0.15)',
+              border: '1.5px solid rgba(59, 130, 246, 0.35)',
+              color: '#3b82f6',
               fontSize: '0.8rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -376,8 +376,8 @@ function CurriculumManager() {
         
         {/* COLUMN 1: GRADES */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.25rem',
           padding: '1.15rem',
           display: 'flex',
@@ -385,11 +385,11 @@ function CurriculumManager() {
           minHeight: 460,
           boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#4f46e5', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
               <FolderTree size={18} /> 1. Sınıflar / Düzeyler
             </div>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid #bfdbfe' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
               {data.grades.length} Sınıf
             </span>
           </div>
@@ -408,9 +408,9 @@ function CurriculumManager() {
                     justifyContent: 'space-between',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '0.85rem',
-                    background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#f8fafc',
-                    border: isActive ? '1.5px solid #4338ca' : '1px solid #e2e8f0',
-                    color: isActive ? '#ffffff' : '#0f172a',
+                    background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface-hover)',
+                    border: isActive ? '1.5px solid #4338ca' : '1px solid var(--color-border)',
+                    color: isActive ? '#ffffff' : 'var(--color-text)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.25)' : 'none'
@@ -418,17 +418,17 @@ function CurriculumManager() {
                 >
                   <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{grade.name}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : '#e2e8f0', color: isActive ? '#ffffff' : '#475569', padding: '0.15rem 0.45rem', borderRadius: 99 }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
                       {count} Ders
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteItem('grades', grade.id); }}
-                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : '#94a3b8', padding: 2, cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
                       onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                     >
                       <Trash2 size={14} />
                     </button>
-                    <ArrowRight size={14} color={isActive ? '#ffffff' : '#94a3b8'} />
+                    <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
                   </div>
                 </div>
               );
@@ -437,13 +437,13 @@ function CurriculumManager() {
 
           <form
             onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('grade', null, val); e.target.elements.addInput.value = ''; }}
-            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}
+            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
           >
             <input
               name="addInput"
               type="text"
               placeholder="+ Sınıf ekle (virgülle çoklu)"
-              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
+              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
             />
             <button
               type="submit"
@@ -456,8 +456,8 @@ function CurriculumManager() {
 
         {/* COLUMN 2: SUBJECTS */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.25rem',
           padding: '1.15rem',
           display: 'flex',
@@ -465,12 +465,12 @@ function CurriculumManager() {
           minHeight: 460,
           boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0284c7', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
               <BookOpen size={18} /> 2. Dersler
             </div>
             {selectedGrade && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: '#f0f9ff', color: '#0369a1', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid #bae6fd' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(2, 132, 199, 0.3)' }}>
                 {filteredSubjects.length} Ders
               </span>
             )}
@@ -480,7 +480,7 @@ function CurriculumManager() {
             <>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
                 {filteredSubjects.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu sınıfa ait henüz ders eklenmemiş.</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu sınıfa ait henüz ders eklenmemiş.</p>
                 ) : (
                   filteredSubjects.map(subject => {
                     const unitCount = data.units.filter(u => u.subjectId === subject.id).length;
@@ -495,9 +495,9 @@ function CurriculumManager() {
                           justifyContent: 'space-between',
                           padding: '0.65rem 0.85rem',
                           borderRadius: '0.85rem',
-                          background: isActive ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : '#f8fafc',
-                          border: isActive ? '1.5px solid #0369a1' : '1px solid #e2e8f0',
-                          color: isActive ? '#ffffff' : '#0f172a',
+                          background: isActive ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'var(--color-surface-hover)',
+                          border: isActive ? '1.5px solid #0369a1' : '1px solid var(--color-border)',
+                          color: isActive ? '#ffffff' : 'var(--color-text)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                           boxShadow: isActive ? '0 4px 14px rgba(14, 165, 233, 0.25)' : 'none'
@@ -505,17 +505,17 @@ function CurriculumManager() {
                       >
                         <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{subject.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : '#e2e8f0', color: isActive ? '#ffffff' : '#475569', padding: '0.15rem 0.45rem', borderRadius: 99 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
                             {unitCount} Ünite
                           </span>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteItem('subjects', subject.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : '#94a3b8', padding: 2, cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                           >
                             <Trash2 size={14} />
                           </button>
-                          <ArrowRight size={14} color={isActive ? '#ffffff' : '#94a3b8'} />
+                          <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
                         </div>
                       </div>
                     );
@@ -525,13 +525,13 @@ function CurriculumManager() {
 
               <form
                 onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('subject', selectedGrade, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}
+                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
               >
                 <input
                   name="addInput"
                   type="text"
                   placeholder="+ Ders ekle (Örn: Matematik, Fen)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
+                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
                 />
                 <button
                   type="submit"
@@ -542,7 +542,7 @@ function CurriculumManager() {
               </form>
             </>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
               <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
               <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir sınıf seçin.</p>
             </div>
@@ -551,8 +551,8 @@ function CurriculumManager() {
 
         {/* COLUMN 3: UNITS */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.25rem',
           padding: '1.15rem',
           display: 'flex',
@@ -560,12 +560,12 @@ function CurriculumManager() {
           minHeight: 460,
           boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7c3aed', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b5cf6', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
               <Layers size={18} /> 3. Üniteler
             </div>
             {selectedSubject && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: '#faf5ff', color: '#6d28d9', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid #e9d5ff' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(139, 92, 246, 0.3)' }}>
                 {filteredUnits.length} Ünite
               </span>
             )}
@@ -575,7 +575,7 @@ function CurriculumManager() {
             <>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
                 {filteredUnits.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu derse ait henüz ünite eklenmemiş.</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu derse ait henüz ünite eklenmemiş.</p>
                 ) : (
                   filteredUnits.map(unit => {
                     const topicCount = data.topics.filter(t => t.unitId === unit.id).length;
@@ -590,9 +590,9 @@ function CurriculumManager() {
                           justifyContent: 'space-between',
                           padding: '0.65rem 0.85rem',
                           borderRadius: '0.85rem',
-                          background: isActive ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : '#f8fafc',
-                          border: isActive ? '1.5px solid #6d28d9' : '1px solid #e2e8f0',
-                          color: isActive ? '#ffffff' : '#0f172a',
+                          background: isActive ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'var(--color-surface-hover)',
+                          border: isActive ? '1.5px solid #6d28d9' : '1px solid var(--color-border)',
+                          color: isActive ? '#ffffff' : 'var(--color-text)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                           boxShadow: isActive ? '0 4px 14px rgba(124, 58, 237, 0.25)' : 'none'
@@ -600,17 +600,17 @@ function CurriculumManager() {
                       >
                         <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{unit.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : '#e2e8f0', color: isActive ? '#ffffff' : '#475569', padding: '0.15rem 0.45rem', borderRadius: 99 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
                             {topicCount} Konu
                           </span>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteItem('units', unit.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : '#94a3b8', padding: 2, cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                           >
                             <Trash2 size={14} />
                           </button>
-                          <ArrowRight size={14} color={isActive ? '#ffffff' : '#94a3b8'} />
+                          <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
                         </div>
                       </div>
                     );
@@ -620,13 +620,13 @@ function CurriculumManager() {
 
               <form
                 onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('unit', selectedSubject, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}
+                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
               >
                 <input
                   name="addInput"
                   type="text"
                   placeholder="+ Ünite ekle (Örn: 1. Ünite - Çarpanlar)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
+                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
                 />
                 <button
                   type="submit"
@@ -637,7 +637,7 @@ function CurriculumManager() {
               </form>
             </>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
               <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
               <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ders seçin.</p>
             </div>
@@ -646,8 +646,8 @@ function CurriculumManager() {
 
         {/* COLUMN 4: TOPICS */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '1.25rem',
           padding: '1.15rem',
           display: 'flex',
@@ -655,12 +655,12 @@ function CurriculumManager() {
           minHeight: 460,
           boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#e11d48', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f43f5e', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
               <FileText size={18} /> 4. Konular
             </div>
             {selectedUnit && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: '#fff1f2', color: '#be123c', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid #fecdd3' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(244, 63, 94, 0.3)' }}>
                 {filteredTopics.length} Konu
               </span>
             )}
@@ -670,7 +670,7 @@ function CurriculumManager() {
             <>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
                 {filteredTopics.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu üniteye ait henüz konu eklenmemiş.</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu üniteye ait henüz konu eklenmemiş.</p>
                 ) : (
                   filteredTopics.map(topic => (
                     <div
@@ -681,9 +681,9 @@ function CurriculumManager() {
                         justifyContent: 'space-between',
                         padding: '0.65rem 0.85rem',
                         borderRadius: '0.85rem',
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        color: '#0f172a',
+                        background: 'var(--color-surface-hover)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text)',
                         transition: 'all 0.15s ease'
                       }}
                     >
@@ -691,7 +691,7 @@ function CurriculumManager() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button
                           onClick={() => deleteItem('topics', topic.id)}
-                          style={{ background: 'none', border: 'none', color: '#94a3b8', padding: 2, cursor: 'pointer' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
                           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                         >
                           <Trash2 size={14} />
@@ -704,13 +704,13 @@ function CurriculumManager() {
 
               <form
                 onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('topic', selectedUnit, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}
+                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
               >
                 <input
                   name="addInput"
                   type="text"
                   placeholder="+ Konu ekle (virgülle çoklu)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
+                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
                 />
                 <button
                   type="submit"
@@ -721,7 +721,7 @@ function CurriculumManager() {
               </form>
             </>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
               <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
               <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ünite seçin.</p>
             </div>
@@ -732,34 +732,34 @@ function CurriculumManager() {
 
       {/* MODAL: TOPLU JSON MÜFREDAT YÜKLE */}
       {jsonModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)' }}>
           <div style={{
-            background: '#ffffff',
+            background: 'var(--color-surface)',
             borderRadius: '1.5rem',
             padding: '1.5rem',
             width: '100%',
             maxWidth: 620,
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            border: '1.5px solid var(--color-border)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.15rem' }}>Toplu JSON Müfredat Ekle</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>Sınıf, Ders, Ünite ve Konu hiyerarşisini JSON formatında içe aktarın.</p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1.15rem' }}>Toplu JSON Müfredat Ekle</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Sınıf, Ders, Ünite ve Konu hiyerarşisini JSON formatında içe aktarın.</p>
               </div>
-              <button onClick={() => setJsonModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}>
+              <button onClick={() => setJsonModal(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.4rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>JSON Şablonu</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface-hover)', padding: '0.4rem 0.75rem', borderRadius: '0.65rem', border: '1px solid var(--color-border)' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>JSON Şablonu</span>
               <button
                 onClick={() => setJsonText('[\n  {\n    "grade": "5. Sınıf",\n    "subjects": [\n      {\n        "name": "Matematik",\n        "units": [\n          {\n            "name": "1. Ünite - Doğal Sayılar",\n            "topics": [\n              "Doğal Sayıların Okunuşu ve Yazılışı",\n              "Milyonlar Bölüğü"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]')}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 800, cursor: 'pointer' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#3b82f6', fontWeight: 800, cursor: 'pointer' }}
               >
                 Örnek Şablonu Doldur
               </button>
@@ -770,11 +770,11 @@ function CurriculumManager() {
               placeholder="Buraya JSON yapıştırın..."
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
-              style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
+              style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <button onClick={() => setJsonModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>İptal</button>
+              <button onClick={() => setJsonModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>İptal</button>
               <button onClick={handleJsonImport} style={{ padding: '0.55rem 1.4rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #0284c7, #0ea5e9)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)' }}>İçe Aktar</button>
             </div>
           </div>
@@ -887,15 +887,15 @@ function UserManager() {
       {/* PENDING TEACHER APPROVALS ALERT CARD */}
       {pendingTeachers.length > 0 && (
         <div style={{
-          background: '#fffbeb',
-          border: '1.5px solid #fde68a',
+          background: 'rgba(245, 158, 11, 0.12)',
+          border: '1.5px solid rgba(245, 158, 11, 0.35)',
           borderRadius: '1.25rem',
           padding: '1.25rem',
           boxShadow: '0 4px 16px rgba(245, 158, 11, 0.1)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
-            <Clock size={22} color="#b45309" />
-            <h3 style={{ margin: 0, color: '#92400e', fontWeight: 900, fontSize: '1rem' }}>
+            <Clock size={22} color="#f59e0b" />
+            <h3 style={{ margin: 0, color: '#f59e0b', fontWeight: 900, fontSize: '1rem' }}>
               Onay Bekleyen Öğretmen Kayıtları ({pendingTeachers.length})
             </h3>
           </div>
@@ -903,8 +903,8 @@ function UserManager() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
             {pendingTeachers.map(teacher => (
               <div key={teacher.id} style={{
-                background: '#ffffff',
-                border: '1px solid #fde68a',
+                background: 'var(--color-surface)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
                 borderRadius: '0.85rem',
                 padding: '0.75rem 1rem',
                 display: 'flex',
@@ -914,8 +914,8 @@ function UserManager() {
                 boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
               }}>
                 <div>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>{teacher.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📧 {teacher.email}</div>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem' }}>{teacher.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>📧 {teacher.email}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button
@@ -941,8 +941,8 @@ function UserManager() {
                     style={{
                       padding: '0.4rem',
                       borderRadius: '0.65rem',
-                      background: '#fef2f2',
-                      border: '1px solid #fecaca',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
                       color: '#ef4444',
                       cursor: 'pointer'
                     }}
@@ -959,8 +959,8 @@ function UserManager() {
 
       {/* FILTER & SEARCH TOOLBAR */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
         padding: '1rem 1.25rem',
         display: 'flex',
@@ -988,8 +988,8 @@ function UserManager() {
                 fontSize: '0.76rem',
                 fontWeight: 800,
                 border: 'none',
-                background: userFilter === f.id ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f1f5f9',
-                color: userFilter === f.id ? '#ffffff' : '#475569',
+                background: userFilter === f.id ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--color-surface-hover)',
+                color: userFilter === f.id ? '#ffffff' : 'var(--color-text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s'
@@ -1003,13 +1003,13 @@ function UserManager() {
         {/* Search & Add */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', minWidth: 200 }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
             <input
               type="text"
               placeholder="İsim veya e-posta ara..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <button
@@ -1036,8 +1036,8 @@ function UserManager() {
 
       {/* USERS GLASS TABLE */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
         overflowX: 'auto',
@@ -1045,39 +1045,39 @@ function UserManager() {
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
           <thead>
-            <tr style={{ borderBottom: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Kullanıcı</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta / Kullanıcı Adı</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Rol</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Bağlı Öğretmen</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Durum</th>
-              <th style={{ padding: '1rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
+            <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Kullanıcı</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta / Kullanıcı Adı</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Rol</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Bağlı Öğretmen</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Durum</th>
+              <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map(user => {
               const roleBadge = user.role === 'admin' 
-                ? { bg: '#fff1f2', text: '#be123c', border: '#fecdd3', label: 'Yönetici' }
+                ? { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.3)', label: 'Yönetici' }
                 : user.role === 'teacher'
-                ? { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', label: 'Öğretmen' }
-                : { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0', label: 'Öğrenci' };
+                ? { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)', label: 'Öğretmen' }
+                : { bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)', label: 'Öğrenci' };
 
               return (
-                <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                <tr key={user.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}>
                   {/* User Initial + Name */}
                   <td style={{ padding: '0.85rem 1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                       <div style={{ width: 34, height: 34, borderRadius: '50%', background: roleBadge.bg, color: roleBadge.text, border: `1px solid ${roleBadge.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                         {user.name?.charAt(0) || 'U'}
                       </div>
-                      <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>{user.name}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem' }}>{user.name}</span>
                     </div>
                   </td>
 
                   {/* Email */}
-                  <td style={{ padding: '0.85rem 1rem', color: '#475569', fontSize: '0.82rem', fontWeight: 600 }}>
+                  <td style={{ padding: '0.85rem 1rem', color: 'var(--color-text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>
                     {user.email}
                   </td>
 
@@ -1105,15 +1105,15 @@ function UserManager() {
                             await updateUser(user.id, updated);
                             await dbAddUser(updated);
                           }}
-                          style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid #cbd5e1', fontSize: '0.75rem', background: currentGradeVal ? '#f0f9ff' : '#f8fafc', color: currentGradeVal ? '#0369a1' : '#64748b', fontWeight: 800, cursor: 'pointer', outline: 'none' }}
+                          style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: currentGradeVal ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)', color: currentGradeVal ? '#3b82f6' : 'var(--color-text-muted)', fontWeight: 800, cursor: 'pointer', outline: 'none' }}
                         >
-                          <option value="" style={{ background: '#ffffff', color: '#0f172a' }}>— Sınıf Seçin</option>
+                          <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>— Sınıf Seçin</option>
                           {curData.grades.map(g => (
-                            <option key={g.id} value={g.id} style={{ background: '#ffffff', color: '#0f172a' }}>{g.name}</option>
+                            <option key={g.id} value={g.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>{g.name}</option>
                           ))}
                         </select>
                       );
-                    })() : <span style={{ color: '#94a3b8' }}>—</span>}
+                    })() : <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
                   </td>
 
                   {/* Assigned Teacher (Student) */}
@@ -1126,19 +1126,19 @@ function UserManager() {
                           await updateUser(user.id, updated);
                           await dbAddUser(updated);
                         }}
-                        style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid #cbd5e1', fontSize: '0.75rem', background: user.teacherId ? '#eff6ff' : '#fffbeb', color: user.teacherId ? '#1d4ed8' : '#b45309', fontWeight: 800, cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: user.teacherId ? 'rgba(59, 130, 246, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: user.teacherId ? '#3b82f6' : '#f59e0b', fontWeight: 800, cursor: 'pointer', outline: 'none' }}
                       >
-                        <option value="" style={{ background: '#ffffff', color: '#0f172a' }}>— Atanmamış</option>
+                        <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>— Atanmamış</option>
                         {teachers.map(t => (
-                          <option key={t.id} value={t.id} style={{ background: '#ffffff', color: '#0f172a' }}>👨‍🏫 {t.name}</option>
+                          <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>👨‍🏫 {t.name}</option>
                         ))}
                       </select>
-                    ) : <span style={{ color: '#94a3b8' }}>—</span>}
+                    ) : <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
                   </td>
 
                   {/* Password Pill */}
                   <td style={{ padding: '0.85rem 1rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', fontFamily: 'monospace', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', fontFamily: 'monospace', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Key size={11} /> {user.password || '123456'}
                     </span>
                   </td>
@@ -1147,16 +1147,16 @@ function UserManager() {
                   <td style={{ padding: '0.85rem 1rem' }}>
                     {user.role === 'teacher' ? (
                       user.isApproved !== false ? (
-                        <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <CheckCircle2 size={14} /> Onaylı
                         </span>
                       ) : (
-                        <span style={{ color: '#d97706', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: '#f59e0b', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Clock size={14} /> Bekliyor
                         </span>
                       )
                     ) : (
-                      <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.78rem' }}>Aktif</span>
+                      <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>Aktif</span>
                     )}
                   </td>
 
@@ -1165,14 +1165,14 @@ function UserManager() {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                       <button
                         onClick={() => handleOpenModal(user)}
-                        style={{ padding: '0.35rem', borderRadius: '0.5rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer' }}
+                        style={{ padding: '0.35rem', borderRadius: '0.5rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', cursor: 'pointer' }}
                         title="Düzenle"
                       >
                         <Edit size={14} />
                       </button>
                       <button
                         onClick={() => deleteUser(user.id)}
-                        style={{ padding: '0.35rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer' }}
+                        style={{ padding: '0.35rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', cursor: 'pointer' }}
                         title="Kullanıcıyı Sil"
                       >
                         <Trash2 size={14} />
@@ -1184,7 +1184,7 @@ function UserManager() {
             })}
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--color-text-muted)' }}>
                   <Users size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem auto' }} />
                   <p style={{ margin: 0, fontWeight: 700 }}>Seçilen kriterlere uygun kullanıcı bulunamadı.</p>
                 </td>
@@ -1196,76 +1196,76 @@ function UserManager() {
 
       {/* MODAL: KULLANICI EKLE / DÜZENLE */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)' }}>
           <div style={{
-            background: '#ffffff',
+            background: 'var(--color-surface)',
             borderRadius: '1.5rem',
             padding: '1.5rem',
             width: '100%',
             maxWidth: 440,
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            border: '1.5px solid var(--color-border)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <UserPlus size={20} color="#e11d48" />
-                <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.1rem' }}>
+                <UserPlus size={20} color="#f43f5e" />
+                <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1.1rem' }}>
                   {editingUserId ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Ekle'}
                 </h3>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={15} />
               </button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Ad Soyad</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Ad Soyad</label>
                 <input
                   type="text"
                   placeholder="Örn: Ahmet Yılmaz"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>E-Posta / Kullanıcı Adı</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>E-Posta / Kullanıcı Adı</label>
                 <input
                   type="text"
                   placeholder="Örn: ahmet@okul.com"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   required
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Rol</label>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Rol</label>
                   <select
                     value={formData.role}
                     onChange={e => setFormData({ ...formData, role: e.target.value, gradeId: e.target.value === 'student' ? formData.gradeId : '', teacherId: e.target.value === 'student' ? formData.teacherId : '' })}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                   >
-                    <option value="student">Öğrenci</option>
-                    <option value="teacher">Öğretmen</option>
-                    <option value="admin">Yönetici (Admin)</option>
+                    <option value="student" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Öğrenci</option>
+                    <option value="teacher" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Öğretmen</option>
+                    <option value="admin" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Yönetici (Admin)</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Giriş Şifresi</label>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Giriş Şifresi</label>
                   <input
                     type="text"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #fde68a', background: '#fffbeb', color: '#b45309', fontSize: '0.85rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', fontSize: '0.85rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
@@ -1274,34 +1274,34 @@ function UserManager() {
               {formData.role === 'student' && (
                 <>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Sınıfı</label>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Sınıfı</label>
                     <select
                       value={formData.gradeId}
                       onChange={e => setFormData({ ...formData, gradeId: e.target.value })}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                       required
                     >
-                      <option value="">Sınıf Seçiniz</option>
-                      {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                      <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Sınıf Seçiniz</option>
+                      {curData.grades.map(g => <option key={g.id} value={g.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>{g.name}</option>)}
                     </select>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Bağlı Öğretmen</label>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Bağlı Öğretmen</label>
                     <select
                       value={formData.teacherId}
                       onChange={e => setFormData({ ...formData, teacherId: e.target.value })}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                     >
-                      <option value="">Bağlı Öğretmen Seçiniz (Opsiyonel)</option>
-                      {teachers.map(t => <option key={t.id} value={t.id}>{t.name} ({t.email})</option>)}
+                      <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Bağlı Öğretmen Seçiniz (Opsiyonel)</option>
+                      {teachers.map(t => <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>{t.name} ({t.email})</option>)}
                     </select>
                   </div>
                 </>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>İptal</button>
+                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>İptal</button>
                 <button type="submit" style={{ padding: '0.55rem 1.4rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}>Kaydet</button>
               </div>
             </form>
@@ -1348,8 +1348,8 @@ function TeacherStudentMatrix() {
       
       {/* HEADER & SEARCH BAR */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
         padding: '1.25rem 1.5rem',
         display: 'flex',
@@ -1360,21 +1360,21 @@ function TeacherStudentMatrix() {
         boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Users color="#4f46e5" size={22} /> Öğretmen & Öğrenci Eşleşme Dağılımı
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users color="var(--color-primary)" size={22} /> Öğretmen & Öğrenci Eşleşme Dağılımı
           </h3>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
             Hangi öğretmenin hangi öğrencileri olduğunu görün ve anlık olarak öğrenci aktarımı yapın.
           </p>
         </div>
         <div style={{ position: 'relative', minWidth: 240 }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
           <input
             type="text"
             placeholder="Öğrenci veya öğretmen ara..."
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
-            style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
       </div>
@@ -1382,14 +1382,14 @@ function TeacherStudentMatrix() {
       {/* UNASSIGNED STUDENTS ALERT CARD */}
       {unassignedStudents.length > 0 && (
         <div style={{
-          background: '#fffbeb',
-          border: '1.5px solid #fde68a',
+          background: 'rgba(245, 158, 11, 0.12)',
+          border: '1.5px solid rgba(245, 158, 11, 0.35)',
           borderRadius: '1.25rem',
           padding: '1.25rem',
           boxShadow: '0 4px 16px rgba(245, 158, 11, 0.1)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#92400e', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚠️ Henüz Öğretmeni Atanmamış Öğrenciler ({unassignedStudents.length})
             </h4>
           </div>
@@ -1397,22 +1397,22 @@ function TeacherStudentMatrix() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #fde68a', background: '#fef3c7' }}>
-                  <th style={{ padding: '0.65rem 0.85rem', color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
-                  <th style={{ padding: '0.65rem 0.85rem', color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-                  <th style={{ padding: '0.65rem 0.85rem', color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
-                  <th style={{ padding: '0.65rem 0.85rem', color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Şifre</th>
-                  <th style={{ padding: '0.65rem 0.85rem', color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmen Ata</th>
+                <tr style={{ borderBottom: '1px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.2)' }}>
+                  <th style={{ padding: '0.65rem 0.85rem', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
+                  <th style={{ padding: '0.65rem 0.85rem', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
+                  <th style={{ padding: '0.65rem 0.85rem', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
+                  <th style={{ padding: '0.65rem 0.85rem', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Şifre</th>
+                  <th style={{ padding: '0.65rem 0.85rem', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmen Ata</th>
                 </tr>
               </thead>
               <tbody>
                 {unassignedStudents.map(std => (
-                  <tr key={std.id} style={{ borderBottom: '1px solid #fef3c7' }}>
-                    <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{std.name}</td>
-                    <td style={{ padding: '0.65rem 0.85rem', color: '#0369a1', fontSize: '0.78rem', fontWeight: 700 }}>{getGradeName(std.gradeId)}</td>
-                    <td style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.78rem' }}>{std.email}</td>
+                  <tr key={std.id} style={{ borderBottom: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                    <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: 'var(--color-text)', fontSize: '0.85rem' }}>{std.name}</td>
+                    <td style={{ padding: '0.65rem 0.85rem', color: '#3b82f6', fontSize: '0.78rem', fontWeight: 700 }}>{getGradeName(std.gradeId)}</td>
+                    <td style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>{std.email}</td>
                     <td style={{ padding: '0.65rem 0.85rem' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#ffffff', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid #fde68a' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
                         🔑 {std.password || '123456'}
                       </span>
                     </td>
@@ -1420,11 +1420,11 @@ function TeacherStudentMatrix() {
                       <select
                         value=""
                         onChange={e => handleAssignTeacher(std.id, e.target.value)}
-                        style={{ padding: '0.35rem 0.65rem', borderRadius: '0.55rem', border: '1px solid #fde68a', fontSize: '0.75rem', background: '#ffffff', fontWeight: 800, color: '#92400e', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '0.35rem 0.65rem', borderRadius: '0.55rem', border: '1px solid rgba(245, 158, 11, 0.35)', fontSize: '0.75rem', background: 'var(--color-surface)', fontWeight: 800, color: '#f59e0b', cursor: 'pointer', outline: 'none' }}
                       >
-                        <option value="" style={{ background: '#ffffff', color: '#0f172a' }}>Öğretmen Seçiniz...</option>
+                        <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Öğretmen Seçiniz...</option>
                         {teachers.map(t => (
-                          <option key={t.id} value={t.id} style={{ background: '#ffffff', color: '#0f172a' }}>👨‍🏫 {t.name}</option>
+                          <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>👨‍🏫 {t.name}</option>
                         ))}
                       </select>
                     </td>
@@ -1439,12 +1439,12 @@ function TeacherStudentMatrix() {
       {/* TEACHER CARDS GRID */}
       {teachers.length === 0 ? (
         <div style={{
-          background: '#ffffff',
-          border: '1.5px dashed #cbd5e1',
+          background: 'var(--color-surface)',
+          border: '1.5px dashed var(--color-border-input)',
           borderRadius: '1.25rem',
           padding: '3rem 1.5rem',
           textAlign: 'center',
-          color: '#64748b',
+          color: 'var(--color-text-muted)',
           fontWeight: 700
         }}>
           Sistemde henüz kayıtlı öğretmen bulunmuyor.
@@ -1460,74 +1460,74 @@ function TeacherStudentMatrix() {
 
             return (
               <div key={teacher.id} style={{
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: '1.25rem',
                 padding: '1.25rem 1.5rem',
                 boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' }}>
                       {teacher.name?.charAt(0) || 'Ö'}
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{teacher.name}</h4>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>📧 {teacher.email}</span>
+                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>{teacher.name}</h4>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>📧 {teacher.email}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.3rem 0.85rem', borderRadius: 99 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.3rem 0.85rem', borderRadius: 99 }}>
                       🎓 {teacherStudents.length} Bağlı Öğrenci
                     </span>
                   </div>
                 </div>
 
                 {teacherStudents.length === 0 ? (
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', margin: '0.5rem 0' }}>Bu öğretmene henüz bağlı öğrenci bulunmuyor.</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: '0.5rem 0' }}>Bu öğretmene henüz bağlı öğrenci bulunmuyor.</p>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '750px' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Çözülen Sınav</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmeni Değiştir</th>
+                        <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Çözülen Sınav</th>
+                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmeni Değiştir</th>
                         </tr>
                       </thead>
                       <tbody>
                         {teacherStudents.map(std => {
                           const solvedCount = submissions.filter(sub => sub.studentId === std.id).length;
                           return (
-                            <tr key={std.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{std.name}</td>
+                            <tr key={std.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: 'var(--color-text)', fontSize: '0.85rem' }}>{std.name}</td>
                               <td style={{ padding: '0.65rem 0.85rem' }}>
-                                <span style={{ fontSize: '0.72rem', background: '#f0f9ff', color: '#0369a1', padding: '0.2rem 0.55rem', borderRadius: 99, fontWeight: 800, border: '1px solid #bae6fd' }}>
+                                <span style={{ fontSize: '0.72rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.2rem 0.55rem', borderRadius: 99, fontWeight: 800, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
                                   {getGradeName(std.gradeId)}
                                 </span>
                               </td>
-                              <td style={{ padding: '0.65rem 0.85rem', color: '#475569', fontSize: '0.78rem' }}>{std.email}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>{std.email}</td>
                               <td style={{ padding: '0.65rem 0.85rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#fffbeb', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid #fde68a' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
                                   🔑 {std.password || '123456'}
                                 </span>
                               </td>
-                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 900, color: solvedCount > 0 ? '#16a34a' : '#94a3b8', fontSize: '0.85rem' }}>
+                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 900, color: solvedCount > 0 ? '#10b981' : 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                                 {solvedCount}
                               </td>
                               <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>
                                 <select
                                   value={std.teacherId || ''}
                                   onChange={e => handleAssignTeacher(std.id, e.target.value)}
-                                  style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid #cbd5e1', fontSize: '0.75rem', background: '#f8fafc', color: '#0f172a', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                                  style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
                                 >
                                   {teachers.map(t => (
-                                    <option key={t.id} value={t.id} style={{ background: '#ffffff', color: '#0f172a' }}>👨‍🏫 {t.name}</option>
+                                    <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>👨‍🏫 {t.name}</option>
                                   ))}
-                                  <option value="" style={{ background: '#ffffff', color: '#0f172a' }}>Atanmamış Yap</option>
+                                  <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Atanmamış Yap</option>
                                 </select>
                               </td>
                             </tr>
