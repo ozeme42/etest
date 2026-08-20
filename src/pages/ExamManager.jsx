@@ -12,6 +12,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useEvaluation } from '../context/EvaluationContext';
+import { toUUID } from '../services/supabaseService';
 import { useNavigate } from 'react-router-dom';
 import './ExamManager.css';
 
@@ -70,7 +72,8 @@ export default function ExamManager() {
   const { users } = useUser();
   const { currentUser } = useAuth();
   const { questions } = useQuestionBank();
-  const { homeworks, addHomework, updateHomework } = useHomework();
+  const { homeworks, addHomework, updateHomework, deleteHomework } = useHomework();
+  const { deleteSubmissionsByTestId, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
   const navigate = useNavigate();
@@ -516,6 +519,34 @@ export default function ExamManager() {
     alert("✅ Deneme ödevi başarıyla yayınlandı!");
   };
 
+  const handleDeleteExam = async (exam) => {
+    if (!exam) return;
+    const title = exam.title || 'Deneme';
+    if (!window.confirm(`"${title}" denemesini havuzdan, atanmış tüm ödevlerden ve öğrenci sonuçlarından tamamen silmek istediğinize emin misiniz?`)) return;
+
+    try {
+      // 1. Delete tracked book and its tests
+      await deleteTrackedBook(exam.id);
+
+      // 2. Delete associated homeworks
+      const linkedHws = (homeworks || []).filter(h =>
+        String(h.bookId) === String(exam.id) ||
+        String(h.id) === String(exam.id) ||
+        (toUUID(exam.id) && (String(toUUID(h.bookId)) === String(toUUID(exam.id)) || String(toUUID(h.id)) === String(toUUID(exam.id))))
+      );
+      for (const hw of linkedHws) {
+        if (typeof deleteHomework === 'function') await deleteHomework(hw.id);
+        if (typeof deleteSubmissionsByTestId === 'function') await deleteSubmissionsByTestId(hw.id);
+      }
+
+      // 3. Delete associated submissions
+      if (typeof deleteSubmissionsByTestId === 'function') await deleteSubmissionsByTestId(exam.id);
+      if (typeof deleteBookSubmissionsForEveryone === 'function') await deleteBookSubmissionsForEveryone(exam.id);
+    } catch (err) {
+      console.error('Error deleting exam:', err);
+    }
+  };
+
   return (
     <div className="exam-container" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', padding: '1.25rem 1.5rem 5rem 1.5rem', boxSizing: 'border-box' }}>
 
@@ -873,7 +904,7 @@ export default function ExamManager() {
                           Ödev Ata
                         </button>
                         <button
-                          onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteTrackedBook(m.id); }}
+                          onClick={() => handleDeleteExam(m)}
                           style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer', color: '#dc2626', display: 'flex' }}
                           title="Denemeyi Sil"
                         >

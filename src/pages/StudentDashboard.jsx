@@ -802,7 +802,10 @@ export default function StudentDashboard() {
 
     // 1. Process Non-Book Homeworks
     (homeworks || []).forEach(hw => {
+      if (!hw) return;
       if (isBookHomework(hw)) return;
+      if (hw.bookId && !books.some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId))) return;
+      if (hw.type === 'physicalExam' && (!hw.bookId || !books.some(b => String(b.id) === String(hw.bookId)))) return;
       if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
 
       const allMatchingSubs = [
@@ -1015,6 +1018,16 @@ export default function StudentDashboard() {
         return;
       }
       if (sub.hwId && !targetHw && !targetTest) {
+        return;
+      }
+      if (targetHw && targetHw.bookId && !books.some(b => String(b.id) === String(targetHw.bookId) || toUUID(b.id) === toUUID(targetHw.bookId))) {
+        return;
+      }
+      if (targetHw && targetHw.type === 'physicalExam' && !targetBook) {
+        return;
+      }
+      const isExamSub = sub.type === 'physicalExam' || sub.isExam || sub.isTrial || String(sub.title || sub.testTitle || '').toLowerCase().includes('deneme');
+      if (isExamSub && !targetBook && !(studentMockExams || []).some(m => String(m.id) === String(sub.id) || String(m.title) === String(sub.title || sub.testTitle))) {
         return;
       }
 

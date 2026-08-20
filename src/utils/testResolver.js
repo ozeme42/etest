@@ -602,6 +602,11 @@ export function computeStudentAnalyticsData({
     const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
     const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
 
+    // If parent homework is linked to a book/exam that was deleted, discard it
+    if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
+      return;
+    }
+
     // If submission is linked to a book/exam that was deleted, discard it
     if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
       return;
@@ -628,6 +633,12 @@ export function computeStudentAnalyticsData({
   const hwSubmissions = [];
   (homeworks || []).forEach(hw => {
     if (!hw) return;
+    if (hw.bookId && !books.some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId))) {
+      return; // Deleted book or exam!
+    }
+    if (hw.type === 'physicalExam' && !books.some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId))) {
+      return; // Deleted physical exam!
+    }
     if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)')) {
       return;
     }
