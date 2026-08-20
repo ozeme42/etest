@@ -11,8 +11,8 @@ import { isHomeworkForStudent } from '../utils/testResolver';
 import {
   BookOpen, ArrowRight, Star, Plus, X, ClipboardList, TrendingUp,
   Pencil, Trash2, LayoutGrid, List, Trophy, Target, Activity,
-  Zap, Clock, ChevronRight, FileBarChart2, FlameKindling, Award,
-  CheckCircle2, AlertCircle, Calendar, Search
+  Zap, Clock, ChevronRight, FileBarChart2, BarChart2, BarChart3,
+  FlameKindling, Award, CheckCircle2, AlertCircle, Calendar, Search
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -129,6 +129,8 @@ export default function StudentExamsPage() {
   const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
 
   const [chartMetric, setChartMetric] = useState('Toplam Net');
+  const [examChartMetric, setExamChartMetric] = useState('grouped'); // 'grouped' | 'net' | 'rate'
+  const [showChart, setShowChart] = useState(true);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [activeSection, setActiveSection] = useState('all'); // 'all' | 'book' | 'mock'
   const [searchQuery, setSearchQuery] = useState('');
@@ -469,19 +471,76 @@ export default function StudentExamsPage() {
     let totalD = 0, totalY = 0, totalB = 0, totalNet = 0, maxNet = 0;
     const subMap = {};
     allExamsList.forEach(exam => {
-      totalD += exam.d || 0; totalY += exam.y || 0; totalB += exam.b || 0;
+      totalD += exam.d || 0;
+      totalY += exam.y || 0;
+      totalB += exam.b || 0;
       const n = parseFloat(exam.net || 0);
-      totalNet += n; if (n > maxNet) maxNet = n;
+      totalNet += n;
+      if (n > maxNet) maxNet = n;
       if (exam.type === 'mock' && exam.scores) {
         Object.entries(exam.scores).forEach(([sName, sc]) => {
-          if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0 };
-          subMap[sName].net += parseFloat(sc.net || 0); subMap[sName].count++;
+          if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0, d: 0, y: 0, b: 0 };
+          subMap[sName].net += parseFloat(sc.net || 0);
+          subMap[sName].d += Number(sc.d) || 0;
+          subMap[sName].y += Number(sc.y) || 0;
+          subMap[sName].b += Number(sc.b) || 0;
+          subMap[sName].count++;
         });
       }
     });
     const total = allExamsList.length;
-    return { total, avgNet: total > 0 ? (totalNet / total).toFixed(1) : 0, maxNet: maxNet.toFixed(1), totalD, totalY, totalB, lastDate: total > 0 ? allExamsList[0].date : '—', subjects: Object.values(subMap).sort((a, b) => b.net - a.net), bookCount: assignedBooks.length, mockCount: studentMockExams.length };
+    const totalQ = totalD + totalY + totalB;
+    const successRate = totalQ > 0 ? Math.round((totalD / totalQ) * 100) : 0;
+    const completedCount = allExamsList.filter(e => e.isCompleted).length;
+
+    return {
+      total,
+      completedCount,
+      avgNet: total > 0 ? (totalNet / total).toFixed(1) : '0',
+      maxNet: maxNet.toFixed(1),
+      successRate,
+      totalD,
+      totalY,
+      totalB,
+      totalQ,
+      lastDate: total > 0 ? allExamsList[0].date : '—',
+      subjects: Object.values(subMap).sort((a, b) => b.net - a.net),
+      bookCount: assignedBooks.length,
+      mockCount: studentMockExams.length
+    };
   }, [allExamsList, assignedBooks.length, studentMockExams.length]);
+
+  const examChartData = useMemo(() => {
+    return allExamsList.slice(0, 15).map((exam, idx) => {
+      const d = exam.d || 0;
+      const y = exam.y || 0;
+      const b = exam.b || 0;
+      const totalQ = d + y + b;
+      const net = typeof exam.net === 'number' ? exam.net : parseFloat(exam.net || 0);
+      const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
+      
+      const shortTitle = exam.title?.length > 14 
+        ? exam.title.slice(0, 12) + '…' 
+        : (exam.title || `Deneme ${idx + 1}`);
+
+      return {
+        id: exam.id,
+        hwId: exam.hwId,
+        type: exam.type,
+        name: shortTitle,
+        fullName: exam.title,
+        date: exam.date,
+        Doğru: d,
+        Yanlış: y,
+        Boş: b,
+        totalQ,
+        net: parseFloat(net.toFixed(2)),
+        rate,
+        isCompleted: exam.isCompleted,
+        original: exam
+      };
+    });
+  }, [allExamsList]);
 
   const displayedExams = useMemo(() => {
     return allExamsList.filter(exam => {
@@ -646,22 +705,229 @@ export default function StudentExamsPage() {
           </div>
         </div>
 
+        {/* ── STAT CARDS ── */}
         {!isEmpty && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 22 }}>
-            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg={isDark ? "rgba(37,99,235,0.18)" : "#eff6ff"} iconColor="#3b82f6" sub={`${overallStats.bookCount} fiziki · ${overallStats.mockCount} manuel`} />
-            <KPI icon={<Target />} label="Ortalama Net" value={overallStats.avgNet} iconBg={isDark ? "rgba(16,185,129,0.18)" : "#ecfdf5"} iconColor="#10b981" />
-            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg={isDark ? "rgba(245,158,11,0.18)" : "#fffbeb"} iconColor="#f59e0b" />
-            <KPI icon={<Calendar />} label="Son Deneme" value={overallStats.lastDate} iconBg={isDark ? "rgba(139,92,246,0.18)" : "#faf5ff"} iconColor="#8b5cf6" />
-            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg={isDark ? "rgba(5,150,105,0.18)" : "#f0fdf4"} iconColor="#059669" />
-            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg={isDark ? "rgba(225,29,72,0.18)" : "#fff1f2"} iconColor="#e11d48" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg={isDark ? "rgba(37,99,235,0.18)" : "#eff6ff"} iconColor="#3b82f6" sub={`${overallStats.completedCount} çözüldü · ${overallStats.total - overallStats.completedCount} bekliyor`} />
+            <KPI icon={<Target />} label="Genel Başarı" value={`%${overallStats.successRate}`} iconBg={isDark ? "rgba(16,185,129,0.18)" : "#ecfdf5"} iconColor="#10b981" sub={`${overallStats.totalD} doğru soru`} />
+            <KPI icon={<Activity />} label="Ortalama Net" value={overallStats.avgNet} iconBg={isDark ? "rgba(139,92,246,0.18)" : "#faf5ff"} iconColor="#8b5cf6" sub="deneme başı net" />
+            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg={isDark ? "rgba(245,158,11,0.18)" : "#fffbeb"} iconColor="#f59e0b" sub="zirve performans" />
+            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg={isDark ? "rgba(5,150,105,0.18)" : "#f0fdf4"} iconColor="#059669" sub="kazanılan soru" />
+            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg={isDark ? "rgba(225,29,72,0.18)" : "#fff1f2"} iconColor="#e11d48" sub="kaybedilen soru" />
           </div>
         )}
 
+        {/* ── CHART PANEL (KİTAPLARIM STİLİ) ── */}
+        {!isEmpty && (
+          <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
+            <div
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
+            >
+              <div
+                onClick={() => setShowChart(c => !c)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
+              >
+                <BarChart2 size={20} color="#818cf8" /> Denemelere Göre Soru & Net Dağılımı
+                <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+              </div>
+
+              {showChart && (
+                <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)', flexWrap: 'wrap', gap: 2 }}>
+                  <button
+                    onClick={() => setExamChartMetric('grouped')}
+                    style={{
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: examChartMetric === 'grouped' ? '#6366f1' : 'transparent',
+                      color: examChartMetric === 'grouped' ? '#ffffff' : 'var(--color-text-muted)',
+                      boxShadow: examChartMetric === 'grouped' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    📊 Soru Dağılımı (D / Y / B)
+                  </button>
+                  <button
+                    onClick={() => setExamChartMetric('net')}
+                    style={{
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: examChartMetric === 'net' ? '#6366f1' : 'transparent',
+                      color: examChartMetric === 'net' ? '#ffffff' : 'var(--color-text-muted)',
+                      boxShadow: examChartMetric === 'net' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    📈 Net Sayıları
+                  </button>
+                  <button
+                    onClick={() => setExamChartMetric('rate')}
+                    style={{
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: examChartMetric === 'rate' ? '#6366f1' : 'transparent',
+                      color: examChartMetric === 'rate' ? '#ffffff' : 'var(--color-text-muted)',
+                      boxShadow: examChartMetric === 'rate' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    🎯 Başarı Yüzdesi (%)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {showChart && (
+              <div style={{ padding: '1.25rem 1.4rem' }}>
+                {/* Interactive Mini Exam Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+                  {examChartData.map((item, idx) => {
+                    const rateColor = item.rate >= 70 ? '#10b981' : item.rate >= 50 ? '#f59e0b' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
+                    const rateBg = isDark
+                      ? (item.rate >= 70 ? 'rgba(16,185,129,0.1)' : item.rate >= 50 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)')
+                      : (item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fff1f2');
+                    const rateBorder = isDark
+                      ? (item.rate >= 70 ? 'rgba(16,185,129,0.3)' : item.rate >= 50 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)')
+                      : (item.rate >= 70 ? '#bbf7d0' : item.rate >= 50 ? '#fde68a' : item.totalQ === 0 ? '#e2e8f0' : '#fecdd3');
+
+                    const totalQ = item.totalQ || 0;
+                    const pctD = totalQ > 0 ? ((item.Doğru || 0) / totalQ) * 100 : 0;
+                    const pctY = totalQ > 0 ? ((item.Yanlış || 0) / totalQ) * 100 : 0;
+                    const pctB = totalQ > 0 ? ((item.Boş || 0) / totalQ) * 100 : 0;
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => handleOpenExam(item.original)}
+                        style={{
+                          background: rateBg,
+                          border: `1.5px solid ${rateBorder}`,
+                          borderRadius: '1rem',
+                          padding: '0.85rem 1rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                          cursor: 'pointer',
+                          transition: 'all 0.18s ease'
+                        }}
+                        title={`${item.fullName} açmak için tıkla`}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.fullName}
+                          </span>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: rateColor }}>
+                            {examChartMetric === 'net' ? `${item.net} Net` : `%${item.rate}`}
+                          </span>
+                        </div>
+
+                        {/* Multi-segment mini progress bar */}
+                        <div style={{ width: '100%', height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                          {totalQ > 0 ? (
+                            <>
+                              {pctD > 0 && <div style={{ width: `${pctD}%`, background: '#10b981', height: '100%' }} title={`Doğru: ${item.Doğru}`} />}
+                              {pctY > 0 && <div style={{ width: `${pctY}%`, background: '#ef4444', height: '100%' }} title={`Yanlış: ${item.Yanlış}`} />}
+                              {pctB > 0 && <div style={{ width: `${pctB}%`, background: '#94a3b8', height: '100%' }} title={`Boş: ${item.Boş}`} />}
+                            </>
+                          ) : (
+                            <div style={{ width: '100%', background: '#cbd5e1', height: '100%' }} />
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          <span>{item.date || 'Tarih yok'}</span>
+                          <span style={{ display: 'flex', gap: 6, fontWeight: 800 }}>
+                            <span style={{ color: '#10b981' }}>{item.Doğru}D</span>
+                            <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span>
+                            <span style={{ color: '#94a3b8' }}>{item.Boş}B</span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Recharts Bar Chart */}
+                <div style={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={examChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="examsCorrectGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+                        </linearGradient>
+                        <linearGradient id="examsWrongGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                        </linearGradient>
+                        <linearGradient id="examsBlankGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.85} />
+                          <stop offset="100%" stopColor="#64748b" stopOpacity={0.65} />
+                        </linearGradient>
+                        <linearGradient id="examsNetGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#818cf8" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.9} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 800 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => examChartMetric === 'rate' ? `%${v}` : v} domain={examChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+                        contentStyle={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}
+                        formatter={(value, name) => [
+                          examChartMetric === 'rate' ? `%${value} Başarı` : examChartMetric === 'net' ? `${value} Net` : `${value} Soru`,
+                          name
+                        ]}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', fontWeight: 800 }} />
+
+                      {examChartMetric === 'grouped' ? (
+                        <>
+                          <Bar dataKey="Doğru" name="🟢 Doğru" fill="url(#examsCorrectGrad)" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="Yanlış" name="🔴 Yanlış" fill="url(#examsWrongGrad)" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="Boş" name="⚪ Boş" fill="url(#examsBlankGrad)" radius={[6, 6, 0, 0]} />
+                        </>
+                      ) : examChartMetric === 'net' ? (
+                        <Bar dataKey="net" name="📈 Toplam Net" fill="url(#examsNetGrad)" radius={[6, 6, 0, 0]}>
+                          {examChartData.map((entry, idx) => (
+                            <Cell key={`cell-net-${idx}`} fill={entry.net >= 60 ? '#10b981' : entry.net >= 40 ? '#6366f1' : entry.net >= 20 ? '#f59e0b' : '#ef4444'} />
+                          ))}
+                        </Bar>
+                      ) : (
+                        <Bar dataKey="rate" name="🎯 Başarı Oranı (%)" fill="#6366f1" radius={[6, 6, 0, 0]}>
+                          {examChartData.map((entry, idx) => {
+                            const col = entry.rate >= 70 ? '#10b981' : entry.rate >= 50 ? '#f59e0b' : '#ef4444';
+                            return <Cell key={`cell-bk-${idx}`} fill={col} />;
+                          })}
+                        </Bar>
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── NET GELİŞİM TRENDİ (AREA CHART) ── */}
         {allExamsList.length > 1 && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', padding: '1.4rem 1.6rem', marginBottom: 22, boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                <TrendingUp size={18} color="#818cf8" /> Net Gelişim Grafiği
+                <TrendingUp size={18} color="#818cf8" /> Net Gelişim Trend Grafiği
               </div>
               <select value={chartMetric} onChange={e => setChartMetric(e.target.value)}
                 style={{ padding: '0.45rem 0.9rem', borderRadius: 10, border: '1.5px solid var(--color-border-input)', fontWeight: 800, fontSize: '0.8rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', outline: 'none', cursor: 'pointer' }}>
