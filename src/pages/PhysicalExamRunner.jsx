@@ -43,13 +43,21 @@ function getQuestionColumns(totalCount, isMobile = false) {
   return cols;
 }
 
+const MISTAKE_REASON_OPTIONS = [
+  { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+];
+
 export default function PhysicalExamRunner() {
   const { hwId } = useParams();
   const navigate = useNavigate();
   const { homeworks, submitHomework } = useHomework();
   const { books } = useTrackedBooks();
   const { currentUser } = useAuth();
-  const { submissions: evalSubmissions, addSubmission } = useEvaluation();
+  const { submissions: evalSubmissions, addSubmission, updateSubmission } = useEvaluation();
   const { users } = useUser();
   const isMobile = useMediaQuery('(max-width: 768px)');
   
@@ -145,6 +153,44 @@ export default function PhysicalExamRunner() {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [results, setResults] = useState(null);
+  const [savedFeedbackToast, setSavedFeedbackToast] = useState(null);
+  const [showMistakeSummary, setShowMistakeSummary] = useState(true);
+
+  // Mistake reasons state: { "Türkçe_1": "⚡ İşlem Hatası", "1": "⚡ İşlem Hatası", ... }
+  const [mistakeReasons, setMistakeReasons] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`mistake_reasons_${hwId}_${studentId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return {};
+  });
+
+  const handleSetMistakeReason = useCallback((subjectName, qNo, reason) => {
+    const key = `${subjectName}_${qNo}`;
+    const next = {
+      ...mistakeReasons,
+      [key]: mistakeReasons[key] === reason ? null : reason,
+      [qNo]: mistakeReasons[qNo] === reason ? null : reason
+    };
+    setMistakeReasons(next);
+
+    try {
+      localStorage.setItem(`mistake_reasons_${hwId}_${studentId}`, JSON.stringify(next));
+    } catch {}
+
+    const hwSub = (homework?.submissions || []).find(s => String(s.studentId) === String(studentId));
+    const evalSub = (evalSubmissions || []).find(s => (String(s.hwId) === String(hwId) || String(s.testId) === String(hwId)) && String(s.studentId) === String(studentId));
+    const subTarget = hwSub || evalSub;
+    if (subTarget?.id && updateSubmission) {
+      updateSubmission(subTarget.id, { mistakeReasons: next });
+    }
+
+    setSavedFeedbackToast(`Soru ${qNo} için "${reason}" kaydedildi ✓`);
+    setTimeout(() => setSavedFeedbackToast(null), 2200);
+  }, [mistakeReasons, hwId, studentId, homework, evalSubmissions, updateSubmission]);
 
   // Timer state
   const durationMinutes = (homework?.timePerQuestion || 2) * (homework?.totalQuestions || 90);
@@ -347,6 +393,41 @@ export default function PhysicalExamRunner() {
     return getQuestionColumns(totalCount, isMobile);
   }, [activeSubject?.count, isMobile]);
 
+  const activeSubjectMistakeStats = useMemo(() => {
+    if (!activeSubject) return { classified: 0, totalTarget: 0, counts: {} };
+    const counts = {
+      '⚡ İşlem Hatası': 0,
+      '⚠️ Dikkat Kaybı': 0,
+      '📖 Formül / Bilgi': 0,
+      '🧠 Konu Eksiği': 0,
+      '⏱️ Zaman Yetmedi': 0
+    };
+    let classified = 0;
+    let totalTarget = 0;
+
+    const subAns = answers[activeSubject.name] || [];
+    const answerKey = homework?.answerKey?.[activeSubject.name] || [];
+
+    for (let i = 0; i < activeSubject.count; i++) {
+      const qNo = i + 1;
+      const selected = subAns[i];
+      const correctKey = answerKey[i];
+      const isWrong = selected && selected !== correctKey;
+      const isBlank = !selected;
+
+      if (isSubmitted && (isWrong || isBlank)) {
+        totalTarget++;
+        const r = mistakeReasons[`${activeSubject.name}_${qNo}`] || mistakeReasons[qNo];
+        if (r && counts[r] !== undefined) {
+          counts[r]++;
+          classified++;
+        }
+      }
+    }
+
+    return { classified, totalTarget, counts };
+  }, [activeSubject, answers, homework, isSubmitted, mistakeReasons]);
+
   // Overall statistics for progress bar
   const totalAnsweredCount = useMemo(() => {
     let count = 0;
@@ -437,6 +518,7 @@ export default function PhysicalExamRunner() {
         totalQuestions: homework.totalQuestions,
         subjectStats: calculated.subjectStats,
         studentAnswers: answers,
+        mistakeReasons: mistakeReasons,
         answers: []
       });
     } catch(e) {
@@ -476,6 +558,30 @@ export default function PhysicalExamRunner() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
+      {/* Save Feedback Toast */}
+      {savedFeedbackToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '0.55rem 1rem',
+          borderRadius: 10,
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          zIndex: 99999,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <CheckCircle2 size={14} color="#10b981" />
+          {savedFeedbackToast}
+        </div>
+      )}
+
       {/* ── HEADER ── */}
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.25rem', 
@@ -873,6 +979,76 @@ export default function PhysicalExamRunner() {
                     )}
                   </div>
 
+                  {/* Mistake Reasons Accordion Summary for Active Subject */}
+                  {isSubmitted && (
+                    <div style={{
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: 14,
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}>
+                      <div
+                        onClick={() => setShowMistakeSummary(p => !p)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                            🤔 {activeSubject.name} Hata & Boş Sebepleri
+                          </span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '2px 8px', borderRadius: 99 }}>
+                            {activeSubjectMistakeStats.classified}/{activeSubjectMistakeStats.totalTarget} Sınıflandırıldı
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 2 }}>
+                          {showMistakeSummary ? 'Gizle' : 'Göster'} {showMistakeSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </span>
+                      </div>
+
+                      {showMistakeSummary && (
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+                          gap: '0.5rem',
+                          marginTop: 4
+                        }}>
+                          {MISTAKE_REASON_OPTIONS.map(opt => {
+                            const count = activeSubjectMistakeStats.counts[opt.label] || 0;
+                            return (
+                              <div
+                                key={opt.label}
+                                style={{
+                                  background: count > 0 ? opt.bg : 'var(--color-surface, #ffffff)',
+                                  border: `1.5px solid ${count > 0 ? opt.border : 'var(--color-border, #e2e8f0)'}`,
+                                  borderRadius: 10,
+                                  padding: '0.45rem 0.65rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between'
+                                }}
+                              >
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: count > 0 ? opt.color : 'var(--color-text-muted)' }}>
+                                  {opt.label}
+                                </span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: count > 0 ? opt.color : 'var(--color-text-muted)' }}>
+                                  {count}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Natural Question Columns Grid (Top to Bottom Flow) */}
                   <div style={{
                     display: 'grid',
@@ -912,88 +1088,143 @@ export default function PhysicalExamRunner() {
                                 borderRadius: '0.85rem',
                                 border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border)',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '0.5rem',
+                                flexDirection: 'column',
+                                gap: '0.45rem',
                                 transition: 'all 0.12s ease'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65, flexShrink: 0 }}>
-                                <span style={{
-                                  fontWeight: 900,
-                                  fontSize: '0.84rem',
-                                  color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
-                                }}>
-                                  Soru {qNo}
-                                </span>
-                                {isSubmitted && (
-                                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
-                                    {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65, flexShrink: 0 }}>
+                                  <span style={{
+                                    fontWeight: 900,
+                                    fontSize: '0.84rem',
+                                    color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
+                                  }}>
+                                    Soru {qNo}
                                   </span>
-                                )}
-                              </div>
+                                  {isSubmitted && (
+                                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
+                                      {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
+                                    </span>
+                                  )}
+                                </div>
 
-                              <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                                {optionsList.map((opt) => {
-                                  const isSelected = selected === opt;
-                                  const isThisOptCorrect = isSubmitted && correctKey === opt;
+                                <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  {optionsList.map((opt) => {
+                                    const isSelected = selected === opt;
+                                    const isThisOptCorrect = isSubmitted && correctKey === opt;
 
-                                  return (
+                                    return (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        disabled={isSubmitted}
+                                        onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                                        style={{
+                                          width: 32,
+                                          height: 32,
+                                          borderRadius: '50%',
+                                          fontWeight: 900,
+                                          fontSize: '0.8rem',
+                                          cursor: isSubmitted ? 'default' : 'pointer',
+                                          border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
+                                          background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
+                                          color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
+                                          transition: 'all 0.12s ease',
+                                          boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          padding: 0
+                                        }}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+
+                                  {!isSubmitted && (
                                     <button
-                                      key={opt}
                                       type="button"
-                                      disabled={isSubmitted}
-                                      onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                                      onClick={() => handleClearOption(activeSubject.name, qIdx)}
+                                      disabled={!selected}
+                                      title="İşareti Kaldır"
                                       style={{
-                                        width: 32,
-                                        height: 32,
+                                        width: 26,
+                                        height: 26,
                                         borderRadius: '50%',
-                                        fontWeight: 900,
-                                        fontSize: '0.8rem',
-                                        cursor: isSubmitted ? 'default' : 'pointer',
-                                        border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
-                                        background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
-                                        color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
-                                        transition: 'all 0.12s ease',
-                                        boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none',
+                                        background: selected ? '#fef2f2' : 'transparent',
+                                        border: selected ? '1px solid #fecaca' : 'none',
+                                        color: selected ? '#dc2626' : 'transparent',
+                                        cursor: selected ? 'pointer' : 'default',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        pointerEvents: selected ? 'auto' : 'none',
+                                        transition: 'all 0.12s ease',
+                                        marginLeft: 1,
                                         padding: 0
                                       }}
                                     >
-                                      {opt}
+                                      <XIcon size={12} />
                                     </button>
-                                  );
-                                })}
-
-                                {!isSubmitted && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleClearOption(activeSubject.name, qIdx)}
-                                    disabled={!selected}
-                                    title="İşareti Kaldır"
-                                    style={{
-                                      width: 26,
-                                      height: 26,
-                                      borderRadius: '50%',
-                                      background: selected ? '#fef2f2' : 'transparent',
-                                      border: selected ? '1px solid #fecaca' : 'none',
-                                      color: selected ? '#dc2626' : 'transparent',
-                                      cursor: selected ? 'pointer' : 'default',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      pointerEvents: selected ? 'auto' : 'none',
-                                      transition: 'all 0.12s ease',
-                                      marginLeft: 1,
-                                      padding: 0
-                                    }}
-                                  >
-                                    <XIcon size={12} />
-                                  </button>
-                                )}
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Mistake Diagnostic Selector for Wrong OR Blank questions */}
+                              {isSubmitted && (isWrong || !selected) && (
+                                <div style={{
+                                  width: '100%',
+                                  marginTop: '0.4rem',
+                                  paddingTop: '0.45rem',
+                                  borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #cbd5e1',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '0.35rem'
+                                }}>
+                                  <span style={{
+                                    fontSize: isMobile ? '0.64rem' : '0.7rem',
+                                    fontWeight: 800,
+                                    color: isWrong ? '#b91c1c' : '#475569',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4
+                                  }}>
+                                    {isWrong ? '❌ Yanlış Sebebi:' : '○ Boş Sebebi:'}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                    {MISTAKE_REASON_OPTIONS.map(r => {
+                                      const key = `${activeSubject.name}_${qNo}`;
+                                      const isSelected = mistakeReasons[key] === r.label || mistakeReasons[qNo] === r.label;
+                                      return (
+                                        <button
+                                          key={r.label}
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(activeSubject.name, qNo, r.label); }}
+                                          style={{
+                                            padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
+                                            fontSize: isMobile ? '0.56rem' : '0.62rem',
+                                            fontWeight: 800,
+                                            borderRadius: 6,
+                                            border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                            background: isSelected ? r.color : r.bg,
+                                            color: isSelected ? '#ffffff' : r.color,
+                                            cursor: 'pointer',
+                                            boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                          title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                                        >
+                                          {r.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -1182,34 +1413,99 @@ export default function PhysicalExamRunner() {
                       ? ['A', 'B', 'C', 'D']
                       : ['A', 'B', 'C', 'D', 'E'];
 
-                  return (
-                    <div key={qNo} style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.85rem', borderRadius: '0.75rem', border: selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)', minWidth: 60 }}>
-                        Soru {qNo}
-                      </span>
+                  let isCorrect = false;
+                  let isWrong = false;
+                  let correctKey = '';
 
-                      <div style={{ display: 'flex', gap: '0.35rem', flex: 1, maxWidth: 260 }}>
-                        {optionsList.map((opt) => {
-                          const isSelected = selected === opt;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
-                              style={{
-                                flex: 1, height: 36, borderRadius: '50%',
-                                fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
-                                border: isSelected ? '2px solid #4338ca' : '1.5px solid var(--color-border-input, #cbd5e1)',
-                                background: isSelected ? '#4f46e5' : 'var(--color-surface, #ffffff)',
-                                color: isSelected ? 'white' : 'var(--color-text, #334155)',
-                                transition: 'all 0.12s'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
+                  if (isSubmitted) {
+                    correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
+                    isCorrect = selected && selected === correctKey;
+                    isWrong = selected && selected !== correctKey;
+                  }
+
+                  return (
+                    <div key={qNo} style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.85rem', borderRadius: '0.75rem', border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 60 }}>
+                          <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text, #0f172a)' }}>
+                            Soru {qNo}
+                          </span>
+                          {isSubmitted && (
+                            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
+                              {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.35rem', flex: 1, maxWidth: 260, justifyContent: 'flex-end' }}>
+                          {optionsList.map((opt) => {
+                            const isSelected = selected === opt;
+                            const isThisOptCorrect = isSubmitted && correctKey === opt;
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                disabled={isSubmitted}
+                                onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                                style={{
+                                  flex: 1, height: 36, borderRadius: '50%',
+                                  fontWeight: 900, fontSize: '0.85rem', cursor: isSubmitted ? 'default' : 'pointer',
+                                  border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                                  background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface, #ffffff)',
+                                  color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text, #334155)',
+                                  transition: 'all 0.12s'
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {/* Mistake selector for mobile bottom-sheet */}
+                      {isSubmitted && (isWrong || !selected) && (
+                        <div style={{
+                          width: '100%',
+                          marginTop: '0.35rem',
+                          paddingTop: '0.4rem',
+                          borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #cbd5e1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '0.3rem'
+                        }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569' }}>
+                            {isWrong ? '❌ Yanlış:' : '○ Boş:'}
+                          </span>
+                          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                            {MISTAKE_REASON_OPTIONS.map(r => {
+                              const key = `${activeSubject.name}_${qNo}`;
+                              const isSelected = mistakeReasons[key] === r.label || mistakeReasons[qNo] === r.label;
+                              return (
+                                <button
+                                  key={r.label}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(activeSubject.name, qNo, r.label); }}
+                                  style={{
+                                    padding: '0.12rem 0.35rem',
+                                    fontSize: '0.55rem',
+                                    fontWeight: 800,
+                                    borderRadius: 6,
+                                    border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                    background: isSelected ? r.color : r.bg,
+                                    color: isSelected ? '#ffffff' : r.color,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {r.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
