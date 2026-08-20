@@ -254,7 +254,7 @@ export default function AdminDashboard() {
    1. MÜFREDAT HİYERARŞİSİ & YÖNETİMİ COMPONENT (PRO MILLER FLOW)
 ═══════════════════════════════════════════════════════════ */
 function CurriculumManager() {
-  const { data, addGrade, addSubject, addUnit, addTopic, deleteItem, bulkAddCurriculum } = useCurriculum();
+  const { data, addGrade, addSubject, addUnit, addTopic, updateItem, deleteItem, bulkAddCurriculum } = useCurriculum();
   
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -263,6 +263,7 @@ function CurriculumManager() {
   const [newItemName, setNewItemName] = useState('');
   const [jsonModal, setJsonModal] = useState(false);
   const [jsonText, setJsonText] = useState('');
+  const [editModal, setEditModal] = useState({ open: false, type: '', typeLabel: '', id: '', name: '' });
 
   const filteredSubjects = useMemo(() => data.subjects.filter(s => s.gradeId === selectedGrade), [data.subjects, selectedGrade]);
   const filteredUnits = useMemo(() => data.units.filter(u => u.subjectId === selectedSubject), [data.units, selectedSubject]);
@@ -422,9 +423,21 @@ function CurriculumManager() {
                       {count} Ders
                     </span>
                     <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditModal({ open: true, type: 'grades', typeLabel: 'Sınıf / Düzey', id: grade.id, name: grade.name });
+                      }}
+                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'}
+                      title="Sınıfı Düzenle"
+                    >
+                      <Edit size={13} />
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); deleteItem('grades', grade.id); }}
-                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                       onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                      title="Sınıfı Sil"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -509,9 +522,21 @@ function CurriculumManager() {
                             {unitCount} Ünite
                           </span>
                           <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditModal({ open: true, type: 'subjects', typeLabel: 'Ders', id: subject.id, name: subject.name });
+                            }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'}
+                            title="Dersi Düzenle"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); deleteItem('subjects', subject.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                            title="Dersi Sil"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -604,9 +629,21 @@ function CurriculumManager() {
                             {topicCount} Konu
                           </span>
                           <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditModal({ open: true, type: 'units', typeLabel: 'Ünite', id: unit.id, name: unit.name });
+                            }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
+                            title="Üniteyi Düzenle"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); deleteItem('units', unit.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                            title="Üniteyi Sil"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -690,9 +727,18 @@ function CurriculumManager() {
                       <span style={{ fontSize: '0.82rem', fontWeight: 700, lineHeight: 1.3 }}>{topic.name}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button
+                          onClick={() => setEditModal({ open: true, type: 'topics', typeLabel: 'Konu', id: topic.id, name: topic.name })}
+                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#f43f5e'}
+                          title="Konuyu Düzenle"
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
                           onClick={() => deleteItem('topics', topic.id)}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                          title="Konuyu Sil"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -729,6 +775,76 @@ function CurriculumManager() {
         </div>
 
       </div>
+
+      {/* MODAL: MÜFREDAT ELEMANINI DÜZENLE */}
+      {editModal.open && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)' }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            borderRadius: '1.5rem',
+            padding: '1.5rem',
+            width: '100%',
+            maxWidth: 420,
+            border: '1.5px solid var(--color-border)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Edit size={20} color="var(--color-primary)" />
+                <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1.1rem' }}>
+                  {editModal.typeLabel} Düzenle
+                </h3>
+              </div>
+              <button onClick={() => setEditModal({ open: false, type: '', typeLabel: '', id: '', name: '' })} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+                <X size={15} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editModal.name.trim()) return;
+                await updateItem(editModal.type, editModal.id, editModal.name.trim());
+                setEditModal({ open: false, type: '', typeLabel: '', id: '', name: '' });
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 6 }}>
+                  {editModal.typeLabel} Adı
+                </label>
+                <input
+                  type="text"
+                  value={editModal.name}
+                  onChange={(e) => setEditModal({ ...editModal, name: e.target.value })}
+                  autoFocus
+                  required
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', fontWeight: 700 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditModal({ open: false, type: '', typeLabel: '', id: '', name: '' })}
+                  style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '0.55rem 1.4rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)' }}
+                >
+                  Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: TOPLU JSON MÜFREDAT YÜKLE */}
       {jsonModal && (

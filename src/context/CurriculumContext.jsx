@@ -6,7 +6,9 @@ import {
   dbAddSubject,
   dbDeleteSubject,
   dbAddUnit,
-  dbAddTopic
+  dbDeleteUnit,
+  dbAddTopic,
+  dbDeleteTopic
 } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 
@@ -15,7 +17,7 @@ const CurriculumContext = createContext();
 export function useCurriculum() {
   const context = useContext(CurriculumContext);
   if (!context) {
-    return { data: { grades: [], subjects: [], units: [], topics: [], tests: [] }, addGrade: async () => {}, addSubject: async () => {}, addUnit: async () => {}, addTopic: async () => {} };
+    return { data: { grades: [], subjects: [], units: [], topics: [], tests: [] }, addGrade: async () => {}, addSubject: async () => {}, addUnit: async () => {}, addTopic: async () => {}, updateGrade: async () => {}, updateSubject: async () => {}, updateUnit: async () => {}, updateTopic: async () => {}, updateItem: async () => {}, deleteItem: async () => {} };
   }
   return context;
 }
@@ -84,11 +86,36 @@ export function CurriculumProvider({ children }) {
     await dbAddGrade(newGrade);
   };
 
+  const updateGrade = async (id, name) => {
+    if (!id || !name || !name.trim()) return;
+    const trimmed = name.trim();
+    setData(prev => ({
+      ...prev,
+      grades: (prev.grades || []).map(g => g.id === id ? { ...g, name: trimmed } : g)
+    }));
+    await dbAddGrade({ id, name: trimmed });
+  };
+
   const addSubject = async (gradeId, name) => {
     if (!name || !name.trim()) return;
     const newSubject = { id: generateUniqueId('s'), gradeId, name: name.trim() };
     setData(prev => ({ ...prev, subjects: [...(prev.subjects || []), newSubject] }));
     await dbAddSubject(newSubject);
+  };
+
+  const updateSubject = async (id, name) => {
+    if (!id || !name || !name.trim()) return;
+    const trimmed = name.trim();
+    let currentGradeId = '';
+    setData(prev => {
+      const existing = (prev.subjects || []).find(s => s.id === id);
+      if (existing) currentGradeId = existing.gradeId;
+      return {
+        ...prev,
+        subjects: (prev.subjects || []).map(s => s.id === id ? { ...s, name: trimmed } : s)
+      };
+    });
+    await dbAddSubject({ id, gradeId: currentGradeId, name: trimmed });
   };
 
   const addUnit = async (subjectId, name) => {
@@ -98,11 +125,48 @@ export function CurriculumProvider({ children }) {
     await dbAddUnit(newUnit);
   };
 
+  const updateUnit = async (id, name) => {
+    if (!id || !name || !name.trim()) return;
+    const trimmed = name.trim();
+    let currentSubjectId = '';
+    setData(prev => {
+      const existing = (prev.units || []).find(u => u.id === id);
+      if (existing) currentSubjectId = existing.subjectId;
+      return {
+        ...prev,
+        units: (prev.units || []).map(u => u.id === id ? { ...u, name: trimmed } : u)
+      };
+    });
+    await dbAddUnit({ id, subjectId: currentSubjectId, name: trimmed });
+  };
+
   const addTopic = async (unitId, name) => {
     if (!name || !name.trim()) return;
     const newTopic = { id: generateUniqueId('t'), unitId, name: name.trim() };
     setData(prev => ({ ...prev, topics: [...(prev.topics || []), newTopic] }));
     await dbAddTopic(newTopic);
+  };
+
+  const updateTopic = async (id, name) => {
+    if (!id || !name || !name.trim()) return;
+    const trimmed = name.trim();
+    let currentUnitId = '';
+    setData(prev => {
+      const existing = (prev.topics || []).find(t => t.id === id);
+      if (existing) currentUnitId = existing.unitId;
+      return {
+        ...prev,
+        topics: (prev.topics || []).map(t => t.id === id ? { ...t, name: trimmed } : t)
+      };
+    });
+    await dbAddTopic({ id, unitId: currentUnitId, name: trimmed });
+  };
+
+  const updateItem = async (type, id, name) => {
+    if (type === 'grades') await updateGrade(id, name);
+    else if (type === 'subjects') await updateSubject(id, name);
+    else if (type === 'units') await updateUnit(id, name);
+    else if (type === 'topics') await updateTopic(id, name);
   };
 
   const addTest = (test) => {
@@ -126,6 +190,8 @@ export function CurriculumProvider({ children }) {
 
     if (type === 'grades') await dbDeleteGrade(id);
     if (type === 'subjects') await dbDeleteSubject(id);
+    if (type === 'units') await dbDeleteUnit(id);
+    if (type === 'topics') await dbDeleteTopic(id);
   };
 
   const bulkAddCurriculum = async (jsonData) => {
@@ -186,9 +252,14 @@ export function CurriculumProvider({ children }) {
     <CurriculumContext.Provider value={{
       data,
       addGrade,
+      updateGrade,
       addSubject,
+      updateSubject,
       addUnit,
+      updateUnit,
       addTopic,
+      updateTopic,
+      updateItem,
       addTest,
       updateTest,
       deleteItem,

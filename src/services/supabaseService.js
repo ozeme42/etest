@@ -269,6 +269,30 @@ export async function dbAddTopic(topic) {
   }
 }
 
+export async function dbDeleteUnit(unitId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('units').delete().eq('id', unitId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteUnit error:', err.message);
+    return false;
+  }
+}
+
+export async function dbDeleteTopic(topicId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('topics').delete().eq('id', topicId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteTopic error:', err.message);
+    return false;
+  }
+}
+
 // ==========================================
 // 0.8. DERS VE KONU ÖZETLERİ (SUMMARIES)
 // ==========================================
