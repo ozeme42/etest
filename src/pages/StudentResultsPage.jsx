@@ -413,6 +413,29 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     };
     const results = [];
     const processedTestKeys = new Set();
+    const allHomeworkIds = new Set();
+    const compositeSectionIds = new Set();
+
+    activeHws.forEach(hw => {
+      allHomeworkIds.add(String(hw.id));
+      if (toUUID(hw.id)) allHomeworkIds.add(String(toUUID(hw.id)));
+
+      const subIds = [
+        ...(Array.isArray(hw.sections) ? hw.sections.map(s => typeof s === 'object' ? (s.id || s.questionId) : s) : []),
+        ...(Array.isArray(hw.tests) ? hw.tests.map(t => typeof t === 'object' ? t.id : t) : []),
+        ...(Array.isArray(hw.questionIds) ? hw.questionIds : []),
+        ...(Array.isArray(hw.selectedQuestions) ? hw.selectedQuestions.map(q => typeof q === 'object' ? q.id : q) : []),
+        ...(Array.isArray(hw.items) ? hw.items.map(i => typeof i === 'object' ? (i.id || i.questionId) : i) : [])
+      ].filter(Boolean).map(String);
+
+      subIds.forEach(id => {
+        compositeSectionIds.add(id);
+        const clean = id.replace(/^q_/, '').replace(/^bt_/, '').replace(/^hw_/, '');
+        if (clean) compositeSectionIds.add(clean);
+        const uuid = toUUID(id);
+        if (uuid) compositeSectionIds.add(String(uuid));
+      });
+    });
 
     // 1. Process regular non-book homeworks
     activeHws.forEach(hw => {
@@ -514,6 +537,11 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
       const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
 
+      processedTestKeys.add(String(hw.id));
+      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
+      if (sub.id) processedTestKeys.add(String(sub.id));
+      if (sub.testId) processedTestKeys.add(String(sub.testId));
+
       results.push({
         ...sub,
         id: sub.id || `hw_sub_${hw.id}_${selectedStudent.id}`,
@@ -549,9 +577,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
       const bTestId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
-      if (!bTestId || processedTestKeys.has(bTestId) || (toUUID(bTestId) && processedTestKeys.has(String(toUUID(bTestId))))) {
-        return;
-      }
+      const bHwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
+      if (!bTestId) return;
+
+      // If this submission belongs to an assigned homework or was part of a composite homework, do not list separately
+      if (bHwId && allHomeworkIds.has(bHwId)) return;
+      if (allHomeworkIds.has(bTestId)) return;
+      if (compositeSectionIds.has(bTestId)) return;
+      if (processedTestKeys.has(bTestId) || (toUUID(bTestId) && processedTestKeys.has(String(toUUID(bTestId))))) return;
+
+      const isHw = allHomeworkIds.has(bTestId) || compositeSectionIds.has(bTestId) || activeHws.some(h => String(h.id) === bTestId);
+      if (isHw) return; // Homeworks are only handled in Step 1
 
       let correct = sub.correctCount ?? raw.correctCount ?? 0;
       let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
@@ -573,9 +609,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const curInfo = allCurTestsMap.get(bTestId);
-      const isHw = activeHws.some(h => String(h.id) === bTestId);
 
-      const testExists = Boolean(testObj || bookObj || curInfo || isHw);
+      const testExists = Boolean(testObj || bookObj || curInfo);
       if (!testExists) {
         return; // Silinmiş test ve ödevlerin eski kayıtları gösterilmez
       }

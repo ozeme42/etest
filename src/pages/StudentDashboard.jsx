@@ -570,6 +570,29 @@ export default function StudentDashboard() {
     const solvedList = [];
     const processedSubIds = new Set();
     const processedTestKeys = new Set();
+    const allHomeworkIds = new Set();
+    const compositeSectionIds = new Set();
+
+    (homeworks || []).forEach(hw => {
+      allHomeworkIds.add(String(hw.id));
+      if (toUUID(hw.id)) allHomeworkIds.add(String(toUUID(hw.id)));
+
+      const subIds = [
+        ...(Array.isArray(hw.sections) ? hw.sections.map(s => typeof s === 'object' ? (s.id || s.questionId) : s) : []),
+        ...(Array.isArray(hw.tests) ? hw.tests.map(t => typeof t === 'object' ? t.id : t) : []),
+        ...(Array.isArray(hw.questionIds) ? hw.questionIds : []),
+        ...(Array.isArray(hw.selectedQuestions) ? hw.selectedQuestions.map(q => typeof q === 'object' ? q.id : q) : []),
+        ...(Array.isArray(hw.items) ? hw.items.map(i => typeof i === 'object' ? (i.id || i.questionId) : i) : [])
+      ].filter(Boolean).map(String);
+
+      subIds.forEach(id => {
+        compositeSectionIds.add(id);
+        const clean = id.replace(/^q_/, '').replace(/^bt_/, '').replace(/^hw_/, '');
+        if (clean) compositeSectionIds.add(clean);
+        const uuid = toUUID(id);
+        if (uuid) compositeSectionIds.add(String(uuid));
+      });
+    });
 
     // 1. Process Homeworks
     (homeworks || []).forEach(hw => {
@@ -584,6 +607,7 @@ export default function StudentDashboard() {
       processedSubIds.add(subIdStr);
       if (sub.id) processedSubIds.add(String(sub.id));
       processedTestKeys.add(String(hw.id));
+      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
       if (sub.testId) processedTestKeys.add(String(sub.testId));
 
       const raw = sub.raw_data || {};
@@ -743,7 +767,17 @@ export default function StudentDashboard() {
       if (subIdStr && processedSubIds.has(subIdStr)) return;
 
       const testId = String(sub.testId || sub.bookTestId || sub.realTestId || '');
-      if (testId && processedTestKeys.has(testId)) return;
+      const hwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
+      if (!testId && !hwId) return;
+
+      // If this submission belongs to an assigned homework or was part of a composite homework, do not list separately
+      if (hwId && allHomeworkIds.has(hwId)) return;
+      if (allHomeworkIds.has(testId)) return;
+      if (compositeSectionIds.has(testId)) return;
+      if (testId && (processedTestKeys.has(testId) || (toUUID(testId) && processedTestKeys.has(String(toUUID(testId)))))) return;
+
+      const isHw = allHomeworkIds.has(testId) || compositeSectionIds.has(testId) || (homeworks || []).some(h => String(h.id) === testId);
+      if (isHw) return; // Homeworks are handled in Step 1
 
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
@@ -754,15 +788,9 @@ export default function StudentDashboard() {
       }
 
       // Check submission origin
-      const isHwSub = Boolean(sub.hwId || sub.homeworkId || String(sub.testId).startsWith('hw_') || sub.type === 'homework' || sub.type === 'ödev');
       const isBookSub = Boolean(sub.bookId || sub.bookTestId || String(sub.testId).startsWith('bt_') || String(sub.testId).startsWith('book_') || sub.type === 'book' || sub.type === 'kitap');
 
-      if (isHwSub) {
-        const targetHw = (homeworks || []).find(h => String(h.id) === String(sub.hwId || sub.homeworkId || sub.testId));
-        if (!targetHw) {
-          return; // Silinmiş ödev
-        }
-      } else if (isBookSub) {
+      if (isBookSub) {
         const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId));
         const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId));
         if (!targetBook && !targetTest) {
@@ -771,8 +799,7 @@ export default function StudentDashboard() {
       } else {
         const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
         const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
-        const targetHw = (homeworks || []).find(h => String(h.id) === String(testId));
-        if (!targetCurTest && !targetBankQ && !targetHw) {
+        if (!targetCurTest && !targetBankQ) {
           return; // Silinmiş test
         }
       }
