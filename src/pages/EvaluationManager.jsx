@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useUser } from '../context/UserContext';
@@ -7,6 +7,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
+import ManualTestModal from '../components/ManualTestModal';
 import {
   CheckCircle2, XCircle, Clock3, Eye, Save, ArrowLeft,
   ClipboardList, Users, BookOpen, Star, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
@@ -535,22 +536,31 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
   );
 }
 
-// ─── MAIN EVALUATION MANAGER PAGE ─────────────────────────────────────────────
 export default function EvaluationManager() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const { users } = useUser();
   const { homeworks } = useHomework();
-  const { submissions: allSubmissions } = useEvaluation();
+  const { submissions: allSubmissions, approveSubmission, rejectSubmission, deleteSubmission } = useEvaluation();
   const { questions: allBankQuestions } = useQuestionBank();
   const { data: curriculumData } = useCurriculum();
   const { bookTests, books } = useTrackedBooks();
 
   const [activeSubmission, setActiveSubmission] = useState(null);
+  const [manualModalData, setManualModalData] = useState({ isOpen: false, data: null });
   const [activeTab, setActiveTab] = useState('pending');
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
+  const [processingId, setProcessingId] = useState(null);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Kitap takibi / "Tüm Kitap Görevi" tipindeki ödevleri gizle
   const isTrackedBookHw = (hw) => {
@@ -566,7 +576,6 @@ export default function EvaluationManager() {
   const teacherId = currentUser?.id;
 
   const combinedSubmissions = useMemo(() => {
-    // Kitap takibi ödevlerini filtrele
     const activeHws = (homeworks || []).filter(hw => hw && hw.id && !isTrackedBookHw(hw));
     const map = new Map();
 
@@ -616,6 +625,24 @@ export default function EvaluationManager() {
           }
         }
       });
+    });
+
+    // Also include all manual test submissions
+    (allSubmissions || []).forEach(sub => {
+      if (!sub || !sub.studentId) return;
+      if (sub.isManual || sub.sourceType === 'manual_test') {
+        const subKey = String(sub.id || `manual_sub_${sub.studentId}_${Date.now()}`);
+        map.set(subKey, {
+          ...sub,
+          id: subKey,
+          isManual: true,
+          testTitle: sub.title || sub.testTitle || 'Manuel Test',
+          bookTitle: sub.bookTitle || 'Kitap / Çalışma Kaynağı',
+          subject: sub.subject || 'Genel',
+          totalQuestions: sub.totalQuestions || ((sub.correctCount || 0) + (sub.wrongCount || 0) + (sub.emptyCount || 0)) || 20,
+          submittedAt: sub.submittedAt || sub.completedAt || sub.createdAt || new Date().toISOString()
+        });
+      }
     });
 
     return Array.from(map.values());
@@ -682,6 +709,9 @@ export default function EvaluationManager() {
       if (totalQ <= 1 && sub.totalQuestions) totalQ = sub.totalQuestions;
 
       let score = sub.score;
+      if (score === undefined || score === null) {
+        score = sub.scorePercentage;
+      }
       if (score !== undefined && score !== null) {
         score = Number(score);
         if (score > 100) {
@@ -691,6 +721,11 @@ export default function EvaluationManager() {
           score = Math.max(0, Math.min(100, Math.round(score)));
         }
       }
+
+      const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test');
+      const isManualPending = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
+      const isManualApproved = isManual && (sub.approvalStatus === 'approved' || sub.isApproved === true || sub.status === 'completed');
+      const isManualRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
       const isAlreadyEvaluated = Boolean(
         sub.status === 'evaluated' ||
@@ -708,7 +743,7 @@ export default function EvaluationManager() {
       const titleLower = String(title).toLowerCase();
       const hasOEKeywords = titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili');
 
-      const isPending = !isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords);
+      const isPending = isManual ? isManualPending : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
 
       return {
         ...sub,
@@ -717,6 +752,10 @@ export default function EvaluationManager() {
         subject,
         totalQuestions: totalQ,
         score,
+        isManual,
+        isManualPending,
+        isManualApproved,
+        isManualRejected,
         isPending
       };
     });
@@ -729,6 +768,15 @@ export default function EvaluationManager() {
       if (!isAdmin) {
         if (!teacherId) return false;
         if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
+
+        if (sub.isManual) {
+          const sId = String(sub.studentId);
+          const matchedStudent = (users || []).find(u => String(u.id) === sId || String(u.studentId) === sId);
+          const teacherObj = (users || []).find(u => String(u.id) === String(teacherId));
+          if (teacherObj?.studentIds && teacherObj.studentIds.includes(sId)) return true;
+          if (teacherObj?.grade && matchedStudent?.grade && String(teacherObj.grade) === String(matchedStudent.grade)) return true;
+          return true;
+        }
 
         const targetId = String(sub.homeworkId || sub.hwId || sub.testId || '');
         const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
@@ -755,9 +803,10 @@ export default function EvaluationManager() {
       }
       return true;
     }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [enrichedSubmissions, homeworks, isAdmin, teacherId]);
+  }, [enrichedSubmissions, homeworks, isAdmin, teacherId, users]);
 
-  const pendingList = useMemo(() => scopedSubmissions.filter(s => s.isPending), [scopedSubmissions]);
+  const pendingExamList = useMemo(() => scopedSubmissions.filter(s => !s.isManual && s.isPending), [scopedSubmissions]);
+  const manualPendingList = useMemo(() => scopedSubmissions.filter(s => s.isManual && s.isPending), [scopedSubmissions]);
   const completedList = useMemo(() => scopedSubmissions.filter(s => !s.isPending), [scopedSubmissions]);
 
   const avgEvaluatedScore = useMemo(() => {
@@ -768,22 +817,66 @@ export default function EvaluationManager() {
 
   const activeDisplayList = useMemo(() => {
     let list = [];
-    if (activeTab === 'pending') list = pendingList;
+    if (activeTab === 'pending') list = pendingExamList;
+    else if (activeTab === 'manual_pending') list = manualPendingList;
     else if (activeTab === 'completed') list = completedList;
     else list = scopedSubmissions;
 
     return list.filter(sub => {
       const sName = String(sub.studentName || '').toLowerCase();
       const tTitle = String(sub.testTitle || sub.title || '').toLowerCase();
+      const bTitle = String(sub.bookTitle || '').toLowerCase();
       const query = search.toLowerCase().trim();
-      const matchesSearch = !query || sName.includes(query) || tTitle.includes(query);
+      const matchesSearch = !query || sName.includes(query) || tTitle.includes(query) || bTitle.includes(query);
 
       const matchesSubject = subjectFilter === 'all' || (sub.subject && sub.subject === subjectFilter) || tTitle.includes(subjectFilter.toLowerCase());
       const matchesStudent = studentFilter === 'all' || String(sub.studentId) === String(studentFilter);
 
       return matchesSearch && matchesSubject && matchesStudent;
     });
-  }, [activeTab, pendingList, completedList, scopedSubmissions, search, subjectFilter, studentFilter]);
+  }, [activeTab, pendingExamList, manualPendingList, completedList, scopedSubmissions, search, subjectFilter, studentFilter]);
+
+  const handleApproveManual = async (sub) => {
+    if (!sub?.id) return;
+    setProcessingId(sub.id);
+    try {
+      await approveSubmission(sub.id, currentUser);
+    } catch (e) {
+      console.error(e);
+      alert('Onaylama sırasında hata oluştu: ' + e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectManual = async (sub) => {
+    if (!sub?.id) return;
+    const reason = window.prompt('Reddetme nedeni belirtmek ister misiniz? (Opsiyonel)', 'Öğretmen tarafından onaylanmadı');
+    if (reason === null) return;
+    setProcessingId(sub.id);
+    try {
+      await rejectSubmission(sub.id, reason, currentUser);
+    } catch (e) {
+      console.error(e);
+      alert('Reddetme sırasında hata oluştu: ' + e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteManual = async (sub) => {
+    if (!sub?.id) return;
+    if (!window.confirm(`"${sub.testTitle || 'Manuel Test'}" sonucunu tamamen silmek istediğinizden emin misiniz?`)) return;
+    setProcessingId(sub.id);
+    try {
+      await deleteSubmission(sub.id);
+    } catch (e) {
+      console.error(e);
+      alert('Silme sırasında hata oluştu: ' + e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme', 'Genel Testler'];
   const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
@@ -804,7 +897,6 @@ export default function EvaluationManager() {
       gap: '1.25rem'
     }}>
 
-      {/* Smart Evaluation Modal */}
       {activeSubmission && (
         <SmartEvaluationModal
           submission={activeSubmission}
@@ -818,7 +910,15 @@ export default function EvaluationManager() {
         />
       )}
 
-      {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
+      {manualModalData.isOpen && (
+        <ManualTestModal
+          isOpen={manualModalData.isOpen}
+          initialData={manualModalData.data}
+          onClose={() => setManualModalData({ isOpen: false, data: null })}
+          onSaved={() => setManualModalData({ isOpen: false, data: null })}
+        />
+      )}
+
       <header style={{
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
@@ -848,107 +948,96 @@ export default function EvaluationManager() {
               gap: '0.4rem',
               fontWeight: 800,
               color: 'var(--color-text)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              fontSize: '0.82rem',
+              transition: 'all 0.15s ease'
             }}
           >
-            <ArrowLeft size={16} /> Geri Dön
+            <ArrowLeft size={16} /> Geri
           </button>
 
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-              <Sparkles size={13} /> LMS Sınav & Ödev Değerlendirme Merkezi
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                Değerlendirme & Onay Merkezi
+              </h1>
+              <span style={{
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#818cf8',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.7rem',
+                fontWeight: 900,
+                border: '1px solid rgba(165, 180, 252, 0.35)'
+              }}>
+                {isAdmin ? 'Yönetici Modu' : 'Öğretmen Portalı'}
+              </span>
             </div>
-            <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
-              Öğrenci Sınav & Ödev Değerlendirme Masası 🎯
-            </h1>
-            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-              Çoktan seçmeli sorular otomatik puanlanır; açık uçlu yazılı yanıtları tek tıkla inceleyip puanlayın.
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Yazılı sınav kağıtlarını puanlayın ve öğrencilerin manuel test sonuçlarını onaylayın
             </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0.85rem',
+            padding: '0.45rem 0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: pendingExamList.length > 0 ? '#f59e0b' : '#10b981' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text)' }}>
+              {pendingExamList.length} Yazılı Bekliyor
+            </span>
+          </div>
+
+          <div style={{
+            background: manualPendingList.length > 0 ? 'rgba(245, 158, 11, 0.12)' : 'var(--color-surface-hover)',
+            border: manualPendingList.length > 0 ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1px solid var(--color-border)',
+            borderRadius: '0.85rem',
+            padding: '0.45rem 0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: manualPendingList.length > 0 ? '#fbbf24' : '#10b981' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: manualPendingList.length > 0 ? '#fbbf24' : 'var(--color-text)' }}>
+              {manualPendingList.length} Manuel Onay Bekliyor
+            </span>
+          </div>
+
+          <div style={{
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0.85rem',
+            padding: '0.45rem 0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <Trophy size={14} color="#f59e0b" />
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text)' }}>
+              Ort. %{avgEvaluatedScore}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* ══════════ 4 LIVE KPI HERO METRIC CARDS ══════════ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Edit3 size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Not Bekleyen</span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{pendingList.length} Sınav</span>
-            <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Açık uçlu yanıtlar</span>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Tamamlanan</span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{completedList.length} Sınav</span>
-            <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Puanlaması bitti</span>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99,102,241,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ClipboardCheck size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Teslim</span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{scopedSubmissions.length} Sınav</span>
-            <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700 }}>Öğrenci sınav kağıdı</span>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(2,132,199,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Trophy size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Genel Ortalama</span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{avgEvaluatedScore}</span>
-            <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Değerlendirilen başarı</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════ TABS & FILTERS BAR ══════════ */}
       <div style={{
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
-        borderRadius: '1.25rem', padding: '1rem 1.25rem',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexWrap: 'wrap', gap: '0.75rem',
+        borderRadius: '1.25rem',
+        padding: '0.85rem 1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
         boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
       }}>
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -962,7 +1051,22 @@ export default function EvaluationManager() {
               boxShadow: activeTab === 'pending' ? '0 4px 12px rgba(245,158,11,0.25)' : 'none'
             }}
           >
-            <Edit3 size={14} /> Not Bekleyenler ({pendingList.length})
+            <Edit3 size={14} /> Yazılı Not Bekleyenler ({pendingExamList.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('manual_pending')}
+            style={{
+              padding: '0.5rem 0.95rem', borderRadius: '0.7rem', border: 'none',
+              background: activeTab === 'manual_pending' ? 'linear-gradient(135deg, #7c3aed, #9333ea)' : 'var(--color-surface-hover)',
+              color: activeTab === 'manual_pending' ? '#ffffff' : (manualPendingList.length > 0 ? '#a855f7' : 'var(--color-text-muted)'),
+              fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              boxShadow: activeTab === 'manual_pending' ? '0 4px 12px rgba(124,58,237,0.25)' : 'none'
+            }}
+          >
+            <Clock3 size={14} /> ⏳ Manuel Test Onayları ({manualPendingList.length})
           </button>
 
           <button
@@ -977,7 +1081,7 @@ export default function EvaluationManager() {
               boxShadow: activeTab === 'all' ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
             }}
           >
-            <ClipboardList size={14} /> Tüm Sınavlar ({scopedSubmissions.length})
+            <ClipboardList size={14} /> Tüm Kayıtlar ({scopedSubmissions.length})
           </button>
 
           <button
@@ -992,17 +1096,16 @@ export default function EvaluationManager() {
               boxShadow: activeTab === 'completed' ? '0 4px 12px rgba(16,185,129,0.25)' : 'none'
             }}
           >
-            <CheckCircle2 size={14} /> Tamamlananlar ({completedList.length})
+            <CheckCircle2 size={14} /> Tamamlanan & Onaylananlar ({completedList.length})
           </button>
         </div>
 
-        {/* Search & Select Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
           <div style={{ position: 'relative', flex: '1 1 180px' }}>
             <Search size={14} color="var(--color-text-muted)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Öğrenci veya sınav ara..."
+              placeholder="Öğrenci, kitap veya sınav ara..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
@@ -1041,7 +1144,6 @@ export default function EvaluationManager() {
         </div>
       </div>
 
-      {/* ══════════ SUBMISSIONS CARD GRID ══════════ */}
       {activeDisplayList.length === 0 ? (
         <div style={{
           background: 'var(--color-surface)',
@@ -1051,34 +1153,45 @@ export default function EvaluationManager() {
         }}>
           <Sparkles size={44} style={{ opacity: 0.35, color: '#6366f1' }} />
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
-            {activeTab === 'pending' ? 'Not Bekleyen Sınav Bulunmuyor' : 'Kayıtlı Sınav Bulunamadı'}
+            {activeTab === 'manual_pending'
+              ? 'Onay Bekleyen Manuel Test Bulunmuyor'
+              : (activeTab === 'pending' ? 'Not Bekleyen Yazılı Sınav Bulunmuyor' : 'Kayıtlı Sınav / Test Bulunamadı')}
           </h3>
-          <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.82rem', maxWidth: 380 }}>
-            {activeTab === 'pending'
-              ? 'Harika! Tüm öğrenci yazılı yanıtları başarıyla değerlendirilmiş durumda.'
-              : 'Arama kriterlerinize uygun sınav kaydı bulunamadı.'}
+          <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.82rem', maxWidth: 420 }}>
+            {activeTab === 'manual_pending'
+              ? 'Harika! Öğrenciler tarafından eklenen tüm manuel testler onaylanmış veya incelenmiş durumda.'
+              : (activeTab === 'pending'
+                ? 'Tüm öğrenci yazılı yanıtları başarıyla değerlendirilmiş durumda.'
+                : 'Arama kriterlerinize uygun kayıt bulunamadı.')}
           </p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
           {activeDisplayList.map((sub) => {
+            const isManual = sub.isManual;
             const isPending = sub.isPending;
+            const isManualPending = sub.isManualPending;
+            const isManualApproved = sub.isManualApproved;
+            const isManualRejected = sub.isManualRejected;
+
             const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
             const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
             const totalQ = sub.totalQuestions || 1;
             const subConf = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
+            const isBusy = processingId === sub.id;
 
             return (
               <div
                 key={sub.id}
                 style={{
                   background: 'var(--color-surface)',
-                  border: isPending ? '1.5px solid #fbbf24' : '1.5px solid var(--color-border)',
+                  border: isPending ? (isManual ? '1.5px solid #a855f7' : '1.5px solid #fbbf24') : '1.5px solid var(--color-border)',
                   borderRadius: '1.25rem', padding: '1.25rem',
                   boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
                   display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.85rem',
                   transition: 'transform 0.15s ease, border-color 0.15s ease',
-                  position: 'relative', overflow: 'hidden'
+                  position: 'relative', overflow: 'hidden',
+                  opacity: isBusy ? 0.6 : 1
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
@@ -1086,7 +1199,7 @@ export default function EvaluationManager() {
                 {isPending && (
                   <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, height: 3.5,
-                    background: 'linear-gradient(90deg, #f59e0b, #d97706)'
+                    background: isManual ? 'linear-gradient(90deg, #7c3aed, #a855f7)' : 'linear-gradient(90deg, #f59e0b, #d97706)'
                   }} />
                 )}
 
@@ -1112,7 +1225,36 @@ export default function EvaluationManager() {
                       </div>
                     </div>
 
-                    {isPending ? (
+                    {isManual ? (
+                      isManualPending ? (
+                        <span style={{
+                          background: 'rgba(124, 58, 237, 0.15)', color: '#c084fc',
+                          border: '1px solid rgba(168, 85, 247, 0.35)',
+                          padding: '0.2rem 0.6rem', borderRadius: 99,
+                          fontWeight: 900, fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: 3
+                        }}>
+                          ⏳ Onay Bekliyor
+                        </span>
+                      ) : isManualRejected ? (
+                        <span style={{
+                          background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          padding: '0.2rem 0.6rem', borderRadius: 99,
+                          fontWeight: 900, fontSize: '0.68rem'
+                        }}>
+                          ❌ Reddedildi
+                        </span>
+                      ) : (
+                        <span style={{
+                          background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          padding: '0.2rem 0.6rem', borderRadius: 99,
+                          fontWeight: 900, fontSize: '0.68rem'
+                        }}>
+                          ✓ Onaylandı
+                        </span>
+                      )
+                    ) : isPending ? (
                       <span style={{
                         background: 'rgba(245,158,11,0.12)', color: '#fbbf24',
                         border: '1px solid rgba(245,158,11,0.25)',
@@ -1133,44 +1275,170 @@ export default function EvaluationManager() {
                     )}
                   </div>
 
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text)', lineHeight: 1.35, marginBottom: '0.45rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text)', lineHeight: 1.35, marginBottom: '0.35rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {sub.testTitle || 'Ödev / Sınav'}
                   </div>
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {sub.bookTitle && (
+                    <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '0.45rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <BookOpen size={12} color="#818cf8" />
+                      <span>{sub.bookTitle}</span>
+                      {sub.unitTopic && <span style={{ opacity: 0.8 }}>• 📌 {sub.unitTopic}</span>}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: isManual ? '0.6rem' : '0' }}>
                     <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 700, border: '1px solid var(--color-border)' }}>
                       📝 {totalQ} Soru
                     </span>
                     <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
                       {subConf.icon} {sub.subject}
                     </span>
+                    {isManual && (
+                      <span style={{ background: 'rgba(124, 58, 237, 0.12)', color: '#a855f7', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                        ✏️ Manuel Giriş
+                      </span>
+                    )}
                   </div>
+
+                  {isManual && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginTop: '0.4rem', marginBottom: '0.4rem' }}>
+                      <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8, padding: '0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.58rem', color: '#10b981', fontWeight: 900 }}>DOĞRU</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#10b981' }}>{sub.correctCount || 0}</div>
+                      </div>
+                      <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, padding: '0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.58rem', color: '#ef4444', fontWeight: 900 }}>YANLIŞ</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#ef4444' }}>{sub.wrongCount || 0}</div>
+                      </div>
+                      <div style={{ background: 'rgba(148, 163, 184, 0.12)', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: 8, padding: '0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.58rem', color: 'var(--color-text-muted)', fontWeight: 900 }}>BOŞ</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{sub.emptyCount || 0}</div>
+                      </div>
+                      <div style={{ background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, padding: '0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.58rem', color: '#3b82f6', fontWeight: 900 }}>NET</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#3b82f6' }}>{sub.totalNet ?? ((sub.correctCount || 0) - ((sub.wrongCount || 0) / 4)).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isManual && sub.mistakeReasons && Object.keys(sub.mistakeReasons).length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                      {Object.entries(sub.mistakeReasons).slice(0, 3).map(([qNo, rText], rIdx) => (
+                        <span key={rIdx} style={{ fontSize: '0.62rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '1px 5px', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          S{qNo}: {rText}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', gap: 6, flexWrap: 'wrap' }}>
                   <div>
                     {scoreVal !== null && (
-                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: scoreVal >= 70 ? '#16a34a' : (scoreVal >= 50 ? '#d97706' : '#dc2626') }}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: scoreVal >= 70 ? '#10b981' : (scoreVal >= 50 ? '#f59e0b' : '#ef4444') }}>
                         %{scoreVal}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubmission(sub)}
-                    style={{
-                      padding: '0.5rem 1rem', borderRadius: '0.7rem', border: 'none',
-                      background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                      color: '#ffffff',
-                      fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '0.35rem',
-                      boxShadow: isPending ? '0 4px 12px rgba(245,158,11,0.25)' : '0 4px 12px rgba(99,102,241,0.25)'
-                    }}
-                  >
-                    {isPending ? <Edit3 size={14} /> : <Eye size={14} />}
-                    <span>{isPending ? 'Değerlendir & Not Ver' : 'Sınavı & Çözümü İncele'}</span>
-                  </button>
+                  {isManual ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isManualPending ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => handleApproveManual(sub)}
+                            style={{
+                              padding: '0.45rem 0.85rem', borderRadius: '0.65rem', border: 'none',
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: '#ffffff', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '0.3rem',
+                              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                            }}
+                          >
+                            <Check size={14} /> Onayla
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => handleRejectManual(sub)}
+                            style={{
+                              padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                              border: '1px solid rgba(239, 68, 68, 0.35)',
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '0.3rem'
+                            }}
+                          >
+                            <XCircle size={14} /> Reddet
+                          </button>
+                        </>
+                      ) : isManualRejected ? (
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => handleApproveManual(sub)}
+                          style={{
+                            padding: '0.45rem 0.75rem', borderRadius: '0.65rem', border: 'none',
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: '#ffffff', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.3rem'
+                          }}
+                        >
+                          <Check size={14} /> Yeniden Onayla
+                        </button>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        onClick={() => setManualModalData({ isOpen: true, data: sub })}
+                        style={{
+                          padding: '0.45rem 0.65rem', borderRadius: '0.65rem',
+                          background: 'var(--color-surface-hover)',
+                          border: '1px solid var(--color-border)',
+                          color: 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '0.25rem'
+                        }}
+                        title="İncele / Düzenle"
+                      >
+                        <Edit3 size={13} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteManual(sub)}
+                        style={{
+                          padding: '0.45rem 0.65rem', borderRadius: '0.65rem',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                        title="Sil"
+                      >
+                        <XCircle size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubmission(sub)}
+                      style={{
+                        padding: '0.5rem 1rem', borderRadius: '0.7rem', border: 'none',
+                        background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                        color: '#ffffff',
+                        fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.35rem',
+                        boxShadow: isPending ? '0 4px 12px rgba(245,158,11,0.25)' : '0 4px 12px rgba(99,102,241,0.25)'
+                      }}
+                    >
+                      {isPending ? <Edit3 size={14} /> : <Eye size={14} />}
+                      <span>{isPending ? 'Değerlendir & Not Ver' : 'Sınavı & Çözümü İncele'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             );

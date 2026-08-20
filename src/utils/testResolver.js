@@ -581,6 +581,13 @@ export function computeStudentAnalyticsData({
     const raw = s.raw_data || {};
     if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
+    // Only approved manual tests count towards system analytics and statistics
+    const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test';
+    if (isManualTest) {
+      const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || raw.approvalStatus === 'approved' || raw.isApproved === true;
+      if (!isApproved) return;
+    }
+
     let correct = s.correctCount ?? raw.correctCount ?? 0;
     let wrong = s.wrongCount ?? raw.wrongCount ?? 0;
     let empty = s.emptyCount ?? s.blankCount ?? raw.emptyCount ?? raw.blankCount ?? 0;

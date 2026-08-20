@@ -306,12 +306,22 @@ export default function TeacherDashboard() {
     { id: 'coaching',  label: 'Koçluk & Takip', icon: Target },
   ];
 
+  const pendingManualApprovals = useMemo(() => {
+    return (submissions || []).filter(sub => {
+      if (!sub.isManual && sub.sourceType !== 'manual_test') return false;
+      const isPending = sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected');
+      if (!isPending) return false;
+      if (currentUser?.role === 'admin') return true;
+      return teacherStudentIds.includes(String(sub.studentId)) || teacherStudentIds.includes(String(toUUID(sub.studentId)));
+    });
+  }, [submissions, teacherStudentIds, currentUser]);
+
   const quickActions = [
     { icon: UserPlus,  label: 'Öğrenci Ekle',   sub: 'Hızlı sınıf kaydı',       grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: '0 6px 20px rgba(16,185,129,0.35)',  onClick: () => setShowAddStudentModal(true) },
     { icon: Plus,      label: 'Test Oluştur',    sub: 'Soru bankasından test',   grad: 'linear-gradient(135deg,#4f46e5,#6366f1)', shadow: '0 6px 20px rgba(99,102,241,0.35)',  onClick: () => { resetForm(); setShowModal(true); } },
+    { icon: ClipboardCheck, label: 'Değerlendirme & Onay', sub: pendingManualApprovals.length > 0 ? `⏳ ${pendingManualApprovals.length} test bekliyor` : 'Sınav & onay merkezi', grad: 'linear-gradient(135deg,#7c3aed,#6366f1)', shadow: '0 6px 20px rgba(124,58,237,0.35)', onClick: () => navigate(pendingManualApprovals.length > 0 ? '/evaluations?tab=manual_pending' : '/evaluations') },
     { icon: BookOpen,  label: 'Ödev Ver',         sub: 'Öğrencilere ödev ata',    grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: '0 6px 20px rgba(245,158,11,0.35)',  onClick: () => navigate('/homeworks') },
-    { icon: Layers,    label: 'Soru Bankası',     sub: 'Sorularını yönet',        grad: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', shadow: '0 6px 20px rgba(139,92,246,0.35)',  onClick: () => navigate('/questions') },
-    { icon: BookMarked, label: 'Müfredat Özetleri', sub: 'Konu anlatımı & özet', grad: 'linear-gradient(135deg,#0284c7,#0369a1)', shadow: '0 6px 20px rgba(2,132,199,0.35)', onClick: () => navigate('/summaries') },
+    { icon: Layers,    label: 'Soru Bankası',     sub: 'Sorularını yönet',        grad: 'linear-gradient(135deg,#0284c7,#0369a1)', shadow: '0 6px 20px rgba(2,132,199,0.35)', onClick: () => navigate('/questions') },
     { icon: BarChart3, label: 'İstatistikler',    sub: 'Analiz & raporlar',       grad: 'linear-gradient(135deg,#e11d48,#f43f5e)', shadow: '0 6px 20px rgba(244,63,94,0.35)',  onClick: () => navigate('/statistics') },
   ];
 
@@ -367,6 +377,67 @@ export default function TeacherDashboard() {
             </button>
           </div>
         </div>
+
+        {/* ══════════ PENDING MANUAL TEST APPROVALS BANNER ══════════ */}
+        {pendingManualApprovals.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(99, 102, 241, 0.12))',
+            border: '1.5px solid rgba(168, 85, 247, 0.35)',
+            borderRadius: '1.25rem',
+            padding: '1rem 1.4rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 4px 16px -2px rgba(124, 58, 237, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #7c3aed, #9333ea)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+              }}>
+                <Clock3 size={20} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                  {pendingManualApprovals.length} Adet Manuel Test Onayınızı Bekliyor!
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  Öğrencilerinizin eklediği test sonuçlarını onaylayarak istatistiklerine yansımasını sağlayın.
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/evaluations?tab=manual_pending')}
+              style={{
+                padding: '0.6rem 1.2rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+              }}
+            >
+              <span>Onaylamak İçin İncele</span>
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
         <div className="teacher-stats-grid">

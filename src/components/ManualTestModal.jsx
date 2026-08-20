@@ -303,6 +303,11 @@ export default function ManualTestModal({
 
       const submissionId = initialData?.submissionId || initialData?.id || `sub_manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
+      const isStaff = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
+      const isApproved = isStaff || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
+      const approvalStatus = isApproved ? 'approved' : 'pending';
+      const finalStatus = isApproved ? 'completed' : 'pending_approval';
+
       const newSubmission = {
         id: submissionId,
         studentId: String(studentId),
@@ -325,9 +330,16 @@ export default function ManualTestModal({
         completedAt: new Date(date).toISOString(),
         createdAt: new Date(date).toISOString(),
         date: date,
-        status: 'completed',
+        status: finalStatus,
+        approvalStatus: approvalStatus,
+        isApproved: isApproved,
         isManual: true,
         sourceType: 'manual_test',
+        submittedByRole: currentUser?.role || 'student',
+        submittedByName: currentUser?.name || 'Öğrenci',
+        approvedBy: isApproved ? (currentUser?.id || initialData?.approvedBy || null) : null,
+        approvedByName: isApproved ? (currentUser?.name || initialData?.approvedByName || null) : null,
+        approvedAt: isApproved ? new Date().toISOString() : null,
         answers: answersList,
         mistakeReasons: mistakeReasons
       };
@@ -338,12 +350,12 @@ export default function ManualTestModal({
         await addSubmission(newSubmission);
       }
 
-      // Check if linked to an assigned homework
+      // Check if linked to an assigned homework (only submit if approved)
       const targetHw = (homeworks || []).find(h => 
         (testId && (String(h.id) === String(testId) || (h.tests && h.tests.includes(testId)))) ||
         (bookId && String(h.bookId) === String(bookId))
       );
-      if (targetHw && typeof submitHomework === 'function') {
+      if (targetHw && isApproved && typeof submitHomework === 'function') {
         try {
           await submitHomework(targetHw.id, studentId, calculatedPct, totQ, {
             testId: testId || submissionId,
@@ -451,6 +463,47 @@ export default function ManualTestModal({
             <X size={20} />
           </button>
         </div>
+
+        {/* Approval Info Banner */}
+        {currentUser?.role === 'teacher' || currentUser?.role === 'admin' ? (
+          <div style={{
+            margin: '0.85rem 1.5rem 0',
+            padding: '0.65rem 0.9rem',
+            borderRadius: 12,
+            background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4',
+            border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0',
+            color: isDark ? '#34d399' : '#15803d',
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <span style={{ fontSize: '1.1rem' }}>✓</span>
+            <div>
+              <strong>Yetkili Girişi:</strong> Öğretmen/Yönetici olarak eklediğiniz sonuçlar doğrudan onaylanıp öğrencinin istatistiklerine ve kitap haritasına yansıtılır.
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            margin: '0.85rem 1.5rem 0',
+            padding: '0.65rem 0.9rem',
+            borderRadius: 12,
+            background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a',
+            color: isDark ? '#fbbf24' : '#b45309',
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <span style={{ fontSize: '1.1rem' }}>⏳</span>
+            <div>
+              <strong>Onay Sistemi:</strong> Girdiğiniz manuel test sonucu öğretmeninizin onayına sunulacak, <u>öğretmeniniz onayladıktan sonra</u> kitap ilerlemenize ve istatistiklerinize yansıyacaktır.
+            </div>
+          </div>
+        )}
 
         {/* Modal Body */}
         <form onSubmit={handleSave} style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>

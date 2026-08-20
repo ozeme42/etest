@@ -223,6 +223,7 @@ export default function StudentBookDetailsPage() {
           const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
           if (!isMatchStudent) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
+          if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
 
           const matchFields = [
             String(s.testId || ''),
@@ -243,6 +244,29 @@ export default function StudentBookDetailsPage() {
             (tUuidStr && f === tUuidStr) ||
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
+          ));
+        });
+
+        const pendingManualSub = submissions.find(s => {
+          const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+          if (!isMatchStudent) return false;
+          if (!s.isManual && s.sourceType !== 'manual_test') return false;
+          const isPending = s.approvalStatus === 'pending' || s.status === 'pending_approval' || (s.isApproved === false && s.approvalStatus !== 'rejected');
+          if (!isPending) return false;
+
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr)
           ));
         });
 
@@ -286,6 +310,8 @@ export default function StudentBookDetailsPage() {
           ...t,
           index: index + 1,
           isCompleted,
+          isPendingApproval: Boolean(pendingManualSub),
+          pendingManualSub: pendingManualSub || null,
           isLocked: false,
           isAssignedHomework,
           bestScore,
@@ -1882,12 +1908,13 @@ export default function StudentBookDetailsPage() {
                       {subj.directTests.map(test => {
                         let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
                         if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                        else if (test.isPendingApproval) { stateBg = 'var(--color-surface)'; stateBorder = 'rgba(168, 85, 247, 0.4)'; stateAccent = '#a855f7'; }
                         else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                         return (
                           <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
-                              {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
+                              {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
                             </div>
 
                             <div style={{ flex: 1, minWidth: 140 }}>
@@ -1896,7 +1923,19 @@ export default function StudentBookDetailsPage() {
                               </div>
                               <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{test.questionCount || 20} Soru</span>
-                                {test.testDueDate ? (
+                                {test.isPendingApproval && !test.isCompleted ? (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 900,
+                                    padding: '2px 7px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(124, 58, 237, 0.12)',
+                                    color: '#a855f7',
+                                    border: '1px solid rgba(168, 85, 247, 0.35)'
+                                  }}>
+                                    ⏳ Öğretmen Onayı Bekliyor
+                                  </span>
+                                ) : test.testDueDate ? (
                                   <span style={{
                                     fontSize: '0.7rem',
                                     fontWeight: 800,
@@ -2072,12 +2111,13 @@ export default function StudentBookDetailsPage() {
                               {topic.tests.map(test => {
                                 let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
                                 if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                                else if (test.isPendingApproval) { stateBg = 'var(--color-surface)'; stateBorder = 'rgba(168, 85, 247, 0.4)'; stateAccent = '#a855f7'; }
                                 else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                                 return (
                                   <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
-                                      {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
+                                      {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
                                     </div>
 
                                     <div style={{ flex: 1, minWidth: 140 }}>
@@ -2086,7 +2126,19 @@ export default function StudentBookDetailsPage() {
                                       </div>
                                       <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                         <span>{test.questionCount || 20} Soru</span>
-                                        {test.testDueDate ? (
+                                        {test.isPendingApproval && !test.isCompleted ? (
+                                          <span style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 900,
+                                            padding: '2px 7px',
+                                            borderRadius: '6px',
+                                            background: 'rgba(124, 58, 237, 0.12)',
+                                            color: '#a855f7',
+                                            border: '1px solid rgba(168, 85, 247, 0.35)'
+                                          }}>
+                                            ⏳ Öğretmen Onayı Bekliyor
+                                          </span>
+                                        ) : test.testDueDate ? (
                                           <span style={{
                                             fontSize: '0.7rem',
                                             fontWeight: 800,

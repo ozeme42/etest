@@ -612,6 +612,37 @@ export function EvaluationProvider({ children }) {
     await dbDeleteBookSubmissionsForEveryone(testIds, hwId);
   };
 
+  const approveSubmission = async (id, approverUser = null) => {
+    if (!id) return;
+    const updatePayload = {
+      approvalStatus: 'approved',
+      isApproved: true,
+      status: 'completed',
+      approvedBy: approverUser?.id || null,
+      approvedByName: approverUser?.name || null,
+      approvedAt: new Date().toISOString()
+    };
+    await updateSubmission(id, updatePayload);
+    window.dispatchEvent(new CustomEvent('submission_approved', { detail: { id, ...updatePayload } }));
+    window.dispatchEvent(new CustomEvent('submission_updated', { detail: { id, ...updatePayload } }));
+  };
+
+  const rejectSubmission = async (id, reason = '', rejecterUser = null) => {
+    if (!id) return;
+    const updatePayload = {
+      approvalStatus: 'rejected',
+      isApproved: false,
+      status: 'rejected',
+      rejectedReason: reason,
+      rejectedBy: rejecterUser?.id || null,
+      rejectedByName: rejecterUser?.name || null,
+      rejectedAt: new Date().toISOString()
+    };
+    await updateSubmission(id, updatePayload);
+    window.dispatchEvent(new CustomEvent('submission_rejected', { detail: { id, ...updatePayload } }));
+    window.dispatchEvent(new CustomEvent('submission_updated', { detail: { id, ...updatePayload } }));
+  };
+
   const deleteAllSubmissions = async () => {
     setSubmissions(prev => {
       prev.forEach(s => dbDeleteSubmission(s.id));
@@ -632,6 +663,8 @@ export function EvaluationProvider({ children }) {
       evaluateAnswer,
       finalizeSubmission,
       updateSubmission,
+      approveSubmission,
+      rejectSubmission,
       deleteSubmission,
       clearSubmissionsForStudent,
       deleteSubmissionsByTestId,

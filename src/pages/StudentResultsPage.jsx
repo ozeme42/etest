@@ -140,7 +140,45 @@ function getSubjectKey(s) {
   return 'Genel Testler';
 }
 
-function ScoreBadge({ score, type, isPendingEval, size = 'md', isDark = false }) {
+function ScoreBadge({ score, type, isPendingEval, isPendingApproval, isRejected, size = 'md', isDark = false }) {
+  if (isPendingApproval) {
+    return (
+      <span style={{
+        fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem',
+        fontWeight: 900,
+        background: isDark ? 'rgba(124,58,237,0.18)' : '#faf5ff',
+        color: '#a855f7',
+        border: isDark ? '1.5px solid rgba(168,85,247,0.35)' : '1.5px solid #e9d5ff',
+        borderRadius: 10,
+        padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        whiteSpace: 'nowrap'
+      }}>
+        ⏳ Onay Bekliyor
+      </span>
+    );
+  }
+  if (isRejected) {
+    return (
+      <span style={{
+        fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem',
+        fontWeight: 900,
+        background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+        color: '#ef4444',
+        border: isDark ? '1.5px solid rgba(239,68,68,0.35)' : '1.5px solid #fecaca',
+        borderRadius: 10,
+        padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        whiteSpace: 'nowrap'
+      }}>
+        ❌ Reddedildi
+      </span>
+    );
+  }
   if (isPendingEval) {
     return (
       <span style={{
@@ -659,6 +697,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         scorePct = Math.min(100, Math.round((correct / total) * 100));
       }
 
+      const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test' || raw.isManual || raw.sourceType === 'manual_test');
+      const isPendingApproval = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
+      const isRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
+
       const existing = bestBookSubsByTest[bTestId];
       if (!existing || correct > existing.correctCount || (correct === existing.correctCount && scorePct > existing.computedScore)) {
         bestBookSubsByTest[bTestId] = {
@@ -675,6 +717,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           isEvaluated: true,
           isOpenEnded: false,
           isPendingEval: false,
+          isManual,
+          isPendingApproval,
+          isRejected,
           correctCount: correct,
           wrongCount: wrong,
           blankCount: blank,
@@ -692,10 +737,11 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   /* ── Overall Stats ─── */
   const overallStats = useMemo(() => {
-    const total = studentSubmissions.length;
-    if (total === 0) return { total: 0, avgScore: 0, maxScore: 0, totalQ: 0, totalCorrect: 0, weakSubjects: 0 };
+    const eligibleSubs = studentSubmissions.filter(s => !s.isPendingApproval && !s.isPendingEval && !s.isRejected);
+    const total = eligibleSubs.length;
+    if (total === 0) return { total: 0, avgScore: 0, maxScore: 0, totalQ: 0, totalCorrect: 0, weakSubjects: 0, completedCount: 0 };
     let sumScore = 0, max = 0, totalQ = 0, totalCorrect = 0;
-    studentSubmissions.forEach(s => {
+    eligibleSubs.forEach(s => {
       sumScore += s.computedScore || 0;
       if (s.computedScore > max) max = s.computedScore;
       totalQ += s.totalQuestions || 0;
@@ -705,7 +751,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     const successRate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : (total > 0 ? Math.round(sumScore / total) : 0);
 
     const subjectAvgs = {};
-    studentSubmissions.forEach(s => {
+    eligibleSubs.forEach(s => {
       if (!subjectAvgs[s.subjectKey]) subjectAvgs[s.subjectKey] = { sum: 0, count: 0 };
       subjectAvgs[s.subjectKey].sum += s.computedScore || 0;
       subjectAvgs[s.subjectKey].count++;
@@ -718,7 +764,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       totalQ,
       totalCorrect,
       weakSubjects,
-      completedCount: studentSubmissions.filter(s => s.status !== 'pending_evaluation').length,
+      completedCount: eligibleSubs.filter(s => s.status !== 'pending_evaluation').length,
     };
   }, [studentSubmissions]);
 
@@ -1314,7 +1360,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
                       </div>
 
-                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
 
                       {s.type !== 'physicalExam' ? (
                         <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
@@ -1797,7 +1843,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
                     </div>
 
-                    <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+                    <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
 
                     {s.type !== 'physicalExam' ? (
                       <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
@@ -2022,7 +2068,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" isDark={isDark} />
+                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               {s.type !== 'physicalExam' ? (
@@ -2087,7 +2133,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 8 }}>
                         <div>
-                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
                           <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         {s.type !== 'physicalExam' ? (

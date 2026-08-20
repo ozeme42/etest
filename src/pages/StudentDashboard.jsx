@@ -518,7 +518,9 @@ export default function StudentDashboard() {
     const studentSubs = (submissions || []).filter(s => {
       const sid = String(s?.studentId || s?.student_id || s?.userId || s?.user_id || '');
       const isMatchStudent = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
-      return isMatchStudent && s.status !== 'in_progress' && s.status !== 'draft';
+      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+      return true;
     });
 
     const bookAssignments = (homeworks || []).filter(hw => {
@@ -1116,6 +1118,10 @@ export default function StudentDashboard() {
         return;
       }
 
+      const isManual = Boolean(sub.isManual || sub.sourceType === 'manual_test');
+      const isManualPending = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
+      const isManualRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
+
       solvedList.push({
         id: sub.id || testId,
         testId: sub.testId || testId,
@@ -1132,6 +1138,9 @@ export default function StudentDashboard() {
         pct,
         isOpenEnded,
         isPendingEvaluation,
+        isManual,
+        isManualPending,
+        isManualRejected,
         type: sub.type || (sub.bookTestId || targetTest ? 'kitap' : 'test'),
         isPhysical: sub.type === 'physicalExam' || sub.isPhysical
       });
@@ -3568,7 +3577,15 @@ export default function StudentDashboard() {
                           )}
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
-                            {test.isPendingEvaluation ? (
+                            {test.isManualPending ? (
+                              <span style={{ color: '#a855f7', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
+                                ⏳ Manuel Test • Öğretmen Onayı Bekleniyor
+                              </span>
+                            ) : test.isManualRejected ? (
+                              <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
+                                ❌ Manuel Test • Onaylanmadı
+                              </span>
+                            ) : test.isPendingEvaluation ? (
                               <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Öğretmen Değerlendirmesinde
                               </span>
@@ -3608,7 +3625,41 @@ export default function StudentDashboard() {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                          {test.isPendingEvaluation ? (
+                          {test.isManualPending ? (
+                            <div style={{
+                              background: 'rgba(124, 58, 237, 0.12)',
+                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
+                              color: '#a855f7',
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: 12,
+                              textAlign: 'center',
+                              minWidth: 54
+                            }}>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                                ⏳
+                              </div>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>
+                                Onay Bekliyor
+                              </div>
+                            </div>
+                          ) : test.isManualRejected ? (
+                            <div style={{
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                              color: '#ef4444',
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: 12,
+                              textAlign: 'center',
+                              minWidth: 54
+                            }}>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                                ❌
+                              </div>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>
+                                Reddedildi
+                              </div>
+                            </div>
+                          ) : test.isPendingEvaluation ? (
                             <div style={{
                               background: 'rgba(124, 58, 237, 0.12)',
                               border: '1.5px solid rgba(167, 139, 250, 0.35)',

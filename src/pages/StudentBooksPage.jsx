@@ -173,7 +173,9 @@ export default function StudentBooksPage() {
   const studentSubmissions = useMemo(() =>
     submissions.filter(s => {
       const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
-      return isMatchStudent && s.status !== 'in_progress' && s.status !== 'draft';
+      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+      return true;
     })
     , [submissions, studentIdStr, studentUuidStr]);
 
