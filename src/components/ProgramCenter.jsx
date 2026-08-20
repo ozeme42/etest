@@ -1255,9 +1255,71 @@ export function MonthlyListPanel({
 
       // A) Homeworks & Book Assignments
       studentHomeworks.forEach(hw => {
-        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
-        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+        const isExam = Boolean(
+          hw.type === 'physicalExam' ||
+          hw.contentType === 'physicalExam' ||
+          hw.bookType === 'exam' ||
+          bookObj?.bookType === 'exam' ||
+          hw.isPhysical ||
+          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav')))
+        );
+
+        if (isExam) {
+          const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
+          const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+          const startTime = startYMD ? new Date(startYMD).getTime() : null;
+
+          const rawDue = hw.dueDate || hw.assignedDueDate;
+          const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+          const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+          let isForThisDay = false;
+          if (dueTime && startTime) {
+            isForThisDay = dateTime >= startTime && dateTime <= dueTime;
+          } else if (dueTime) {
+            isForThisDay = ymd === dueYMD || (dateTime <= dueTime && dateTime >= dueTime - 6 * 86400000);
+          } else if (startTime) {
+            isForThisDay = dateTime === startTime;
+          }
+
+          if (isForThisDay) {
+            const isHwDone = checkIsTaskSolved({
+              hwId: hw.id,
+              id: hw.id
+            }, studentId, submissions, allHomeworks, studyAssignments);
+
+            let totalQ = hw.totalQuestions;
+            if (!totalQ && hw.tests && Array.isArray(hw.tests)) {
+              totalQ = hw.tests.reduce((acc, tid) => {
+                const bt = (bookTests || []).find(b => String(b.id) === String(tid));
+                return acc + (bt?.questionCount || 0);
+              }, 0);
+            }
+            if (!totalQ) totalQ = (bookObj?.subjects || []).reduce((acc, s) => acc + (s.count || 20), 0) || 30;
+
+            const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
+            if (!exists) {
+              autoHwItems.push({
+                id: `auto_hw_${hw.id}_${ymd}`,
+                hwId: hw.id,
+                isAutoHomework: true,
+                isExamTask: true,
+                taskType: 'deneme',
+                subject: '📋 Deneme',
+                topic: cleanBookTitle || hw.title || 'Deneme Sınavı',
+                questionCount: `${totalQ} Soru`,
+                time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                done: isHwDone
+              });
+            }
+          }
+          return;
+        }
+
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
 
         if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
@@ -2526,9 +2588,71 @@ export default function ProgramCenter({
 
       // A) Homeworks & Book Assignments
       studentHomeworks.forEach(hw => {
-        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
-        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+        const bookObj = books.find(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+        const isExam = Boolean(
+          hw.type === 'physicalExam' ||
+          hw.contentType === 'physicalExam' ||
+          hw.bookType === 'exam' ||
+          bookObj?.bookType === 'exam' ||
+          hw.isPhysical ||
+          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav')))
+        );
+
+        if (isExam) {
+          const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
+          const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+          const startTime = startYMD ? new Date(startYMD).getTime() : null;
+
+          const rawDue = hw.dueDate || hw.assignedDueDate;
+          const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+          const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+          let isForThisDay = false;
+          if (dueTime && startTime) {
+            isForThisDay = dayInfo.time >= startTime && dayInfo.time <= dueTime;
+          } else if (dueTime) {
+            isForThisDay = dayInfo.ymd === dueYMD || (dayInfo.time <= dueTime && dayInfo.time >= dueTime - 6 * 86400000);
+          } else if (startTime) {
+            isForThisDay = dayInfo.time === startTime;
+          }
+
+          if (isForThisDay) {
+            const isHwDone = checkIsTaskSolved({
+              hwId: hw.id,
+              id: hw.id
+            }, studentId, submissions, allHomeworks, studyAssignments);
+
+            let totalQ = hw.totalQuestions;
+            if (!totalQ && hw.tests && Array.isArray(hw.tests)) {
+              totalQ = hw.tests.reduce((acc, tid) => {
+                const bt = (bookTests || []).find(b => String(b.id) === String(tid));
+                return acc + (bt?.questionCount || 0);
+              }, 0);
+            }
+            if (!totalQ) totalQ = (bookObj?.subjects || []).reduce((acc, s) => acc + (s.count || 20), 0) || 30;
+
+            const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${dayObj.day}` || m.hwId === hw.id);
+            if (!exists) {
+              autoHwItems.push({
+                id: `auto_hw_${hw.id}_${dayObj.day}`,
+                hwId: hw.id,
+                isAutoHomework: true,
+                isExamTask: true,
+                taskType: 'deneme',
+                subject: '📋 Deneme',
+                topic: cleanBookTitle || hw.title || 'Deneme Sınavı',
+                questionCount: `${totalQ} Soru`,
+                time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                done: isHwDone
+              });
+            }
+          }
+          return;
+        }
+
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
 
         if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {

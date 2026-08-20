@@ -1327,9 +1327,109 @@ export default function StudentDashboard() {
 
         studentHomeworks.forEach(hw => {
           if (!hw) return;
-          const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
-          const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId));
+          const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+          const isExam = Boolean(
+            hw.type === 'physicalExam' ||
+            hw.contentType === 'physicalExam' ||
+            hw.bookType === 'exam' ||
+            bookObj?.bookType === 'exam' ||
+            hw.isPhysical ||
+            (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav')))
+          );
+
+          // ── DENEME & FİZİKSEL SINAV: TEK BİRLEŞİK GÖREV OLARAK GÖSTER ──
+          if (isExam) {
+            const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
+            const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
+            const startTime = startYMD ? new Date(startYMD).getTime() : null;
+            const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+            const studentIdStr = String(studentId || '');
+            const studentUuidStr = String(toUUID(studentId) || '');
+            const isMatchStudent = (s) => {
+              if (!s) return false;
+              const subStudentId = String(s.studentId || s.student_id || s.user_id || '');
+              return subStudentId === studentIdStr ||
+                (studentUuidStr && subStudentId === studentUuidStr) ||
+                toUUID(subStudentId) === studentIdStr ||
+                (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+            };
+
+            const isMatchHwSub = (s) => {
+              if (!s || !isMatchStudent(s)) return false;
+              if (s.status === 'in_progress' || s.status === 'draft') return false;
+              const hwIdStr = String(hw.id || '');
+              const cleanHwId = hwIdStr.replace(/^hw_/, '');
+              const sHwId = String(s.hwId || s.homeworkId || '');
+              const sTestId = String(s.testId || '');
+              const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
+              const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
+              const sId = String(s.id || '');
+
+              if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || sHwId.replace(/^hw_/, '') === cleanHwId)) return true;
+              if (sTestId && (sTestId === hwIdStr || sTestId === cleanHwId || sTestId.replace(/^hw_/, '') === cleanHwId)) return true;
+              if (sId && (sId === hwIdStr || sId === cleanHwId)) return true;
+              if (sRealTestId && (sRealTestId === hwIdStr || sRealTestId === cleanHwId)) return true;
+              if (sBookTestId && (sBookTestId === hwIdStr || sBookTestId === cleanHwId)) return true;
+              return false;
+            };
+
+            const isDone = (hw.submissions || []).some(isMatchHwSub) || (submissions || []).some(isMatchHwSub);
+            const sub = (hw.submissions || []).find(isMatchHwSub) || (submissions || []).find(isMatchHwSub);
+            const subYMD = (sub?.createdAt || sub?.submittedAt) ? extractItemYMD(sub.submittedAt || sub.createdAt) : null;
+
+            let isForThisDay = false;
+            if (isDone) {
+              const completionDay = subYMD || dueYMD || startYMD;
+              isForThisDay = (completionDay === dayYMD);
+            } else {
+              if (dueYMD) {
+                isForThisDay = (dayYMD === dueYMD);
+              } else if (dueTime && startTime) {
+                isForThisDay = (dayTime >= startTime && dayTime <= dueTime);
+              } else if (startTime) {
+                isForThisDay = (dayTime === startTime);
+              }
+            }
+
+            if (isForThisDay) {
+              let totalQ = hw.totalQuestions;
+              if (!totalQ && hw.tests && Array.isArray(hw.tests)) {
+                totalQ = hw.tests.reduce((acc, tid) => {
+                  const bt = (bookTests || []).find(b => String(b?.id) === String(tid));
+                  return acc + (bt?.questionCount || 0);
+                }, 0);
+              }
+              if (!totalQ) totalQ = (bookObj?.subjects || []).reduce((acc, s) => acc + (s.count || 20), 0) || 30;
+
+              const rawDue = hw.dueDate || hw.assignedDueDate;
+              let formattedDue = '';
+              if (rawDue) {
+                try { formattedDue = `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}`; } catch {}
+              }
+
+              const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `auto_hw_${hw.id}`,
+                  hwId: hw.id,
+                  isAutoHomework: true,
+                  isExamTask: true,
+                  taskType: 'deneme',
+                  subject: '📋 Deneme',
+                  title: cleanBookTitle || hw.title || 'Deneme Sınavı',
+                  questionCount: `${totalQ} Soru`,
+                  time: formattedDue || null,
+                  done: isDone
+                });
+              }
+            }
+            return;
+          }
+
+          const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
 
           if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
             Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
@@ -2395,11 +2495,15 @@ export default function StudentDashboard() {
                         const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                         const handleTaskClick = () => {
                           if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
+                          if (task.isExamTask || task.taskType === 'deneme') {
+                            navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
+                            return;
+                          }
                           if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
                           if (task.hwId) {
                             const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
-                            const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                            const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                            const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId) || toUUID(b.id) === toUUID(hwObj?.bookId));
+                            const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical || task.isExamTask || (hwObj?.title && hwObj.title.toLowerCase().includes('deneme'));
                             if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
                             else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
                             else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
@@ -2407,6 +2511,8 @@ export default function StudentDashboard() {
                           }
                           handleToggleTask(task);
                         };
+
+                        const isExamItem = task.isExamTask || task.taskType === 'deneme';
 
                         return (
                           <div
@@ -2453,9 +2559,9 @@ export default function StudentDashboard() {
                                     <span style={{
                                       fontSize: '0.62rem',
                                       fontWeight: 900,
-                                      color: '#6366f1',
-                                      background: 'rgba(99, 102, 241, 0.12)',
-                                      border: '1px solid rgba(165, 180, 252, 0.35)',
+                                      color: isExamItem ? '#92400e' : '#6366f1',
+                                      background: isExamItem ? '#fef3c7' : 'rgba(99, 102, 241, 0.12)',
+                                      border: isExamItem ? '1px solid #fde68a' : '1px solid rgba(165, 180, 252, 0.35)',
                                       padding: '1px 6px',
                                       borderRadius: 5,
                                       flexShrink: 0
