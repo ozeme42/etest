@@ -554,9 +554,9 @@ export default function StudyPlanManager() {
                 fontWeight: 800,
                 padding: '0.45rem 0.85rem',
                 borderRadius: '0.75rem',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                color: '#1d4ed8',
+                background: 'rgba(99, 102, 241, 0.12)',
+                border: '1px solid rgba(165, 180, 252, 0.3)',
+                color: '#6366f1',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -589,11 +589,11 @@ export default function StudyPlanManager() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.9rem', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(165, 180, 252, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
                         <Target size={22} />
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0284c7', background: '#f0f9ff', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid #bae6fd' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0284c7', background: 'rgba(2, 132, 199, 0.12)', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(2, 132, 199, 0.3)' }}>
                           YOL HARİTASI
                         </span>
                       </div>
@@ -602,7 +602,7 @@ export default function StudyPlanManager() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <button
                         onClick={() => handleDelete(plan.id, plan.title)}
-                        style={{ padding: '0.45rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.6rem', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ padding: '0.45rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '0.6rem', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Yol Haritasını Sil"
                       >
                         <Trash2 size={16} />
@@ -611,38 +611,38 @@ export default function StudyPlanManager() {
                   </div>
 
                   {/* Plan Title & Desc */}
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.3 }}>
                     {plan.title}
                   </h3>
                   {plan.description && (
-                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.84rem', color: 'var(--color-text-muted, #64748b)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {plan.description}
                     </p>
                   )}
 
                   {/* Mini Stats Bar */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.75rem 0.5rem', margin: '1rem 0', textAlign: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', padding: '0.75rem 0.5rem', margin: '1rem 0', textAlign: 'center' }}>
                     <div>
                       <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6366f1' }}>{planSubjects.length}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ünite</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Ünite</div>
                     </div>
-                    <div style={{ borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
+                    <div style={{ borderLeft: '1px solid var(--color-border, #e2e8f0)', borderRight: '1px solid var(--color-border, #e2e8f0)' }}>
                       <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{planTopicsCount}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Konu / Adım</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Konu / Adım</div>
                     </div>
                     <div>
                       <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#db2777' }}>{assignedStudentsCount}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Öğrenci</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Öğrenci</div>
                     </div>
                   </div>
 
                   {/* Units & Topics Preview */}
                   {planSubjects.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>İÇERİK ÖN İZLEME:</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>İÇERİK ÖN İZLEME:</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                         {planSubjects.slice(0, 3).map((subj, idx) => (
-                          <span key={subj.id || idx} style={{ fontSize: '0.74rem', fontWeight: 700, background: '#f8fafc', color: '#334155', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', border: '1px solid #e2e8f0' }}>
+                          <span key={subj.id || idx} style={{ fontSize: '0.74rem', fontWeight: 700, background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #334155)', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
                             📚 {subj.name}
                           </span>
                         ))}
@@ -654,7 +654,7 @@ export default function StudyPlanManager() {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#94a3b8', padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--color-text-muted, #94a3b8)', padding: '0.5rem 0' }}>
                       Henüz ünite eklenmemiş. İçeriği yönet butonuna tıklayarak ekleyebilirsiniz.
                     </div>
                   )}
@@ -668,9 +668,9 @@ export default function StudyPlanManager() {
                       flex: 1,
                       padding: '0.65rem 0.85rem',
                       borderRadius: '0.75rem',
-                      background: '#eff6ff',
-                      border: '1.5px solid #bfdbfe',
-                      color: '#1d4ed8',
+                      background: 'rgba(99, 102, 241, 0.12)',
+                      border: '1.5px solid rgba(165, 180, 252, 0.3)',
+                      color: '#6366f1',
                       fontWeight: 800,
                       fontSize: '0.84rem',
                       display: 'flex',
@@ -1004,7 +1004,7 @@ export default function StudyPlanManager() {
                       </div>
 
                       {isChecked && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                           Seçildi
                         </span>
                       )}

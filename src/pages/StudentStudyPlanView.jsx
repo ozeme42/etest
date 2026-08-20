@@ -310,9 +310,9 @@ export default function StudentStudyPlanView() {
                             style={{
                               padding: '0.45rem 0.85rem',
                               borderRadius: '0.65rem',
-                              background: 'var(--color-surface, #ffffff)',
-                              border: '1.5px solid #86efac',
-                              color: '#166534',
+                              background: 'rgba(16, 185, 129, 0.12)',
+                              border: '1.5px solid rgba(52, 211, 153, 0.4)',
+                              color: '#10b981',
                               fontSize: '0.78rem',
                               fontWeight: 800,
                               display: 'flex',

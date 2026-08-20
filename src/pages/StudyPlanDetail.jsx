@@ -91,8 +91,8 @@ export default function StudyPlanDetail() {
       <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
         <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '460px' }}>
           <Compass size={48} style={{ color: '#818cf8', margin: '0 auto 1rem auto' }} />
-          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.4rem' }}>Plan Bulunamadı</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+          <h2 style={{ color: 'var(--color-text, #0f172a)', fontWeight: 900, fontSize: '1.4rem' }}>Plan Bulunamadı</h2>
+          <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
             İstediğiniz çalışma yol haritası silinmiş veya taşınmış olabilir.
           </p>
           <button 
@@ -112,8 +112,8 @@ export default function StudyPlanDetail() {
       <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
         <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '480px' }}>
           <Lock size={48} style={{ color: '#f87171', margin: '0 auto 1rem auto' }} />
-          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.4rem' }}>Yetkisiz Erişim</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+          <h2 style={{ color: 'var(--color-text, #0f172a)', fontWeight: 900, fontSize: '1.4rem' }}>Yetkisiz Erişim</h2>
+          <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
             Bu yol haritası başka bir öğretmene aittir. Yalnızca kendi oluşturduğunuz veya eklediğiniz yol haritalarını görüntüleyebilir ve düzenleyebilirsiniz.
           </p>
           <button 
