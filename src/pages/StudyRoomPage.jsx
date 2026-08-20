@@ -385,7 +385,7 @@ export default function StudyRoomPage() {
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
-  const { studyPlans = [] } = useStudyPlan() || {};
+  const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
   const { submissions = [] } = useEvaluation() || {};
   const { getCoachingProfileForStudent } = useCoaching() || {};
@@ -414,7 +414,65 @@ export default function StudyRoomPage() {
   const studentIdStr = String(currentUser?.id || '');
   const studentUuidStr = String(toUUID(currentUser?.id) || '');
 
-  // 1. Öğrenciye atanan tüm görevleri birleştir (Ödevler, Tüm Kitap Görevleri altındaki testler, Haftalık Ders Programı)
+  // ── 📅 HAFTALIK GÜN VE TARİH BİLGİLERİ HESAPLAMA ──
+  const WEEK_DAYS_CONFIG = useMemo(() => [
+    { key: 'Pzt', long: 'Pazartesi', aliases: ['pzt', 'pazartesi', 'monday', 'mon'], icon: '⚡', color: '#4f46e5', bg: isDark ? 'rgba(79, 70, 229, 0.15)' : '#eef2ff' },
+    { key: 'Sal', long: 'Salı', aliases: ['sal', 'salı', 'sali', 'tuesday', 'tue'], icon: '🎯', color: '#0891b2', bg: isDark ? 'rgba(8, 145, 178, 0.15)' : '#ecfeff' },
+    { key: 'Çrş', long: 'Çarşamba', aliases: ['çrş', 'crs', 'çarşamba', 'carsamba', 'wednesday', 'wed'], icon: '🌿', color: '#059669', bg: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ecfdf5' },
+    { key: 'Prş', long: 'Perşembe', aliases: ['prş', 'prs', 'perşembe', 'persembe', 'thursday', 'thu'], icon: '🔥', color: '#d97706', bg: isDark ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb' },
+    { key: 'Cum', long: 'Cuma', aliases: ['cum', 'cuma', 'friday', 'fri'], icon: '✨', color: '#7c3aed', bg: isDark ? 'rgba(124, 58, 237, 0.15)' : '#faf5ff' },
+    { key: 'Cts', long: 'Cumartesi', aliases: ['cts', 'cumartesi', 'saturday', 'sat'], icon: '🚀', color: '#e11d48', bg: isDark ? 'rgba(225, 29, 72, 0.15)' : '#fff1f2' },
+    { key: 'Paz', long: 'Pazar', aliases: ['paz', 'pazar', 'sunday', 'sun'], icon: '🏖️', color: '#2563eb', bg: isDark ? 'rgba(37, 99, 235, 0.15)' : '#eff6ff' }
+  ], [isDark]);
+
+  const weekDayDateMap = useMemo(() => {
+    const d = new Date();
+    const dayOfWeek = d.getDay();
+    const diffToMonday = d.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    const monday = new Date(d.getFullYear(), d.getMonth(), diffToMonday);
+
+    const map = {};
+    const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    WEEK_DAYS_CONFIG.forEach((cfg, idx) => {
+      const cur = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+      const ymd = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      map[cfg.key] = {
+        ymd,
+        time: cur.getTime(),
+        dateLabel: `${cur.getDate()} ${months[cur.getMonth()]}`
+      };
+    });
+    return map;
+  }, [WEEK_DAYS_CONFIG]);
+
+  // Yardımcı: Tarih veya gün adından gün anahtarını (Pzt, Sal...) bul
+  const resolveDayKey = (input) => {
+    if (!input) return null;
+    const str = String(input).trim().toLowerCase();
+    
+    // 1. Tarih eşleşmesi (YYYY-MM-DD)
+    if (str.includes('-') || str.includes('t') || str.includes('.')) {
+      const ymd = str.split('t')[0].split(' ')[0].replace(/\//g, '-');
+      for (const [k, v] of Object.entries(weekDayDateMap)) {
+        if (v.ymd === ymd) return k;
+      }
+      const parsed = new Date(input);
+      if (!isNaN(parsed.getTime())) {
+        const map = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+        return map[parsed.getDay()];
+      }
+    }
+
+    // 2. Gün adı eşleşmesi
+    for (const cfg of WEEK_DAYS_CONFIG) {
+      if (cfg.key.toLowerCase() === str || cfg.long.toLowerCase() === str || cfg.aliases.some(a => str === a || str.startsWith(a))) {
+        return cfg.key;
+      }
+    }
+    return null;
+  };
+
+  // 1. Öğrenciye atanan tüm görevleri birleştir (Ödevler, Kitap Testleri, Ders Programı, Yol Haritaları)
   const allAssignedTasks = useMemo(() => {
     if (!currentUser) return [];
 
@@ -441,9 +499,10 @@ export default function StudyRoomPage() {
 
     const taskList = [];
     const seenTaskKeys = new Set();
+    const studentHws = (homeworks || []).filter(isMatchHw);
 
     // A. Atanmış Bireysel & Optik Ödevler
-    (homeworks || []).filter(isMatchHw).forEach(hw => {
+    studentHws.forEach(hw => {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
 
       if (!isBook) {
@@ -455,6 +514,7 @@ export default function StudyRoomPage() {
 
         const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
         const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
+        const assignedDayKey = resolveDayKey(hw.dueDate || hw.startDate || hw.assignedAt);
 
         const dedupeKey = `hw_${hw.id}`;
         if (!seenTaskKeys.has(dedupeKey)) {
@@ -469,6 +529,8 @@ export default function StudyRoomPage() {
             topic: hw.topic || '',
             questionCount: Number(qCount) || 10,
             dueDate: hw.dueDate,
+            dayKey: assignedDayKey,
+            dayName: assignedDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === assignedDayKey)?.long : null,
             sourceType: 'homework',
             sourceLabel: '📝 Atanmış Ödev',
             type: hw.type,
@@ -481,9 +543,9 @@ export default function StudyRoomPage() {
       }
     });
 
-    // B. Atanmış Kitap Görevleri & Kitap Testleri ("Tüm Kitap Görevi" içindeki tüm testler)
+    // B. Atanmış Kitap Görevleri & Kitap Testleri ("Tüm Kitap Görevi" veya gün gün atanan testler)
     const assignedBookIds = new Set();
-    (homeworks || []).filter(isMatchHw).forEach(hw => {
+    studentHws.forEach(hw => {
       if (hw.bookId) assignedBookIds.add(String(hw.bookId));
       if (hw.isBookAssignment && hw.id) assignedBookIds.add(String(hw.id));
     });
@@ -503,6 +565,7 @@ export default function StudyRoomPage() {
         .replace(/\s*\(Kendi Eklediğim\)/gi, '')
         .trim();
 
+      const matchingHwsForBook = studentHws.filter(h => String(h.bookId) === String(book.id) || String(h.id) === String(book.id));
       const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
 
       testsForBook.forEach(bt => {
@@ -514,6 +577,18 @@ export default function StudyRoomPage() {
 
         const isCompleted = Boolean(sub && (sub.isSubmitted || sub.status === 'completed' || sub.submittedAt || sub.completedAt));
         const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
+
+        // Bu test için belirlenmiş bir gün veya teslim tarihi var mı?
+        let testDayKey = null;
+        let testDueDate = null;
+        matchingHwsForBook.forEach(hw => {
+          if (hw.testDueDates && hw.testDueDates[bt.id]) {
+            testDueDate = hw.testDueDates[bt.id];
+            testDayKey = resolveDayKey(testDueDate);
+          } else if (!testDayKey && hw.dueDate) {
+            testDayKey = resolveDayKey(hw.dueDate);
+          }
+        });
 
         const dedupeKey = `bt_${bt.id}`;
         if (!seenTaskKeys.has(dedupeKey)) {
@@ -529,6 +604,9 @@ export default function StudyRoomPage() {
             unit: bt.unit || bt.unitName || '',
             topic: bt.topic || bt.topicName || '',
             questionCount: qCount,
+            dayKey: testDayKey,
+            dayName: testDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === testDayKey)?.long : null,
+            dueDate: testDueDate,
             sourceType: 'bookTest',
             sourceLabel: '📚 Kitap Testi',
             isBookAssignment: true,
@@ -542,12 +620,13 @@ export default function StudyRoomPage() {
       });
     });
 
-    // C. Haftalık Ders Programı Görevleri (ProgramCenter / Coaching Weekly Program)
-    const dayKeyAlias = { 'Pazartesi': 'Pzt', 'Salı': 'Sal', 'Çarşamba': 'Çrş', 'Perşembe': 'Prş', 'Cuma': 'Cum', 'Cumartesi': 'Cts', 'Pazar': 'Paz' };
+    // C. Haftalık Ders Programı Görevleri (Koçluk / ProgramCenter)
     const weeklyProg = coachingProfile?.weeklyProgram || [];
     weeklyProg.forEach(dayObj => {
-      const dayName = dayObj.day || 'Gün';
-      const dayKey = dayKeyAlias[dayName] || dayName;
+      const rawDay = dayObj.day || 'Pzt';
+      const dayKey = resolveDayKey(rawDay) || rawDay;
+      const dayCfg = WEEK_DAYS_CONFIG.find(d => d.key === dayKey) || { long: rawDay };
+
       (dayObj.items || []).forEach((item, idx) => {
         const dedupeKey = `prog_${dayKey}_${item.id || idx}_${item.text || item.topic}`;
         if (!seenTaskKeys.has(dedupeKey)) {
@@ -562,8 +641,8 @@ export default function StudyRoomPage() {
             id: dedupeKey,
             dedupeKey,
             title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
-            subtitle: `${dayName} Programı`,
-            dayName,
+            subtitle: `${dayCfg.long} Programı`,
+            dayName: dayCfg.long,
             dayKey,
             subject: item.subject || 'Genel',
             unit: item.unit || '',
@@ -582,35 +661,178 @@ export default function StudyRoomPage() {
     });
 
     return taskList;
-  }, [homeworks, books, bookTests, submissions, coachingProfile, currentUser, studentIdStr, studentUuidStr]);
+  }, [homeworks, books, bookTests, submissions, coachingProfile, currentUser, studentIdStr, studentUuidStr, weekDayDateMap, WEEK_DAYS_CONFIG]);
 
-  const WEEK_DAYS_CONFIG = useMemo(() => [
-    { key: 'Pzt', long: 'Pazartesi', icon: '⚡', color: '#4f46e5', bg: isDark ? 'rgba(79, 70, 229, 0.15)' : '#eef2ff' },
-    { key: 'Sal', long: 'Salı', icon: '🎯', color: '#0891b2', bg: isDark ? 'rgba(8, 145, 178, 0.15)' : '#ecfeff' },
-    { key: 'Çrş', long: 'Çarşamba', icon: '🌿', color: '#059669', bg: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ecfdf5' },
-    { key: 'Prş', long: 'Perşembe', icon: '🔥', color: '#d97706', bg: isDark ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb' },
-    { key: 'Cum', long: 'Cuma', icon: '✨', color: '#7c3aed', bg: isDark ? 'rgba(124, 58, 237, 0.15)' : '#faf5ff' },
-    { key: 'Cts', long: 'Cumartesi', icon: '🚀', color: '#e11d48', bg: isDark ? 'rgba(225, 29, 72, 0.15)' : '#fff1f2' },
-    { key: 'Paz', long: 'Pazar', icon: '🏖️', color: '#2563eb', bg: isDark ? 'rgba(37, 99, 235, 0.15)' : '#eff6ff' }
-  ], [isDark]);
-
-  // Haftalık Program Görevlerini Gün Gün Gruplama
+  // Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Tüm Kaynakları Birleştirir)
   const weeklyProgramGrouped = useMemo(() => {
+    const studentHws = (homeworks || []).filter(hw => {
+      if (!hw || !currentUser) return false;
+      if (hw.studentId === currentUser.id || hw.student_id === currentUser.id) return true;
+      if (studentUuidStr && (hw.studentId === studentUuidStr || hw.student_id === studentUuidStr)) return true;
+      if (Array.isArray(hw.targetIds)) {
+        if (hw.targetIds.includes(currentUser.id) || (studentUuidStr && hw.targetIds.includes(studentUuidStr))) return true;
+      }
+      return false;
+    });
+
+    const weeklyProg = coachingProfile?.weeklyProgram || [];
+
     return WEEK_DAYS_CONFIG.map(dayCfg => {
-      const dayTasks = allAssignedTasks.filter(t => {
-        if (t.dayKey && t.dayKey === dayCfg.key) return true;
-        if (t.dayName && (t.dayName === dayCfg.key || t.dayName === dayCfg.long)) return true;
-        return false;
+      const dayTasks = [];
+      const seenKeys = new Set();
+      const dayInfo = weekDayDateMap[dayCfg.key] || {};
+
+      // 1. Koçluk Ders Programındaki Günlük ve Günlük Tekrarlanan Öğeler
+      weeklyProg.forEach(dayObj => {
+        const dKey = resolveDayKey(dayObj.day);
+        const isMatchThisDay = dKey === dayCfg.key;
+
+        (dayObj.items || []).forEach((item, idx) => {
+          const isDaily = item.repeatType === 'daily' || item.isDaily;
+          if (isMatchThisDay || isDaily) {
+            const dedupeKey = `prog_${dayCfg.key}_${item.id || idx}_${item.text || item.topic}`;
+            if (!seenKeys.has(dedupeKey)) {
+              seenKeys.add(dedupeKey);
+              const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+              const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
+              const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
+
+              dayTasks.push({
+                id: dedupeKey,
+                dedupeKey,
+                title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
+                subtitle: `${dayCfg.long} Programı`,
+                dayName: dayCfg.long,
+                dayKey: dayCfg.key,
+                subject: item.subject || 'Genel',
+                unit: item.unit || '',
+                topic: item.topic || item.text || '',
+                questionCount: qCount,
+                sourceType: matchedBookTest ? 'bookTest' : 'program',
+                sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+                bookTestId: matchedBookTest?.id || item.bookTestId,
+                realTestId: matchedBookTest?.id || item.realTestId || item.testId,
+                bookTitle: matchedBook?.title,
+                isCompleted: Boolean(item.done),
+                programItem: item
+              });
+            }
+          }
+        });
+      });
+
+      // 2. Kitap Görevlerinin Gün Gün Belirlenmiş Testleri (hw.testDueDates)
+      studentHws.forEach(hw => {
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.id));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .trim();
+
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object') {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const targetDayKey = resolveDayKey(tDateStr);
+            const isMatchDate = (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd)) || (targetDayKey === dayCfg.key);
+
+            if (isMatchDate) {
+              const dedupeKey = `day_bt_${dayCfg.key}_${hw.id}_${testId}`;
+              if (!seenKeys.has(dedupeKey)) {
+                seenKeys.add(dedupeKey);
+                const bt = (bookTests || []).find(b => String(b.id) === String(testId));
+                const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
+                const isSolved = (submissions || []).some(s => {
+                  const sId = String(s.studentId || s.student_id || s.user_id || '');
+                  if (sId !== studentIdStr && sId !== studentUuidStr) return false;
+                  if (s.status === 'in_progress' || s.status === 'draft') return false;
+                  return String(s.testId || s.bookTestId || s.realTestId) === String(testId);
+                });
+
+                dayTasks.push({
+                  id: dedupeKey,
+                  dedupeKey,
+                  title: `${cleanBookTitle} — ${bt?.name || bt?.title || 'Test'}`,
+                  subtitle: `${dayCfg.long} Kitap Testi`,
+                  dayName: dayCfg.long,
+                  dayKey: dayCfg.key,
+                  subject: bt?.subject || hw.subject || bookObj?.subject || 'Genel',
+                  unit: bt?.unit || bt?.unitName || '',
+                  topic: bt?.topic || bt?.topicName || '',
+                  questionCount: qCount,
+                  dueDate: tDateStr,
+                  sourceType: 'bookTest',
+                  sourceLabel: '📚 Kitap Testi',
+                  bookTestId: testId,
+                  realTestId: testId,
+                  bookId: bookObj?.id || hw.bookId,
+                  bookTitle: cleanBookTitle,
+                  isCompleted: isSolved,
+                  isBookAssignment: true
+                });
+              }
+            }
+          });
+        } else if (!isBook || !hw.testDueDates) {
+          // Normal ödev veya deneme sınavının teslim günü bu gün mü?
+          const hwDayKey = resolveDayKey(hw.dueDate || hw.startDate);
+          const isDateMatch = (dayInfo.ymd && hw.dueDate && hw.dueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
+
+          if (isDateMatch) {
+            const dedupeKey = `day_hw_${dayCfg.key}_${hw.id}`;
+            if (!seenKeys.has(dedupeKey)) {
+              seenKeys.add(dedupeKey);
+              const qCount = Number(hw.questionCount || hw.totalQuestions) || 12;
+              const isSolved = (submissions || []).some(s => {
+                const sId = String(s.studentId || s.student_id || s.user_id || '');
+                if (sId !== studentIdStr && sId !== studentUuidStr) return false;
+                if (s.status === 'in_progress' || s.status === 'draft') return false;
+                return String(s.hwId || s.testId) === String(hw.id);
+              });
+
+              dayTasks.push({
+                id: dedupeKey,
+                dedupeKey,
+                title: hw.title || 'Ödev Görevi',
+                subtitle: `${dayCfg.long} Ödevi`,
+                dayName: dayCfg.long,
+                dayKey: dayCfg.key,
+                subject: hw.subject || 'Genel',
+                unit: hw.unit || '',
+                topic: hw.topic || '',
+                questionCount: qCount,
+                dueDate: hw.dueDate,
+                sourceType: 'homework',
+                sourceLabel: '📝 Atanmış Ödev',
+                realTestId: hw.realTestId || hw.testId || hw.id,
+                isCompleted: isSolved
+              });
+            }
+          }
+        }
+      });
+
+      // 3. allAssignedTasks içindeki gün atanmış diğer tüm görevleri ekle
+      allAssignedTasks.forEach(t => {
+        if (t.dayKey === dayCfg.key || t.dayName === dayCfg.long) {
+          const dedupeKey = `merged_${dayCfg.key}_${t.dedupeKey || t.id}`;
+          if (!seenKeys.has(dedupeKey) && !seenKeys.has(t.dedupeKey)) {
+            seenKeys.add(dedupeKey);
+            seenKeys.add(t.dedupeKey);
+            dayTasks.push(t);
+          }
+        }
       });
 
       return {
         ...dayCfg,
+        dateLabel: dayInfo.dateLabel || '',
         tasks: dayTasks,
         totalQuestions: dayTasks.reduce((acc, t) => acc + (Number(t.questionCount) || 0), 0),
         completedCount: dayTasks.filter(t => t.isCompleted).length
       };
     });
-  }, [allAssignedTasks, WEEK_DAYS_CONFIG]);
+  }, [allAssignedTasks, WEEK_DAYS_CONFIG, weekDayDateMap, homeworks, coachingProfile, books, bookTests, submissions, currentUser, studentIdStr, studentUuidStr]);
 
   // Kitap Testlerini Kitap Bazında Gruplama
   const bookGroupedTests = useMemo(() => {
