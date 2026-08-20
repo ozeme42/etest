@@ -1615,7 +1615,7 @@ export default function StudentBookDetailsPage() {
         {/* 1. Bekleyen Yanlışlar — Test Bazlı & Kitap Sıralı Listesi */}
         {bookMistakeStats.pendingTestsList && bookMistakeStats.pendingTestsList.length > 0 ? (
           <div style={{ marginTop: '0.85rem' }}>
-            <details open style={{ background: '#fffbeb', borderRadius: 14, border: '1.5px solid #fde68a', overflow: 'hidden' }}>
+            <details style={{ background: '#fffbeb', borderRadius: 14, border: '1.5px solid #fde68a', overflow: 'hidden' }}>
               <summary style={{ padding: '0.75rem 1.1rem', fontSize: '0.84rem', fontWeight: 900, color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '1.1rem' }}>⚠️</span>
