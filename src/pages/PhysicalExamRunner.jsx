@@ -18,8 +18,29 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
+function getQuestionColumns(totalCount, isMobile = false) {
+  if (totalCount <= 0) return [[]];
+  if (isMobile || totalCount <= 6) {
+    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
+  }
+
+  let numCols = 2;
+  if (totalCount <= 6) numCols = 1;
+  else if (totalCount <= 16) numCols = 2;
+  else if (totalCount <= 30) numCols = 2;
+  else if (totalCount <= 45) numCols = 3;
+  else numCols = 4;
+
+  const perCol = Math.ceil(totalCount / numCols);
+  const cols = [];
+  for (let i = 0; i < totalCount; i += perCol) {
+    const col = [];
+    for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
+      col.push(j + 1);
+    }
+    cols.push(col);
+  }
+  return cols;
 }
 
 export default function PhysicalExamRunner() {
@@ -320,6 +341,11 @@ export default function PhysicalExamRunner() {
 
   const subjects = homework?.subjects || [];
   const activeSubject = subjects[activeSubjectIndex] || subjects[0];
+
+  const questionColumns = useMemo(() => {
+    const totalCount = activeSubject?.count || 0;
+    return getQuestionColumns(totalCount, isMobile);
+  }, [activeSubject?.count, isMobile]);
 
   // Overall statistics for progress bar
   const totalAnsweredCount = useMemo(() => {
@@ -847,113 +873,132 @@ export default function PhysicalExamRunner() {
                     )}
                   </div>
 
-                  {/* Bubble rows grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
-                    {Array.from({ length: activeSubject.count }).map((_, qIdx) => {
-                      const qNo = qIdx + 1;
-                      const selected = currentAnswers[qIdx];
-                      
-                      let isCorrect = false;
-                      let isWrong = false;
-                      let correctKey = '';
+                  {/* Natural Question Columns Grid (Top to Bottom Flow) */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
+                    gap: '1rem',
+                    alignItems: 'start'
+                  }}>
+                    {questionColumns.map((col, colIdx) => (
+                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {col.map(qNo => {
+                          const qIdx = qNo - 1;
+                          const selected = currentAnswers[qIdx];
+                          
+                          let isCorrect = false;
+                          let isWrong = false;
+                          let correctKey = '';
 
-                      if (isSubmitted) {
-                        correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
-                        isCorrect = selected && selected === correctKey;
-                        isWrong = selected && selected !== correctKey;
-                      }
+                          if (isSubmitted) {
+                            correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
+                            isCorrect = selected && selected === correctKey;
+                            isWrong = selected && selected !== correctKey;
+                          }
 
-                      const explicitCount = Number(homework.optionCount || homework.optionsCount || activeSubject.optionCount);
-                      const optionsList = (activeSubject.options && activeSubject.options.length > 0) 
-                        ? activeSubject.options 
-                        : (explicitCount === 4 || (explicitCount !== 5 && homework.examType === 'LGS'))
-                          ? ['A', 'B', 'C', 'D']
-                          : ['A', 'B', 'C', 'D', 'E'];
+                          const explicitCount = Number(homework.optionCount || homework.optionsCount || activeSubject.optionCount);
+                          const optionsList = (activeSubject.options && activeSubject.options.length > 0) 
+                            ? activeSubject.options 
+                            : (explicitCount === 4 || (explicitCount !== 5 && homework.examType === 'LGS'))
+                              ? ['A', 'B', 'C', 'D']
+                              : ['A', 'B', 'C', 'D', 'E'];
 
-                      return (
-                        <div 
-                          key={qNo} 
-                          style={{
-                            background: selected ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)',
-                            padding: '0.75rem 0.85rem',
-                            borderRadius: '0.85rem',
-                            border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '0.5rem'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65 }}>
-                            <span style={{
-                              fontWeight: 900,
-                              fontSize: '0.82rem',
-                              color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
-                            }}>
-                              Soru {qNo}
-                            </span>
-                            {isSubmitted && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
-                                {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
-                              </span>
-                            )}
-                          </div>
+                          return (
+                            <div 
+                              key={qNo} 
+                              style={{
+                                background: selected ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)',
+                                padding: isMobile ? '0.65rem 0.75rem' : '0.7rem 0.85rem',
+                                borderRadius: '0.85rem',
+                                border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.5rem',
+                                transition: 'all 0.12s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65, flexShrink: 0 }}>
+                                <span style={{
+                                  fontWeight: 900,
+                                  fontSize: '0.84rem',
+                                  color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
+                                }}>
+                                  Soru {qNo}
+                                </span>
+                                {isSubmitted && (
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
+                                    {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                                  </span>
+                                )}
+                              </div>
 
-                          <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end' }}>
-                            {optionsList.map((opt) => {
-                              const isSelected = selected === opt;
-                              const isThisOptCorrect = isSubmitted && correctKey === opt;
+                              <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {optionsList.map((opt) => {
+                                  const isSelected = selected === opt;
+                                  const isThisOptCorrect = isSubmitted && correctKey === opt;
 
-                              return (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  disabled={isSubmitted}
-                                  onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
-                                  style={{
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: '50%',
-                                    fontWeight: 900,
-                                    fontSize: '0.8rem',
-                                    cursor: isSubmitted ? 'default' : 'pointer',
-                                    border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
-                                    background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
-                                    color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
-                                    transition: 'all 0.12s ease',
-                                    boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none'
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      disabled={isSubmitted}
+                                      onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        fontWeight: 900,
+                                        fontSize: '0.8rem',
+                                        cursor: isSubmitted ? 'default' : 'pointer',
+                                        border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
+                                        background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
+                                        color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
+                                        transition: 'all 0.12s ease',
+                                        boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0
+                                      }}
+                                    >
+                                      {opt}
+                                    </button>
+                                  );
+                                })}
 
-                            {!isSubmitted && (
-                              <button
-                                type="button"
-                                onClick={() => handleClearOption(activeSubject.name, qIdx)}
-                                disabled={!selected}
-                                title="İşareti Kaldır"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: selected ? '#dc2626' : 'transparent',
-                                  cursor: selected ? 'pointer' : 'default',
-                                  padding: 2,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  pointerEvents: selected ? 'auto' : 'none'
-                                }}
-                              >
-                                <XIcon size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                                {!isSubmitted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearOption(activeSubject.name, qIdx)}
+                                    disabled={!selected}
+                                    title="İşareti Kaldır"
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: '50%',
+                                      background: selected ? '#fef2f2' : 'transparent',
+                                      border: selected ? '1px solid #fecaca' : 'none',
+                                      color: selected ? '#dc2626' : 'transparent',
+                                      cursor: selected ? 'pointer' : 'default',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      pointerEvents: selected ? 'auto' : 'none',
+                                      transition: 'all 0.12s ease',
+                                      marginLeft: 1,
+                                      padding: 0
+                                    }}
+                                  >
+                                    <XIcon size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
