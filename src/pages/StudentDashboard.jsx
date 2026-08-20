@@ -1007,10 +1007,15 @@ export default function StudentDashboard() {
       const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
       const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
 
-      const isBookSub = Boolean(targetBook || targetTest || sub.bookId || sub.bookTestId || String(sub.testId).startsWith('bt_') || String(sub.testId).startsWith('book_') || sub.type === 'book' || sub.type === 'kitap' || isBookHomework(targetHw));
-
-      if (!isBookSub && !targetCurTest && !targetBankQ && !targetHw) {
-        return; // Deleted test
+      // If resource no longer exists, it is a deleted test/exam/homework -> discard!
+      if (!targetBook && !targetTest && !targetCurTest && !targetBankQ && !targetHw) {
+        return;
+      }
+      if (sub.bookId && !targetBook) {
+        return;
+      }
+      if (sub.hwId && !targetHw && !targetTest) {
+        return;
       }
 
       if (sub.id) processedSubIds.add(String(sub.id));
@@ -1241,6 +1246,10 @@ export default function StudentDashboard() {
 
       const studentHomeworks = (homeworks || []).filter(hw => {
         if (!selectedStudent || !hw) return false;
+        if (hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook') {
+          const hasBook = (books || []).some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
+          if (!hasBook) return false;
+        }
         return isHomeworkForStudent(hw, selectedStudent, gradesList);
       });
 
@@ -1304,6 +1313,19 @@ export default function StudentDashboard() {
           }
         });
 
+        // Filter out manual/program items referencing deleted homeworks or book tests
+        dayManualItems = dayManualItems.filter(item => {
+          if (item.hwId) {
+            const hasHw = (homeworks || []).some(h => String(h.id) === String(item.hwId) || toUUID(h.id) === toUUID(item.hwId));
+            if (!hasHw) return false;
+          }
+          if (item.testId && !item.hwId) {
+            const hasBt = (bookTests || []).some(bt => String(bt.id) === String(item.testId) || toUUID(bt.id) === toUUID(item.testId));
+            if (!hasBt) return false;
+          }
+          return true;
+        });
+
         const scheduleItems = (schedules || []).filter(s => {
           if (!s || !studentId) return false;
           if (String(s.studentId) !== String(studentId)) return false;
@@ -1328,6 +1350,8 @@ export default function StudentDashboard() {
         studentHomeworks.forEach(hw => {
           if (!hw) return;
           const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
+          if ((hw.isBookAssignment || hw.bookId) && !bookObj) return;
+
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
           const isExam = Boolean(
@@ -1341,6 +1365,7 @@ export default function StudentDashboard() {
 
           // ── DENEME & FİZİKSEL SINAV: TEK BİRLEŞİK GÖREV OLARAK GÖSTER ──
           if (isExam) {
+            if (hw.bookId && !bookObj) return;
             const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
             const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
             const startTime = startYMD ? new Date(startYMD).getTime() : null;
@@ -1835,6 +1860,14 @@ export default function StudentDashboard() {
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
       if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+
+      const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
+      const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
+      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
+
+      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
+      if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
+      if (!bookObj && !testObj && !parentHw) return;
 
       const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
       if (countedSubIds.has(subId)) return;

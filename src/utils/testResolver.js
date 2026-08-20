@@ -599,13 +599,22 @@ export function computeStudentAnalyticsData({
 
     const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
     const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
-    const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId));
-    const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId));
+    const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
+    const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
+
+    // If submission is linked to a book/exam that was deleted, discard it
+    if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
+      return;
+    }
 
     // If submission is linked to a homework that has been deleted (and is not an independent tracked book test), discard it!
-    const isHwSub = Boolean(s.hwId || (s.testId && !testObj));
+    const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
     if (isHwSub && !parentHw) {
       return; // Deleted homework!
+    }
+
+    if (!bookObj && !testObj && !parentHw) {
+      return; // Orphaned submission for a deleted test/exam
     }
 
     const dedupeKey = s.id ? String(s.id) : `${bTestId}_${subDate}`;

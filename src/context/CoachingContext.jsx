@@ -49,44 +49,25 @@ export function CoachingProvider({ children }) {
     async function syncCoachingFromSupabase() {
       const res = await dbGetCoachingData();
       if (res) {
-        if (res.links && res.links.length > 0) setCoachingLinks(res.links);
-        if (res.notes && res.notes.length > 0) setCoachingNotes(res.notes);
+        if (res.links) setCoachingLinks(res.links);
+        if (res.notes) setCoachingNotes(res.notes);
       }
       const dbExams = await dbGetMockExams();
-      if (dbExams && dbExams.length > 0) setMockExams(dbExams);
+      if (dbExams && Array.isArray(dbExams)) {
+        setMockExams(dbExams);
+        safeSetItem('eTestMockExams', JSON.stringify(dbExams));
+      }
 
       const dbMeetings = await dbGetCoachingMeetings();
-      if (dbMeetings && dbMeetings.length > 0) setCoachingMeetings(dbMeetings);
+      if (dbMeetings && Array.isArray(dbMeetings)) {
+        setCoachingMeetings(dbMeetings);
+        safeSetItem('eTestCoachingMeetings', JSON.stringify(dbMeetings));
+      }
 
       const dbProfiles = await dbGetCoachingProfiles();
-      if (dbProfiles && dbProfiles.length > 0) {
-        setCoachingProfiles(prev => {
-          const merged = [...prev];
-          dbProfiles.forEach(dbP => {
-            const idx = merged.findIndex(p => String(p.studentId) === String(dbP.studentId));
-            if (idx >= 0) {
-              merged[idx] = {
-                ...merged[idx],
-                ...dbP,
-                weeklyProgram: (dbP.weeklyProgram && dbP.weeklyProgram.length > 0) ? dbP.weeklyProgram : (merged[idx].weeklyProgram || []),
-                topicPool: (dbP.topicPool && dbP.topicPool.length > 0) ? dbP.topicPool : (merged[idx].topicPool || []),
-                goals: dbP.goals || merged[idx].goals || {},
-                monthlyGoals: (dbP.monthlyGoals && dbP.monthlyGoals.length > 0) ? dbP.monthlyGoals : (merged[idx].monthlyGoals || []),
-                weeklyGoals: (dbP.weeklyGoals && dbP.weeklyGoals.length > 0) ? dbP.weeklyGoals : (merged[idx].weeklyGoals || []),
-                dailyGoals: (dbP.dailyGoals && dbP.dailyGoals.length > 0) ? dbP.dailyGoals : (merged[idx].dailyGoals || []),
-                topicList: (dbP.topicList && dbP.topicList.length > 0) ? dbP.topicList : (merged[idx].topicList || []),
-                dailyLogs: (dbP.dailyLogs && dbP.dailyLogs.length > 0) ? dbP.dailyLogs : (merged[idx].dailyLogs || []),
-                questionTrack: dbP.questionTrack || merged[idx].questionTrack || {},
-                errors: (dbP.errors && dbP.errors.length > 0) ? dbP.errors : (merged[idx].errors || []),
-                habits: (dbP.habits && dbP.habits.length > 0) ? dbP.habits : (merged[idx].habits || []),
-                motivation: dbP.motivation || merged[idx].motivation || {},
-              };
-            } else {
-              merged.push(dbP);
-            }
-          });
-          return merged;
-        });
+      if (dbProfiles && Array.isArray(dbProfiles)) {
+        setCoachingProfiles(dbProfiles);
+        safeSetItem('eTestCoachingProfiles', JSON.stringify(dbProfiles));
       }
     }
     syncCoachingFromSupabase();

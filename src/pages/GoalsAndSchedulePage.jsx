@@ -788,6 +788,15 @@ export default function GoalsAndSchedulePage() {
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
       if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+
+      const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
+      const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
+      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
+
+      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
+      if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
+      if (!bookObj && !testObj && !parentHw) return;
+
       const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
       if (countedSubIds.has(subId)) return;
       countedSubIds.add(subId);
