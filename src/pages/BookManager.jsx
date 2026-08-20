@@ -306,7 +306,7 @@ export default function BookManager() {
       {/* ── 4 LIVE KPI CARDS (2x2 ON MOBILE) ── */}
       <div className="books-kpi-grid">
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Library size={24} />
           </div>
           <div>
@@ -316,7 +316,7 @@ export default function BookManager() {
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <FileText size={24} />
           </div>
           <div>
@@ -328,19 +328,19 @@ export default function BookManager() {
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <CheckCircle size={24} />
           </div>
           <div>
             <div className="books-kpi-label">Çözülen Testler</div>
-            <div className="books-kpi-val" style={{ color: '#16a34a' }}>
+            <div className="books-kpi-val" style={{ color: '#10b981' }}>
               {enrichedBooks.reduce((sum, b) => sum + (b.solvedTestCount || 0), 0)} Test
             </div>
           </div>
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'rgba(219, 39, 119, 0.15)', color: '#db2777', border: '1px solid rgba(219, 39, 119, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <HelpCircle size={24} />
           </div>
           <div>
@@ -359,14 +359,14 @@ export default function BookManager() {
 
       {/* ── MAIN BOOK LIST CONTENT ── */}
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: '#0f172a', fontWeight: 800 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--color-text)', fontWeight: 800 }}>
           Yükleniyor...
         </div>
       ) : enrichedBooks.length === 0 ? (
         <div className="books-glass-card" style={{ textAlign: 'center', padding: '4.5rem 2rem' }}>
-          <BookMarked size={64} style={{ color: '#cbd5e1', margin: '0 auto 1.25rem auto' }} />
-          <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem 0' }}>Henüz Kitap Eklenmemiş</h3>
-          <p style={{ color: '#64748b', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
+          <BookMarked size={64} style={{ color: 'var(--color-text-muted)', margin: '0 auto 1.25rem auto' }} />
+          <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-text)', margin: '0 0 0.5rem 0' }}>Henüz Kitap Eklenmemiş</h3>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
             Takip edilecek fiziksel soru bankalarınızı ve ödev kitaplarınızı buradan ekleyebilirsiniz.
           </p>
           <button 
@@ -404,32 +404,32 @@ export default function BookManager() {
                 <span className="book-badge" style={{ margin: 0 }}>
                   {book.bookType === 'open_ended' ? '📝 Açık Uçlu Kitap' : '🔘 Standart Soru Bankası'}
                 </span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.3rem 0.65rem', borderRadius: '9999px', background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.3rem 0.65rem', borderRadius: '9999px', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)' }}>
                   {book.optionCount === 4 ? '🎯 4 Şık (A-D)' : '🎯 5 Şık (A-E)'}
                 </span>
               </div>
 
               <div className="book-stats">
                 <div className="book-stat-item">
-                  <span style={{ color: '#475569', fontWeight: 700 }}><Library size={16} /> Ders</span>
-                  <strong style={{ color: '#0f172a' }}>{book.subjectCount || 0}</strong>
+                  <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}><Library size={16} /> Ders</span>
+                  <strong style={{ color: 'var(--color-text)' }}>{book.subjectCount || 0}</strong>
                 </div>
                 <div className="book-stat-item">
-                  <span style={{ color: '#475569', fontWeight: 700 }}><FileText size={16} /> Test</span>
+                  <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}><FileText size={16} /> Test</span>
                   <strong style={{ color: '#0284c7' }}>{book.testCount || 0}</strong>
                 </div>
                 <div className="book-stat-item">
-                  <span style={{ color: '#475569', fontWeight: 700 }}><HelpCircle size={16} /> Soru</span>
+                  <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}><HelpCircle size={16} /> Soru</span>
                   <strong style={{ color: '#6366f1' }}>{book.questionCount || 0}</strong>
                 </div>
 
                 {(book.solvedTestCount || 0) > 0 && (
                   <div className="book-stats-solved">
                     <div className="book-stat-item">
-                      <span style={{ color: '#475569', fontWeight: 700 }}>Çözülen Test</span>
+                      <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>Çözülen Test</span>
                       <span className="tag-mono">{book.solvedTestCount}</span>
                     </div>
-                    <div className="book-stat-item" style={{ color: '#16a34a' }}>
+                    <div className="book-stat-item" style={{ color: '#10b981' }}>
                       <span style={{ fontWeight: 800 }}><CheckCircle size={14} /> Doğru</span>
                       <span className="tag-success">{book.totalCorrectAnswers}</span>
                     </div>
