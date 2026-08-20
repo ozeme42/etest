@@ -4,7 +4,7 @@ import {
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
   Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3, Link2, Download, Search, Filter,
-  Send, Save
+  Send, Save, ExternalLink
 } from 'lucide-react';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -70,7 +70,7 @@ export default function ExamManager() {
   const { users } = useUser();
   const { currentUser } = useAuth();
   const { questions } = useQuestionBank();
-  const { addHomework } = useHomework();
+  const { homeworks, addHomework, updateHomework } = useHomework();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
   const navigate = useNavigate();
@@ -411,6 +411,7 @@ export default function ExamManager() {
 
   const handleSaveExamEdits = async () => {
     if (!viewingExamDetails) return;
+    const finalPdfUrl = editingExamMeta.pdfUrl ? editingExamMeta.pdfUrl.trim() : '';
     const testPromises = [];
     (viewingExamDetails.subjects || []).forEach(sub => {
        const ak = {};
@@ -419,7 +420,10 @@ export default function ExamManager() {
          if (ans && ans !== '-') ak[i + 1] = ans;
        });
        if (sub.testId) {
-         testPromises.push(updateTrackedBookTest(sub.testId, { answerKey: ak }));
+         testPromises.push(updateTrackedBookTest(sub.testId, { 
+           answerKey: ak,
+           pdfUrl: finalPdfUrl
+         }));
        }
     });
     await Promise.all(testPromises);
@@ -427,12 +431,30 @@ export default function ExamManager() {
     await updateTrackedBook(viewingExamDetails.id, {
       title: editingExamMeta.title,
       publisher: editingExamMeta.publisher,
-      pdfUrl: editingExamMeta.pdfUrl,
+      pdfUrl: finalPdfUrl,
       penaltyRatio: editingExamMeta.penaltyRatio
     });
 
+    // Also update any assigned homeworks for this book so students immediately get the new PDF link
+    const relatedHws = (homeworks || []).filter(h => String(h.bookId) === String(viewingExamDetails.id));
+    for (const rhw of relatedHws) {
+      if (typeof updateHomework === 'function') {
+        updateHomework(rhw.id, {
+          title: editingExamMeta.title,
+          pdfUrl: finalPdfUrl
+        });
+      }
+    }
+
+    setViewingExamDetails(prev => prev ? {
+      ...prev,
+      title: editingExamMeta.title,
+      publisher: editingExamMeta.publisher,
+      pdfUrl: finalPdfUrl,
+      penaltyRatio: editingExamMeta.penaltyRatio
+    } : null);
+
     setIsEditingExam(false);
-    setViewingExamDetails(null);
     alert('✅ Deneme başarıyla güncellendi!');
   };
 
@@ -1189,13 +1211,103 @@ export default function ExamManager() {
               </div>
               <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.75rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Ceza Kuralı</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
+                {isEditingExam ? (
+                  <select
+                    value={editingExamMeta.penaltyRatio}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
+                    style={{ marginTop: 4, width: '100%', padding: '0.25rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: '#fbbf24', fontSize: '0.8rem', fontWeight: 900, outline: 'none' }}
+                  >
+                    <option value={3}>3 Yanlış 1 Doğru (LGS)</option>
+                    <option value={4}>4 Yanlış 1 Doğru (YKS)</option>
+                    <option value={0}>Ceza Yok</option>
+                  </select>
+                ) : (
+                  <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
+                )}
               </div>
               <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.75rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Ders Sayısı</span>
                 <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#818cf8' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
               </div>
             </div>
+
+            {/* PDF / DRIVE DOCUMENT LINK */}
+            {isEditingExam ? (
+              <div style={{ background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', borderRadius: '0.85rem', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Link2 size={14} color="#38bdf8" /> Soru Kitapçığı / PDF Linki (Google Drive, Dropbox veya Direkt Link)
+                </label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/... veya PDF linki yapıştırın"
+                    value={editingExamMeta.pdfUrl || ''}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
+                    style={{
+                      flex: 1,
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '0.6rem',
+                      border: '1px solid var(--color-border-input)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                  {editingExamMeta.pdfUrl && (
+                    <a
+                      href={editingExamMeta.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        padding: '0.45rem 0.75rem',
+                        borderRadius: '0.6rem',
+                        background: 'rgba(2,132,199,0.15)',
+                        border: '1px solid rgba(2,132,199,0.3)',
+                        color: '#38bdf8',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <ExternalLink size={12} /> Test Et
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              viewingExamDetails.pdfUrl ? (
+                <div style={{ background: 'rgba(2,132,199,0.08)', border: '1px solid rgba(2,132,199,0.25)', borderRadius: '0.85rem', padding: '0.65rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                    <Link2 size={15} color="#38bdf8" /> Soru Kitapçığı PDF Linki Ekli
+                  </div>
+                  <a
+                    href={viewingExamDetails.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      background: 'rgba(2,132,199,0.2)',
+                      border: '1px solid #0284c7',
+                      color: '#38bdf8',
+                      fontSize: '0.74rem',
+                      fontWeight: 900,
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <ExternalLink size={12} /> PDF'i Aç
+                  </a>
+                </div>
+              ) : null
+            )}
 
             {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
