@@ -525,6 +525,7 @@ function AppContent() {
               <Route path="/my-coaching" element={<RequireAuth><MyCoachingPage /></RequireAuth>} />
               <Route path="/physical-exam" element={<RequireAuth><ExamManager /></RequireAuth>} />
               <Route path="/scales" element={<RequireAuth><ScalePage /></RequireAuth>} />
+              <Route path="/exam-analysis" element={<RequireAuth><ExamAnalysisPage /></RequireAuth>} />
               <Route path="/exam-analysis/:examId" element={<RequireAuth><ExamAnalysisPage /></RequireAuth>} />
               <Route path="/physical-exam/:hwId" element={<RequireAuth><PhysicalExamRunner /></RequireAuth>} />
               <Route path="/login" element={<LoginPage />} />

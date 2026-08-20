@@ -632,6 +632,75 @@ export default function ExamManager() {
       {!showAddForm && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
+          {/* ALL EXAMS CUMULATIVE ANALYTICS HERO BANNER */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
+            borderRadius: '1.25rem',
+            padding: '1.25rem 1.6rem',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 8px 24px rgba(67, 56, 202, 0.25)',
+            border: '1.5px solid #6366f1'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: '1rem',
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                flexShrink: 0
+              }}>
+                <BarChart3 size={26} color="#fbbf24" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.01em' }}>
+                    Tüm Denemelerin Toplam Analizi &amp; Karneler
+                  </h3>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 900, background: '#10b981', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+                    GENEL RAPOR
+                  </span>
+                </div>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', color: '#c7d2fe', fontWeight: 500 }}>
+                  Tüm denemelerin sınıf net ortalamaları, öğrenci karne sıralamaları, gelişim grafikleri ve soru madde analizleri.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/exam-analysis/all')}
+              style={{
+                padding: '0.7rem 1.35rem',
+                borderRadius: '0.85rem',
+                background: '#ffffff',
+                color: '#312e81',
+                border: 'none',
+                fontWeight: 900,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+            >
+              <TrendingUp size={16} color="#4f46e5" />
+              Tüm Analizleri Görüntüle ↗
+            </button>
+          </div>
+
           {/* SEARCH & FILTER BAR */}
           <div className="exam-filter-bar">
             <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
