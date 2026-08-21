@@ -1,6 +1,6 @@
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD } from './dateHelpers';
-import { checkIsAnswerCorrect } from './answerEvaluation';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from './answerEvaluation';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 
 /**
@@ -758,23 +758,47 @@ export function computeStudentAnalyticsData({
       let aCorr = 0;
       let aWrong = 0;
       let aEmpty = 0;
-      s.answers.forEach(a => {
-        const numScore = a.score !== undefined && a.score !== null ? Number(a.score) : null;
-        if (a.isCorrect === true || (numScore !== null && numScore >= 5) || a.earnedPoints > 0) {
-          aCorr++;
-        } else if (a.evalStatus === 'empty') {
-          aEmpty++;
-        } else if (a.isCorrect === false || a.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
-          const isB = (a.userAnswer === null || a.userAnswer === undefined || a.userAnswer === '') && !a.userAnswerText;
-          if (isB) aEmpty++;
-          else aWrong++;
-        } else if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.correctAnswer !== undefined) {
-          if (String(a.userAnswer).trim().toUpperCase() === String(a.correctAnswer).trim().toUpperCase()) {
+      s.answers.forEach((ans, aIdx) => {
+        const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
+        const userAns = ans.userAnswer;
+        const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
+        const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
+
+        if (isOE || numScore !== null) {
+          if (ans.isCorrect === true || (numScore !== null && numScore >= 5) || ans.earnedPoints > 0) {
             aCorr++;
-          } else {
-            aWrong++;
+          } else if (ans.evalStatus === 'empty') {
+            aEmpty++;
+          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+            const isB = (userAns === null || userAns === undefined || userAns === '') && !ans.userAnswerText;
+            if (isB) aEmpty++;
+            else aWrong++;
           }
+          return;
         }
+
+        const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+        if (!hasOption) {
+          aEmpty++;
+          return;
+        }
+
+        const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, null, ans, s, []);
+        const uLetter = formatAnswerLetter(userAns);
+        const cLetter = formatAnswerLetter(resolvedCorrect);
+
+        let isRight = null;
+        if (uLetter && cLetter) {
+          isRight = (uLetter === cLetter);
+        } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
+          isRight = ans.isCorrect;
+        } else {
+          isRight = checkIsAnswerCorrect(userAns, ans, s, qNo);
+        }
+
+        if (isRight === true) aCorr++;
+        else if (isRight === false) aWrong++;
+        else aEmpty++;
       });
       if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
         correct = aCorr;
