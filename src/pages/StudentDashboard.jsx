@@ -968,6 +968,7 @@ export default function StudentDashboard() {
         pct,
         net: calcNet,
         isOpenEnded,
+        isEvaluated,
         isPendingEvaluation,
         type: 'ödev',
         isPhysical: hw.type === 'physicalExam' || hw.isPhysical
@@ -1209,6 +1210,7 @@ export default function StudentDashboard() {
         pct,
         net: calcNet,
         isOpenEnded,
+        isEvaluated,
         isPendingEvaluation,
         isManual,
         isManualPending,
