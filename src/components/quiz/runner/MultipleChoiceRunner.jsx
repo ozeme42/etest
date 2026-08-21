@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Check, Eye } from 'lucide-react';
+import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 
 /**
  * StandardImageFrame Component
@@ -60,6 +61,7 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
 /**
  * MultipleChoiceRunner Component
  * Dedicated runner for Multiple-Choice (A, B, C, D, E) questions.
+ * Intelligently displays option texts (if present) or optical bubbles (for image-based tests).
  */
 export default function MultipleChoiceRunner({
   question,
@@ -72,10 +74,30 @@ export default function MultipleChoiceRunner({
   onOpenLightbox,
   isMobile = false
 }) {
-  const isFiveOpts = Number(optionsCount) === 5;
+  const rawOptions = extractQuestionOptions(question);
+  const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
-  const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+  const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+
+  // Extract option texts
+  const optionsWithText = optionLetters.map((opt, optIdx) => {
+    const raw = rawOptions[optIdx];
+    let text = '';
+    if (typeof raw === 'string') text = raw;
+    else if (raw && typeof raw === 'object') {
+      text = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || '';
+    }
+    const cleanText = text.trim();
+    const isPlaceholder = !cleanText || cleanText.toLowerCase() === opt.toLowerCase() || cleanText.toLowerCase() === `şık ${opt.toLowerCase()}` || cleanText.toLowerCase() === `seçenek ${opt.toLowerCase()}`;
+    return {
+      letter: opt,
+      text: isPlaceholder ? '' : cleanText,
+      hasText: !isPlaceholder
+    };
+  });
+
+  const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
   return (
     <div style={{
@@ -142,69 +164,129 @@ export default function MultipleChoiceRunner({
         />
       ))}
 
-      {/* Question Text (if present and not a generic title) */}
+      {/* Question Text */}
       {qText && !qText.startsWith('Soru ') && (
         <div style={{
-          fontSize: '0.95rem',
-          lineHeight: 1.6,
-          color: '#1e293b',
-          fontWeight: 600
+          fontSize: '1rem',
+          lineHeight: 1.65,
+          color: '#0f172a',
+          fontWeight: 700,
+          whiteSpace: 'pre-wrap'
         }}>
           {qText}
         </div>
       )}
 
-      {/* Options Row */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: isMobile ? '0.45rem' : '0.75rem',
-        marginTop: '0.25rem'
-      }}>
-        {optionLetters.map((opt, optIdx) => {
-          const isSelected = selectedOption === optIdx;
-          return (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => onSelectOption(optIdx)}
-              style={{
-                flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
-                minWidth: isMobile ? '70px' : '90px',
-                height: isMobile ? '48px' : '52px',
-                borderRadius: '0.85rem',
-                border: isSelected ? '2px solid #2563eb' : '1.5px solid #cbd5e1',
-                background: isSelected ? '#eff6ff' : '#ffffff',
-                color: isSelected ? '#1d4ed8' : '#334155',
-                fontWeight: 900,
-                fontSize: '1.05rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.2)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <span style={{
-                width: 26,
-                height: 26,
-                borderRadius: '50%',
-                background: isSelected ? '#2563eb' : '#f1f5f9',
-                color: isSelected ? '#ffffff' : '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.85rem',
-                fontWeight: 900
-              }}>
-                {opt}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Options Rendering */}
+      {hasAnyOptionText ? (
+        /* Vertical Stacked Options with Full Text */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
+          {optionsWithText.map((optObj, optIdx) => {
+            const isSelected = selectedOption === optIdx;
+            return (
+              <button
+                key={optObj.letter}
+                type="button"
+                onClick={() => onSelectOption(optIdx)}
+                style={{
+                  width: '100%',
+                  padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.25rem',
+                  borderRadius: '0.85rem',
+                  border: isSelected ? '2px solid #2563eb' : '1.5px solid #cbd5e1',
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.85rem',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.15)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: isSelected ? '#2563eb' : '#f1f5f9',
+                  color: isSelected ? '#ffffff' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  flexShrink: 0
+                }}>
+                  {optObj.letter}
+                </span>
+                <span style={{
+                  fontSize: '0.95rem',
+                  fontWeight: isSelected ? 800 : 600,
+                  lineHeight: 1.5,
+                  color: isSelected ? '#1e40af' : '#1e293b'
+                }}>
+                  {optObj.hasText ? optObj.text : `Seçenek ${optObj.letter}`}
+                </span>
+                {isSelected && (
+                  <Check size={18} color="#2563eb" style={{ marginLeft: 'auto', flexShrink: 0 }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        /* Horizontal Compact Optical Buttons (for image-based questions) */
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? '0.45rem' : '0.75rem',
+          marginTop: '0.25rem'
+        }}>
+          {optionLetters.map((opt, optIdx) => {
+            const isSelected = selectedOption === optIdx;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => onSelectOption(optIdx)}
+                style={{
+                  flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
+                  minWidth: isMobile ? '70px' : '90px',
+                  height: isMobile ? '48px' : '52px',
+                  borderRadius: '0.85rem',
+                  border: isSelected ? '2px solid #2563eb' : '1.5px solid #cbd5e1',
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#334155',
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.2)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: isSelected ? '#2563eb' : '#f1f5f9',
+                  color: isSelected ? '#ffffff' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.9rem',
+                  fontWeight: 900
+                }}>
+                  {opt}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

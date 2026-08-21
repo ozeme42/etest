@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Eye, Key } from 'lucide-react';
+import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 
 /**
  * StandardImageFrame Component
@@ -59,7 +60,7 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
 
 /**
  * MultipleChoiceReview Component
- * Displays multiple-choice review with student answer vs correct answer and badges.
+ * Displays multiple-choice review with student answer vs correct answer, option texts, and badges.
  */
 export default function MultipleChoiceReview({
   question,
@@ -73,10 +74,31 @@ export default function MultipleChoiceReview({
   onOpenLightbox,
   isMobile = false
 }) {
-  const isFiveOpts = Number(optionsCount) === 5;
+  const rawOptions = extractQuestionOptions(question);
+  const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
   const hasSelected = selectedOption !== null && selectedOption !== undefined && typeof selectedOption === 'number';
-  const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+
+  const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+
+  // Extract option texts
+  const optionsWithText = optionLetters.map((opt, optIdx) => {
+    const raw = rawOptions[optIdx];
+    let text = '';
+    if (typeof raw === 'string') text = raw;
+    else if (raw && typeof raw === 'object') {
+      text = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || '';
+    }
+    const cleanText = text.trim();
+    const isPlaceholder = !cleanText || cleanText.toLowerCase() === opt.toLowerCase() || cleanText.toLowerCase() === `şık ${opt.toLowerCase()}` || cleanText.toLowerCase() === `seçenek ${opt.toLowerCase()}`;
+    return {
+      letter: opt,
+      text: isPlaceholder ? '' : cleanText,
+      hasText: !isPlaceholder
+    };
+  });
+
+  const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
   return (
     <div style={{
@@ -151,73 +173,168 @@ export default function MultipleChoiceReview({
       {/* Question Text */}
       {qText && !qText.startsWith('Soru ') && (
         <div style={{
-          fontSize: '0.95rem',
-          lineHeight: 1.6,
-          color: '#1e293b',
-          fontWeight: 600
+          fontSize: '1rem',
+          lineHeight: 1.65,
+          color: '#0f172a',
+          fontWeight: 700,
+          whiteSpace: 'pre-wrap'
         }}>
           {qText}
         </div>
       )}
 
-      {/* Review Options Row */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: isMobile ? '0.45rem' : '0.75rem',
-        marginTop: '0.25rem'
-      }}>
-        {optionLetters.map((opt, optIdx) => {
-          const isSelected = selectedOption === optIdx;
-          const isKeyOption = correctOption === optIdx;
+      {/* Options Rendering */}
+      {hasAnyOptionText ? (
+        /* Vertical Stacked Options with Full Text */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
+          {optionsWithText.map((optObj, optIdx) => {
+            const isSelected = selectedOption === optIdx;
+            const isKeyOption = correctOption === optIdx;
 
-          let btnBg = '#ffffff';
-          let btnBorder = '1.5px solid #cbd5e1';
-          let btnColor = '#334155';
-          let badgeText = opt;
+            let cardBg = '#ffffff';
+            let cardBorder = '1.5px solid #cbd5e1';
+            let circleBg = '#f1f5f9';
+            let circleColor = '#475569';
+            let textColor = '#1e293b';
 
-          if (isSelected && isKeyOption) {
-            btnBg = '#f0fdf4';
-            btnBorder = '2px solid #16a34a';
-            btnColor = '#15803d';
-            badgeText = `${opt} ✓`;
-          } else if (isSelected && !isKeyOption) {
-            btnBg = '#fef2f2';
-            btnBorder = '2px solid #ef4444';
-            btnColor = '#b91c1c';
-            badgeText = `${opt} ✗`;
-          } else if (!isSelected && isKeyOption) {
-            btnBg = '#f5f3ff';
-            btnBorder = '2px solid #8b5cf6';
-            btnColor = '#7c3aed';
-            badgeText = `${opt} 🔑`;
-          }
+            if (isSelected && isKeyOption) {
+              cardBg = '#f0fdf4';
+              cardBorder = '2px solid #16a34a';
+              circleBg = '#16a34a';
+              circleColor = '#ffffff';
+              textColor = '#15803d';
+            } else if (isSelected && !isKeyOption) {
+              cardBg = '#fef2f2';
+              cardBorder = '2px solid #ef4444';
+              circleBg = '#ef4444';
+              circleColor = '#ffffff';
+              textColor = '#b91c1c';
+            } else if (!isSelected && isKeyOption) {
+              cardBg = '#f5f3ff';
+              cardBorder = '2px solid #8b5cf6';
+              circleBg = '#8b5cf6';
+              circleColor = '#ffffff';
+              textColor = '#6d28d9';
+            }
 
-          return (
-            <div
-              key={opt}
-              style={{
-                flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
-                minWidth: isMobile ? '70px' : '90px',
-                height: isMobile ? '48px' : '52px',
-                borderRadius: '0.85rem',
-                border: btnBorder,
-                background: btnBg,
-                color: btnColor,
-                fontWeight: 900,
-                fontSize: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                userSelect: 'none'
-              }}
-            >
-              <span>{badgeText}</span>
-            </div>
-          );
-        })}
-      </div>
+            return (
+              <div
+                key={optObj.letter}
+                style={{
+                  width: '100%',
+                  padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.25rem',
+                  borderRadius: '0.85rem',
+                  border: cardBorder,
+                  background: cardBg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.85rem',
+                  userSelect: 'none'
+                }}
+              >
+                <span style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: circleBg,
+                  color: circleColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  flexShrink: 0
+                }}>
+                  {optObj.letter}
+                </span>
+                <span style={{
+                  fontSize: '0.95rem',
+                  fontWeight: (isSelected || isKeyOption) ? 800 : 600,
+                  lineHeight: 1.5,
+                  color: textColor
+                }}>
+                  {optObj.hasText ? optObj.text : `Seçenek ${optObj.letter}`}
+                </span>
+
+                {isSelected && isKeyOption && (
+                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
+                    ✓ Doğru Yanıtınız
+                  </span>
+                )}
+                {isSelected && !isKeyOption && (
+                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#b91c1c', background: '#fee2e2', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
+                    ✗ Yanlış Yanıtınız
+                  </span>
+                )}
+                {!isSelected && isKeyOption && (
+                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#6d28d9', background: '#ede9fe', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
+                    🔑 Doğru Cevap
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Horizontal Compact Optical Buttons (for image-based questions) */
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? '0.45rem' : '0.75rem',
+          marginTop: '0.25rem'
+        }}>
+          {optionLetters.map((opt, optIdx) => {
+            const isSelected = selectedOption === optIdx;
+            const isKeyOption = correctOption === optIdx;
+
+            let btnBg = '#ffffff';
+            let btnBorder = '1.5px solid #cbd5e1';
+            let btnColor = '#334155';
+            let badgeText = opt;
+
+            if (isSelected && isKeyOption) {
+              btnBg = '#f0fdf4';
+              btnBorder = '2px solid #16a34a';
+              btnColor = '#15803d';
+              badgeText = `${opt} ✓`;
+            } else if (isSelected && !isKeyOption) {
+              btnBg = '#fef2f2';
+              btnBorder = '2px solid #ef4444';
+              btnColor = '#b91c1c';
+              badgeText = `${opt} ✗`;
+            } else if (!isSelected && isKeyOption) {
+              btnBg = '#f5f3ff';
+              btnBorder = '2px solid #8b5cf6';
+              btnColor = '#7c3aed';
+              badgeText = `${opt} 🔑`;
+            }
+
+            return (
+              <div
+                key={opt}
+                style={{
+                  flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
+                  minWidth: isMobile ? '70px' : '90px',
+                  height: isMobile ? '48px' : '52px',
+                  borderRadius: '0.85rem',
+                  border: btnBorder,
+                  background: btnBg,
+                  color: btnColor,
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  userSelect: 'none'
+                }}
+              >
+                <span>{badgeText}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Answer Key Note */}
       {correctOption !== null && correctOption !== undefined && (
