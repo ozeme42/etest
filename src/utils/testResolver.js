@@ -640,10 +640,33 @@ export function computeStudentAnalyticsData({
     let empty = s.emptyCount ?? s.blankCount ?? s.empty ?? s.totalEmpty ?? 0;
 
     // Extract from answers array if available
-    if (!correct && !wrong && !empty && Array.isArray(s.answers) && s.answers.length > 0) {
-      correct = s.answers.filter(a => a.isCorrect === true || a.earnedPoints > 0).length;
-      wrong = s.answers.filter(a => a.isCorrect === false).length;
-      empty = Math.max(0, s.answers.length - (correct + wrong));
+    if (Array.isArray(s.answers) && s.answers.length > 0) {
+      let aCorr = 0;
+      let aWrong = 0;
+      let aEmpty = 0;
+      s.answers.forEach(a => {
+        const numScore = a.score !== undefined && a.score !== null ? Number(a.score) : null;
+        if (a.isCorrect === true || (numScore !== null && numScore >= 5) || a.earnedPoints > 0) {
+          aCorr++;
+        } else if (a.evalStatus === 'empty') {
+          aEmpty++;
+        } else if (a.isCorrect === false || a.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+          const isB = (a.userAnswer === null || a.userAnswer === undefined || a.userAnswer === '') && !a.userAnswerText;
+          if (isB) aEmpty++;
+          else aWrong++;
+        } else if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.correctAnswer !== undefined) {
+          if (String(a.userAnswer).trim().toUpperCase() === String(a.correctAnswer).trim().toUpperCase()) {
+            aCorr++;
+          } else {
+            aWrong++;
+          }
+        }
+      });
+      if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
+        correct = aCorr;
+        wrong = aWrong;
+        empty = aEmpty;
+      }
     }
 
     // Total questions
@@ -662,13 +685,13 @@ export function computeStudentAnalyticsData({
 
     // Net calculation
     let net = 0;
-    if (s.net !== undefined && s.net !== null) {
+    const penaltyRatio = /lgs|bursluluk/i.test(title) ? 3 : 4;
+    if (correct > 0 || wrong > 0) {
+      net = Math.max(0, correct - (wrong / penaltyRatio));
+    } else if (s.net !== undefined && s.net !== null) {
       net = parseFloat(s.net);
     } else if (s.totalNet !== undefined && s.totalNet !== null) {
       net = parseFloat(s.totalNet);
-    } else if (correct > 0 || wrong > 0) {
-      const penaltyRatio = /lgs|bursluluk/i.test(title) ? 3 : 4;
-      net = Math.max(0, correct - (wrong / penaltyRatio));
     } else if (s.score !== undefined && parseFloat(s.score) <= totalQ) {
       net = parseFloat(s.score);
     }
