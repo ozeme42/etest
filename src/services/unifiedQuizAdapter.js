@@ -107,14 +107,71 @@ export function detectSectionFormat(sec = {}, test = {}) {
  */
 export function isItemOpenEnded(item = {}, parentTest = {}) {
   if (!item) return false;
-  const qType = String(item.questionType || item.type || item.contentType || parentTest.questionType || parentTest.type || '').toLowerCase();
-  if (qType.includes('acik_uclu') || qType.includes('yazili') || qType.includes('klasik') || item.isOpenEnded || parentTest.isOpenEnded) {
+
+  // 1. Explicit multiple-choice markers on the item/section itself ALWAYS take precedence
+  const itemType = String(item.questionType || item.type || item.contentType || '').toLowerCase();
+  if (
+    itemType.includes('coktan_secmeli') ||
+    itemType.includes('multiple_choice') ||
+    itemType.includes('optic') ||
+    itemType.includes('optik') ||
+    (Array.isArray(item.options) && item.options.length > 0) ||
+    (Array.isArray(item.choices) && item.choices.length > 0) ||
+    (Array.isArray(item.answerKey) && item.answerKey.length > 0) ||
+    (typeof item.answerKey === 'string' && item.answerKey.trim().length > 0) ||
+    (item.opticAnswers && Object.keys(item.opticAnswers).length > 0)
+  ) {
+    return false;
+  }
+
+  // 2. Explicit open-ended markers on the item/section itself
+  if (
+    itemType.includes('acik_uclu') ||
+    itemType.includes('yazili') ||
+    itemType.includes('klasik') ||
+    itemType.includes('open_ended') ||
+    item.isOpenEnded === true
+  ) {
     return true;
   }
-  const title = String(item.title || item.name || parentTest.title || '').toLowerCase();
-  if (title.includes('açık uçlu') || title.includes('acik uclu') || title.includes('yazılı') || title.includes('yazili') || title.includes('klasik')) {
+
+  const itemTitle = String(item.title || item.name || '').toLowerCase();
+  if (
+    itemTitle.includes('açık uçlu') ||
+    itemTitle.includes('acik uclu') ||
+    itemTitle.includes('yazılı') ||
+    itemTitle.includes('yazili') ||
+    itemTitle.includes('klasik')
+  ) {
     return true;
   }
+
+  // 3. If parent test is single-section (NOT multi-section) and has open-ended markers
+  const isMultiSectionParent = Array.isArray(parentTest.sections) && parentTest.sections.length > 1;
+  if (!isMultiSectionParent) {
+    const parentType = String(parentTest.questionType || parentTest.type || parentTest.contentType || '').toLowerCase();
+    if (
+      parentType.includes('acik_uclu') ||
+      parentType.includes('yazili') ||
+      parentType.includes('klasik') ||
+      parentType.includes('open_ended') ||
+      parentTest.isOpenEnded === true
+    ) {
+      return true;
+    }
+
+    const parentTitle = String(parentTest.title || parentTest.name || '').toLowerCase();
+    if (
+      parentTitle.includes('açık uçlu') ||
+      parentTitle.includes('acik uclu') ||
+      parentTitle.includes('yazılı') ||
+      parentTitle.includes('yazili') ||
+      parentTitle.includes('klasik')
+    ) {
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -367,27 +424,70 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
 
   if (Array.isArray(rawAns)) {
     rawAns.forEach((a, idx) => {
-      // Find matching section
+      // Find matching section with bulletproof matching
       let matchedSec = null;
-      if (a.sectionId) {
-        matchedSec = rawSections.find(s =>
-          String(s.id) === String(a.sectionId) ||
-          String(s.raw?.questionId) === String(a.sectionId) ||
-          String(s.id).replace(/^q_|^hw_|^sec_/, '') === String(a.sectionId).replace(/^q_|^hw_|^sec_/, '')
-        );
-      }
-      if (!matchedSec && a.questionId) {
-        matchedSec = rawSections.find(s => s.questions.some(q => String(q.id) === String(a.questionId)));
-      }
-      if (!matchedSec && a.sectionIndex !== undefined && rawSections[a.sectionIndex]) {
+
+      // 1. Exact sectionIndex
+      if (a.sectionIndex !== undefined && rawSections[a.sectionIndex]) {
         matchedSec = rawSections[a.sectionIndex];
       }
+
+      // 2. Exact sectionTitle match
+      if (!matchedSec && a.sectionTitle) {
+        matchedSec = rawSections.find(s => s.title?.toLowerCase().trim() === a.sectionTitle?.toLowerCase().trim());
+      }
+
+      // 3. Exact or normalized sectionId match
+      if (!matchedSec && a.sectionId) {
+        const cleanA = String(a.sectionId).replace(/^q_|^hw_|^sec_|^sec/, '');
+        matchedSec = rawSections.find(s =>
+          String(s.id) === String(a.sectionId) ||
+          String(s.raw?.id) === String(a.sectionId) ||
+          String(s.raw?.questionId) === String(a.sectionId) ||
+          String(s.id).replace(/^q_|^hw_|^sec_|^sec/, '') === cleanA
+        );
+      }
+
+      // 4. By questionId
+      if (!matchedSec && a.questionId) {
+        matchedSec = rawSections.find(s => s.questions?.some(q => String(q.id) === String(a.questionId)));
+      }
+
+      // 5. Global question number fallback (mapping global question range to correct section)
+      if (!matchedSec && rawSections.length > 1) {
+        const targetGlobalNo = Number(a.questionNo || (idx + 1));
+        let runningTotal = 0;
+        for (const s of rawSections) {
+          const sCount = s.questions?.length || s.qCount || 1;
+          if (targetGlobalNo > runningTotal && targetGlobalNo <= runningTotal + sCount) {
+            matchedSec = s;
+            break;
+          }
+          runningTotal += sCount;
+        }
+      }
+
       if (!matchedSec) {
         matchedSec = rawSections[0];
       }
 
       const sId = matchedSec?.id || rawSections[0]?.id || 'sec_1';
-      const qNo = Number(a.questionNoInSection || a.questionNo || (idx + 1));
+
+      // Determine local question number in section
+      let qNo = Number(a.questionNoInSection);
+      if (!qNo || isNaN(qNo)) {
+        const globalNo = Number(a.questionNo || (idx + 1));
+        let runningTotal = 0;
+        for (const s of rawSections) {
+          if (s.id === matchedSec?.id) {
+            qNo = Math.max(1, globalNo - runningTotal);
+            break;
+          }
+          runningTotal += (s.questions?.length || s.qCount || 1);
+        }
+      }
+      if (!qNo || isNaN(qNo)) qNo = (idx + 1);
+
       if (!sectionsMap[sId]) {
         sectionsMap[sId] = { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
       }
@@ -402,8 +502,18 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
         }
       }
 
-      // Open-Ended Text
-      const textVal = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' && isNaN(Number(a.userAnswer)) ? a.userAnswer : null);
+      // Open-Ended Text (checking all candidate fields and submission-level maps)
+      const textVal = a.userAnswerText ||
+                      a.user_answer_text ||
+                      a.textAns ||
+                      a.studentAnswer ||
+                      a.writtenAnswer ||
+                      submission.openEndedText?.[sId]?.[qNo] ||
+                      submission.openEndedText?.[`${sId}_${qNo}`] ||
+                      submission.openEndedText?.[qNo] ||
+                      submission.raw_data?.openEndedText?.[sId]?.[qNo] ||
+                      (typeof a.userAnswer === 'string' && isNaN(Number(a.userAnswer)) && !/^[A-E]$/i.test(a.userAnswer.trim()) ? a.userAnswer : null);
+
       if (textVal) {
         const str = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
         sectionsMap[sId].openEndedText[qNo] = str;
