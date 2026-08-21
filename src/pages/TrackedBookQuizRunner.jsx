@@ -167,6 +167,8 @@ export default function TrackedBookQuizRunner() {
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [results, setResults] = useState(null);
 
   const testKey = resolvedTest ? (resolvedTest.id || cleanId) : cleanId;
   const draftKey = `draft_tracked_book_test_${testKey}_${studentId}`;
