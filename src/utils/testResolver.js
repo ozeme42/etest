@@ -734,83 +734,13 @@ export function computeStudentAnalyticsData({
       isTrial,
       isExamBook,
       parentBookId: bookObj?.id || null,
-      hwId: s.hwId || parentHw?.id || null,
-      subjectName: subject
+      hwId: s.hwId || parentHw?.id || null
     };
   };
 
-  // 1. Online Sınavlar & Kitap Testleri
-  const onlineEval = [];
-  const processedSubIds = new Set();
+  const processedKeys = new Set();
 
-  (submissions || []).forEach(s => {
-    if (!s) return;
-    if (!isStudentMatch(s)) return;
-
-    const subIdStr = String(s.id || s.supabaseId || '');
-    if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
-    if (s.status === 'in_progress' || s.status === 'draft') return;
-    const raw = s.raw_data || {};
-    if (raw.status === 'draft' || raw.status === 'in_progress') return;
-
-    // Only approved manual tests count towards system analytics and statistics
-    const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
-    if (isManualTest) {
-      const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed' || raw.approvalStatus === 'approved' || raw.isApproved === true;
-      if (!isApproved) return;
-    }
-
-    let correct = s.correctCount ?? raw.correctCount ?? 0;
-    let wrong = s.wrongCount ?? raw.wrongCount ?? 0;
-    let empty = s.emptyCount ?? s.blankCount ?? raw.emptyCount ?? raw.blankCount ?? 0;
-
-    if (!correct && !wrong && !empty && Array.isArray(s.answers) && s.answers.length > 0) {
-      correct = s.answers.filter(a => a.isCorrect === true || a.earnedPoints > 0).length;
-      wrong = s.answers.filter(a => a.isCorrect === false).length;
-      empty = Math.max(0, s.answers.length - (correct + wrong));
-    }
-
-    // Soru çözülmemiş/boş taslakları atla
-    if (correct === 0 && wrong === 0 && empty === 0 && (!s.answers || s.answers.length === 0)) return;
-
-    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt || s.date;
-    if (!subDate) return;
-
-    const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
-    const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
-    const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
-    const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
-
-    if (!isManualTest) {
-      // If parent homework is linked to a book/exam that was deleted, discard it
-      if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
-        return;
-      }
-
-      // If submission is linked to a book/exam that was deleted, discard it
-      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
-        return;
-      }
-
-      // If submission is linked to a homework that has been deleted (and is not an independent tracked book test), discard it!
-      const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
-      if (isHwSub && !parentHw) {
-        return; // Deleted homework!
-      }
-
-      if (!bookObj && !testObj && !parentHw) {
-        return; // Orphaned submission for a deleted test/exam
-      }
-    }
-
-    const dedupeKey = s.id ? String(s.id) : `${bTestId}_${subDate}`;
-    if (processedSubIds.has(dedupeKey)) return;
-    processedSubIds.add(dedupeKey);
-
-    onlineEval.push(normalizeSub(s, parentHw, 'online', subDate, testObj, bookObj));
-  });
-
-  // 2. HomeworkContext Optik / Ödev Sınavları
+  // 1. HomeworkContext Optik / Ödev Sınavları
   const hwSubmissions = [];
   (homeworks || []).forEach(hw => {
     if (!hw) return;
@@ -823,18 +753,88 @@ export function computeStudentAnalyticsData({
     if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)')) {
       return;
     }
-    if (hw.submissions && Array.isArray(hw.submissions)) {
-      hw.submissions.forEach(sub => {
-        if (isStudentMatch(sub)) {
-          const subIdStr = String(sub.id || '');
-          if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
-          if (sub.isSubmitted === false) return;
-          const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
-          if (!sDate) return;
-          hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate));
-        }
-      });
+
+    const allMatching = [
+      ...(hw.submissions || []).filter(isStudentMatch),
+      ...(submissions || []).filter(s => isStudentMatch(s) && (
+        String(s.hwId) === String(hw.id) ||
+        String(s.homeworkId) === String(hw.id) ||
+        String(s.testId) === String(hw.id) ||
+        String(s.id) === String(hw.id) ||
+        String(s.id) === `hw_sub_${hw.id}_${studentIdStr}`
+      ))
+    ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
+
+    if (allMatching.length === 0) return;
+    const sub = allMatching[0];
+
+    const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
+    if (!sDate) return;
+
+    processedKeys.add(String(hw.id));
+    if (toUUID(hw.id)) processedKeys.add(String(toUUID(hw.id)));
+    if (sub.id) processedKeys.add(String(sub.id));
+    if (sub.testId) processedKeys.add(String(sub.testId));
+    if (sub.hwId) processedKeys.add(String(sub.hwId));
+
+    hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate));
+  });
+
+  // 2. Online Sınavlar & Kitap Testleri (Standalone submissions)
+  const onlineEval = [];
+
+  (submissions || []).forEach(s => {
+    if (!s) return;
+    if (!isStudentMatch(s)) return;
+
+    const subIdStr = String(s.id || s.supabaseId || '');
+    if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+    if (s.status === 'in_progress' || s.status === 'draft') return;
+    const raw = s.raw_data || {};
+    if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
+    // Skip if already processed in Step 1 (Homeworks)
+    if (s.id && processedKeys.has(String(s.id))) return;
+    if (s.supabaseId && processedKeys.has(String(s.supabaseId))) return;
+    if (s.hwId && processedKeys.has(String(s.hwId))) return;
+    if (s.homeworkId && processedKeys.has(String(s.homeworkId))) return;
+    if (s.testId && processedKeys.has(String(s.testId))) return;
+
+    // Only approved manual tests count towards system analytics and statistics
+    const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
+    if (isManualTest) {
+      const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed' || raw.approvalStatus === 'approved' || raw.isApproved === true;
+      if (!isApproved) return;
     }
+
+    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt || s.date;
+    if (!subDate) return;
+
+    const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
+    const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+    const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
+    const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
+
+    if (!isManualTest) {
+      if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
+        return;
+      }
+      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
+        return;
+      }
+      const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
+      if (isHwSub && !parentHw) {
+        return; // Deleted homework!
+      }
+      if (!bookObj && !testObj && !parentHw) {
+        return; // Orphaned submission
+      }
+    }
+
+    if (s.id) processedKeys.add(String(s.id));
+    if (bTestId) processedKeys.add(bTestId);
+
+    onlineEval.push(normalizeSub(s, parentHw, 'online', subDate, testObj, bookObj));
   });
 
   // 3. Fiziki Deneme Modülü Sınavları
