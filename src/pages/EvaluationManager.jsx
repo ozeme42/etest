@@ -727,22 +727,54 @@ export default function EvaluationManager() {
       const isManualRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
       const isAlreadyEvaluated = Boolean(
-        sub.status === 'evaluated' ||
-        sub.status === 'graded' ||
-        sub.status === 'completed' ||
         sub.isEvaluatedByTeacher === true ||
         sub.isEvaluated === true ||
-        sub.evaluatedAt
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        (sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote))
       );
+
       let hasWrittenAnswers = false;
       if (Array.isArray(sub.answers)) {
-        hasWrittenAnswers = sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);
+        hasWrittenAnswers = sub.answers.some(a => 
+          (a.userAnswerText && String(a.userAnswerText).trim().length > 0) ||
+          a.isOpenEnded === true ||
+          a.is_open_ended === true ||
+          ['acik_uclu', 'yazili', 'open_ended'].includes(a.questionType || a.type)
+        );
       }
-      const isExplicitOpenEnded = sub.isOpenEnded || sub.questionType === 'acik_uclu' || sub.questionType === 'yazili' || sub.contentType === 'acik_uclu' || sub.contentType === 'yazili';
-      const titleLower = String(title).toLowerCase();
-      const hasOEKeywords = titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili');
 
-      const isPending = isManual ? isManualPending : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
+      let hasOpenEndedSection = false;
+      if (sub.sections && typeof sub.sections === 'object') {
+        hasOpenEndedSection = Object.values(sub.sections).some(sec => 
+          sec.type === 'open_ended' ||
+          (sec.openEndedText && Object.values(sec.openEndedText).some(t => t && String(t).trim().length > 0))
+        );
+      }
+
+      const isExplicitOpenEnded = sub.isOpenEnded ||
+                                  sub.questionType === 'acik_uclu' ||
+                                  sub.questionType === 'yazili' ||
+                                  sub.contentType === 'acik_uclu' ||
+                                  sub.contentType === 'yazili' ||
+                                  matchedBankQ?.type === 'open_ended' ||
+                                  matchedHw?.type === 'open_ended' ||
+                                  matchedBankQ?.isOpenEnded ||
+                                  hasOpenEndedSection;
+
+      const titleLower = String(title).toLowerCase();
+      const hasOEKeywords = titleLower.includes('açık uçlu') ||
+                            titleLower.includes('acik uclu') ||
+                            titleLower.includes('yazılı') ||
+                            titleLower.includes('yazili') ||
+                            titleLower.includes('yaztop') ||
+                            titleLower.includes('metinaç') ||
+                            titleLower.includes('metin') ||
+                            titleLower.includes('klasik');
+
+      const isPending = isManual
+        ? isManualPending
+        : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
 
       return {
         ...sub,
