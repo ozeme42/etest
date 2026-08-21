@@ -1757,11 +1757,11 @@ export default function StudentDashboard() {
           });
         });
 
-        // ID'ye göre tekilleştir — done:true olanı önceliklendir (önceden kaydedilen duplikeleri temizle)
+        // ID ve testId bazında tam tekilleştirme — done:true olanı önceliklendir (önceden kaydedilen duplikeleri temizle)
         const rawAllItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
         const seenIds = new Map();
         rawAllItems.forEach(item => {
-          const key = String(item.id || '');
+          const key = item.testId ? `test_${item.testId}` : (item.hwId && !item.testId ? `hw_${item.hwId}` : String(item.id || ''));
           if (!key) return;
           const existing = seenIds.get(key);
           if (!existing || (!existing.done && item.done)) {
