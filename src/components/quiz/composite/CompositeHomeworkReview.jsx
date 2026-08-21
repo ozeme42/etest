@@ -114,15 +114,20 @@ export default function CompositeHomeworkReview({
                              sa.teacherScores?.[String(i)];
 
         if (isQOE) {
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const hasText = textVal && String(textVal).trim() !== '';
+
           if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
             const scNum = Number(teacherScore);
-            if (scNum > 0) {
+            if (scNum >= 5 || scNum > 0) {
               correctCount++;
             } else {
               wrongCount++;
             }
+          } else if (teacherScore === 'empty' || !hasText) {
+            blankCount++;
           } else {
-            pendingCount++;
+            correctCount++;
           }
         } else {
           // Multiple choice
@@ -131,15 +136,22 @@ export default function CompositeHomeworkReview({
           if (u === null) {
             blankCount++;
           } else {
-            let isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
-            if (isCorr === null) {
-              const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
-                ? sec.correctAnswers[i - 1]
-                : (qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption ?? sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1]);
-              if (cAns !== undefined && cAns !== null) {
-                const normC = normalizeAnswerIndex(cAns);
-                isCorr = normC !== null ? (u === normC) : null;
+            const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
+              ? sec.correctAnswers[i - 1]
+              : (Array.isArray(sec.raw?.correctAnswers) && sec.raw.correctAnswers[i - 1] !== undefined)
+                ? sec.raw.correctAnswers[i - 1]
+                : (sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1] ?? sec.opticAnswers?.[i - 1] ?? sec.raw?.opticAnswers?.[i - 1] ?? qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption);
+
+            let isCorr = null;
+            if (cAns !== undefined && cAns !== null && cAns !== '') {
+              const normC = normalizeAnswerIndex(cAns);
+              if (normC !== null) {
+                isCorr = (u === normC);
               }
+            }
+
+            if (isCorr === null) {
+              isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
 
             if (isCorr === true) {
