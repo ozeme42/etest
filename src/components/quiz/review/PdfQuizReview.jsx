@@ -565,13 +565,37 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
               const qObj = questions[idx] || questions[0] || {};
-              const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
+              const ansObj = (Array.isArray(answers) ? answers.find(a => (
+                Number(a?.questionNo) === qNo ||
+                Number(a?.questionNoInSection) === qNo ||
+                Number(a?.number) === qNo ||
+                Number(a?.qNo) === qNo ||
+                String(a?.questionId).includes(`_${qNo}`) ||
+                String(a?.id).includes(`_${qNo}`)
+              )) : null) || (Array.isArray(answers) ? answers[idx] : (typeof answers === 'object' ? (answers[qNo] || answers[String(qNo)]) : {})) || {};
 
               const userAns = ansObj.userAnswer;
-              const textAns = ansObj.userAnswerText;
-              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+              const textCandidates = [
+                ansObj.userAnswerText,
+                ansObj.textAns,
+                ansObj.text,
+                ansObj.writtenAnswer,
+                ansObj.studentAnswer,
+                (typeof ansObj.userAnswer === 'string' && ansObj.userAnswer !== 'empty' ? ansObj.userAnswer : null),
+                (typeof ansObj.answer === 'string' && ansObj.answer !== 'empty' ? ansObj.answer : null),
+                submission?.openEndedText?.[qNo],
+                submission?.openEndedText?.[String(qNo)],
+                submission?.raw_data?.openEndedText?.[qNo],
+                submission?.raw_data?.openEndedText?.[String(qNo)],
+                (typeof submission?.answers?.[qNo] === 'string' ? submission.answers[qNo] : null),
+                (typeof submission?.answers?.[String(qNo)] === 'string' ? submission.answers[String(qNo)] : null),
+                qObj.userAnswerText,
+                qObj.textAns
+              ];
+              const textAns = textCandidates.find(t => t !== undefined && t !== null && String(t).trim() !== '' && String(t).trim() !== 'empty');
+              const hasAnswer = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns);
               const isText = Boolean(textAns && String(textAns).trim() !== '');
-              const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
+              const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded;
 
               const teacherSc = questionScores[qNo];
               const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;

@@ -44,9 +44,20 @@ export default memo(function OpenEndedStatusPanel({
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {Array.from({ length: totalCount }).map((_, idx) => {
           const qNo = idx + 1;
-          const text = String(openEndedText[qNo] || openEndedText[String(qNo)] || '');
-          const hasText = text.trim() !== '';
           const qObj = resolvedQuestions[idx] || {};
+          let rawText = '';
+          if (typeof openEndedText === 'object' && openEndedText !== null) {
+            rawText = openEndedText[qNo] ?? openEndedText[String(qNo)] ?? '';
+          }
+          if (!rawText && Array.isArray(openEndedText)) {
+            const match = openEndedText.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo);
+            rawText = match?.userAnswerText || match?.textAns || match?.userAnswer || '';
+          }
+          if (!rawText && qObj) {
+            rawText = qObj.userAnswerText || qObj.textAns || (typeof qObj.userAnswer === 'string' && qObj.userAnswer !== 'empty' ? qObj.userAnswer : '');
+          }
+          const text = String(rawText || '');
+          const hasText = text.trim() !== '';
 
           return (
             <div
