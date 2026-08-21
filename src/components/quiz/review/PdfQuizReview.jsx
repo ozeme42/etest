@@ -112,8 +112,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       );
 
       const hasTeacherGraded = Boolean(
-        submission.isEvaluatedByTeacher === true ||
-        a?.evaluatedByTeacher === true
+        (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') &&
+        (a?.evaluatedByTeacher === true || (typeof a?.score === 'number' && a.score > 0))
       );
 
       if (isQOE) {
@@ -186,10 +186,33 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload || submission?.pdfPayload;
 
-  const hasAnyTeacherGrading = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true) return true;
-    return Object.values(questionScores).some(s => s !== undefined && s !== null && s !== 'empty' && typeof s === 'number');
-  }, [submission, questionScores]);
+  const totalMaxScore = qCount * 10;
+  const totalEarnedScore = useMemo(() => {
+    let earned = 0;
+    for (let i = 1; i <= qCount; i++) {
+      const s = questionScores[i];
+      if (s !== undefined && s !== null && s !== 'empty') {
+        earned += Number(s);
+      }
+    }
+    return earned;
+  }, [qCount, questionScores]);
+  
+  const scorePercentage = useMemo(() => {
+    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+  }, [totalEarnedScore, totalMaxScore]);
+
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      return (
+        totalEarnedScore > 0 ||
+        Boolean(submission.teacherFeedback || submission.teacherNote) ||
+        Object.values(teacherNotes).some(n => n && n.trim() !== '') ||
+        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
+      );
+    }
+    return false;
+  }, [submission, totalEarnedScore, teacherNotes, answers]);
 
   const stats = useMemo(() => {
     let cCount = 0;
@@ -233,22 +256,6 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   }, [qCount, questions, answers, test, questionScores, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
-
-  const totalMaxScore = qCount * 10;
-  const totalEarnedScore = useMemo(() => {
-    let earned = 0;
-    for (let i = 1; i <= qCount; i++) {
-      const s = questionScores[i];
-      if (s !== undefined && s !== null && s !== 'empty') {
-        earned += Number(s);
-      }
-    }
-    return earned;
-  }, [qCount, questionScores]);
-  
-  const scorePercentage = useMemo(() => {
-    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
-  }, [totalEarnedScore, totalMaxScore]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -402,7 +409,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
           {isOpenEndedMode ? (
-            !hasAnyTeacherGrading ? (
+            !isTrulyEvaluated ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -417,7 +424,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 boxShadow: '0 2px 8px rgba(124, 58, 237, 0.12)'
               }}>
                 <Clock size={16} color="#7c3aed" />
-                <span>⏳ Öğretmen Değerlendirmesi Bekleniyor</span>
+                <span>⏳ Değerlendirmede</span>
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
@@ -567,7 +574,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               const teacherSc = questionScores[qNo];
-              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty';
+              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
 
               let isCorrect;
               if (hasGradedScore) {
