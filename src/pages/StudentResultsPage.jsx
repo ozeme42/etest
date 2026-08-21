@@ -21,6 +21,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
+import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
@@ -331,6 +332,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const { homeworks } = useHomework();
   const { data: curData } = useCurriculum();
   const { books, bookTests } = useTrackedBooks();
+  const { questions: allBankQuestions } = useQuestionBank();
   const { getMockExamsForStudent } = useCoaching();
 
   const { currentUser } = useAuth();
@@ -617,9 +619,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       });
     });
 
-    // 2. Process all completed individual book tests
-    const bestBookSubsByTest = {};
-
+    // 2. Process all other completed test submissions (book tests, question bank tests, standalone quizzes, etc.)
     (submissions || []).forEach(sub => {
       if (!sub) return;
       const sid = String(sub.studentId);
@@ -632,35 +632,34 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
+      // Skip if already processed in Step 1
+      if (sub.id && processedTestKeys.has(String(sub.id))) return;
+      if (sub.supabaseId && processedTestKeys.has(String(sub.supabaseId))) return;
+
       const bTestId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
       const bHwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
-      if (!bTestId) return;
-
-      // If this submission belongs to an assigned homework or was part of a composite homework, do not list separately
-      if (bHwId && allHomeworkIds.has(bHwId)) return;
-      if (allHomeworkIds.has(bTestId)) return;
-      if (compositeSectionIds.has(bTestId)) return;
-      if (processedTestKeys.has(bTestId) || (toUUID(bTestId) && processedTestKeys.has(String(toUUID(bTestId))))) return;
-
-      const isHw = allHomeworkIds.has(bTestId) || compositeSectionIds.has(bTestId) || activeHws.some(h => String(h.id) === bTestId);
-      if (isHw) return; // Homeworks are only handled in Step 1
 
       let correct = sub.correctCount ?? raw.correctCount ?? 0;
       let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
       let blank = sub.blankCount ?? raw.blankCount ?? 0;
+      let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.correctCount === undefined) {
-        correct = 0; wrong = 0; blank = 0;
+        correct = 0; wrong = 0; blank = 0; pending = 0;
         sub.answers.forEach(ans => {
           if (ans.isCorrect === true) correct++;
           else if (ans.isCorrect === false) {
             const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
             if (isB) blank++; else wrong++;
+          } else if (ans.userAnswerText) {
+            pending++;
+          } else {
+            blank++;
           }
         });
       }
 
-      if (correct === 0 && wrong === 0 && blank === 0 && (!sub.answers || sub.answers.length === 0)) return;
+      if (correct === 0 && wrong === 0 && blank === 0 && pending === 0 && (!sub.answers || sub.answers.length === 0)) return;
 
       const isManual = Boolean(
         sub.isManual === true ||
@@ -673,31 +672,37 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
-      const curInfo = allCurTestsMap.get(bTestId);
+      const curInfo = allCurTestsMap.get(bTestId) || {};
+      const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
+      const hwObj = (homeworks || []).find(h => String(h.id) === bTestId || String(h.id) === bHwId);
 
-      const testExists = Boolean(testObj || bookObj || curInfo || isManual);
-      if (!testExists) {
-        return; // Silinmiş test ve ödevlerin eski kayıtları gösterilmez
-      }
-
-      const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || 'Kitap';
-      const cleanBookTitle = rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
+      const cleanBookTitle = rawBookTitle ? rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim() : '';
 
       const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
-      const subjectName = sub.subject || raw.subject || subjObj?.name || bookObj?.subject || cleanBookTitle;
-      const testName = sub.testTitle || raw.testTitle || sub.title || testObj?.name || 'Test';
+      const subjectName = sub.subject || raw.subject || subjObj?.name || bookObj?.subject || bankQ?.subject || curInfo?.subject || hwObj?.subject || 'Genel';
+      const testName = sub.testTitle || raw.testTitle || sub.title || testObj?.name || bankQ?.title || bankQ?.name || hwObj?.title || curInfo?.title || 'Test';
 
       const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
       const topicName = sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || testObj?.topicName || testObj?.unit || testObj?.unitName || raw.topic || raw.unit || '';
 
-      const fullTestTitle = topicName
-        ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})`
-        : `${cleanBookTitle} — ${subjectName} (${testName})`;
+      const fullTestTitle = cleanBookTitle
+        ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
+        : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
-      const sumCount = correct + wrong + blank;
-      const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || 0;
+      const sumCount = correct + wrong + blank + pending;
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || bankQ?.questionCount || 0;
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
+
+      const isOpenEnded = Boolean(
+        sub.isOpenEnded ||
+        sub.questionType === 'acik_uclu' ||
+        sub.type === 'acik_uclu' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
+      );
+      const isEvaluated = isEval(sub, isOpenEnded);
+      const isPendingEval = isOpenEnded && !isEvaluated;
 
       let scorePct = 0;
       if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
@@ -706,50 +711,56 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
       } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100 && (!total || total <= 1)) {
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100) {
         scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100 && (!total || total <= 1)) {
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.score)));
       }
 
       const isPendingApproval = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
       const isRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
-      const entryKey = isManual ? (sub.id || bTestId) : bTestId;
-      const existing = bestBookSubsByTest[entryKey];
-      if (!existing || correct > existing.correctCount || (correct === existing.correctCount && scorePct > existing.computedScore)) {
-        bestBookSubsByTest[entryKey] = {
-          ...sub,
-          id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
-          testId: bTestId,
-          bookTitle: cleanBookTitle,
-          subjectName,
-          topicName,
-          testName,
-          testTitle: fullTestTitle,
-          subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
-          typeKey: isManual ? 'individual' : 'book',
-          isEvaluated: true,
-          isOpenEnded: false,
-          isPendingEval: false,
-          isManual,
-          isPendingApproval,
-          isRejected,
-          correctCount: correct,
-          wrongCount: wrong,
-          blankCount: blank,
-          totalQuestions: total,
-          computedScore: scorePct,
-          totalNet: sub.totalNet !== undefined ? sub.totalNet : ((correct - (wrong / 4)).toFixed(2)),
-          submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
-        };
-      }
+      const isPhysicalExam = Boolean(
+        sub.type === 'physicalExam' ||
+        sub.sourceFormat === 'physicalExam' ||
+        sub.bookType === 'exam' ||
+        bookObj?.bookType === 'exam'
+      );
+
+      const typeKey = isPhysicalExam ? 'physicalExam' : isManual ? 'individual' : bookObj ? 'book' : 'homework';
+
+      if (sub.id) processedTestKeys.add(String(sub.id));
+
+      results.push({
+        ...sub,
+        id: subIdStr || `sub_${bTestId || Date.now()}_${selectedStudent?.id || 'anon'}`,
+        testId: bTestId || sub.id,
+        bookTitle: cleanBookTitle,
+        subjectName,
+        topicName,
+        testName,
+        testTitle: fullTestTitle,
+        subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
+        typeKey,
+        isEvaluated,
+        isOpenEnded,
+        isPendingEval,
+        isManual,
+        isPendingApproval,
+        isRejected,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
+        pendingCount: pending,
+        totalQuestions: total,
+        computedScore: scorePct,
+        totalNet: sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2)),
+        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
+      });
     });
 
-    Object.values(bestBookSubsByTest).forEach(item => results.push(item));
-
     return results.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [homeworks, submissions, selectedStudent, curData, books, bookTests, allCurTestsMap]);
+  }, [homeworks, submissions, selectedStudent, curData, books, bookTests, allCurTestsMap, allBankQuestions]);
 
   /* ── Overall Stats ─── */
   const overallStats = useMemo(() => {
