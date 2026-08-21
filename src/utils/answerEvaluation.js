@@ -225,28 +225,35 @@ export function formatAnswerLetter(val) {
 export function resolveQuestionCorrectAnswer(qNo, qObj = {}, ansObj = {}, testObj = {}, questionsList = []) {
   const idx = qNo - 1;
 
-  // 1. Direct from ansObj (evaluated during submission)
-  if (ansObj) {
-    const cand = ansObj.correctAnswer ?? ansObj.correctOption ?? ansObj.correctAnswerLetter ?? ansObj.correct_answer;
-    if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
-      return cand;
-    }
+  // 1. Optic answers from test / bankQ (Primary source for PDF, Image, and Optic tests)
+  const opticSources = [
+    testObj?.opticAnswers,
+    testObj?.optic_answers,
+    testObj?.bankQ?.opticAnswers,
+    testObj?.bankQ?.optic_answers,
+    qObj?.opticAnswers,
+    qObj?.optic_answers
+  ];
+  for (const opt of opticSources) {
+    if (!opt || typeof opt !== 'object') continue;
+    if (opt[qNo] !== undefined && opt[qNo] !== null && opt[qNo] !== '') return opt[qNo];
+    if (opt[String(qNo)] !== undefined && opt[String(qNo)] !== null && opt[String(qNo)] !== '') return opt[String(qNo)];
+    if (opt[idx] !== undefined && opt[idx] !== null && opt[idx] !== '') return opt[idx];
+    if (opt[String(idx)] !== undefined && opt[String(idx)] !== null && opt[String(idx)] !== '') return opt[String(idx)];
   }
 
-  // 2. Answer key arrays and objects in test and question
+  // 2. Answer key arrays, objects, and strings from test / payload / bankQ
   const keySources = [
     testObj?.answerKey,
     testObj?.answer_key,
+    testObj?.pdfPayload?.answerKey,
+    testObj?.pdfPayload?.answer_key,
     testObj?.htmlPayload?.answerKey,
     testObj?.htmlPayload?.answer_key,
     testObj?.contentPayload?.answerKey,
     testObj?.contentPayload?.answer_key,
     testObj?.bankQ?.answerKey,
-    testObj?.bankQ?.answer_key,
-    questionsList?.[0]?.answerKey,
-    questionsList?.[0]?.answer_key,
-    qObj?.answerKey,
-    qObj?.answer_key
+    testObj?.bankQ?.answer_key
   ];
 
   for (const src of keySources) {
@@ -266,42 +273,45 @@ export function resolveQuestionCorrectAnswer(qNo, qObj = {}, ansObj = {}, testOb
     }
   }
 
-  // 3. Optic answers
-  const opticSources = [
-    testObj?.opticAnswers,
-    testObj?.optic_answers,
-    testObj?.bankQ?.opticAnswers,
-    testObj?.bankQ?.optic_answers,
-    qObj?.opticAnswers,
-    qObj?.optic_answers
-  ];
-  for (const opt of opticSources) {
-    if (!opt || typeof opt !== 'object') continue;
-    if (opt[qNo] !== undefined && opt[qNo] !== null) return opt[qNo];
-    if (opt[String(qNo)] !== undefined && opt[String(qNo)] !== null) return opt[String(qNo)];
-    if (opt[idx] !== undefined && opt[idx] !== null) return opt[idx];
-    if (opt[String(idx)] !== undefined && opt[String(idx)] !== null) return opt[String(idx)];
-  }
-
-  // 4. Question object direct
-  const specificQ = qObj || questionsList?.[idx] || {};
-  const qDirect = specificQ.correctAnswer ?? specificQ.correct_answer ?? specificQ.correctOption ?? specificQ.correct_option ?? specificQ.correctAnswerLetter ?? specificQ.correct_answer_letter ?? specificQ.dogruCevap ?? specificQ.raw?.correctAnswer;
-  if (qDirect !== undefined && qDirect !== null && qDirect !== '' && qDirect !== 'empty') {
-    return qDirect;
-  }
-
-  // 5. Options array with isCorrect
-  if (Array.isArray(specificQ.options)) {
-    const foundIdx = specificQ.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true));
-    if (foundIdx !== -1) return foundIdx;
-  }
-
-  // 6. Bulk answer key
-  const bulkSources = [testObj?.bulkAnswerKey, qObj?.bulkAnswerKey, testObj?.bankQ?.bulkAnswerKey];
+  // 3. Bulk answer key string
+  const bulkSources = [testObj?.bulkAnswerKey, testObj?.bankQ?.bulkAnswerKey, qObj?.bulkAnswerKey];
   for (const bulkStr of bulkSources) {
     if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
       const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
       if (cleanBulk[idx]) return cleanBulk[idx];
+    }
+  }
+
+  // 4. Specific question item in questionsList (if questionsList has separate items per question)
+  if (Array.isArray(questionsList) && questionsList.length > idx && questionsList[idx]) {
+    const specificQ = questionsList[idx];
+    const qDirect = specificQ.correctAnswer ?? specificQ.correct_answer ?? specificQ.correctOption ?? specificQ.correct_option ?? specificQ.correctAnswerLetter ?? specificQ.correct_answer_letter ?? specificQ.dogruCevap ?? specificQ.raw?.correctAnswer;
+    if (qDirect !== undefined && qDirect !== null && qDirect !== '' && qDirect !== 'empty') {
+      return qDirect;
+    }
+    if (Array.isArray(specificQ.options)) {
+      const foundIdx = specificQ.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true));
+      if (foundIdx !== -1) return foundIdx;
+    }
+  }
+
+  // 5. Explicit question object for this question number (avoiding single-item questions[0] fallback for other questions)
+  if (qObj && (idx === 0 || qObj.questionNo === qNo || qObj.number === qNo || qObj.index === idx)) {
+    const qDirect = qObj.correctAnswer ?? qObj.correct_answer ?? qObj.correctOption ?? qObj.correct_option ?? qObj.correctAnswerLetter ?? qObj.correct_answer_letter ?? qObj.dogruCevap ?? qObj.raw?.correctAnswer;
+    if (qDirect !== undefined && qDirect !== null && qDirect !== '' && qDirect !== 'empty') {
+      return qDirect;
+    }
+    if (Array.isArray(qObj.options)) {
+      const foundIdx = qObj.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true));
+      if (foundIdx !== -1) return foundIdx;
+    }
+  }
+
+  // 6. Direct from ansObj (evaluated during submission)
+  if (ansObj) {
+    const cand = ansObj.correctAnswer ?? ansObj.correctOption ?? ansObj.correctAnswerLetter ?? ansObj.correct_answer;
+    if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+      return cand;
     }
   }
 

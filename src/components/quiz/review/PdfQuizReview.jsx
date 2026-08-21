@@ -621,7 +621,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
-              const qObj = questions[idx] || questions[0] || {};
+              const qObj = questions[idx] || (idx === 0 ? questions[0] : {}) || {};
               const ansObj = (Array.isArray(answers) ? answers.find(a => (
                 Number(a?.questionNo) === qNo ||
                 Number(a?.questionNoInSection) === qNo ||
