@@ -3986,6 +3986,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     ? (numericCorrAns !== null && numericCorrAns !== undefined && hasStdAns ? numericSelectedOpt === numericCorrAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
                     : null;
 
+                  const teacherSc = teacherScores[activeSec.id]?.[qNo];
+
                   const optionsCount = (
                     Number(test?.optionCount) === 5 ||
                     Number(test?.optionsCount) === 5 ||
