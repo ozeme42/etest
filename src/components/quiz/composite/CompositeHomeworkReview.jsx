@@ -118,6 +118,11 @@ export default function CompositeHomeworkReview({
       const count = sec.qCount || secQs.length || 1;
       const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
 
+      // 🐛 DEBUG
+      console.group(`[overallStats] Bölüm ${sIdx}: "${sec.title}" (${count} soru)`);
+      console.log('sa.answers:', JSON.stringify(sa.answers));
+      console.log('secQs length:', secQs.length);
+
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
         const qObj = secQs[i - 1] || {};
@@ -138,25 +143,24 @@ export default function CompositeHomeworkReview({
             pendingCount++;
           }
         } else {
-          // ── Birebir OpticalBubblePanel.reviewStats mantığı ──
-          // Panel: correctAnswers=[] (boş), testCtx=activeSec.raw
-          // Dolayısıyla sadece checkIsAnswerCorrect kullanılır; null → doğru sayılır
           const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
           const u = normalizeOpt(rawAnsVal);
 
           if (u === null) {
+            console.log(`  S${sIdx} Q${i}: BOŞ (rawAns=${rawAnsVal})`);
             blankCount++;
           } else {
             let isCorr = null;
             if (qObj && Object.keys(qObj).length > 0) {
               isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
-            // null → doğru (panel davranışı)
+            console.log(`  S${sIdx} Q${i}: cevap=${u} isCorr=${isCorr} → ${isCorr === false ? 'YANLIŞ' : 'DOĞRU'}`);
             if (isCorr === false) wrongCount++;
             else correctCount++;
           }
         }
       }
+      console.groupEnd();
     });
 
     const scorePct = (correctCount + wrongCount + blankCount) > 0
