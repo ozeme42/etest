@@ -614,19 +614,21 @@ export default function ModularQuizPage() {
       const qNo = ans.questionNo || (idx + 1);
       const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || textVal);
 
-      let isCorrect = ans.isCorrect;
-      if (isOE) {
-        isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar her zaman null (pending) kalır
-      } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
-        isCorrect = ans.isCorrect; // Runner'ın her bölüm için doğru hesapladığı sonucu koru
-      } else if (userAns !== null && userAns !== undefined && userAns !== '') {
-        const effectiveTest = {
-          ...test,
-          answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers
-        };
-        isCorrect = checkIsAnswerCorrect(userAns, qObj, effectiveTest, qNo);
-      } else {
-        isCorrect = null;
+      const testCtx = {
+        ...test,
+        ...qObj,
+        answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers || test?.htmlPayload?.answerKey,
+        answer_key: test?.answer_key || questions[0]?.answer_key || qObj?.answer_key || test?.htmlPayload?.answer_key,
+        htmlPayload: test?.htmlPayload || qObj?.htmlPayload,
+        bankQ: {
+          ...(test?.bankQ || {}),
+          ...(qObj?.bankQ || {})
+        }
+      };
+
+      let isCorrect = isOE ? null : (userAns !== null && userAns !== undefined && userAns !== '' ? checkIsAnswerCorrect(userAns, qObj, testCtx, qNo) : null);
+      if (isCorrect === null && !isOE && ans.isCorrect !== undefined && ans.isCorrect !== null) {
+        isCorrect = ans.isCorrect;
       }
 
       if (isCorrect === true) correctCount++;
