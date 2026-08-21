@@ -977,7 +977,8 @@ export default function QuestionBank() {
       if (jsonEditMode === 'visual' && editableQuestionsList.length > 0) {
         questionsList = editableQuestionsList.map(q => ({
           ...q,
-          type: q.type || 'coktan_secmeli'
+          type: formData.type || q.type || 'coktan_secmeli',
+          options: formData.type === 'acik_uclu' ? [] : (q.options || ['A', 'B', 'C', 'D'])
         }));
       } else {
         try {
@@ -997,9 +998,9 @@ export default function QuestionBank() {
             return {
               id: `sub_${idx}_${Date.now()}`,
               questionText: q.questionText || `Soru ${idx + 1}`,
-              options: q.options || ['A', 'B', 'C', 'D'],
+              options: formData.type === 'acik_uclu' ? [] : (q.options || ['A', 'B', 'C', 'D']),
               correctAnswer: typeof cAns === 'number' ? cAns : 0,
-              type: q.type || 'coktan_secmeli'
+              type: formData.type || q.type || 'coktan_secmeli'
             };
           });
         } catch (err) {

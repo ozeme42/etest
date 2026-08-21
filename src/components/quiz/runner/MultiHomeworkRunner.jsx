@@ -43,7 +43,7 @@ export function resolveTestContext(test = {}, sec = {}, bankQ = {}) {
 }
 
 export function isSectionOpenEnded(sec = {}, test = {}) {
-  const bankQ = sec?.bankQ || {};
+  const bankQ = sec?.bankQ || test?.bankQ || {};
 
   // 1. TOP PRIORITY: Explicit Open-Ended Flags on Section or Bank Question
   if (
@@ -91,8 +91,8 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return false;
   }
 
-  // 3. Test-level flags ONLY for single-test assignments (where test IS the section)
-  if (!sec?.id || sec?.id === test?.id) {
+  // 3. Test-level flags for single-test assignments (where test IS the section)
+  if (!sec?.id || sec?.id === test?.id || !test?.sections?.length) {
     if (
       test?.type === 'acik_uclu' ||
       test?.questionType === 'acik_uclu' ||
@@ -116,7 +116,14 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     ? sec.resolvedQuestions
     : (Array.isArray(test?.questions) ? test.questions : []);
 
-  if (resQs.length > 0 && resQs.some(q => isQuestionOE(q, sec, test))) {
+  if (resQs.length > 0 && resQs.some(q => (
+    q?.type === 'acik_uclu' ||
+    q?.questionType === 'acik_uclu' ||
+    q?.contentType === 'acik_uclu' ||
+    q?.type === 'yazili' ||
+    q?.questionType === 'yazili' ||
+    q?.isOpenEnded === true
+  ))) {
     return true;
   }
 
@@ -124,10 +131,11 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
 }
 
 export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
-  const bankQ = sec?.bankQ || {};
+  const bankQ = sec?.bankQ || test?.bankQ || {};
 
-  // 1. TOP PRIORITY: Explicit Question-level Open-Ended Flags
-  if (
+  // 1. HIGHEST PRIORITY: If question, section, bank question, or single-test container is marked as Open-Ended
+  const isSectionOE = isSectionOpenEnded(sec, test);
+  const isQExplicitOE = Boolean(
     qObj?.type === 'acik_uclu' ||
     qObj?.questionType === 'acik_uclu' ||
     qObj?.contentType === 'acik_uclu' ||
@@ -139,102 +147,27 @@ export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
     qObj?.isOpenEnded === true ||
     qObj?.openEnded === true ||
     qObj?.is_open_ended === true
-  ) {
+  );
+
+  if (isSectionOE || isQExplicitOE) {
     return true;
   }
 
-  // 2. TOP PRIORITY: Explicit Question-level Multiple-Choice Flags
+  // 2. Explicit Multiple-Choice Flags
   if (
     qObj?.type === 'coktan_secmeli' ||
     qObj?.questionType === 'coktan_secmeli' ||
-    qObj?.contentType === 'coktan_secmeli'
-  ) {
-    return false;
-  }
-
-  // 3. Section / Bank Question Open-Ended Flags
-  if (
-    sec?.type === 'acik_uclu' ||
-    sec?.questionType === 'acik_uclu' ||
-    sec?.formatType === 'yazili' ||
-    sec?.sourceFormat === 'yazili' ||
-    sec?.type === 'yazili' ||
-    sec?.questionType === 'yazili' ||
-    sec?.formatType === 'gorsel_klasik' ||
-    sec?.sourceFormat === 'gorsel_klasik' ||
-    sec?.type === 'gorsel_klasik' ||
-    sec?.questionType === 'gorsel_klasik' ||
-    sec?.isOpenEnded === true ||
-    sec?.is_open_ended === true ||
-    sec?.openEnded === true ||
-    bankQ?.type === 'acik_uclu' ||
-    bankQ?.questionType === 'acik_uclu' ||
-    bankQ?.formatType === 'yazili' ||
-    bankQ?.sourceFormat === 'yazili' ||
-    bankQ?.type === 'yazili' ||
-    bankQ?.questionType === 'yazili' ||
-    bankQ?.formatType === 'gorsel_klasik' ||
-    bankQ?.sourceFormat === 'gorsel_klasik' ||
-    bankQ?.type === 'gorsel_klasik' ||
-    bankQ?.questionType === 'gorsel_klasik' ||
-    bankQ?.isOpenEnded === true ||
-    bankQ?.is_open_ended === true ||
-    bankQ?.openEnded === true
-  ) {
-    return true;
-  }
-
-  // 4. Section / Bank Question Multiple-Choice Flags
-  if (
+    qObj?.contentType === 'coktan_secmeli' ||
     sec?.type === 'coktan_secmeli' ||
     sec?.questionType === 'coktan_secmeli' ||
-    sec?.formatType === 'coktan_secmeli' ||
-    sec?.sourceFormat === 'coktan_secmeli' ||
-    bankQ?.type === 'coktan_secmeli' ||
-    bankQ?.questionType === 'coktan_secmeli' ||
-    bankQ?.formatType === 'coktan_secmeli' ||
-    bankQ?.sourceFormat === 'coktan_secmeli'
+    bankQ?.type === 'coktan_secmeli'
   ) {
     return false;
   }
 
-  // 5. Test-level flags ONLY for single-test assignments (where test IS the section)
-  if (!sec?.id || sec?.id === test?.id) {
-    if (
-      test?.type === 'acik_uclu' ||
-      test?.questionType === 'acik_uclu' ||
-      test?.examType === 'acik_uclu' ||
-      test?.formatType === 'yazili' ||
-      test?.sourceFormat === 'yazili' ||
-      test?.type === 'yazili' ||
-      test?.questionType === 'yazili' ||
-      test?.formatType === 'gorsel_klasik' ||
-      test?.sourceFormat === 'gorsel_klasik' ||
-      test?.isOpenEnded === true ||
-      test?.openEnded === true ||
-      test?.is_open_ended === true
-    ) {
-      return true;
-    }
-  }
-
-  // 6. If student previously wrote open-ended answer text
+  // 3. Fallback: If student wrote open-ended answer text
   if (userAnsObj?.userAnswerText || userAnsObj?.textAns) {
     return true;
-  }
-
-  // 7. Fallback: If options have real text choices
-  const hasRealOptionTexts = Array.isArray(qObj?.options) && qObj.options.length >= 2 &&
-    qObj.options.some(opt => {
-      if (typeof opt === 'string') {
-        const t = opt.trim();
-        return t.length > 0 && !['A', 'B', 'C', 'D', 'E'].includes(t.toUpperCase());
-      }
-      return opt && typeof opt === 'object' && (opt.text || opt.content);
-    });
-
-  if (hasRealOptionTexts) {
-    return false;
   }
 
   return false;
