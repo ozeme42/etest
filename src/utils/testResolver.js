@@ -136,6 +136,25 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
+  const isOE = (
+    qObj.type === 'acik_uclu' ||
+    qObj.type === 'yazili' ||
+    qObj.questionType === 'acik_uclu' ||
+    qObj.questionType === 'yazili' ||
+    qObj.isOpenEnded ||
+    testObj.type === 'acik_uclu' ||
+    testObj.type === 'yazili' ||
+    testObj.questionType === 'acik_uclu' ||
+    testObj.questionType === 'yazili' ||
+    testObj.contentType === 'acik_uclu' ||
+    testObj.contentType === 'yazili' ||
+    testObj.isOpenEnded ||
+    (testObj.title && (testObj.title.toLowerCase().includes('açık uçlu') || testObj.title.toLowerCase().includes('acik uclu') || testObj.title.toLowerCase().includes('yazılı') || testObj.title.toLowerCase().includes('yazili') || testObj.title.toLowerCase().includes('klasik')))
+  );
+  if (isOE) {
+    return [];
+  }
+
   const rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || testObj.options || testObj.choices || testObj.secenekler;
 
   let optArray = [];

@@ -481,8 +481,31 @@ export default function ModularQuizReviewPage() {
     test.sourceFormat === 'yazili' ||
     test.formatType === 'yazili' ||
     test.isOpenEnded ||
-    (test.questions && Array.isArray(test.questions) && test.questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu')) ||
-    (questions && Array.isArray(questions) && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu'))
+    submission?.isOpenEnded ||
+    (test.title && (
+      test.title.toLowerCase().includes('açık uçlu') ||
+      test.title.toLowerCase().includes('acik uclu') ||
+      test.title.toLowerCase().includes('yazılı') ||
+      test.title.toLowerCase().includes('yazili') ||
+      test.title.toLowerCase().includes('klasik')
+    )) ||
+    (test.name && (
+      test.name.toLowerCase().includes('açık uçlu') ||
+      test.name.toLowerCase().includes('acik uclu') ||
+      test.name.toLowerCase().includes('yazılı') ||
+      test.name.toLowerCase().includes('yazili') ||
+      test.name.toLowerCase().includes('klasik')
+    )) ||
+    (submission?.testTitle && (
+      submission.testTitle.toLowerCase().includes('açık uçlu') ||
+      submission.testTitle.toLowerCase().includes('acik uclu') ||
+      submission.testTitle.toLowerCase().includes('yazılı') ||
+      submission.testTitle.toLowerCase().includes('yazili') ||
+      submission.testTitle.toLowerCase().includes('klasik')
+    )) ||
+    (test.questions && Array.isArray(test.questions) && test.questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded)) ||
+    (questions && Array.isArray(questions) && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded)) ||
+    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded || a.userAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2)))
   );
 
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
