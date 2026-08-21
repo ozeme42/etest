@@ -274,12 +274,20 @@ export default function ModularQuizReviewPage() {
           const qCount = (typeof item === 'object' ? (item.questionCount || item.totalQuestions || item.qCount) : null) || bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
 
           return {
+            ...(bankQ || {}),
             ...(typeof item === 'object' ? item : {}),
             id: itemId || `sec_${idx}`,
             questionId: itemId,
             title,
             bankQ: bankQ || (typeof item === 'object' ? item : { id: itemId, title }),
+            pdfPayload: bankQ?.pdfPayload || (typeof item === 'object' ? item.pdfPayload : null),
+            contentPayload: bankQ?.contentPayload || (typeof item === 'object' ? item.contentPayload : null),
+            pdfUrl: bankQ?.pdfUrl || (typeof item === 'object' ? item.pdfUrl : null),
+            htmlPayload: bankQ?.htmlPayload || (typeof item === 'object' ? item.htmlPayload : null),
+            contentType: (typeof item === 'object' ? item.contentType : null) || bankQ?.contentType,
+            questionType: (typeof item === 'object' ? item.questionType : null) || bankQ?.questionType,
             questionCount: qCount,
+            resolvedQuestions,
             questions: resolvedQuestions
           };
         });

@@ -31,19 +31,33 @@ export default function CompositeHomeworkReview({
   // 1. Build standardized sections array
   const rawSections = useMemo(() => {
     if (Array.isArray(test.sections) && test.sections.length > 0) {
-      return test.sections.map((s, idx) => ({
-        ...s,
-        id: s.id || `sec_${idx + 1}`,
-        title: s.title || `${idx + 1}. Bölüm`,
-        resolvedQuestions: s.resolvedQuestions || resolveTestQuestions(s),
-        qCount: s.qCount || s.questionCount || (s.resolvedQuestions?.length || 1)
-      }));
+      return test.sections.map((s, idx) => {
+        const bankQ = s.bankQ || {};
+        return {
+          ...bankQ,
+          ...s,
+          id: s.id || s.questionId || bankQ.id || `sec_${idx + 1}`,
+          title: s.title || s.name || bankQ.title || bankQ.name || `${idx + 1}. Bölüm`,
+          resolvedQuestions: s.resolvedQuestions || resolveTestQuestions(s) || resolveTestQuestions(bankQ),
+          qCount: s.qCount || s.questionCount || bankQ.questionCount || (s.resolvedQuestions?.length || 1),
+          pdfPayload: s.pdfPayload || bankQ.pdfPayload || s.contentPayload || bankQ.contentPayload,
+          contentPayload: s.contentPayload || bankQ.contentPayload || s.pdfPayload || bankQ.pdfPayload,
+          pdfUrl: s.pdfUrl || bankQ.pdfUrl,
+          htmlPayload: s.htmlPayload || bankQ.htmlPayload,
+          contentType: s.contentType || bankQ.contentType
+        };
+      });
     }
     return [{
       id: test.id || 'sec_1',
       title: test.title || '1. Bölüm',
       resolvedQuestions: questions.length > 0 ? questions : resolveTestQuestions(test),
       qCount: questions.length || test.questionCount || 1,
+      pdfPayload: test.pdfPayload || test.contentPayload,
+      contentPayload: test.contentPayload || test.pdfPayload,
+      pdfUrl: test.pdfUrl,
+      htmlPayload: test.htmlPayload,
+      contentType: test.contentType,
       ...test
     }];
   }, [test, questions]);
