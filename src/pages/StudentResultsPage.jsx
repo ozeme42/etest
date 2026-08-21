@@ -2131,7 +2131,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                 </button>
               </div>
 
-              {studentSubmissions.length > 0 && (
+              {!isStudentRole && studentSubmissions.length > 0 && (
                 <button
                   onClick={handleClearAllResults}
                   style={{
@@ -2227,24 +2227,26 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                                     <Eye size={13} /> Karne
                                   </button>
                                 )}
-                                <button
-                                  onClick={(e) => handleDeleteResult(s, e)}
-                                  title="Bu Sınavı Kalıcı Olarak Sil"
-                                  style={{
-                                    background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
-                                    color: '#ef4444',
-                                    border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
-                                    borderRadius: 9,
-                                    padding: '0.38rem 0.55rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    transition: 'all 0.15s'
-                                  }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                {!isStudentRole && (
+                                  <button
+                                    onClick={(e) => handleDeleteResult(s, e)}
+                                    title="Bu Sınavı Kalıcı Olarak Sil"
+                                    style={{
+                                      background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                                      color: '#ef4444',
+                                      border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                                      borderRadius: 9,
+                                      padding: '0.38rem 0.55rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2312,24 +2314,26 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               <Eye size={13} /> Karne
                             </button>
                           )}
-                          <button
-                            onClick={(e) => handleDeleteResult(s, e)}
-                            title="Bu Sınavı Kalıcı Olarak Sil"
-                            style={{
-                              background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
-                              color: '#ef4444',
-                              border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
-                              borderRadius: 10,
-                              padding: '0.4rem 0.6rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s'
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {!isStudentRole && (
+                            <button
+                              onClick={(e) => handleDeleteResult(s, e)}
+                              title="Bu Sınavı Kalıcı Olarak Sil"
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                                color: '#ef4444',
+                                border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                                borderRadius: 10,
+                                padding: '0.4rem 0.6rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
