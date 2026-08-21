@@ -28,11 +28,12 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
 
   useEffect(() => {
     let isMounted = true;
+    const isMultiSection = Array.isArray(test?.sections) && test.sections.length > 1;
 
     // 1. Direct memory check
     let direct = extractDirectPayload(activeSec) ||
       extractDirectPayload(activeSec?.bankQ) ||
-      extractDirectPayload(test);
+      (!isMultiSection ? extractDirectPayload(test) : null);
 
     if (!direct && Array.isArray(activeSec?.resolvedQuestions)) {
       for (const q of activeSec.resolvedQuestions) {
@@ -65,16 +66,12 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
         activeSec?.bankTestId,
         activeSec?.bankQ?.id,
         activeSec?.bankQ?.questionId,
-        test?.id,
-        test?.realTestId,
-        test?.sourceTestId,
-        test?.bookTestId,
-        test?.homeworkId,
+        ...(!isMultiSection ? [test?.id, test?.realTestId, test?.sourceTestId, test?.bookTestId, test?.homeworkId] : []),
         ...(activeSec?.questionIds || []),
         ...(activeSec?.resolvedQuestions || []).map(q => q?.id || q?.questionId),
         ...(activeSec?.questions || []).map(q => q?.id || q?.questionId),
-        ...(test?.questions || []).map(q => q?.id || q?.questionId),
-        ...(test?.questionsList || []).map(q => q?.id || q?.questionId)
+        ...(!isMultiSection ? (test?.questions || []).map(q => q?.id || q?.questionId) : []),
+        ...(!isMultiSection ? (test?.questionsList || []).map(q => q?.id || q?.questionId) : [])
       ].filter(Boolean);
 
       const idsToTry = [];

@@ -87,16 +87,17 @@ export function extractDirectDocumentPayload(item) {
  * Determines section content format: 'pdf' | 'html' | 'image' | 'text'
  */
 export function detectSectionFormat(sec = {}, test = {}) {
-  const docPayload = extractDirectDocumentPayload(sec) || extractDirectDocumentPayload(sec?.bankQ) || extractDirectDocumentPayload(test);
+  const isMultiSection = Array.isArray(test?.sections) && test.sections.length > 1;
+  const docPayload = extractDirectDocumentPayload(sec) || extractDirectDocumentPayload(sec?.bankQ) || (!isMultiSection ? extractDirectDocumentPayload(test) : null);
 
-  const rawContentType = String(sec.contentType || sec.type || sec.format || test.contentType || test.type || '').toLowerCase();
-  if (rawContentType.includes('pdf') || sec.pdfUrl || (docPayload && (docPayload.startsWith('data:application/pdf') || docPayload.includes('.pdf')))) {
+  const secContentType = String(sec.contentType || sec.type || sec.format || (!isMultiSection ? (test.contentType || test.type) : '') || '').toLowerCase();
+  if (secContentType.includes('pdf') || sec.pdfUrl || (docPayload && (docPayload.startsWith('data:application/pdf') || docPayload.includes('.pdf')))) {
     return 'pdf';
   }
-  if (rawContentType.includes('html') || sec.htmlPayload || (docPayload && (docPayload.includes('<!DOCTYPE') || docPayload.includes('<html') || docPayload.includes('<div')))) {
+  if (secContentType.includes('html') || sec.htmlPayload || (docPayload && (docPayload.includes('<!DOCTYPE') || docPayload.includes('<html') || docPayload.includes('<div')))) {
     return 'html';
   }
-  if (rawContentType.includes('gorsel') || rawContentType.includes('image') || sec.imageUrl || (Array.isArray(sec.imageUrls) && sec.imageUrls.length > 0)) {
+  if (secContentType.includes('gorsel') || secContentType.includes('image') || sec.imageUrl || (Array.isArray(sec.imageUrls) && sec.imageUrls.length > 0)) {
     return 'image';
   }
   return 'standard';
@@ -108,23 +109,8 @@ export function detectSectionFormat(sec = {}, test = {}) {
 export function isItemOpenEnded(item = {}, parentTest = {}) {
   if (!item) return false;
 
-  // 1. Explicit multiple-choice markers on the item/section itself ALWAYS take precedence
+  // 1. Direct explicit Open-Ended markers on item
   const itemType = String(item.questionType || item.type || item.contentType || '').toLowerCase();
-  if (
-    itemType.includes('coktan_secmeli') ||
-    itemType.includes('multiple_choice') ||
-    itemType.includes('optic') ||
-    itemType.includes('optik') ||
-    (Array.isArray(item.options) && item.options.length > 0) ||
-    (Array.isArray(item.choices) && item.choices.length > 0) ||
-    (Array.isArray(item.answerKey) && item.answerKey.length > 0) ||
-    (typeof item.answerKey === 'string' && item.answerKey.trim().length > 0) ||
-    (item.opticAnswers && Object.keys(item.opticAnswers).length > 0)
-  ) {
-    return false;
-  }
-
-  // 2. Explicit open-ended markers on the item/section itself
   if (
     itemType.includes('acik_uclu') ||
     itemType.includes('yazili') ||
@@ -135,15 +121,28 @@ export function isItemOpenEnded(item = {}, parentTest = {}) {
     return true;
   }
 
-  const itemTitle = String(item.title || item.name || '').toLowerCase();
+  const itemTitle = String(item.title || item.name || item.sectionTitle || item.testTitle || '').toLowerCase();
   if (
     itemTitle.includes('açık uçlu') ||
     itemTitle.includes('acik uclu') ||
     itemTitle.includes('yazılı') ||
     itemTitle.includes('yazili') ||
-    itemTitle.includes('klasik')
+    itemTitle.includes('klasik') ||
+    itemTitle.includes('acik') ||
+    itemTitle.endsWith('aç') ||
+    itemTitle.endsWith('ac')
   ) {
     return true;
+  }
+
+  // 2. Direct explicit Multiple Choice markers on item
+  if (
+    itemType.includes('coktan_secmeli') ||
+    itemType.includes('multiple_choice') ||
+    itemType.includes('optic') ||
+    itemType.includes('optik')
+  ) {
+    return false;
   }
 
   // 3. If parent test is single-section (NOT multi-section) and has open-ended markers
