@@ -484,8 +484,22 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       hw?.title?.includes('(Kendi Eklediğim)')
     );
 
-    activeHws.forEach(hw => {
+    const isMatchStudent = (s) => {
+      if (!s) return false;
+      const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+      return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+    };
+
+    const hasOEWordInTitle = (t) => {
+      const s = String(t || '').toLowerCase();
+      return s.includes('açık') || s.includes('acik') || s.includes('yazılı') || s.includes('yazili') || s.includes('klasik');
+    };
+
+    // 1. Process regular non-book homeworks
+    (homeworks || []).forEach(hw => {
+      if (!hw || !hw.id) return;
       if (isBookHomework(hw)) return;
+      if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
 
       allHomeworkIds.add(String(hw.id));
       if (toUUID(hw.id)) allHomeworkIds.add(String(toUUID(hw.id)));
@@ -505,60 +519,50 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         const uuid = toUUID(id);
         if (uuid) compositeSectionIds.add(String(uuid));
       });
-    });
 
-    // 1. Process regular non-book homeworks
-    activeHws.forEach(hw => {
-      if (isBookHomework(hw)) {
-        return;
-      }
-
-      const subInHw = (hw.submissions || []).find(s => {
-        const sid = String(s.studentId);
-        return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr);
-      });
-      const subInGlobal = (submissions || []).find(s => {
-        const sid = String(s.studentId);
-        const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr);
-        return isMatch && (
+      const allMatchingSubs = [
+        ...(hw.submissions || []).filter(isMatchStudent),
+        ...(submissions || []).filter(s => isMatchStudent(s) && (
           String(s.hwId) === String(hw.id) ||
+          String(s.homeworkId) === String(hw.id) ||
           String(s.testId) === String(hw.id) ||
           String(s.id) === String(hw.id) ||
-          String(s.id) === String(subInHw?.id) ||
           String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`
-        );
+        ))
+      ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
+
+      allMatchingSubs.sort((a, b) => {
+        const aEval = isEval(a, true) ? 1 : 0;
+        const bEval = isEval(b, true) ? 1 : 0;
+        if (aEval !== bEval) return bEval - aEval;
+        const aDate = new Date(a.submittedAt || a.completedAt || a.createdAt || 0).getTime();
+        const bDate = new Date(b.submittedAt || b.completedAt || b.createdAt || 0).getTime();
+        return bDate - aDate;
       });
 
-      let sub = subInGlobal;
-      if (!sub || (subInHw && isEval(subInHw, true) && !isEval(subInGlobal, true))) {
-        sub = subInHw || subInGlobal;
-      }
+      const sub = allMatchingSubs[0];
       if (!sub) return;
 
-      const subIdStr = String(sub.id || '');
+      const subIdStr = String(sub.id || `hw_${hw.id}_${selectedStudent.id}`);
       if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
       if (sub.status === 'in_progress' || sub.status === 'draft') return;
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      const isExplicitMCQ = Boolean(
-        hw.questionType === 'coktan_secmeli' ||
-        hw.type === 'coktan_secmeli' ||
-        hw.contentType === 'coktan_secmeli' ||
-        sub.questionType === 'coktan_secmeli' ||
-        sub.type === 'coktan_secmeli' ||
-        sub.contentType === 'coktan_secmeli' ||
-        raw.questionType === 'coktan_secmeli' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
-      );
+      const title = hw.title || sub.testTitle || raw.testTitle || 'Ödev Testi';
+      const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(hw.title) || hasOEWordInTitle(sub.testTitle);
 
-      const isOpenEnded = !isExplicitMCQ && Boolean(
+      const isOpenEnded = Boolean(
+        isOEByTitle ||
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
         hw.contentType === 'acik_uclu' ||
         sub.isOpenEnded ||
+        raw.isOpenEnded ||
         sub.questionType === 'acik_uclu' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
+        sub.type === 'acik_uclu' ||
+        sub.contentType === 'acik_uclu' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
       );
       const isEvaluated = isEval(sub, isOpenEnded);
       const isPendingEval = isOpenEnded && !isEvaluated;
@@ -639,9 +643,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     // 2. Process all other completed test submissions (book tests, question bank tests, standalone quizzes, etc.)
     (submissions || []).forEach(sub => {
       if (!sub) return;
-      const sid = String(sub.studentId);
-      const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sub.studentId) === studentUuidStr);
-      if (!isMatch) return;
+      if (!isMatchStudent(sub)) return;
 
       const subIdStr = String(sub.id || sub.supabaseId || '');
       if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
@@ -693,42 +695,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
       const hwObj = (homeworks || []).find(h => String(h.id) === bTestId || String(h.id) === bHwId || (toUUID(h.id) && (String(toUUID(h.id)) === bTestId || String(toUUID(h.id)) === bHwId)));
 
-      const isHomeworkSub = Boolean(
-        bHwId ||
-        sub.hwId ||
-        sub.homeworkId ||
-        sub.type === 'homework' ||
-        sub.type === 'ödev' ||
-        sub.sourceType === 'homework' ||
-        raw.hwId ||
-        raw.homeworkId ||
-        raw.sourceType === 'homework' ||
-        String(sub.id || '').startsWith('hw_')
+      const isExplicitDeletedHw = Boolean(
+        !isManual &&
+        (bHwId || sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || sub.sourceType === 'homework' || raw.sourceType === 'homework') &&
+        !sub.bookId &&
+        !sub.bookTestId &&
+        Array.isArray(homeworks) &&
+        homeworks.length > 0 &&
+        !hwObj
       );
-
-      // Discard deleted resources (homeworks, books, tests)
-      if (!isManual) {
-        if (isHomeworkSub && !hwObj) {
-          return;
-        }
-        if (hwObj && curData?.grades && !isHomeworkForStudent(hwObj, selectedStudent, curData.grades)) {
-          return;
-        }
-        if (sub.bookId && !bookObj) {
-          return;
-        }
-        if (sub.bookTestId && !testObj) {
-          return;
-        }
-        if (!bookObj && !testObj && !curInfo?.title && !bankQ && !hwObj) {
-          return;
-        }
-        if (hwObj && hwObj.bookId && !books.some(b => String(b.id) === String(hwObj.bookId) || toUUID(b.id) === toUUID(hwObj.bookId))) {
-          return;
-        }
-        if (hwObj && (hwObj.type === 'physicalExam' || hwObj.isPhysical) && !bookObj) {
-          return;
-        }
+      if (isExplicitDeletedHw) {
+        return; // Only discard if explicitly an assigned homework that was deleted
       }
 
       const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
