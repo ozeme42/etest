@@ -558,13 +558,7 @@ export default function ModularQuizPage() {
     }
   }, [test, bookForTest, testId, studentId, navigate]);
 
-  if (completedSub && !isSubmittingRef.current) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
-        Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
-      </div>
-    );
-  }
+
 
   const isDataLoading = (hwLoading && (!homeworks || homeworks.length === 0)) || 
                         (booksLoading && (!bookTests || bookTests.length === 0));
@@ -1037,7 +1031,7 @@ export default function ModularQuizPage() {
               onClick={() => setHasStarted(true)}
               style={{
                 flex: 2,
-                minWidth: '200px',
+                minWidth: '180px',
                 padding: '0.9rem 1.5rem',
                 borderRadius: '0.85rem',
                 background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
@@ -1054,13 +1048,40 @@ export default function ModularQuizPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <Play size={18} fill="white" /> {hasExistingDraft ? 'Kaldığın Yerden Devam Et' : 'Sınava Başla'}
+              <Play size={18} fill="white" /> {hasExistingDraft ? 'Kaldığın Yerden Devam Et' : (completedSub ? 'Sınavı Tekrar Çöz' : 'Sınava Başla')}
             </button>
+
+            {completedSub && (
+              <button
+                onClick={() => navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true })}
+                style={{
+                  flex: 1.5,
+                  minWidth: '160px',
+                  padding: '0.9rem 1.25rem',
+                  borderRadius: '0.85rem',
+                  background: 'var(--color-surface)',
+                  color: '#4f46e5',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  border: '2px solid #6366f1',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  boxShadow: '0 2px 8px rgba(99,102,241,0.15)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <Eye size={18} /> Önceki Sonucu İncele
+              </button>
+            )}
+
             <button
               onClick={() => navigate(-1)}
               style={{
                 flex: 1,
-                minWidth: '110px',
+                minWidth: '100px',
                 padding: '0.9rem 1.1rem',
                 borderRadius: '0.85rem',
                 background: 'var(--color-surface-hover)',
