@@ -55,19 +55,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       test.isOpenEnded ||
       questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
       answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')) ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik')))
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik'))) ||
+      (submission?.testTitle && (submission.testTitle.toLowerCase().includes('açık uçlu') || submission.testTitle.toLowerCase().includes('yazılı') || submission.testTitle.toLowerCase().includes('klasik')))
     ) {
       return true;
     }
     return false;
-  }, [test, questions, answers]);
-
-  const isEvaluated = Boolean(
-    submission.isEvaluatedByTeacher ||
-    submission.status === 'evaluated' ||
-    submission.status === 'graded' ||
-    (answers.length > 0 && answers.some(a => a.evaluatedByTeacher || a.evaluatedAt))
-  );
+  }, [test, questions, answers, submission]);
 
   const qCount = useMemo(() => {
     if (Array.isArray(answers) && answers.length > 0) return answers.length;
@@ -118,9 +112,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       );
 
       const hasTeacherGraded = Boolean(
-        submission.isEvaluatedByTeacher ||
-        a?.evaluatedByTeacher ||
-        a?.evaluatedAt
+        submission.isEvaluatedByTeacher === true ||
+        a?.evaluatedByTeacher === true
       );
 
       if (isQOE) {
@@ -193,6 +186,11 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload || submission?.pdfPayload;
 
+  const hasAnyTeacherGrading = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true) return true;
+    return Object.values(questionScores).some(s => s !== undefined && s !== null && s !== 'empty' && typeof s === 'number');
+  }, [submission, questionScores]);
+
   const stats = useMemo(() => {
     let cCount = 0;
     let wCount = 0;
@@ -204,13 +202,10 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
 
       const userAns = ansObj.userAnswer;
-      const textAns = ansObj.userAnswerText;
       const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
-      const isItemOE = isOpenEndedMode || !!textAns || qObj.type === 'acik_uclu';
-
       const teacherSc = questionScores[qNo];
 
-      if (isItemOE) {
+      if (isOpenEndedMode) {
         if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
@@ -238,18 +233,22 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   }, [qCount, questions, answers, test, questionScores, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
-  
-  const scorePercentage = useMemo(() => {
+
+  const totalMaxScore = qCount * 10;
+  const totalEarnedScore = useMemo(() => {
     let earned = 0;
-    let max = qCount * 10;
     for (let i = 1; i <= qCount; i++) {
       const s = questionScores[i];
       if (s !== undefined && s !== null && s !== 'empty') {
         earned += Number(s);
       }
     }
-    return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
+    return earned;
   }, [qCount, questionScores]);
+  
+  const scorePercentage = useMemo(() => {
+    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+  }, [totalEarnedScore, totalMaxScore]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -402,22 +401,54 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {isOpenEndedMode && !isEvaluated ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.95rem',
-              borderRadius: '0.65rem',
-              background: '#f5f3ff',
-              border: '1.5px solid #ddd6fe',
-              color: '#6b21a8',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.76rem' : '0.84rem'
-            }}>
-              <Clock size={15} color="#7c3aed" />
-              <span>⏳ Öğretmen Değerlendirmesi Bekleniyor</span>
-            </div>
+          {isOpenEndedMode ? (
+            !hasAnyTeacherGrading ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: isMobile ? '0.3rem 0.65rem' : '0.45rem 1rem',
+                borderRadius: '0.65rem',
+                background: '#f5f3ff',
+                border: '1.5px solid #ddd6fe',
+                color: '#6b21a8',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.88rem',
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.12)'
+              }}>
+                <Clock size={16} color="#7c3aed" />
+                <span>⏳ Öğretmen Değerlendirmesi Bekleniyor</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                  borderRadius: '0.55rem',
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  color: '#6b21a8',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.74rem' : '0.82rem'
+                }}>
+                  <Award size={15} color="#7c3aed" />
+                  <span>{totalEarnedScore} / {totalMaxScore} Puan</span>
+                </div>
+                <div style={{
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  color: '#ffffff',
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                  borderRadius: '0.55rem',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.76rem' : '0.84rem',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                }}>
+                  %{scorePercentage} Başarı
+                </div>
+              </div>
+            )
           ) : (
             <>
               {/* Doğru Pill */}
