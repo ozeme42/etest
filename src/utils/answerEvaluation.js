@@ -40,112 +40,29 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   const userIdx = normalizeAnswerIndex(userAns);
   if (userIdx === null) return null;
 
-  // ── PRIORITY 1: Direct question object properties ──────────────────────────
-  if (qObj && typeof qObj === 'object') {
-    // 1a. Direct numeric or letter correctAnswer property
-    const directCandidates = [
-      qObj.correctAnswer,
-      qObj.correct_answer,
-      qObj.correctOption,
-      qObj.correct_option,
-      qObj.correctAnswerLetter,
-      qObj.correct_answer_letter,
-      qObj.correct,
-      qObj.dogruCevap,
-      qObj.dogru_cevap,
-      qObj.raw?.correctAnswer,
-      qObj.raw?.correct_answer
-    ];
-
-    for (const cand of directCandidates) {
-      if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
-        const targetIdx = normalizeAnswerIndex(cand);
-        if (targetIdx !== null) {
-          return userIdx === targetIdx;
-        }
-      }
-    }
-
-    // 1b. Options array with isCorrect: true
-    if (Array.isArray(qObj.options) && qObj.options.length > 0) {
-      const optIdx = qObj.options.findIndex(o => {
-        if (typeof o === 'object' && o !== null) {
-          return o.isCorrect === true || o.is_correct === true || o.correct === true;
-        }
-        return false;
-      });
-      if (optIdx !== -1) {
-        return userIdx === optIdx;
-      }
-    }
-
-    // 1c. Question's own answerKey array or object
-    if (qObj.answerKey || qObj.answer_key || qObj.opticAnswers) {
-      const qKeySource = qObj.answerKey || qObj.answer_key || qObj.opticAnswers;
-      let targetVal = null;
-      if (Array.isArray(qKeySource)) {
-        targetVal = qKeySource[qNo - 1] ?? qKeySource[0];
-      } else if (typeof qKeySource === 'object' && qKeySource !== null) {
-        targetVal = qKeySource[qNo] ?? qKeySource[String(qNo)] ?? qKeySource[qNo - 1] ?? qKeySource[0];
-      } else if (typeof qKeySource === 'string') {
-        const clean = qKeySource.replace(/[^A-Ea-e0-4]/g, '');
-        targetVal = clean[qNo - 1] ?? clean[0];
-      }
-      if (targetVal !== null && targetVal !== undefined && targetVal !== '') {
-        const targetIdx = normalizeAnswerIndex(targetVal);
-        if (targetIdx !== null) return userIdx === targetIdx;
-      }
-    }
-  }
-
-  // ── PRIORITY 2: Sub-question in test.questions / test.questionsList ──────────
-  const testQs = test?.questions || test?.resolvedQuestions || test?.questionsList || test?.bankQ?.questionsList || [];
-  if (Array.isArray(testQs) && testQs.length > 0) {
-    const subQ = testQs[qNo - 1] || testQs[0];
-    if (subQ && typeof subQ === 'object') {
-      const subCandidates = [
-        subQ.correctAnswer,
-        subQ.correct_answer,
-        subQ.correctOption,
-        subQ.correct_option,
-        subQ.correctAnswerLetter,
-        subQ.correct_answer_letter,
-        subQ.correct,
-        subQ.raw?.correctAnswer
-      ];
-      for (const cand of subCandidates) {
-        if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
-          const targetIdx = normalizeAnswerIndex(cand);
-          if (targetIdx !== null) return userIdx === targetIdx;
-        }
-      }
-      if (Array.isArray(subQ.options) && subQ.options.length > 0) {
-        const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
-        if (optIdx !== -1) return userIdx === optIdx;
-      }
-    }
-  }
-
-  // ── PRIORITY 3: Global Test Answer Keys ────────────────────────────────────
-  const testCandidateKeys = [
+  // ── STEP 1: Check if this specific qNo has an entry in any answerKey sources ──
+  // For multi-question documents (PDF, HTML, Multi-image, Optic), the answerKey array is the definitive source per question number.
+  const candidateKeys = [
+    qObj?.answerKey,
+    qObj?.answer_key,
+    qObj?.opticAnswers,
+    qObj?.imageAnswers,
     test?.answerKey,
     test?.answer_key,
     test?.opticAnswers,
     test?.imageAnswers,
-    test?.correctAnswers,
     test?.bankQ?.answerKey,
     test?.bankQ?.answer_key,
     test?.bankQ?.opticAnswers,
-    test?.bankQ?.contentPayload?.answerKey,
     test?.contentPayload?.answerKey,
     test?.htmlPayload?.answerKey,
     test?.pdfPayload?.answerKey,
-    test?.raw_data?.answerKey,
     test?.metadata?.answerKey,
+    test?.raw_data?.answerKey,
     test?.book?.answerKey
   ];
 
-  for (const keySource of testCandidateKeys) {
+  for (const keySource of candidateKeys) {
     if (!keySource) continue;
     let targetKeyVal = null;
 
@@ -176,7 +93,9 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
       }
       if (targetKeyVal === null || targetKeyVal === undefined) {
         const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
-        targetKeyVal = clean[qNo - 1] ?? clean[0];
+        if (clean.length >= qNo) {
+          targetKeyVal = clean[qNo - 1];
+        }
       }
     }
 
@@ -188,12 +107,90 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
   }
 
-  // ── PRIORITY 4: bulkAnswerKey string ───────────────────────────────────────
+  // ── STEP 2: Check sub-question in test.questions / test.questionsList array ─
+  const testQs = test?.questions || test?.resolvedQuestions || test?.questionsList || test?.bankQ?.questionsList || [];
+  if (Array.isArray(testQs) && testQs.length > 0) {
+    const subQ = testQs[qNo - 1];
+    if (subQ && typeof subQ === 'object') {
+      const subCandidates = [
+        subQ.correctAnswer,
+        subQ.correct_answer,
+        subQ.correctOption,
+        subQ.correct_option,
+        subQ.correctAnswerLetter,
+        subQ.correct_answer_letter,
+        subQ.correct,
+        subQ.dogruCevap,
+        subQ.raw?.correctAnswer
+      ];
+      for (const cand of subCandidates) {
+        if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          const targetIdx = normalizeAnswerIndex(cand);
+          if (targetIdx !== null) return userIdx === targetIdx;
+        }
+      }
+      if (Array.isArray(subQ.options) && subQ.options.length > 0) {
+        const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+        if (optIdx !== -1) return userIdx === optIdx;
+      }
+    }
+  }
+
+  // ── STEP 3: Direct question object properties ──────────────────────────────
+  // If qObj is specifically matching this question (e.g. qNo === 1 or qObj has questionNo === qNo)
+  if (qObj && typeof qObj === 'object') {
+    const isSpecificToThisQuestion = (
+      qNo === 1 ||
+      qObj.questionNo === qNo ||
+      qObj.number === qNo ||
+      qObj.qNo === qNo ||
+      qObj.questionNoInSection === qNo
+    );
+
+    if (isSpecificToThisQuestion) {
+      const directCandidates = [
+        qObj.correctAnswer,
+        qObj.correct_answer,
+        qObj.correctOption,
+        qObj.correct_option,
+        qObj.correctAnswerLetter,
+        qObj.correct_answer_letter,
+        qObj.correct,
+        qObj.dogruCevap,
+        qObj.dogru_cevap,
+        qObj.raw?.correctAnswer,
+        qObj.raw?.correct_answer
+      ];
+
+      for (const cand of directCandidates) {
+        if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          const targetIdx = normalizeAnswerIndex(cand);
+          if (targetIdx !== null) {
+            return userIdx === targetIdx;
+          }
+        }
+      }
+
+      if (Array.isArray(qObj.options) && qObj.options.length > 0) {
+        const optIdx = qObj.options.findIndex(o => {
+          if (typeof o === 'object' && o !== null) {
+            return o.isCorrect === true || o.is_correct === true || o.correct === true;
+          }
+          return false;
+        });
+        if (optIdx !== -1) {
+          return userIdx === optIdx;
+        }
+      }
+    }
+  }
+
+  // ── STEP 4: bulkAnswerKey string ───────────────────────────────────────────
   const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey];
   for (const bulkStr of bulkSources) {
     if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
       const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
-      const bulkKeyVal = cleanBulk[qNo - 1] ?? cleanBulk[0];
+      const bulkKeyVal = cleanBulk[qNo - 1];
       if (bulkKeyVal) {
         const targetIdx = normalizeAnswerIndex(bulkKeyVal);
         if (targetIdx !== null) return userIdx === targetIdx;
