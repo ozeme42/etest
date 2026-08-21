@@ -31,7 +31,9 @@ export default memo(function CompositePdfSection({
       documentContent={
         <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
           <PdfViewerWithControls
-            pdfUrl={payload || section.pdfUrl || section.contentPayload}
+            payload={payload || section.pdfUrl || section.contentPayload || section.pdfPayload}
+            id={section.id || section.testId}
+            testId={section.testId || section.sourceTestId || section.originalTestId}
             title={section.title || 'PDF Dokümanı'}
             height="100%"
           />

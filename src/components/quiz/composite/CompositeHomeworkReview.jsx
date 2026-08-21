@@ -212,7 +212,9 @@ export default function CompositeHomeworkReview({
             documentContent={
               <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <PdfViewerWithControls
-                  pdfUrl={activePayload || activeSec.pdfUrl || activeSec.contentPayload}
+                  payload={activePayload || activeSec.pdfUrl || activeSec.contentPayload || activeSec.pdfPayload}
+                  id={activeSec.id || activeSec.testId}
+                  testId={activeSec.testId || activeSec.sourceTestId || activeSec.originalTestId}
                   title={activeSec.title || 'PDF Dokümanı'}
                   height="100%"
                 />

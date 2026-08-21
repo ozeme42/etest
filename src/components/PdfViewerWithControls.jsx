@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText, Loader2, Pencil, Eraser, Trash2, X } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { idbGetPayload } from '../services/indexedDbService';
 import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -13,7 +14,22 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-export default function PdfViewerWithControls({ payload, src, filePayload, pdfPayload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false, isDrawingOpen = false, onToggleDrawing }) {
+export default function PdfViewerWithControls({
+  payload,
+  src,
+  filePayload,
+  pdfPayload,
+  pdfUrl,
+  url,
+  id,
+  testId,
+  title = "PDF Dokümanı",
+  height = "100%",
+  onUploadFile,
+  allowUpload = false,
+  isDrawingOpen = false,
+  onToggleDrawing
+}) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [numPages, setNumPages] = useState(null);
@@ -27,7 +43,35 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
   const overlayRefs = useRef([]);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const activePayload = payload || src || filePayload || pdfPayload;
+  const rawInput = payload || src || filePayload || pdfPayload || pdfUrl || url;
+  const [idbLoadedPayload, setIdbLoadedPayload] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const isDirect = rawInput && typeof rawInput === 'string' && rawInput.trim().length > 0 && !rawInput.includes('[STORED_IN_INDEXEDDB]') && !rawInput.includes('[LOCALSTORAGE_CACHE]');
+    if (isDirect) return;
+
+    async function loadIdb() {
+      const keys = [id, testId, rawInput?.replace(/\[STORED_IN_INDEXEDDB\]/g, '')].filter(Boolean);
+      for (const k of keys) {
+        const cleanK = String(k);
+        const variants = [cleanK, cleanK.replace(/^q_?/, ''), cleanK.replace(/^test_?/, ''), `q_${cleanK.replace(/^q_?/, '')}`, `test_${cleanK.replace(/^test_?/, '')}`];
+        for (const candidate of variants) {
+          try {
+            const val = await idbGetPayload(candidate);
+            if (val && typeof val === 'string' && val.length > 10 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbLoadedPayload(val);
+              return;
+            }
+          } catch {}
+        }
+      }
+    }
+    loadIdb();
+    return () => { isMounted = false; };
+  }, [rawInput, id, testId]);
+
+  const activePayload = (rawInput && !rawInput.includes('[STORED_IN_INDEXEDDB]')) ? rawInput : (idbLoadedPayload || rawInput);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -109,265 +153,190 @@ export default function PdfViewerWithControls({ payload, src, filePayload, pdfPa
     overflow: 'hidden'
   };
 
+  const toolbarStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0.4rem 0.75rem',
+    background: '#1e293b',
+    color: '#ffffff',
+    borderBottom: '1px solid #334155',
+    flexShrink: 0,
+    zIndex: 10,
+    gap: '0.5rem',
+    flexWrap: 'wrap'
+  };
+
+  const btnStyle = {
+    background: 'transparent',
+    border: 'none',
+    color: '#cbd5e1',
+    cursor: 'pointer',
+    padding: '0.35rem',
+    borderRadius: '0.35rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.15s ease'
+  };
+
+  const activeBtnStyle = {
+    ...btnStyle,
+    background: '#3b82f6',
+    color: '#ffffff'
+  };
+
   return (
     <div ref={wrapperRef} style={containerStyle}>
-      {/* Sleek Minimal Controls Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: isMobile ? '0.2rem 0.5rem' : '0.45rem 0.85rem',
-        background: 'var(--color-surface-hover)',
-        borderBottom: '1px solid var(--color-border)',
-        color: 'var(--color-text)',
-        flexWrap: 'nowrap',
-        gap: '0.35rem',
-        minHeight: isMobile ? '30px' : '42px',
-        boxSizing: 'border-box',
-        zIndex: 10
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0 }}>
-          <FileText size={isMobile ? 13 : 16} style={{ color: '#ef4444', flexShrink: 0 }} />
-          {!isMobile && (
-            <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {title}
+      {/* Top Toolbar */}
+      <div style={toolbarStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '120px' : '220px' }}>
+            {title}
+          </span>
+          {numPages && (
+            <span style={{ fontSize: '0.72rem', background: '#334155', color: '#94a3b8', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', fontWeight: 700 }}>
+              {numPages} Sayfa
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.35rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', padding: '0.1rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
-            >
-              <ZoomOut size={isMobile ? 12 : 15} />
-            </button>
-            <button
-              type="button"
-              onClick={handleResetZoom}
-              title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.72rem', fontWeight: 800 }}
-            >
-              <RotateCcw size={isMobile ? 10 : 12} style={{ marginRight: '0.15rem' }} /> {zoomLevel}%
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', padding: isMobile ? '0.15rem 0.35rem' : '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
-            >
-              <ZoomIn size={isMobile ? 12 : 15} />
-            </button>
-          </div>
-
-          {/* Fullscreen Expansion Toggle */}
-          <button
-            type="button"
-            onClick={toggleExpanded}
-            title="Pencereyi Tam Ekran Yap"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              color: 'white',
-              border: 'none',
-              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-              borderRadius: '0.45rem',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.68rem' : '0.78rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)'
-            }}
-          >
-            {isExpanded ? <Minimize2 size={isMobile ? 12 : 15} /> : <Maximize2 size={isMobile ? 12 : 15} />}
-            <span>{isExpanded ? 'Küçült' : (isMobile ? 'Tam Ekran' : 'Tam Ekran')}</span>
+          <button type="button" onClick={handleZoomOut} style={btnStyle} title="Uzaklaştır">
+            <ZoomOut size={16} />
+          </button>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1', minWidth: '36px', textAlign: 'center' }}>
+            %{zoomLevel}
+          </span>
+          <button type="button" onClick={handleZoomIn} style={btnStyle} title="Yakınlaştır">
+            <ZoomIn size={16} />
+          </button>
+          <button type="button" onClick={handleResetZoom} style={btnStyle} title="Sıfırla">
+            <RotateCcw size={14} />
           </button>
 
-          {/* Change File */}
-          {allowUpload && onUploadFile && (
-            <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: isMobile ? '0.68rem' : '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && onUploadFile(e.target.files[0])} />
-              📁 PDF Değiştir
-            </label>
+          <div style={{ width: '1px', height: '16px', background: '#475569', margin: '0 0.25rem' }} />
+
+          {/* Drawing toggle */}
+          {onToggleDrawing && (
+            <button
+              type="button"
+              onClick={onToggleDrawing}
+              style={isDrawingOpen ? activeBtnStyle : btnStyle}
+              title={isDrawingOpen ? "Çizimi Kapat" : "Üzerine Çizim Yap"}
+            >
+              <Pencil size={15} />
+            </button>
           )}
 
-          {/* External Link */}
-          {payload && payload.startsWith('http') && (
-            <a
-              href={payload}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Yeni Sekmede Aç"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
-            >
-              <ExternalLink size={13} />
-            </a>
-          )}
+          {/* Fullscreen */}
+          <button type="button" onClick={toggleExpanded} style={btnStyle} title="Tam Ekran">
+            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
         </div>
       </div>
 
-      {/* React PDF Document Container */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 0' }}>
+      {/* Drawing Toolbar Overlay if active */}
+      {isDrawingOpen && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+          padding: '0.35rem 0.75rem',
+          background: '#0f172a',
+          borderBottom: '1px solid #1e293b',
+          zIndex: 10
+        }}>
+          <button
+            type="button"
+            onClick={() => setDrawingTool('pencil')}
+            style={drawingTool === 'pencil' ? activeBtnStyle : btnStyle}
+            title="Kalem"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDrawingTool('eraser')}
+            style={drawingTool === 'eraser' ? activeBtnStyle : btnStyle}
+            title="Silgi"
+          >
+            <Eraser size={14} />
+          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000'].map(color => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setDrawingColor(color)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: color,
+                  border: drawingColor === color ? '2px solid #ffffff' : '1px solid #475569',
+                  cursor: 'pointer'
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={clearAllCanvases}
+            style={btnStyle}
+            title="Tüm Çizimleri Temizle"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* PDF View Container */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'auto',
+        background: '#334155',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '1rem',
+        gap: '1rem'
+      }}>
         <Document
           file={embedUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={
-            <div style={{ padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: 'white' }}>
-              <Loader2 size={32} />
-              <p>PDF Yükleniyor...</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', padding: '2rem' }}>
+              <Loader2 className="animate-spin" size={24} />
+              <span>PDF Dokümanı Yükleniyor...</span>
             </div>
           }
           error={
-            <div style={{ padding: '3rem', color: '#fca5a5', textAlign: 'center' }}>
-              <FileText size={48} style={{ margin: '0 auto 1rem auto' }} />
-              <p style={{ fontWeight: 'bold' }}>PDF Yüklenemedi.</p>
-              <p style={{ fontSize: '0.85rem' }}>Lütfen dosyayı yenileyin veya tekrar deneyin.</p>
+            <div style={{ color: '#fca5a5', padding: '2rem', textAlign: 'center' }}>
+              PDF Dokümanı yüklenirken bir sorun oluştu.
             </div>
           }
         >
-          {Array.from(new Array(numPages), (el, index) => (
+          {Array.from(new Array(numPages || 0), (el, index) => (
             <LazyPdfPage
               key={`page_${index + 1}`}
-              index={index}
+              pageNumber={index + 1}
+              scale={zoomLevel / 100}
               containerWidth={containerWidth}
-              pdfScale={zoomLevel / 100}
-              isDrawingMode={isDrawingOpen}
+              isDrawingOpen={isDrawingOpen}
               drawingTool={drawingTool}
+              drawingColor={drawingColor}
               strokeWidth={strokeWidth}
-              stylusOnly={false}
-              overlayRef={el => overlayRefs.current[index] = el}
+              ref={el => overlayRefs.current[index] = el}
             />
           ))}
         </Document>
       </div>
-
-      {/* Floating Drawing Toolbar */}
-      {isDrawingOpen && (
-        <div style={{
-          position: 'absolute',
-          bottom: '2rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '1.5rem',
-          padding: '0.6rem 1.25rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-          zIndex: 100
-        }}>
-          {/* Tools */}
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            <button
-              onClick={() => setDrawingTool('pencil')}
-              style={{
-                padding: '0.6rem',
-                borderRadius: '50%',
-                background: drawingTool === 'pencil' ? '#6366f1' : 'transparent',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Pencil size={18} />
-            </button>
-            <button
-              onClick={() => setDrawingTool('eraser')}
-              style={{
-                padding: '0.6rem',
-                borderRadius: '50%',
-                background: drawingTool === 'eraser' ? '#f43f5e' : 'transparent',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Eraser size={18} />
-            </button>
-          </div>
-          
-          <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)' }} />
-          
-          {/* Colors */}
-          {drawingTool === 'pencil' && (
-            <div style={{ display: 'flex', gap: '0.4rem' }}>
-              {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ffffff', '#000000'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setDrawingColor(c)}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: c,
-                    border: drawingColor === c ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
-                    cursor: 'pointer',
-                    transform: drawingColor === c ? 'scale(1.2)' : 'scale(1)',
-                    transition: 'transform 0.2s'
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {drawingTool === 'pencil' && <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)' }} />}
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            <button
-              onClick={clearAllCanvases}
-              style={{
-                padding: '0.6rem',
-                borderRadius: '50%',
-                background: 'transparent',
-                color: '#f87171',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              title="Tüm Sayfaları Temizle"
-            >
-              <Trash2 size={18} />
-            </button>
-            
-            <button
-              onClick={() => onToggleDrawing && onToggleDrawing()}
-              style={{
-                padding: '0.6rem',
-                borderRadius: '50%',
-                background: 'rgba(244,63,94,0.3)',
-                color: '#fecdd3',
-                border: '1px solid rgba(244,63,94,0.5)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginLeft: '0.5rem'
-              }}
-              title="Çizim Modundan Çık"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

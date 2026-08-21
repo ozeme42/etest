@@ -12,6 +12,7 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
   useEffect(() => {
     let isMounted = true;
     const bankQ = activeSec?.bankQ || test?.bankQ || {};
+    const firstQ = activeSec?.resolvedQuestions?.[0] || activeSec?.questions?.[0] || {};
 
     const rawCandidates = [
       activeSec?.contentPayload,
@@ -19,6 +20,13 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
       activeSec?.pdfPayload,
       activeSec?.pdfUrl,
       activeSec?.url,
+      activeSec?.payload,
+      activeSec?.imageUrl,
+      firstQ?.contentPayload,
+      firstQ?.htmlPayload,
+      firstQ?.pdfPayload,
+      firstQ?.pdfUrl,
+      firstQ?.url,
       bankQ?.contentPayload,
       bankQ?.htmlPayload,
       bankQ?.pdfPayload,
@@ -27,10 +35,16 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
       test?.contentPayload,
       test?.htmlPayload,
       test?.pdfPayload,
-      test?.pdfUrl
+      test?.pdfUrl,
+      test?.url
     ];
 
-    const direct = rawCandidates.find(c => typeof c === 'string' && c.length > 50 && !c.includes('[STORED_IN_INDEXEDDB]') && !c.includes('[LOCALSTORAGE_CACHE]'));
+    const direct = rawCandidates.find(c =>
+      typeof c === 'string' &&
+      c.trim().length > 0 &&
+      !c.includes('[STORED_IN_INDEXEDDB]') &&
+      !c.includes('[LOCALSTORAGE_CACHE]')
+    );
 
     if (direct) {
       setPayload(direct);
@@ -42,18 +56,34 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
       const keysToTry = [
         activeSec?.id,
         activeSec?.questionId,
+        activeSec?.testId,
+        activeSec?.sourceTestId,
+        activeSec?.originalTestId,
+        activeSec?.bankTestId,
+        firstQ?.id,
+        firstQ?.testId,
+        firstQ?.questionId,
         bankQ?.id,
         bankQ?.questionId,
         test?.id,
-        test?.realTestId
+        test?.realTestId,
+        test?.sourceTestId
       ].filter(Boolean);
 
       for (const k of keysToTry) {
-        const variants = [k, String(k).replace(/^q_?/, ''), `q_${String(k).replace(/^q_?/, '')}`, `q${String(k).replace(/^q_?/, '')}`];
+        const cleanK = String(k);
+        const variants = [
+          cleanK,
+          cleanK.replace(/^q_?/, ''),
+          cleanK.replace(/^test_?/, ''),
+          cleanK.replace(/^sec_?/, ''),
+          `q_${cleanK.replace(/^q_?/, '')}`,
+          `test_${cleanK.replace(/^test_?/, '')}`
+        ];
         for (const candidate of variants) {
           try {
             const val = await idbGetPayload(candidate);
-            if (val && typeof val === 'string' && val.length > 50 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+            if (val && typeof val === 'string' && val.length > 10 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
               setPayload(val);
               setLoading(false);
               return;
@@ -67,7 +97,17 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
     loadIdb();
 
     return () => { isMounted = false; };
-  }, [activeSec?.id, activeSec?.contentPayload, activeSec?.htmlPayload, test?.id]);
+  }, [
+    activeSec?.id,
+    activeSec?.contentPayload,
+    activeSec?.htmlPayload,
+    activeSec?.pdfPayload,
+    activeSec?.pdfUrl,
+    activeSec?.testId,
+    test?.id,
+    test?.contentPayload,
+    test?.pdfUrl
+  ]);
 
   return { payload, loading };
 }
