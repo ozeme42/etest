@@ -62,7 +62,13 @@ export default function CompositeHomeworkReview({
   const { payload: activePayload } = useQuizPayloads(activeSec, test);
 
   const sectionAnswersMap = unifiedSub.sections;
-  const currentSecAnswers = sectionAnswersMap[activeSec.id] || { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
+  const currentSecAnswers = sectionAnswersMap[activeSec.id] ||
+                            sectionAnswersMap[activeSecIdx] ||
+                            sectionAnswersMap[String(activeSecIdx)] ||
+                            (activeSec.title && sectionAnswersMap[activeSec.title]) ||
+                            (activeSec.raw?.id && sectionAnswersMap[activeSec.raw.id]) ||
+                            (activeSec.raw?.questionId && sectionAnswersMap[activeSec.raw.questionId]) ||
+                            { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
   const currentSecQuestions = activeSec.questions || [];
 
   const isSecOE = activeSec.type === 'open_ended';
