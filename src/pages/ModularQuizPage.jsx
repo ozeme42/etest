@@ -15,9 +15,10 @@ import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
 import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
 import ImageQuizRunner from '../components/quiz/runner/ImageQuizRunner';
 import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
-import BulkHomeworkRunner from '../components/quiz/runner/BulkHomeworkRunner';
-import CompositeQuizRunner from '../components/quiz/runner/CompositeQuizRunner';
-import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
+import SingleMultipleChoiceRunner from '../components/quiz/single/SingleMultipleChoiceRunner';
+import SingleOpenEndedRunner from '../components/quiz/single/SingleOpenEndedRunner';
+import CompositeHomeworkRunner from '../components/quiz/composite/CompositeHomeworkRunner';
+import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -876,29 +877,105 @@ export default function ModularQuizPage() {
 
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && (isWritten || isSectionOpenEnded(effectiveTest));
+
   const renderRunner = () => {
-    if (hasMultipleDistinctSections) {
-      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
+    // 1. Composite / Multi-Section Homework
+    if (isMultiSection) {
+      return (
+        <CompositeHomeworkRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
     }
 
+    // 2. Single Open-Ended / Written
+    if (isSingleOE) {
+      return (
+        <SingleOpenEndedRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
+    }
+
+    // 3. Single HTML
     if (isHtml) {
-      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
+      return (
+        <HtmlQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
     }
 
+    // 4. Single PDF
     if (isPdf) {
-      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
+      return (
+        <PdfQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
     }
 
+    // 5. Single Image
     if (isImageTest) {
-      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
+      return (
+        <ImageQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
     }
 
+    // 6. Physical Exam
     if (isPhysical) {
-      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
+      return (
+        <PhysicalQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          bookPdfUrl={bookPdfUrl}
+          onExit={() => navigate('/student')}
+        />
+      );
     }
 
-    // Default: Use MultiHomeworkRunner for all other tests (both single and multi-section)
-    return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
+    // 7. Default: Single Multiple-Choice
+    return (
+      <SingleMultipleChoiceRunner
+        test={effectiveTest}
+        questions={questions}
+        onSubmit={handleSubmit}
+        onAutoSave={handleAutoSave}
+        draftAnswers={draftSubmission?.answers}
+        onExit={() => navigate('/student')}
+      />
+    );
   };
 
   if (!hasStarted) {

@@ -11,9 +11,11 @@ import { toUUID } from '../services/supabaseService';
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
 import HtmlQuizReview from '../components/quiz/review/HtmlQuizReview';
 import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
-import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
-import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
+import SingleMultipleChoiceReview from '../components/quiz/single/SingleMultipleChoiceReview';
+import SingleOpenEndedReview from '../components/quiz/single/SingleOpenEndedReview';
+import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
+import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -504,22 +506,18 @@ export default function ModularQuizReviewPage() {
     )
   );
 
-  const isMultiSection = !isPhysical && Boolean(
-    String(targetId || '').startsWith('hw_') ||
-    String(test.id || '').startsWith('hw_') ||
-    String(submission?.hwId || '').startsWith('hw_') ||
-    String(submission?.homeworkId || '').startsWith('hw_') ||
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
-    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 0) ||
-    (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 0) ||
-    (test.items && Array.isArray(test.items) && test.items.length > 0) ||
-    test.isBulk ||
-    test.isMulti ||
-    test.isQuestionBank ||
-    test.sourceType === 'questionBank' ||
-    submission?.sourceType === 'questionBank'
+  const hasMultipleDistinctSections = Boolean(
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
+    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1 && !isHtml && !isPdf && !isImageTest)
   );
+
+  const isMultiSection = !isPhysical && (hasMultipleDistinctSections || Boolean(
+    test.isBulk ||
+    test.isMulti
+  ));
+
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && (isWritten || isSectionOpenEnded(test));
 
   const handleCloseReview = () => {
     if (location.state?.from) {
@@ -537,21 +535,31 @@ export default function ModularQuizReviewPage() {
   };
 
   // ── Render the correct review component based on test type ──────────────────
-  // Multi-section composite homework or Question Bank assignment → always MultiHomeworkRunner (Review Mode)
+  // 1. Multi-section composite homework
   if (isMultiSection) {
     return (
-      <MultiHomeworkRunner
+      <CompositeHomeworkReview
         test={test}
         questions={questions}
-        isReviewMode={true}
-        userAnswers={submission}
-        onSubmit={handleCloseReview}
-        onExit={handleCloseReview}
+        submission={submission}
+        onClose={handleCloseReview}
       />
     );
   }
 
-  // Single-section tests → dispatch to the appropriate review component
+  // 2. Single Open-Ended Review / Teacher Grading
+  if (isSingleOE) {
+    return (
+      <SingleOpenEndedReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 3. Single PDF Review
   if (isPdf) {
     return (
       <PdfQuizReview
@@ -563,6 +571,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
+  // 4. Single HTML Review
   if (isHtml) {
     return (
       <HtmlQuizReview
@@ -574,6 +583,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
+  // 5. Single Image Review
   if (isImageTest) {
     return (
       <ImageQuizReview
@@ -585,6 +595,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
+  // 6. Physical Exam Review
   if (isPhysical) {
     return (
       <PhysicalQuizReview
@@ -596,9 +607,9 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // Default: Standard (JSON) quiz review
+  // 7. Default: Single Multiple-Choice Review
   return (
-    <StandardQuizReview
+    <SingleMultipleChoiceReview
       submission={submission}
       test={test}
       questions={questions}
