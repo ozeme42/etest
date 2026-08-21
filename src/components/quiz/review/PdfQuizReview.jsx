@@ -48,12 +48,31 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
+  const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.isOpenEnded ||
+      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
+      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')) ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik')))
+    ) {
+      return true;
+    }
+    return false;
+  }, [test, questions, answers]);
+
+  const isEvaluated = Boolean(
+    submission.isEvaluatedByTeacher ||
+    submission.status === 'evaluated' ||
+    submission.status === 'graded' ||
+    (answers.length > 0 && answers.some(a => a.evaluatedByTeacher || a.evaluatedAt))
+  );
+
   const qCount = useMemo(() => {
-    // 1. If submission has answers array with elements > 0
     if (Array.isArray(answers) && answers.length > 0) return answers.length;
     if (Array.isArray(submission?.raw_data?.answers) && submission.raw_data.answers.length > 0) return submission.raw_data.answers.length;
 
-    // 2. Explicit questionCount properties on test / question / submission
     const candidateCounts = [
       test.questionCount, test.questionsCount, test.qCount, test.totalQuestions, test.count,
       questions[0]?.questionCount, questions[0]?.questionsCount, questions[0]?.qCount, questions[0]?.totalQuestions,
@@ -64,7 +83,6 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       if (c && Number(c) > 0) return Number(c);
     }
 
-    // 3. Title regex (e.g. "(5 Soru)", "5 Soru")
     const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
     for (const t of titles) {
       if (typeof t === 'string') {
@@ -73,13 +91,11 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       }
     }
 
-    // 4. Answer key length
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) return keyArray.length;
     if (typeof keyArray === 'string' && keyArray.trim().length > 0) return keyArray.trim().length;
     if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) return Object.keys(keyArray).length;
 
-    // 5. Questions list
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) return test.questionsList.length;
     if (Array.isArray(test.questionIds) && test.questionIds.length > 0) return test.questionIds.length;
     if (Array.isArray(questions) && questions.length > 0) return questions.length;
@@ -92,25 +108,39 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
       const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
-      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
-      const hasText = (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+      const qObj = questions[i - 1] || questions[0] || {};
+      const isQOE = Boolean(
+        a?.isOpenEnded ||
+        a?.type === 'acik_uclu' ||
+        qObj?.type === 'acik_uclu' ||
+        qObj?.isOpenEnded ||
+        isOpenEndedMode
+      );
 
-      if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
-        scores[i] = Number(a.score);
-      } else if (a?.isCorrect === true) {
-        scores[i] = 10;
-      } else if (a?.isCorrect === false) {
-        scores[i] = 0;
-      } else if (hasAns) {
-        const qObj = questions[i - 1] || questions[0] || {};
-        const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
-        if (isRight === true) scores[i] = 10;
-        else if (isRight === false) scores[i] = 0;
-        else scores[i] = 'empty';
-      } else if (hasText) {
-        scores[i] = 'empty';
+      const hasTeacherGraded = Boolean(
+        submission.isEvaluatedByTeacher ||
+        a?.evaluatedByTeacher ||
+        a?.evaluatedAt
+      );
+
+      if (isQOE) {
+        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else {
+          // Open-ended and unevaluated -> 'empty' (pending)
+          scores[i] = 'empty';
+        }
       } else {
-        scores[i] = 'empty';
+        // Multiple choice
+        const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+        if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else if (hasAns) {
+          const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+          scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
+        } else {
+          scores[i] = 'empty';
+        }
       }
     }
     return scores;
@@ -163,25 +193,6 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload || submission?.pdfPayload;
 
-  const isOpenEndedMode = useMemo(() => {
-    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
-      return false;
-    }
-    return Boolean(
-      test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik'))) ||
-      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
-      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
-    );
-  }, [test, questions, answers]);
-
-  const isEvaluated = Boolean(
-    submission.isEvaluatedByTeacher ||
-    submission.status === 'evaluated' ||
-    submission.status === 'graded' ||
-    answers.some(a => a.evaluatedByTeacher || a.evaluatedAt || (typeof a.score === 'number' && a.score > 0))
-  );
-
   const stats = useMemo(() => {
     let cCount = 0;
     let wCount = 0;
@@ -195,21 +206,31 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       const userAns = ansObj.userAnswer;
       const textAns = ansObj.userAnswerText;
       const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
-      const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
+      const isItemOE = isOpenEndedMode || !!textAns || qObj.type === 'acik_uclu';
 
       const teacherSc = questionScores[qNo];
 
-      if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
-        const numSc = Number(teacherSc);
-        if (numSc >= 5) cCount++;
-        else wCount++;
-      } else if (hasAnswer && !isOpenEndedMode) {
-        const isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-        if (isCorrect === true) cCount++;
-        else if (isCorrect === false) wCount++;
-        else bCount++;
+      if (isItemOE) {
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        } else {
+          bCount++;
+        }
       } else {
-        bCount++;
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        } else if (hasAnswer) {
+          const isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+          if (isCorrect === true) cCount++;
+          else if (isCorrect === false) wCount++;
+          else bCount++;
+        } else {
+          bCount++;
+        }
       }
     });
 
@@ -385,17 +406,17 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
-              padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-              borderRadius: '0.55rem',
+              gap: 6,
+              padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.95rem',
+              borderRadius: '0.65rem',
               background: '#f5f3ff',
-              border: '1px solid #ddd6fe',
+              border: '1.5px solid #ddd6fe',
               color: '#6b21a8',
               fontWeight: 900,
               fontSize: isMobile ? '0.76rem' : '0.84rem'
             }}>
               <Clock size={15} color="#7c3aed" />
-              <span>⏳ Değerlendirme Bekliyor</span>
+              <span>⏳ Öğretmen Değerlendirmesi Bekleniyor</span>
             </div>
           ) : (
             <>
@@ -515,15 +536,11 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               const teacherSc = questionScores[qNo];
-              const currentScore = teacherSc !== undefined ? teacherSc : (hasAnswer ? (ansObj.isCorrect === true ? 10 : (ansObj.isCorrect === false ? 0 : undefined)) : 'empty');
+              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty';
 
               let isCorrect;
-              if (currentScore === 10 || currentScore === 5) {
-                isCorrect = true;
-              } else if (currentScore === 0) {
-                isCorrect = false;
-              } else if (currentScore === 'empty') {
-                isCorrect = null;
+              if (hasGradedScore) {
+                isCorrect = Number(teacherSc) >= 5;
               } else if (hasAnswer && !isItemOE) {
                 isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
               } else {
@@ -561,16 +578,42 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE ? (
-                      <span style={{
-                        color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : currentScore === 'empty' ? (isText ? '#7c3aed' : '#64748b') : '#b91c1c'),
-                        background: isText && currentScore === 'empty' ? '#f5f3ff' : 'transparent',
-                        padding: isText && currentScore === 'empty' ? '0.15rem 0.5rem' : '0',
-                        borderRadius: '0.4rem',
-                        fontWeight: 900,
-                        fontSize: '0.82rem'
-                      }}>
-                        {currentScore === 'empty' ? (isText ? '⏳ Değerlendirme Bekliyor' : '○ Boş (0 Puan)') : `${currentScore} / 10 Puan`}
-                      </span>
+                      hasGradedScore ? (
+                        <span style={{
+                          color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
+                          background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          fontWeight: 900,
+                          fontSize: '0.82rem'
+                        }}>
+                          {teacherSc} / 10 Puan
+                        </span>
+                      ) : isText ? (
+                        <span style={{
+                          color: '#7c3aed',
+                          background: '#f5f3ff',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #ddd6fe',
+                          fontWeight: 900,
+                          fontSize: '0.8rem'
+                        }}>
+                          ⏳ Değerlendirme Bekliyor
+                        </span>
+                      ) : (
+                        <span style={{
+                          color: '#64748b',
+                          background: '#f8fafc',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #e2e8f0',
+                          fontWeight: 800,
+                          fontSize: '0.8rem'
+                        }}>
+                          ○ Yanıtlanmadı / Boş
+                        </span>
+                      )
                     ) : hasAnswer ? (
                       isCorrect === true ? (
                         <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
@@ -631,9 +674,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                           style={{
                             padding: '0.4rem 0.25rem',
                             borderRadius: 6,
-                            border: currentScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                            background: currentScore === 10 ? '#16a34a' : '#ffffff',
-                            color: currentScore === 10 ? '#ffffff' : '#15803d',
+                            border: teacherSc === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                            background: teacherSc === 10 ? '#16a34a' : '#ffffff',
+                            color: teacherSc === 10 ? '#ffffff' : '#15803d',
                             fontWeight: 900,
                             fontSize: '0.76rem',
                             cursor: 'pointer',
@@ -652,9 +695,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                             style={{
                               padding: '0.4rem 0.25rem',
                               borderRadius: 6,
-                              border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                              background: currentScore === 5 ? '#d97706' : '#ffffff',
-                              color: currentScore === 5 ? '#ffffff' : '#b45309',
+                              border: teacherSc === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                              background: teacherSc === 5 ? '#d97706' : '#ffffff',
+                              color: teacherSc === 5 ? '#ffffff' : '#b45309',
                               fontWeight: 900,
                               fontSize: '0.76rem',
                               cursor: 'pointer',
@@ -673,9 +716,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                           style={{
                             padding: '0.4rem 0.25rem',
                             borderRadius: 6,
-                            border: currentScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                            background: currentScore === 0 ? '#dc2626' : '#ffffff',
-                            color: currentScore === 0 ? '#ffffff' : '#b91c1c',
+                            border: teacherSc === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                            background: teacherSc === 0 ? '#dc2626' : '#ffffff',
+                            color: teacherSc === 0 ? '#ffffff' : '#b91c1c',
                             fontWeight: 900,
                             fontSize: '0.76rem',
                             cursor: 'pointer',
@@ -693,9 +736,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                           style={{
                             padding: '0.4rem 0.25rem',
                             borderRadius: 6,
-                            border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                            background: currentScore === 'empty' ? '#64748b' : '#f8fafc',
-                            color: currentScore === 'empty' ? '#ffffff' : '#475569',
+                            border: teacherSc === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                            background: teacherSc === 'empty' ? '#64748b' : '#f8fafc',
+                            color: teacherSc === 'empty' ? '#ffffff' : '#475569',
                             fontWeight: 900,
                             fontSize: '0.76rem',
                             cursor: 'pointer',
