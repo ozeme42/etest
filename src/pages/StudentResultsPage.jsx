@@ -681,9 +681,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (sub.id) processedTestKeys.add(String(sub.id));
       if (sub.testId) processedTestKeys.add(String(sub.testId));
 
-      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
-        ? Number(sub.totalNet)
-        : Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2));
+      const calcNet = (correct > 0 || wrong > 0)
+        ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
+        : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
       results.push({
         ...sub,
@@ -904,7 +904,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         pendingCount: pending,
         totalQuestions: total,
         computedScore: scorePct,
-        totalNet: sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2)),
+        totalNet: (correct > 0 || wrong > 0)
+          ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
+          : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0),
         submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
       });
     });

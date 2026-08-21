@@ -941,9 +941,9 @@ export default function StudentDashboard() {
       }
       pct = Math.min(100, Math.max(0, pct));
 
-      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
-        ? Number(sub.totalNet)
-        : Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2));
+      const calcNet = (cCount > 0 || wCount > 0)
+        ? Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2))
+        : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
       // Do not include if totally empty
       if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
@@ -1182,9 +1182,9 @@ export default function StudentDashboard() {
       }
       pct = Math.min(100, Math.max(0, pct));
 
-      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
-        ? Number(sub.totalNet)
-        : Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2));
+      const calcNet = (cCount > 0 || wCount > 0)
+        ? Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2))
+        : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
       // Do not include if totally empty
       if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
