@@ -68,8 +68,8 @@ export default function QuizResultModal({
 
         {/* Icon */}
         <div style={{
-          width: '64px',
-          height: '64px',
+          width: '68px',
+          height: '68px',
           borderRadius: '50%',
           background: isPureOpenEnded ? '#fef3c7' : '#eff6ff',
           color: isPureOpenEnded ? '#d97706' : '#2563eb',
@@ -77,16 +77,16 @@ export default function QuizResultModal({
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 1.15rem',
-          fontSize: '1.75rem'
+          fontSize: '1.85rem'
         }}>
-          {isPureOpenEnded ? '✍️' : <Award size={32} />}
+          {isPureOpenEnded ? '📥' : <Award size={34} />}
         </div>
 
         {/* Title & Subtitle */}
-        <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.4rem' }}>
-          {title}
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.4rem' }}>
+          {isPureOpenEnded ? 'Değerlendirmeye Gönderildi!' : title}
         </h2>
-        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1.35rem' }}>
+        <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 1.35rem' }}>
           {isPureOpenEnded
             ? 'Cevaplarınız başarıyla kaydedildi ve öğretmen değerlendirmesine gönderildi.'
             : 'Sınavınızı başarıyla tamamladınız. İşte detaylı karneniz:'}
@@ -97,15 +97,16 @@ export default function QuizResultModal({
           <div style={{
             background: '#fffbeb',
             border: '1.5px solid #fde68a',
-            borderRadius: '1rem',
-            padding: '1.25rem',
-            marginBottom: '1.35rem'
+            borderRadius: '1.15rem',
+            padding: '1.35rem',
+            marginBottom: '1.5rem',
+            boxShadow: '0 4px 12px rgba(217, 119, 6, 0.08)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#b45309', fontWeight: 900, fontSize: '0.95rem' }}>
-              <Clock size={18} /> Öğretmen Değerlendirmesi Bekleniyor
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#b45309', fontWeight: 900, fontSize: '1rem' }}>
+              <Clock size={20} /> Öğretmen Değerlendirmesi Bekleniyor
             </div>
-            <p style={{ fontSize: '0.82rem', color: '#92400e', margin: '0.4rem 0 0', lineHeight: 1.5 }}>
-              Yazılı açık uçlu cevaplarınız öğretmeniniz tarafından incelenip puanlandıktan sonra sonuçlarınız güncellenecektir.
+            <p style={{ fontSize: '0.85rem', color: '#92400e', margin: '0.6rem 0 0', lineHeight: 1.55 }}>
+              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip puanladıktan sonra nihai sonuçlarınız ve karneniz güncellenecektir.
             </p>
           </div>
         ) : (
