@@ -10,6 +10,9 @@ export function normalizeOptionIndex(val) {
   if (typeof val === 'number') {
     return (val >= 0 && val <= 4) ? val : null;
   }
+  if (typeof val === 'object') {
+    return normalizeOptionIndex(val.userAnswer ?? val.value ?? val.optionIndex ?? val.index);
+  }
   const str = String(val).trim().toUpperCase();
   if (/^[A-E]$/.test(str)) {
     return str.charCodeAt(0) - 65;
@@ -176,11 +179,12 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
       : (Array.isArray(sec.questions) && sec.questions.length > 0 ? sec.questions : [sec]);
 
     const targetCount = sec.qCount || sec.questionCount || rawQuestions.length || 1;
+    const hasMultipleRawQs = rawQuestions.length > 1;
 
     // Build standard questions for this section
     const normalizedQuestions = [];
     for (let i = 0; i < targetCount; i++) {
-      const qObj = rawQuestions[i] || rawQuestions[0] || {};
+      const qObj = hasMultipleRawQs ? (rawQuestions[i] || {}) : (i === 0 ? (rawQuestions[0] || {}) : {});
       const qNo = i + 1;
       const globalNo = globalQuestionCounter++;
       const isQOE = isOE || isItemOpenEnded(qObj, sec);
@@ -217,8 +221,60 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
         }
       }
 
-      // Correct Answer normalization
-      const rawCorrect = qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption ?? sec.answerKey?.[i] ?? rawTest.answerKey?.[globalNo - 1];
+      // Correct Answer normalization:
+      // Priority 1: If individual raw question object exists for this index (multi-question array): qObj.correctAnswer
+      // Priority 2: sec.questionsList?.[i]?.correctAnswer
+      // Priority 3: sec.answerKey / sec.bankQ.answerKey / sec.opticAnswers (matching index i / qNo)
+      // Priority 4: rawTest.answerKey (matching globalNo - 1)
+      // Priority 5: If targetCount === 1, qObj.correctAnswer
+      let rawCorrect = null;
+      if (hasMultipleRawQs && qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+        rawCorrect = qObj.correctAnswer;
+      } else if (sec.questionsList?.[i]?.correctAnswer !== undefined && sec.questionsList[i].correctAnswer !== null) {
+        rawCorrect = sec.questionsList[i].correctAnswer;
+      } else {
+        const keySources = [
+          sec.answerKey,
+          sec.answer_key,
+          sec.opticAnswers,
+          sec.imageAnswers,
+          sec.bankQ?.answerKey,
+          sec.bankQ?.answer_key,
+          sec.bankQ?.opticAnswers,
+          sec.bankQ?.imageAnswers,
+          rawTest.answerKey,
+          rawTest.answer_key,
+          rawTest.opticAnswers
+        ];
+        for (const ks of keySources) {
+          if (!ks) continue;
+          if (Array.isArray(ks)) {
+            const val = ks[i] ?? ks[String(i)] ?? (ks[0] === null ? ks[qNo] : undefined);
+            if (val !== undefined && val !== null && val !== '') {
+              rawCorrect = val;
+              break;
+            }
+          } else if (typeof ks === 'object' && ks !== null) {
+            const isZeroIndexed = (0 in ks) || ('0' in ks);
+            const val = isZeroIndexed ? (ks[i] ?? ks[String(i)]) : (ks[qNo] ?? ks[String(qNo)] ?? ks[i]);
+            if (val !== undefined && val !== null && val !== '') {
+              rawCorrect = val;
+              break;
+            }
+          } else if (typeof ks === 'string') {
+            const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
+            if (clean.length > i) {
+              rawCorrect = clean[i];
+              break;
+            }
+          }
+        }
+
+        if (rawCorrect === null && targetCount === 1 && qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+          rawCorrect = qObj.correctAnswer;
+        }
+      }
+
       const normalizedCorrect = normalizeOptionIndex(rawCorrect);
 
       normalizedQuestions.push({
