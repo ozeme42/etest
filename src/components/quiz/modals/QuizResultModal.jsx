@@ -205,8 +205,12 @@ export default function QuizResultModal({
                         Değerlendirme Bekliyor
                       </span>
                     ) : (
-                      <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#16a34a' }}>
-                        {sec.secDoğru} D / {sec.secYanlış} Y
+                      <span style={{ fontSize: '0.82rem', fontWeight: 900, display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
+                        <span style={{ color: '#16a34a' }}>{sec.secDoğru} D</span>
+                        <span style={{ color: '#94a3b8' }}>/</span>
+                        <span style={{ color: '#dc2626' }}>{sec.secYanlış} Y</span>
+                        <span style={{ color: '#94a3b8' }}>/</span>
+                        <span style={{ color: '#64748b' }}>{sec.secBoş ?? 0} B</span>
                       </span>
                     )}
                   </div>

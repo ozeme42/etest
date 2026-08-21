@@ -137,14 +137,14 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   }
 
   // ── STEP 3: Direct question object properties ──────────────────────────────
-  // If qObj is specifically matching this question (e.g. qNo === 1 or qObj has questionNo === qNo)
   if (qObj && typeof qObj === 'object') {
-    const isSpecificToThisQuestion = (
+    const isSameAsTest = (qObj === test || (qObj.id && test?.id && String(qObj.id) === String(test.id) && !qObj.questionNo));
+    const isSpecificToThisQuestion = !isSameAsTest || (
       qNo === 1 ||
-      qObj.questionNo === qNo ||
-      qObj.number === qNo ||
-      qObj.qNo === qNo ||
-      qObj.questionNoInSection === qNo
+      Number(qObj.questionNo) === qNo ||
+      Number(qObj.number) === qNo ||
+      Number(qObj.qNo) === qNo ||
+      Number(qObj.questionNoInSection) === qNo
     );
 
     if (isSpecificToThisQuestion) {

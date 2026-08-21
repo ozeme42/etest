@@ -69,14 +69,12 @@ export default function CompositeHomeworkRunner({
 
   // Finish exam calculation
   const handleFinishExam = () => {
+    let totalQuestions = 0;
+    let totalScoredQuestions = 0;
     let totalCorrect = 0;
     let totalWrong = 0;
     let totalBlank = 0;
     let totalPending = 0;
-    let totalQuestions = 0;
-    let totalEarned = 0;
-    let totalMax = 0;
-
     const breakdown = [];
     const formattedAnswers = [];
     let globalNo = 1;
@@ -94,7 +92,6 @@ export default function CompositeHomeworkRunner({
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
-        totalMax += 10;
         const qObj = secQs[i - 1] || {};
         const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
         const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
@@ -108,16 +105,18 @@ export default function CompositeHomeworkRunner({
         if (isQOE) {
           secPending++;
           totalPending++;
-        } else if (isCorrect === true) {
-          secDoğru++;
-          totalCorrect++;
-          totalEarned += 10;
-        } else if (isCorrect === false) {
-          secYanlış++;
-          totalWrong++;
         } else {
-          secBoş++;
-          totalBlank++;
+          totalScoredQuestions++;
+          if (isCorrect === true) {
+            secDoğru++;
+            totalCorrect++;
+          } else if (isCorrect === false) {
+            secYanlış++;
+            totalWrong++;
+          } else {
+            secBoş++;
+            totalBlank++;
+          }
         }
 
         formattedAnswers.push({
@@ -147,10 +146,19 @@ export default function CompositeHomeworkRunner({
       });
     });
 
-    const score = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+    const score = totalScoredQuestions > 0 ? Math.round((totalCorrect / totalScoredQuestions) * 100) : 0;
     const net = Math.max(0, totalCorrect - (totalWrong * 0.25));
 
-    setOverallResultStats({ correct: totalCorrect, wrong: totalWrong, blank: totalBlank, pending: totalPending, score, net, total: totalQuestions });
+    setOverallResultStats({
+      correct: totalCorrect,
+      wrong: totalWrong,
+      blank: totalBlank,
+      pending: totalPending,
+      score,
+      net,
+      total: totalQuestions,
+      scoredTotal: totalScoredQuestions
+    });
     setSectionBreakdownStats(breakdown);
     setSubmissionPayload(formattedAnswers);
     setShowResultModal(true);
