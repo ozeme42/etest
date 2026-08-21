@@ -426,12 +426,9 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
       teacherNotes: {}
     };
 
-    sectionsMap[sec.id] = secData;
     sectionsMap[sIdx] = secData;
     sectionsMap[String(sIdx)] = secData;
-    if (sec.title) sectionsMap[sec.title] = secData;
-    if (sec.raw?.id) sectionsMap[sec.raw.id] = secData;
-    if (sec.raw?.questionId) sectionsMap[sec.raw.questionId] = secData;
+    if (sec.id && !sectionsMap[sec.id]) sectionsMap[sec.id] = secData;
 
     return { sec, sIdx, start, end, qCount, secData };
   });
@@ -441,27 +438,24 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
   if (Array.isArray(rawAns)) {
     rawAns.forEach((a, idx) => {
       let matchedRange = null;
-      const isAnsOE = Boolean(a.isOpenEnded || a.userAnswerText || (typeof a.userAnswer === 'string' && isNaN(Number(a.userAnswer)) && !/^[A-E]$/i.test(String(a.userAnswer).trim())));
+      const globalNo = Number(a.questionNo || (idx + 1));
 
-      // 1. Primary match: by sectionTitle
-      if (a.sectionTitle) {
-        const sTitleNorm = String(a.sectionTitle).toLowerCase().trim();
-        const candidates = sectionRanges.filter(r => r.sec.title && String(r.sec.title).toLowerCase().trim() === sTitleNorm);
-        if (candidates.length === 1) {
-          matchedRange = candidates[0];
-        } else if (candidates.length > 1) {
-          // If multiple sections have the same title, pick the one matching OE / MC type
-          const typeMatch = candidates.find(c => Boolean(c.sec.isOpenEnded || c.sec.type === 'open_ended') === isAnsOE);
-          matchedRange = typeMatch || candidates[0];
-        }
+      // 1. Primary match: Global question number mapping against sectionRanges (completely deterministic & unambiguous)
+      if (globalNo && sectionRanges.length > 0) {
+        matchedRange = sectionRanges.find(r => globalNo >= r.start && globalNo <= r.end);
       }
 
-      // 2. Match by questionId within section's questions
+      // 2. Match by direct sectionIndex property
+      if (!matchedRange && a.sectionIndex !== undefined && sectionRanges[a.sectionIndex]) {
+        matchedRange = sectionRanges[a.sectionIndex];
+      }
+
+      // 3. Match by questionId within section's questions
       if (!matchedRange && a.questionId) {
         matchedRange = sectionRanges.find(r => r.sec.questions?.some(q => String(q.id) === String(a.questionId)));
       }
 
-      // 3. Match by exact sectionId or questionId
+      // 4. Match by exact sectionId
       if (!matchedRange && a.sectionId) {
         const cleanA = String(a.sectionId).replace(/^q_|^hw_|^sec_|^sec/, '');
         matchedRange = sectionRanges.find(r =>
@@ -472,15 +466,13 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
         );
       }
 
-      // 4. Match by direct sectionIndex property
-      if (!matchedRange && a.sectionIndex !== undefined && sectionRanges[a.sectionIndex]) {
-        matchedRange = sectionRanges[a.sectionIndex];
-      }
-
-      // 5. Global question number mapping against sectionRanges
-      const globalNo = Number(a.questionNo || (idx + 1));
-      if (!matchedRange && sectionRanges.length > 0) {
-        matchedRange = sectionRanges.find(r => globalNo >= r.start && globalNo <= r.end);
+      // 5. Match by sectionTitle if single candidate
+      if (!matchedRange && a.sectionTitle) {
+        const sTitleNorm = String(a.sectionTitle).toLowerCase().trim();
+        const candidates = sectionRanges.filter(r => r.sec.title && String(r.sec.title).toLowerCase().trim() === sTitleNorm);
+        if (candidates.length === 1) {
+          matchedRange = candidates[0];
+        }
       }
 
       if (!matchedRange) {
