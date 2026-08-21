@@ -81,47 +81,46 @@ export default function QuestionGridNav({
       >
         {Array.from({ length: totalQuestions }).map((_, idx) => {
           const isActive = idx === currentIndex;
+          const qNo = idx + 1;
           const userAns = Array.isArray(answers)
-            ? (answers[idx] ?? answers[idx + 1])
-            : (answers[idx + 1] ?? answers[String(idx + 1)]);
+            ? answers[idx]
+            : (answers[qNo] ?? answers[String(qNo)] ?? answers[idx] ?? answers[String(idx)]);
 
           let isAnswered = false;
           let isCorrect = null;
 
           if (userAns) {
             if (userAns.isCorrect !== undefined) isCorrect = userAns.isCorrect;
-            if (userAns.userAnswer !== undefined && userAns.userAnswer !== null && userAns.userAnswer !== '') isAnswered = true;
-            if (userAns.userAnswerText && userAns.userAnswerText.trim() !== '') isAnswered = true;
+            if (userAns.hasAnswer !== undefined) isAnswered = userAns.hasAnswer;
+            else {
+              if (userAns.userAnswer !== undefined && userAns.userAnswer !== null && userAns.userAnswer !== '' && userAns.userAnswer !== 'empty') isAnswered = true;
+              if (userAns.userAnswerText && userAns.userAnswerText.trim() !== '') isAnswered = true;
+            }
           }
 
           let bgColor = darkMode ? '#0f172a' : '#f8fafc';
-          let textColor = darkMode ? '#94a3b8' : '#475569';
-          let borderColor = darkMode ? '#334155' : '#e2e8f0';
+          let textColor = darkMode ? '#94a3b8' : '#64748b';
+          let borderColor = darkMode ? '#334155' : '#cbd5e1';
 
           if (isReviewMode) {
             if (isAnswered && isCorrect === true) {
               bgColor = darkMode ? '#064e3b' : '#f0fdf4';
               textColor = darkMode ? '#34d399' : '#15803d';
-              borderColor = darkMode ? '#059669' : '#bbf7d0';
+              borderColor = darkMode ? '#059669' : '#86efac';
             } else if (isAnswered && isCorrect === false) {
               bgColor = darkMode ? '#7f1d1d' : '#fef2f2';
               textColor = darkMode ? '#f87171' : '#b91c1c';
-              borderColor = darkMode ? '#dc2626' : '#fecaca';
-            } else if (!isAnswered) {
+              borderColor = darkMode ? '#dc2626' : '#fca5a5';
+            } else {
+              // Boş / Yanıtlanmadı
               bgColor = darkMode ? '#0f172a' : '#f8fafc';
               textColor = darkMode ? '#94a3b8' : '#64748b';
-              borderColor = darkMode ? '#334155' : '#e2e8f0';
+              borderColor = darkMode ? '#334155' : '#cbd5e1';
             }
           } else if (isAnswered) {
             bgColor = darkMode ? '#312e81' : '#eff6ff';
             textColor = darkMode ? '#e0e7ff' : '#1d4ed8';
             borderColor = darkMode ? '#6366f1' : '#bfdbfe';
-          }
-
-          if (isActive) {
-            borderColor = '#2563eb';
-            bgColor = isReviewMode ? bgColor : (darkMode ? '#0284c7' : '#2563eb');
-            textColor = isReviewMode ? textColor : '#ffffff';
           }
 
           return (
@@ -141,10 +140,10 @@ export default function QuestionGridNav({
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.15s ease',
-                boxShadow: isActive ? '0 0 10px rgba(37,99,235,0.3)' : 'none'
+                boxShadow: isActive ? '0 0 0 3px rgba(37,99,235,0.25)' : 'none'
               }}
             >
-              {idx + 1}
+              {qNo}
             </button>
           );
         })}

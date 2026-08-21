@@ -166,11 +166,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           scores[i] = 'empty';
         }
       } else {
-        const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+        const userAns = a?.userAnswer;
+        const hasAns = (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
         if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
           scores[i] = Number(a.score);
         } else if (hasAns) {
-          const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+          const isRight = checkIsAnswerCorrect(userAns, qObj, test, i);
           scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
         } else {
           scores[i] = 'empty';
@@ -321,20 +322,38 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     let bCount = 0;
 
     for (let i = 1; i <= qCount; i++) {
-      const sc = questionScores[i];
-      if (sc !== undefined && sc !== null && sc !== 'empty') {
-        const numSc = Number(sc);
-        if (numSc >= 5) cCount++;
-        else wCount++;
+      const qObj = questions[i - 1] || bundleQ || {};
+      const ansObj = answers.find(a => (a.questionNo === i || String(a.questionId).includes(`_${i}`))) || answers[i - 1] || {};
+      const userAns = ansObj.userAnswer;
+      const textAns = ansObj.userAnswerText;
+      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || (textAns && String(textAns).trim() !== '');
+      const teacherSc = questionScores[i];
+
+      if (isOpenEndedMode) {
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        } else {
+          bCount++;
+        }
       } else {
-        const a = answers[i - 1];
-        if (a?.isCorrect === true) cCount++;
-        else if (a?.isCorrect === false) wCount++;
-        else bCount++;
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
+          else wCount++;
+        } else if (hasAns) {
+          const isRight = checkIsAnswerCorrect(userAns, qObj, test, i);
+          if (isRight === true) cCount++;
+          else if (isRight === false) wCount++;
+          else bCount++;
+        } else {
+          bCount++;
+        }
       }
     }
     return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
-  }, [qCount, questionScores, answers]);
+  }, [qCount, questionScores, answers, questions, bundleQ, test, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
 
@@ -354,19 +373,38 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     const map = {};
     for (let i = 0; i < qCount; i++) {
       const qNo = i + 1;
+      const qObj = questions[i] || bundleQ || {};
       const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
-      if (ans) {
-        const sc = questionScores[qNo];
-        const isC = (sc !== undefined && sc !== null && sc !== 'empty') ? Number(sc) >= 5 : ans.isCorrect;
-        map[i] = {
-          userAnswer: ans.userAnswer,
-          isCorrect: isC,
-          hasAnswer: (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.userAnswer !== 'empty') || (ans.userAnswerText && String(ans.userAnswerText).trim() !== '')
-        };
+      
+      const userAns = ans?.userAnswer;
+      const textAns = ans?.userAnswerText;
+      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || (textAns && String(textAns).trim() !== '');
+      
+      const teacherSc = questionScores[qNo];
+      let isC = null;
+      if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+        isC = Number(teacherSc) >= 5;
+      } else if (hasAns) {
+        if (isOpenEndedMode) {
+          isC = null;
+        } else {
+          isC = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+        }
       }
+
+      const item = {
+        userAnswer: userAns,
+        userAnswerText: textAns,
+        isCorrect: isC,
+        hasAnswer: hasAns
+      };
+
+      map[i] = item;
+      map[qNo] = item;
+      map[String(qNo)] = item;
     }
     return map;
-  }, [qCount, answers, questionScores]);
+  }, [qCount, answers, questionScores, questions, bundleQ, test, isOpenEndedMode]);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;
@@ -379,6 +417,31 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const hasAnswer = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty');
   const isText = Boolean(textAns && String(textAns).trim() !== '');
   const isItemOE = isOpenEndedMode || isText || activeQuestion?.type === 'acik_uclu' || activeQuestion?.type === 'gorsel_klasik';
+
+  // Correct answer for the current question
+  const keySource = test.answerKey || bundleQ.answerKey || questions[0]?.answerKey || null;
+  let rawCorrectKey = null;
+  if (Array.isArray(keySource)) {
+    rawCorrectKey = keySource[currentQNo - 1];
+  } else if (keySource && typeof keySource === 'object') {
+    rawCorrectKey = keySource[currentQNo] ?? keySource[String(currentQNo)] ?? keySource[currentQNo - 1];
+  } else if (typeof keySource === 'string') {
+    const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
+    rawCorrectKey = clean[currentQNo - 1];
+  } else {
+    rawCorrectKey = activeQuestion.correctAnswer;
+  }
+
+  const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null && rawCorrectKey !== '')
+    ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
+    : null;
+
+  let isCurrentCorrect = null;
+  if (hasGradedScore) {
+    isCurrentCorrect = Number(teacherSc) >= 5;
+  } else if (hasAnswer && !isItemOE) {
+    isCurrentCorrect = checkIsAnswerCorrect(userAns, activeQuestion, test, currentQNo);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
@@ -588,20 +651,29 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           isReviewMode={true}
         />
 
-        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{
+          background: isItemOE ? '#faf5ff' : (isCurrentCorrect === true ? '#f0fdf4' : isCurrentCorrect === false ? '#fef2f2' : '#ffffff'),
+          border: `1.5px solid ${isItemOE ? '#e9d5ff' : (isCurrentCorrect === true ? '#bbf7d0' : isCurrentCorrect === false ? '#fecaca' : '#e2e8f0')}`,
+          borderRadius: '1.25rem',
+          padding: '1.5rem',
+          boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#4f46e5' }}>
-              {isTeacherMode ? `Soru ${currentQNo} İncelemesi & Puanlama` : `Soru ${currentQNo} İncelemesi`}
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a' }}>
+              Soru {currentQNo} İncelemesi
             </h3>
             {isItemOE ? (
               hasGradedScore ? (
                 <span style={{
                   color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
                   background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '0.4rem',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '0.45rem',
                   fontWeight: 900,
-                  fontSize: '0.82rem'
+                  fontSize: '0.85rem'
                 }}>
                   {teacherSc} / 10 Puan
                 </span>
@@ -609,11 +681,11 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 <span style={{
                   color: '#7c3aed',
                   background: '#f5f3ff',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '0.4rem',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '0.45rem',
                   border: '1px solid #ddd6fe',
                   fontWeight: 900,
-                  fontSize: '0.8rem'
+                  fontSize: '0.82rem'
                 }}>
                   ⏳ Değerlendirme Bekliyor
                 </span>
@@ -621,22 +693,37 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 <span style={{
                   color: '#64748b',
                   background: '#f8fafc',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '0.4rem',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '0.45rem',
                   border: '1px solid #e2e8f0',
                   fontWeight: 800,
-                  fontSize: '0.8rem'
+                  fontSize: '0.82rem'
                 }}>
                   ○ Yanıtlanmadı / Boş
                 </span>
               )
+            ) : hasAnswer ? (
+              isCurrentCorrect === true ? (
+                <span style={{ color: '#15803d', background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <CheckCircle size={16} /> DOĞRU (10P)
+                </span>
+              ) : isCurrentCorrect === false ? (
+                <span style={{ color: '#b91c1c', background: '#fee2e2', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #fca5a5', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <XCircle size={16} /> YANLIŞ (0P)
+                </span>
+              ) : (
+                <span style={{ color: '#64748b', background: '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.85rem' }}>
+                  ○ BOŞ (0P)
+                </span>
+              )
             ) : (
-              <span style={{ fontWeight: 900, fontSize: '0.9rem', color: teacherSc === 10 ? '#15803d' : (teacherSc >= 5 ? '#d97706' : '#7c3aed') }}>
-                {teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' ? `${teacherSc} / 10 Puan` : 'Boş'}
+              <span style={{ color: '#64748b', background: '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.85rem' }}>
+                ○ BOŞ (0P)
               </span>
             )}
           </div>
 
+          {/* Soru Görselleri */}
           {imageUrls.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {imageUrls.map((url, imgIdx) => (
@@ -657,7 +744,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
             </div>
           )}
 
-          {/* Öğrenci Yanıtı */}
+          {/* Öğrenci Yanıtı & Doğru Cevap Bölümü */}
           {isItemOE ? (
             <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800, marginBottom: '0.35rem' }}>
@@ -674,13 +761,48 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               )}
             </div>
           ) : (
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ SEÇİMİ: </span>
-                <span style={{ fontWeight: 900, color: '#0f172a' }}>
-                  {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
+            <div style={{
+              background: '#ffffff',
+              padding: '1rem 1.25rem',
+              borderRadius: '0.75rem',
+              border: `1.5px solid ${isCurrentCorrect === true ? '#86efac' : isCurrentCorrect === false ? '#fca5a5' : '#cbd5e1'}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
+                <span style={{
+                  fontWeight: 900,
+                  fontSize: '0.95rem',
+                  color: isCurrentCorrect === true ? '#15803d' : isCurrentCorrect === false ? '#b91c1c' : '#64748b',
+                  background: isCurrentCorrect === true ? '#dcfce7' : isCurrentCorrect === false ? '#fee2e2' : '#f1f5f9',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '0.45rem',
+                  border: `1px solid ${isCurrentCorrect === true ? '#86efac' : isCurrentCorrect === false ? '#fca5a5' : '#cbd5e1'}`
+                }}>
+                  {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns).toUpperCase()) : 'Boş'}
                 </span>
               </div>
+
+              {displayCorrectKey && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 800 }}>DOĞRU CEVAP: </span>
+                  <span style={{
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    color: '#15803d',
+                    background: '#dcfce7',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '0.45rem',
+                    border: '1px solid #86efac'
+                  }}>
+                    {displayCorrectKey}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
