@@ -305,6 +305,8 @@ export default function ModularQuizReviewPage() {
           foundTest = {
             ...bankQ,
             ...foundTest,
+            correctAnswer: bankQ.correctAnswer ?? foundTest.correctAnswer,
+            answerKey: bankQ.answerKey ?? foundTest.answerKey,
             questionCount: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
             totalQuestions: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
             isOpenEnded: bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu' || foundTest.isOpenEnded

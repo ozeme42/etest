@@ -5,6 +5,7 @@ import MultipleChoiceRunner from '../runner/MultipleChoiceRunner';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import QuizResultModal from '../modals/QuizResultModal';
+import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { Clock, Send, ArrowLeft, Sun, Moon } from 'lucide-react';
 
@@ -24,14 +25,27 @@ export default function SingleMultipleChoiceRunner({
   const { isDark, toggleTheme } = useTheme();
   const draftKey = `draft_single_mc_${test.id || 'test'}`;
 
-  // 1. Answers State
+  // 1. Convert to unified standardized questions
+  const unifiedTest = useMemo(() => {
+    return normalizeUnifiedTest(test, questions);
+  }, [test, questions]);
+
+  const activeQuestions = unifiedTest.sections[0]?.questions || questions;
+  const totalQuestions = activeQuestions.length || 1;
+
+  // 2. Answers State
   const [answers, setAnswers] = useState(() => {
     const init = {};
     if (draftAnswers && draftAnswers.length > 0) {
-      draftAnswers.forEach(a => {
-        const qNo = a.questionNoInSection || a.questionNo;
-        if (qNo && a.userAnswer !== null && a.userAnswer !== undefined) {
-          init[qNo] = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+      draftAnswers.forEach((a, idx) => {
+        const qNo = Number(a.questionNoInSection || a.questionNo || (idx + 1));
+        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty') {
+          const uVal = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+          const normOpt = normalizeOptionIndex(uVal);
+          if (normOpt !== null) {
+            init[qNo] = normOpt;
+            init[String(qNo)] = normOpt;
+          }
         }
       });
       return init;
@@ -48,33 +62,34 @@ export default function SingleMultipleChoiceRunner({
   const [submissionPayload, setSubmissionPayload] = useState([]);
   const saveTimeoutRef = React.useRef(null);
 
-  const totalQuestions = questions.length || test.questionCount || 1;
-
   const triggerAutoSave = React.useCallback((currentAnswers) => {
     if (!onAutoSave) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      const formatted = questions.map((q, idx) => {
+      const formatted = activeQuestions.map((q, idx) => {
         const num = idx + 1;
         return {
           questionId: q.id || `q_${num}`,
           questionNo: num,
           questionNoInSection: num,
-          userAnswer: currentAnswers[num] ?? null,
+          userAnswer: currentAnswers[num] ?? currentAnswers[String(num)] ?? null,
           isOpenEnded: false
         };
       });
       onAutoSave(formatted);
     }, 800);
-  }, [onAutoSave, questions]);
+  }, [onAutoSave, activeQuestions]);
 
   const handleSelectOption = (qNo, optIdx) => {
     setAnswers(prev => {
       const updated = { ...prev };
-      if (updated[qNo] === optIdx) {
+      const currentVal = updated[qNo] ?? updated[String(qNo)];
+      if (currentVal === optIdx) {
         delete updated[qNo];
+        delete updated[String(qNo)];
       } else {
         updated[qNo] = optIdx;
+        updated[String(qNo)] = optIdx;
       }
       try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
       triggerAutoSave(updated);
@@ -87,11 +102,11 @@ export default function SingleMultipleChoiceRunner({
     let wrong = 0;
     let blank = 0;
 
-    const formatted = questions.map((q, idx) => {
+    const formatted = activeQuestions.map((q, idx) => {
       const qNo = idx + 1;
-      const uAns = answers[qNo];
-      const hasAns = uAns !== undefined && uAns !== null && uAns !== '';
-      const isCorrect = hasAns ? checkIsAnswerCorrect(uAns, q, test, qNo) : null;
+      const uAns = answers[qNo] ?? answers[String(qNo)];
+      const hasAns = uAns !== undefined && uAns !== null && uAns !== '' && uAns !== 'empty';
+      const isCorrect = hasAns ? checkIsAnswerCorrect(uAns, q.raw || q, test, qNo) : null;
 
       if (isCorrect === true) correct++;
       else if (hasAns) wrong++;
@@ -159,7 +174,7 @@ export default function SingleMultipleChoiceRunner({
           </button>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
-              {test.title || 'Çoktan Seçmeli Test'}
+              {unifiedTest.title || 'Çoktan Seçmeli Test'}
             </h3>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
               🔘 Çoktan Seçmeli • {totalQuestions} Soru
@@ -200,13 +215,14 @@ export default function SingleMultipleChoiceRunner({
           defaultOpenOnMobile={false}
           documentContent={
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {questions.map((q, idx) => (
+              {activeQuestions.map((q, idx) => (
                 <MultipleChoiceRunner
                   key={q.id || idx}
                   question={q}
                   qNo={idx + 1}
                   totalQuestions={totalQuestions}
-                  selectedOption={answers[idx + 1]}
+                  imageUrls={q.images || []}
+                  selectedOption={answers[idx + 1] ?? answers[String(idx + 1)]}
                   onSelectOption={(optIdx) => handleSelectOption(idx + 1, optIdx)}
                   isMobile={isMobile}
                 />
@@ -218,7 +234,7 @@ export default function SingleMultipleChoiceRunner({
               qCount={totalQuestions}
               answers={answers}
               onSelectOption={handleSelectOption}
-              resolvedQuestions={questions}
+              resolvedQuestions={activeQuestions}
             />
           }
         />
@@ -227,7 +243,7 @@ export default function SingleMultipleChoiceRunner({
       {/* Result Modal */}
       <QuizResultModal
         isOpen={showResultModal}
-        title={test.title || 'Çoktan Seçmeli Test Sonucu'}
+        title={unifiedTest.title || 'Çoktan Seçmeli Test Sonucu'}
         stats={resultStats || {}}
         isOpenEnded={false}
         onClose={handleConfirmClose}

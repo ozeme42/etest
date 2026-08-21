@@ -525,20 +525,24 @@ export default function ModularQuizPage() {
           const bankQ = singleQId ? allBankQuestions?.find(q => String(q.id) === String(singleQId) || String(q.id).replace(/^q_?/, '') === String(singleQId).replace(/^q_?/, '')) : null;
 
           if (bankQ) {
-            setTest({
+            const merged = {
               ...bankQ,
               ...foundTest,
+              correctAnswer: bankQ.correctAnswer ?? foundTest.correctAnswer,
+              answerKey: bankQ.answerKey ?? foundTest.answerKey,
               questionCount: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
               totalQuestions: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
               isOpenEnded: bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu' || foundTest.isOpenEnded
-            });
+            };
+            setTest(merged);
+            const resolved = resolveTestQuestions(merged, allBankQuestions);
+            setQuestions(resolved);
           } else {
             setTest(foundTest);
+            const resolved = resolveTestQuestions(foundTest, allBankQuestions);
+            setQuestions(resolved);
           }
         }
-
-        const resolved = resolveTestQuestions(foundTest, allBankQuestions);
-        setQuestions(resolved);
       }
       setLoading(false);
     } else {
