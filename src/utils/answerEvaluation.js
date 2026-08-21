@@ -1,134 +1,162 @@
 /**
- * Evaluates whether a user's answer for a question is correct.
+ * Normalizes any answer representation into a standard numeric index 0..4 (0=A, 1=B, 2=C, 3=D, 4=E)
+ * or returns the trimmed string if it cannot be parsed as A-E.
+ */
+export function normalizeAnswerIndex(val) {
+  if (val === null || val === undefined || val === '' || val === ' ' || val === 'empty') return null;
+  if (typeof val === 'number') {
+    return (!isNaN(val) && val >= 0 && val <= 4) ? val : null;
+  }
+  if (typeof val === 'object') {
+    return normalizeAnswerIndex(val.userAnswer ?? val.value ?? val.optionIndex ?? val.index);
+  }
+  const str = String(val).trim().toUpperCase();
+  if (/^[A-E]$/.test(str)) {
+    return str.charCodeAt(0) - 65;
+  }
+  const num = Number(str);
+  if (!isNaN(num) && num >= 0 && num <= 4) {
+    return num;
+  }
+  return str;
+}
+
+/**
+ * checkIsAnswerCorrect
+ * Evaluates whether a user's answer for a question is correct across all question bank items,
+ * homeworks, exams, and multi-format tests.
  * 
  * @param {number|string} userAns - The option index (0 for A, 1 for B...) or answer string selected by the user.
- * @param {object} qObj - The question object (may contain correctAnswer, answerKey, options).
- * @param {object} test - The overall test object (may contain answerKey array or global answer keys).
+ * @param {object} qObj - The question object.
+ * @param {object} test - The overall test or section object.
  * @param {number} qNo - 1-based question number.
- * @returns {boolean|null} true if correct, false if incorrect, null if open-ended/unevaluated.
+ * @returns {boolean|null} true if correct, false if incorrect, null if blank or open-ended.
  */
 export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
-  if (userAns === null || userAns === undefined || userAns === '') {
+  if (userAns === null || userAns === undefined || userAns === '' || userAns === 'empty') {
     return null;
   }
 
-  const normalizeAns = (val) => {
-    if (val === null || val === undefined || val === '' || val === ' ') return null;
-    if (typeof val === 'number') return val;
-    const str = String(val).trim().toUpperCase();
-    if (/^[A-E]$/.test(str)) {
-      return str.charCodeAt(0) - 65;
-    }
-    const num = Number(str);
-    return (!isNaN(num) && num >= 0 && num <= 4) ? num : str;
-  };
-
-  const userIdx = normalizeAns(userAns);
+  const userIdx = normalizeAnswerIndex(userAns);
   if (userIdx === null) return null;
 
-  // --- Adım 1: Soru numarasına (qNo) özel answerKey veya opticAnswers kaynakları ---
-  // Çok sorulu testlerde veya PDF/HTML testlerinde qNo için en güvenilir kaynak answerKey dizisidir.
-  const candidateKeys = [
-    qObj?.answerKey,
-    qObj?.answer_key,
-    qObj?.opticAnswers,
-    qObj?.imageAnswers,
-    qObj?.correctAnswers,
-    qObj?.contentPayload?.answerKey,
-    qObj?.contentPayload?.answer_key,
-    test?.bankQ?.answerKey,
-    test?.bankQ?.answer_key,
-    test?.bankQ?.opticAnswers,
-    test?.bankQ?.contentPayload?.answerKey,
-    test?.answerKey,
-    test?.answer_key,
-    test?.opticAnswers,
-    test?.imageAnswers,
-    test?.correctAnswers,
-    test?.contentPayload?.answerKey,
-    test?.contentPayload?.answer_key,
-    test?.htmlPayload?.answerKey,
-    test?.pdfPayload?.answerKey,
-    test?.metadata?.answerKey,
-    test?.raw_data?.answerKey,
-    test?.book?.answerKey
-  ];
+  // ── PRIORITY 1: Direct question object properties ──────────────────────────
+  if (qObj && typeof qObj === 'object') {
+    // 1a. Direct numeric or letter correctAnswer property
+    const directCandidates = [
+      qObj.correctAnswer,
+      qObj.correct_answer,
+      qObj.correctOption,
+      qObj.correct_option,
+      qObj.correctAnswerLetter,
+      qObj.correct_answer_letter,
+      qObj.correct,
+      qObj.dogruCevap,
+      qObj.dogru_cevap,
+      qObj.raw?.correctAnswer,
+      qObj.raw?.correct_answer
+    ];
 
-  for (const keySource of candidateKeys) {
-    if (!keySource) continue;
-    let targetKeyVal = null;
-    if (Array.isArray(keySource) && keySource.length > 0) {
-      targetKeyVal = keySource[qNo - 1] ?? keySource[String(qNo - 1)];
-    } else if (typeof keySource === 'object' && keySource !== null && Object.keys(keySource).length > 0) {
-      targetKeyVal = keySource[qNo] ?? keySource[String(qNo)] ?? keySource[qNo - 1] ?? keySource[String(qNo - 1)];
-    } else if (typeof keySource === 'string' && keySource.trim().length > 0) {
-      const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
-      if (clean.length >= qNo) {
-        targetKeyVal = clean[qNo - 1];
+    for (const cand of directCandidates) {
+      if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+        const targetIdx = normalizeAnswerIndex(cand);
+        if (targetIdx !== null) {
+          return userIdx === targetIdx;
+        }
       }
     }
-    if (targetKeyVal !== null && targetKeyVal !== undefined && targetKeyVal !== '') {
-      const targetIdx = normalizeAns(targetKeyVal);
-      if (targetIdx !== null) return userIdx === targetIdx;
-    }
-  }
 
-  // --- Adım 2: Bireysel soru nesnesi (qObj) üzerindeki doğrudan doğru cevap ---
-  if (qObj && typeof qObj === 'object') {
-    const isSingleQuestionObj = qObj.questionNo === qNo || qObj.number === qNo || (!qObj.answerKey && !test?.answerKey);
-    if (isSingleQuestionObj) {
-      const qTarget = qObj.correctAnswer ?? qObj.correct_answer ?? qObj.correctAnswerLetter ?? qObj.correct_answer_letter ?? qObj.correctOption ?? qObj.correct_option;
-      if (qTarget !== undefined && qTarget !== null && qTarget !== '') {
-        const targetIdx = normalizeAns(qTarget);
+    // 1b. Options array with isCorrect: true
+    if (Array.isArray(qObj.options) && qObj.options.length > 0) {
+      const optIdx = qObj.options.findIndex(o => {
+        if (typeof o === 'object' && o !== null) {
+          return o.isCorrect === true || o.is_correct === true || o.correct === true;
+        }
+        return false;
+      });
+      if (optIdx !== -1) {
+        return userIdx === optIdx;
+      }
+    }
+
+    // 1c. Question's own answerKey array or object
+    if (qObj.answerKey || qObj.answer_key || qObj.opticAnswers) {
+      const qKeySource = qObj.answerKey || qObj.answer_key || qObj.opticAnswers;
+      let targetVal = null;
+      if (Array.isArray(qKeySource)) {
+        targetVal = qKeySource[qNo - 1] ?? qKeySource[0];
+      } else if (typeof qKeySource === 'object' && qKeySource !== null) {
+        targetVal = qKeySource[qNo] ?? qKeySource[String(qNo)] ?? qKeySource[qNo - 1] ?? qKeySource[0];
+      } else if (typeof qKeySource === 'string') {
+        const clean = qKeySource.replace(/[^A-Ea-e0-4]/g, '');
+        targetVal = clean[qNo - 1] ?? clean[0];
+      }
+      if (targetVal !== null && targetVal !== undefined && targetVal !== '') {
+        const targetIdx = normalizeAnswerIndex(targetVal);
         if (targetIdx !== null) return userIdx === targetIdx;
       }
+    }
+  }
 
-      // Seçenekler (options) listesi içinde isCorrect / is_correct bayrağı
-      if (Array.isArray(qObj.options) && qObj.options.length > 0) {
-        const cIdx = qObj.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
-        if (cIdx !== -1) return userIdx === cIdx;
+  // ── PRIORITY 2: Sub-question in test.questions / test.questionsList ──────────
+  const testQs = test?.questions || test?.resolvedQuestions || test?.questionsList || test?.bankQ?.questionsList || [];
+  if (Array.isArray(testQs) && testQs.length > 0) {
+    const subQ = testQs[qNo - 1] || testQs[0];
+    if (subQ && typeof subQ === 'object') {
+      const subCandidates = [
+        subQ.correctAnswer,
+        subQ.correct_answer,
+        subQ.correctOption,
+        subQ.correct_option,
+        subQ.correctAnswerLetter,
+        subQ.correct_answer_letter,
+        subQ.correct,
+        subQ.raw?.correctAnswer
+      ];
+      for (const cand of subCandidates) {
+        if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          const targetIdx = normalizeAnswerIndex(cand);
+          if (targetIdx !== null) return userIdx === targetIdx;
+        }
+      }
+      if (Array.isArray(subQ.options) && subQ.options.length > 0) {
+        const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+        if (optIdx !== -1) return userIdx === optIdx;
       }
     }
   }
 
-  // --- Adım 2: test / bankQ seviyesindeki answerKey kaynakları ---
+  // ── PRIORITY 3: Global Test Answer Keys ────────────────────────────────────
   const testCandidateKeys = [
-    test?.bankQ?.answerKey,
-    test?.bankQ?.answer_key,
-    test?.bankQ?.opticAnswers,
-    test?.bankQ?.contentPayload?.answerKey,
-    test?.bankQ?.raw_data?.answerKey,
     test?.answerKey,
     test?.answer_key,
     test?.opticAnswers,
     test?.imageAnswers,
     test?.correctAnswers,
+    test?.bankQ?.answerKey,
+    test?.bankQ?.answer_key,
+    test?.bankQ?.opticAnswers,
+    test?.bankQ?.contentPayload?.answerKey,
     test?.contentPayload?.answerKey,
-    test?.contentPayload?.answer_key,
     test?.htmlPayload?.answerKey,
-    test?.htmlPayload?.answer_key,
     test?.pdfPayload?.answerKey,
-    test?.pdfPayload?.answer_key,
-    test?.metadata?.answerKey,
-    test?.metadata?.answer_key,
     test?.raw_data?.answerKey,
-    test?.raw_data?.answer_key,
-    test?.book?.answerKey,
-    test?.book?.answer_key
+    test?.metadata?.answerKey,
+    test?.book?.answerKey
   ];
 
   for (const keySource of testCandidateKeys) {
     if (!keySource) continue;
     let targetKeyVal = null;
 
-    if (Array.isArray(keySource)) {
+    if (Array.isArray(keySource) && keySource.length > 0) {
       targetKeyVal = keySource[qNo - 1] ?? keySource[String(qNo - 1)];
       if (targetKeyVal === undefined || targetKeyVal === null || targetKeyVal === '') {
         if (keySource[0] === null || keySource[0] === '' || keySource[0] === undefined) {
           targetKeyVal = keySource[qNo] ?? keySource[String(qNo)];
         }
       }
-    } else if (typeof keySource === 'object' && keySource !== null) {
+    } else if (typeof keySource === 'object' && keySource !== null && Object.keys(keySource).length > 0) {
       const isZeroIndexed = (0 in keySource) || ('0' in keySource);
       if (isZeroIndexed) {
         targetKeyVal = keySource[qNo - 1] ?? keySource[String(qNo - 1)] ?? keySource[qNo] ?? keySource[String(qNo)];
@@ -142,51 +170,34 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
           if (Array.isArray(parsed)) {
             targetKeyVal = parsed[qNo - 1] ?? parsed[qNo];
           } else if (typeof parsed === 'object') {
-            const is0 = (0 in parsed) || ('0' in parsed);
-            targetKeyVal = is0 ? (parsed[qNo - 1] ?? parsed[qNo]) : (parsed[qNo] ?? parsed[qNo - 1]);
+            targetKeyVal = parsed[qNo] ?? parsed[qNo - 1];
           }
         } catch {}
       }
       if (targetKeyVal === null || targetKeyVal === undefined) {
-        let cleanStr = keySource.replace(/[^A-Ea-e0-4]/g, '');
-        if (/[A-Ea-e]/.test(cleanStr)) {
-          cleanStr = cleanStr.replace(/[0-4]/g, '');
-        }
-        targetKeyVal = cleanStr[qNo - 1];
+        const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
+        targetKeyVal = clean[qNo - 1] ?? clean[0];
       }
     }
 
     if (targetKeyVal !== null && targetKeyVal !== undefined && targetKeyVal !== '' && targetKeyVal !== ' ') {
-      const targetIdx = normalizeAns(targetKeyVal);
+      const targetIdx = normalizeAnswerIndex(targetKeyVal);
       if (targetIdx !== null) {
         return userIdx === targetIdx;
       }
     }
   }
 
-  // --- Adım 3: bulkAnswerKey ---
-  const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey, test?.raw_data?.bulkAnswerKey];
+  // ── PRIORITY 4: bulkAnswerKey string ───────────────────────────────────────
+  const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey];
   for (const bulkStr of bulkSources) {
     if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
-      let cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
-      if (/[A-Ea-e]/.test(cleanBulk)) {
-        cleanBulk = cleanBulk.replace(/[0-4]/g, '');
-      }
-      const bulkKeyVal = cleanBulk[qNo - 1];
+      const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
+      const bulkKeyVal = cleanBulk[qNo - 1] ?? cleanBulk[0];
       if (bulkKeyVal) {
-        const targetIdx = normalizeAns(bulkKeyVal);
+        const targetIdx = normalizeAnswerIndex(bulkKeyVal);
         if (targetIdx !== null) return userIdx === targetIdx;
       }
-    }
-  }
-
-  // --- Adım 4: test.questionsList içinde bireysel soru doğrusu ---
-  const subQ = test?.questionsList?.[qNo - 1] || test?.questions?.[qNo - 1] || test?.resolvedQuestions?.[qNo - 1];
-  if (subQ) {
-    const subTarget = subQ.correctAnswer ?? subQ.correct_answer ?? subQ.correctAnswerLetter;
-    if (subTarget !== undefined && subTarget !== null && subTarget !== '') {
-      const targetIdx = normalizeAns(subTarget);
-      if (targetIdx !== null) return userIdx === targetIdx;
     }
   }
 

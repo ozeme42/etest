@@ -118,9 +118,9 @@ export default function MultipleChoiceReview({
   const normalizedCorrect = normalizeAns(rawCorrect);
 
   const hasSelected = normalizedUser !== null;
-  const effectiveIsCorrect = isCorrect !== null && isCorrect !== undefined
-    ? isCorrect
-    : (hasSelected && normalizedCorrect !== null ? normalizedUser === normalizedCorrect : null);
+  const effectiveIsCorrect = (hasSelected && normalizedCorrect !== null)
+    ? normalizedUser === normalizedCorrect
+    : (isCorrect !== null && isCorrect !== undefined ? isCorrect : null);
 
   const rawOptions = extractQuestionOptions(question);
   const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
