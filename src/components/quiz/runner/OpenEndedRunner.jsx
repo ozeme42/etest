@@ -111,8 +111,16 @@ export default function OpenEndedRunner({
     const urls = [];
     if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
     if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
+    if (Array.isArray(question?.images) && question.images.length > 0) urls.push(...question.images);
     if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
-    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
+    if (question?.contentPayload && typeof question.contentPayload === 'string') {
+      if (question.contentPayload.includes('\n\n') || question.contentPayload.includes('\n') || question.contentPayload.includes('|')) {
+        const parts = question.contentPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
+        urls.push(...parts);
+      } else if (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http')) {
+        urls.push(question.contentPayload);
+      }
+    }
     if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
     if (idbImage) urls.push(idbImage);
     return Array.from(new Set(urls.filter(Boolean)));

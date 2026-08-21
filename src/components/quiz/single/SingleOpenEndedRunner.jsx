@@ -242,10 +242,15 @@ export default function SingleOpenEndedRunner({
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {questions.map((q, idx) => {
                 const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
+                const qImgs = [];
+                if (qImage) qImgs.push(qImage);
+                if (Array.isArray(q.imageUrls)) qImgs.push(...q.imageUrls);
+                if (Array.isArray(q.images)) qImgs.push(...q.images);
                 return (
                   <OpenEndedRunner
                     key={q.id || idx}
                     question={{ ...q, imageUrl: qImage || q.imageUrl }}
+                    imageUrls={qImgs}
                     qNo={idx + 1}
                     totalQuestions={totalQuestions}
                     value={openEndedText[idx + 1] || ''}

@@ -2,6 +2,7 @@ import React, { memo, useMemo } from 'react';
 import OpenEndedRunner from '../../runner/OpenEndedRunner';
 import OpenEndedStatusPanel from '../../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../../runner/QuizPanelLayout';
+import { extractDirectImages } from '../../../../services/unifiedQuizAdapter';
 
 /**
  * CompositeOpenEndedSection
@@ -14,14 +15,11 @@ export default memo(function CompositeOpenEndedSection({
   onOpenDrawing,
   isMobile = false
 }) {
-  const questions = section.resolvedQuestions || [];
+  const questions = section.resolvedQuestions || section.questions || [];
   const totalCount = section.qCount || questions.length || 1;
 
   const sectionImages = useMemo(() => {
-    if (Array.isArray(section.imageUrls) && section.imageUrls.length > 0) return section.imageUrls;
-    if (section.imageUrl && typeof section.imageUrl === 'string') return [section.imageUrl];
-    if (section.contentPayload && typeof section.contentPayload === 'string' && (section.contentPayload.startsWith('data:image') || section.contentPayload.startsWith('http'))) return [section.contentPayload];
-    return [];
+    return extractDirectImages(section);
   }, [section]);
 
   return (
@@ -35,12 +33,12 @@ export default memo(function CompositeOpenEndedSection({
       documentContent={
         <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {questions.map((q, idx) => {
-            const qImages = [];
-            if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
-            if (q.imageUrl) qImages.push(q.imageUrl);
-            if (q.contentPayload) qImages.push(q.contentPayload);
+            const qImages = extractDirectImages(q);
+
             if (qImages.length === 0 && sectionImages.length > 0) {
               if (sectionImages.length === totalCount && sectionImages[idx]) {
+                qImages.push(sectionImages[idx]);
+              } else if (sectionImages[idx]) {
                 qImages.push(sectionImages[idx]);
               } else if (sectionImages[0]) {
                 qImages.push(sectionImages[0]);
