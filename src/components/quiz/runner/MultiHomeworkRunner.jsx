@@ -15,19 +15,100 @@ import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { wrapInStyledHtmlDocument } from '../../HtmlViewerWithControls';
-export function isQuestionOE(qObj, sec, test, userAnsObj) {
-  // 1. Explicitly multiple choice -> NEVER open-ended
+export function isSectionOpenEnded(sec = {}, test = {}) {
+  const bankQ = sec?.bankQ || {};
+
+  // 1. If explicitly declared multiple choice
   if (
-    qObj?.questionType === 'coktan_secmeli' ||
-    qObj?.type === 'coktan_secmeli' ||
-    qObj?.contentType === 'coktan_secmeli' ||
-    (Array.isArray(qObj?.options) && qObj.options.length >= 2) ||
-    (qObj?.correctAnswerLetter && /^[A-Ea-e]$/.test(String(qObj.correctAnswerLetter).trim()))
+    sec?.formatType === 'coktan_secmeli' ||
+    sec?.sourceFormat === 'coktan_secmeli' ||
+    sec?.questionType === 'coktan_secmeli' ||
+    sec?.type === 'coktan_secmeli' ||
+    bankQ?.formatType === 'coktan_secmeli' ||
+    bankQ?.sourceFormat === 'coktan_secmeli' ||
+    bankQ?.questionType === 'coktan_secmeli' ||
+    bankQ?.type === 'coktan_secmeli'
   ) {
     return false;
   }
 
-  // 2. Explicit question-level open-ended
+  // 2. Explicit section / bank question open-ended flags
+  if (
+    sec?.formatType === 'yazili' ||
+    sec?.sourceFormat === 'yazili' ||
+    sec?.formatType === 'gorsel_klasik' ||
+    sec?.sourceFormat === 'gorsel_klasik' ||
+    sec?.questionType === 'acik_uclu' ||
+    sec?.type === 'acik_uclu' ||
+    sec?.questionType === 'yazili' ||
+    sec?.type === 'yazili' ||
+    sec?.questionType === 'gorsel_klasik' ||
+    sec?.type === 'gorsel_klasik' ||
+    sec?.isOpenEnded === true ||
+    sec?.is_open_ended === true ||
+    sec?.openEnded === true ||
+    bankQ?.formatType === 'yazili' ||
+    bankQ?.sourceFormat === 'yazili' ||
+    bankQ?.formatType === 'gorsel_klasik' ||
+    bankQ?.sourceFormat === 'gorsel_klasik' ||
+    bankQ?.questionType === 'acik_uclu' ||
+    bankQ?.type === 'acik_uclu' ||
+    bankQ?.questionType === 'yazili' ||
+    bankQ?.type === 'yazili' ||
+    bankQ?.questionType === 'gorsel_klasik' ||
+    bankQ?.type === 'gorsel_klasik' ||
+    bankQ?.isOpenEnded === true ||
+    bankQ?.is_open_ended === true ||
+    bankQ?.openEnded === true
+  ) {
+    return true;
+  }
+
+  // 3. Test-level open-ended flags
+  if (
+    test?.examType === 'acik_uclu' ||
+    test?.formatType === 'yazili' ||
+    test?.sourceFormat === 'yazili' ||
+    test?.formatType === 'gorsel_klasik' ||
+    test?.sourceFormat === 'gorsel_klasik' ||
+    test?.isOpenEnded === true ||
+    test?.openEnded === true ||
+    test?.is_open_ended === true
+  ) {
+    return true;
+  }
+
+  // 4. Any question inside resolvedQuestions is open-ended
+  if (Array.isArray(sec?.resolvedQuestions) && sec.resolvedQuestions.length > 0) {
+    const hasOEQuestion = sec.resolvedQuestions.some(q => (
+      q?.questionType === 'acik_uclu' ||
+      q?.type === 'acik_uclu' ||
+      q?.contentType === 'acik_uclu' ||
+      q?.questionType === 'yazili' ||
+      q?.type === 'yazili' ||
+      q?.contentType === 'yazili' ||
+      q?.questionType === 'gorsel_klasik' ||
+      q?.type === 'gorsel_klasik' ||
+      q?.isOpenEnded === true ||
+      q?.openEnded === true ||
+      q?.is_open_ended === true
+    ));
+    if (hasOEQuestion) return true;
+  }
+
+  return false;
+}
+
+export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
+  // If the question explicitly has multiple options (e.g. [A, B, C, D]):
+  if (Array.isArray(qObj?.options) && qObj.options.length >= 2) {
+    return false;
+  }
+  if (qObj?.questionType === 'coktan_secmeli' || qObj?.type === 'coktan_secmeli') {
+    return false;
+  }
+
+  // If question itself is explicitly open-ended:
   if (
     qObj?.questionType === 'acik_uclu' ||
     qObj?.type === 'acik_uclu' ||
@@ -37,10 +118,6 @@ export function isQuestionOE(qObj, sec, test, userAnsObj) {
     qObj?.contentType === 'yazili' ||
     qObj?.questionType === 'gorsel_klasik' ||
     qObj?.type === 'gorsel_klasik' ||
-    qObj?.formatType === 'yazili' ||
-    qObj?.sourceFormat === 'yazili' ||
-    qObj?.formatType === 'gorsel_klasik' ||
-    qObj?.sourceFormat === 'gorsel_klasik' ||
     qObj?.isOpenEnded === true ||
     qObj?.openEnded === true ||
     qObj?.is_open_ended === true
@@ -48,40 +125,12 @@ export function isQuestionOE(qObj, sec, test, userAnsObj) {
     return true;
   }
 
-  // 3. Section-level explicit open-ended
-  if (
-    sec?.formatType === 'yazili' ||
-    sec?.sourceFormat === 'yazili' ||
-    sec?.formatType === 'gorsel_klasik' ||
-    sec?.sourceFormat === 'gorsel_klasik' ||
-    sec?.type === 'acik_uclu' ||
-    sec?.questionType === 'acik_uclu' ||
-    sec?.type === 'yazili' ||
-    sec?.questionType === 'yazili' ||
-    sec?.isOpenEnded === true ||
-    sec?.openEnded === true ||
-    sec?.is_open_ended === true ||
-    sec?.bankQ?.isOpenEnded === true ||
-    sec?.bankQ?.is_open_ended === true ||
-    sec?.bankQ?.formatType === 'yazili' ||
-    sec?.bankQ?.sourceFormat === 'yazili'
-  ) {
+  // If section/test is open-ended:
+  if (isSectionOpenEnded(sec, test)) {
     return true;
   }
 
-  // 4. Test-level explicit open-ended
-  if (
-    test?.examType === 'acik_uclu' ||
-    test?.formatType === 'yazili' ||
-    test?.sourceFormat === 'yazili' ||
-    test?.isOpenEnded === true ||
-    test?.openEnded === true ||
-    test?.is_open_ended === true
-  ) {
-    return true;
-  }
-
-  // 5. If submission contains user answer text or explicit isOpenEnded flag
+  // If student wrote open-ended answer text in submission:
   if (userAnsObj?.userAnswerText || userAnsObj?.textAns || userAnsObj?.isOpenEnded === true) {
     return true;
   }
@@ -91,7 +140,7 @@ export function isQuestionOE(qObj, sec, test, userAnsObj) {
 
 function checkIsOE(obj) {
   if (!obj) return false;
-  return isQuestionOE(obj, obj, null, null);
+  return isSectionOpenEnded(obj, null) || isQuestionOE(obj, obj, null, null);
 }
 
 // Safely unwraps user answer to a primitive number index (0, 1, 2, 3...) or null
