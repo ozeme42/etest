@@ -1541,7 +1541,31 @@ export function MonthlyListPanel({
         });
       });
 
-      const dayItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
+      const rawDayItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
+      const seenDayIds = new Map();
+      rawDayItems.forEach(item => {
+        const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+
+        let key = '';
+        if (item.testId) {
+          key = `test_${item.testId}`;
+        } else if (item.hwId && !item.testId) {
+          key = `hw_${item.hwId}`;
+        } else if (cleanTitle && (cleanSubject || cleanBook)) {
+          key = `content_${cleanBook}_${cleanSubject}_${cleanTitle}`;
+        } else {
+          key = String(item.id || '');
+        }
+
+        if (!key) return;
+        const existing = seenDayIds.get(key);
+        if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
+          seenDayIds.set(key, item);
+        }
+      });
+      const dayItems = Array.from(seenDayIds.values());
 
       daysList.push({
         day,
@@ -2924,10 +2948,36 @@ export default function ProgramCenter({
         });
       });
 
+      const rawWeeklyItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
+      const seenWeeklyIds = new Map();
+      rawWeeklyItems.forEach(item => {
+        const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+
+        let key = '';
+        if (item.testId) {
+          key = `test_${item.testId}`;
+        } else if (item.hwId && !item.testId) {
+          key = `hw_${item.hwId}`;
+        } else if (cleanTitle && (cleanSubject || cleanBook)) {
+          key = `content_${cleanBook}_${cleanSubject}_${cleanTitle}`;
+        } else {
+          key = String(item.id || '');
+        }
+
+        if (!key) return;
+        const existing = seenWeeklyIds.get(key);
+        if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
+          seenWeeklyIds.set(key, item);
+        }
+      });
+      const dayItems = Array.from(seenWeeklyIds.values());
+
       return {
         ...dayObj,
         dateLabel: dayInfo.dateLabel,
-        items: sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests)
+        items: dayItems
       };
     });
   }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books, studyPlans, studyAssignments]);

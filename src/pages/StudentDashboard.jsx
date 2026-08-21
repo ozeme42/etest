@@ -1757,14 +1757,28 @@ export default function StudentDashboard() {
           });
         });
 
-        // ID ve testId bazında tam tekilleştirme — done:true olanı önceliklendir (önceden kaydedilen duplikeleri temizle)
+        // ID, testId ve içerik (kitap + ders + test adı) bazında tam tekilleştirme — done:true ve testId içerenleri önceliklendir
         const rawAllItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
         const seenIds = new Map();
         rawAllItems.forEach(item => {
-          const key = item.testId ? `test_${item.testId}` : (item.hwId && !item.testId ? `hw_${item.hwId}` : String(item.id || ''));
+          const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+          const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+          const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+
+          let key = '';
+          if (item.testId) {
+            key = `test_${item.testId}`;
+          } else if (item.hwId && !item.testId) {
+            key = `hw_${item.hwId}`;
+          } else if (cleanTitle && (cleanSubject || cleanBook)) {
+            key = `content_${cleanBook}_${cleanSubject}_${cleanTitle}`;
+          } else {
+            key = String(item.id || '');
+          }
+
           if (!key) return;
           const existing = seenIds.get(key);
-          if (!existing || (!existing.done && item.done)) {
+          if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
             seenIds.set(key, item);
           }
         });
