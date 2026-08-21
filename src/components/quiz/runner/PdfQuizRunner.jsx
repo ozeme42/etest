@@ -410,13 +410,14 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
       return {
         questionId: qObj.id ? `${qObj.id}_${qNo}` : `q_${qNo}`,
         questionNo: qNo,
-        userAnswer: userAns !== undefined ? userAns : null,
+        userAnswer: isOpenEndedMode ? (textAns || null) : (userAns !== undefined ? userAns : null),
         userAnswerText: textAns || null,
-        isCorrect
+        isOpenEnded: isOpenEndedMode,
+        isCorrect: isOpenEndedMode ? null : isCorrect
       };
     });
 
-    onSubmit(formattedAnswers);
+    onSubmit(formattedAnswers, { isOpenEnded: isOpenEndedMode });
   };
 
   return (

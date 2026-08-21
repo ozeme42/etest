@@ -32,10 +32,21 @@ export default function QuizResultModal({
     submission?.test?.isOpenEnded ||
     test?.isOpenEnded ||
     test?.type === 'acik_uclu' ||
+    test?.type === 'yazili' ||
     test?.type === 'gorsel_klasik' ||
     test?.questionType === 'acik_uclu' ||
+    test?.questionType === 'yazili' ||
     test?.questionType === 'gorsel_klasik' ||
-    (test?.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('klasik'))) ||
+    test?.contentType === 'acik_uclu' ||
+    test?.contentType === 'yazili' ||
+    (test?.title && (
+      test.title.toLowerCase().includes('açık uçlu') ||
+      test.title.toLowerCase().includes('acik uclu') ||
+      test.title.toLowerCase().includes('yazılı') ||
+      test.title.toLowerCase().includes('yazili') ||
+      test.title.toLowerCase().includes('klasik')
+    )) ||
+    (Array.isArray(sectionBreakdown) && sectionBreakdown.length > 0 && sectionBreakdown.every(s => s.isOE)) ||
     (submission?.answers && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) ||
     (stats.pending > 0 && stats.correct === 0 && stats.wrong === 0)
   );

@@ -72,6 +72,7 @@ export default function CompositeHomeworkRunner({
     let totalCorrect = 0;
     let totalWrong = 0;
     let totalBlank = 0;
+    let totalPending = 0;
     let totalQuestions = 0;
     let totalEarned = 0;
     let totalMax = 0;
@@ -89,6 +90,7 @@ export default function CompositeHomeworkRunner({
       let secDoğru = 0;
       let secYanlış = 0;
       let secBoş = 0;
+      let secPending = 0;
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
@@ -103,7 +105,10 @@ export default function CompositeHomeworkRunner({
           isCorrect = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
         }
 
-        if (isCorrect === true) {
+        if (isQOE) {
+          secPending++;
+          totalPending++;
+        } else if (isCorrect === true) {
           secDoğru++;
           totalCorrect++;
           totalEarned += 10;
@@ -137,14 +142,15 @@ export default function CompositeHomeworkRunner({
         isOE,
         secDoğru,
         secYanlış,
-        secBoş
+        secBoş,
+        secPending
       });
     });
 
     const score = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
     const net = Math.max(0, totalCorrect - (totalWrong * 0.25));
 
-    setOverallResultStats({ correct: totalCorrect, wrong: totalWrong, blank: totalBlank, score, net, total: totalQuestions });
+    setOverallResultStats({ correct: totalCorrect, wrong: totalWrong, blank: totalBlank, pending: totalPending, score, net, total: totalQuestions });
     setSectionBreakdownStats(breakdown);
     setSubmissionPayload(formattedAnswers);
     setShowResultModal(true);
@@ -237,6 +243,8 @@ export default function CompositeHomeworkRunner({
         title={unifiedTest.title || 'Sınav Sonucu'}
         stats={overallResultStats || {}}
         sectionBreakdown={sectionBreakdownStats}
+        isOpenEnded={rawSections.every(s => s.type === 'open_ended')}
+        test={unifiedTest}
         onClose={handleConfirmClose}
         onReview={handleConfirmReview}
       />
