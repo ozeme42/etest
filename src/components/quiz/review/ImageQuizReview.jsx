@@ -276,11 +276,25 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         };
       });
 
+      let correct = 0;
+      let wrong = 0;
+      let blank = 0;
+      updatedAnswers.forEach(a => {
+        if (a.isCorrect === true) correct++;
+        else if (a.isCorrect === false) wrong++;
+        else blank++;
+      });
+
       const updatedSubPayload = {
         ...submission,
         answers: updatedAnswers,
+        teacherScores,
+        teacherNotes,
         score: scorePercentage,
         scorePercentage: scorePercentage,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
         status: 'evaluated',
         isEvaluated: true,
         isEvaluatedByTeacher: true,

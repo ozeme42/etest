@@ -366,10 +366,26 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         };
       });
 
+      let correct = 0;
+      let wrong = 0;
+      let blank = 0;
+      updatedAnswers.forEach(a => {
+        if (a.isCorrect === true) correct++;
+        else if (a.isCorrect === false) wrong++;
+        else blank++;
+      });
+
       const updatedSubPayload = {
         ...submission,
         answers: updatedAnswers,
+        teacherScores,
+        teacherNotes,
         score: scorePercentage,
+        scorePercentage,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
+        isEvaluated: true,
         isEvaluatedByTeacher: true,
         status: 'evaluated',
         teacherFeedback: overallFeedback,
