@@ -420,32 +420,102 @@ export default function ModularQuizReviewPage() {
       setQuestions(testQs || []);
     }
 
-    if (foundSubmission) {
-      if (foundSubmission.answers && Array.isArray(foundSubmission.answers) && foundTest) {
-        const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
-        if (sectionsArr.length > 0) {
-          let sectionIndex = 0;
-          let qCountInSection = 0;
-          foundSubmission.answers = foundSubmission.answers.map((ans) => {
-            if (ans.sectionId) return ans;
-            
-            let currentSec = sectionsArr[sectionIndex] || {};
-            let expectedCount = currentSec.questionCount || currentSec.totalQuestions || currentSec.qCount || currentSec.bankQ?.questionCount || currentSec.bankQ?.totalQuestions || 1;
-            
-            const enriched = {
-              ...ans,
-              sectionId: currentSec.id || `sec_${sectionIndex + 1}`,
-              sectionTitle: currentSec.title || `${sectionIndex + 1}. Bölüm`
-            };
-
-            qCountInSection++;
-            if (qCountInSection >= expectedCount && sectionIndex < sectionsArr.length - 1) {
-              sectionIndex++;
-              qCountInSection = 0;
-            }
-            return enriched;
-          });
+    if (foundSubmission && foundTest) {
+      const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
+      if (sectionsArr.length > 1) {
+        let combinedAnswers = Array.isArray(foundSubmission.answers) ? [...foundSubmission.answers] : [];
+        
+        if (!Array.isArray(foundSubmission.answers) && foundSubmission.answers && typeof foundSubmission.answers === 'object') {
+          combinedAnswers = Object.entries(foundSubmission.answers).map(([k, v]) => ({
+            questionNo: Number(k),
+            userAnswer: v
+          }));
         }
+
+        // For each section, ensure answers exist by checking all candidate submissions & local storage
+        sectionsArr.forEach((sec, sIdx) => {
+          const secId = String(sec.id || `sec_${sIdx + 1}`);
+          const secTitle = sec.title || `${sIdx + 1}. Bölüm`;
+          const cleanSecId = normalizeId(secId);
+          const rawId = sec.raw?.id ? String(sec.raw.id) : null;
+          const qId = sec.raw?.questionId ? String(sec.raw.questionId) : null;
+
+          const alreadyHasSec = combinedAnswers.some(a => 
+            String(a.sectionId) === secId || 
+            (rawId && String(a.sectionId) === rawId) || 
+            (qId && String(a.sectionId) === qId) ||
+            (a.sectionTitle && String(a.sectionTitle).toLowerCase().trim() === secTitle.toLowerCase().trim())
+          );
+
+          if (!alreadyHasSec) {
+            const secSub = allCandidatePool.find(s => {
+              if (!s) return false;
+              if (studentId && s.studentId && String(s.studentId) !== String(studentId)) return false;
+              const sTestId = String(s.testId || s.realTestId || s.bookTestId || s.id || '');
+              const sTitle = String(s.testTitle || s.title || '');
+              return sTestId === secId ||
+                     (rawId && sTestId === rawId) ||
+                     (qId && sTestId === qId) ||
+                     (cleanSecId && normalizeId(sTestId) === cleanSecId) ||
+                     (secTitle && sTitle.toLowerCase().trim() === secTitle.toLowerCase().trim());
+            });
+
+            if (secSub && Array.isArray(secSub.answers) && secSub.answers.length > 0) {
+              secSub.answers.forEach((ans, aIdx) => {
+                combinedAnswers.push({
+                  ...ans,
+                  sectionId: secId,
+                  sectionIndex: sIdx,
+                  sectionTitle: secTitle,
+                  questionNoInSection: ans.questionNoInSection || ans.questionNo || (aIdx + 1)
+                });
+              });
+            } else {
+              const draftKeys = [
+                `draft_quiz_${secId}_ans`,
+                rawId ? `draft_quiz_${rawId}_ans` : null,
+                `sub_latest_${secId}`,
+                rawId ? `sub_latest_${rawId}` : null
+              ].filter(Boolean);
+
+              for (const dk of draftKeys) {
+                try {
+                  const dRaw = localStorage.getItem(dk);
+                  if (dRaw) {
+                    const parsed = JSON.parse(dRaw);
+                    if (parsed && typeof parsed === 'object') {
+                      if (Array.isArray(parsed.answers)) {
+                        parsed.answers.forEach((ans, aIdx) => {
+                          combinedAnswers.push({
+                            ...ans,
+                            sectionId: secId,
+                            sectionIndex: sIdx,
+                            sectionTitle: secTitle,
+                            questionNoInSection: ans.questionNoInSection || ans.questionNo || (aIdx + 1)
+                          });
+                        });
+                        break;
+                      } else if (parsed.answers && typeof parsed.answers === 'object') {
+                        Object.entries(parsed.answers).forEach(([qNo, uVal]) => {
+                          combinedAnswers.push({
+                            sectionId: secId,
+                            sectionIndex: sIdx,
+                            sectionTitle: secTitle,
+                            questionNoInSection: Number(qNo),
+                            userAnswer: uVal
+                          });
+                        });
+                        break;
+                      }
+                    }
+                  }
+                } catch {}
+              }
+            }
+          }
+        });
+
+        foundSubmission.answers = combinedAnswers;
       }
       setSubmission(foundSubmission);
     }

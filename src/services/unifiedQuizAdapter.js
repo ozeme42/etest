@@ -540,6 +540,48 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
     });
   }
 
+  // Also ingest direct section maps if present in submission (e.g. submission.sections or submission.sectionAnswers)
+  const directSecMaps = [
+    submission.sections,
+    submission.sectionAnswers,
+    submission.raw_data?.sections,
+    submission.raw_data?.sectionAnswers,
+    submission.raw_data?.section_answers
+  ].filter(Boolean);
+
+  directSecMaps.forEach(dMap => {
+    if (typeof dMap === 'object' && !Array.isArray(dMap)) {
+      Object.entries(dMap).forEach(([sKey, sVal]) => {
+        if (!sVal || typeof sVal !== 'object') return;
+        const targetRange = sectionRanges.find(r => 
+          String(r.sec.id) === String(sKey) ||
+          String(r.sIdx) === String(sKey) ||
+          (r.sec.title && String(r.sec.title).toLowerCase().trim() === String(sKey).toLowerCase().trim())
+        );
+        if (targetRange) {
+          const tSecData = targetRange.secData;
+          if (sVal.answers && typeof sVal.answers === 'object') {
+            Object.entries(sVal.answers).forEach(([qNo, ansVal]) => {
+              const norm = normalizeOptionIndex(ansVal);
+              if (norm !== null) {
+                tSecData.answers[Number(qNo)] = norm;
+                tSecData.answers[String(qNo)] = norm;
+              }
+            });
+          }
+          if (sVal.openEndedText && typeof sVal.openEndedText === 'object') {
+            Object.entries(sVal.openEndedText).forEach(([qNo, txt]) => {
+              if (txt) {
+                tSecData.openEndedText[Number(qNo)] = String(txt);
+                tSecData.openEndedText[String(qNo)] = String(txt);
+              }
+            });
+          }
+        }
+      });
+    }
+  });
+
   // Teacher evaluation check
   const isTrulyEvaluated = Boolean(
     submission.isEvaluatedByTeacher === true ||
