@@ -21,8 +21,23 @@ import OpenEndedReview from '../review/OpenEndedReview';
 
 export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || {};
+  const resQs = Array.isArray(sec?.resolvedQuestions) && sec.resolvedQuestions.length > 0
+    ? sec.resolvedQuestions
+    : (Array.isArray(test?.questions) ? test.questions : []);
 
-  // 1. If explicitly declared multiple choice
+  // 1. If any question in this section has 2 or more options (A, B, C, D) -> STRICTLY MULTIPLE CHOICE
+  if (resQs.some(q => (Array.isArray(q?.options) && q.options.length >= 2) || (Array.isArray(q?.choices) && q.choices.length >= 2))) {
+    return false;
+  }
+
+  // 2. If section, bank question or test has an answer key with letter choices (A, B, C, D) -> STRICTLY MULTIPLE CHOICE
+  const ak = sec?.answerKey || bankQ?.answerKey || test?.answerKey;
+  if (ak) {
+    if (Array.isArray(ak) && ak.some(k => typeof k === 'string' && /^[A-E]$/i.test(k.trim()))) return false;
+    if (typeof ak === 'string' && /[A-E]/i.test(ak)) return false;
+  }
+
+  // 3. If explicitly declared multiple choice
   if (
     sec?.formatType === 'coktan_secmeli' ||
     sec?.sourceFormat === 'coktan_secmeli' ||
@@ -36,7 +51,7 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return false;
   }
 
-  // 2. Explicit section / bank question open-ended flags
+  // 4. Explicit section / bank question open-ended flags
   if (
     sec?.formatType === 'yazili' ||
     sec?.sourceFormat === 'yazili' ||
@@ -68,7 +83,7 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  // 3. Test-level open-ended flags
+  // 5. Test-level open-ended flags
   if (
     test?.examType === 'acik_uclu' ||
     test?.formatType === 'yazili' ||
@@ -82,9 +97,9 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  // 4. Any question inside resolvedQuestions is open-ended
-  if (Array.isArray(sec?.resolvedQuestions) && sec.resolvedQuestions.length > 0) {
-    const hasOEQuestion = sec.resolvedQuestions.some(q => (
+  // 6. Any question inside resolvedQuestions is open-ended
+  if (resQs.length > 0) {
+    const hasOEQuestion = resQs.some(q => (
       q?.questionType === 'acik_uclu' ||
       q?.type === 'acik_uclu' ||
       q?.contentType === 'acik_uclu' ||
@@ -106,6 +121,9 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
 export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
   // If the question explicitly has multiple options (e.g. [A, B, C, D]):
   if (Array.isArray(qObj?.options) && qObj.options.length >= 2) {
+    return false;
+  }
+  if (Array.isArray(qObj?.choices) && qObj.choices.length >= 2) {
     return false;
   }
   if (qObj?.questionType === 'coktan_secmeli' || qObj?.type === 'coktan_secmeli') {
@@ -2612,10 +2630,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
-  const secOE = Boolean(
-    isQuestionOE(activeSec, activeSec, test, null) ||
-    (activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(q => isQuestionOE(q, activeSec, test, null)))
-  );
+  const secOE = isSectionOpenEnded(activeSec, test);
   const activeBankQ = activeSec.bankQ || {};
 
   const [idbPayload, setIdbPayload] = useState(null);
