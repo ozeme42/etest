@@ -519,20 +519,41 @@ export default function ModularQuizPage() {
             sections
           });
         } else {
-          const singleQId = (Array.isArray(questionIdList) && questionIdList.length === 1)
-            ? (typeof questionIdList[0] === 'object' ? (questionIdList[0].id || questionIdList[0].questionId) : questionIdList[0])
-            : (foundTest.questionIds?.[0] || foundTest.id);
-          const bankQ = singleQId ? allBankQuestions?.find(q => String(q.id) === String(singleQId) || String(q.id).replace(/^q_?/, '') === String(singleQId).replace(/^q_?/, '')) : null;
+          const candidateIds = [
+            (Array.isArray(questionIdList) && questionIdList.length === 1 ? (typeof questionIdList[0] === 'object' ? (questionIdList[0].id || questionIdList[0].questionId) : questionIdList[0]) : null),
+            foundTest.sourceTestId,
+            foundTest.testId,
+            foundTest.questionId,
+            foundTest.sourceId,
+            foundTest.questionIds?.[0],
+            foundTest.selectedQuestions?.[0],
+            foundTest.id
+          ].filter(Boolean);
+
+          let bankQ = null;
+          for (const candId of candidateIds) {
+            const cleanCand = String(candId).replace(/^q_?|^hw_?/, '');
+            bankQ = allBankQuestions?.find(q => String(q.id) === String(candId) || String(q.id).replace(/^q_?|^hw_?/, '') === cleanCand);
+            if (bankQ) break;
+          }
 
           if (bankQ) {
             const merged = {
               ...bankQ,
               ...foundTest,
-              correctAnswer: bankQ.correctAnswer ?? foundTest.correctAnswer,
-              answerKey: bankQ.answerKey ?? foundTest.answerKey,
-              questionCount: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
-              totalQuestions: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
-              isOpenEnded: bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu' || foundTest.isOpenEnded
+              questionText: foundTest.questionText || bankQ.questionText || foundTest.text || bankQ.text,
+              options: (foundTest.options && foundTest.options.length > 0) ? foundTest.options : bankQ.options,
+              questionsList: (foundTest.questionsList && foundTest.questionsList.length > 0) ? foundTest.questionsList : bankQ.questionsList,
+              contentPayload: foundTest.contentPayload || bankQ.contentPayload,
+              pdfPayload: foundTest.pdfPayload || bankQ.pdfPayload,
+              htmlPayload: foundTest.htmlPayload || bankQ.htmlPayload,
+              imageUrls: (foundTest.imageUrls && foundTest.imageUrls.length > 0) ? foundTest.imageUrls : bankQ.imageUrls,
+              imageUrl: foundTest.imageUrl || bankQ.imageUrl,
+              correctAnswer: foundTest.correctAnswer !== undefined ? foundTest.correctAnswer : bankQ.correctAnswer,
+              answerKey: foundTest.answerKey || bankQ.answerKey,
+              questionCount: foundTest.questionCount || bankQ.questionCount || (bankQ.questionsList?.length) || (foundTest.questionsList?.length) || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+              totalQuestions: foundTest.totalQuestions || bankQ.totalQuestions || (bankQ.questionsList?.length) || (foundTest.questionsList?.length) || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+              isOpenEnded: Boolean(foundTest.isOpenEnded || bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu')
             };
             setTest(merged);
             const resolved = resolveTestQuestions(merged, allBankQuestions);

@@ -78,30 +78,46 @@ export function extractQuestionText(qObj, testObj = {}, index = 0) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
+  const isGenericSectionTitle = (str) => {
+    if (!str || typeof str !== 'string') return true;
+    const t = str.trim().toLowerCase();
+    return (
+      /^\d+\.\s*bölüm/i.test(t) ||
+      /^bölüm\s*\d+/i.test(t) ||
+      t === 'çoktan seçmeli bölüm' ||
+      t === 'açık uçlu bölüm' ||
+      t === 'genel test' ||
+      t === 'ödev testi' ||
+      t === 'sınav' ||
+      t === 'kitap testi' ||
+      t === 'kitap ödevi'
+    );
+  };
+
   const candidates = [
     qObj.questionText,
     qObj.text,
     qObj.question,
-    qObj.title,
+    qObj.soruMetni,
+    qObj.soru,
     qObj.questionTitle,
     qObj.stem,
     qObj.body,
     qObj.prompt,
-    qObj.soruMetni,
-    qObj.soru,
     qObj.content,
     qObj.description,
-    qObj.name,
     qObj.questionTextHtml,
     qObj.htmlText,
     qObj.html,
     (typeof qObj.contentPayload === 'string' && !qObj.contentPayload.startsWith('http') && !qObj.contentPayload.startsWith('data:') && !qObj.contentPayload.startsWith('[') && !qObj.contentPayload.startsWith('{') && qObj.contentPayload !== '[STORED_IN_INDEXEDDB]' && qObj.contentPayload !== '[LOCALSTORAGE_CACHE]' ? qObj.contentPayload : null),
-    (index === 0 ? (testObj.questionText || testObj.text || testObj.question || testObj.title) : null)
+    (qObj.title && !isGenericSectionTitle(qObj.title) ? qObj.title : null),
+    (index === 0 ? (testObj.questionText || testObj.text || testObj.soruMetni || testObj.soru || (testObj.title && !isGenericSectionTitle(testObj.title) ? testObj.title : null)) : null)
   ];
 
   for (const c of candidates) {
     if (c && typeof c === 'string' && c.trim() && !c.startsWith('data:') && !c.startsWith('http')) {
       const trimmed = c.trim();
+      if (isGenericSectionTitle(trimmed)) continue;
       const parsedOpts = parseOptionsFromText(trimmed);
       if (parsedOpts && parsedOpts.length >= 2) {
         return stripOptionsFromText(trimmed);
@@ -254,20 +270,23 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
     } catch {}
   }
 
-  // 3. If test has questionIds
-  if (rawQuestions.length === 0 && foundTest.questionIds && Array.isArray(foundTest.questionIds) && foundTest.questionIds.length > 0) {
+  // 3. If test has questionIds, selectedQuestions, tests, or items
+  const candidateIdList = foundTest.questionIds || foundTest.selectedQuestions || foundTest.tests || foundTest.items || null;
+  if (rawQuestions.length === 0 && Array.isArray(candidateIdList) && candidateIdList.length > 0) {
     const unbundled = [];
-    foundTest.questionIds.forEach((qId, idx) => {
+    candidateIdList.forEach((qId, idx) => {
+      const rawId = typeof qId === 'object' ? (qId.id || qId.questionId) : qId;
       const bankMatch = allBankQuestions.find(bq =>
-        String(bq.id) === String(qId) ||
-        normalizeId(bq.id) === normalizeId(qId)
-      );
+        String(bq.id) === String(rawId) ||
+        normalizeId(bq.id) === normalizeId(rawId)
+      ) || (typeof qId === 'object' ? qId : null);
+
       if (bankMatch) {
         if (bankMatch.questionsList && Array.isArray(bankMatch.questionsList) && bankMatch.questionsList.length > 0) {
           bankMatch.questionsList.forEach((subQ, subIdx) => {
             unbundled.push({
               ...subQ,
-              id: subQ.id || `${bankMatch.id || qId}_sub_${subIdx + 1}`,
+              id: subQ.id || `${bankMatch.id || rawId}_sub_${subIdx + 1}`,
               questionNo: subIdx + 1,
               questionText: extractQuestionText(subQ, bankMatch, subIdx),
               options: extractQuestionOptions(subQ, bankMatch)
@@ -281,7 +300,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
               list.forEach((subQ, subIdx) => {
                 unbundled.push({
                   ...subQ,
-                  id: subQ.id || `${bankMatch.id || qId}_sub_${subIdx + 1}`,
+                  id: subQ.id || `${bankMatch.id || rawId}_sub_${subIdx + 1}`,
                   questionNo: subIdx + 1,
                   questionText: extractQuestionText(subQ, bankMatch, subIdx),
                   options: extractQuestionOptions(subQ, bankMatch)
@@ -310,7 +329,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
         }
       } else {
         unbundled.push({
-          id: qId,
+          id: rawId,
           questionText: `Soru ${idx + 1}`,
           options: []
         });
@@ -376,11 +395,6 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
 
   return finalQuestions;
 }
-
-/**
- * Checks if a homework assignment applies to the given student.
- * Handles individual student IDs, grade IDs, class IDs, and grade names robustly.
- */
 export function isHomeworkForStudent(hw, student, grades = []) {
   if (!hw || !student) return false;
   const studentId = String(student.id || student.studentId || '');

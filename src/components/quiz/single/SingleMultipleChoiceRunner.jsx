@@ -27,10 +27,17 @@ export default function SingleMultipleChoiceRunner({
 
   // 1. Convert to unified standardized questions
   const unifiedTest = useMemo(() => {
-    return normalizeUnifiedTest(test, questions);
+    const rawWithQs = {
+      ...test,
+      resolvedQuestions: (questions && questions.length > 0) ? questions : test.resolvedQuestions,
+      questions: (questions && questions.length > 0) ? questions : test.questions
+    };
+    return normalizeUnifiedTest(rawWithQs, []);
   }, [test, questions]);
 
-  const activeQuestions = unifiedTest.sections[0]?.questions || questions;
+  const activeQuestions = (unifiedTest.sections[0]?.questions && unifiedTest.sections[0].questions.length > 0)
+    ? unifiedTest.sections[0].questions
+    : ((questions && questions.length > 0) ? questions : [test]);
   const totalQuestions = activeQuestions.length || 1;
 
   // 2. Answers State
