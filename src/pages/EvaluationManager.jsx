@@ -728,10 +728,10 @@ export default function EvaluationManager() {
 
       const isAlreadyEvaluated = Boolean(
         sub.isEvaluatedByTeacher === true ||
-        sub.isEvaluated === true ||
         sub.status === 'evaluated' ||
         sub.status === 'graded' ||
-        (sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote))
+        Boolean(sub.teacherFeedback || sub.teacherNote) ||
+        Boolean(sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote))
       );
 
       let hasWrittenAnswers = false;
@@ -757,9 +757,11 @@ export default function EvaluationManager() {
                                   sub.questionType === 'yazili' ||
                                   sub.contentType === 'acik_uclu' ||
                                   sub.contentType === 'yazili' ||
+                                  sub.type === 'open_ended' ||
                                   matchedBankQ?.type === 'open_ended' ||
                                   matchedHw?.type === 'open_ended' ||
                                   matchedBankQ?.isOpenEnded ||
+                                  matchedHw?.isOpenEnded ||
                                   hasOpenEndedSection;
 
       const titleLower = String(title).toLowerCase();
@@ -770,6 +772,10 @@ export default function EvaluationManager() {
                             titleLower.includes('yaztop') ||
                             titleLower.includes('metinaç') ||
                             titleLower.includes('metin') ||
+                            titleLower.includes('etiket') ||
+                            titleLower.includes('görsel') ||
+                            titleLower.includes('index') ||
+                            titleLower.includes('gggg') ||
                             titleLower.includes('klasik');
 
       const isPending = isManual
