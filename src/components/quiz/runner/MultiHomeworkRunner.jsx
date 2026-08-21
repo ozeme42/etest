@@ -15,46 +15,83 @@ import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { wrapInStyledHtmlDocument } from '../../HtmlViewerWithControls';
-function checkIsOE(obj) {
-  if (!obj) return false;
+export function isQuestionOE(qObj, sec, test, userAnsObj) {
+  // 1. Explicitly multiple choice -> NEVER open-ended
+  if (
+    qObj?.questionType === 'coktan_secmeli' ||
+    qObj?.type === 'coktan_secmeli' ||
+    qObj?.contentType === 'coktan_secmeli' ||
+    (Array.isArray(qObj?.options) && qObj.options.length >= 2) ||
+    (qObj?.correctAnswerLetter && /^[A-Ea-e]$/.test(String(qObj.correctAnswerLetter).trim()))
+  ) {
+    return false;
+  }
 
-  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
-  const hasOEWord = Boolean(titleStr && (
-    titleStr.includes('açık') ||
-    titleStr.includes('acik') ||
-    titleStr.includes('yaz') ||
-    titleStr.includes('yazılı') ||
-    titleStr.includes('yazili') ||
-    titleStr.includes('klasik')
-  ));
+  // 2. Explicit question-level open-ended
+  if (
+    qObj?.questionType === 'acik_uclu' ||
+    qObj?.type === 'acik_uclu' ||
+    qObj?.contentType === 'acik_uclu' ||
+    qObj?.questionType === 'yazili' ||
+    qObj?.type === 'yazili' ||
+    qObj?.contentType === 'yazili' ||
+    qObj?.questionType === 'gorsel_klasik' ||
+    qObj?.type === 'gorsel_klasik' ||
+    qObj?.formatType === 'yazili' ||
+    qObj?.sourceFormat === 'yazili' ||
+    qObj?.formatType === 'gorsel_klasik' ||
+    qObj?.sourceFormat === 'gorsel_klasik' ||
+    qObj?.isOpenEnded === true ||
+    qObj?.openEnded === true ||
+    qObj?.is_open_ended === true
+  ) {
+    return true;
+  }
 
-  const isOE = Boolean(
-    obj.questionType === 'acik_uclu' ||
-    obj.type === 'acik_uclu' ||
-    obj.contentType === 'acik_uclu' ||
-    obj.questionType === 'gorsel_klasik' ||
-    obj.type === 'gorsel_klasik' ||
-    obj.contentType === 'gorsel_klasik' ||
-    obj.questionType === 'yazili' ||
-    obj.type === 'yazili' ||
-    obj.contentType === 'yazili' ||
-    obj.formatType === 'yazili' ||
-    obj.sourceFormat === 'yazili' ||
-    obj.formatType === 'gorsel_klasik' ||
-    obj.sourceFormat === 'gorsel_klasik' ||
-    obj.isOpenEnded === true ||
-    obj.openEnded === true ||
-    obj.is_open_ended === true
-  );
+  // 3. Section-level explicit open-ended
+  if (
+    sec?.formatType === 'yazili' ||
+    sec?.sourceFormat === 'yazili' ||
+    sec?.formatType === 'gorsel_klasik' ||
+    sec?.sourceFormat === 'gorsel_klasik' ||
+    sec?.type === 'acik_uclu' ||
+    sec?.questionType === 'acik_uclu' ||
+    sec?.type === 'yazili' ||
+    sec?.questionType === 'yazili' ||
+    sec?.isOpenEnded === true ||
+    sec?.openEnded === true ||
+    sec?.is_open_ended === true ||
+    sec?.bankQ?.isOpenEnded === true ||
+    sec?.bankQ?.is_open_ended === true ||
+    sec?.bankQ?.formatType === 'yazili' ||
+    sec?.bankQ?.sourceFormat === 'yazili'
+  ) {
+    return true;
+  }
 
-  if (isOE || hasOEWord) return true;
+  // 4. Test-level explicit open-ended
+  if (
+    test?.examType === 'acik_uclu' ||
+    test?.formatType === 'yazili' ||
+    test?.sourceFormat === 'yazili' ||
+    test?.isOpenEnded === true ||
+    test?.openEnded === true ||
+    test?.is_open_ended === true
+  ) {
+    return true;
+  }
 
-  if (Array.isArray(obj.questions) && obj.questions.some(checkIsOE)) return true;
-  if (Array.isArray(obj.sections) && obj.sections.some(checkIsOE)) return true;
-  if (Array.isArray(obj.resolvedQuestions) && obj.resolvedQuestions.some(checkIsOE)) return true;
-  if (obj.bankQ && checkIsOE(obj.bankQ)) return true;
+  // 5. If submission contains user answer text or explicit isOpenEnded flag
+  if (userAnsObj?.userAnswerText || userAnsObj?.textAns || userAnsObj?.isOpenEnded === true) {
+    return true;
+  }
 
   return false;
+}
+
+function checkIsOE(obj) {
+  if (!obj) return false;
+  return isQuestionOE(obj, obj, null, null);
 }
 
 // Safely unwraps user answer to a primitive number index (0, 1, 2, 3...) or null
@@ -464,7 +501,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           const textVal = (rawTextVal !== undefined && rawTextVal !== null) ? String(rawTextVal) : '';
           const hasUserText = textVal.trim() !== '';
           const isAnswered = hasUserAns || hasUserText;
-          const isQOE = Boolean(isOpenEnded || checkIsOE(qObj) || checkIsOE(bankQ) || checkIsOE(test) || userAnsObj?.isOpenEnded || userAnsObj?.is_open_ended || textVal);
+          const isQOE = isQuestionOE(qObj, bankQ || test, test, userAnsObj);
 
           let isCorrect = null;
           if (isReviewMode && isAnswered) {
@@ -1001,7 +1038,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
 
     for (let i = 1; i <= secQCount; i++) {
       const qObj = (sec.resolvedQuestions && sec.resolvedQuestions[i - 1]) || {};
-      const isQOE = isSecOE || checkIsOE(qObj);
+      const isQOE = isQuestionOE(qObj, sec, null, sa.answers?.[i]);
       secMaxPts += 10;
       totalAllMaxPts += 10;
       totalAllQuestions++;
@@ -1865,7 +1902,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const userAns = ansObj !== undefined ? (typeof ansObj === 'object' ? ansObj?.userAnswer : ansObj) : null;
           const textAns = sa.openEndedText?.[qNo] || null;
           
-          const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
+          const isOE = isQuestionOE(qObj, sec, test, { userAnswerText: textAns, userAnswer: userAns });
+          const isCorrect = isOE ? null : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           formattedAnswers.push({
             questionId: qObj.id || `${sec.id}_${qNo}`,
@@ -1875,7 +1913,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             sectionTitle: sec.title,
             userAnswer: userAns !== undefined ? userAns : null,
             userAnswerText: textAns,
-            isOpenEnded: Boolean(checkIsOE(sec) || checkIsOE(bankQ) || checkIsOE(qObj) || textAns || (qObj.type === 'acik_uclu') || (qObj.questionType === 'acik_uclu') || (qObj.type === 'yazili') || (qObj.questionType === 'yazili')),
+            isOpenEnded: isOE,
             isCorrect,
             correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
           });
@@ -2056,28 +2094,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const rawUserAns = unwrapUserAnswer(a);
           const hasUserAns = rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '' && rawUserAns !== 'B' && rawUserAns !== 'empty';
           const hasUserText = Boolean(a.userAnswerText || a.user_answer_text || a.textAns);
-          const isParentOE = Boolean(
-            checkIsOE(test) ||
-            test?.isOpenEnded ||
-            test?.openEnded ||
-            test?.is_open_ended ||
-            String(test?.title || test?.name || '').toLowerCase().includes('açık') ||
-            String(test?.title || test?.name || '').toLowerCase().includes('acik') ||
-            String(test?.title || test?.name || '').toLowerCase().includes('yazılı') ||
-            (Array.isArray(rawAns) && rawAns.some(item => Boolean(item?.userAnswerText || item?.textAns || item?.isOpenEnded)))
-          );
-
-          const isItemOE = Boolean(
-            isParentOE ||
-            a.isOpenEnded ||
-            a.is_open_ended ||
-            a.userAnswerText ||
-            a.user_answer_text ||
-            a.textAns ||
-            (targetSec && (checkIsOE(targetSec) || checkIsOE(targetSec.bankQ))) ||
-            checkIsOE(qObj) ||
-            (qObj && (qObj.type === 'acik_uclu' || qObj.questionType === 'acik_uclu' || qObj.type === 'yazili' || qObj.questionType === 'yazili'))
-          );
+          const isItemOE = isQuestionOE(qObj, targetSec, test, a);
 
           if (isItemOE) {
             const hasTeacherGrade = Boolean(
@@ -2203,20 +2220,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
       const count = sec.qCount || secQs.length || 1;
-      const secOE = Boolean(
-        checkIsOE(test) ||
-        checkIsOE(sec) ||
-        checkIsOE(bankQ) ||
-        sec.isOpenEnded ||
-        sec.is_open_ended ||
-        bankQ?.isOpenEnded ||
-        (Array.isArray(userAnswers?.answers) && userAnswers.answers.some(a => a.userAnswerText || a.isOpenEnded))
-      );
-
       for (let i = 1; i <= count; i++) {
         maxPts += 10;
         const qObj = secQs[i - 1] || {};
-        const isQOE = secOE || checkIsOE(qObj);
+        const isQOE = isQuestionOE(qObj, sec, test, sa.answers?.[i]);
 
         const teacherSc = teacherScores[sec.id]?.[i];
         const hasTeacherGraded = isQOE
@@ -2423,16 +2430,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       const sa = sectionAnswers[sec.id] || {};
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
-
-      const isSecOE = Boolean(
-        checkIsOE(test) ||
-        checkIsOE(sec) ||
-        checkIsOE(bankQ) ||
-        sec.isOpenEnded ||
-        sec.is_open_ended ||
-        bankQ?.isOpenEnded
-      );
-
       const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
       const secQCount = sec.qCount || (sec.resolvedQuestions?.length > 0 ? sec.resolvedQuestions.length : (secImgCount > 0 ? secImgCount : 1));
 
@@ -2443,15 +2440,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         const userAns = ansObj !== undefined ? (typeof ansObj === 'object' ? ansObj?.userAnswer : ansObj) : null;
         const textAns = sa.openEndedText?.[qNo] || null;
 
-        const isQOE = Boolean(
-          isSecOE ||
-          checkIsOE(qObj) ||
-          textAns ||
-          (qObj.type === 'acik_uclu') ||
-          (qObj.questionType === 'acik_uclu') ||
-          (qObj.type === 'yazili') ||
-          (qObj.questionType === 'yazili')
-        );
+        const isQOE = isQuestionOE(qObj, sec, test, ansObj || (textAns ? { userAnswerText: textAns } : null));
 
         const isCorrect = isQOE
           ? null
@@ -2571,12 +2560,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
   const secOE = Boolean(
-    checkIsOE(test) ||
-    checkIsOE(activeSec.bankQ) ||
-    checkIsOE(activeSec) ||
-    (activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(checkIsOE)) ||
-    (Array.isArray(userAnswers?.answers) && userAnswers.answers.some(a => a.userAnswerText || a.isOpenEnded)) ||
-    (Array.isArray(userAnswers?.raw_data?.answers) && userAnswers.raw_data.answers.some(a => a.userAnswerText || a.isOpenEnded))
+    isQuestionOE(activeSec, activeSec, test, null) ||
+    (activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(q => isQuestionOE(q, activeSec, test, null)))
   );
   const activeBankQ = activeSec.bankQ || {};
 
@@ -3446,7 +3431,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     const idx = Math.min(Math.max(0, activeImageQIdx), Math.max(0, effectiveQCount - 1));
                     const qNo = idx + 1;
                     const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
-                    const isQOpenEnded = secOE || checkIsOE(qObj);
+                    const userAnsObj = Array.isArray(activeSecState.answers)
+                      ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
+                      : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
+                    const isQOpenEnded = isQuestionOE(qObj, activeSec, test, userAnsObj);
 
                     let questionImageUrls = [];
                     if (effectiveSecImages.length > 0) {
@@ -3458,9 +3446,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     }
                     const imageUrls = extractImageUrls(questionImageUrls);
 
-                    const userAnsObj = Array.isArray(activeSecState.answers)
-                      ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
-                      : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
                     const rawSelectedOpt = unwrapUserAnswer(userAnsObj);
                     const numericSelectedOpt = typeof rawSelectedOpt === 'number' ? rawSelectedOpt : null;
                     const hasVisualAns = numericSelectedOpt !== null && !isNaN(numericSelectedOpt);
@@ -4013,7 +3998,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 {Array.from({ length: effectiveQCount }).map((_, idx) => {
                   const qNo = idx + 1;
                   const qObj = (effectiveResolvedQuestions && effectiveResolvedQuestions[idx]) || {};
-                  const isQOpenEnded = secOE || checkIsOE(qObj);
+                  const userAnsObj = Array.isArray(activeSecState.answers)
+                    ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
+                    : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
+                  const isQOpenEnded = isQuestionOE(qObj, activeSec, test, userAnsObj);
 
                   const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
 
@@ -4034,10 +4022,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
                     ? (isFourOpts && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
                     : (isFourOpts ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
-
-                  const userAnsObj = Array.isArray(activeSecState.answers)
-                    ? (activeSecState.answers[qNo] ?? activeSecState.answers[idx])
-                    : (activeSecState.answers?.[qNo] ?? activeSecState.answers?.[String(qNo)]);
                   const rawSelectedOpt = unwrapUserAnswer(userAnsObj);
                   const numericSelectedOpt = typeof rawSelectedOpt === 'number' ? rawSelectedOpt : null;
                   const hasStdAns = numericSelectedOpt !== null && !isNaN(numericSelectedOpt);
