@@ -25,11 +25,121 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
+import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
+
+function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
+  if (!sub) return null;
+  const isMultiSec = Boolean(
+    hw?.isBulk ||
+    hw?.type === 'multi' ||
+    sub?.type === 'multi' ||
+    (Array.isArray(hw?.sections) && hw.sections.length > 1) ||
+    (Array.isArray(hw?.tests) && hw.tests.length > 1) ||
+    (Array.isArray(hw?.items) && hw.items.length > 1) ||
+    (sub?.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 1)
+  );
+
+  if (!isMultiSec) return null;
+
+  try {
+    const unifiedTest = normalizeUnifiedTest(hw || sub, allQuestions);
+    const rawSections = unifiedTest.sections;
+    if (!rawSections || rawSections.length === 0) return null;
+
+    const unifiedSub = normalizeUnifiedSubmission(sub, unifiedTest);
+    const sectionAnswersMap = unifiedSub.sections || {};
+    const teacherScores = sub.teacherScores || sub.scores || (sub.raw_data && (sub.raw_data.teacherScores || sub.raw_data.scores)) || {};
+
+    let totalQuestions = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+    let pendingCount = 0;
+
+    rawSections.forEach((sec, sIdx) => {
+      const sa = sectionAnswersMap[sec.id] ||
+                 sectionAnswersMap[sIdx] ||
+                 sectionAnswersMap[String(sIdx)] ||
+                 (sec.title && sectionAnswersMap[sec.title]) ||
+                 (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
+                 (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
+                 { answers: {}, openEndedText: {}, teacherScores: {} };
+
+      const secQs = sec.questions || [];
+      const count = sec.qCount || secQs.length || 1;
+      const isSecOpenEnded = sec.type === 'open_ended';
+
+      for (let i = 1; i <= count; i++) {
+        totalQuestions++;
+        const qObj = secQs[i - 1] || {};
+        const isQOE = isSecOpenEnded ||
+                      qObj.type === 'open_ended' ||
+                      qObj.type === 'acik_uclu' ||
+                      qObj.type === 'yazili' ||
+                      qObj.questionType === 'acik_uclu' ||
+                      qObj.questionType === 'yazili' ||
+                      Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim() !== '') ||
+                      Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim() !== '');
+
+        const teacherScore = teacherScores[sec.id]?.[i] ??
+                             teacherScores[sIdx]?.[i] ??
+                             sa.teacherScores?.[i] ??
+                             sa.teacherScores?.[String(i)];
+
+        if (isQOE) {
+          if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
+            const scNum = Number(teacherScore);
+            if (scNum > 0) {
+              correctCount++;
+            } else {
+              wrongCount++;
+            }
+          } else {
+            pendingCount++;
+          }
+        } else {
+          // Multiple choice
+          const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
+            blankCount++;
+          } else {
+            const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
+            if (isCorr === true) {
+              correctCount++;
+            } else if (isCorr === false) {
+              wrongCount++;
+            } else {
+              wrongCount++;
+            }
+          }
+        }
+      }
+    });
+
+    const totalScored = correctCount + wrongCount + blankCount;
+    const scorePct = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
+    const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+    const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
+
+    return {
+      total: totalQuestions,
+      correct: correctCount,
+      wrong: wrongCount,
+      blank: blankCount,
+      pending: pendingCount,
+      scorePct,
+      netScore
+    };
+  } catch (err) {
+    console.warn('computeUnifiedSubmissionStats error:', err);
+    return null;
+  }
+}
 
 /* ── Subject Config ─────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
@@ -611,20 +721,35 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
 
-      if (!isOpenEnded && Array.isArray(sub.answers) && sub.answers.length > 0) {
-        correct = 0; wrong = 0; blank = 0; pending = 0;
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+        let aCorr = 0;
+        let aWrong = 0;
+        let aEmpty = 0;
+        let aPend = 0;
         sub.answers.forEach((ans, aIdx) => {
           const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
           const userAns = ans.userAnswer;
           const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
-          if (isOE) {
-            pending++;
+          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
+
+          if (isOE || numScore !== null) {
+            if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
+              aCorr++;
+            } else if (ans.evalStatus === 'empty') {
+              aEmpty++;
+            } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+              const isB = (userAns === null || userAns === undefined || userAns === '') && !ans.userAnswerText;
+              if (isB) aEmpty++;
+              else aWrong++;
+            } else {
+              aPend++;
+            }
             return;
           }
 
           const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
           if (!hasOption) {
-            blank++;
+            aEmpty++;
             return;
           }
 
@@ -641,16 +766,23 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             isRight = checkIsAnswerCorrect(userAns, null, hw, qNo);
           }
 
-          if (isRight === true) correct++;
-          else if (isRight === false) wrong++;
-          else blank++;
+          if (isRight === true) aCorr++;
+          else if (isRight === false) aWrong++;
+          else aEmpty++;
         });
+
+        if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
+          correct = aCorr;
+          wrong = aWrong;
+          blank = aEmpty;
+          pending = aPend;
+        }
       }
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank;
       const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || raw.totalQuestions || 0;
-      const total = Math.max(rawTotal, ansCount, sumCount, 1);
+      let total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
 
@@ -667,23 +799,19 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         score = Math.min(100, Math.max(0, Math.round(raw.score)));
       }
 
-      const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
-      const subjKey = getSubjectKey({
-        testTitle: hw.title || curInfo.title,
-        subjectKey: hw.subject || curInfo.subject || sub.subjectKey
-      });
-
-      const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
-      const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
-
-      processedTestKeys.add(String(hw.id));
-      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
-      if (sub.id) processedTestKeys.add(String(sub.id));
-      if (sub.testId) processedTestKeys.add(String(sub.testId));
-
-      const calcNet = (correct > 0 || wrong > 0)
+      let calcNet = (correct > 0 || wrong > 0)
         ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
         : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
+
+      const unifiedStats = computeUnifiedSubmissionStats(sub, hw, allBankQuestions || []);
+      if (unifiedStats) {
+        correct = unifiedStats.correct;
+        wrong = unifiedStats.wrong;
+        blank = unifiedStats.blank;
+        total = unifiedStats.total;
+        score = unifiedStats.scorePct;
+        calcNet = unifiedStats.netScore;
+      }
 
       results.push({
         ...sub,
@@ -729,18 +857,34 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-        correct = 0; wrong = 0; blank = 0; pending = 0;
+        let aCorr = 0;
+        let aWrong = 0;
+        let aEmpty = 0;
+        let aPend = 0;
         sub.answers.forEach((ans, aIdx) => {
           const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
           const userAns = ans.userAnswer;
           const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
-          if (isOE) {
-            pending++;
+          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
+
+          if (isOE || numScore !== null) {
+            if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
+              aCorr++;
+            } else if (ans.evalStatus === 'empty') {
+              aEmpty++;
+            } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
+              const isB = (userAns === null || userAns === undefined || userAns === '') && !ans.userAnswerText;
+              if (isB) aEmpty++;
+              else aWrong++;
+            } else {
+              aPend++;
+            }
             return;
           }
+
           const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
           if (!hasOption) {
-            blank++;
+            aEmpty++;
             return;
           }
 
@@ -757,10 +901,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             isRight = checkIsAnswerCorrect(userAns, null, sub, qNo);
           }
 
-          if (isRight === true) correct++;
-          else if (isRight === false) wrong++;
-          else blank++;
+          if (isRight === true) aCorr++;
+          else if (isRight === false) aWrong++;
+          else aEmpty++;
         });
+
+        if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
+          correct = aCorr;
+          wrong = aWrong;
+          blank = aEmpty;
+          pending = aPend;
+        }
       }
 
       if (correct === 0 && wrong === 0 && blank === 0 && pending === 0 && (!sub.answers || sub.answers.length === 0)) return;
@@ -843,7 +994,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank + pending;
       const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || bankQ?.questionCount || 0;
-      const total = Math.max(rawTotal, ansCount, sumCount, 1);
+      let total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       const isOpenEnded = Boolean(
         sub.isOpenEnded ||
@@ -865,6 +1016,20 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
       } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.score)));
+      }
+
+      let calcNet = (correct > 0 || wrong > 0)
+        ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
+        : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
+
+      const unifiedStats = computeUnifiedSubmissionStats(sub, hwObj || testObj, allBankQuestions || []);
+      if (unifiedStats) {
+        correct = unifiedStats.correct;
+        wrong = unifiedStats.wrong;
+        blank = unifiedStats.blank;
+        total = unifiedStats.total;
+        scorePct = unifiedStats.scorePct;
+        calcNet = unifiedStats.netScore;
       }
 
       const isPendingApproval = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));
@@ -904,9 +1069,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         pendingCount: pending,
         totalQuestions: total,
         computedScore: scorePct,
-        totalNet: (correct > 0 || wrong > 0)
-          ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
-          : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0),
+        totalNet: calcNet,
         submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
       });
     });
