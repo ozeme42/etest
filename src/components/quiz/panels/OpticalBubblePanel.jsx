@@ -1,9 +1,11 @@
-import React, { memo } from 'react';
-import { Check } from 'lucide-react';
+import React, { memo, useMemo } from 'react';
+import { Check, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 
 /**
  * OpticalBubblePanel
- * Right-side optical answer sheet panel dedicated exclusively to Multiple-Choice questions.
+ * Right-side optical answer sheet panel for Multiple-Choice questions.
+ * Handles both active quiz answering and detailed review / analysis mode with Correct / Wrong / Blank color coding.
  */
 export default memo(function OpticalBubblePanel({
   qCount = 1,
@@ -14,30 +16,126 @@ export default memo(function OpticalBubblePanel({
   resolvedQuestions = [],
   testCtx = {}
 }) {
-  const options = Number(optionsCount) === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
   const totalCount = Math.max(qCount, resolvedQuestions.length, 1);
+  const options = Number(optionsCount) === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
+  const normalizeAns = (val) => {
+    if (val === null || val === undefined || val === '' || val === 'empty') return null;
+    if (typeof val === 'number') return val;
+    const str = String(val).trim().toUpperCase();
+    if (/^[A-E]$/.test(str)) return str.charCodeAt(0) - 65;
+    const num = Number(str);
+    return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
+  };
+
+  // Review stats
+  const reviewStats = useMemo(() => {
+    if (!isReviewMode) return null;
+    let d = 0;
+    let y = 0;
+    let b = 0;
+
+    for (let i = 1; i <= totalCount; i++) {
+      const u = normalizeAns(answers[i]);
+      const q = resolvedQuestions[i - 1] || {};
+      const c = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[i - 1]);
+
+      if (u === null) {
+        b++;
+      } else if (c !== null && u === c) {
+        d++;
+      } else if (c !== null && u !== c) {
+        y++;
+      } else {
+        d++;
+      }
+    }
+    const successRate = totalCount > 0 ? Math.round((d / totalCount) * 100) : 0;
+    return { d, y, b, successRate };
+  }, [isReviewMode, answers, resolvedQuestions, totalCount, testCtx]);
+
+  const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#ffffff' }}>
       {/* Panel Header */}
-      <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            📋 Optik Cevap Kağıdı
+      <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isReviewMode ? '0.45rem' : 0 }}>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            📋 {isReviewMode ? 'Optik Değerlendirme' : 'Optik Cevap Kağıdı'}
           </h4>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #bfdbfe' }}>
-            {Object.keys(answers).length} / {totalCount} Kodlandı
-          </span>
+          {!isReviewMode ? (
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              background: answeredCount === totalCount ? '#dcfce7' : '#eff6ff',
+              color: answeredCount === totalCount ? '#15803d' : '#1d4ed8',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '0.4rem',
+              border: `1px solid ${answeredCount === totalCount ? '#86efac' : '#bfdbfe'}`
+            }}>
+              {answeredCount} / {totalCount} Kodlandı
+            </span>
+          ) : (
+            <span style={{
+              fontSize: '0.78rem',
+              fontWeight: 900,
+              background: reviewStats?.successRate >= 50 ? '#dcfce7' : '#fee2e2',
+              color: reviewStats?.successRate >= 50 ? '#15803d' : '#b91c1c',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '0.4rem'
+            }}>
+              %{reviewStats?.successRate || 0} Başarı
+            </span>
+          )}
         </div>
+
+        {/* Review summary badges in header */}
+        {isReviewMode && reviewStats && (
+          <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>
+            <span style={{ background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #86efac' }}>
+              {reviewStats.d} Doğru
+            </span>
+            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #fca5a5' }}>
+              {reviewStats.y} Yanlış
+            </span>
+            <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1' }}>
+              {reviewStats.b} Boş
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Optical Bubbles Grid */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {Array.from({ length: totalCount }).map((_, idx) => {
             const qNo = idx + 1;
-            const userAns = answers[qNo];
-            const hasAns = userAns !== undefined && userAns !== null && userAns !== '';
+            const userAns = normalizeAns(answers[qNo]);
+            const hasAns = userAns !== null;
+            const q = resolvedQuestions[idx] || {};
+            const correctAns = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
+
+            const isCorrect = isReviewMode && hasAns && correctAns !== null ? userAns === correctAns : null;
+
+            let rowBg = '#ffffff';
+            let rowBorder = '1px solid #e2e8f0';
+
+            if (isReviewMode) {
+              if (!hasAns) {
+                rowBg = '#f8fafc';
+                rowBorder = '1px solid #e2e8f0';
+              } else if (isCorrect === true) {
+                rowBg = '#f0fdf4';
+                rowBorder = '1px solid #86efac';
+              } else if (isCorrect === false) {
+                rowBg = '#fef2f2';
+                rowBorder = '1px solid #fca5a5';
+              }
+            } else if (hasAns) {
+              rowBg = '#f0fdf4';
+              rowBorder = '1px solid #bbf7d0';
+            }
 
             return (
               <div
@@ -46,22 +144,69 @@ export default memo(function OpticalBubblePanel({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.5rem 0.75rem',
+                  padding: '0.45rem 0.7rem',
                   borderRadius: '0.65rem',
-                  background: hasAns ? '#f0fdf4' : '#ffffff',
-                  border: hasAns ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                  background: rowBg,
+                  border: rowBorder,
                   transition: 'all 0.15s ease'
                 }}
               >
-                {/* Question Number */}
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: hasAns ? '#15803d' : '#64748b', minWidth: '28px' }}>
-                  {qNo}.
-                </span>
+                {/* Question Number & Status Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    color: isReviewMode ? (isCorrect === true ? '#15803d' : (isCorrect === false ? '#b91c1c' : '#64748b')) : (hasAns ? '#15803d' : '#64748b'),
+                    minWidth: '24px'
+                  }}>
+                    {qNo}.
+                  </span>
+                  {isReviewMode && (
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                      {!hasAns ? (
+                        <span style={{ color: '#64748b' }}>Boş</span>
+                      ) : isCorrect === true ? (
+                        <span style={{ color: '#15803d' }}>✓</span>
+                      ) : (
+                        <span style={{ color: '#b91c1c' }}>✗</span>
+                      )}
+                    </span>
+                  )}
+                </div>
 
                 {/* Option Bubbles */}
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
                   {options.map((letter, optIdx) => {
                     const isSelected = userAns === optIdx;
+                    const isKeyOption = isReviewMode && correctAns === optIdx;
+
+                    let btnBg = '#ffffff';
+                    let btnBorder = '1.5px solid #cbd5e1';
+                    let btnColor = '#334155';
+
+                    if (isReviewMode) {
+                      if (isSelected) {
+                        if (isCorrect === true) {
+                          btnBg = '#16a34a';
+                          btnBorder = '2px solid #16a34a';
+                          btnColor = '#ffffff';
+                        } else {
+                          btnBg = '#dc2626';
+                          btnBorder = '2px solid #dc2626';
+                          btnColor = '#ffffff';
+                        }
+                      } else if (isKeyOption && !isCorrect) {
+                        // Highlight the correct answer if student got wrong or left blank
+                        btnBg = '#dcfce7';
+                        btnBorder = '2px solid #16a34a';
+                        btnColor = '#15803d';
+                      }
+                    } else if (isSelected) {
+                      btnBg = '#2563eb';
+                      btnBorder = '2px solid #2563eb';
+                      btnColor = '#ffffff';
+                    }
+
                     return (
                       <button
                         key={letter}
@@ -69,20 +214,20 @@ export default memo(function OpticalBubblePanel({
                         disabled={isReviewMode}
                         onClick={() => onSelectOption && onSelectOption(qNo, optIdx)}
                         style={{
-                          width: '32px',
-                          height: '32px',
+                          width: '30px',
+                          height: '30px',
                           borderRadius: '50%',
-                          border: isSelected ? '2px solid #16a34a' : '1.5px solid #cbd5e1',
-                          background: isSelected ? '#16a34a' : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#334155',
+                          border: btnBorder,
+                          background: btnBg,
+                          color: btnColor,
                           fontWeight: 900,
-                          fontSize: '0.82rem',
+                          fontSize: '0.8rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: isReviewMode ? 'default' : 'pointer',
                           transition: 'all 0.15s ease',
-                          boxShadow: isSelected ? '0 2px 6px rgba(22, 163, 74, 0.3)' : 'none'
+                          boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.15)' : 'none'
                         }}
                       >
                         {letter}
