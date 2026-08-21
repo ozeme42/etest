@@ -40,6 +40,14 @@ function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000,
   return col2.length > 0 ? [col1, col2] : [col1];
 }
 
+const MISTAKE_REASON_OPTIONS = [
+  { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+];
+
 export default function TrackedBookQuizRunner() {
   const { testId: routeParamId } = useParams();
   const [searchParams] = useSearchParams();

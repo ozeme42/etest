@@ -16,10 +16,14 @@ const LazyPdfPage = forwardRef(function LazyPdfPage({
     stylusOnly = false, 
     overlayRef 
 }, ref) {
-    const pageNo = Number(pageNumber || (typeof index === 'number' ? index + 1 : 1)) || 1;
-    const currentScale = Number(scale || pdfScale || 1) || 1;
+    const rawPageNo = Number(pageNumber || (typeof index === 'number' ? index + 1 : 1));
+    const pageNo = (!isNaN(rawPageNo) && rawPageNo > 0) ? rawPageNo : 1;
+    const rawScale = Number(scale || pdfScale || 1);
+    const currentScale = (!isNaN(rawScale) && rawScale > 0) ? rawScale : 1;
     const isDrawing = Boolean(isDrawingMode || isDrawingOpen);
-    const effectiveWidth = containerWidth > 32 ? (containerWidth - 32) * currentScale : undefined;
+    
+    const numWidth = typeof containerWidth === 'number' ? containerWidth : Number(containerWidth);
+    const effectiveWidth = (!isNaN(numWidth) && numWidth > 32) ? Math.round(numWidth - 32) : undefined;
 
     const [hasIntersected, setHasIntersected] = useState(pageNo <= 2);
     const containerRef = useRef(null);
@@ -48,7 +52,7 @@ const LazyPdfPage = forwardRef(function LazyPdfPage({
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'column',
-            width: effectiveWidth || 'auto',
+            width: effectiveWidth ? `${effectiveWidth}px` : 'auto',
             maxWidth: '100%'
         }}>
             {hasIntersected ? (
