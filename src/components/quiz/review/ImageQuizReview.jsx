@@ -376,9 +376,10 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const qObj = questions[i] || bundleQ || {};
       const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
       
-      const userAns = ans?.userAnswer;
-      const textAns = ans?.userAnswerText;
-      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || (textAns && String(textAns).trim() !== '');
+      const rawAns = unwrapUserAnswer(ans?.userAnswer ?? ans);
+      const userAns = typeof rawAns === 'number' ? rawAns : (rawAns || null);
+      const textAns = typeof ans?.userAnswerText === 'string' ? ans.userAnswerText.trim() : '';
+      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || textAns.length > 0;
       
       const teacherSc = questionScores[qNo];
       let isC = null;
@@ -395,7 +396,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const item = {
         userAnswer: userAns,
         userAnswerText: textAns,
-        isCorrect: isC,
+        isCorrect: hasAns ? isC : null,
         hasAnswer: hasAns
       };
 

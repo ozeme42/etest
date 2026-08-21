@@ -1,6 +1,22 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react';
 
+function checkIsBlank(userAns) {
+  if (!userAns) return true;
+  if (userAns.hasAnswer === false) return true;
+  if (userAns.evalStatus === 'empty' || userAns.eval_status === 'empty' || userAns.score === 'empty') return true;
+  
+  let val = userAns.userAnswer !== undefined ? userAns.userAnswer : (userAns.answer !== undefined ? userAns.answer : (userAns.selectedOption !== undefined ? userAns.selectedOption : userAns));
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    val = val.userAnswer ?? val.selectedOption ?? val.answer ?? val.value;
+  }
+  
+  const isNoVal = (val === undefined || val === null || val === '' || val === 'empty' || val === 'null' || val === 'Boş' || val === 'boş');
+  const txt = typeof userAns.userAnswerText === 'string' ? userAns.userAnswerText.trim() : (typeof userAns.textAns === 'string' ? userAns.textAns.trim() : '');
+  
+  return isNoVal && txt.length === 0;
+}
+
 export default function QuestionGridNav({
   totalQuestions,
   currentIndex,
@@ -83,18 +99,16 @@ export default function QuestionGridNav({
           const isActive = idx === currentIndex;
           const qNo = idx + 1;
           const userAns = Array.isArray(answers)
-            ? answers[idx]
+            ? (answers[idx] ?? answers[qNo])
             : (answers[qNo] ?? answers[String(qNo)] ?? answers[idx] ?? answers[String(idx)]);
 
-          let isAnswered = false;
+          const isBlank = checkIsBlank(userAns);
+          const isAnswered = !isBlank;
           let isCorrect = null;
 
-          if (userAns) {
-            if (userAns.isCorrect !== undefined) isCorrect = userAns.isCorrect;
-            if (userAns.hasAnswer !== undefined) isAnswered = userAns.hasAnswer;
-            else {
-              if (userAns.userAnswer !== undefined && userAns.userAnswer !== null && userAns.userAnswer !== '' && userAns.userAnswer !== 'empty') isAnswered = true;
-              if (userAns.userAnswerText && userAns.userAnswerText.trim() !== '') isAnswered = true;
+          if (isAnswered && userAns) {
+            if (userAns.isCorrect !== undefined && userAns.isCorrect !== null) {
+              isCorrect = userAns.isCorrect === true;
             }
           }
 
@@ -112,7 +126,7 @@ export default function QuestionGridNav({
               textColor = darkMode ? '#f87171' : '#b91c1c';
               borderColor = darkMode ? '#dc2626' : '#fca5a5';
             } else {
-              // Boş / Yanıtlanmadı
+              // Boş / Yanıtlanmadı: Asla kırmızı olamaz!
               bgColor = darkMode ? '#0f172a' : '#f8fafc';
               textColor = darkMode ? '#94a3b8' : '#64748b';
               borderColor = darkMode ? '#334155' : '#cbd5e1';
