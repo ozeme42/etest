@@ -4,6 +4,7 @@ import { useTeacherGrading } from '../hooks/useTeacherGrading';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../../../utils/answerEvaluation';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 import SectionTabBar from './navigation/SectionTabBar';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
@@ -62,16 +63,15 @@ export default function CompositeHomeworkReview({
   const { payload: activePayload } = useQuizPayloads(activeSec, test);
 
   const sectionAnswersMap = unifiedSub.sections;
-  const currentSecAnswers = sectionAnswersMap[activeSec.id] ||
-                            sectionAnswersMap[activeSecIdx] ||
+  const currentSecAnswers = sectionAnswersMap[activeSecIdx] ||
                             sectionAnswersMap[String(activeSecIdx)] ||
-                            (activeSec.title && sectionAnswersMap[activeSec.title]) ||
+                            sectionAnswersMap[activeSec.id] ||
                             (activeSec.raw?.id && sectionAnswersMap[activeSec.raw.id]) ||
                             (activeSec.raw?.questionId && sectionAnswersMap[activeSec.raw.questionId]) ||
                             { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
   const currentSecQuestions = activeSec.questions || [];
 
-  const isSecOE = activeSec.type === 'open_ended';
+  const isSecOE = activeSec.type === 'open_ended' || isSectionOpenEnded(activeSec, test);
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
@@ -84,17 +84,16 @@ export default function CompositeHomeworkReview({
     let pendingCount = 0;
 
     rawSections.forEach((sec, sIdx) => {
-      const sa = sectionAnswersMap[sec.id] ||
-                 sectionAnswersMap[sIdx] ||
+      const sa = sectionAnswersMap[sIdx] ||
                  sectionAnswersMap[String(sIdx)] ||
-                 (sec.title && sectionAnswersMap[sec.title]) ||
+                 sectionAnswersMap[sec.id] ||
                  (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
                  (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
                  { answers: {}, openEndedText: {}, teacherScores: {} };
 
-      const secQs = sec.questions || [];
+      const secQs = sec.questions || sec.resolvedQuestions || [];
       const count = sec.qCount || secQs.length || 1;
-      const isSecOpenEnded = sec.type === 'open_ended';
+      const isSecOpenEnded = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
