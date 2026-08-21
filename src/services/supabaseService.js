@@ -658,7 +658,7 @@ export async function dbGetSubmissions(studentId) {
         approvedByName: meta?.approvedByName || null,
         approvedAt: meta?.approvedAt || null,
         rejectedReason: meta?.rejectedReason || null,
-        isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || isApproved),
+        isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || meta?.isEvaluatedByTeacher || meta?.is_evaluated_by_teacher),
         teacherFeedback: s.teacher_feedback || null,
         totalScorePoints: s.total_score_points || null,
         maxPossibleScore: s.max_possible_score || null,
