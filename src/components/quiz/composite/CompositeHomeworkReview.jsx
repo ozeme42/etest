@@ -23,10 +23,10 @@ export default function CompositeHomeworkReview({
   submission = {},
   test = {},
   questions = [],
+  isTeacher = false,
   onClose
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTeacher = true;
 
   // 1. Build standardized sections array
   const rawSections = useMemo(() => {
@@ -162,29 +162,32 @@ export default function CompositeHomeworkReview({
               cursor: 'pointer'
             }}
           >
-            Kapat
+            {isTeacher ? 'Kapat' : 'Kapat & Çık'}
           </button>
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={handleSaveAndClose}
-            style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '0.75rem',
-              border: 'none',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 900,
-              fontSize: '0.85rem',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-            }}
-          >
-            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet'}
-          </button>
+
+          {isTeacher && (
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleSaveAndClose}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+              }}
+            >
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet'}
+            </button>
+          )}
         </div>
       </div>
 

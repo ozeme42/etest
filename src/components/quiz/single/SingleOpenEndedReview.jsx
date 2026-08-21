@@ -4,20 +4,22 @@ import OpenEndedReview from '../review/OpenEndedReview';
 import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import { useTeacherGrading } from '../hooks/useTeacherGrading';
-import { ArrowLeft, Save, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, Clock } from 'lucide-react';
 
 /**
  * SingleOpenEndedReview
- * Dedicated, isolated review & teacher grading screen strictly for Single Open-Ended assignments.
+ * Dedicated review screen for Single Open-Ended assignments.
+ * For Students: Clean read-only view of their submitted answers and teacher evaluations.
+ * For Teachers: Interactive grading & scoring controls.
  */
 export default function SingleOpenEndedReview({
   submission = {},
   test = {},
   questions = [],
+  isTeacher = false,
   onClose
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTeacher = true; // In review mode, enable grading controls
 
   const {
     teacherScores,
@@ -51,6 +53,12 @@ export default function SingleOpenEndedReview({
   }
 
   const totalQuestions = questions.length || answers.length || 1;
+  const isEvaluated = Boolean(
+    submission.isEvaluatedByTeacher ||
+    submission.status === 'evaluated' ||
+    submission.status === 'graded' ||
+    answers.some(a => a.evaluatedByTeacher || a.evaluatedAt || (typeof a.score === 'number' && a.score > 0))
+  );
 
   const handleSaveAndClose = async () => {
     await saveGrading();
@@ -88,10 +96,12 @@ export default function SingleOpenEndedReview({
           </button>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
-              ✍️ {test.title || 'Açık Uçlu Sınav Değerlendirmesi'}
+              ✍️ {test.title || (isTeacher ? 'Açık Uçlu Sınav Değerlendirmesi' : 'Açık Uçlu Sınav İncelemesi')}
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706' }}>
-              Öğrenci: {submission.studentName || 'Öğrenci'} • {totalQuestions} Yazılı Soru
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isEvaluated ? '#16a34a' : '#d97706' }}>
+              {isTeacher
+                ? `Öğrenci: ${submission.studentName || 'Öğrenci'} • ${totalQuestions} Yazılı Soru`
+                : (isEvaluated ? `Puanlandı • %${submission.score ?? 0} Başarı` : `${totalQuestions} Yazılı Soru • Öğretmen Değerlendirmesi Bekleniyor`)}
             </span>
           </div>
         </div>
@@ -111,29 +121,32 @@ export default function SingleOpenEndedReview({
               cursor: 'pointer'
             }}
           >
-            Kapat
+            {isTeacher ? 'Kapat' : 'Kapat & Çık'}
           </button>
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={handleSaveAndClose}
-            style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '0.75rem',
-              border: 'none',
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 900,
-              fontSize: '0.85rem',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-            }}
-          >
-            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet'}
-          </button>
+
+          {isTeacher && (
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleSaveAndClose}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+              }}
+            >
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -141,7 +154,7 @@ export default function SingleOpenEndedReview({
       <div style={{ flex: 1, minHeight: 0 }}>
         <QuizPanelLayout
           panelTitle="Yazılı Yanıtlar"
-          panelSubtitle="Değerlendirme"
+          panelSubtitle={isTeacher ? 'Değerlendirme' : 'Cevap Durumu'}
           icon="✍️"
           defaultPosition="right"
           defaultSize={300}
@@ -161,29 +174,44 @@ export default function SingleOpenEndedReview({
                     qNo={qNo}
                     totalQuestions={totalQuestions}
                     userAnswerText={userText}
+                    studentAnswerText={userText}
                     teacherScore={teacherScore}
                     teacherNote={teacherNote}
                     onScoreChange={(sc) => handleScoreChange('sec_1', qNo, sc)}
                     onNoteChange={(nt) => handleNoteChange('sec_1', qNo, nt)}
                     isTeacher={isTeacher}
+                    isTeacherMode={isTeacher}
                     isMobile={isMobile}
                   />
                 );
               })}
 
               {/* Overall Feedback Box */}
-              <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: '0.4rem' }}>
-                  💬 Öğrenciye Genel Geri Bildirim Notu:
-                </label>
-                <textarea
-                  rows="3"
-                  value={overallFeedback}
-                  onChange={(e) => setOverallFeedback(e.target.value)}
-                  placeholder="Sınavın geneli hakkında öğrenciye tavsiyelerinizi yazabilirsiniz..."
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                />
-              </div>
+              {isTeacher ? (
+                <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: '0.4rem' }}>
+                    💬 Öğrenciye Genel Geri Bildirim Notu:
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={overallFeedback}
+                    onChange={(e) => setOverallFeedback(e.target.value)}
+                    placeholder="Sınavın geneli hakkında öğrenciye tavsiyelerinizi yazabilirsiniz..."
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              ) : (
+                overallFeedback && (
+                  <div style={{ background: '#f5f3ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #ddd6fe' }}>
+                    <h4 style={{ margin: '0 0 0.4rem', fontSize: '0.9rem', fontWeight: 900, color: '#6b21a8' }}>
+                      💬 Öğretmeninizin Genel Notu:
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e1b4b', lineHeight: 1.5 }}>
+                      {overallFeedback}
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           }
           answerContent={

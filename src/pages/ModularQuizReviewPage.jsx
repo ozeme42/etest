@@ -6,6 +6,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { toUUID } from '../services/supabaseService';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -28,6 +29,7 @@ export default function ModularQuizReviewPage() {
   const studentId = searchParams.get('studentId');
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { currentUser } = useAuth();
 
   const { homeworks, isLoading: hwLoading } = useHomework();
   const { submissions, isLoading: subLoading } = useEvaluation();
@@ -519,6 +521,14 @@ export default function ModularQuizReviewPage() {
 
   const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && (isWritten || isSectionOpenEnded(test));
 
+  const isTeacher = Boolean(
+    currentUser?.role === 'teacher' ||
+    currentUser?.role === 'admin' ||
+    searchParams.get('teacher') === 'true' ||
+    searchParams.get('from') === 'teacher' ||
+    searchParams.get('from') === 'evaluation'
+  );
+
   const handleCloseReview = () => {
     if (location.state?.from) {
       navigate(location.state.from, { replace: true });
@@ -542,6 +552,7 @@ export default function ModularQuizReviewPage() {
         test={test}
         questions={questions}
         submission={submission}
+        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );
@@ -554,6 +565,7 @@ export default function ModularQuizReviewPage() {
         submission={submission}
         test={test}
         questions={questions}
+        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );
