@@ -11,14 +11,34 @@ export default function QuizResultModal({
   title = 'Sınav Sonucu',
   stats = { correct: 0, wrong: 0, blank: 0, pending: 0, score: 0, net: 0, total: 1 },
   isOpenEnded = false,
+  submission,
+  test,
   sectionBreakdown = [],
   onClose,
-  onReview
+  onReview,
+  onConfirmClose,
+  onConfirmReview
 }) {
   if (!isOpen) return null;
 
+  const handleClose = onConfirmClose || onClose;
+  const handleReview = onConfirmReview || onReview;
+
   const isMultiSection = Array.isArray(sectionBreakdown) && sectionBreakdown.length > 1;
-  const isPureOpenEnded = isOpenEnded || (stats.pending > 0 && stats.correct === 0 && stats.wrong === 0);
+
+  const isPureOpenEnded = Boolean(
+    isOpenEnded ||
+    submission?.isOpenEnded ||
+    submission?.test?.isOpenEnded ||
+    test?.isOpenEnded ||
+    test?.type === 'acik_uclu' ||
+    test?.type === 'gorsel_klasik' ||
+    test?.questionType === 'acik_uclu' ||
+    test?.questionType === 'gorsel_klasik' ||
+    (test?.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('klasik'))) ||
+    (submission?.answers && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) ||
+    (stats.pending > 0 && stats.correct === 0 && stats.wrong === 0)
+  );
 
   return (
     <div style={{
@@ -46,7 +66,7 @@ export default function QuizResultModal({
       }}>
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           style={{
             position: 'absolute',
             top: '1.1rem',
@@ -71,15 +91,15 @@ export default function QuizResultModal({
           width: '68px',
           height: '68px',
           borderRadius: '50%',
-          background: isPureOpenEnded ? '#fef3c7' : '#eff6ff',
-          color: isPureOpenEnded ? '#d97706' : '#2563eb',
+          background: isPureOpenEnded ? '#f5f3ff' : '#eff6ff',
+          color: isPureOpenEnded ? '#7c3aed' : '#2563eb',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 1.15rem',
           fontSize: '1.85rem'
         }}>
-          {isPureOpenEnded ? '📥' : <Award size={34} />}
+          {isPureOpenEnded ? '⏳' : <Award size={34} />}
         </div>
 
         {/* Title & Subtitle */}
@@ -88,25 +108,25 @@ export default function QuizResultModal({
         </h2>
         <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 1.35rem' }}>
           {isPureOpenEnded
-            ? 'Cevaplarınız başarıyla kaydedildi ve öğretmen değerlendirmesine gönderildi.'
+            ? 'Cevaplarınız başarıyla kaydedildi ve öğretmen değerlendirmesine iletildi.'
             : 'Sınavınızı başarıyla tamamladınız. İşte detaylı karneniz:'}
         </p>
 
         {/* Score & Key Metrics Banner */}
         {isPureOpenEnded ? (
           <div style={{
-            background: '#fffbeb',
-            border: '1.5px solid #fde68a',
+            background: '#faf5ff',
+            border: '1.5px solid #ddd6fe',
             borderRadius: '1.15rem',
             padding: '1.35rem',
             marginBottom: '1.5rem',
-            boxShadow: '0 4px 12px rgba(217, 119, 6, 0.08)'
+            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.08)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#b45309', fontWeight: 900, fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#6b21a8', fontWeight: 900, fontSize: '1rem' }}>
               <Clock size={20} /> Öğretmen Değerlendirmesi Bekleniyor
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#92400e', margin: '0.6rem 0 0', lineHeight: 1.55 }}>
-              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip puanladıktan sonra nihai sonuçlarınız ve karneniz güncellenecektir.
+            <p style={{ fontSize: '0.85rem', color: '#581c87', margin: '0.6rem 0 0', lineHeight: 1.55 }}>
+              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip notlandırdıktan sonra nihai sonuçlarınız ve karneniz güncellenecektir.
             </p>
           </div>
         ) : (
@@ -170,7 +190,7 @@ export default function QuizResultModal({
 
                   <div>
                     {sec.isOE ? (
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '0.2rem 0.5rem', borderRadius: '0.35rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6b21a8', background: '#f5f3ff', padding: '0.2rem 0.5rem', borderRadius: '0.35rem', border: '1px solid #ddd6fe' }}>
                         Değerlendirme Bekliyor
                       </span>
                     ) : (
@@ -188,7 +208,7 @@ export default function QuizResultModal({
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               flex: 1,
               padding: '0.85rem',
@@ -202,9 +222,9 @@ export default function QuizResultModal({
           >
             Kapat & Çık
           </button>
-          {onReview && (
+          {handleReview && (
             <button
-              onClick={onReview}
+              onClick={handleReview}
               style={{
                 flex: 1,
                 padding: '0.85rem',

@@ -277,6 +277,7 @@ export default function SingleOpenEndedRunner({
       {showResultModal && (
         <QuizResultModal
           isOpen={showResultModal}
+          isOpenEnded={true}
           onClose={() => setShowResultModal(false)}
           onConfirmClose={handleConfirmClose}
           onConfirmReview={handleConfirmReview}
