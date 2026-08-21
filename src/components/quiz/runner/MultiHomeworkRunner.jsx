@@ -14,7 +14,11 @@ import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet
 import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { wrapInStyledHtmlDocument } from '../../HtmlViewerWithControls';
+import MultipleChoiceRunner from './MultipleChoiceRunner';
+import OpenEndedRunner from './OpenEndedRunner';
+import MultipleChoiceReview from '../review/MultipleChoiceReview';
+import OpenEndedReview from '../review/OpenEndedReview';
+
 export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || {};
 
@@ -3600,296 +3604,84 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       : null;
 
                     const teacherSc = teacherScores[activeSec.id]?.[qNo];
-                    const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
-                    const currentTeacherScore = hasTeacherGraded ? teacherSc : (isQOpenEnded ? undefined : (isQAnswered ? (isQCorrect === true ? 10 : (isQCorrect === false ? 0 : 0)) : 'empty'));
+
+                    const optionsCount = (
+                      Number(test?.optionCount) === 5 ||
+                      Number(test?.optionsCount) === 5 ||
+                      Number(test?.book?.optionCount) === 5 ||
+                      String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+                      test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS'
+                    ) ? 5 : 4;
+
+                    if (isReviewMode) {
+                      if (isQOpenEnded) {
+                        return (
+                          <OpenEndedReview
+                            question={qObj}
+                            qNo={qNo}
+                            totalQuestions={effectiveQCount}
+                            studentAnswerText={textVal}
+                            teacherScore={teacherSc}
+                            teacherNote={teacherNotes[activeSec.id]?.[qNo] || ''}
+                            onSetTeacherScore={(sc) => setTeacherScores(p => ({
+                              ...p,
+                              [activeSec.id]: { ...(p[activeSec.id] || {}), [qNo]: sc }
+                            }))}
+                            onSetTeacherNote={(note) => setTeacherNotes(p => ({
+                              ...p,
+                              [activeSec.id]: { ...(p[activeSec.id] || {}), [qNo]: note }
+                            }))}
+                            isTeacherMode={isTeacherMode}
+                            imageUrls={imageUrls}
+                            onOpenLightbox={(src) => setLightboxSrc(src)}
+                            isMobile={isMobile}
+                          />
+                        );
+                      }
+                      return (
+                        <MultipleChoiceReview
+                          question={qObj}
+                          qNo={qNo}
+                          totalQuestions={effectiveQCount}
+                          selectedOption={hasVisualAns ? numericSelectedOpt : null}
+                          correctOption={numericCorrectAns}
+                          isCorrect={isQCorrect}
+                          optionsCount={optionsCount}
+                          imageUrls={imageUrls}
+                          onOpenLightbox={(src) => setLightboxSrc(src)}
+                          isMobile={isMobile}
+                        />
+                      );
+                    }
+
+                    if (isQOpenEnded) {
+                      return (
+                        <OpenEndedRunner
+                          question={qObj}
+                          qNo={qNo}
+                          totalQuestions={effectiveQCount}
+                          answerText={textVal}
+                          onChangeAnswerText={(val) => handleTextChange(activeSec.id, qNo, val)}
+                          imageUrls={imageUrls}
+                          onOpenLightbox={(src) => setLightboxSrc(src)}
+                          onOpenDrawing={() => setIsDrawingOpen(true)}
+                          isMobile={isMobile}
+                        />
+                      );
+                    }
 
                     return (
-                      <div style={{
-                        background: '#ffffff',
-                        borderRadius: '1.25rem',
-                        border: isReviewMode
-                          ? (currentTeacherScore === 10 || isQCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isQAnswered && !hasTeacherGraded) ? '1.5px solid #cbd5e1' : (isQOpenEnded && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isQCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
-                          : '1.5px solid #e2e8f0',
-                        padding: isMobile ? '1rem' : '1.5rem',
-                        boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1.25rem'
-                      }}>
-                        
-                        {/* QUESTION HEADER */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ padding: '0.35rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.9rem' }}>
-                              SORU {qNo} / {effectiveQCount}
-                            </span>
-                            {isQOpenEnded && (
-                              <span style={{ padding: '0.2rem 0.6rem', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                                ✍️ Açık Uçlu / Yazılı
-                              </span>
-                            )}
-                          </div>
-
-                          {isReviewMode ? (
-                            isQOpenEnded ? (
-                              hasTeacherGraded ? (
-                                currentTeacherScore === 10 ? (
-                                  <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                                ) : currentTeacherScore === 5 ? (
-                                  <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                                ) : currentTeacherScore === 'empty' ? (
-                                  <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                                ) : currentTeacherScore === 0 ? (
-                                  <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                                ) : (
-                                  <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>{currentTeacherScore} Puan</span>
-                                )
-                              ) : isTeacherMode ? (
-                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                              ) : (
-                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
-                              )
-                            ) : (
-                              !isQAnswered ? (
-                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                              ) : isQCorrect === true ? (
-                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                              ) : (
-                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                              )
-                            )
-                          ) : (
-                            isQAnswered || textVal ? (
-                              <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900 }}>✓ Cevaplandı</span>
-                            ) : (
-                              <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
-                            )
-                          )}
-                        </div>
-
-                        {/* QUESTION IMAGES */}
-                        {imageUrls.map((url, imgIdx) => (
-                          <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} onOpenFullscreen={() => setLightboxSrc(url)} />
-                        ))}
-
-                        {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
-                        {!isQOpenEnded ? (
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            {(() => {
-                              const isExplicitFive = Boolean(
-                                Number(test?.optionCount) === 5 ||
-                                Number(test?.optionsCount) === 5 ||
-                                Number(test?.book?.optionCount) === 5 ||
-                                String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
-                                test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-                                test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
-                                Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-                                Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
-                              );
-                              const isFourOptions = !isExplicitFive;
-                              const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
-                              return optList.map((opt, optIdx) => {
-                                const isSelected = hasVisualAns && numericSelectedOpt === optIdx;
-                                const isCorrectOpt = (isReviewMode && isQCorrect && isSelected)
-                                  ? true
-                                  : (numericCorrectAns !== null && numericCorrectAns !== undefined && numericCorrectAns === optIdx);
-
-                                let bg = '#ffffff';
-                                let border = '1.5px solid #cbd5e1';
-                                let color = '#334155';
-
-                                if (isReviewMode) {
-                                  if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
-                                  else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
-                                  else if (isCorrectOpt) {
-                                    if (hasVisualAns) {
-                                      bg = '#f0fdf4'; border = '2.5px solid #16a34a'; color = '#15803d';
-                                    } else {
-                                      bg = '#f0f9ff'; border = '2px dashed #0284c7'; color = '#0369a1';
-                                    }
-                                  }
-                                } else if (isSelected) {
-                                  bg = '#059669';
-                                  border = 'none'; color = 'white';
-                                }
-
-                                return (
-                                  <button
-                                    key={opt}
-                                    onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
-                                    disabled={isReviewMode}
-                                    style={{
-                                      flex: 1,
-                                      height: '46px',
-                                      borderRadius: '0.75rem',
-                                      border,
-                                      background: bg,
-                                      color,
-                                      fontWeight: 900,
-                                      fontSize: '1.05rem',
-                                      cursor: isReviewMode ? 'default' : 'pointer',
-                                      transition: 'all 0.15s ease',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.25)' : 'none'
-                                    }}
-                                    title={isReviewMode && isCorrectOpt && !hasVisualAns ? `Cevap Anahtarı: ${opt}` : undefined}
-                                  >
-                                    {isReviewMode && isSelected && isCorrectOpt ? `${opt} ✓` : isReviewMode && isSelected && !isCorrectOpt ? `${opt} ✗` : isReviewMode && isCorrectOpt ? (hasVisualAns ? `${opt} ✓` : `${opt} 🔑`) : opt}
-                                  </button>
-                                );
-                              });
-                            })()}
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {isReviewMode && textVal && (
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Öğrenci Yanıtı:</div>
-                            )}
-                            <textarea
-                              value={textVal}
-                              onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
-                              readOnly={isReviewMode}
-                              placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                              rows={4}
-                              style={{
-                                width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
-                                background: '#ffffff',
-                                border: isReviewMode
-                                  ? (textVal ? '1.5px solid #10b981' : '1px solid #cbd5e1')
-                                  : '1px solid #cbd5e1',
-                                color: '#0f172a', fontFamily: 'inherit', fontSize: '0.95rem',
-                                resize: isReviewMode ? 'none' : 'vertical',
-                                boxSizing: 'border-box', outline: 'none',
-                                cursor: isReviewMode ? 'default' : 'text'
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        {/* Öğretmen Puanlama Butonları (Sadece Öğretmen Modunda) */}
-                        {isTeacherMode && (
-                          <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
-                                🎯 Öğretmen Puanlaması (Soru {qNo}):
-                              </span>
-                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTeacherScores(p => ({
-                                      ...p,
-                                      [activeSec.id]: {
-                                        ...(p[activeSec.id] || {}),
-                                        [qNo]: 10
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                    border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                                    background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
-                                    color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
-                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                  }}
-                                >
-                                  ✓ Doğru (D)
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTeacherScores(p => ({
-                                      ...p,
-                                      [activeSec.id]: {
-                                        ...(p[activeSec.id] || {}),
-                                        [qNo]: 0
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                    border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                                    background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
-                                    color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
-                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                  }}
-                                >
-                                  ✗ Yanlış (Y)
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTeacherScores(p => ({
-                                      ...p,
-                                      [activeSec.id]: {
-                                        ...(p[activeSec.id] || {}),
-                                        [qNo]: 'empty'
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                    border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                                    background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
-                                    color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
-                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                  }}
-                                >
-                                  ○ Boş (B)
-                                </button>
-                                {isQOpenEnded && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setTeacherScores(p => ({
-                                        ...p,
-                                        [activeSec.id]: {
-                                          ...(p[activeSec.id] || {}),
-                                          [qNo]: 5
-                                        }
-                                      }));
-                                    }}
-                                    style={{
-                                      padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                      border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                                      background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
-                                      color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
-                                      fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                    }}
-                                  >
-                                    ½ Yarım (5P)
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <input
-                              type="text"
-                              placeholder={`Soru ${qNo} için geri bildirim notu...`}
-                              value={teacherNotes[activeSec.id]?.[qNo] || ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setTeacherNotes(p => ({
-                                  ...p,
-                                  [activeSec.id]: {
-                                    ...(p[activeSec.id] || {}),
-                                    [qNo]: v
-                                  }
-                                }));
-                              }}
-                              style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
-                            />
-                          </div>
-                        )}
-
-                        {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
-                        {!isTeacherMode && isReviewMode && teacherNotes[activeSec.id]?.[qNo] && (
-                          <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
-                            <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[activeSec.id]?.[qNo]}
-                          </div>
-                        )}
-                      </div>
+                      <MultipleChoiceRunner
+                        question={qObj}
+                        qNo={qNo}
+                        totalQuestions={effectiveQCount}
+                        selectedOption={hasVisualAns ? numericSelectedOpt : null}
+                        onSelectOption={(optIdx) => handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                        optionsCount={optionsCount}
+                        imageUrls={imageUrls}
+                        onOpenLightbox={(src) => setLightboxSrc(src)}
+                        isMobile={isMobile}
+                      />
                     );
                   })()}
 
@@ -4176,309 +3968,87 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     ? (numericCorrAns !== null && numericCorrAns !== undefined && hasStdAns ? numericSelectedOpt === numericCorrAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
                     : null;
 
-                  const teacherSc = teacherScores[activeSec.id]?.[qNo];
-                  const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
-                  const currentTeacherScore = hasTeacherGraded
-                    ? teacherSc
-                    : (isQOpenEnded ? undefined : (isStdAnswered ? (isStdCorrect === true ? 10 : (isStdCorrect === false ? 0 : 0)) : 'empty'));
+                  const optionsCount = (
+                    Number(test?.optionCount) === 5 ||
+                    Number(test?.optionsCount) === 5 ||
+                    Number(test?.book?.optionCount) === 5 ||
+                    String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+                    test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS'
+                  ) ? 5 : 4;
+
+                  if (isReviewMode) {
+                    if (isQOpenEnded) {
+                      return (
+                        <OpenEndedReview
+                          key={qNo}
+                          question={qObj}
+                          qNo={qNo}
+                          totalQuestions={effectiveQCount}
+                          studentAnswerText={textVal}
+                          teacherScore={teacherSc}
+                          teacherNote={teacherNotes[activeSec.id]?.[qNo] || ''}
+                          onSetTeacherScore={(sc) => setTeacherScores(p => ({
+                            ...p,
+                            [activeSec.id]: { ...(p[activeSec.id] || {}), [qNo]: sc }
+                          }))}
+                          onSetTeacherNote={(note) => setTeacherNotes(p => ({
+                            ...p,
+                            [activeSec.id]: { ...(p[activeSec.id] || {}), [qNo]: note }
+                          }))}
+                          isTeacherMode={isTeacherMode}
+                          imageUrls={imageUrls}
+                          onOpenLightbox={(src) => setLightboxSrc(src)}
+                          isMobile={isMobile}
+                        />
+                      );
+                    }
+                    return (
+                      <MultipleChoiceReview
+                        key={qNo}
+                        question={qObj}
+                        qNo={qNo}
+                        totalQuestions={effectiveQCount}
+                        selectedOption={hasStdAns ? numericSelectedOpt : null}
+                        correctOption={numericCorrAns}
+                        isCorrect={isStdCorrect}
+                        optionsCount={optionsCount}
+                        imageUrls={imageUrls}
+                        onOpenLightbox={(src) => setLightboxSrc(src)}
+                        isMobile={isMobile}
+                      />
+                    );
+                  }
+
+                  if (isQOpenEnded) {
+                    return (
+                      <OpenEndedRunner
+                        key={qNo}
+                        question={qObj}
+                        qNo={qNo}
+                        totalQuestions={effectiveQCount}
+                        answerText={textVal}
+                        onChangeAnswerText={(val) => handleTextChange(activeSec.id, qNo, val)}
+                        imageUrls={imageUrls}
+                        onOpenLightbox={(src) => setLightboxSrc(src)}
+                        onOpenDrawing={() => setIsDrawingOpen(true)}
+                        isMobile={isMobile}
+                      />
+                    );
+                  }
 
                   return (
-                    <div key={qNo} style={{
-                      background: '#ffffff',
-                      borderRadius: '1.1rem',
-                      border: isReviewMode
-                        ? (currentTeacherScore === 10 || isStdCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isStdAnswered && !hasTeacherGraded) ? '1.5px solid #cbd5e1' : (isQOpenEnded && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isStdCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
-                        : '1.5px solid #e2e8f0',
-                      padding: '1.5rem',
-                      boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
-                      display: 'flex', flexDirection: 'column', gap: '1rem'
-                    }}>
-                      
-                      {/* QUESTION HEADER */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ padding: '0.3rem 0.75rem', background: '#4f46e5', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                            SORU {qNo}
-                          </span>
-                          {isQOpenEnded && (
-                            <span style={{ padding: '0.2rem 0.6rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                              ✍️ Açık Uçlu / Yazılı
-                            </span>
-                          )}
-                        </div>
-
-                        {isReviewMode ? (
-                          isQOpenEnded ? (
-                            hasTeacherGraded ? (
-                              currentTeacherScore === 10 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                              ) : currentTeacherScore === 5 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                              ) : currentTeacherScore === 'empty' ? (
-                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                              ) : currentTeacherScore === 0 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                              ) : (
-                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>{currentTeacherScore} Puan</span>
-                              )
-                            ) : isTeacherMode ? (
-                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                            ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
-                            )
-                          ) : (
-                            !isStdAnswered ? (
-                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                            ) : isStdCorrect === true ? (
-                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                            ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                            )
-                          )
-                        ) : (
-                          isStdAnswered || textVal ? (
-                            <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 900 }}>✓ Cevaplandı</span>
-                          ) : (
-                            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
-                          )
-                        )}
-                      </div>
-
-                      {/* QUESTION IMAGES */}
-                      {imageUrls.map((url, imgIdx) => (
-                        <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
-                      ))}
-
-                      {/* QUESTION TEXT */}
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.65 }}>
-                        {qText}
-                      </div>
-
-                      {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
-                      {!isQOpenEnded ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
-                          {options.map((opt, optIdx) => {
-                            const isSelected = hasStdAns && numericSelectedOpt === optIdx;
-                            const isCorrectOpt = (isReviewMode && isStdCorrect && isSelected)
-                              ? true
-                              : (numericCorrAns !== null && numericCorrAns !== undefined && numericCorrAns === optIdx);
-                            const optLetter = String.fromCharCode(65 + optIdx);
-                            let optText = '';
-                            if (typeof opt === 'string') optText = opt;
-                            else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                            const showText = Boolean(optText && optText.trim() !== optLetter);
-
-                            let bg = '#ffffff';
-                            let border = '1.5px solid #cbd5e1';
-                            let color = '#334155';
-
-                            if (isReviewMode) {
-                              if (isSelected && isCorrectOpt) { bg = '#f0fdf4'; border = '2px solid #22c55e'; color = '#15803d'; }
-                              else if (isSelected && !isCorrectOpt) { bg = '#fef2f2'; border = '2px solid #ef4444'; color = '#b91c1c'; }
-                              else if (isCorrectOpt) {
-                                if (hasStdAns) {
-                                  bg = '#f0fdf4'; border = '2.5px solid #16a34a'; color = '#15803d';
-                                } else {
-                                  bg = '#f0f9ff'; border = '2px dashed #0284c7'; color = '#0369a1';
-                                }
-                              }
-                            } else if (isSelected) {
-                              bg = '#eff6ff'; border = '2px solid #2563eb'; color = '#1d4ed8';
-                            }
-
-                            return (
-                              <button key={optIdx}
-                                onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
-                                disabled={isReviewMode}
-                                style={{
-                                  padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left',
-                                  cursor: isReviewMode ? 'default' : 'pointer',
-                                  fontWeight: (isSelected || isCorrectOpt) ? 900 : 700,
-                                  border, background: bg, color, transition: 'all 0.15s ease',
-                                  display: 'flex', alignItems: 'center'
-                                }}>
-                                <span style={{ fontWeight: 900, color: isSelected ? '#2563eb' : (isCorrectOpt && isReviewMode ? (hasStdAns ? '#15803d' : '#0369a1') : '#64748b'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
-                                  {optLetter})
-                                </span>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                                  {showText ? optText : `Seçenek ${optLetter}`}
-                                </span>
-                                {isReviewMode && isSelected && isCorrectOpt && (
-                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#15803d', background: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', fontWeight: 900 }}>✓ Doğru Yanıtınız</span>
-                                )}
-                                {isReviewMode && isSelected && !isCorrectOpt && (
-                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#b91c1c', background: '#fee2e2', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', fontWeight: 900 }}>✗ Yanlış Yanıtınız</span>
-                                )}
-                                {isReviewMode && isCorrectOpt && !isSelected && (
-                                  <span style={{
-                                    marginLeft: 'auto',
-                                    fontSize: '0.72rem',
-                                    color: hasStdAns ? '#15803d' : '#0369a1',
-                                    background: hasStdAns ? '#dcfce7' : '#e0f2fe',
-                                    border: hasStdAns ? '1px solid #86efac' : '1px solid #bae6fd',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '0.35rem',
-                                    fontWeight: 900
-                                  }}>
-                                    {hasStdAns ? '✓ Doğru Şık (Cevap Anahtarı)' : '🔑 Doğru Cevap (Boş Bıraktınız)'}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#64748b' : '#4f46e5' }}>
-                            {isReviewMode ? '📝 Öğrenci Yanıtı:' : '✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:'}
-                          </label>
-                          <textarea
-                            value={textVal}
-                            onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
-                            readOnly={isReviewMode}
-                            placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                            rows={4}
-                            style={{
-                              width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
-                              background: '#ffffff',
-                              border: isReviewMode ? (textVal ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0') : '1.5px solid #cbd5e1',
-                              color: '#0f172a', fontFamily: 'inherit', fontSize: '0.95rem',
-                              resize: isReviewMode ? 'none' : 'vertical',
-                              boxSizing: 'border-box', outline: 'none',
-                              cursor: isReviewMode ? 'default' : 'text'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Öğretmen Puanlama Butonları (Sadece Öğretmen Modunda) */}
-                      {isTeacherMode && (
-                        <div style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>
-                              🎯 Öğretmen Puanlaması (Soru {qNo}):
-                            </span>
-                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTeacherScores(p => ({
-                                    ...p,
-                                    [activeSec.id]: {
-                                      ...(p[activeSec.id] || {}),
-                                      [qNo]: 10
-                                    }
-                                  }));
-                                }}
-                                style={{
-                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                  border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                                  background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
-                                  color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
-                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                }}
-                              >
-                                ✓ Doğru (D)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTeacherScores(p => ({
-                                    ...p,
-                                    [activeSec.id]: {
-                                      ...(p[activeSec.id] || {}),
-                                      [qNo]: 0
-                                    }
-                                  }));
-                                }}
-                                style={{
-                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                  border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                                  background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
-                                  color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
-                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                }}
-                              >
-                                ✗ Yanlış (Y)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTeacherScores(p => ({
-                                    ...p,
-                                    [activeSec.id]: {
-                                      ...(p[activeSec.id] || {}),
-                                      [qNo]: 'empty'
-                                    }
-                                  }));
-                                }}
-                                style={{
-                                  padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                  border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                                  background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
-                                  color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
-                                  fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                }}
-                              >
-                                ○ Boş (B)
-                              </button>
-                              {isQOpenEnded && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTeacherScores(p => ({
-                                      ...p,
-                                      [activeSec.id]: {
-                                        ...(p[activeSec.id] || {}),
-                                        [qNo]: 5
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem',
-                                    border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                                    background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
-                                    color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
-                                    fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer'
-                                  }}
-                                >
-                                  ½ Yarım (5P)
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          <input
-                            type="text"
-                            placeholder="Bu soru için öğrenciye özel geri bildirim notu..."
-                            value={teacherNotes[activeSec.id]?.[qNo] || ''}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTeacherNotes(p => ({
-                                ...p,
-                                [activeSec.id]: {
-                                  ...(p[activeSec.id] || {}),
-                                  [qNo]: val
-                                }
-                              }));
-                            }}
-                            style={{
-                              width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem',
-                              border: '1px solid #cbd5e1', background: '#ffffff',
-                              color: '#0f172a', fontSize: '0.82rem', outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
-                      {!isTeacherMode && isReviewMode && teacherNotes[activeSec.id]?.[qNo] && (
-                        <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
-                          <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[activeSec.id]?.[qNo]}
-                        </div>
-                      )}
-                    </div>
+                    <MultipleChoiceRunner
+                      key={qNo}
+                      question={qObj}
+                      qNo={qNo}
+                      totalQuestions={effectiveQCount}
+                      selectedOption={hasStdAns ? numericSelectedOpt : null}
+                      onSelectOption={(optIdx) => handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                      optionsCount={optionsCount}
+                      imageUrls={imageUrls}
+                      onOpenLightbox={(src) => setLightboxSrc(src)}
+                      isMobile={isMobile}
+                    />
                   );
                 })}
 
