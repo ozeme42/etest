@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
@@ -24,6 +24,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       location.state?.isTeacher ||
       location.state?.fromTeacher ||
       location.search.includes('teacher=true') ||
+      location.search.includes('from=evaluation') ||
       currentUser?.role === 'teacher' ||
       currentUser?.role === 'admin'
     )
@@ -45,10 +46,25 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     }
   };
 
-  const answers = submission.answers || [];
+  const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
   const qCount = useMemo(() => {
-    // 1. Title regex FIRST (e.g. "(5 Soru)", "5 Soru")
+    // 1. If submission has answers array with elements > 0
+    if (Array.isArray(answers) && answers.length > 0) return answers.length;
+    if (Array.isArray(submission?.raw_data?.answers) && submission.raw_data.answers.length > 0) return submission.raw_data.answers.length;
+
+    // 2. Explicit questionCount properties on test / question / submission
+    const candidateCounts = [
+      test.questionCount, test.questionsCount, test.qCount, test.totalQuestions, test.count,
+      questions[0]?.questionCount, questions[0]?.questionsCount, questions[0]?.qCount, questions[0]?.totalQuestions,
+      test.contentPayload?.questionCount, test.pdfPayload?.questionCount, test.raw_data?.questionCount,
+      submission?.questionCount, submission?.questionsCount, submission?.qCount, submission?.totalQuestions
+    ];
+    for (const c of candidateCounts) {
+      if (c && Number(c) > 0) return Number(c);
+    }
+
+    // 3. Title regex (e.g. "(5 Soru)", "5 Soru")
     const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
     for (const t of titles) {
       if (typeof t === 'string') {
@@ -57,22 +73,17 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       }
     }
 
-    // 2. Answer key
+    // 4. Answer key length
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) return keyArray.length;
     if (typeof keyArray === 'string' && keyArray.trim().length > 0) return keyArray.trim().length;
     if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) return Object.keys(keyArray).length;
 
-    // 3. Questions list / sub-questions
+    // 5. Questions list
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) return test.questionsList.length;
     if (Array.isArray(test.questionIds) && test.questionIds.length > 0) return test.questionIds.length;
-    if (Array.isArray(questions) && questions.length > 1) return questions.length;
+    if (Array.isArray(questions) && questions.length > 0) return questions.length;
 
-    // 4. Test questionCount
-    if (test.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
-    if (questions[0]?.questionCount && Number(questions[0].questionCount) > 0) return Number(questions[0].questionCount);
-
-    if (Array.isArray(questions) && questions.length === 1) return 1;
     return 1;
   }, [test, questions, answers, submission]);
 
@@ -152,7 +163,24 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
   const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload || submission?.pdfPayload;
 
-  const isEvaluated = Boolean(submission.isEvaluatedByTeacher || submission.status === 'evaluated' || submission.status === 'graded');
+  const isOpenEndedMode = useMemo(() => {
+    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
+      return false;
+    }
+    return Boolean(
+      test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik'))) ||
+      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
+      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
+    );
+  }, [test, questions, answers]);
+
+  const isEvaluated = Boolean(
+    submission.isEvaluatedByTeacher ||
+    submission.status === 'evaluated' ||
+    submission.status === 'graded' ||
+    answers.some(a => a.evaluatedByTeacher || a.evaluatedAt || (typeof a.score === 'number' && a.score > 0))
+  );
 
   const stats = useMemo(() => {
     let cCount = 0;
@@ -166,48 +194,29 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
       const userAns = ansObj.userAnswer;
       const textAns = ansObj.userAnswerText;
-      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
       const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
 
       const teacherSc = questionScores[qNo];
 
-      if (teacherSc !== undefined && teacherSc !== null) {
-        if (teacherSc === 'empty') {
-          bCount++;
-        } else {
-          const numSc = Number(teacherSc);
-          if (numSc >= 5) cCount++;
-          else wCount++;
-        }
+      if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+        const numSc = Number(teacherSc);
+        if (numSc >= 5) cCount++;
+        else wCount++;
+      } else if (hasAnswer && !isOpenEndedMode) {
+        const isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+        if (isCorrect === true) cCount++;
+        else if (isCorrect === false) wCount++;
+        else bCount++;
       } else {
-        if (hasAnswer) {
-          const isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-          if (isCorrect === true) cCount++;
-          else wCount++;
-        } else if (hasText) {
-          bCount++;
-        } else {
-          bCount++;
-        }
+        bCount++;
       }
     });
 
     return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
-  }, [qCount, questions, answers, test, submission, questionScores]);
-
-  const isOpenEndedMode = useMemo(() => {
-    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
-      return false;
-    }
-    return Boolean(
-      test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı'))) ||
-      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded)
-    );
-  }, [test, questions]);
+  }, [qCount, questions, answers, test, questionScores, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
-  const totalCount = correctCount + wrongCount + blankCount;
   
   const scorePercentage = useMemo(() => {
     let earned = 0;
@@ -261,6 +270,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         }
 
         const note = teacherNotes[qNo] || '';
+
         return {
           ...existingAns,
           questionNo: qNo,
@@ -268,7 +278,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           isCorrect,
           evalStatus,
           teacherNote: note,
-          evaluatedAt: new Date().toISOString()
+          evaluatedByTeacher: true
         };
       });
 
@@ -276,10 +286,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         ...submission,
         answers: updatedAnswers,
         score: scorePercentage,
-        scorePercentage: scorePercentage,
-        status: 'evaluated',
-        isEvaluated: true,
         isEvaluatedByTeacher: true,
+        status: 'evaluated',
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
         evaluatedAt: new Date().toISOString()
@@ -319,7 +327,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* Header */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
+        padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1.5rem',
         background: '#ffffff',
         borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
@@ -327,7 +335,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         justifyContent: 'space-between',
         flexShrink: 0,
         gap: isMobile ? '0.4rem' : '1rem',
-        minHeight: isMobile ? '48px' : '62px',
+        minHeight: isMobile ? '50px' : '62px',
         boxSizing: 'border-box',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
@@ -335,7 +343,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           <button
             onClick={handleGoBack}
             style={{
-              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+              padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
               background: '#ffffff',
               border: '1.5px solid #cbd5e1',
@@ -351,11 +359,11 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             title="Geri Dön"
           >
             <ArrowLeft size={isMobile ? 15 : 16} />
-            {!isMobile && "Geri Dön"}
+            {!isMobile && "Kapat / Çık"}
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 style={{
-              fontSize: isMobile ? '0.85rem' : '1.05rem',
+              fontSize: isMobile ? '0.88rem' : '1.05rem',
               fontWeight: 900,
               margin: 0,
               color: '#0f172a',
@@ -366,75 +374,95 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               {submission.studentName ? `🎓 ${submission.studentName} — ` : ''}{test.title || test.name || 'PDF Sınavı'}
             </h2>
             <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              📄 PDF Formatında Sınav & Değerlendirme
+              📄 {isOpenEndedMode ? 'Açık Uçlu / Yazılı PDF Sınavı' : 'Çoktan Seçmeli PDF Sınavı'} • Toplam {qCount} Soru
             </div>
           </div>
         </div>
 
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {/* Doğru Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            color: '#15803d',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <CheckCircle size={14} color="#16a34a" />
-            <span>{correctCount} D</span>
-          </div>
+          {isOpenEndedMode && !isEvaluated ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+              borderRadius: '0.55rem',
+              background: '#f5f3ff',
+              border: '1px solid #ddd6fe',
+              color: '#6b21a8',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.76rem' : '0.84rem'
+            }}>
+              <Clock size={15} color="#7c3aed" />
+              <span>⏳ Değerlendirme Bekliyor</span>
+            </div>
+          ) : (
+            <>
+              {/* Doğru Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                color: '#15803d',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <span>{correctCount} D</span>
+              </div>
 
-          {/* Yanlış Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            color: '#b91c1c',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <XCircle size={14} color="#ef4444" />
-            <span>{wrongCount} Y</span>
-          </div>
+              {/* Yanlış Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                color: '#b91c1c',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <XCircle size={14} color="#ef4444" />
+                <span>{wrongCount} Y</span>
+              </div>
 
-          {/* Boş Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#475569',
-            fontWeight: 800,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <AlertCircle size={14} color="#64748b" />
-            <span>{blankCount} B</span>
-          </div>
+              {/* Boş Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <AlertCircle size={14} color="#64748b" />
+                <span>{blankCount} B</span>
+              </div>
 
-          <div style={{
-            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-            borderRadius: '0.55rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.76rem' : '0.84rem',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-          }}>
-            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%${scorePercentage} Başarı`}
-          </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                borderRadius: '0.55rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+              }}>
+                %{scorePercentage} Başarı
+              </div>
+            </>
+          )}
 
           {isTeacherMode && (
             <button
@@ -482,8 +510,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
-              const isText = !!textAns;
+              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+              const isText = Boolean(textAns && String(textAns).trim() !== '');
               const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               const teacherSc = questionScores[qNo];
@@ -496,17 +524,26 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 isCorrect = false;
               } else if (currentScore === 'empty') {
                 isCorrect = null;
-              } else if (hasAnswer) {
-                isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+              } else if (hasAnswer && !isItemOE) {
+                isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
               } else {
                 isCorrect = null;
               }
 
               const keySource = test.answerKey || questions[0]?.answerKey || null;
-              const rawCorrectKey = Array.isArray(keySource) ? keySource[qNo - 1]
-                : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : null);
+              let rawCorrectKey = null;
+              if (Array.isArray(keySource)) {
+                rawCorrectKey = keySource[qNo - 1];
+              } else if (keySource && typeof keySource === 'object') {
+                rawCorrectKey = keySource[qNo] ?? keySource[qNo - 1];
+              } else if (typeof keySource === 'string') {
+                const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
+                rawCorrectKey = clean[qNo - 1];
+              } else {
+                rawCorrectKey = qObj.correctAnswer;
+              }
 
-              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
+              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null && rawCorrectKey !== '')
                 ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
                 : null;
 
@@ -524,8 +561,15 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE ? (
-                      <span style={{ color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : currentScore === 'empty' ? '#64748b' : '#b91c1c'), fontWeight: 900, fontSize: '0.82rem' }}>
-                        {currentScore === 'empty' ? '○ Boş (0 Puan)' : `${currentScore} / 10 Puan`}
+                      <span style={{
+                        color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : currentScore === 'empty' ? (isText ? '#7c3aed' : '#64748b') : '#b91c1c'),
+                        background: isText && currentScore === 'empty' ? '#f5f3ff' : 'transparent',
+                        padding: isText && currentScore === 'empty' ? '0.15rem 0.5rem' : '0',
+                        borderRadius: '0.4rem',
+                        fontWeight: 900,
+                        fontSize: '0.82rem'
+                      }}>
+                        {currentScore === 'empty' ? (isText ? '⏳ Değerlendirme Bekliyor' : '○ Boş (0 Puan)') : `${currentScore} / 10 Puan`}
                       </span>
                     ) : hasAnswer ? (
                       isCorrect === true ? (
@@ -545,12 +589,18 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   </div>
 
                   {/* Öğrenci Yazılı Yanıtı */}
-                  {isText ? (
+                  {isItemOE ? (
                     <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ YAZILI CEVABI:</div>
-                      <div style={{ fontSize: '0.88rem', background: '#ffffff', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
-                        {textAns}
-                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>📝 ÖĞRENCİ YAZILI CEVABI:</div>
+                      {isText ? (
+                        <div style={{ fontSize: '0.88rem', background: '#ffffff', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
+                          {textAns}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                          Öğrenci bu soruya yanıt yazmadı.
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
@@ -593,8 +643,30 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                             gap: 3
                           }}
                         >
-                          ✓ Doğru (D)
+                          ✓ Doğru (10P)
                         </button>
+                        {isItemOE && (
+                          <button
+                            type="button"
+                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
+                            style={{
+                              padding: '0.4rem 0.25rem',
+                              borderRadius: 6,
+                              border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                              background: currentScore === 5 ? '#d97706' : '#ffffff',
+                              color: currentScore === 5 ? '#ffffff' : '#b45309',
+                              fontWeight: 900,
+                              fontSize: '0.76rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 3
+                            }}
+                          >
+                            ½ Yarım (5P)
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
@@ -613,7 +685,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                             gap: 3
                           }}
                         >
-                          ✗ Yanlış (Y)
+                          ✗ Yanlış (0P)
                         </button>
                         <button
                           type="button"
@@ -633,104 +705,85 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                             gap: 3
                           }}
                         >
-                          ○ Boş (B)
+                          ○ Boş
                         </button>
-                        {isItemOE && (
-                          <button
-                            type="button"
-                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
-                            style={{
-                              padding: '0.4rem 0.25rem',
-                              borderRadius: 6,
-                              border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                              background: currentScore === 5 ? '#d97706' : '#ffffff',
-                              color: currentScore === 5 ? '#ffffff' : '#d97706',
-                              fontWeight: 900,
-                              fontSize: '0.76rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 3
-                            }}
-                          >
-                            ½ Yarım (5P)
-                          </button>
-                        )}
                       </div>
 
                       <input
                         type="text"
-                        placeholder="Bu soru için geri bildirim notu..."
                         value={teacherNotes[qNo] || ''}
-                        onChange={e => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
-                        style={{ width: '100%', padding: '0.4rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
+                        onChange={(e) => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
+                        placeholder="Soruya özel geri bildirim notu..."
+                        style={{
+                          width: '100%',
+                          padding: '0.35rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
                       />
                     </div>
                   )}
 
-                  {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
                   {!isTeacherMode && teacherNotes[qNo] && (
-                    <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
-                      <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[qNo]}
-                    </div>
-                  )}
-
-                  {qObj.solutionText && (
-                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '0.8rem', color: '#1e40af' }}>
-                      <strong style={{ color: '#1d4ed8' }}>Çözüm Açıklaması: </strong> {qObj.solutionText}
+                    <div style={{ marginTop: '0.5rem', background: '#f5f3ff', padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #ddd6fe', fontSize: '0.8rem', color: '#6b21a8' }}>
+                      <strong>💬 Öğretmen Notu:</strong> {teacherNotes[qNo]}
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* Genel Değerlendirme Notu & Kaydet */}
+            {/* Overall Teacher Note Section */}
             {isTeacherMode ? (
-              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', marginTop: '0.5rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: '0.35rem' }}>
+                  💬 Öğrenciye Genel Not / Geri Bildirim:
+                </label>
                 <textarea
-                  rows="2"
-                  placeholder="Öğrencinin bu sınavı için genel karne notunuz..."
+                  rows="3"
                   value={overallFeedback}
-                  onChange={e => setOverallFeedback(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
+                  onChange={(e) => setOverallFeedback(e.target.value)}
+                  placeholder="Sınavın geneli için öğrenciye tavsiyelerinizi yazabilirsiniz..."
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
-                <button
-                  type="button"
-                  onClick={handleSaveEvaluation}
-                  disabled={isSaving}
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.88rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
-                </button>
               </div>
-            ) : overallFeedback ? (
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>👨‍🏫 Öğretmen Değerlendirme Notu / Karne Görüşü:</div>
-                <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
-                  {overallFeedback}
+            ) : (
+              overallFeedback && (
+                <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #ddd6fe', marginTop: '0.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.88rem', fontWeight: 900, color: '#6b21a8' }}>
+                    💬 Öğretmeninizin Genel Notu:
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#1e1b4b', lineHeight: 1.5 }}>
+                    {overallFeedback}
+                  </p>
                 </div>
-              </div>
-            ) : null}
+              )
+            )}
           </div>
         }
       />
 
-      <ReviewResultModal
-        isOpen={showResultModal}
-        onClose={handleGoBack}
-        studentName={submission.studentName || 'Öğrenci'}
-        testTitle={test.title || submission.testTitle || 'PDF Sınavı'}
-        score={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? null : scorePercentage}
-        correctCount={correctCount}
-        wrongCount={wrongCount}
-        blankCount={blankCount}
-        totalQuestions={qCount}
-        overallFeedback={overallFeedback}
-        isTeacher={isTeacherMode}
-        isPending={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0}
-      />
+      {showResultModal && (
+        <ReviewResultModal
+          isOpen={showResultModal}
+          onClose={() => {
+            setShowResultModal(false);
+            handleGoBack();
+          }}
+          test={test}
+          submission={{
+            ...submission,
+            score: scorePercentage,
+            correctCount,
+            wrongCount,
+            blankCount,
+            totalCount: qCount
+          }}
+        />
+      )}
     </div>
   );
 }
