@@ -322,17 +322,20 @@ export default function PdfViewerWithControls({
             </div>
           }
         >
-          {Array.from(new Array(numPages || 0), (el, index) => (
+          {Array.from(new Array(numPages || 0), (_, index) => (
             <LazyPdfPage
               key={`page_${index + 1}`}
+              index={index}
               pageNumber={index + 1}
               scale={zoomLevel / 100}
-              containerWidth={containerWidth}
+              pdfScale={zoomLevel / 100}
+              containerWidth={containerWidth || 800}
               isDrawingOpen={isDrawingOpen}
+              isDrawingMode={isDrawingOpen}
               drawingTool={drawingTool}
               drawingColor={drawingColor}
               strokeWidth={strokeWidth}
-              ref={el => overlayRefs.current[index] = el}
+              overlayRef={el => { overlayRefs.current[index] = el; }}
             />
           ))}
         </Document>
