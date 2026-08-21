@@ -19,6 +19,28 @@ import OpenEndedRunner from './OpenEndedRunner';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
 import OpenEndedReview from '../review/OpenEndedReview';
 
+export function resolveTestContext(test = {}, sec = {}, bankQ = {}) {
+  const bq = bankQ?.bankQ ? { ...bankQ.bankQ, ...bankQ } : (bankQ || {});
+  const secBq = sec?.bankQ ? { ...sec.bankQ } : {};
+  const testBq = test?.bankQ ? { ...test.bankQ } : {};
+
+  return {
+    ...test,
+    ...sec,
+    ...bq,
+    answerKey: sec?.answerKey || bq?.answerKey || secBq?.answerKey || testBq?.answerKey || test?.answerKey,
+    answer_key: sec?.answer_key || bq?.answer_key || secBq?.answer_key || testBq?.answer_key || test?.answer_key,
+    opticAnswers: sec?.opticAnswers || bq?.opticAnswers || secBq?.opticAnswers || testBq?.opticAnswers || test?.opticAnswers,
+    htmlPayload: sec?.htmlPayload || bq?.htmlPayload || test?.htmlPayload,
+    pdfPayload: sec?.pdfPayload || bq?.pdfPayload || test?.pdfPayload,
+    bankQ: {
+      ...testBq,
+      ...secBq,
+      ...bq
+    }
+  };
+}
+
 export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || {};
 
@@ -582,7 +604,8 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
             if (isQOE) {
               isCorrect = null;
             } else if (hasUserAns) {
-              const evalResult = checkIsAnswerCorrect(numericUserAns, qObj, bankQ || test, qNo);
+              const testCtx = resolveTestContext(test, null, bankQ);
+              const evalResult = checkIsAnswerCorrect(numericUserAns, qObj, testCtx, qNo);
               if (evalResult !== null) {
                 isCorrect = evalResult;
               } else if (userAnsObj && userAnsObj.isCorrect !== undefined && userAnsObj.isCorrect !== null) {
@@ -1179,7 +1202,8 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
           totalBoş++;
           totalMCBoş++;
         } else {
-          const isCorrect = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
+          const testCtx = resolveTestContext(test, sec, bankQ);
+          const isCorrect = checkIsAnswerCorrect(userAns, qObj, testCtx, i);
           if (isCorrect) {
             secDoğru++;
             totalDoğru++;
@@ -1977,7 +2001,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const textAns = sa.openEndedText?.[qNo] || null;
           
           const isOE = isQuestionOE(qObj, sec, test, { userAnswerText: textAns, userAnswer: userAns });
-          const isCorrect = isOE ? null : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
+          const testCtx = resolveTestContext(test, sec, bankQ);
+          const isCorrect = isOE ? null : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, testCtx, qNo) : null);
 
           formattedAnswers.push({
             questionId: qObj.id || `${sec.id}_${qNo}`,
@@ -2320,7 +2345,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const userAnsObj = sa.answers?.[i];
           const numUAns = unwrapUserAnswer(userAnsObj);
           const hasAns = typeof numUAns === 'number';
-          const isCorr = hasAns ? checkIsAnswerCorrect(numUAns, qObj, bankQ, i) : null;
+          const testCtx = resolveTestContext(test, sec, bankQ);
+          const isCorr = hasAns ? checkIsAnswerCorrect(numUAns, qObj, testCtx, i) : null;
           if (isCorr === true) {
             totalPts += 10;
             correct++;
@@ -2515,10 +2541,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         const textAns = sa.openEndedText?.[qNo] || null;
 
         const isQOE = isQuestionOE(qObj, sec, test, ansObj || (textAns ? { userAnswerText: textAns } : null));
+        const testCtx = resolveTestContext(test, sec, bankQ);
 
         const isCorrect = isQOE
           ? null
-          : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
+          : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, testCtx, qNo) : null);
 
         // Resolve correctAnswer letter for review display - prioritize question object / section answerKey
         let correctAns = null;
@@ -3617,9 +3644,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       ? correctAns.trim().toUpperCase().charCodeAt(0) - 65
                       : (correctAns !== undefined && correctAns !== null && !isNaN(Number(correctAns)) && String(correctAns).trim() !== '' ? Number(correctAns) : correctAns);
 
-                    const isQCorrect = isReviewMode && isQAnswered
-                      ? (numericCorrectAns !== null && numericCorrectAns !== undefined && hasVisualAns ? numericSelectedOpt === numericCorrectAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
-                      : null;
+                    const testCtx = resolveTestContext(test, activeSec, activeBankQ);
+                    const evalRes = isReviewMode && hasVisualAns ? checkIsAnswerCorrect(numericSelectedOpt, qObj, testCtx, qNo) : null;
+                    const isQCorrect = evalRes !== null ? evalRes : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (numericCorrectAns !== null && numericCorrectAns !== undefined && hasVisualAns ? numericSelectedOpt === numericCorrectAns : null));
 
                     const teacherSc = teacherScores[activeSec.id]?.[qNo];
 
@@ -3982,9 +4009,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     ? corrAns.trim().toUpperCase().charCodeAt(0) - 65
                     : (corrAns !== undefined && corrAns !== null && !isNaN(Number(corrAns)) && String(corrAns).trim() !== '' ? Number(corrAns) : corrAns);
 
-                  const isStdCorrect = isReviewMode && isStdAnswered
-                    ? (numericCorrAns !== null && numericCorrAns !== undefined && hasStdAns ? numericSelectedOpt === numericCorrAns : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : null))
-                    : null;
+                  const testCtx = resolveTestContext(test, activeSec, activeBankQ);
+                  const evalRes = isReviewMode && hasStdAns ? checkIsAnswerCorrect(numericSelectedOpt, qObj, testCtx, qNo) : null;
+                  const isStdCorrect = evalRes !== null ? evalRes : (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (numericCorrAns !== null && numericCorrAns !== undefined && hasStdAns ? numericSelectedOpt === numericCorrAns : null));
 
                   const teacherSc = teacherScores[activeSec.id]?.[qNo];
 
