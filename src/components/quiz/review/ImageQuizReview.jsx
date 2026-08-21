@@ -392,16 +392,18 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         } else {
           isC = checkIsAnswerCorrect(userAns, qObj, test, qNo);
         }
+      } else {
+        isC = null;
       }
 
       const item = {
+        questionNo: qNo,
         userAnswer: userAns,
         userAnswerText: textAns,
         isCorrect: hasAns ? isC : null,
         hasAnswer: hasAns
       };
 
-      map[i] = item;
       map[qNo] = item;
       map[String(qNo)] = item;
     }

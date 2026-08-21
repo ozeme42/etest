@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Check, X, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 function getQuestionReviewStatus(userAns) {
   if (!userAns) return 'blank';
@@ -18,13 +18,14 @@ function getQuestionReviewStatus(userAns) {
     return 'blank';
   }
 
-  if (userAns.isCorrect === true || userAns.is_correct === true || userAns.isRight === true) {
+  if (userAns.isCorrect === true || userAns.is_correct === true || userAns.isRight === true || (typeof userAns.score === 'number' && userAns.score >= 5)) {
     return 'correct';
   }
-  if (userAns.isCorrect === false || userAns.is_correct === false || userAns.isRight === false) {
+  if (userAns.isCorrect === false || userAns.is_correct === false || userAns.isRight === false || (typeof userAns.score === 'number' && userAns.score === 0)) {
     return 'wrong';
   }
-  return 'answered';
+
+  return 'blank';
 }
 
 export default function QuestionGridNav({
@@ -124,7 +125,7 @@ export default function QuestionGridNav({
           const isActive = idx === currentIndex;
           const qNo = idx + 1;
           const userAns = Array.isArray(answers)
-            ? (answers[idx] ?? answers[qNo])
+            ? (answers[qNo] ?? answers[idx] ?? answers[String(qNo)])
             : (answers[qNo] ?? answers[String(qNo)] ?? answers[idx] ?? answers[String(idx)]);
 
           const status = getQuestionReviewStatus(userAns);
