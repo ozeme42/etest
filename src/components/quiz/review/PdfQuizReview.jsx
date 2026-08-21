@@ -779,88 +779,111 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   {isTeacherMode && (
                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: isItemOE ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 6 }}>
-                        <button
-                          type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 10 }))}
-                          style={{
-                            padding: '0.4rem 0.25rem',
-                            borderRadius: 6,
-                            border: teacherSc === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                            background: teacherSc === 10 ? '#16a34a' : '#ffffff',
-                            color: teacherSc === 10 ? '#ffffff' : '#15803d',
-                            fontWeight: 900,
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3
-                          }}
-                        >
-                          ✓ Doğru (10P)
-                        </button>
-                        {isItemOE && (
-                          <button
-                            type="button"
-                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
-                            style={{
-                              padding: '0.4rem 0.25rem',
-                              borderRadius: 6,
-                              border: teacherSc === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                              background: teacherSc === 5 ? '#d97706' : '#ffffff',
-                              color: teacherSc === 5 ? '#ffffff' : '#b45309',
-                              fontWeight: 900,
-                              fontSize: '0.76rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 3
-                            }}
-                          >
-                            ½ Yarım (5P)
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
-                          style={{
-                            padding: '0.4rem 0.25rem',
-                            borderRadius: 6,
-                            border: teacherSc === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                            background: teacherSc === 0 ? '#dc2626' : '#ffffff',
-                            color: teacherSc === 0 ? '#ffffff' : '#b91c1c',
-                            fontWeight: 900,
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3
-                          }}
-                        >
-                          ✗ Yanlış (0P)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 'empty' }))}
-                          style={{
-                            padding: '0.4rem 0.25rem',
-                            borderRadius: 6,
-                            border: teacherSc === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                            background: teacherSc === 'empty' ? '#64748b' : '#f8fafc',
-                            color: teacherSc === 'empty' ? '#ffffff' : '#475569',
-                            fontWeight: 900,
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3
-                          }}
-                        >
-                          ○ Boş
-                        </button>
+                        {(() => {
+                          const isT10 = Number(teacherSc) === 10;
+                          const isT0 = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && Number(teacherSc) === 0;
+                          const isTEmpty = teacherSc === 'empty';
+                          const isT5 = Number(teacherSc) === 5;
+
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 10 }))}
+                                style={{
+                                  padding: '0.45rem 0.25rem',
+                                  borderRadius: 6,
+                                  border: isT10 ? '2px solid #15803d' : '1px solid #cbd5e1',
+                                  background: isT10 ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#ffffff',
+                                  color: isT10 ? '#ffffff' : '#15803d',
+                                  fontWeight: 900,
+                                  fontSize: '0.76rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 3,
+                                  boxShadow: isT10 ? '0 2px 8px rgba(22,163,74,0.45)' : 'none',
+                                  transform: isT10 ? 'scale(1.02)' : 'none',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                ✓ Doğru (10P) {isT10 ? '✓' : ''}
+                              </button>
+                              {isItemOE && (
+                                <button
+                                  type="button"
+                                  onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
+                                  style={{
+                                    padding: '0.45rem 0.25rem',
+                                    borderRadius: 6,
+                                    border: isT5 ? '2px solid #b45309' : '1px solid #cbd5e1',
+                                    background: isT5 ? 'linear-gradient(135deg, #d97706, #b45309)' : '#ffffff',
+                                    color: isT5 ? '#ffffff' : '#b45309',
+                                    fontWeight: 900,
+                                    fontSize: '0.76rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 3,
+                                    boxShadow: isT5 ? '0 2px 8px rgba(217,119,6,0.45)' : 'none',
+                                    transform: isT5 ? 'scale(1.02)' : 'none',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  ½ Yarım (5P) {isT5 ? '✓' : ''}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
+                                style={{
+                                  padding: '0.45rem 0.25rem',
+                                  borderRadius: 6,
+                                  border: isT0 ? '2px solid #991b1b' : '1px solid #cbd5e1',
+                                  background: isT0 ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : '#ffffff',
+                                  color: isT0 ? '#ffffff' : '#b91c1c',
+                                  fontWeight: 900,
+                                  fontSize: '0.76rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 3,
+                                  boxShadow: isT0 ? '0 2px 8px rgba(220,38,38,0.5)' : 'none',
+                                  transform: isT0 ? 'scale(1.02)' : 'none',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                ✗ Yanlış (0P) {isT0 ? '✓' : ''}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 'empty' }))}
+                                style={{
+                                  padding: '0.45rem 0.25rem',
+                                  borderRadius: 6,
+                                  border: isTEmpty ? '2px solid #334155' : '1px solid #cbd5e1',
+                                  background: isTEmpty ? 'linear-gradient(135deg, #475569, #334155)' : '#f8fafc',
+                                  color: isTEmpty ? '#ffffff' : '#475569',
+                                  fontWeight: 900,
+                                  fontSize: '0.76rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 3,
+                                  boxShadow: isTEmpty ? '0 2px 8px rgba(71,85,105,0.45)' : 'none',
+                                  transform: isTEmpty ? 'scale(1.02)' : 'none',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                ○ Boş {isTEmpty ? '✓' : ''}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       <input

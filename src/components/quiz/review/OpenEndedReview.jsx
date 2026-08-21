@@ -360,80 +360,97 @@ export default function OpenEndedReview({
             </span>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '0.5rem'
-          }}>
-            <button
-              type="button"
-              onClick={() => setScore && setScore(10)}
-              style={{
-                padding: '0.55rem',
-                borderRadius: '0.6rem',
-                border: teacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                background: teacherScore === 10 ? '#16a34a' : '#ffffff',
-                color: teacherScore === 10 ? '#ffffff' : '#15803d',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              ✓ Doğru (10P)
-            </button>
-            <button
-              type="button"
-              onClick={() => setScore && setScore(5)}
-              style={{
-                padding: '0.55rem',
-                borderRadius: '0.6rem',
-                border: teacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                background: teacherScore === 5 ? '#d97706' : '#ffffff',
-                color: teacherScore === 5 ? '#ffffff' : '#b45309',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              ½ Yarım (5P)
-            </button>
-            <button
-              type="button"
-              onClick={() => setScore && setScore(0)}
-              style={{
-                padding: '0.55rem',
-                borderRadius: '0.6rem',
-                border: teacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                background: teacherScore === 0 ? '#dc2626' : '#ffffff',
-                color: teacherScore === 0 ? '#ffffff' : '#b91c1c',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              ✗ Yanlış (0P)
-            </button>
-            <button
-              type="button"
-              onClick={() => setScore && setScore('empty')}
-              style={{
-                padding: '0.55rem',
-                borderRadius: '0.6rem',
-                border: teacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                background: teacherScore === 'empty' ? '#64748b' : '#ffffff',
-                color: teacherScore === 'empty' ? '#ffffff' : '#475569',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              ○ Boş
-            </button>
-          </div>
+          {(() => {
+            const isScore10 = Number(teacherScore) === 10;
+            const isScore5 = Number(teacherScore) === 5;
+            const isScore0 = teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty' && Number(teacherScore) === 0;
+            const isScoreEmpty = teacherScore === 'empty';
+
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '0.5rem'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setScore && setScore(10)}
+                  style={{
+                    padding: '0.6rem 0.4rem',
+                    borderRadius: '0.65rem',
+                    border: isScore10 ? '2.5px solid #15803d' : '1.5px solid #cbd5e1',
+                    background: isScore10 ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#ffffff',
+                    color: isScore10 ? '#ffffff' : '#15803d',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: isScore10 ? '0 4px 12px rgba(22,163,74,0.45)' : 'none',
+                    transform: isScore10 ? 'scale(1.02)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ✓ Doğru (10P) {isScore10 ? '✓' : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScore && setScore(5)}
+                  style={{
+                    padding: '0.6rem 0.4rem',
+                    borderRadius: '0.65rem',
+                    border: isScore5 ? '2.5px solid #b45309' : '1.5px solid #cbd5e1',
+                    background: isScore5 ? 'linear-gradient(135deg, #d97706, #b45309)' : '#ffffff',
+                    color: isScore5 ? '#ffffff' : '#b45309',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: isScore5 ? '0 4px 12px rgba(217,119,6,0.45)' : 'none',
+                    transform: isScore5 ? 'scale(1.02)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ½ Yarım (5P) {isScore5 ? '✓' : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScore && setScore(0)}
+                  style={{
+                    padding: '0.6rem 0.4rem',
+                    borderRadius: '0.65rem',
+                    border: isScore0 ? '2.5px solid #991b1b' : '1.5px solid #cbd5e1',
+                    background: isScore0 ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : '#ffffff',
+                    color: isScore0 ? '#ffffff' : '#b91c1c',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: isScore0 ? '0 4px 12px rgba(220,38,38,0.5)' : 'none',
+                    transform: isScore0 ? 'scale(1.02)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ✗ Yanlış (0P) {isScore0 ? '✓' : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScore && setScore('empty')}
+                  style={{
+                    padding: '0.6rem 0.4rem',
+                    borderRadius: '0.65rem',
+                    border: isScoreEmpty ? '2.5px solid #334155' : '1.5px solid #cbd5e1',
+                    background: isScoreEmpty ? 'linear-gradient(135deg, #475569, #334155)' : '#ffffff',
+                    color: isScoreEmpty ? '#ffffff' : '#475569',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: isScoreEmpty ? '0 4px 12px rgba(71,85,105,0.45)' : 'none',
+                    transform: isScoreEmpty ? 'scale(1.02)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ○ Boş {isScoreEmpty ? '✓' : ''}
+                </button>
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>

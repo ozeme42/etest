@@ -524,9 +524,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           }
 
           const teacherSc = teacherScores?.[qNo];
-          const hasTeacherGraded = isQOE
-            ? (typeof teacherSc === 'number' && teacherSc > 0)
-            : (teacherSc !== undefined && teacherSc !== null);
+          const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'pending' && teacherSc !== 'unevaluated';
           const currentTeacherScore = hasTeacherGraded
             ? teacherSc
             : (isQOE ? undefined : (!isAnswered ? 'empty' : (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined))));
@@ -825,88 +823,111 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
               {isTeacherMode && (
                 <div style={{ marginTop: '0.45rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isQOE ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => onScoreChange && onScoreChange(qNo, 10)}
-                      style={{
-                        padding: '0.35rem 0.2rem',
-                        borderRadius: 6,
-                        border: currentTeacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                        background: currentTeacherScore === 10 ? '#16a34a' : '#ffffff',
-                        color: currentTeacherScore === 10 ? '#ffffff' : '#15803d',
-                        fontWeight: 900,
-                        fontSize: '0.72rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2
-                      }}
-                    >
-                      ✓ Doğru (D)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onScoreChange && onScoreChange(qNo, 0)}
-                      style={{
-                        padding: '0.35rem 0.2rem',
-                        borderRadius: 6,
-                        border: currentTeacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                        background: currentTeacherScore === 0 ? '#dc2626' : '#ffffff',
-                        color: currentTeacherScore === 0 ? '#ffffff' : '#b91c1c',
-                        fontWeight: 900,
-                        fontSize: '0.72rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2
-                      }}
-                    >
-                      ✗ Yanlış (Y)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onScoreChange && onScoreChange(qNo, 'empty')}
-                      style={{
-                        padding: '0.35rem 0.2rem',
-                        borderRadius: 6,
-                        border: currentTeacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                        background: currentTeacherScore === 'empty' ? '#64748b' : '#f8fafc',
-                        color: currentTeacherScore === 'empty' ? '#ffffff' : '#64748b',
-                        fontWeight: 900,
-                        fontSize: '0.72rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2
-                      }}
-                    >
-                      ○ Boş (B)
-                    </button>
-                    {isQOE && (
-                      <button
-                        type="button"
-                        onClick={() => onScoreChange && onScoreChange(qNo, 5)}
-                        style={{
-                          padding: '0.35rem 0.2rem',
-                          borderRadius: 6,
-                          border: currentTeacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                          background: currentTeacherScore === 5 ? '#d97706' : '#ffffff',
-                          color: currentTeacherScore === 5 ? '#ffffff' : '#d97706',
-                          fontWeight: 900,
-                          fontSize: '0.72rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 2
-                        }}
-                      >
-                        ½ Yarım (5P)
-                      </button>
-                    )}
+                    {(() => {
+                      const isT10 = Number(currentTeacherScore) === 10;
+                      const isT0 = currentTeacherScore !== undefined && currentTeacherScore !== null && currentTeacherScore !== 'empty' && Number(currentTeacherScore) === 0;
+                      const isTEmpty = currentTeacherScore === 'empty';
+                      const isT5 = Number(currentTeacherScore) === 5;
+
+                      return (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onScoreChange && onScoreChange(qNo, 10)}
+                            style={{
+                              padding: '0.45rem 0.2rem',
+                              borderRadius: 6,
+                              border: isT10 ? '2px solid #15803d' : '1px solid #cbd5e1',
+                              background: isT10 ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#ffffff',
+                              color: isT10 ? '#ffffff' : '#15803d',
+                              fontWeight: 900,
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 2,
+                              boxShadow: isT10 ? '0 2px 8px rgba(22,163,74,0.45)' : 'none',
+                              transform: isT10 ? 'scale(1.02)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            ✓ Doğru (D) {isT10 ? '✓' : ''}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onScoreChange && onScoreChange(qNo, 0)}
+                            style={{
+                              padding: '0.45rem 0.2rem',
+                              borderRadius: 6,
+                              border: isT0 ? '2px solid #991b1b' : '1px solid #cbd5e1',
+                              background: isT0 ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : '#ffffff',
+                              color: isT0 ? '#ffffff' : '#b91c1c',
+                              fontWeight: 900,
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 2,
+                              boxShadow: isT0 ? '0 2px 8px rgba(220,38,38,0.5)' : 'none',
+                              transform: isT0 ? 'scale(1.02)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            ✗ Yanlış (Y) {isT0 ? '✓' : ''}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onScoreChange && onScoreChange(qNo, 'empty')}
+                            style={{
+                              padding: '0.45rem 0.2rem',
+                              borderRadius: 6,
+                              border: isTEmpty ? '2px solid #334155' : '1px solid #cbd5e1',
+                              background: isTEmpty ? 'linear-gradient(135deg, #475569, #334155)' : '#f8fafc',
+                              color: isTEmpty ? '#ffffff' : '#64748b',
+                              fontWeight: 900,
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 2,
+                              boxShadow: isTEmpty ? '0 2px 8px rgba(71,85,105,0.45)' : 'none',
+                              transform: isTEmpty ? 'scale(1.02)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            ○ Boş (B) {isTEmpty ? '✓' : ''}
+                          </button>
+                          {isQOE && (
+                            <button
+                              type="button"
+                              onClick={() => onScoreChange && onScoreChange(qNo, 5)}
+                              style={{
+                                padding: '0.45rem 0.2rem',
+                                borderRadius: 6,
+                                border: isT5 ? '2px solid #b45309' : '1px solid #cbd5e1',
+                                background: isT5 ? 'linear-gradient(135deg, #d97706, #b45309)' : '#ffffff',
+                                color: isT5 ? '#ffffff' : '#d97706',
+                                fontWeight: 900,
+                                fontSize: '0.72rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 2,
+                                boxShadow: isT5 ? '0 2px 8px rgba(217,119,6,0.45)' : 'none',
+                                transform: isT5 ? 'scale(1.02)' : 'none',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              ½ Yarım (5P) {isT5 ? '✓' : ''}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <input
                     type="text"

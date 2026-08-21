@@ -281,7 +281,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;
   const teacherCurrentSc = questionScores[currentQNo];
-  const currentScore = teacherCurrentSc !== undefined ? teacherCurrentSc : (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : (hasAnswer ? (activeAnsObj.isCorrect === true ? 10 : 0) : 'empty'));
+  const currentScore = teacherCurrentSc !== undefined ? teacherCurrentSc : (isOpenEnded ? undefined : (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : (hasAnswer ? (activeAnsObj.isCorrect === true ? 10 : 0) : 'empty')));
 
   const questionText = extractQuestionText(activeQuestion);
   const optionsList = extractQuestionOptions(activeQuestion);
@@ -561,34 +561,105 @@ export default function StandardQuizReview({ submission, test, questions = [], o
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>🎯 Puan Ver:</span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 10 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 10 ? '2px solid #10b981' : '1px solid var(--color-border-input)', background: currentScore === 10 ? '#10b981' : 'var(--color-surface)', color: currentScore === 10 ? '#ffffff' : '#10b981', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ✓ Doğru (D)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 0 ? '2px solid #ef4444' : '1px solid var(--color-border-input)', background: currentScore === 0 ? '#ef4444' : 'var(--color-surface)', color: currentScore === 0 ? '#ffffff' : '#ef4444', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ✗ Yanlış (Y)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 'empty' }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid var(--color-border-input)', background: currentScore === 'empty' ? '#64748b' : 'var(--color-surface)', color: currentScore === 'empty' ? '#ffffff' : 'var(--color-text-muted)', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ○ Boş (B)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 5 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 5 ? '2px solid #f59e0b' : '1px solid var(--color-border-input)', background: currentScore === 5 ? '#f59e0b' : 'var(--color-surface)', color: currentScore === 5 ? '#ffffff' : '#f59e0b', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ½ Yarım (5P)
-                  </button>
+                  {(() => {
+                    const isS10 = Number(currentScore) === 10;
+                    const isS0 = currentScore !== undefined && currentScore !== null && currentScore !== 'empty' && Number(currentScore) === 0;
+                    const isSEmpty = currentScore === 'empty';
+                    const isS5 = Number(currentScore) === 5;
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 10 }))}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: 6,
+                            border: isS10 ? '2px solid #15803d' : '1px solid var(--color-border-input)',
+                            background: isS10 ? 'linear-gradient(135deg, #16a34a, #15803d)' : 'var(--color-surface)',
+                            color: isS10 ? '#ffffff' : '#16a34a',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            boxShadow: isS10 ? '0 2px 8px rgba(22,163,74,0.45)' : 'none',
+                            transform: isS10 ? 'scale(1.02)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          ✓ Doğru (D) {isS10 ? '✓' : ''}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: 6,
+                            border: isS0 ? '2px solid #991b1b' : '1px solid var(--color-border-input)',
+                            background: isS0 ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : 'var(--color-surface)',
+                            color: isS0 ? '#ffffff' : '#dc2626',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            boxShadow: isS0 ? '0 2px 8px rgba(220,38,38,0.5)' : 'none',
+                            transform: isS0 ? 'scale(1.02)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          ✗ Yanlış (Y) {isS0 ? '✓' : ''}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 'empty' }))}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: 6,
+                            border: isSEmpty ? '2px solid #334155' : '1px solid var(--color-border-input)',
+                            background: isSEmpty ? 'linear-gradient(135deg, #475569, #334155)' : 'var(--color-surface)',
+                            color: isSEmpty ? '#ffffff' : 'var(--color-text-muted)',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            boxShadow: isSEmpty ? '0 2px 8px rgba(71,85,105,0.45)' : 'none',
+                            transform: isSEmpty ? 'scale(1.02)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          ○ Boş (B) {isSEmpty ? '✓' : ''}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 5 }))}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: 6,
+                            border: isS5 ? '2px solid #b45309' : '1px solid var(--color-border-input)',
+                            background: isS5 ? 'linear-gradient(135deg, #d97706, #b45309)' : 'var(--color-surface)',
+                            color: isS5 ? '#ffffff' : '#d97706',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            boxShadow: isS5 ? '0 2px 8px rgba(217,119,6,0.45)' : 'none',
+                            transform: isS5 ? 'scale(1.02)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          ½ Yarım (5P) {isS5 ? '✓' : ''}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
