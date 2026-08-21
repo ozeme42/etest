@@ -2,9 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useQuizState } from '../hooks/useQuizState';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
-import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
+import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
-import { resolveTestQuestions } from '../../../utils/testResolver';
 
 import SectionTabBar from './navigation/SectionTabBar';
 import CompositeTopHeader from './navigation/CompositeTopHeader';
@@ -17,7 +16,7 @@ import DrawingCanvas from '../common/DrawingCanvas';
 
 /**
  * CompositeHomeworkRunner
- * Clean, modular high-level orchestrator for Composite Multi-Section Homeworks.
+ * Standardized High-Level Orchestrator for all Quiz / Homework runners.
  */
 export default function CompositeHomeworkRunner({
   test = {},
@@ -29,42 +28,14 @@ export default function CompositeHomeworkRunner({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // 1. Build standardized sections array
-  const rawSections = useMemo(() => {
-    if (Array.isArray(test.sections) && test.sections.length > 0) {
-      return test.sections.map((s, idx) => {
-        const bankQ = s.bankQ || {};
-        return {
-          ...bankQ,
-          ...s,
-          id: s.id || s.questionId || bankQ.id || `sec_${idx + 1}`,
-          title: s.title || s.name || bankQ.title || bankQ.name || `${idx + 1}. Bölüm`,
-          resolvedQuestions: s.resolvedQuestions || resolveTestQuestions(s) || resolveTestQuestions(bankQ),
-          qCount: s.qCount || s.questionCount || bankQ.questionCount || (s.resolvedQuestions?.length || 1),
-          pdfPayload: s.pdfPayload || bankQ.pdfPayload || s.contentPayload || bankQ.contentPayload,
-          contentPayload: s.contentPayload || bankQ.contentPayload || s.pdfPayload || bankQ.pdfPayload,
-          pdfUrl: s.pdfUrl || bankQ.pdfUrl,
-          htmlPayload: s.htmlPayload || bankQ.htmlPayload,
-          contentType: s.contentType || bankQ.contentType
-        };
-      });
-    }
-    return [{
-      id: test.id || 'sec_1',
-      title: test.title || '1. Bölüm',
-      resolvedQuestions: questions.length > 0 ? questions : resolveTestQuestions(test),
-      qCount: questions.length || test.questionCount || 1,
-      pdfPayload: test.pdfPayload || test.contentPayload,
-      contentPayload: test.contentPayload || test.pdfPayload,
-      pdfUrl: test.pdfUrl,
-      htmlPayload: test.htmlPayload,
-      contentType: test.contentType,
-      ...test
-    }];
+  // 1. Convert any test structure into unified standard schema
+  const unifiedTest = useMemo(() => {
+    return normalizeUnifiedTest(test, questions);
   }, [test, questions]);
 
+  const rawSections = unifiedTest.sections;
   const [activeSecIdx, setActiveSecIdx] = useState(0);
-  const activeSec = rawSections[activeSecIdx] || rawSections[0];
+  const activeSec = rawSections[activeSecIdx] || rawSections[0] || {};
 
   // 2. Answers State & Timers
   const {
@@ -74,10 +45,10 @@ export default function CompositeHomeworkRunner({
     handleTextChange,
     clearDraft
   } = useQuizState({
-    testId: test.id,
+    testId: unifiedTest.id,
     sections: rawSections,
     draftAnswers,
-    timePerQuestion: test.timePerQuestion || 2,
+    timePerQuestion: unifiedTest.timePerQuestion || 2,
     onAutoSave,
     isReviewMode: false
   });
@@ -91,10 +62,10 @@ export default function CompositeHomeworkRunner({
   const [sectionBreakdownStats, setSectionBreakdownStats] = useState([]);
   const [submissionPayload, setSubmissionPayload] = useState([]);
 
-  // Determine section format
-  const isSecOE = isSectionOpenEnded(activeSec, test);
-  const isSecPdf = Boolean(activeSec.contentType === 'pdf' || activeSec.pdfUrl || (activePayload && typeof activePayload === 'string' && (activePayload.startsWith('data:application/pdf') || activePayload.includes('.pdf'))));
-  const isSecHtml = !isSecPdf && Boolean(activeSec.contentType === 'html' || activeSec.htmlPayload || (activePayload && typeof activePayload === 'string' && (activePayload.includes('<!DOCTYPE') || activePayload.includes('<html'))));
+  // Determine section format from unified schema
+  const isSecOE = activeSec.type === 'open_ended';
+  const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
+  const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
   // Finish exam calculation
   const handleFinishExam = () => {
@@ -109,11 +80,11 @@ export default function CompositeHomeworkRunner({
     const formattedAnswers = [];
     let globalNo = 1;
 
-    rawSections.forEach((sec) => {
+    rawSections.forEach((sec, secIdx) => {
       const sa = sectionAnswers[sec.id] || {};
-      const secQs = sec.resolvedQuestions || [];
-      const count = sec.qCount || secQs.length || 1;
-      const isOE = isSectionOpenEnded(sec, test);
+      const secQs = sec.questions || [];
+      const count = secQs.length;
+      const isOE = sec.type === 'open_ended';
 
       let secDoğru = 0;
       let secYanlış = 0;
@@ -123,13 +94,13 @@ export default function CompositeHomeworkRunner({
         totalQuestions++;
         totalMax += 10;
         const qObj = secQs[i - 1] || {};
-        const uAns = sa.answers?.[i];
-        const textVal = sa.openEndedText?.[i];
-        const isQOE = isOE || isQuestionOpenEnded(qObj, sec, test, { userAnswerText: textVal });
+        const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+        const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+        const isQOE = isOE || qObj.type === 'open_ended';
 
         let isCorrect = null;
-        if (!isQOE && uAns !== undefined && uAns !== null && uAns !== '') {
-          isCorrect = checkIsAnswerCorrect(uAns, qObj, sec, i);
+        if (!isQOE && uAns !== undefined && uAns !== null && uAns !== '' && uAns !== 'empty') {
+          isCorrect = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
         }
 
         if (isCorrect === true) {
@@ -149,6 +120,7 @@ export default function CompositeHomeworkRunner({
           questionNo: globalNo++,
           questionNoInSection: i,
           sectionId: sec.id,
+          sectionIndex: secIdx,
           sectionTitle: sec.title,
           userAnswer: isQOE ? (textVal || null) : (uAns !== undefined ? uAns : null),
           userAnswerText: textVal || null,
@@ -194,7 +166,7 @@ export default function CompositeHomeworkRunner({
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       {/* Top Bar */}
       <CompositeTopHeader
-        title={test.title || 'Birleşik Ödev'}
+        title={unifiedTest.title || 'Sınav'}
         timeLeft={timeLeft}
         isReviewMode={false}
         isDrawingOpen={isDrawingOpen}
@@ -215,8 +187,8 @@ export default function CompositeHomeworkRunner({
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {isSecPdf ? (
           <CompositePdfSection
-            section={activeSec}
-            payload={activePayload}
+            section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
+            payload={activePayload || activeSec.documentPayload}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             isOpenEnded={isSecOE}
@@ -226,8 +198,8 @@ export default function CompositeHomeworkRunner({
           />
         ) : isSecHtml ? (
           <CompositeHtmlSection
-            section={activeSec}
-            payload={activePayload}
+            section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
+            payload={activePayload || activeSec.documentPayload}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             isOpenEnded={isSecOE}
@@ -237,7 +209,7 @@ export default function CompositeHomeworkRunner({
           />
         ) : isSecOE ? (
           <CompositeOpenEndedSection
-            section={activeSec}
+            section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             onTextChange={handleTextChange}
             onOpenDrawing={() => setIsDrawingOpen(true)}
@@ -245,7 +217,7 @@ export default function CompositeHomeworkRunner({
           />
         ) : (
           <CompositeMultipleChoiceSection
-            section={activeSec}
+            section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             onSelectOption={handleSelectOption}
             isMobile={isMobile}
@@ -262,7 +234,7 @@ export default function CompositeHomeworkRunner({
       {/* Results Modal */}
       <QuizResultModal
         isOpen={showResultModal}
-        title={test.title || 'Birleşik Ödev Sonucu'}
+        title={unifiedTest.title || 'Sınav Sonucu'}
         stats={overallResultStats || {}}
         sectionBreakdown={sectionBreakdownStats}
         onClose={handleConfirmClose}

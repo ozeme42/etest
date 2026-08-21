@@ -871,17 +871,16 @@ export default function ModularQuizPage() {
   );
 
   const hasMultipleDistinctSections = Boolean(
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
-    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1 && !isHtml && !isPdf && !isImageTest)
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
+    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1)
   );
 
-  const isMultiSection = hasMultipleDistinctSections || (
-    !isHtml && !isPdf && !isImageTest && !isPhysical && Boolean(
-      test.isBulk ||
-      test.isMulti
-    )
-  );
+  const isMultiSection = !isPhysical && (hasMultipleDistinctSections || Boolean(
+    test.isBulk ||
+    test.isMulti ||
+    test.isComposite
+  ));
 
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 

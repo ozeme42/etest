@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTeacherGrading } from '../hooks/useTeacherGrading';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
-import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
-import { resolveTestQuestions } from '../../../utils/testResolver';
+import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 
 import SectionTabBar from './navigation/SectionTabBar';
@@ -18,7 +17,7 @@ import { ArrowLeft, Save, Award } from 'lucide-react';
 
 /**
  * CompositeHomeworkReview
- * Clean, modular review and teacher grading orchestrator for Composite Homeworks.
+ * Standardized High-Level Review and Teacher Grading Orchestrator.
  */
 export default function CompositeHomeworkReview({
   submission = {},
@@ -29,42 +28,19 @@ export default function CompositeHomeworkReview({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // 1. Build standardized sections array
-  const rawSections = useMemo(() => {
-    if (Array.isArray(test.sections) && test.sections.length > 0) {
-      return test.sections.map((s, idx) => {
-        const bankQ = s.bankQ || {};
-        return {
-          ...bankQ,
-          ...s,
-          id: s.id || s.questionId || bankQ.id || `sec_${idx + 1}`,
-          title: s.title || s.name || bankQ.title || bankQ.name || `${idx + 1}. Bölüm`,
-          resolvedQuestions: s.resolvedQuestions || resolveTestQuestions(s) || resolveTestQuestions(bankQ),
-          qCount: s.qCount || s.questionCount || bankQ.questionCount || (s.resolvedQuestions?.length || 1),
-          pdfPayload: s.pdfPayload || bankQ.pdfPayload || s.contentPayload || bankQ.contentPayload,
-          contentPayload: s.contentPayload || bankQ.contentPayload || s.pdfPayload || bankQ.pdfPayload,
-          pdfUrl: s.pdfUrl || bankQ.pdfUrl,
-          htmlPayload: s.htmlPayload || bankQ.htmlPayload,
-          contentType: s.contentType || bankQ.contentType
-        };
-      });
-    }
-    return [{
-      id: test.id || 'sec_1',
-      title: test.title || '1. Bölüm',
-      resolvedQuestions: questions.length > 0 ? questions : resolveTestQuestions(test),
-      qCount: questions.length || test.questionCount || 1,
-      pdfPayload: test.pdfPayload || test.contentPayload,
-      contentPayload: test.contentPayload || test.pdfPayload,
-      pdfUrl: test.pdfUrl,
-      htmlPayload: test.htmlPayload,
-      contentType: test.contentType,
-      ...test
-    }];
+  // 1. Standardize test & submission schemas
+  const unifiedTest = useMemo(() => {
+    return normalizeUnifiedTest(test, questions);
   }, [test, questions]);
 
+  const rawSections = unifiedTest.sections;
+
+  const unifiedSub = useMemo(() => {
+    return normalizeUnifiedSubmission(submission, unifiedTest);
+  }, [submission, unifiedTest]);
+
   const [activeSecIdx, setActiveSecIdx] = useState(0);
-  const activeSec = rawSections[activeSecIdx] || rawSections[0];
+  const activeSec = rawSections[activeSecIdx] || rawSections[0] || {};
 
   // 2. Teacher Grading State & Save Handlers
   const {
@@ -85,65 +61,13 @@ export default function CompositeHomeworkReview({
   // 3. Payload Loader for active section
   const { payload: activePayload } = useQuizPayloads(activeSec, test);
 
-  // 4. Map answers per section for quick lookup
-  const sectionAnswersMap = useMemo(() => {
-    const map = {};
-    rawSections.forEach(s => {
-      map[s.id] = { answers: {}, openEndedText: {} };
-    });
+  const sectionAnswersMap = unifiedSub.sections;
+  const currentSecAnswers = sectionAnswersMap[activeSec.id] || { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
+  const currentSecQuestions = activeSec.questions || [];
 
-    const rawAns = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
-    if (Array.isArray(rawAns)) {
-      rawAns.forEach((a, idx) => {
-        // 1. Match section by ID, question ID, or sectionIndex
-        let matchedSec = null;
-        if (a.sectionId) {
-          matchedSec = rawSections.find(s =>
-            String(s.id) === String(a.sectionId) ||
-            String(s.questionId) === String(a.sectionId) ||
-            String(s.bankQ?.id) === String(a.sectionId) ||
-            String(s.id).replace(/^q_|^hw_|^sec_/, '') === String(a.sectionId).replace(/^q_|^hw_|^sec_/, '')
-          );
-        }
-        if (!matchedSec && a.questionId) {
-          matchedSec = rawSections.find(s =>
-            s.resolvedQuestions?.some(q => String(q.id) === String(a.questionId)) ||
-            s.questions?.some(q => String(q.id) === String(a.questionId))
-          );
-        }
-        if (!matchedSec && a.sectionIndex !== undefined && rawSections[a.sectionIndex]) {
-          matchedSec = rawSections[a.sectionIndex];
-        }
-        if (!matchedSec) {
-          matchedSec = rawSections[0];
-        }
-
-        const sId = matchedSec?.id || rawSections[0]?.id || 'sec_1';
-        const qNo = Number(a.questionNoInSection || a.questionNo || (idx + 1));
-        if (!map[sId]) map[sId] = { answers: {}, openEndedText: {} };
-
-        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty') {
-          const uVal = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
-          map[sId].answers[qNo] = uVal;
-          map[sId].answers[String(qNo)] = uVal;
-        }
-        const textVal = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' ? a.userAnswer : null);
-        if (textVal) {
-          const strText = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
-          map[sId].openEndedText[qNo] = strText;
-          map[sId].openEndedText[String(qNo)] = strText;
-        }
-      });
-    }
-    return map;
-  }, [rawSections, submission]);
-
-  const isSecOE = isSectionOpenEnded(activeSec, test);
-  const isSecPdf = Boolean(activeSec.contentType === 'pdf' || activeSec.pdfUrl || (activePayload && typeof activePayload === 'string' && (activePayload.startsWith('data:application/pdf') || activePayload.includes('.pdf'))));
-  const isSecHtml = !isSecPdf && Boolean(activeSec.contentType === 'html' || activeSec.htmlPayload || (activePayload && typeof activePayload === 'string' && (activePayload.includes('<!DOCTYPE') || activePayload.includes('<html'))));
-
-  const currentSecQuestions = activeSec.resolvedQuestions || [];
-  const currentSecAnswers = sectionAnswersMap[activeSec.id] || { answers: {}, openEndedText: {} };
+  const isSecOE = activeSec.type === 'open_ended';
+  const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
+  const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
   const handleSaveAndClose = async () => {
     await saveGrading();
@@ -181,10 +105,10 @@ export default function CompositeHomeworkReview({
           </button>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
-              🔍 {test.title || 'Birleşik Ödev İncelemesi'}
+              🔍 {unifiedTest.title || 'Sınav İncelemesi'}
             </h3>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-              Öğrenci: {submission.studentName || 'Öğrenci'} • {rawSections.length} Bölüm
+              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm
             </span>
           </div>
         </div>
@@ -254,9 +178,9 @@ export default function CompositeHomeworkReview({
             documentContent={
               <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <PdfViewerWithControls
-                  payload={activePayload || activeSec.pdfUrl || activeSec.contentPayload || activeSec.pdfPayload}
-                  id={activeSec.id || activeSec.testId}
-                  testId={activeSec.testId || activeSec.sourceTestId || activeSec.originalTestId}
+                  payload={activePayload || activeSec.documentPayload || activeSec.pdfUrl}
+                  id={activeSec.id}
+                  testId={unifiedTest.id}
                   title={activeSec.title || 'PDF Dokümanı'}
                   height="100%"
                 />
@@ -267,12 +191,15 @@ export default function CompositeHomeworkReview({
                 <OpenEndedStatusPanel
                   qCount={activeSec.qCount || 1}
                   openEndedText={currentSecAnswers.openEndedText}
+                  resolvedQuestions={currentSecQuestions}
+                  isReviewMode={true}
                 />
               ) : (
                 <OpticalBubblePanel
                   qCount={activeSec.qCount || 1}
                   answers={currentSecAnswers.answers}
                   isReviewMode={true}
+                  resolvedQuestions={currentSecQuestions}
                 />
               )
             }
@@ -287,8 +214,8 @@ export default function CompositeHomeworkReview({
             documentContent={
               <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <HtmlViewerWithControls
-                  payload={activePayload || activeSec.htmlPayload || activeSec.contentPayload}
-                  id={activeSec.id || activeSec.questionId}
+                  payload={activePayload || activeSec.documentPayload || activeSec.htmlPayload}
+                  id={activeSec.id}
                   title={activeSec.title || 'HTML Dokümanı'}
                   height="100%"
                 />
@@ -299,12 +226,15 @@ export default function CompositeHomeworkReview({
                 <OpenEndedStatusPanel
                   qCount={activeSec.qCount || 1}
                   openEndedText={currentSecAnswers.openEndedText}
+                  resolvedQuestions={currentSecQuestions}
+                  isReviewMode={true}
                 />
               ) : (
                 <OpticalBubblePanel
                   qCount={activeSec.qCount || 1}
                   answers={currentSecAnswers.answers}
                   isReviewMode={true}
+                  resolvedQuestions={currentSecQuestions}
                 />
               )
             }
@@ -324,26 +254,17 @@ export default function CompositeHomeworkReview({
                   const score = teacherScores[activeSec.id]?.[qNo];
                   const note = teacherNotes[activeSec.id]?.[qNo] || '';
 
-                  const qImages = [];
-                  if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
-                  if (q.imageUrl) qImages.push(q.imageUrl);
-                  if (q.contentPayload) qImages.push(q.contentPayload);
-                  if (qImages.length === 0) {
-                    if (Array.isArray(activeSec.imageUrls) && activeSec.imageUrls[idx]) qImages.push(activeSec.imageUrls[idx]);
-                    else if (activeSec.imageUrl) qImages.push(activeSec.imageUrl);
-                  }
-
                   return (
                     <OpenEndedReview
                       key={q.id || idx}
                       question={q}
                       qNo={qNo}
                       totalQuestions={currentSecQuestions.length}
-                      imageUrls={qImages}
+                      imageUrls={q.images || []}
                       userAnswerText={text}
                       teacherScore={score}
                       teacherNote={note}
-                      isTrulyEvaluated={submission.isEvaluatedByTeacher === true || submission.status === 'evaluated'}
+                      isTrulyEvaluated={unifiedSub.isEvaluated}
                       onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
                       onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
                       isTeacher={isTeacher}
@@ -358,6 +279,7 @@ export default function CompositeHomeworkReview({
                 qCount={activeSec.qCount || currentSecQuestions.length}
                 openEndedText={currentSecAnswers.openEndedText}
                 resolvedQuestions={currentSecQuestions}
+                isReviewMode={true}
               />
             }
           />
@@ -373,17 +295,8 @@ export default function CompositeHomeworkReview({
                 {currentSecQuestions.map((q, idx) => {
                   const qNo = idx + 1;
                   const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
-                  const cAns = q.correctAnswer ?? q.answer ?? q.correctOption;
-                  const isCorrect = uAns !== null && uAns !== undefined ? checkIsAnswerCorrect(uAns, q, activeSec, qNo) : null;
-
-                  const qImages = [];
-                  if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
-                  if (q.imageUrl) qImages.push(q.imageUrl);
-                  if (q.contentPayload) qImages.push(q.contentPayload);
-                  if (qImages.length === 0) {
-                    if (Array.isArray(activeSec.imageUrls) && activeSec.imageUrls[idx]) qImages.push(activeSec.imageUrls[idx]);
-                    else if (activeSec.imageUrl) qImages.push(activeSec.imageUrl);
-                  }
+                  const cAns = q.correctAnswer;
+                  const isCorrect = uAns !== null && uAns !== undefined ? checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo) : null;
 
                   return (
                     <MultipleChoiceReview
@@ -391,7 +304,7 @@ export default function CompositeHomeworkReview({
                       question={q}
                       qNo={qNo}
                       totalQuestions={currentSecQuestions.length}
-                      imageUrls={qImages}
+                      imageUrls={q.images || []}
                       userAnswer={uAns}
                       correctAnswer={cAns}
                       isCorrect={isCorrect}
