@@ -137,10 +137,12 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
   const testTitle = rawTest.title || rawTest.name || 'Sınav Dokümanı';
 
   // 1. Resolve raw sections
+  // 1. Resolve raw sections
   let rawSectionsList = [];
-  const candidateSections = rawTest.sections || rawTest.questionIds || rawTest.selectedQuestions || rawTest.tests || rawTest.items;
+  const hasExplicitMultiSections = Array.isArray(rawTest.sections) && rawTest.sections.length > 1;
+  const candidateSections = hasExplicitMultiSections ? rawTest.sections : null;
 
-  if (Array.isArray(candidateSections) && candidateSections.length > 0) {
+  if (candidateSections && candidateSections.length > 1) {
     rawSectionsList = candidateSections.map((item, idx) => {
       const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
       const bankQ = allBankQuestions.find(q => String(q.id) === String(itemId) || String(q.id).replace(/^q_/, '') === String(itemId).replace(/^q_/, '')) ||
@@ -161,12 +163,22 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
     });
   } else {
     // Single section wrapping the test itself
-    const resolvedQs = resolveTestQuestions(rawTest, allBankQuestions);
+    let resolvedQs = [];
+    if (Array.isArray(rawTest.resolvedQuestions) && rawTest.resolvedQuestions.length > 0) {
+      resolvedQs = rawTest.resolvedQuestions;
+    } else if (Array.isArray(rawTest.questions) && rawTest.questions.length > 0 && typeof rawTest.questions[0] === 'object' && (rawTest.questions[0].questionText || rawTest.questions[0].text || rawTest.questions[0].options)) {
+      resolvedQs = rawTest.questions;
+    } else if (Array.isArray(rawTest.questionsList) && rawTest.questionsList.length > 0) {
+      resolvedQs = resolveTestQuestions(rawTest, allBankQuestions);
+    } else {
+      resolvedQs = resolveTestQuestions(rawTest, allBankQuestions);
+    }
+
     rawSectionsList = [{
       ...rawTest,
       id: testId || 'sec_1',
       title: testTitle,
-      resolvedQuestions: resolvedQs.length > 0 ? resolvedQs : [rawTest]
+      resolvedQuestions: resolvedQs.length > 0 ? resolvedQs : (Array.isArray(rawTest.questions) && rawTest.questions.length > 0 ? rawTest.questions : [rawTest])
     }];
   }
 
