@@ -1,6 +1,7 @@
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD } from './dateHelpers';
 import { checkIsAnswerCorrect } from './answerEvaluation';
+import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 
 /**
  * Intelligently extracts option choices (A, B, C, D, E) from raw question text if present.
@@ -568,6 +569,118 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
 }
 
 /**
+ * Computes unified submission stats for multi-section assignments and tests.
+ */
+export function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
+  if (!sub) return null;
+  const isMultiSec = Boolean(
+    hw?.isBulk ||
+    hw?.type === 'multi' ||
+    sub?.type === 'multi' ||
+    (Array.isArray(hw?.sections) && hw.sections.length > 1) ||
+    (Array.isArray(hw?.tests) && hw.tests.length > 1) ||
+    (Array.isArray(hw?.items) && hw.items.length > 1) ||
+    (sub?.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 1)
+  );
+
+  if (!isMultiSec) return null;
+
+  try {
+    const unifiedTest = normalizeUnifiedTest(hw || sub, allQuestions);
+    const rawSections = unifiedTest.sections;
+    if (!rawSections || rawSections.length === 0) return null;
+
+    const unifiedSub = normalizeUnifiedSubmission(sub, unifiedTest);
+    const sectionAnswersMap = unifiedSub.sections || {};
+    const teacherScores = sub.teacherScores || sub.scores || (sub.raw_data && (sub.raw_data.teacherScores || sub.raw_data.scores)) || {};
+
+    let totalQuestions = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+    let pendingCount = 0;
+
+    rawSections.forEach((sec, sIdx) => {
+      const sa = sectionAnswersMap[sec.id] ||
+                 sectionAnswersMap[sIdx] ||
+                 sectionAnswersMap[String(sIdx)] ||
+                 (sec.title && sectionAnswersMap[sec.title]) ||
+                 (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
+                 (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
+                 { answers: {}, openEndedText: {}, teacherScores: {} };
+
+      const secQs = sec.questions || [];
+      const count = sec.qCount || secQs.length || 1;
+      const isSecOpenEnded = sec.type === 'open_ended';
+
+      for (let i = 1; i <= count; i++) {
+        totalQuestions++;
+        const qObj = secQs[i - 1] || {};
+        const isQOE = isSecOpenEnded ||
+                      qObj.type === 'open_ended' ||
+                      qObj.type === 'acik_uclu' ||
+                      qObj.type === 'yazili' ||
+                      qObj.questionType === 'acik_uclu' ||
+                      qObj.questionType === 'yazili' ||
+                      Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim() !== '') ||
+                      Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim() !== '');
+
+        const teacherScore = teacherScores[sec.id]?.[i] ??
+                             teacherScores[sIdx]?.[i] ??
+                             sa.teacherScores?.[i] ??
+                             sa.teacherScores?.[String(i)];
+
+        if (isQOE) {
+          if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
+            const scNum = Number(teacherScore);
+            if (scNum > 0) {
+              correctCount++;
+            } else {
+              wrongCount++;
+            }
+          } else {
+            pendingCount++;
+          }
+        } else {
+          // Multiple choice
+          const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
+            blankCount++;
+          } else {
+            const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
+            if (isCorr === true) {
+              correctCount++;
+            } else if (isCorr === false) {
+              wrongCount++;
+            } else {
+              wrongCount++;
+            }
+          }
+        }
+      }
+    });
+
+    const totalScored = correctCount + wrongCount + blankCount;
+    const scorePct = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
+    const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+    const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
+
+    return {
+      total: totalQuestions,
+      correct: correctCount,
+      wrong: wrongCount,
+      blank: blankCount,
+      pending: pendingCount,
+      scorePct,
+      netScore
+    };
+  } catch (err) {
+    console.warn('computeUnifiedSubmissionStats error in testResolver:', err);
+    return null;
+  }
+}
+
+/**
  * Computes synchronized, clean, and normalized analytics data for any student:
  * - Filters out deleted homework submissions (only includes active homeworks and valid book tests)
  * - Excludes in-progress/drafts and empty unsubmitted items
@@ -670,80 +783,11 @@ export function computeStudentAnalyticsData({
       }
     }
     
-    const isMultiSec = Boolean(
-      parentHw?.isBulk ||
-      parentHw?.type === 'multi' ||
-      s?.type === 'multi' ||
-      (Array.isArray(parentHw?.sections) && parentHw.sections.length > 1) ||
-      (Array.isArray(parentHw?.tests) && parentHw.tests.length > 1) ||
-      (Array.isArray(parentHw?.items) && parentHw.items.length > 1) ||
-      (s?.sections && typeof s.sections === 'object' && Object.keys(s.sections).length > 1)
-    );
-
-    if (isMultiSec && parentHw?.sections && Array.isArray(parentHw.sections)) {
-      let uCorr = 0;
-      let uWrong = 0;
-      let uBlank = 0;
-      let uTotal = 0;
-      const sectionAnswersMap = s.sections || {};
-      const teacherScores = s.teacherScores || s.scores || (s.raw_data && (s.raw_data.teacherScores || s.raw_data.scores)) || {};
-
-      parentHw.sections.forEach((sec, sIdx) => {
-        const sa = sectionAnswersMap[sec.id] ||
-                   sectionAnswersMap[sIdx] ||
-                   sectionAnswersMap[String(sIdx)] ||
-                   (sec.title && sectionAnswersMap[sec.title]) ||
-                   (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
-                   { answers: {}, openEndedText: {}, teacherScores: {} };
-
-        const secQs = sec.questions || [];
-        const count = sec.qCount || secQs.length || (sec.type === 'open_ended' ? 1 : 0) || 1;
-        const isSecOE = sec.type === 'open_ended';
-
-        for (let i = 1; i <= count; i++) {
-          uTotal++;
-          const qObj = secQs[i - 1] || {};
-          const isQOE = isSecOE ||
-                        qObj.type === 'open_ended' ||
-                        qObj.type === 'acik_uclu' ||
-                        qObj.type === 'yazili' ||
-                        Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim() !== '') ||
-                        Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim() !== '');
-
-          const teacherScore = teacherScores[sec.id]?.[i] ??
-                               teacherScores[sIdx]?.[i] ??
-                               sa.teacherScores?.[i] ??
-                               sa.teacherScores?.[String(i)];
-
-          if (isQOE) {
-            if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
-              const scNum = Number(teacherScore);
-              if (scNum > 0) uCorr++;
-              else uWrong++;
-            } else {
-              uBlank++;
-            }
-          } else {
-            const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
-            if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
-              uBlank++;
-            } else {
-              const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
-              if (isCorr === true) {
-                uCorr++;
-              } else {
-                uWrong++;
-              }
-            }
-          }
-        }
-      });
-
-      if (uTotal > 0) {
-        correct = uCorr;
-        wrong = uWrong;
-        empty = uBlank;
-      }
+    const unifiedStats = computeUnifiedSubmissionStats(s, parentHw || testObj, []);
+    if (unifiedStats) {
+      correct = unifiedStats.correct;
+      wrong = unifiedStats.wrong;
+      empty = unifiedStats.blank;
     }
 
     // Total questions
