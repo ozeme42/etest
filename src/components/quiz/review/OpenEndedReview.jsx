@@ -65,19 +65,38 @@ export default function OpenEndedReview({
   question,
   qNo = 1,
   totalQuestions = 1,
-  studentAnswerText = '',
+  studentAnswerText,
+  userAnswerText,
+  textAns,
+  user_answer_text,
   teacherScore = undefined,
   teacherNote = '',
   onSetTeacherScore,
+  onScoreChange,
   onSetTeacherNote,
-  isTeacherMode = false,
+  onNoteChange,
+  isTeacherMode,
+  isTeacher,
   imageUrls = [],
   onOpenLightbox,
   isMobile = false
 }) {
+  const setScore = onSetTeacherScore || onScoreChange;
+  const setNote = onSetTeacherNote || onNoteChange;
+  const isTeacherActive = isTeacherMode ?? isTeacher ?? false;
+
+  const rawText = String(
+    studentAnswerText ||
+    userAnswerText ||
+    textAns ||
+    user_answer_text ||
+    question?.userAnswerText ||
+    question?.user_answer_text ||
+    ''
+  ).trim();
+
   const hasTeacherGraded = teacherScore !== undefined && teacherScore !== null && teacherScore !== 'pending';
   const numScore = hasTeacherGraded && teacherScore !== 'empty' ? Number(teacherScore) : null;
-  const rawText = String(studentAnswerText || '').trim();
   const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
   return (
@@ -230,7 +249,7 @@ export default function OpenEndedReview({
       </div>
 
       {/* Teacher Grading Controls (Visible in Teacher / Admin Evaluation Mode) */}
-      {isTeacherMode && (
+      {isTeacherActive && (
         <div style={{
           background: '#fcfaff',
           borderRadius: '0.85rem',
@@ -259,7 +278,7 @@ export default function OpenEndedReview({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             <button
               type="button"
-              onClick={() => onSetTeacherScore && onSetTeacherScore(10)}
+              onClick={() => setScore && setScore(10)}
               style={{
                 flex: 1,
                 minWidth: '80px',
@@ -282,7 +301,7 @@ export default function OpenEndedReview({
 
             <button
               type="button"
-              onClick={() => onSetTeacherScore && onSetTeacherScore(5)}
+              onClick={() => setScore && setScore(5)}
               style={{
                 flex: 1,
                 minWidth: '80px',
@@ -305,7 +324,7 @@ export default function OpenEndedReview({
 
             <button
               type="button"
-              onClick={() => onSetTeacherScore && onSetTeacherScore(0)}
+              onClick={() => setScore && setScore(0)}
               style={{
                 flex: 1,
                 minWidth: '80px',
@@ -328,7 +347,7 @@ export default function OpenEndedReview({
 
             <button
               type="button"
-              onClick={() => onSetTeacherScore && onSetTeacherScore('empty')}
+              onClick={() => setScore && setScore('empty')}
               style={{
                 padding: '0.45rem 0.75rem',
                 borderRadius: '0.65rem',
@@ -352,7 +371,7 @@ export default function OpenEndedReview({
             <input
               type="text"
               value={teacherNote || ''}
-              onChange={(e) => onSetTeacherNote && onSetTeacherNote(e.target.value)}
+              onChange={(e) => setNote && setNote(e.target.value)}
               placeholder="Örn: Formül doğru ancak işlem hatası yapılmış."
               style={{
                 width: '100%',
@@ -370,7 +389,7 @@ export default function OpenEndedReview({
       )}
 
       {/* Student View of Teacher Feedback (if evaluated with note) */}
-      {!isTeacherMode && teacherNote && (
+      {!isTeacherActive && teacherNote && (
         <div style={{
           background: '#f5f3ff',
           borderRadius: '0.85rem',

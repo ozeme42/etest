@@ -77,7 +77,7 @@ export default function CompositeHomeworkReview({
       map[s.id] = { answers: {}, openEndedText: {} };
     });
 
-    const rawAns = submission.answers || submission.formattedAnswers || [];
+    const rawAns = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
     if (Array.isArray(rawAns)) {
       rawAns.forEach((a, idx) => {
         const sId = a.sectionId || rawSections[0]?.id || 'sec_1';
@@ -87,8 +87,9 @@ export default function CompositeHomeworkReview({
         if (a.userAnswer !== null && a.userAnswer !== undefined) {
           map[sId].answers[qNo] = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
         }
-        if (a.userAnswerText) {
-          map[sId].openEndedText[qNo] = a.userAnswerText;
+        const textVal = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' ? a.userAnswer : null);
+        if (textVal) {
+          map[sId].openEndedText[qNo] = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
         }
       });
     }

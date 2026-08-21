@@ -34,12 +34,21 @@ export default function SingleOpenEndedReview({
     sections: [{ id: 'sec_1', resolvedQuestions: questions, qCount: questions.length }]
   });
 
-  const answers = submission.answers || submission.formattedAnswers || [];
+  const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
   const textMap = {};
-  answers.forEach((a, idx) => {
-    const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
-    if (a.userAnswerText) textMap[qNo] = a.userAnswerText;
-  });
+  if (Array.isArray(answers)) {
+    answers.forEach((a, idx) => {
+      const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
+      const val = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' ? a.userAnswer : null) || (typeof a === 'string' ? a : null);
+      if (val) textMap[qNo] = typeof val === 'string' ? val : (val.text || val.userAnswerText || '');
+    });
+  }
+  if (submission.openEndedText && typeof submission.openEndedText === 'object') {
+    Object.assign(textMap, submission.openEndedText);
+  }
+  if (submission.raw_data?.openEndedText && typeof submission.raw_data.openEndedText === 'object') {
+    Object.assign(textMap, submission.raw_data.openEndedText);
+  }
 
   const totalQuestions = questions.length || answers.length || 1;
 
