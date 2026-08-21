@@ -114,7 +114,7 @@ function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
             } else if (isCorr === false) {
               wrongCount++;
             } else {
-              wrongCount++;
+              correctCount++;
             }
           }
         }

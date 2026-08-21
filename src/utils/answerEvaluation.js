@@ -45,20 +45,36 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   const candidateKeys = [
     qObj?.answerKey,
     qObj?.answer_key,
+    qObj?.correctAnswers,
+    qObj?.correct_answers,
     qObj?.opticAnswers,
     qObj?.imageAnswers,
+    qObj?.raw?.answerKey,
+    qObj?.raw?.answer_key,
+    qObj?.raw?.correctAnswers,
+    qObj?.raw?.opticAnswers,
     test?.answerKey,
     test?.answer_key,
+    test?.correctAnswers,
+    test?.correct_answers,
     test?.opticAnswers,
     test?.imageAnswers,
+    test?.raw?.answerKey,
+    test?.raw?.answer_key,
+    test?.raw?.correctAnswers,
+    test?.raw?.correct_answers,
+    test?.raw?.opticAnswers,
     test?.bankQ?.answerKey,
     test?.bankQ?.answer_key,
+    test?.bankQ?.correctAnswers,
     test?.bankQ?.opticAnswers,
     test?.contentPayload?.answerKey,
+    test?.contentPayload?.correctAnswers,
     test?.htmlPayload?.answerKey,
     test?.pdfPayload?.answerKey,
     test?.metadata?.answerKey,
     test?.raw_data?.answerKey,
+    test?.raw_data?.correctAnswers,
     test?.book?.answerKey
   ];
 
@@ -108,7 +124,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   }
 
   // ── STEP 2: Check sub-question in test.questions / test.questionsList array ─
-  const testQs = test?.questions || test?.resolvedQuestions || test?.questionsList || test?.bankQ?.questionsList || [];
+  const testQs = test?.questions || test?.resolvedQuestions || test?.questionsList || test?.bankQ?.questionsList || test?.raw?.questions || [];
   if (Array.isArray(testQs) && testQs.length > 0) {
     const subQ = testQs[qNo - 1];
     if (subQ && typeof subQ === 'object') {
@@ -121,7 +137,9 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
         subQ.correct_answer_letter,
         subQ.correct,
         subQ.dogruCevap,
-        subQ.raw?.correctAnswer
+        subQ.dogru_cevap,
+        subQ.raw?.correctAnswer,
+        subQ.raw?.correct_answer
       ];
       for (const cand of subCandidates) {
         if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
@@ -130,7 +148,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
         }
       }
       if (Array.isArray(subQ.options) && subQ.options.length > 0) {
-        const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true)));
+        const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true)));
         if (optIdx !== -1) return userIdx === optIdx;
       }
     }
@@ -186,7 +204,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   }
 
   // ── STEP 4: bulkAnswerKey string ───────────────────────────────────────────
-  const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey];
+  const bulkSources = [test?.bulkAnswerKey, qObj?.bulkAnswerKey, test?.bankQ?.bulkAnswerKey, test?.raw?.bulkAnswerKey];
   for (const bulkStr of bulkSources) {
     if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
       const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
@@ -198,7 +216,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
   }
 
-  return false;
+  return null;
 }
 
 /**
