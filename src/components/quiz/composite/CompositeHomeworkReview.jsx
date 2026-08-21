@@ -238,100 +238,13 @@ export default function CompositeHomeworkReview({
               🔍 {unifiedTest.title || 'Sınav İncelemesi'}
             </h3>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm ({overallStats.total} Soru)
+              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm
             </span>
           </div>
         </div>
 
-        {/* Right: Informative Metric Pills & Action */}
+        {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-          {/* Doğru Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            color: '#15803d',
-            fontWeight: 900,
-            fontSize: '0.82rem'
-          }}>
-            <CheckCircle2 size={15} color="#16a34a" />
-            <span>{overallStats.correct} Doğru</span>
-          </div>
-
-          {/* Yanlış Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            color: '#b91c1c',
-            fontWeight: 900,
-            fontSize: '0.82rem'
-          }}>
-            <XCircle size={15} color="#ef4444" />
-            <span>{overallStats.wrong} Yanlış</span>
-          </div>
-
-          {/* Boş Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#475569',
-            fontWeight: 800,
-            fontSize: '0.82rem'
-          }}>
-            <HelpCircle size={15} color="#64748b" />
-            <span>{overallStats.blank} Boş</span>
-          </div>
-
-          {/* Başarı & Net Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.75rem',
-            borderRadius: '0.65rem',
-            background: '#eff6ff',
-            border: '1px solid #93c5fd',
-            color: '#1d4ed8',
-            fontWeight: 900,
-            fontSize: '0.82rem'
-          }}>
-            <Award size={15} color="#2563eb" />
-            <span>%{overallStats.scorePct} Başarı (Net: {overallStats.netScore})</span>
-          </div>
-
-          {/* Değerlendirmede / Bekleyen Soru Pill */}
-          {overallStats.pending > 0 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '0.35rem 0.75rem',
-              borderRadius: '0.65rem',
-              background: '#faf5ff',
-              border: '1.5px solid #ddd6fe',
-              color: '#7c3aed',
-              fontWeight: 900,
-              fontSize: '0.82rem'
-            }}>
-              <Clock size={15} color="#8b5cf6" />
-              <span>{overallStats.pending} Değerlendirmede</span>
-            </div>
-          )}
-
           {/* Delete Button */}
           <button
             type="button"
