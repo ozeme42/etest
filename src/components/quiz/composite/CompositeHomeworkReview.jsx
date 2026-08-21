@@ -138,34 +138,20 @@ export default function CompositeHomeworkReview({
             pendingCount++;
           }
         } else {
-          // ── Exact same logic as OpticalBubblePanel.reviewStats ──
+          // ── Birebir OpticalBubblePanel.reviewStats mantığı ──
+          // Panel: correctAnswers=[] (boş), testCtx=activeSec.raw
+          // Dolayısıyla sadece checkIsAnswerCorrect kullanılır; null → doğru sayılır
           const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
           const u = normalizeOpt(rawAnsVal);
 
           if (u === null) {
             blankCount++;
           } else {
-            // 1. Try sec.correctAnswers array first (most reliable)
-            const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
-              ? sec.correctAnswers[i - 1]
-              : (Array.isArray(sec.raw?.correctAnswers) && sec.raw.correctAnswers[i - 1] !== undefined)
-                ? sec.raw.correctAnswers[i - 1]
-                : (sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1] ??
-                   sec.opticAnswers?.[i - 1] ?? sec.raw?.opticAnswers?.[i - 1] ??
-                   qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption);
-
             let isCorr = null;
-
             if (qObj && Object.keys(qObj).length > 0) {
               isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
-
-            if (isCorr === null && cAns !== undefined && cAns !== null && cAns !== '') {
-              const normC = normalizeOpt(cAns);
-              if (normC !== null) isCorr = (u === normC);
-            }
-
-            // Match OpticalBubblePanel: isCorr===null (no key found) → count as correct
+            // null → doğru (panel davranışı)
             if (isCorr === false) wrongCount++;
             else correctCount++;
           }
