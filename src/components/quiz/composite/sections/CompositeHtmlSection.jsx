@@ -31,7 +31,7 @@ export default memo(function CompositeHtmlSection({
       defaultSize={340}
       defaultOpenOnMobile={false}
       documentContent={
-        <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
+        <div style={{ flex: 1, width: '100%', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <HtmlViewerWithControls
             payload={payload || section.htmlPayload || section.contentPayload}
             id={section.id || section.questionId}

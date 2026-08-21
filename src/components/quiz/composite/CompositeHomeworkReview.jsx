@@ -167,7 +167,7 @@ export default function CompositeHomeworkReview({
       />
 
       {/* Main Review Content */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {isSecPdf ? (
           <QuizPanelLayout
             panelTitle={isSecOE ? 'Yazılı Değerlendirme' : 'Cevap Anahtarı'}

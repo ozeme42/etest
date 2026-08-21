@@ -190,7 +190,7 @@ export default function CompositeHomeworkRunner({
       />
 
       {/* Active Section Content */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+      <div style={{ flex: 1, minHeight: 0, height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {isSecPdf ? (
           <CompositePdfSection
             section={{ ...activeSec, resolvedQuestions: activeSec.questions }}

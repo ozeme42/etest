@@ -221,7 +221,9 @@ export default React.memo(function HtmlViewerWithControls(props) {
   const containerStyle = {
     position: 'relative',
     width: '100%',
-    height: height,
+    height: height || '100%',
+    minHeight: 0,
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'
@@ -326,14 +328,17 @@ export default React.memo(function HtmlViewerWithControls(props) {
       </div>
 
       {/* Direct HTML Iframe - Smooth CSS Zoom Without Unmounting */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: 'var(--color-surface-hover)' }}>
+      <div style={{ flex: 1, width: '100%', height: '100%', minHeight: 0, overflow: 'auto', background: 'var(--color-surface-hover)', display: 'flex', flexDirection: 'column' }}>
         <div
           style={{
             width: `${zoomLevel}%`,
-            height: `${zoomLevel}%`,
+            height: '100%',
             minWidth: '100%',
             minHeight: '100%',
-            transition: 'width 0.15s ease, height 0.15s ease'
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            transition: 'width 0.15s ease'
           }}
         >
           {iframeElement}
