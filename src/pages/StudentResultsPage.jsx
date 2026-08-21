@@ -25,6 +25,7 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
@@ -604,12 +605,31 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       if (!isOpenEnded && Array.isArray(sub.answers) && sub.answers.length > 0) {
         correct = 0; wrong = 0; blank = 0;
-        sub.answers.forEach(ans => {
-          if (ans.isCorrect === true) correct++;
-          else if (ans.isCorrect === false) {
-            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-            if (isB) blank++; else wrong++;
+        sub.answers.forEach((ans, aIdx) => {
+          const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
+          const userAns = ans.userAnswer;
+          const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+          if (!hasOption) {
+            blank++;
+            return;
           }
+
+          const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, null, ans, hw, []);
+          const uLetter = formatAnswerLetter(userAns);
+          const cLetter = formatAnswerLetter(resolvedCorrect);
+
+          let isRight = null;
+          if (uLetter && cLetter) {
+            isRight = (uLetter === cLetter);
+          } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
+            isRight = ans.isCorrect;
+          } else {
+            isRight = checkIsAnswerCorrect(userAns, null, hw, qNo);
+          }
+
+          if (isRight === true) correct++;
+          else if (isRight === false) wrong++;
+          else blank++;
         });
       }
 
@@ -694,18 +714,38 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       let blank = sub.blankCount ?? raw.blankCount ?? 0;
       let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
 
-      if (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.correctCount === undefined) {
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         correct = 0; wrong = 0; blank = 0; pending = 0;
-        sub.answers.forEach(ans => {
-          if (ans.isCorrect === true) correct++;
-          else if (ans.isCorrect === false) {
-            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-            if (isB) blank++; else wrong++;
-          } else if (ans.userAnswerText) {
+        sub.answers.forEach((ans, aIdx) => {
+          const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
+          const userAns = ans.userAnswer;
+          const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
+          if (isOE) {
             pending++;
-          } else {
-            blank++;
+            return;
           }
+          const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+          if (!hasOption) {
+            blank++;
+            return;
+          }
+
+          const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, null, ans, sub, []);
+          const uLetter = formatAnswerLetter(userAns);
+          const cLetter = formatAnswerLetter(resolvedCorrect);
+
+          let isRight = null;
+          if (uLetter && cLetter) {
+            isRight = (uLetter === cLetter);
+          } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
+            isRight = ans.isCorrect;
+          } else {
+            isRight = checkIsAnswerCorrect(userAns, null, sub, qNo);
+          }
+
+          if (isRight === true) correct++;
+          else if (isRight === false) wrong++;
+          else blank++;
         });
       }
 

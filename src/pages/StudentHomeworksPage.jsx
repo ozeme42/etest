@@ -7,6 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 import {
   BookMarked, CheckCircle2, Clock, PlayCircle, AlertCircle,
@@ -193,7 +194,27 @@ export default function StudentHomeworksPage() {
       let correctCount = 0;
       if (sub) {
         if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-          correctCount = sub.answers.filter(a => a.isCorrect === true).length;
+          sub.answers.forEach((ans, aIdx) => {
+            const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
+            const userAns = ans.userAnswer;
+            const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+            if (!hasOption) return;
+
+            const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, null, ans, hw, []);
+            const uLetter = formatAnswerLetter(userAns);
+            const cLetter = formatAnswerLetter(resolvedCorrect);
+
+            let isRight = null;
+            if (uLetter && cLetter) {
+              isRight = (uLetter === cLetter);
+            } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
+              isRight = ans.isCorrect;
+            } else {
+              isRight = checkIsAnswerCorrect(userAns, null, hw, qNo);
+            }
+
+            if (isRight === true) correctCount++;
+          });
         } else if (typeof sub.correctCount === 'number') {
           correctCount = sub.correctCount;
         } else if (typeof sub.score === 'number' && sub.score <= 100 && qCount > 0) {
@@ -202,9 +223,9 @@ export default function StudentHomeworksPage() {
       }
       let scorePct = null;
       if (sub) {
-        if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) scorePct = Math.round(Number(sub.scorePercentage));
+        if (qCount > 0) scorePct = Math.round((correctCount / qCount) * 100);
+        else if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) scorePct = Math.round(Number(sub.scorePercentage));
         else if (typeof sub.score === 'number' && sub.score <= 100) scorePct = Math.round(sub.score);
-        else if (qCount > 0) scorePct = Math.round((correctCount / qCount) * 100);
       }
 
       return [{
