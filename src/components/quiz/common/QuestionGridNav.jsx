@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Circle } from 'lucide-react';
 
 function getQuestionReviewStatus(userAns) {
   if (!userAns) return 'blank';
@@ -18,10 +18,10 @@ function getQuestionReviewStatus(userAns) {
     return 'blank';
   }
 
-  if (userAns.isCorrect === true) {
+  if (userAns.isCorrect === true || userAns.is_correct === true || userAns.isRight === true) {
     return 'correct';
   }
-  if (userAns.isCorrect === false) {
+  if (userAns.isCorrect === false || userAns.is_correct === false || userAns.isRight === false) {
     return 'wrong';
   }
   return 'answered';
@@ -48,10 +48,25 @@ export default function QuestionGridNav({
         gap: '0.85rem'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: darkMode ? '#cbd5e1' : '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Soru Numaratörü ({currentIndex + 1} / {totalQuestions})
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: darkMode ? '#cbd5e1' : '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Soru Numaratörü ({currentIndex + 1} / {totalQuestions})
+          </span>
+          {isReviewMode && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#16a34a', background: darkMode ? 'rgba(34,197,94,0.15)' : '#dcfce7', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
+                ✓ Doğru
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#dc2626', background: darkMode ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
+                ✗ Yanlış
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#64748b', background: darkMode ? 'rgba(100,116,139,0.15)' : '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
+                ○ Boş
+              </span>
+            </div>
+          )}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <button
@@ -101,8 +116,8 @@ export default function QuestionGridNav({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(38px, 1fr))',
-          gap: '0.4rem'
+          gridTemplateColumns: 'repeat(auto-fill, minmax(42px, 1fr))',
+          gap: '0.45rem'
         }}
       >
         {Array.from({ length: totalQuestions }).map((_, idx) => {
@@ -117,21 +132,25 @@ export default function QuestionGridNav({
           let bgColor = darkMode ? '#0f172a' : '#f8fafc';
           let textColor = darkMode ? '#94a3b8' : '#64748b';
           let borderColor = darkMode ? '#334155' : '#cbd5e1';
+          let badgeIcon = null;
 
           if (isReviewMode) {
             if (status === 'correct') {
-              bgColor = darkMode ? '#064e3b' : '#f0fdf4';
-              textColor = darkMode ? '#34d399' : '#15803d';
-              borderColor = darkMode ? '#059669' : '#86efac';
+              bgColor = darkMode ? 'rgba(34, 197, 94, 0.22)' : '#dcfce7';
+              textColor = darkMode ? '#4ade80' : '#166534';
+              borderColor = '#22c55e';
+              badgeIcon = '✓';
             } else if (status === 'wrong') {
-              bgColor = darkMode ? '#7f1d1d' : '#fef2f2';
-              textColor = darkMode ? '#f87171' : '#b91c1c';
-              borderColor = darkMode ? '#dc2626' : '#fca5a5';
+              bgColor = darkMode ? 'rgba(239, 68, 68, 0.22)' : '#fee2e2';
+              textColor = darkMode ? '#f87171' : '#991b1b';
+              borderColor = '#ef4444';
+              badgeIcon = '✗';
             } else {
-              // Boş / Yanıtlanmadı: Asla ve asla kırmızı olamaz!
-              bgColor = darkMode ? '#0f172a' : '#f8fafc';
+              // Boş / Yanıtlanmadı
+              bgColor = darkMode ? '#1e293b' : '#f1f5f9';
               textColor = darkMode ? '#94a3b8' : '#64748b';
-              borderColor = darkMode ? '#334155' : '#cbd5e1';
+              borderColor = darkMode ? '#475569' : '#cbd5e1';
+              badgeIcon = '○';
             }
           } else if (status !== 'blank') {
             bgColor = darkMode ? '#312e81' : '#eff6ff';
@@ -144,22 +163,31 @@ export default function QuestionGridNav({
               key={idx}
               onClick={() => onSelectIndex(idx)}
               style={{
-                height: '38px',
-                borderRadius: '0.65rem',
-                border: `2px solid ${isActive ? '#2563eb' : borderColor}`,
+                height: '42px',
+                borderRadius: '0.75rem',
+                border: `2px solid ${isActive ? '#4f46e5' : borderColor}`,
                 background: bgColor,
                 color: textColor,
                 fontWeight: 900,
-                fontSize: '0.85rem',
+                fontSize: '0.88rem',
                 cursor: 'pointer',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.15s ease',
-                boxShadow: isActive ? '0 0 0 3px rgba(37,99,235,0.25)' : 'none'
+                position: 'relative',
+                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                boxShadow: isActive ? '0 0 0 3px rgba(79,70,229,0.35)' : 'none',
+                zIndex: isActive ? 2 : 1
               }}
             >
-              {qNo}
+              <span>{qNo}</span>
+              {isReviewMode && badgeIcon && (
+                <span style={{ fontSize: '0.65rem', lineHeight: 1, marginTop: '0.1rem', fontWeight: 900 }}>
+                  {badgeIcon}
+                </span>
+              )}
             </button>
           );
         })}
