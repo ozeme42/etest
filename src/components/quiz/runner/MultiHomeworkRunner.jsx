@@ -22,6 +22,7 @@ function checkIsOE(obj) {
   const hasOEWord = Boolean(titleStr && (
     titleStr.includes('açık') ||
     titleStr.includes('acik') ||
+    titleStr.includes('yaz') ||
     titleStr.includes('yazılı') ||
     titleStr.includes('yazili') ||
     titleStr.includes('klasik')
@@ -48,9 +49,10 @@ function checkIsOE(obj) {
 
   if (isOE || hasOEWord) return true;
 
-  if (obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli' || obj.contentType === 'coktan_secmeli') {
-    return false;
-  }
+  if (Array.isArray(obj.questions) && obj.questions.some(checkIsOE)) return true;
+  if (Array.isArray(obj.sections) && obj.sections.some(checkIsOE)) return true;
+  if (Array.isArray(obj.resolvedQuestions) && obj.resolvedQuestions.some(checkIsOE)) return true;
+  if (obj.bankQ && checkIsOE(obj.bankQ)) return true;
 
   return false;
 }
@@ -2079,16 +2081,17 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
           if (isItemOE) {
             const hasTeacherGrade = Boolean(
-              (typeof a.score === 'number' && a.score > 0) ||
-              (typeof a.earnedScore === 'number' && a.earnedScore > 0) ||
-              a.evaluatedAt ||
+              a.evaluatedByTeacher === true ||
+              (a.evaluatedAt && a.evaluatedByTeacher !== false) ||
               a.teacherNote ||
               a.teacher_note ||
               a.feedback ||
-              a.evalStatus === 'graded' ||
-              a.evalStatus === 'evaluated'
+              (a.evalStatus === 'graded' && (a.evaluatedByTeacher === true || a.evaluatedAt)) ||
+              (a.evalStatus === 'evaluated' && (a.evaluatedByTeacher === true || a.evaluatedAt)) ||
+              userAnswers?.isEvaluatedByTeacher === true ||
+              userAnswers?.raw_data?.isEvaluatedByTeacher === true
             );
-            if (hasTeacherGrade) {
+            if (hasTeacherGrade && a.score !== undefined && a.score !== null && a.score !== '') {
               map[sId][qNo] = typeof a.score === 'number' ? Number(a.score) : (typeof a.earnedScore === 'number' ? Number(a.earnedScore) : 10);
             } else {
               // Open-ended question awaiting teacher grading: MUST be undefined!
@@ -2541,7 +2544,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
-  const secOE = checkIsOE(activeSec.bankQ) || checkIsOE(activeSec) || Boolean(activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(checkIsOE));
+  const secOE = Boolean(
+    checkIsOE(test) ||
+    checkIsOE(activeSec.bankQ) ||
+    checkIsOE(activeSec) ||
+    (activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(checkIsOE)) ||
+    (Array.isArray(userAnswers?.answers) && userAnswers.answers.some(a => a.userAnswerText || a.isOpenEnded)) ||
+    (Array.isArray(userAnswers?.raw_data?.answers) && userAnswers.raw_data.answers.some(a => a.userAnswerText || a.isOpenEnded))
+  );
   const activeBankQ = activeSec.bankQ || {};
 
   const [idbPayload, setIdbPayload] = useState(null);
