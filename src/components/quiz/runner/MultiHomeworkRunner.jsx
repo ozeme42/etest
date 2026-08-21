@@ -461,7 +461,9 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
           let isCorrect = null;
           if (isReviewMode && isAnswered) {
-            if (hasUserAns) {
+            if (isQOE) {
+              isCorrect = null;
+            } else if (hasUserAns) {
               const evalResult = checkIsAnswerCorrect(numericUserAns, qObj, bankQ || test, qNo);
               if (evalResult !== null) {
                 isCorrect = evalResult;
@@ -471,7 +473,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
             } else if (hasUserText) {
               isCorrect = null;
             }
-          } else if (isAnswered && userAnsObj && userAnsObj.isCorrect !== undefined && userAnsObj.isCorrect !== null) {
+          } else if (!isQOE && isAnswered && userAnsObj && userAnsObj.isCorrect !== undefined && userAnsObj.isCorrect !== null) {
             isCorrect = userAnsObj.isCorrect;
           }
 
@@ -489,7 +491,11 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
                 borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
-                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #e2e8f0' : (isQOE && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  ? (isQOE
+                      ? (hasTeacherGraded
+                          ? (currentTeacherScore === 10 ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #e2e8f0' : currentTeacherScore === 0 ? '1.5px solid #fca5a5' : '1.5px solid #ddd6fe')
+                          : '1.5px solid #ddd6fe')
+                      : (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #e2e8f0' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0'))
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
@@ -521,28 +527,32 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
 
                 <div>
                   {isReviewMode ? (
-                    currentTeacherScore === 10 || isCorrect === true ? (
-                      <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                    ) : currentTeacherScore === 5 ? (
-                      <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                    ) : currentTeacherScore === 'empty' ? (
-                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                    ) : isQOE && !hasTeacherGraded ? (
-                      isTeacherMode ? (
-                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
-                      ) : (
-                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
-                      )
-                    ) : currentTeacherScore === 0 || isCorrect === false ? (
-                      <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
-                    ) : isQOE ? (
-                      isTeacherMode ? (
+                    isQOE ? (
+                      hasTeacherGraded ? (
+                        currentTeacherScore === 10 ? (
+                          <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                        ) : currentTeacherScore === 5 ? (
+                          <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                        ) : currentTeacherScore === 'empty' ? (
+                          <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                        ) : currentTeacherScore === 0 ? (
+                          <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                        ) : (
+                          <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>{currentTeacherScore} Puan</span>
+                        )
+                      ) : isTeacherMode ? (
                         <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                       ) : (
                         <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
                       )
                     ) : (
-                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>— BOŞ</span>
+                      !isAnswered ? (
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ</span>
+                      ) : isCorrect === true ? (
+                        <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU</span>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ</span>
+                      )
                     )
                   ) : (
                     isAnswered ? (
@@ -3533,14 +3543,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                           {isReviewMode ? (
                             isQOpenEnded ? (
-                              currentTeacherScore === 10 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                              ) : currentTeacherScore === 5 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                              ) : currentTeacherScore === 'empty' ? (
-                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                              ) : currentTeacherScore === 0 ? (
-                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                              hasTeacherGraded ? (
+                                currentTeacherScore === 10 ? (
+                                  <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                                ) : currentTeacherScore === 5 ? (
+                                  <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                                ) : currentTeacherScore === 'empty' ? (
+                                  <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                                ) : currentTeacherScore === 0 ? (
+                                  <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                                ) : (
+                                  <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>{currentTeacherScore} Puan</span>
+                                )
                               ) : isTeacherMode ? (
                                 <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                               ) : (
@@ -4107,14 +4121,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                         {isReviewMode ? (
                           isQOpenEnded ? (
-                            currentTeacherScore === 10 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
-                            ) : currentTeacherScore === 5 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                            ) : currentTeacherScore === 'empty' ? (
-                              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
-                            ) : currentTeacherScore === 0 ? (
-                              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                            hasTeacherGraded ? (
+                              currentTeacherScore === 10 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                              ) : currentTeacherScore === 5 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
+                              ) : currentTeacherScore === 'empty' ? (
+                                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
+                              ) : currentTeacherScore === 0 ? (
+                                <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                              ) : (
+                                <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>{currentTeacherScore} Puan</span>
+                              )
                             ) : isTeacherMode ? (
                               <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
                             ) : (
