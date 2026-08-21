@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import OpenEndedReview from '../review/OpenEndedReview';
 import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import { useTeacherGrading } from '../hooks/useTeacherGrading';
-import { ArrowLeft, Save, CheckCircle2, Clock } from 'lucide-react';
+import { idbGetPayload } from '../../../services/indexedDbService';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useHomework } from '../../../context/HomeworkContext';
+import { ArrowLeft, Save, Clock, Award } from 'lucide-react';
 
 /**
  * SingleOpenEndedReview
- * Dedicated review screen for Single Open-Ended assignments.
- * For Students: Clean read-only view of their submitted answers and teacher evaluations.
- * For Teachers: Interactive grading & scoring controls.
+ * Isolated review & teacher grading component for Single Open-Ended assignments.
  */
 export default function SingleOpenEndedReview({
   submission = {},
@@ -20,49 +20,202 @@ export default function SingleOpenEndedReview({
   onClose
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { updateSubmission } = useEvaluation();
+  const { updateHomeworkSubmission } = useHomework();
 
-  const {
-    teacherScores,
-    teacherNotes,
-    overallFeedback,
-    setOverallFeedback,
-    handleScoreChange,
-    handleNoteChange,
-    saveGrading,
-    isSaving
-  } = useTeacherGrading({
-    submission,
-    test,
-    sections: [{ id: 'sec_1', resolvedQuestions: questions, qCount: questions.length }]
+  const answers = submission.answers || [];
+  const totalQuestions = questions.length || answers.length || test.questionCount || 1;
+
+  // 1. Text Map
+  const textMap = useMemo(() => {
+    const map = {};
+    answers.forEach(a => {
+      const qNo = a.questionNoInSection || a.questionNo;
+      if (qNo) {
+        map[qNo] = a.userAnswerText || a.studentAnswerText || a.userAnswer || '';
+      }
+    });
+    return map;
+  }, [answers]);
+
+  // 2. Teacher Scores & Notes
+  const [teacherScores, setTeacherScores] = useState(() => {
+    const map = { sec_1: {} };
+    answers.forEach(a => {
+      const qNo = a.questionNoInSection || a.questionNo;
+      if (qNo) {
+        if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
+          map.sec_1[qNo] = 'empty';
+        } else if (a.score !== undefined && a.score !== null) {
+          map.sec_1[qNo] = Number(a.score);
+        } else if (a.isCorrect === true) {
+          map.sec_1[qNo] = 10;
+        } else if (a.isCorrect === false) {
+          map.sec_1[qNo] = 0;
+        }
+      }
+    });
+    return map;
   });
 
-  const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
-  const textMap = {};
-  if (Array.isArray(answers)) {
-    answers.forEach((a, idx) => {
-      const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
-      const val = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' ? a.userAnswer : null) || (typeof a === 'string' ? a : null);
-      if (val) textMap[qNo] = typeof val === 'string' ? val : (val.text || val.userAnswerText || '');
+  const [teacherNotes, setTeacherNotes] = useState(() => {
+    const map = { sec_1: {} };
+    answers.forEach(a => {
+      const qNo = a.questionNoInSection || a.questionNo;
+      if (qNo) {
+        map.sec_1[qNo] = a.teacherNote || a.teacher_note || '';
+      }
     });
-  }
-  if (submission.openEndedText && typeof submission.openEndedText === 'object') {
-    Object.assign(textMap, submission.openEndedText);
-  }
-  if (submission.raw_data?.openEndedText && typeof submission.raw_data.openEndedText === 'object') {
-    Object.assign(textMap, submission.raw_data.openEndedText);
-  }
+    return map;
+  });
 
-  const totalQuestions = questions.length || answers.length || 1;
-  const isEvaluated = Boolean(
-    submission.isEvaluatedByTeacher ||
-    submission.status === 'evaluated' ||
-    submission.status === 'graded' ||
-    answers.some(a => a.evaluatedByTeacher || a.evaluatedAt || (typeof a.score === 'number' && a.score > 0))
-  );
+  const [idbPayloadMap, setIdbPayloadMap] = useState({});
+  const [overallFeedback, setOverallFeedback] = useState(submission.teacherFeedback || submission.teacherNote || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load IndexedDB question images
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdbImages() {
+      const payloadMap = {};
+      for (const q of questions) {
+        if (q?.id && (q.imageUrl === '[STORED_IN_INDEXEDDB]' || q.contentPayload === '[STORED_IN_INDEXEDDB]' || !q.imageUrl)) {
+          try {
+            const val = await idbGetPayload(q.id);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+              payloadMap[q.id] = val;
+            }
+          } catch (e) {}
+        }
+      }
+      if (test?.id && (!test.contentPayload || test.contentPayload === '[STORED_IN_INDEXEDDB]' || !test.imageUrl)) {
+        try {
+          const val = await idbGetPayload(test.id);
+          if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+            payloadMap[test.id] = val;
+          }
+        } catch (e) {}
+      }
+      if (isMounted) setIdbPayloadMap(payloadMap);
+    }
+    loadIdbImages();
+    return () => { isMounted = false; };
+  }, [questions, test]);
+
+  const handleScoreChange = (secId, qNo, sc) => {
+    setTeacherScores(prev => ({
+      ...prev,
+      [secId]: {
+        ...(prev[secId] || {}),
+        [qNo]: sc
+      }
+    }));
+  };
+
+  const handleNoteChange = (secId, qNo, nt) => {
+    setTeacherNotes(prev => ({
+      ...prev,
+      [secId]: {
+        ...(prev[secId] || {}),
+        [qNo]: nt
+      }
+    }));
+  };
+
+  const totalEarnedScore = useMemo(() => {
+    let earned = 0;
+    const sMap = teacherScores.sec_1 || {};
+    Object.values(sMap).forEach(sc => {
+      if (sc !== undefined && sc !== null && sc !== 'empty') {
+        earned += Number(sc);
+      }
+    });
+    return earned;
+  }, [teacherScores]);
+
+  const totalMaxScore = totalQuestions * 10;
+  const scorePercentage = totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      return (
+        totalEarnedScore > 0 ||
+        Boolean(submission.teacherFeedback || submission.teacherNote) ||
+        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
+      );
+    }
+    return false;
+  }, [submission, totalEarnedScore, answers]);
 
   const handleSaveAndClose = async () => {
-    await saveGrading();
-    if (onClose) onClose();
+    if (isSaving || !submission) return;
+    setIsSaving(true);
+    try {
+      const sMap = teacherScores.sec_1 || {};
+      const nMap = teacherNotes.sec_1 || {};
+
+      const updatedAnswers = answers.map((ans, idx) => {
+        const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
+        const sc = sMap[qNo];
+        const nt = nMap[qNo] || '';
+
+        let score = 0;
+        let isCorrect = null;
+        let evalStatus = 'empty';
+
+        if (sc === 'empty') {
+          score = 0;
+          isCorrect = null;
+          evalStatus = 'empty';
+        } else if (sc !== undefined && sc !== null) {
+          score = Number(sc);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
+        } else if (ans.score !== undefined && ans.score !== null) {
+          score = Number(ans.score);
+          isCorrect = score >= 5;
+          evalStatus = score >= 5 ? 'correct' : 'wrong';
+        }
+
+        return {
+          ...ans,
+          score,
+          isCorrect,
+          evalStatus,
+          teacherNote: nt,
+          evaluatedByTeacher: true
+        };
+      });
+
+      const updatedSubPayload = {
+        ...submission,
+        answers: updatedAnswers,
+        score: scorePercentage,
+        isEvaluatedByTeacher: true,
+        status: 'evaluated',
+        teacherFeedback: overallFeedback,
+        teacherNote: overallFeedback,
+        evaluatedAt: new Date().toISOString()
+      };
+
+      if (typeof updateSubmission === 'function') {
+        await updateSubmission(submission.id, updatedSubPayload);
+      }
+
+      if (submission.homeworkId || submission.hwId) {
+        const hwId = submission.homeworkId || submission.hwId;
+        if (typeof updateHomeworkSubmission === 'function') {
+          await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
+        }
+      }
+
+      if (onClose) onClose();
+    } catch (err) {
+      console.error('Error saving single open-ended evaluation:', err);
+      if (onClose) onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -98,33 +251,48 @@ export default function SingleOpenEndedReview({
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
               ✍️ {test.title || (isTeacher ? 'Açık Uçlu Sınav Değerlendirmesi' : 'Açık Uçlu Sınav İncelemesi')}
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isEvaluated ? '#16a34a' : '#d97706' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isTrulyEvaluated ? '#16a34a' : '#d97706' }}>
               {isTeacher
                 ? `Öğrenci: ${submission.studentName || 'Öğrenci'} • ${totalQuestions} Yazılı Soru`
-                : (isEvaluated ? `Puanlandı • %${submission.score ?? 0} Başarı` : `${totalQuestions} Yazılı Soru • Öğretmen Değerlendirmesi Bekleniyor`)}
+                : (isTrulyEvaluated ? `Puanlandı • %${scorePercentage} Başarı` : `${totalQuestions} Yazılı Soru • ⏳ Değerlendirmede`)}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '0.75rem',
-              border: '1.5px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isTeacher ? 'Kapat' : 'Kapat & Çık'}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {isTrulyEvaluated ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: '#ffffff',
+              padding: '0.4rem 0.9rem',
+              borderRadius: '0.65rem',
+              fontWeight: 900,
+              fontSize: '0.85rem'
+            }}>
+              <Award size={16} /> %{scorePercentage} Başarı ({totalEarnedScore} / {totalMaxScore} P)
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#f5f3ff',
+              color: '#6b21a8',
+              border: '1px solid #ddd6fe',
+              padding: '0.4rem 0.9rem',
+              borderRadius: '0.65rem',
+              fontWeight: 900,
+              fontSize: '0.85rem'
+            }}>
+              <Clock size={16} color="#7c3aed" />
+              <span>⏳ Değerlendirmede</span>
+            </div>
+          )}
 
-          {isTeacher && (
+          {isTeacher ? (
             <button
               type="button"
               disabled={isSaving}
@@ -133,7 +301,7 @@ export default function SingleOpenEndedReview({
                 padding: '0.65rem 1.25rem',
                 borderRadius: '0.75rem',
                 border: 'none',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #16a34a, #22c55e)',
                 color: '#ffffff',
                 fontWeight: 900,
                 fontSize: '0.85rem',
@@ -141,10 +309,27 @@ export default function SingleOpenEndedReview({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+                boxShadow: '0 4px 12px rgba(22,163,74,0.25)'
               }}
             >
-              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet'}
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet ✓'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              Kapat & Çık
             </button>
           )}
         </div>
@@ -164,13 +349,14 @@ export default function SingleOpenEndedReview({
               {questions.map((q, idx) => {
                 const qNo = idx + 1;
                 const userText = textMap[qNo] || '';
-                const teacherScore = teacherScores['sec_1']?.[qNo];
-                const teacherNote = teacherNotes['sec_1']?.[qNo] || '';
+                const teacherScore = teacherScores.sec_1?.[qNo];
+                const teacherNote = teacherNotes.sec_1?.[qNo] || '';
+                const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
 
                 return (
                   <OpenEndedReview
                     key={q.id || idx}
-                    question={q}
+                    question={{ ...q, imageUrl: qImage || q.imageUrl }}
                     qNo={qNo}
                     totalQuestions={totalQuestions}
                     userAnswerText={userText}
@@ -203,7 +389,7 @@ export default function SingleOpenEndedReview({
               ) : (
                 overallFeedback && (
                   <div style={{ background: '#f5f3ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #ddd6fe' }}>
-                    <h4 style={{ margin: '0 0 0.4rem', fontSize: '0.9rem', fontWeight: 900, color: '#6b21a8' }}>
+                    <h4 style={{ margin: '0 0 0.4rem', fontSize: '0.95rem', fontWeight: 900, color: '#6b21a8' }}>
                       💬 Öğretmeninizin Genel Notu:
                     </h4>
                     <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e1b4b', lineHeight: 1.5 }}>

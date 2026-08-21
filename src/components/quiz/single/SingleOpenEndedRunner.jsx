@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTheme } from '../../../context/ThemeContext';
 import OpenEndedRunner from '../runner/OpenEndedRunner';
@@ -6,12 +6,13 @@ import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
+import { idbGetPayload } from '../../../services/indexedDbService';
 import { Clock, Send, ArrowLeft, Pencil } from 'lucide-react';
 
 /**
  * SingleOpenEndedRunner
  * Dedicated, isolated runner strictly for Single Open-Ended (Written) assignments.
- * Contains Question Texts + Textarea + Drawing Pad. Zero optical bubbles.
+ * Contains Question Texts + Images + Textarea + Drawing Pad. Zero optical bubbles.
  */
 export default function SingleOpenEndedRunner({
   test = {},
@@ -44,12 +45,42 @@ export default function SingleOpenEndedRunner({
     return {};
   });
 
+  const [idbPayloadMap, setIdbPayloadMap] = useState({});
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [submissionPayload, setSubmissionPayload] = useState([]);
-  const saveTimeoutRef = React.useRef(null);
+  const saveTimeoutRef = useRef(null);
 
   const totalQuestions = questions.length || test.questionCount || 1;
+
+  // Load IndexedDB question images
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdbImages() {
+      const payloadMap = {};
+      for (const q of questions) {
+        if (q?.id && (q.imageUrl === '[STORED_IN_INDEXEDDB]' || q.contentPayload === '[STORED_IN_INDEXEDDB]' || !q.imageUrl)) {
+          try {
+            const val = await idbGetPayload(q.id);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+              payloadMap[q.id] = val;
+            }
+          } catch (e) {}
+        }
+      }
+      if (test?.id && (!test.contentPayload || test.contentPayload === '[STORED_IN_INDEXEDDB]' || !test.imageUrl)) {
+        try {
+          const val = await idbGetPayload(test.id);
+          if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+            payloadMap[test.id] = val;
+          }
+        } catch (e) {}
+      }
+      if (isMounted) setIdbPayloadMap(payloadMap);
+    }
+    loadIdbImages();
+    return () => { isMounted = false; };
+  }, [questions, test]);
 
   const triggerAutoSave = React.useCallback((currentTextMap) => {
     if (!onAutoSave) return;
@@ -83,19 +114,19 @@ export default function SingleOpenEndedRunner({
 
   const handleFinishExam = () => {
     const formatted = questions.map((q, idx) => {
-      const qNo = idx + 1;
-      const textVal = openEndedText[qNo] || null;
-
+      const num = idx + 1;
+      const txt = openEndedText[num] ?? null;
       return {
-        questionId: q.id || `q_${qNo}`,
-        questionNo: qNo,
-        questionNoInSection: qNo,
-        userAnswer: textVal,
-        userAnswerText: textVal,
-        textAns: textVal,
-        isOpenEnded: true,
+        questionId: q.id || `q_${num}`,
+        questionNo: num,
+        questionNoInSection: num,
+        userAnswer: txt,
+        userAnswerText: txt,
+        textAns: txt,
+        score: 0,
         isCorrect: null,
-        status: 'pending'
+        evalStatus: txt ? 'pending' : 'empty',
+        isOpenEnded: true
       };
     });
 
@@ -209,18 +240,21 @@ export default function SingleOpenEndedRunner({
           defaultOpenOnMobile={false}
           documentContent={
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {questions.map((q, idx) => (
-                <OpenEndedRunner
-                  key={q.id || idx}
-                  question={q}
-                  qNo={idx + 1}
-                  totalQuestions={totalQuestions}
-                  value={openEndedText[idx + 1] || ''}
-                  onChange={(val) => handleTextChange(idx + 1, val)}
-                  onOpenDrawing={() => setIsDrawingOpen(true)}
-                  isMobile={isMobile}
-                />
-              ))}
+              {questions.map((q, idx) => {
+                const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
+                return (
+                  <OpenEndedRunner
+                    key={q.id || idx}
+                    question={{ ...q, imageUrl: qImage || q.imageUrl }}
+                    qNo={idx + 1}
+                    totalQuestions={totalQuestions}
+                    value={openEndedText[idx + 1] || ''}
+                    onChange={(val) => handleTextChange(idx + 1, val)}
+                    onOpenDrawing={() => setIsDrawingOpen(true)}
+                    isMobile={isMobile}
+                  />
+                );
+              })}
             </div>
           }
           answerContent={
@@ -240,14 +274,26 @@ export default function SingleOpenEndedRunner({
       </div>
 
       {/* Result Modal */}
-      <QuizResultModal
-        isOpen={showResultModal}
-        title={test.title || 'Açık Uçlu Sınav Gönderildi'}
-        stats={{ total: totalQuestions, pending: totalQuestions }}
-        isOpenEnded={true}
-        onClose={handleConfirmClose}
-        onReview={handleConfirmReview}
-      />
+      {showResultModal && (
+        <QuizResultModal
+          isOpen={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          onConfirmClose={handleConfirmClose}
+          onConfirmReview={handleConfirmReview}
+          test={test}
+          submission={{
+            ...test,
+            answers: submissionPayload,
+            score: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            blankCount: submissionPayload.filter(a => !a.userAnswerText).length,
+            totalQuestions,
+            isOpenEnded: true,
+            isEvaluated: false
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Check, Edit3, Eye, Pencil } from 'lucide-react';
+import ImageLightbox from '../common/ImageLightbox';
 
 /**
  * StandardImageFrame Component
@@ -81,6 +82,26 @@ export default function OpenEndedRunner({
   const hasText = textVal.trim() !== '';
   const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
+  const [activeLightbox, setActiveLightbox] = useState(null);
+
+  const resolvedImages = useMemo(() => {
+    const urls = [];
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
+    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
+    if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
+    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
+    if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
+    return Array.from(new Set(urls.filter(Boolean)));
+  }, [imageUrls, question]);
+
+  const handleOpenImage = (src) => {
+    if (onOpenLightbox) {
+      onOpenLightbox(src);
+    } else {
+      setActiveLightbox(src);
+    }
+  };
+
   return (
     <div style={{
       background: '#ffffff',
@@ -137,17 +158,17 @@ export default function OpenEndedRunner({
       </div>
 
       {/* Images */}
-      {Array.isArray(imageUrls) && imageUrls.map((url, idx) => (
+      {resolvedImages.map((url, idx) => (
         <StandardImageFrame
           key={idx}
           src={url}
           alt={`Soru ${qNo} Görsel ${idx + 1}`}
-          onOpenFullscreen={() => onOpenLightbox && onOpenLightbox(url)}
+          onOpenFullscreen={() => handleOpenImage(url)}
         />
       ))}
 
-      {/* Question Text (if present and not a generic title) */}
-      {qText && !qText.startsWith('Soru ') && (
+      {/* Question Text */}
+      {qText && (
         <div style={{
           fontSize: '0.95rem',
           lineHeight: 1.6,
@@ -240,6 +261,14 @@ export default function OpenEndedRunner({
           <span>{textVal.length} Karakter</span>
         </div>
       </div>
+
+      {activeLightbox && (
+        <ImageLightbox
+          isOpen={Boolean(activeLightbox)}
+          src={activeLightbox}
+          onClose={() => setActiveLightbox(null)}
+        />
+      )}
     </div>
   );
 }

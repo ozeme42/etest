@@ -877,7 +877,7 @@ export default function ModularQuizPage() {
 
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && (isWritten || isSectionOpenEnded(effectiveTest));
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && (isWritten || isSectionOpenEnded(effectiveTest));
 
   const renderRunner = () => {
     // 1. Composite / Multi-Section Homework
@@ -894,21 +894,7 @@ export default function ModularQuizPage() {
       );
     }
 
-    // 2. Single Open-Ended / Written
-    if (isSingleOE) {
-      return (
-        <SingleOpenEndedRunner
-          test={effectiveTest}
-          questions={questions}
-          onSubmit={handleSubmit}
-          onAutoSave={handleAutoSave}
-          draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
-        />
-      );
-    }
-
-    // 3. Single HTML
+    // 2. Single HTML
     if (isHtml) {
       return (
         <HtmlQuizRunner
@@ -922,7 +908,7 @@ export default function ModularQuizPage() {
       );
     }
 
-    // 4. Single PDF
+    // 3. Single PDF
     if (isPdf) {
       return (
         <PdfQuizRunner
@@ -936,10 +922,24 @@ export default function ModularQuizPage() {
       );
     }
 
-    // 5. Single Image
+    // 4. Single Image
     if (isImageTest) {
       return (
         <ImageQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={() => navigate('/student')}
+        />
+      );
+    }
+
+    // 5. Single Open-Ended / Written
+    if (isSingleOE) {
+      return (
+        <SingleOpenEndedRunner
           test={effectiveTest}
           questions={questions}
           onSubmit={handleSubmit}

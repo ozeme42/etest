@@ -519,7 +519,7 @@ export default function ModularQuizReviewPage() {
     test.isMulti
   ));
 
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && (isWritten || isSectionOpenEnded(test));
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && (isWritten || isSectionOpenEnded(test));
 
   const isTeacher = Boolean(
     currentUser?.role === 'teacher' ||
@@ -558,20 +558,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 2. Single Open-Ended Review / Teacher Grading
-  if (isSingleOE) {
-    return (
-      <SingleOpenEndedReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        isTeacher={isTeacher}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 3. Single PDF Review
+  // 2. Single PDF Review
   if (isPdf) {
     return (
       <PdfQuizReview
@@ -583,7 +570,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single HTML Review
+  // 3. Single HTML Review
   if (isHtml) {
     return (
       <HtmlQuizReview
@@ -595,13 +582,26 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 5. Single Image Review
+  // 4. Single Image Review
   if (isImageTest) {
     return (
       <ImageQuizReview
         submission={submission}
         test={test}
         questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 5. Single Open-Ended Review / Teacher Grading
+  if (isSingleOE) {
+    return (
+      <SingleOpenEndedReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );
