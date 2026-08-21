@@ -2424,6 +2424,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
 
+      const isSecOE = Boolean(
+        checkIsOE(test) ||
+        checkIsOE(sec) ||
+        checkIsOE(bankQ) ||
+        sec.isOpenEnded ||
+        sec.is_open_ended ||
+        bankQ?.isOpenEnded
+      );
+
       const secImgCount = Array.isArray(sec.bankQ?.imageUrls) ? sec.bankQ.imageUrls.length : (Array.isArray(sec.imageUrls) ? sec.imageUrls.length : 0);
       const secQCount = sec.qCount || (sec.resolvedQuestions?.length > 0 ? sec.resolvedQuestions.length : (secImgCount > 0 ? secImgCount : 1));
 
@@ -2433,9 +2442,20 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         const ansObj = sa.answers?.[qNo];
         const userAns = ansObj !== undefined ? (typeof ansObj === 'object' ? ansObj?.userAnswer : ansObj) : null;
         const textAns = sa.openEndedText?.[qNo] || null;
-        const isCorrect = userAns !== undefined && userAns !== null
-          ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)
-          : null;
+
+        const isQOE = Boolean(
+          isSecOE ||
+          checkIsOE(qObj) ||
+          textAns ||
+          (qObj.type === 'acik_uclu') ||
+          (qObj.questionType === 'acik_uclu') ||
+          (qObj.type === 'yazili') ||
+          (qObj.questionType === 'yazili')
+        );
+
+        const isCorrect = isQOE
+          ? null
+          : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
         // Resolve correctAnswer letter for review display - prioritize question object / section answerKey
         let correctAns = null;
@@ -2521,7 +2541,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           sectionTitle: sec.title,
           userAnswer: userAns !== null && userAns !== undefined ? userAns : null,
           userAnswerText: textAns,
-          isOpenEnded: Boolean(isSecOE || checkIsOE(qObj) || textAns || (qObj.type === 'acik_uclu') || (qObj.questionType === 'acik_uclu') || (qObj.type === 'yazili') || (qObj.questionType === 'yazili')),
+          isOpenEnded: isQOE,
           isCorrect,
           correctAnswer: correctAns,
           correctAnswerLetter: correctAns !== null && correctAns !== undefined && typeof correctAns === 'number' && correctAns >= 0 && correctAns <= 4
