@@ -3,11 +3,12 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import { ArrowLeft, Award } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
 
 /**
  * SingleMultipleChoiceReview
  * Dedicated, isolated review screen strictly for Single Multiple-Choice assignments.
+ * Features an informative stats header (Doğru, Yanlış, Boş, Başarı %, Net) and clean question review.
  */
 export default function SingleMultipleChoiceReview({
   submission = {},
@@ -29,66 +30,146 @@ export default function SingleMultipleChoiceReview({
     });
   }
 
-  const correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === true).length : 0);
-  const wrongCount = submission.wrongCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length : 0);
   const totalQuestions = questions.length || answers.length || 1;
+  const correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === true).length : 0);
+  const wrongCount = submission.wrongCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty').length : 0);
+  const blankCount = submission.blankCount ?? Math.max(0, totalQuestions - correctCount - wrongCount);
   const score = submission.score ?? (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
+  const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+  const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      {/* Top Header */}
+      {/* Top Header with Comprehensive Stats Bar */}
       <div style={{
         background: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
-        padding: '0.75rem 1.5rem',
+        padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
         boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
       }}>
+        {/* Left: Title & Subtitle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             type="button"
             onClick={onClose}
             style={{
-              padding: '0.45rem',
-              borderRadius: '0.6rem',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
+              padding: '0.5rem',
+              borderRadius: '0.65rem',
+              border: '1px solid #cbd5e1',
+              background: '#f8fafc',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              color: '#475569'
+              color: '#334155'
             }}
+            title="Geri Dön"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#0f172a' }}>
               🔍 {test.title || 'Çoktan Seçmeli Test İncelemesi'}
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a' }}>
-              {correctCount} Doğru • {wrongCount} Yanlış • %{score} Başarı
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+              Öğrenci: {submission.studentName || 'Öğrenci'} • Toplam {totalQuestions} Soru
             </span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            padding: '0.65rem 1.25rem',
-            borderRadius: '0.75rem',
-            border: '1.5px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#334155',
+        {/* Right: Informative Metric Pills & Action */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+          {/* Doğru Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <CheckCircle2 size={15} color="#16a34a" />
+            <span>{correctCount} Doğru</span>
+          </div>
+
+          {/* Yanlış Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <XCircle size={15} color="#ef4444" />
+            <span>{wrongCount} Yanlış</span>
+          </div>
+
+          {/* Boş Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
             fontWeight: 800,
-            fontSize: '0.85rem',
-            cursor: 'pointer'
-          }}
-        >
-          Kapat / Çık
-        </button>
+            fontSize: '0.82rem'
+          }}>
+            <HelpCircle size={15} color="#64748b" />
+            <span>{blankCount} Boş</span>
+          </div>
+
+          {/* Başarı & Net Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.75rem',
+            borderRadius: '0.65rem',
+            background: '#eff6ff',
+            border: '1px solid #93c5fd',
+            color: '#1d4ed8',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <Award size={15} color="#2563eb" />
+            <span>%{score} Başarı (Net: {netScore})</span>
+          </div>
+
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '0.55rem 1.15rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              marginLeft: '0.25rem'
+            }}
+          >
+            Kapat / Çık
+          </button>
+        </div>
       </div>
 
       {/* Main Layout */}
@@ -115,7 +196,9 @@ export default function SingleMultipleChoiceReview({
                     question={q}
                     qNo={qNo}
                     totalQuestions={totalQuestions}
+                    selectedOption={uAns}
                     userAnswer={uAns}
+                    correctOption={cAns}
                     correctAnswer={cAns}
                     isCorrect={isCorrect}
                     isMobile={isMobile}
@@ -128,8 +211,8 @@ export default function SingleMultipleChoiceReview({
             <OpticalBubblePanel
               qCount={totalQuestions}
               answers={answersMap}
+              correctAnswers={questions.map(q => q.correctAnswer)}
               isReviewMode={true}
-              resolvedQuestions={questions}
             />
           }
         />

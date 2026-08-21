@@ -67,17 +67,38 @@ export default function MultipleChoiceReview({
   qNo = 1,
   totalQuestions = 1,
   selectedOption = null,
+  userAnswer = null,
   correctOption = null,
+  correctAnswer = null,
   isCorrect = null,
   optionsCount = 4,
   imageUrls = [],
   onOpenLightbox,
   isMobile = false
 }) {
+  const normalizeAns = (val) => {
+    if (val === null || val === undefined || val === '' || val === 'empty') return null;
+    if (typeof val === 'number') return val;
+    const str = String(val).trim().toUpperCase();
+    if (/^[A-E]$/.test(str)) return str.charCodeAt(0) - 65;
+    const num = Number(str);
+    return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
+  };
+
+  const rawUser = selectedOption ?? userAnswer;
+  const rawCorrect = correctOption ?? correctAnswer ?? question?.correctAnswer;
+
+  const normalizedUser = normalizeAns(rawUser);
+  const normalizedCorrect = normalizeAns(rawCorrect);
+
+  const hasSelected = normalizedUser !== null;
+  const effectiveIsCorrect = isCorrect !== null && isCorrect !== undefined
+    ? isCorrect
+    : (hasSelected && normalizedCorrect !== null ? normalizedUser === normalizedCorrect : null);
+
   const rawOptions = extractQuestionOptions(question);
   const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
-  const hasSelected = selectedOption !== null && selectedOption !== undefined && typeof selectedOption === 'number';
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
@@ -104,7 +125,7 @@ export default function MultipleChoiceReview({
     <div style={{
       background: '#ffffff',
       borderRadius: '1.25rem',
-      border: isCorrect === true ? '1.5px solid #86efac' : isCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #cbd5e1',
+      border: effectiveIsCorrect === true ? '1.5px solid #86efac' : (hasSelected && effectiveIsCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #cbd5e1'),
       padding: isMobile ? '1rem' : '1.5rem',
       boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
       display: 'flex',
@@ -146,16 +167,16 @@ export default function MultipleChoiceReview({
 
         {/* Result Badge */}
         {!hasSelected ? (
-          <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-            ○ BOŞ (0P)
+          <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 800 }}>
+            ○ BOŞ (Yanıtlanmadı)
           </span>
-        ) : isCorrect === true ? (
+        ) : effectiveIsCorrect === true ? (
           <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-            ✓ DOĞRU (10P)
+            ✓ DOĞRU
           </span>
         ) : (
           <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-            ✗ YANLIŞ (0P)
+            ✗ YANLIŞ
           </span>
         )}
       </div>
@@ -188,8 +209,8 @@ export default function MultipleChoiceReview({
         /* Vertical Stacked Options with Full Text */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
           {optionsWithText.map((optObj, optIdx) => {
-            const isSelected = selectedOption === optIdx;
-            const isKeyOption = correctOption === optIdx;
+            const isSelected = normalizedUser === optIdx;
+            const isKeyOption = normalizedCorrect === optIdx;
 
             let cardBg = '#ffffff';
             let cardBorder = '1.5px solid #cbd5e1';
@@ -284,8 +305,8 @@ export default function MultipleChoiceReview({
           marginTop: '0.25rem'
         }}>
           {optionLetters.map((opt, optIdx) => {
-            const isSelected = selectedOption === optIdx;
-            const isKeyOption = correctOption === optIdx;
+            const isSelected = normalizedUser === optIdx;
+            const isKeyOption = normalizedCorrect === optIdx;
 
             let btnBg = '#ffffff';
             let btnBorder = '1.5px solid #cbd5e1';
@@ -305,7 +326,7 @@ export default function MultipleChoiceReview({
             } else if (!isSelected && isKeyOption) {
               btnBg = '#f5f3ff';
               btnBorder = '2px solid #8b5cf6';
-              btnColor = '#7c3aed';
+              btnColor = '#6d28d9';
               badgeText = `${opt} 🔑`;
             }
 
@@ -313,23 +334,22 @@ export default function MultipleChoiceReview({
               <div
                 key={opt}
                 style={{
-                  flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
-                  minWidth: isMobile ? '70px' : '90px',
-                  height: isMobile ? '48px' : '52px',
-                  borderRadius: '0.85rem',
+                  minWidth: isMobile ? '48px' : '64px',
+                  padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
+                  borderRadius: '0.75rem',
                   border: btnBorder,
                   background: btnBg,
                   color: btnColor,
                   fontWeight: 900,
-                  fontSize: '1rem',
+                  fontSize: '0.9rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.35rem',
+                  gap: 4,
                   userSelect: 'none'
                 }}
               >
-                <span>{badgeText}</span>
+                {badgeText}
               </div>
             );
           })}
