@@ -38,20 +38,33 @@ export default function SingleOpenEndedReview({
     return map;
   }, [answers]);
 
+  // 1. isTrulyEvaluated check
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      const hasPositiveScore = (submission.score !== undefined && submission.score !== null && Number(submission.score) > 0);
+      const hasFeedback = Boolean(submission.teacherFeedback || submission.teacherNote);
+      const hasGradedAns = answers.some(a => a.evaluatedByTeacher === true || (typeof a.score === 'number' && a.score > 0));
+      return hasPositiveScore || hasFeedback || hasGradedAns;
+    }
+    return false;
+  }, [submission, answers]);
+
   // 2. Teacher Scores & Notes
   const [teacherScores, setTeacherScores] = useState(() => {
     const map = { sec_1: {} };
-    answers.forEach(a => {
-      const qNo = a.questionNoInSection || a.questionNo;
+    answers.forEach((a, idx) => {
+      const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
       if (qNo) {
-        if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
-          map.sec_1[qNo] = 'empty';
-        } else if (a.score !== undefined && a.score !== null) {
-          map.sec_1[qNo] = Number(a.score);
-        } else if (a.isCorrect === true) {
-          map.sec_1[qNo] = 10;
-        } else if (a.isCorrect === false) {
-          map.sec_1[qNo] = 0;
+        if (isTrulyEvaluated) {
+          if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
+            map.sec_1[qNo] = 'empty';
+          } else if (a.score !== undefined && a.score !== null && a.score !== '') {
+            map.sec_1[qNo] = Number(a.score);
+          } else if (a.isCorrect === true) {
+            map.sec_1[qNo] = 10;
+          } else if (a.isCorrect === false) {
+            map.sec_1[qNo] = 0;
+          }
         }
       }
     });
@@ -135,17 +148,6 @@ export default function SingleOpenEndedReview({
 
   const totalMaxScore = totalQuestions * 10;
   const scorePercentage = totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
-
-  const isTrulyEvaluated = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
-      return (
-        totalEarnedScore > 0 ||
-        Boolean(submission.teacherFeedback || submission.teacherNote) ||
-        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
-      );
-    }
-    return false;
-  }, [submission, totalEarnedScore, answers]);
 
   const handleSaveAndClose = async () => {
     if (isSaving || !submission) return;
@@ -363,6 +365,7 @@ export default function SingleOpenEndedReview({
                     studentAnswerText={userText}
                     teacherScore={teacherScore}
                     teacherNote={teacherNote}
+                    isTrulyEvaluated={isTrulyEvaluated}
                     onScoreChange={(sc) => handleScoreChange('sec_1', qNo, sc)}
                     onNoteChange={(nt) => handleNoteChange('sec_1', qNo, nt)}
                     isTeacher={isTeacher}

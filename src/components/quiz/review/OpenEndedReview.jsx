@@ -78,6 +78,7 @@ export default function OpenEndedReview({
   onNoteChange,
   isTeacherMode,
   isTeacher,
+  isTrulyEvaluated = false,
   imageUrls = [],
   onOpenLightbox,
   isMobile = false
@@ -116,7 +117,14 @@ export default function OpenEndedReview({
     }
   };
 
-  const hasTeacherGraded = teacherScore !== undefined && teacherScore !== null && teacherScore !== 'pending';
+  const hasTeacherGraded = Boolean(
+    isTrulyEvaluated &&
+    teacherScore !== undefined &&
+    teacherScore !== null &&
+    teacherScore !== 'pending' &&
+    teacherScore !== 'unevaluated'
+  );
+  
   const numScore = hasTeacherGraded && teacherScore !== 'empty' ? Number(teacherScore) : null;
   const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
@@ -190,13 +198,39 @@ export default function OpenEndedReview({
             </span>
           )
         ) : isTeacherActive ? (
-          <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Award size={13} /> Puan Ver
-          </span>
+          teacherScore !== undefined && teacherScore !== null ? (
+            Number(teacherScore) === 10 ? (
+              <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
+                ✓ DOĞRU (10P)
+              </span>
+            ) : Number(teacherScore) === 5 ? (
+              <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
+                ½ YARIM (5P)
+              </span>
+            ) : teacherScore === 'empty' ? (
+              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
+                ○ BOŞ
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
+                ✗ YANLIŞ (0P)
+              </span>
+            )
+          ) : (
+            <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Award size={13} /> Puan Ver
+            </span>
+          )
         ) : (
-          <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={13} /> ⏳ Öğretmen Değerlendirmesinde
-          </span>
+          rawText ? (
+            <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Clock size={13} /> ⏳ Değerlendirme Bekliyor
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 800 }}>
+              ○ Yanıtlanmadı / Boş
+            </span>
+          )
         )}
       </div>
 
@@ -250,179 +284,182 @@ export default function OpenEndedReview({
             lineHeight: 1.6,
             color: '#0f172a',
             whiteSpace: 'pre-wrap',
+            fontWeight: 500,
             background: '#ffffff',
-            padding: '0.85rem 1rem',
-            borderRadius: '0.65rem',
-            border: '1px solid #cbd5e1',
-            fontFamily: 'inherit',
-            fontWeight: 600
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #cbd5e1'
           }}>
             {rawText}
           </div>
         ) : (
           <div style={{
-            fontSize: '0.88rem',
+            fontSize: '0.85rem',
             color: '#94a3b8',
             fontStyle: 'italic',
             padding: '0.5rem 0'
           }}>
-            Öğrenci bu soruya yanıt yazmadı.
+            Öğrenci bu soruya yazılı bir yanıt girmedi.
           </div>
         )}
       </div>
 
-      {/* Teacher Scoring Section (Teacher Only) */}
+      {/* Teacher Scoring Section (Only for Teachers) */}
       {isTeacherActive && (
         <div style={{
-          marginTop: '0.5rem',
-          background: '#fcfaff',
+          background: '#f8fafc',
           borderRadius: '0.85rem',
-          border: '1.5px solid #ddd6fe',
+          border: '1.5px solid #cbd5e1',
           padding: '1rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.85rem'
+          gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Award size={15} /> Öğretmen Puanlaması:
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            color: '#0f172a'
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Award size={15} color="#059669" />
+              Öğretmen Puanlaması:
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#7c3aed' }}>
-              {hasTeacherGraded ? `Mevcut Puan: ${teacherScore === 'empty' ? 'Boş' : `${teacherScore}P`}` : 'Henüz Puanlanmadı'}
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 800 }}>
+              (Tam: 10 Puan)
             </span>
           </div>
 
-          {/* Quick Score Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.5rem'
+          }}>
             <button
               type="button"
               onClick={() => setScore && setScore(10)}
               style={{
-                padding: '0.55rem 0.5rem',
+                padding: '0.55rem',
                 borderRadius: '0.6rem',
-                border: numScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                background: numScore === 10 ? '#16a34a' : '#ffffff',
-                color: numScore === 10 ? '#ffffff' : '#15803d',
+                border: teacherScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                background: teacherScore === 10 ? '#16a34a' : '#ffffff',
+                color: teacherScore === 10 ? '#ffffff' : '#15803d',
                 fontWeight: 900,
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4
+                transition: 'all 0.15s ease'
               }}
             >
-              <CheckCircle size={14} /> Tam Doğru (10P)
+              ✓ Doğru (10P)
             </button>
-
             <button
               type="button"
               onClick={() => setScore && setScore(5)}
               style={{
-                padding: '0.55rem 0.5rem',
+                padding: '0.55rem',
                 borderRadius: '0.6rem',
-                border: numScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                background: numScore === 5 ? '#d97706' : '#ffffff',
-                color: numScore === 5 ? '#ffffff' : '#b45309',
+                border: teacherScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                background: teacherScore === 5 ? '#d97706' : '#ffffff',
+                color: teacherScore === 5 ? '#ffffff' : '#b45309',
                 fontWeight: 900,
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4
+                transition: 'all 0.15s ease'
               }}
             >
-              ½ Yarım Doğru (5P)
+              ½ Yarım (5P)
             </button>
-
             <button
               type="button"
               onClick={() => setScore && setScore(0)}
               style={{
-                padding: '0.55rem 0.5rem',
+                padding: '0.55rem',
                 borderRadius: '0.6rem',
-                border: numScore === 0 && teacherScore !== 'empty' ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                background: numScore === 0 && teacherScore !== 'empty' ? '#dc2626' : '#ffffff',
-                color: numScore === 0 && teacherScore !== 'empty' ? '#ffffff' : '#b91c1c',
+                border: teacherScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                background: teacherScore === 0 ? '#dc2626' : '#ffffff',
+                color: teacherScore === 0 ? '#ffffff' : '#b91c1c',
                 fontWeight: 900,
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4
+                transition: 'all 0.15s ease'
               }}
             >
-              <XCircle size={14} /> Yanlış (0P)
+              ✗ Yanlış (0P)
             </button>
-
             <button
               type="button"
               onClick={() => setScore && setScore('empty')}
               style={{
-                padding: '0.55rem 0.5rem',
+                padding: '0.55rem',
                 borderRadius: '0.6rem',
                 border: teacherScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
                 background: teacherScore === 'empty' ? '#64748b' : '#ffffff',
                 color: teacherScore === 'empty' ? '#ffffff' : '#475569',
                 fontWeight: 900,
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4
+                transition: 'all 0.15s ease'
               }}
             >
-              ○ Boş (0P)
+              ○ Boş
             </button>
           </div>
 
-          {/* Teacher Question Note Input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <MessageSquare size={13} color="#6366f1" /> Bu Soruya Özel Geri Bildirim Notu (Öğrenci Görebilir):
+              <MessageSquare size={13} />
+              Öğrenciye Özel Not:
             </label>
             <input
               type="text"
-              value={teacherNote}
+              value={teacherNote || ''}
               onChange={(e) => setNote && setNote(e.target.value)}
-              placeholder="Örn: Formül doğru ancak işlem hatası yapılmış..."
+              placeholder="Örn: Açıklama çok iyiydi fakat formülde ufak bir hata var..."
               style={{
-                width: '100%',
-                padding: '0.55rem 0.85rem',
-                borderRadius: '0.55rem',
+                padding: '0.55rem 0.75rem',
+                borderRadius: '0.5rem',
                 border: '1px solid #cbd5e1',
-                fontSize: '0.84rem',
+                fontSize: '0.85rem',
                 outline: 'none',
-                boxSizing: 'border-box'
+                background: '#ffffff',
+                color: '#0f172a'
               }}
             />
           </div>
         </div>
       )}
 
-      {/* Student Feedback View (Read-Only) */}
+      {/* Teacher Note Display (For Students) */}
       {!isTeacherActive && teacherNote && (
         <div style={{
           background: '#f5f3ff',
           borderRadius: '0.85rem',
-          border: '1px solid #ddd6fe',
+          border: '1.5px solid #ddd6fe',
           padding: '0.85rem 1rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.35rem'
+          gap: '0.25rem'
         }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MessageSquare size={13} /> Öğretmeninizin Soru Notu:
+          <div style={{
+            fontSize: '0.8rem',
+            fontWeight: 900,
+            color: '#6b21a8',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5
+          }}>
+            <MessageSquare size={14} />
+            Öğretmeninizin Notu:
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#1e1b4b', fontWeight: 600 }}>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e1b4b', lineHeight: 1.5 }}>
             {teacherNote}
-          </div>
+          </p>
         </div>
       )}
 
+      {/* Lightbox for Images */}
       {activeLightbox && (
         <ImageLightbox
           isOpen={Boolean(activeLightbox)}
