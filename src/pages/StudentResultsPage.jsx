@@ -813,9 +813,23 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         calcNet = unifiedStats.netScore;
       }
 
+      const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
+      const subjKey = getSubjectKey({
+        testTitle: hw.title || curInfo.title,
+        subjectKey: hw.subject || curInfo.subject || sub.subjectKey
+      });
+
+      const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
+      const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
+
+      processedTestKeys.add(String(hw.id));
+      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
+      if (sub.id) processedTestKeys.add(String(sub.id));
+      if (sub.testId) processedTestKeys.add(String(sub.testId));
+
       results.push({
         ...sub,
-        id: sub.id || `hw_sub_${hw.id}_${selectedStudent.id}`,
+        id: sub.id || `hw_sub_${hw.id}_${selectedStudent?.id || 'student'}`,
         testId: hw.id,
         testTitle: hw.title,
         subjectKey: subjKey,
