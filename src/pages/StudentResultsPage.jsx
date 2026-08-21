@@ -603,11 +603,19 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
       let blank = sub.blankCount ?? raw.blankCount ?? 0;
 
+      let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
+
       if (!isOpenEnded && Array.isArray(sub.answers) && sub.answers.length > 0) {
-        correct = 0; wrong = 0; blank = 0;
+        correct = 0; wrong = 0; blank = 0; pending = 0;
         sub.answers.forEach((ans, aIdx) => {
           const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
           const userAns = ans.userAnswer;
+          const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
+          if (isOE) {
+            pending++;
+            return;
+          }
+
           const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
           if (!hasOption) {
             blank++;
