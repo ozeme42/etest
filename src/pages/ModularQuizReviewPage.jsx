@@ -58,7 +58,7 @@ export default function ModularQuizReviewPage() {
     const subCandidateLocal = compMatchLocal ? compMatchLocal[2] : null;
     const cleanSubCandidate = subCandidateLocal ? normalizeId(subCandidateLocal) : null;
 
-    // 0. Check immediate local storage backups
+    // 0. Check immediate local storage backups and add to pool
     try {
       const backupKeys = [
         `sub_latest_${targetId}`,
@@ -72,8 +72,7 @@ export default function ModularQuizReviewPage() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && (Array.isArray(parsed.answers) && parsed.answers.length > 0 || parsed.openEndedText)) {
-            foundSubmission = parsed;
-            break;
+            allCandidatePool.push(parsed);
           }
         }
       }
@@ -97,7 +96,7 @@ export default function ModularQuizReviewPage() {
     }
 
     // 1. Search in all candidates pool
-    if (!foundSubmission && allCandidatePool.length > 0) {
+    if (allCandidatePool.length > 0) {
       const candidates = allCandidatePool.filter(s => {
         if (!s) return false;
         if (studentId && s.studentId && String(s.studentId) !== String(studentId)) return false;
@@ -123,23 +122,27 @@ export default function ModularQuizReviewPage() {
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
-          const aHasAnswers = Array.isArray(a.answers) && a.answers.length > 0;
-          const bHasAnswers = Array.isArray(b.answers) && b.answers.length > 0;
-          if (aHasAnswers && !bHasAnswers) return -1;
-          if (!aHasAnswers && bHasAnswers) return 1;
+          const aAnsCount = (Array.isArray(a.answers) ? a.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
+          const bAnsCount = (Array.isArray(b.answers) ? b.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
+          if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount; // More answered questions first!
+
+          const aLen = Array.isArray(a.answers) ? a.answers.length : 0;
+          const bLen = Array.isArray(b.answers) ? b.answers.length : 0;
+          if (aLen !== bLen) return bLen - aLen;
 
           const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
           const bEval = Boolean(b.isEvaluatedByTeacher || b.status === 'evaluated' || b.status === 'graded' || b.teacherFeedback);
           if (aEval && !bEval) return -1;
           if (!aEval && bEval) return 1;
+
           return new Date(b.submittedAt || b.evaluatedAt || 0) - new Date(a.submittedAt || a.evaluatedAt || 0);
         });
         foundSubmission = candidates[0];
       }
     }
 
-    // 2. Search in HomeworkContext (homeworks[].submissions)
-    if ((!foundSubmission || (!foundSubmission.isEvaluatedByTeacher && foundSubmission.status !== 'evaluated')) && homeworks && Array.isArray(homeworks)) {
+    // 2. Search in HomeworkContext (homeworks[].submissions) only if not found
+    if (!foundSubmission && homeworks && Array.isArray(homeworks)) {
       for (const hw of homeworks) {
         if (String(hw.id) === String(targetId) || cleanTargetId === normalizeId(hw.id) || (hw.submissions && hw.submissions.some(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId)))) {
           if (hw.submissions && Array.isArray(hw.submissions) && hw.submissions.length > 0) {
