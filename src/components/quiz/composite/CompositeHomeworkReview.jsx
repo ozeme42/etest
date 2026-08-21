@@ -280,15 +280,26 @@ export default function CompositeHomeworkReview({
                   const score = teacherScores[activeSec.id]?.[qNo];
                   const note = teacherNotes[activeSec.id]?.[qNo] || '';
 
+                  const qImages = [];
+                  if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
+                  if (q.imageUrl) qImages.push(q.imageUrl);
+                  if (q.contentPayload) qImages.push(q.contentPayload);
+                  if (qImages.length === 0) {
+                    if (Array.isArray(activeSec.imageUrls) && activeSec.imageUrls[idx]) qImages.push(activeSec.imageUrls[idx]);
+                    else if (activeSec.imageUrl) qImages.push(activeSec.imageUrl);
+                  }
+
                   return (
                     <OpenEndedReview
                       key={q.id || idx}
                       question={q}
                       qNo={qNo}
                       totalQuestions={currentSecQuestions.length}
+                      imageUrls={qImages}
                       userAnswerText={text}
                       teacherScore={score}
                       teacherNote={note}
+                      isTrulyEvaluated={submission.isEvaluatedByTeacher === true || submission.status === 'evaluated'}
                       onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
                       onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
                       isTeacher={isTeacher}
@@ -321,12 +332,22 @@ export default function CompositeHomeworkReview({
                   const cAns = q.correctAnswer;
                   const isCorrect = uAns !== null && uAns !== undefined ? uAns === cAns : null;
 
+                  const qImages = [];
+                  if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
+                  if (q.imageUrl) qImages.push(q.imageUrl);
+                  if (q.contentPayload) qImages.push(q.contentPayload);
+                  if (qImages.length === 0) {
+                    if (Array.isArray(activeSec.imageUrls) && activeSec.imageUrls[idx]) qImages.push(activeSec.imageUrls[idx]);
+                    else if (activeSec.imageUrl) qImages.push(activeSec.imageUrl);
+                  }
+
                   return (
                     <MultipleChoiceReview
                       key={q.id || idx}
                       question={q}
                       qNo={qNo}
                       totalQuestions={currentSecQuestions.length}
+                      imageUrls={qImages}
                       userAnswer={uAns}
                       correctAnswer={cAns}
                       isCorrect={isCorrect}

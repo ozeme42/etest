@@ -1,5 +1,6 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Check, Edit3, Eye, Pencil } from 'lucide-react';
+import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 
 /**
@@ -77,12 +78,34 @@ export default function OpenEndedRunner({
   onOpenDrawing,
   isMobile = false
 }) {
+  const [activeLightbox, setActiveLightbox] = useState(null);
+  const [idbImage, setIdbImage] = useState(null);
+
+  // Load IndexedDB image if stored locally
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdb() {
+      if (question?.id) {
+        const variants = [question.id, `q_${question.id}`, String(question.id).replace(/^q_/, '')];
+        for (const k of variants) {
+          try {
+            const val = await idbGetPayload(k);
+            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbImage(val);
+              return;
+            }
+          } catch {}
+        }
+      }
+    }
+    loadIdb();
+    return () => { isMounted = false; };
+  }, [question?.id]);
+
   const handleChange = onChangeAnswerText || onChange || onTextChange;
   const textVal = String(answerText ?? value ?? userAnswerText ?? '');
   const hasText = textVal.trim() !== '';
   const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
-
-  const [activeLightbox, setActiveLightbox] = useState(null);
 
   const resolvedImages = useMemo(() => {
     const urls = [];
@@ -91,8 +114,9 @@ export default function OpenEndedRunner({
     if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
     if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
     if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
+    if (idbImage) urls.push(idbImage);
     return Array.from(new Set(urls.filter(Boolean)));
-  }, [imageUrls, question]);
+  }, [imageUrls, question, idbImage]);
 
   const handleOpenImage = (src) => {
     if (onOpenLightbox) {
@@ -221,47 +245,46 @@ export default function OpenEndedRunner({
                 cursor: 'pointer'
               }}
             >
-              <Pencil size={13} /> Çizim ile Yanıtla
+              <Pencil size={13} color="#6366f1" />
+              Çizim ile Yanıtla
             </button>
           )}
         </div>
 
         <textarea
+          rows={isMobile ? 4 : 5}
           value={textVal}
           onChange={(e) => handleChange && handleChange(e.target.value)}
-          placeholder={`Soru ${qNo} için açık uçlu / yazılı yanıtınızı buraya detaylı olarak yazınız...`}
-          rows={isMobile ? 4 : 5}
+          placeholder="Cevabınızı, işlem basamaklarınızı veya açıklamanızı buraya detaylıca yazabilirsiniz..."
           style={{
             width: '100%',
             padding: '0.85rem 1rem',
-            borderRadius: '0.85rem',
-            border: hasText ? '1.5px solid #93c5fd' : '1.5px solid #cbd5e1',
-            background: hasText ? '#f8faff' : '#ffffff',
-            color: '#0f172a',
+            borderRadius: '0.75rem',
+            border: '1.5px solid #cbd5e1',
             fontSize: '0.92rem',
             lineHeight: 1.6,
-            resize: 'vertical',
-            outline: 'none',
+            color: '#0f172a',
             fontFamily: 'inherit',
-            transition: 'border-color 0.15s ease'
+            resize: 'vertical',
+            boxSizing: 'border-box',
+            outline: 'none',
+            background: '#ffffff'
           }}
-          onFocus={(e) => { e.target.style.borderColor = '#2563eb'; }}
-          onBlur={(e) => { e.target.style.borderColor = hasText ? '#93c5fd' : '#cbd5e1'; }}
         />
 
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          fontSize: '0.72rem',
-          color: '#94a3b8',
-          fontWeight: 700
+          fontSize: '0.74rem',
+          color: '#64748b'
         }}>
           <span>✍️ Cevabınız otomatik olarak kaydedilmektedir.</span>
           <span>{textVal.length} Karakter</span>
         </div>
       </div>
 
+      {/* Lightbox for Images */}
       {activeLightbox && (
         <ImageLightbox
           isOpen={Boolean(activeLightbox)}

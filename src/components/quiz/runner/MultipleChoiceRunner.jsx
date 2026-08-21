@@ -1,6 +1,8 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Check, Eye } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { idbGetPayload } from '../../../services/indexedDbService';
+import ImageLightbox from '../common/ImageLightbox';
 
 /**
  * StandardImageFrame Component
@@ -74,11 +76,55 @@ export default function MultipleChoiceRunner({
   onOpenLightbox,
   isMobile = false
 }) {
+  const [activeLightbox, setActiveLightbox] = useState(null);
+  const [idbImage, setIdbImage] = useState(null);
+
+  // Load IndexedDB image if stored locally
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdb() {
+      if (question?.id) {
+        const variants = [question.id, `q_${question.id}`, String(question.id).replace(/^q_/, '')];
+        for (const k of variants) {
+          try {
+            const val = await idbGetPayload(k);
+            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbImage(val);
+              return;
+            }
+          } catch {}
+        }
+      }
+    }
+    loadIdb();
+    return () => { isMounted = false; };
+  }, [question?.id]);
+
   const rawOptions = extractQuestionOptions(question);
   const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+
+  // Collect all resolved images
+  const resolvedImages = useMemo(() => {
+    const urls = [];
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
+    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
+    if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
+    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
+    if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
+    if (idbImage) urls.push(idbImage);
+    return Array.from(new Set(urls.filter(Boolean)));
+  }, [imageUrls, question, idbImage]);
+
+  const handleOpenImage = (src) => {
+    if (onOpenLightbox) {
+      onOpenLightbox(src);
+    } else {
+      setActiveLightbox(src);
+    }
+  };
 
   // Extract option texts
   const optionsWithText = optionLetters.map((opt, optIdx) => {
@@ -155,12 +201,12 @@ export default function MultipleChoiceRunner({
       </div>
 
       {/* Images */}
-      {Array.isArray(imageUrls) && imageUrls.map((url, idx) => (
+      {resolvedImages.map((url, idx) => (
         <StandardImageFrame
           key={idx}
           src={url}
           alt={`Soru ${qNo} Görsel ${idx + 1}`}
-          onOpenFullscreen={() => onOpenLightbox && onOpenLightbox(url)}
+          onOpenFullscreen={() => handleOpenImage(url)}
         />
       ))}
 
@@ -185,107 +231,103 @@ export default function MultipleChoiceRunner({
             const isSelected = selectedOption === optIdx;
             return (
               <button
-                key={optObj.letter}
+                key={optIdx}
                 type="button"
-                onClick={() => onSelectOption(optIdx)}
+                onClick={() => onSelectOption && onSelectOption(optIdx)}
                 style={{
-                  width: '100%',
-                  padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.25rem',
-                  borderRadius: '0.85rem',
-                  border: isSelected ? '2px solid #2563eb' : '1.5px solid #cbd5e1',
-                  background: isSelected ? '#eff6ff' : '#ffffff',
-                  color: isSelected ? '#1d4ed8' : '#334155',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.85rem',
-                  textAlign: 'left',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '0.85rem',
+                  border: `2px solid ${isSelected ? '#2563eb' : '#e2e8f0'}`,
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1e40af' : '#1e293b',
+                  fontWeight: isSelected ? 800 : 500,
+                  fontSize: '0.92rem',
                   cursor: 'pointer',
-                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.15)' : 'none',
-                  transition: 'all 0.15s ease'
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.12)' : 'none'
                 }}
               >
                 <span style={{
-                  width: 32,
-                  height: 32,
+                  width: '30px',
+                  height: '30px',
                   borderRadius: '50%',
                   background: isSelected ? '#2563eb' : '#f1f5f9',
                   color: isSelected ? '#ffffff' : '#475569',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.95rem',
-                  fontWeight: 900,
                   flexShrink: 0
                 }}>
                   {optObj.letter}
                 </span>
-                <span style={{
-                  fontSize: '0.95rem',
-                  fontWeight: isSelected ? 800 : 600,
-                  lineHeight: 1.5,
-                  color: isSelected ? '#1e40af' : '#1e293b'
-                }}>
-                  {optObj.hasText ? optObj.text : `Seçenek ${optObj.letter}`}
+                <span style={{ flex: 1, lineHeight: 1.5 }}>
+                  {optObj.text}
                 </span>
-                {isSelected && (
-                  <Check size={18} color="#2563eb" style={{ marginLeft: 'auto', flexShrink: 0 }} />
-                )}
               </button>
             );
           })}
         </div>
       ) : (
-        /* Horizontal Compact Optical Buttons (for image-based questions) */
+        /* Optical Bubble Strip (A, B, C, D, E) */
         <div style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: isMobile ? '0.45rem' : '0.75rem',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#f8fafc',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '0.85rem',
+          border: '1.5px solid #e2e8f0',
           marginTop: '0.25rem'
         }}>
-          {optionLetters.map((opt, optIdx) => {
-            const isSelected = selectedOption === optIdx;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onSelectOption(optIdx)}
-                style={{
-                  flex: isMobile ? '1 1 calc(50% - 0.45rem)' : '1 1 0',
-                  minWidth: isMobile ? '70px' : '90px',
-                  height: isMobile ? '48px' : '52px',
-                  borderRadius: '0.85rem',
-                  border: isSelected ? '2px solid #2563eb' : '1.5px solid #cbd5e1',
-                  background: isSelected ? '#eff6ff' : '#ffffff',
-                  color: isSelected ? '#1d4ed8' : '#334155',
-                  fontWeight: 900,
-                  fontSize: '1.05rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.2)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: isSelected ? '#2563eb' : '#f1f5f9',
-                  color: isSelected ? '#ffffff' : '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.9rem',
-                  fontWeight: 900
-                }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+            Cevabınızı İşaretleyin:
+          </span>
+          <div style={{ display: 'flex', gap: '0.65rem' }}>
+            {optionLetters.map((opt, optIdx) => {
+              const isSelected = selectedOption === optIdx;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onSelectOption && onSelectOption(optIdx)}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    border: `2px solid ${isSelected ? '#2563eb' : '#cbd5e1'}`,
+                    background: isSelected ? '#2563eb' : '#ffffff',
+                    color: isSelected ? '#ffffff' : '#334155',
+                    fontWeight: 900,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: isSelected ? '0 4px 10px rgba(37,99,235,0.25)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
                   {opt}
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
+      )}
+
+      {/* Lightbox for Images */}
+      {activeLightbox && (
+        <ImageLightbox
+          isOpen={Boolean(activeLightbox)}
+          src={activeLightbox}
+          onClose={() => setActiveLightbox(null)}
+        />
       )}
     </div>
   );

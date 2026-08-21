@@ -1,5 +1,6 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Award, CheckCircle, Clock, Edit3, Eye, MessageSquare, XCircle } from 'lucide-react';
+import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 
 /**
@@ -88,6 +89,28 @@ export default function OpenEndedReview({
   const isTeacherActive = isTeacherMode ?? isTeacher ?? false;
 
   const [activeLightbox, setActiveLightbox] = useState(null);
+  const [idbImage, setIdbImage] = useState(null);
+
+  // Load IndexedDB image if stored locally
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdb() {
+      if (question?.id) {
+        const variants = [question.id, `q_${question.id}`, String(question.id).replace(/^q_/, '')];
+        for (const k of variants) {
+          try {
+            const val = await idbGetPayload(k);
+            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbImage(val);
+              return;
+            }
+          } catch {}
+        }
+      }
+    }
+    loadIdb();
+    return () => { isMounted = false; };
+  }, [question?.id]);
 
   const rawText = String(
     studentAnswerText ||
@@ -106,8 +129,9 @@ export default function OpenEndedReview({
     if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
     if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
     if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
+    if (idbImage) urls.push(idbImage);
     return Array.from(new Set(urls.filter(Boolean)));
-  }, [imageUrls, question]);
+  }, [imageUrls, question, idbImage]);
 
   const handleOpenImage = (src) => {
     if (onOpenLightbox) {

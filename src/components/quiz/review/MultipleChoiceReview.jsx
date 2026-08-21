@@ -1,6 +1,8 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Eye, Key } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { idbGetPayload } from '../../../services/indexedDbService';
+import ImageLightbox from '../common/ImageLightbox';
 
 /**
  * StandardImageFrame Component
@@ -76,6 +78,30 @@ export default function MultipleChoiceReview({
   onOpenLightbox,
   isMobile = false
 }) {
+  const [activeLightbox, setActiveLightbox] = useState(null);
+  const [idbImage, setIdbImage] = useState(null);
+
+  // Load IndexedDB image if stored locally
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIdb() {
+      if (question?.id) {
+        const variants = [question.id, `q_${question.id}`, String(question.id).replace(/^q_/, '')];
+        for (const k of variants) {
+          try {
+            const val = await idbGetPayload(k);
+            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbImage(val);
+              return;
+            }
+          } catch {}
+        }
+      }
+    }
+    loadIdb();
+    return () => { isMounted = false; };
+  }, [question?.id]);
+
   const normalizeAns = (val) => {
     if (val === null || val === undefined || val === '' || val === 'empty') return null;
     if (typeof val === 'number') return val;
@@ -101,6 +127,26 @@ export default function MultipleChoiceReview({
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+
+  // Collect all resolved images
+  const resolvedImages = useMemo(() => {
+    const urls = [];
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
+    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
+    if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
+    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
+    if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
+    if (idbImage) urls.push(idbImage);
+    return Array.from(new Set(urls.filter(Boolean)));
+  }, [imageUrls, question, idbImage]);
+
+  const handleOpenImage = (src) => {
+    if (onOpenLightbox) {
+      onOpenLightbox(src);
+    } else {
+      setActiveLightbox(src);
+    }
+  };
 
   // Extract option texts
   const optionsWithText = optionLetters.map((opt, optIdx) => {
@@ -182,12 +228,12 @@ export default function MultipleChoiceReview({
       </div>
 
       {/* Images */}
-      {Array.isArray(imageUrls) && imageUrls.map((url, idx) => (
+      {resolvedImages.map((url, idx) => (
         <StandardImageFrame
           key={idx}
           src={url}
           alt={`Soru ${qNo} Görsel ${idx + 1}`}
-          onOpenFullscreen={() => onOpenLightbox && onOpenLightbox(url)}
+          onOpenFullscreen={() => handleOpenImage(url)}
         />
       ))}
 
@@ -218,78 +264,91 @@ export default function MultipleChoiceReview({
             let circleColor = '#475569';
             let textColor = '#1e293b';
 
-            if (isSelected && isKeyOption) {
+            if (isSelected) {
+              if (effectiveIsCorrect === true) {
+                cardBg = '#f0fdf4';
+                cardBorder = '2px solid #16a34a';
+                circleBg = '#16a34a';
+                circleColor = '#ffffff';
+                textColor = '#14532d';
+              } else if (effectiveIsCorrect === false) {
+                cardBg = '#fef2f2';
+                cardBorder = '2px solid #dc2626';
+                circleBg = '#dc2626';
+                circleColor = '#ffffff';
+                textColor = '#7f1d1d';
+              }
+            } else if (isKeyOption && !effectiveIsCorrect) {
+              // Highlight the correct answer if student got it wrong or left blank
               cardBg = '#f0fdf4';
               cardBorder = '2px solid #16a34a';
               circleBg = '#16a34a';
               circleColor = '#ffffff';
-              textColor = '#15803d';
-            } else if (isSelected && !isKeyOption) {
-              cardBg = '#fef2f2';
-              cardBorder = '2px solid #ef4444';
-              circleBg = '#ef4444';
-              circleColor = '#ffffff';
-              textColor = '#b91c1c';
-            } else if (!isSelected && isKeyOption) {
-              cardBg = '#f5f3ff';
-              cardBorder = '2px solid #8b5cf6';
-              circleBg = '#8b5cf6';
-              circleColor = '#ffffff';
-              textColor = '#6d28d9';
+              textColor = '#14532d';
             }
 
             return (
               <div
-                key={optObj.letter}
+                key={optIdx}
                 style={{
-                  width: '100%',
-                  padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.25rem',
-                  borderRadius: '0.85rem',
-                  border: cardBorder,
-                  background: cardBg,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.85rem',
-                  userSelect: 'none'
+                  padding: '0.85rem 1rem',
+                  borderRadius: '0.85rem',
+                  border: cardBorder,
+                  background: cardBg,
+                  color: textColor,
+                  fontWeight: isSelected || isKeyOption ? 800 : 500,
+                  fontSize: '0.92rem',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <span style={{
-                  width: 32,
-                  height: 32,
+                  width: '30px',
+                  height: '30px',
                   borderRadius: '50%',
                   background: circleBg,
                   color: circleColor,
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.95rem',
-                  fontWeight: 900,
                   flexShrink: 0
                 }}>
                   {optObj.letter}
                 </span>
-                <span style={{
-                  fontSize: '0.95rem',
-                  fontWeight: (isSelected || isKeyOption) ? 800 : 600,
-                  lineHeight: 1.5,
-                  color: textColor
-                }}>
-                  {optObj.hasText ? optObj.text : `Seçenek ${optObj.letter}`}
+
+                <span style={{ flex: 1, lineHeight: 1.5 }}>
+                  {optObj.text}
                 </span>
 
-                {isSelected && isKeyOption && (
-                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
-                    ✓ Doğru Yanıtınız
+                {isKeyOption && (
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    color: '#15803d',
+                    background: '#dcfce7',
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: '0.4rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}>
+                    <Key size={12} /> DOĞRU CEVAP
                   </span>
                 )}
                 {isSelected && !isKeyOption && (
-                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#b91c1c', background: '#fee2e2', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
-                    ✗ Yanlış Yanıtınız
-                  </span>
-                )}
-                {!isSelected && isKeyOption && (
-                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#6d28d9', background: '#ede9fe', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, flexShrink: 0 }}>
-                    🔑 Doğru Cevap
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    color: '#b91c1c',
+                    background: '#fee2e2',
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: '0.4rem'
+                  }}>
+                    ÖĞRENCİ SEÇİMİ
                   </span>
                 )}
               </div>
@@ -297,78 +356,110 @@ export default function MultipleChoiceReview({
           })}
         </div>
       ) : (
-        /* Horizontal Compact Optical Buttons (for image-based questions) */
+        /* Optical Bubble Strip Review (A, B, C, D, E) */
         <div style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: isMobile ? '0.45rem' : '0.75rem',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          background: '#f8fafc',
+          padding: '1rem 1.25rem',
+          borderRadius: '0.85rem',
+          border: '1.5px solid #e2e8f0',
           marginTop: '0.25rem'
         }}>
-          {optionLetters.map((opt, optIdx) => {
-            const isSelected = normalizedUser === optIdx;
-            const isKeyOption = normalizedCorrect === optIdx;
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ÖĞRENCİ SEÇİMİ:</span>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: 900,
+                color: !hasSelected ? '#64748b' : effectiveIsCorrect === true ? '#15803d' : '#b91c1c',
+                background: !hasSelected ? '#e2e8f0' : effectiveIsCorrect === true ? '#dcfce7' : '#fee2e2',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '0.4rem'
+              }}>
+                {hasSelected ? optionLetters[normalizedUser] : 'Boş'}
+              </span>
+            </div>
 
-            let btnBg = '#ffffff';
-            let btnBorder = '1.5px solid #cbd5e1';
-            let btnColor = '#334155';
-            let badgeText = opt;
-
-            if (isSelected && isKeyOption) {
-              btnBg = '#f0fdf4';
-              btnBorder = '2px solid #16a34a';
-              btnColor = '#15803d';
-              badgeText = `${opt} ✓`;
-            } else if (isSelected && !isKeyOption) {
-              btnBg = '#fef2f2';
-              btnBorder = '2px solid #ef4444';
-              btnColor = '#b91c1c';
-              badgeText = `${opt} ✗`;
-            } else if (!isSelected && isKeyOption) {
-              btnBg = '#f5f3ff';
-              btnBorder = '2px solid #8b5cf6';
-              btnColor = '#6d28d9';
-              badgeText = `${opt} 🔑`;
-            }
-
-            return (
-              <div
-                key={opt}
-                style={{
-                  minWidth: isMobile ? '48px' : '64px',
-                  padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
-                  borderRadius: '0.75rem',
-                  border: btnBorder,
-                  background: btnBg,
-                  color: btnColor,
+            {normalizedCorrect !== null && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>DOĞRU CEVAP:</span>
+                <span style={{
+                  fontSize: '0.85rem',
                   fontWeight: 900,
-                  fontSize: '0.9rem',
+                  color: '#15803d',
+                  background: '#dcfce7',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '0.4rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  userSelect: 'none'
-                }}
-              >
-                {badgeText}
+                  gap: 3
+                }}>
+                  <Key size={12} /> {optionLetters[normalizedCorrect]}
+                </span>
               </div>
-            );
-          })}
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.65rem' }}>
+            {optionLetters.map((opt, optIdx) => {
+              const isUserChoice = normalizedUser === optIdx;
+              const isKeyOption = normalizedCorrect === optIdx;
+
+              let btnBg = '#ffffff';
+              let btnBorder = '2px solid #cbd5e1';
+              let btnColor = '#475569';
+
+              if (isUserChoice) {
+                if (effectiveIsCorrect === true) {
+                  btnBg = '#16a34a';
+                  btnBorder = '2px solid #16a34a';
+                  btnColor = '#ffffff';
+                } else {
+                  btnBg = '#dc2626';
+                  btnBorder = '2px solid #dc2626';
+                  btnColor = '#ffffff';
+                }
+              } else if (isKeyOption && !effectiveIsCorrect) {
+                btnBg = '#dcfce7';
+                btnBorder = '2px solid #16a34a';
+                btnColor = '#15803d';
+              }
+
+              return (
+                <div
+                  key={opt}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    border: btnBorder,
+                    background: btnBg,
+                    color: btnColor,
+                    fontWeight: 900,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: isUserChoice ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
+                  }}
+                >
+                  {opt}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Answer Key Note */}
-      {correctOption !== null && correctOption !== undefined && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: '0.78rem',
-          color: '#64748b',
-          fontWeight: 700
-        }}>
-          <Key size={13} color="#8b5cf6" />
-          <span>Doğru Cevap: <strong>{optionLetters[correctOption] || correctOption}</strong></span>
-        </div>
+      {/* Lightbox for Images */}
+      {activeLightbox && (
+        <ImageLightbox
+          isOpen={Boolean(activeLightbox)}
+          src={activeLightbox}
+          onClose={() => setActiveLightbox(null)}
+        />
       )}
     </div>
   );
