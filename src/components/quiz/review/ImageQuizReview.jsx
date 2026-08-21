@@ -652,8 +652,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         />
 
         <div style={{
-          background: isItemOE ? '#faf5ff' : (isCurrentCorrect === true ? '#f0fdf4' : isCurrentCorrect === false ? '#fef2f2' : '#ffffff'),
-          border: `1.5px solid ${isItemOE ? '#e9d5ff' : (isCurrentCorrect === true ? '#bbf7d0' : isCurrentCorrect === false ? '#fecaca' : '#e2e8f0')}`,
+          background: isItemOE ? '#faf5ff' : (!hasAnswer ? '#ffffff' : (isCurrentCorrect === true ? '#f0fdf4' : '#fef2f2')),
+          border: `1.5px solid ${isItemOE ? '#e9d5ff' : (!hasAnswer ? '#e2e8f0' : (isCurrentCorrect === true ? '#bbf7d0' : '#fecaca'))}`,
           borderRadius: '1.25rem',
           padding: '1.5rem',
           boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -765,7 +765,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               background: '#ffffff',
               padding: '1rem 1.25rem',
               borderRadius: '0.75rem',
-              border: `1.5px solid ${isCurrentCorrect === true ? '#86efac' : isCurrentCorrect === false ? '#fca5a5' : '#cbd5e1'}`,
+              border: `1.5px solid ${!hasAnswer ? '#cbd5e1' : (isCurrentCorrect === true ? '#86efac' : '#fca5a5')}`,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -777,11 +777,11 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 <span style={{
                   fontWeight: 900,
                   fontSize: '0.95rem',
-                  color: isCurrentCorrect === true ? '#15803d' : isCurrentCorrect === false ? '#b91c1c' : '#64748b',
-                  background: isCurrentCorrect === true ? '#dcfce7' : isCurrentCorrect === false ? '#fee2e2' : '#f1f5f9',
+                  color: !hasAnswer ? '#64748b' : (isCurrentCorrect === true ? '#15803d' : '#b91c1c'),
+                  background: !hasAnswer ? '#f1f5f9' : (isCurrentCorrect === true ? '#dcfce7' : '#fee2e2'),
                   padding: '0.25rem 0.75rem',
                   borderRadius: '0.45rem',
-                  border: `1px solid ${isCurrentCorrect === true ? '#86efac' : isCurrentCorrect === false ? '#fca5a5' : '#cbd5e1'}`
+                  border: `1px solid ${!hasAnswer ? '#cbd5e1' : (isCurrentCorrect === true ? '#86efac' : '#fca5a5')}`
                 }}>
                   {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns).toUpperCase()) : 'Boş'}
                 </span>
