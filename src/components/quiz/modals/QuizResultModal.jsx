@@ -160,7 +160,7 @@ export default function QuizResultModal({
                 display: 'block',
                 lineHeight: 1.2
               }}>
-                {isPureOpenEnded ? 'Değerlendirmede' : `%{stats.score ?? 0}`}
+                {isPureOpenEnded ? 'Değerlendirmede' : `%${stats.score ?? submission?.score ?? 0}`}
               </span>
             </div>
           </div>
