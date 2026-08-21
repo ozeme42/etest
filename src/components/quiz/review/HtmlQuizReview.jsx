@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
-import { ArrowLeft, CheckCircle, XCircle, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
@@ -24,6 +24,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       location.state?.isTeacher ||
       location.state?.fromTeacher ||
       location.search.includes('teacher=true') ||
+      location.search.includes('from=evaluation') ||
       currentUser?.role === 'teacher' ||
       currentUser?.role === 'admin'
     )
@@ -45,10 +46,37 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     }
   };
 
-  const answers = submission.answers || [];
+  const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
+
+  const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.isOpenEnded ||
+      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
+      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')) ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik'))) ||
+      (submission?.testTitle && (submission.testTitle.toLowerCase().includes('açık uçlu') || submission.testTitle.toLowerCase().includes('yazılı') || submission.testTitle.toLowerCase().includes('klasik')))
+    ) {
+      return true;
+    }
+    return false;
+  }, [test, questions, answers, submission]);
 
   const qCount = useMemo(() => {
-    // 1. Title regex FIRST (e.g. "(5 Soru)", "5 Soru")
+    if (Array.isArray(answers) && answers.length > 0) return answers.length;
+    if (Array.isArray(submission?.raw_data?.answers) && submission.raw_data.answers.length > 0) return submission.raw_data.answers.length;
+
+    const candidateCounts = [
+      test.questionCount, test.questionsCount, test.qCount, test.totalQuestions, test.count,
+      questions[0]?.questionCount, questions[0]?.questionsCount, questions[0]?.qCount, questions[0]?.totalQuestions,
+      test.contentPayload?.questionCount, test.htmlPayload?.questionCount, test.raw_data?.questionCount,
+      submission?.questionCount, submission?.questionsCount, submission?.qCount, submission?.totalQuestions
+    ];
+    for (const c of candidateCounts) {
+      if (c && Number(c) > 0) return Number(c);
+    }
+
     const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
     for (const t of titles) {
       if (typeof t === 'string') {
@@ -57,22 +85,15 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       }
     }
 
-    // 2. Answer key
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) return keyArray.length;
     if (typeof keyArray === 'string' && keyArray.trim().length > 0) return keyArray.trim().length;
     if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) return Object.keys(keyArray).length;
 
-    // 3. Questions list / sub-questions
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) return test.questionsList.length;
     if (Array.isArray(test.questionIds) && test.questionIds.length > 0) return test.questionIds.length;
-    if (Array.isArray(questions) && questions.length > 1) return questions.length;
+    if (Array.isArray(questions) && questions.length > 0) return questions.length;
 
-    // 4. Test questionCount
-    if (test.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
-    if (questions[0]?.questionCount && Number(questions[0].questionCount) > 0) return Number(questions[0].questionCount);
-
-    if (Array.isArray(questions) && questions.length === 1) return 1;
     return 1;
   }, [test, questions, answers, submission]);
 
@@ -81,25 +102,38 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
       const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
-      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
-      const hasText = (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+      const qObj = questions[i - 1] || questions[0] || {};
+      const isQOE = Boolean(
+        a?.isOpenEnded ||
+        a?.type === 'acik_uclu' ||
+        qObj?.type === 'acik_uclu' ||
+        qObj?.isOpenEnded ||
+        isOpenEndedMode
+      );
 
-      if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
-        scores[i] = Number(a.score);
-      } else if (a?.isCorrect === true) {
-        scores[i] = 10;
-      } else if (a?.isCorrect === false) {
-        scores[i] = 0;
-      } else if (hasAns) {
-        const qObj = questions[i - 1] || questions[0] || {};
-        const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
-        if (isRight === true) scores[i] = 10;
-        else if (isRight === false) scores[i] = 0;
-        else scores[i] = 'empty';
-      } else if (hasText) {
-        scores[i] = 'empty';
+      const hasTeacherGraded = Boolean(
+        (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') &&
+        (a?.evaluatedByTeacher === true || (typeof a?.score === 'number' && a.score > 0))
+      );
+
+      if (isQOE) {
+        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else {
+          // Open-ended and unevaluated -> 'empty' (pending)
+          scores[i] = 'empty';
+        }
       } else {
-        scores[i] = 'empty';
+        // Multiple choice
+        const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+        if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else if (hasAns) {
+          const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+          scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
+        } else {
+          scores[i] = 'empty';
+        }
       }
     }
     return scores;
@@ -152,45 +186,33 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
   const htmlPayload = idbHtml || test.htmlPayload || test.contentPayload || questions[0]?.htmlPayload || questions[0]?.contentPayload || submission?.htmlPayload;
 
-  const isEvaluated = Boolean(submission.isEvaluatedByTeacher || submission.status === 'evaluated' || submission.status === 'graded');
-
-  const computeQuestionEvaluation = (qNo, qObj, ansObj) => {
-    const userAns = ansObj.userAnswer;
-    const textAns = ansObj.userAnswerText;
-    const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
-    const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
-
-    let userAnsLetter = null;
-    if (hasAnswer) {
-      if (typeof userAns === 'number') userAnsLetter = String.fromCharCode(65 + userAns);
-      else userAnsLetter = String(userAns).toUpperCase();
+  const totalMaxScore = qCount * 10;
+  const totalEarnedScore = useMemo(() => {
+    let earned = 0;
+    for (let i = 1; i <= qCount; i++) {
+      const s = questionScores[i];
+      if (s !== undefined && s !== null && s !== 'empty') {
+        earned += Number(s);
+      }
     }
+    return earned;
+  }, [qCount, questionScores]);
+  
+  const scorePercentage = useMemo(() => {
+    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+  }, [totalEarnedScore, totalMaxScore]);
 
-    const keySource = test.answerKey || questions[0]?.answerKey || null;
-    const rawCorrectKey = Array.isArray(keySource) ? keySource[qNo - 1]
-      : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : null);
-
-    let displayCorrectKey = null;
-    if (rawCorrectKey !== undefined && rawCorrectKey !== null) {
-      if (typeof rawCorrectKey === 'number') displayCorrectKey = String.fromCharCode(65 + rawCorrectKey);
-      else displayCorrectKey = String(rawCorrectKey).toUpperCase();
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      return (
+        totalEarnedScore > 0 ||
+        Boolean(submission.teacherFeedback || submission.teacherNote) ||
+        Object.values(teacherNotes).some(n => n && n.trim() !== '') ||
+        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
+      );
     }
-
-    let isCorrect;
-    const teacherSc = questionScores[qNo];
-    if (teacherSc !== undefined && teacherSc !== null) {
-      if (teacherSc === 'empty') isCorrect = null;
-      else isCorrect = Number(teacherSc) >= 5;
-    } else if (hasAnswer) {
-      isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-    } else if (hasText) {
-      isCorrect = null;
-    } else {
-      isCorrect = null;
-    }
-
-    return { userAnsLetter, displayCorrectKey, isCorrect };
-  };
+    return false;
+  }, [submission, totalEarnedScore, teacherNotes, answers]);
 
   const stats = useMemo(() => {
     let cCount = 0;
@@ -202,27 +224,28 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       const qObj = questions[idx] || questions[0] || {};
       const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
 
-      const teacherSc = questionScores[qNo];
       const userAns = ansObj.userAnswer;
-      const textAns = ansObj.userAnswerText;
-      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
-      const hasText = textAns !== null && textAns !== undefined && String(textAns).trim() !== '';
+      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+      const teacherSc = questionScores[qNo];
 
-      if (teacherSc !== undefined && teacherSc !== null) {
-        if (teacherSc === 'empty') {
-          bCount++;
-        } else {
+      if (isOpenEndedMode) {
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
+        } else {
+          bCount++;
         }
       } else {
-        if (hasAnswer) {
-          const isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-          if (isCorrect === true) cCount++;
+        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+          const numSc = Number(teacherSc);
+          if (numSc >= 5) cCount++;
           else wCount++;
-        } else if (hasText) {
-          bCount++;
+        } else if (hasAnswer) {
+          const isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+          if (isCorrect === true) cCount++;
+          else if (isCorrect === false) wCount++;
+          else bCount++;
         } else {
           bCount++;
         }
@@ -230,32 +253,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     });
 
     return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
-  }, [qCount, questions, answers, test, submission, questionScores]);
-
-  const isOpenEndedMode = useMemo(() => {
-    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
-      return false;
-    }
-    return Boolean(
-      test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı'))) ||
-      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded)
-    );
-  }, [test, questions]);
+  }, [qCount, questions, answers, test, questionScores, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
-  
-  const scorePercentage = useMemo(() => {
-    let earned = 0;
-    let max = qCount * 10;
-    for (let i = 1; i <= qCount; i++) {
-      const s = questionScores[i];
-      if (s !== undefined && s !== null && s !== 'empty') {
-        earned += Number(s);
-      }
-    }
-    return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
-  }, [qCount, questionScores]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -297,6 +297,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         }
 
         const note = teacherNotes[qNo] || '';
+
         return {
           ...existingAns,
           questionNo: qNo,
@@ -304,7 +305,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
           isCorrect,
           evalStatus,
           teacherNote: note,
-          evaluatedAt: new Date().toISOString()
+          evaluatedByTeacher: true
         };
       });
 
@@ -312,10 +313,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         ...submission,
         answers: updatedAnswers,
         score: scorePercentage,
-        scorePercentage: scorePercentage,
-        status: 'evaluated',
-        isEvaluated: true,
         isEvaluatedByTeacher: true,
+        status: 'evaluated',
         teacherFeedback: overallFeedback,
         teacherNote: overallFeedback,
         evaluatedAt: new Date().toISOString()
@@ -355,7 +354,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* Header */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
+        padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1.5rem',
         background: '#ffffff',
         borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
@@ -363,7 +362,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         justifyContent: 'space-between',
         flexShrink: 0,
         gap: isMobile ? '0.4rem' : '1rem',
-        minHeight: isMobile ? '48px' : '62px',
+        minHeight: isMobile ? '50px' : '62px',
         boxSizing: 'border-box',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
@@ -371,7 +370,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
           <button
             onClick={handleGoBack}
             style={{
-              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+              padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
               background: '#ffffff',
               border: '1.5px solid #cbd5e1',
@@ -387,11 +386,11 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
             title="Geri Dön"
           >
             <ArrowLeft size={isMobile ? 15 : 16} />
-            {!isMobile && "Geri Dön"}
+            {!isMobile && "Kapat / Çık"}
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 style={{
-              fontSize: isMobile ? '0.85rem' : '1.05rem',
+              fontSize: isMobile ? '0.88rem' : '1.05rem',
               fontWeight: 900,
               margin: 0,
               color: '#0f172a',
@@ -402,24 +401,127 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               {submission.studentName ? `🎓 ${submission.studentName} — ` : ''}{test.title || test.name || 'HTML Sınavı'}
             </h2>
             <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              🌐 HTML Formatında Sınav & Değerlendirme
+              🌐 {isOpenEndedMode ? 'Açık Uçlu / Yazılı HTML Sınavı' : 'Çoktan Seçmeli HTML Sınavı'} • Toplam {qCount} Soru
             </div>
           </div>
         </div>
 
         {/* Action & Score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-          <div style={{
-            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-            borderRadius: '0.55rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.76rem' : '0.84rem',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-          }}>
-            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%${scorePercentage} Başarı`}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          {isOpenEndedMode ? (
+            !isTrulyEvaluated ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: isMobile ? '0.3rem 0.65rem' : '0.45rem 1rem',
+                borderRadius: '0.65rem',
+                background: '#f5f3ff',
+                border: '1.5px solid #ddd6fe',
+                color: '#6b21a8',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.88rem',
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.12)'
+              }}>
+                <Clock size={16} color="#7c3aed" />
+                <span>⏳ Değerlendirmede</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                  borderRadius: '0.55rem',
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  color: '#6b21a8',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.74rem' : '0.82rem'
+                }}>
+                  <Award size={15} color="#7c3aed" />
+                  <span>{totalEarnedScore} / {totalMaxScore} Puan</span>
+                </div>
+                <div style={{
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  color: '#ffffff',
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                  borderRadius: '0.55rem',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.76rem' : '0.84rem',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                }}>
+                  %{scorePercentage} Başarı
+                </div>
+              </div>
+            )
+          ) : (
+            <>
+              {/* Doğru Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                color: '#15803d',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <span>{correctCount} D</span>
+              </div>
+
+              {/* Yanlış Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                color: '#b91c1c',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <XCircle size={14} color="#ef4444" />
+                <span>{wrongCount} Y</span>
+              </div>
+
+              {/* Boş Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <AlertCircle size={14} color="#64748b" />
+                <span>{blankCount} B</span>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                borderRadius: '0.55rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+              }}>
+                %{scorePercentage} Başarı
+              </div>
+            </>
+          )}
 
           {isTeacherMode && (
             <button
@@ -432,8 +534,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                 gap: '0.35rem',
                 background: 'linear-gradient(135deg, #059669, #10b981)',
                 border: 'none',
-                borderRadius: '0.5rem',
-                padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.1rem',
+                borderRadius: '0.55rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 1rem',
                 color: 'white',
                 fontWeight: 900,
                 fontSize: isMobile ? '0.75rem' : '0.84rem',
@@ -441,7 +543,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                 boxShadow: '0 2px 10px rgba(16,185,129,0.3)'
               }}
             >
-              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet ✓'}
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet ✓'}
             </button>
           )}
         </div>
@@ -467,23 +569,38 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-              const { userAnsLetter, displayCorrectKey } = computeQuestionEvaluation(qNo, qObj, ansObj);
+              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+              const isText = Boolean(textAns && String(textAns).trim() !== '');
+              const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               const teacherSc = questionScores[qNo];
-              const currentScore = teacherSc !== undefined ? teacherSc : (hasAnswer ? (ansObj.isCorrect === true ? 10 : (ansObj.isCorrect === false ? 0 : undefined)) : 'empty');
+              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
 
               let isCorrect;
-              if (currentScore === 10 || currentScore === 5) {
-                isCorrect = true;
-              } else if (currentScore === 0) {
-                isCorrect = false;
-              } else if (currentScore === 'empty') {
-                isCorrect = null;
-              } else if (hasAnswer) {
-                isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+              if (hasGradedScore) {
+                isCorrect = Number(teacherSc) >= 5;
+              } else if (hasAnswer && !isItemOE) {
+                isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
               } else {
                 isCorrect = null;
               }
+
+              const keySource = test.answerKey || questions[0]?.answerKey || null;
+              let rawCorrectKey = null;
+              if (Array.isArray(keySource)) {
+                rawCorrectKey = keySource[qNo - 1];
+              } else if (keySource && typeof keySource === 'object') {
+                rawCorrectKey = keySource[qNo] ?? keySource[qNo - 1];
+              } else if (typeof keySource === 'string') {
+                const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
+                rawCorrectKey = clean[qNo - 1];
+              } else {
+                rawCorrectKey = qObj.correctAnswer;
+              }
+
+              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null && rawCorrectKey !== '')
+                ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
+                : null;
 
               return (
                 <div
@@ -499,9 +616,42 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE ? (
-                      <span style={{ color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : currentScore === 'empty' ? '#64748b' : '#b91c1c'), fontWeight: 900, fontSize: '0.82rem' }}>
-                        {currentScore === 'empty' ? '○ Boş (0 Puan)' : `${currentScore} / 10 Puan`}
-                      </span>
+                      hasGradedScore ? (
+                        <span style={{
+                          color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
+                          background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          fontWeight: 900,
+                          fontSize: '0.82rem'
+                        }}>
+                          {teacherSc} / 10 Puan
+                        </span>
+                      ) : isText ? (
+                        <span style={{
+                          color: '#7c3aed',
+                          background: '#f5f3ff',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #ddd6fe',
+                          fontWeight: 900,
+                          fontSize: '0.8rem'
+                        }}>
+                          ⏳ Değerlendirme Bekliyor
+                        </span>
+                      ) : (
+                        <span style={{
+                          color: '#64748b',
+                          background: '#f8fafc',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #e2e8f0',
+                          fontWeight: 800,
+                          fontSize: '0.8rem'
+                        }}>
+                          ○ Yanıtlanmadı / Boş
+                        </span>
+                      )
                     ) : hasAnswer ? (
                       isCorrect === true ? (
                         <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
@@ -519,19 +669,26 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                     )}
                   </div>
 
-                  {textAns ? (
+                  {/* Öğrenci Yazılı Yanıtı */}
+                  {isItemOE ? (
                     <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİNİN YAZILI CEVABI:</div>
-                      <div style={{ fontSize: '0.88rem', background: '#ffffff', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
-                        {textAns}
-                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>📝 ÖĞRENCİ YAZILI CEVABI:</div>
+                      {isText ? (
+                        <div style={{ fontSize: '0.88rem', background: '#ffffff', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
+                          {textAns}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                          Öğrenci bu soruya yanıt yazmadı.
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
                         <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
-                          {hasAnswer ? (userAnsLetter || 'Boş') : 'Boş'}
+                          {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (
@@ -555,9 +712,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                           style={{
                             padding: '0.4rem 0.25rem',
                             borderRadius: 6,
-                            border: currentScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                            background: currentScore === 10 ? '#16a34a' : '#ffffff',
-                            color: currentScore === 10 ? '#ffffff' : '#15803d',
+                            border: teacherSc === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                            background: teacherSc === 10 ? '#16a34a' : '#ffffff',
+                            color: teacherSc === 10 ? '#ffffff' : '#15803d',
                             fontWeight: 900,
                             fontSize: '0.76rem',
                             cursor: 'pointer',
@@ -567,47 +724,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                             gap: 3
                           }}
                         >
-                          ✓ Doğru (D)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
-                          style={{
-                            padding: '0.4rem 0.25rem',
-                            borderRadius: 6,
-                            border: currentScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                            background: currentScore === 0 ? '#dc2626' : '#ffffff',
-                            color: currentScore === 0 ? '#ffffff' : '#b91c1c',
-                            fontWeight: 900,
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3
-                          }}
-                        >
-                          ✗ Yanlış (Y)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 'empty' }))}
-                          style={{
-                            padding: '0.4rem 0.25rem',
-                            borderRadius: 6,
-                            border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
-                            background: currentScore === 'empty' ? '#64748b' : '#f8fafc',
-                            color: currentScore === 'empty' ? '#ffffff' : '#475569',
-                            fontWeight: 900,
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3
-                          }}
-                        >
-                          ○ Boş (B)
+                          ✓ Doğru (10P)
                         </button>
                         {isItemOE && (
                           <button
@@ -616,9 +733,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                             style={{
                               padding: '0.4rem 0.25rem',
                               borderRadius: 6,
-                              border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
-                              background: currentScore === 5 ? '#d97706' : '#ffffff',
-                              color: currentScore === 5 ? '#ffffff' : '#d97706',
+                              border: teacherSc === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                              background: teacherSc === 5 ? '#d97706' : '#ffffff',
+                              color: teacherSc === 5 ? '#ffffff' : '#b45309',
                               fontWeight: 900,
                               fontSize: '0.76rem',
                               cursor: 'pointer',
@@ -631,74 +748,123 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                             ½ Yarım (5P)
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
+                          style={{
+                            padding: '0.4rem 0.25rem',
+                            borderRadius: 6,
+                            border: teacherSc === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                            background: teacherSc === 0 ? '#dc2626' : '#ffffff',
+                            color: teacherSc === 0 ? '#ffffff' : '#b91c1c',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 3
+                          }}
+                        >
+                          ✗ Yanlış (0P)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 'empty' }))}
+                          style={{
+                            padding: '0.4rem 0.25rem',
+                            borderRadius: 6,
+                            border: teacherSc === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                            background: teacherSc === 'empty' ? '#64748b' : '#f8fafc',
+                            color: teacherSc === 'empty' ? '#ffffff' : '#475569',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 3
+                          }}
+                        >
+                          ○ Boş
+                        </button>
                       </div>
 
                       <input
                         type="text"
-                        placeholder="Bu soru için geri bildirim notu..."
                         value={teacherNotes[qNo] || ''}
-                        onChange={e => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
-                        style={{ width: '100%', padding: '0.4rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
+                        onChange={(e) => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
+                        placeholder="Soruya özel geri bildirim notu..."
+                        style={{
+                          width: '100%',
+                          padding: '0.35rem 0.6rem',
+                          borderRadius: '0.4rem',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
                       />
                     </div>
                   )}
 
-                  {/* Öğrenci için Öğretmen Notu (Salt Okunur) */}
                   {!isTeacherMode && teacherNotes[qNo] && (
-                    <div style={{ marginTop: '0.6rem', padding: '0.6rem 0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1e40af' }}>
-                      <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[qNo]}
+                    <div style={{ marginTop: '0.5rem', background: '#f5f3ff', padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #ddd6fe', fontSize: '0.8rem', color: '#6b21a8' }}>
+                      <strong>💬 Öğretmen Notu:</strong> {teacherNotes[qNo]}
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* Genel Değerlendirme Notu & Kaydet */}
+            {/* Overall Teacher Note Section */}
             {isTeacherMode ? (
-              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', marginTop: '0.5rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: '0.35rem' }}>
+                  💬 Öğrenciye Genel Not / Geri Bildirim:
+                </label>
                 <textarea
-                  rows="2"
-                  placeholder="Öğrencinin bu sınavı için genel karne notunuz..."
+                  rows="3"
                   value={overallFeedback}
-                  onChange={e => setOverallFeedback(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
+                  onChange={(e) => setOverallFeedback(e.target.value)}
+                  placeholder="Sınavın geneli için öğrenciye tavsiyelerinizi yazabilirsiniz..."
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
-                <button
-                  type="button"
-                  onClick={handleSaveEvaluation}
-                  disabled={isSaving}
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.88rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
-                </button>
               </div>
-            ) : overallFeedback ? (
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>👨‍🏫 Öğretmen Değerlendirme Notu / Karne Görüşü:</div>
-                <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
-                  {overallFeedback}
+            ) : (
+              overallFeedback && (
+                <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #ddd6fe', marginTop: '0.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.88rem', fontWeight: 900, color: '#6b21a8' }}>
+                    💬 Öğretmeninizin Genel Notu:
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#1e1b4b', lineHeight: 1.5 }}>
+                    {overallFeedback}
+                  </p>
                 </div>
-              </div>
-            ) : null}
+              )
+            )}
           </div>
         }
       />
 
-      <ReviewResultModal
-        isOpen={showResultModal}
-        onClose={handleGoBack}
-        studentName={submission.studentName || 'Öğrenci'}
-        testTitle={test.title || submission.testTitle || 'HTML Sınavı'}
-        score={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? null : scorePercentage}
-        correctCount={correctCount}
-        wrongCount={wrongCount}
-        blankCount={blankCount}
-        totalQuestions={qCount}
-        overallFeedback={overallFeedback}
-        isTeacher={isTeacherMode}
-        isPending={isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0}
-      />
+      {showResultModal && (
+        <ReviewResultModal
+          isOpen={showResultModal}
+          onClose={() => {
+            setShowResultModal(false);
+            handleGoBack();
+          }}
+          test={test}
+          submission={{
+            ...submission,
+            score: scorePercentage,
+            correctCount,
+            wrongCount,
+            blankCount,
+            totalCount: qCount
+          }}
+        />
+      )}
     </div>
   );
 }
