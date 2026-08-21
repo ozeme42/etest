@@ -80,14 +80,27 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
-      const a = answers[i - 1];
-      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
-      if (a?.evalStatus === 'empty' || (a?.isCorrect === null && !hasAns)) scores[i] = 'empty';
-      else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
-      else if (a?.isCorrect === true) scores[i] = 10;
-      else if (a?.isCorrect === false) scores[i] = 0;
-      else if (!hasAns) scores[i] = 'empty';
-      else scores[i] = 0;
+      const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
+      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+      const hasText = (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+
+      if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+        scores[i] = Number(a.score);
+      } else if (a?.isCorrect === true) {
+        scores[i] = 10;
+      } else if (a?.isCorrect === false) {
+        scores[i] = 0;
+      } else if (hasAns) {
+        const qObj = questions[i - 1] || questions[0] || {};
+        const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+        if (isRight === true) scores[i] = 10;
+        else if (isRight === false) scores[i] = 0;
+        else scores[i] = 'empty';
+      } else if (hasText) {
+        scores[i] = 'empty';
+      } else {
+        scores[i] = 'empty';
+      }
     }
     return scores;
   });
@@ -359,17 +372,68 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         </div>
 
         {/* Action & Score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          {/* Doğru Pill */}
           <div style={{
-            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
-            borderRadius: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
             fontWeight: 900,
-            fontSize: isMobile ? '0.78rem' : '0.9rem',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
           }}>
-            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Puan`}
+            <CheckCircle size={14} color="#16a34a" />
+            <span>{correctCount} D</span>
+          </div>
+
+          {/* Yanlış Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <XCircle size={14} color="#ef4444" />
+            <span>{wrongCount} Y</span>
+          </div>
+
+          {/* Boş Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
+            fontWeight: 800,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <AlertCircle size={14} color="#64748b" />
+            <span>{blankCount} B</span>
+          </div>
+
+          <div style={{
+            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: '#ffffff',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+            borderRadius: '0.55rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.76rem' : '0.84rem',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+          }}>
+            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Başarı`}
           </div>
 
           {isTeacherMode && (
@@ -383,8 +447,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 gap: '0.35rem',
                 background: 'linear-gradient(135deg, #059669, #10b981)',
                 border: 'none',
-                borderRadius: '0.5rem',
-                padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.1rem',
+                borderRadius: '0.55rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 1rem',
                 color: 'white',
                 fontWeight: 900,
                 fontSize: isMobile ? '0.75rem' : '0.84rem',
@@ -392,7 +456,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 boxShadow: '0 2px 10px rgba(16,185,129,0.3)'
               }}
             >
-              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet ✓'}
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet ✓'}
             </button>
           )}
         </div>

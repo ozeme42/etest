@@ -80,14 +80,27 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
-      const a = answers[i - 1];
-      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
-      if (a?.evalStatus === 'empty' || (a?.isCorrect === null && !hasAns)) scores[i] = 'empty';
-      else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
-      else if (a?.isCorrect === true) scores[i] = 10;
-      else if (a?.isCorrect === false) scores[i] = 0;
-      else if (!hasAns) scores[i] = 'empty';
-      else scores[i] = 0;
+      const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
+      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+      const hasText = (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
+
+      if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+        scores[i] = Number(a.score);
+      } else if (a?.isCorrect === true) {
+        scores[i] = 10;
+      } else if (a?.isCorrect === false) {
+        scores[i] = 0;
+      } else if (hasAns) {
+        const qObj = questions[i - 1] || questions[0] || {};
+        const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+        if (isRight === true) scores[i] = 10;
+        else if (isRight === false) scores[i] = 0;
+        else scores[i] = 'empty';
+      } else if (hasText) {
+        scores[i] = 'empty';
+      } else {
+        scores[i] = 'empty';
+      }
     }
     return scores;
   });
