@@ -123,50 +123,84 @@ export default function QuizResultModal({
             : 'Sınavınızı başarıyla tamamladınız. İşte detaylı karneniz:'}
         </p>
 
-        {/* Score & Key Metrics Banner */}
-        {isPureOpenEnded ? (
+        {/* Score & Key Metrics Banner - ALWAYS shown */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+          borderRadius: '1.15rem',
+          padding: '1.25rem',
+          color: '#ffffff',
+          marginBottom: '1.35rem',
+          boxShadow: '0 6px 18px rgba(15,23,42,0.18)'
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', textAlign: 'center', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>DOĞRU</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80' }}>
+                {isPureOpenEnded ? '-' : (stats.correct ?? 0)}
+              </span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>YANLIŞ</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f87171' }}>
+                {isPureOpenEnded ? '-' : (stats.wrong ?? 0)}
+              </span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BOŞ</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#cbd5e1' }}>
+                {stats.blank ?? submission?.blankCount ?? 0}
+              </span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BAŞARI</span>
+              <span style={{
+                fontSize: isPureOpenEnded ? '0.78rem' : '1.3rem',
+                fontWeight: 900,
+                color: isPureOpenEnded ? '#c084fc' : '#60a5fa',
+                display: 'block',
+                lineHeight: 1.2
+              }}>
+                {isPureOpenEnded ? 'Değerlendirmede' : `%{stats.score ?? 0}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Pending Open-Ended badge in mixed exams */}
+          {!isPureOpenEnded && stats.pending > 0 && (
+            <div style={{
+              marginTop: '0.75rem',
+              paddingTop: '0.65rem',
+              borderTop: '1px solid rgba(255,255,255,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              color: '#d8b4fe'
+            }}>
+              <Clock size={13} />
+              <span>{stats.pending} Açık Uçlu Soru Öğretmen Değerlendirmesinde</span>
+            </div>
+          )}
+        </div>
+
+        {/* If pure open ended, also show informative note */}
+        {isPureOpenEnded && (
           <div style={{
             background: '#faf5ff',
             border: '1.5px solid #ddd6fe',
-            borderRadius: '1.15rem',
-            padding: '1.35rem',
-            marginBottom: '1.5rem',
-            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.08)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#6b21a8', fontWeight: 900, fontSize: '1rem' }}>
-              <Clock size={20} /> Öğretmen Değerlendirmesi Bekleniyor
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#581c87', margin: '0.6rem 0 0', lineHeight: 1.55 }}>
-              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip notlandırdıktan sonra nihai sonuçlarınız ve karneniz güncellenecektir.
-            </p>
-          </div>
-        ) : (
-          <div style={{
-            background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-            borderRadius: '1.15rem',
-            padding: '1.25rem',
-            color: '#ffffff',
+            borderRadius: '1rem',
+            padding: '0.9rem 1.1rem',
             marginBottom: '1.35rem',
-            boxShadow: '0 6px 18px rgba(15,23,42,0.18)'
+            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.06)'
           }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', textAlign: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>DOĞRU</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80' }}>{stats.correct ?? 0}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>YANLIŞ</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f87171' }}>{stats.wrong ?? 0}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BOŞ</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#cbd5e1' }}>{stats.blank ?? 0}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BAŞARI</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#60a5fa' }}>%{stats.score ?? 0}</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#6b21a8', fontWeight: 900, fontSize: '0.88rem' }}>
+              <Clock size={16} /> Öğretmen Değerlendirmesi Bekleniyor
             </div>
+            <p style={{ fontSize: '0.8rem', color: '#581c87', margin: '0.4rem 0 0', lineHeight: 1.5 }}>
+              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip notlandırdıktan sonra nihai karneniz ve başarı yüzdeniz güncellenecektir.
+            </p>
           </div>
         )}
 
