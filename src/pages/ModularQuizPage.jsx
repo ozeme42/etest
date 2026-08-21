@@ -611,29 +611,32 @@ export default function ModularQuizPage() {
       const qObj = questions[idx] || {};
       const userAns = ans.userAnswer;
       const textVal = ans.userAnswerText;
-      const qNo = ans.questionNo || (idx + 1);
+      const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
       const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || textVal);
 
-      const testCtx = {
-        ...test,
-        ...qObj,
-        answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers || test?.htmlPayload?.answerKey,
-        answer_key: test?.answer_key || questions[0]?.answer_key || qObj?.answer_key || test?.htmlPayload?.answer_key,
-        htmlPayload: test?.htmlPayload || qObj?.htmlPayload,
-        bankQ: {
-          ...(test?.bankQ || {}),
-          ...(qObj?.bankQ || {})
+      let isCorrect = ans.isCorrect;
+      if (isOE) {
+        isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar pending kalır
+      } else if (isCorrect === undefined || isCorrect === null) {
+        const testCtx = {
+          ...test,
+          ...qObj,
+          answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers || test?.htmlPayload?.answerKey,
+          answer_key: test?.answer_key || questions[0]?.answer_key || qObj?.answer_key || test?.htmlPayload?.answer_key,
+          htmlPayload: test?.htmlPayload || qObj?.htmlPayload,
+          bankQ: {
+            ...(test?.bankQ || {}),
+            ...(qObj?.bankQ || {})
+          }
+        };
+        if (userAns !== null && userAns !== undefined && userAns !== '') {
+          isCorrect = checkIsAnswerCorrect(userAns, qObj, testCtx, qNo);
         }
-      };
-
-      let isCorrect = isOE ? null : (userAns !== null && userAns !== undefined && userAns !== '' ? checkIsAnswerCorrect(userAns, qObj, testCtx, qNo) : null);
-      if (isCorrect === null && !isOE && ans.isCorrect !== undefined && ans.isCorrect !== null) {
-        isCorrect = ans.isCorrect;
       }
 
       if (isCorrect === true) correctCount++;
       else if (isCorrect === false && (userAns !== null && userAns !== undefined && userAns !== '')) wrongCount++;
-      else if (isOE && textVal) pendingCount++;
+      else if (isOE) pendingCount++;
       else blankCount++;
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
@@ -654,7 +657,7 @@ export default function ModularQuizPage() {
 
     const totalQ = correctCount + wrongCount + blankCount + pendingCount;
     const score = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-    const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || pendingCount > 0;
+    const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || pendingCount > 0 || formattedAnswers.some(a => a.isOpenEnded);
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;
 
