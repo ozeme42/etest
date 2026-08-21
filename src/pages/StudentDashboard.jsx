@@ -748,8 +748,11 @@ export default function StudentDashboard() {
     const isEval = (s, isOE = false) => {
       if (!s) return false;
       if (!isOE) return true;
+      if (s.status === 'pending' || s.status === 'pending_evaluation') return false;
       const rawObj = s.raw_data || {};
-      return Boolean(
+      if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
+
+      const hasTeacherGradingHeader = Boolean(
         s.isEvaluatedByTeacher ||
         s.isEvaluated ||
         rawObj.isEvaluatedByTeacher ||
@@ -763,16 +766,23 @@ export default function StudentDashboard() {
         s.teacherFeedback ||
         s.teacherNote ||
         rawObj.teacherFeedback ||
-        rawObj.teacherNote ||
-        (Array.isArray(s.answers) && s.answers.length > 0 && s.answers.some(a => 
+        rawObj.teacherNote
+      );
+      if (hasTeacherGradingHeader) return true;
+
+      if (Array.isArray(s.answers) && s.answers.length > 0) {
+        return s.answers.some(a => 
           a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
           a.feedback || 
-          (a.score !== undefined && a.score !== null) || 
-          (a.evalStatus && a.evalStatus !== 'pending')
-        ))
-      );
+          (typeof a.score === 'number' && a.score > 0) || 
+          (typeof a.earnedScore === 'number' && a.earnedScore > 0) ||
+          a.evalStatus === 'graded' ||
+          a.evalStatus === 'evaluated'
+        );
+      }
+      return false;
     };
 
     // 1. Process Non-Book Homeworks
@@ -841,8 +851,11 @@ export default function StudentDashboard() {
         sub.questionType === 'acik_uclu' ||
         sub.type === 'acik_uclu' ||
         sub.contentType === 'acik_uclu' ||
+        sub.status === 'pending' ||
         sub.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
+        raw.status === 'pending' ||
+        raw.status === 'pending_evaluation' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
@@ -1058,8 +1071,11 @@ export default function StudentDashboard() {
         sub.questionType === 'acik_uclu' ||
         sub.type === 'acik_uclu' ||
         sub.contentType === 'acik_uclu' ||
+        sub.status === 'pending' ||
         sub.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => Boolean(a.userAnswerText) && (a.userAnswer === null || a.userAnswer === undefined)))
+        raw.status === 'pending' ||
+        raw.status === 'pending_evaluation' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
@@ -3519,7 +3535,12 @@ export default function StudentDashboard() {
                     return (
                       <div
                         key={test.id || idx}
-                        onClick={() => navigate('/student/results')}
+                        onClick={() => {
+                          const targetId = test.testId || test.submissionId || test.id;
+                          navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+                            state: { from: '/student' }
+                          });
+                        }}
                         className="sd-card"
                         style={{
                           background: 'var(--color-surface-hover, #f8fafc)',

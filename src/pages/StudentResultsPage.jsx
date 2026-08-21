@@ -435,23 +435,42 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
     const isEval = (sub, isOpenEnded = false) => {
       if (!isOpenEnded) return true;
-      return Boolean(
-        sub?.isEvaluatedByTeacher ||
-        sub?.isEvaluated ||
-        sub?.raw_data?.isEvaluatedByTeacher ||
-        sub?.raw_data?.isEvaluated ||
-        sub?.status === 'evaluated' ||
-        sub?.status === 'graded' ||
-        sub?.raw_data?.status === 'evaluated' ||
-        sub?.raw_data?.status === 'graded' ||
-        sub?.teacherFeedback ||
-        sub?.teacherNote ||
-        sub?.raw_data?.teacherFeedback ||
-        sub?.raw_data?.teacherNote ||
-        sub?.evaluatedAt ||
-        sub?.raw_data?.evaluatedAt ||
-        (Array.isArray(sub?.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedAt || a.teacherNote || a.score !== undefined || (a.evalStatus && a.evalStatus !== 'pending')))
+      if (!sub) return false;
+      if (sub.status === 'pending' || sub.status === 'pending_evaluation') return false;
+      const rawObj = sub.raw_data || {};
+      if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
+
+      const hasTeacherGradingHeader = Boolean(
+        sub.isEvaluatedByTeacher ||
+        sub.isEvaluated ||
+        rawObj.isEvaluatedByTeacher ||
+        rawObj.isEvaluated ||
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        rawObj.status === 'evaluated' ||
+        rawObj.status === 'graded' ||
+        sub.evaluatedAt ||
+        rawObj.evaluatedAt ||
+        sub.teacherFeedback ||
+        sub.teacherNote ||
+        rawObj.teacherFeedback ||
+        rawObj.teacherNote
       );
+      if (hasTeacherGradingHeader) return true;
+
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+        return sub.answers.some(a => 
+          a.evaluatedAt || 
+          a.teacherNote || 
+          a.teacher_note || 
+          a.feedback || 
+          (typeof a.score === 'number' && a.score > 0) || 
+          (typeof a.earnedScore === 'number' && a.earnedScore > 0) ||
+          a.evalStatus === 'graded' ||
+          a.evalStatus === 'evaluated'
+        );
+      }
+      return false;
     };
     const results = [];
     const processedTestKeys = new Set();
