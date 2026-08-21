@@ -3672,37 +3672,23 @@ export default function StudentDashboard() {
                               <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Öğretmen Değerlendirmesinde
                               </span>
-                            ) : test.isOpenEnded ? (
-                              <>
-                                <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 900 }}>
-                                  ✓ Öğretmen Değerlendirdi
-                                </span>
-                                {test.correctCount > 0 && (
-                                  <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                    • ✓ {test.correctCount} D
-                                  </span>
-                                )}
-                                <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
-                                  • {test.totalQuestions} Soru
-                                </span>
-                              </>
                             ) : (
                               <>
                                 <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                  ✓ {test.correctCount} D
+                                  ✓ {test.correctCount ?? 0} D
                                 </span>
                                 <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                  ✗ {test.wrongCount} Y
+                                  ✗ {test.wrongCount ?? 0} Y
                                 </span>
-                                {test.emptyCount > 0 && (
+                                {(test.emptyCount > 0 || ((test.correctCount ?? 0) === 0 && (test.wrongCount ?? 0) === 0)) && (
                                   <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                    ○ {test.emptyCount} B
+                                    ○ {test.emptyCount ?? 0} B
                                   </span>
                                 )}
                                 <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
                                   • {test.totalQuestions} Soru
                                 </span>
-                                {test.net !== undefined && test.net !== null && !test.isOpenEnded && (
+                                {test.net !== undefined && test.net !== null && (
                                   <span style={{ color: '#6366f1', fontWeight: 800 }}>
                                     • {test.net} Net
                                   </span>
