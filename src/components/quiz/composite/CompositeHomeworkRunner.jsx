@@ -12,7 +12,7 @@ import CompositeMultipleChoiceSection from './sections/CompositeMultipleChoiceSe
 import CompositeOpenEndedSection from './sections/CompositeOpenEndedSection';
 import CompositePdfSection from './sections/CompositePdfSection';
 import CompositeHtmlSection from './sections/CompositeHtmlSection';
-import CompositeResultModal from '../modals/CompositeResultModal';
+import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 
 /**
@@ -243,10 +243,10 @@ export default function CompositeHomeworkRunner({
       </div>
 
       {/* Results Modal */}
-      <CompositeResultModal
+      <QuizResultModal
         isOpen={showResultModal}
         title={test.title || 'Birleşik Ödev Sonucu'}
-        overallStats={overallResultStats || {}}
+        stats={overallResultStats || {}}
         sectionBreakdown={sectionBreakdownStats}
         onClose={handleConfirmClose}
         onReview={handleConfirmReview}

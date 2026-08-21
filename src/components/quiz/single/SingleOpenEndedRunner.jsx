@@ -4,7 +4,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import OpenEndedRunner from '../runner/OpenEndedRunner';
 import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import SingleResultModal from '../modals/SingleResultModal';
+import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Clock, Send, ArrowLeft, Pencil } from 'lucide-react';
 
@@ -232,10 +232,10 @@ export default function SingleOpenEndedRunner({
       </div>
 
       {/* Result Modal */}
-      <SingleResultModal
+      <QuizResultModal
         isOpen={showResultModal}
         title={test.title || 'Açık Uçlu Sınav Gönderildi'}
-        stats={{ total: totalQuestions }}
+        stats={{ total: totalQuestions, pending: totalQuestions }}
         isOpenEnded={true}
         onClose={handleConfirmClose}
         onReview={handleConfirmReview}

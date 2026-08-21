@@ -4,7 +4,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import MultipleChoiceRunner from '../runner/MultipleChoiceRunner';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import SingleResultModal from '../modals/SingleResultModal';
+import QuizResultModal from '../modals/QuizResultModal';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { Clock, Send, ArrowLeft, Sun, Moon } from 'lucide-react';
 
@@ -220,7 +220,7 @@ export default function SingleMultipleChoiceRunner({
       </div>
 
       {/* Result Modal */}
-      <SingleResultModal
+      <QuizResultModal
         isOpen={showResultModal}
         title={test.title || 'Çoktan Seçmeli Test Sonucu'}
         stats={resultStats || {}}
