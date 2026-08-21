@@ -545,17 +545,18 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
     if (typeof dMap === 'object' && !Array.isArray(dMap)) {
       Object.entries(dMap).forEach(([sKey, sVal]) => {
         if (!sVal || typeof sVal !== 'object') return;
-        const targetRange = sectionRanges.find(r => 
+        // Only match by exact id or numeric sIdx — never by title (titles can be duplicate)
+        const targetRange = sectionRanges.find(r =>
           String(r.sec.id) === String(sKey) ||
-          String(r.sIdx) === String(sKey) ||
-          (r.sec.title && String(r.sec.title).toLowerCase().trim() === String(sKey).toLowerCase().trim())
+          String(r.sIdx) === String(sKey)
         );
         if (targetRange) {
           const tSecData = targetRange.secData;
           if (sVal.answers && typeof sVal.answers === 'object') {
             Object.entries(sVal.answers).forEach(([qNo, ansVal]) => {
               const norm = normalizeOptionIndex(ansVal);
-              if (norm !== null) {
+              // ONLY write if slot is not already populated by the primary rawAns pass
+              if (norm !== null && tSecData.answers[Number(qNo)] === undefined) {
                 tSecData.answers[Number(qNo)] = norm;
                 tSecData.answers[String(qNo)] = norm;
               }
@@ -563,7 +564,7 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
           }
           if (sVal.openEndedText && typeof sVal.openEndedText === 'object') {
             Object.entries(sVal.openEndedText).forEach(([qNo, txt]) => {
-              if (txt) {
+              if (txt && tSecData.openEndedText[Number(qNo)] === undefined) {
                 tSecData.openEndedText[Number(qNo)] = String(txt);
                 tSecData.openEndedText[String(qNo)] = String(txt);
               }
