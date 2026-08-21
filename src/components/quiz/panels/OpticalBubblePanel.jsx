@@ -36,15 +36,15 @@ export default memo(function OpticalBubblePanel({
     let b = 0;
 
     for (let i = 1; i <= totalCount; i++) {
-      const u = normalizeAns(answers[i]);
+      const u = normalizeAns(answers[i] ?? answers[String(i)]);
       const q = resolvedQuestions[i - 1] || {};
-      const c = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[i - 1]);
+      const isCorr = u !== null ? checkIsAnswerCorrect(u, q.raw || q, testCtx?.raw || testCtx, i) : null;
 
       if (u === null) {
         b++;
-      } else if (c !== null && u === c) {
+      } else if (isCorr === true) {
         d++;
-      } else if (c !== null && u !== c) {
+      } else if (isCorr === false) {
         y++;
       } else {
         d++;
@@ -80,8 +80,8 @@ export default memo(function OpticalBubblePanel({
             <span style={{
               fontSize: '0.78rem',
               fontWeight: 900,
-              background: reviewStats?.successRate >= 50 ? '#dcfce7' : '#fee2e2',
-              color: reviewStats?.successRate >= 50 ? '#15803d' : '#b91c1c',
+              background: (reviewStats?.successRate || 0) >= 50 ? '#dcfce7' : '#fee2e2',
+              color: (reviewStats?.successRate || 0) >= 50 ? '#15803d' : '#b91c1c',
               padding: '0.2rem 0.55rem',
               borderRadius: '0.4rem'
             }}>
@@ -111,12 +111,16 @@ export default memo(function OpticalBubblePanel({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {Array.from({ length: totalCount }).map((_, idx) => {
             const qNo = idx + 1;
-            const userAns = normalizeAns(answers[qNo]);
+            const userAns = normalizeAns(answers[qNo] ?? answers[String(qNo)]);
             const hasAns = userAns !== null;
             const q = resolvedQuestions[idx] || {};
-            const correctAns = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
+            const isCorrect = isReviewMode && hasAns ? checkIsAnswerCorrect(userAns, q.raw || q, testCtx?.raw || testCtx, qNo) : null;
 
-            const isCorrect = isReviewMode && hasAns && correctAns !== null ? userAns === correctAns : null;
+            let correctAns = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
+            if (correctAns === null && Array.isArray(q.options)) {
+              const optIdx = q.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.correct === true));
+              if (optIdx !== -1) correctAns = optIdx;
+            }
 
             let rowBg = '#ffffff';
             let rowBorder = '1px solid #e2e8f0';

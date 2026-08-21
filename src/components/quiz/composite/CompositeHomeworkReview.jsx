@@ -200,6 +200,7 @@ export default function CompositeHomeworkReview({
                   answers={currentSecAnswers.answers}
                   isReviewMode={true}
                   resolvedQuestions={currentSecQuestions}
+                  testCtx={activeSec.raw || activeSec}
                 />
               )
             }
@@ -235,6 +236,7 @@ export default function CompositeHomeworkReview({
                   answers={currentSecAnswers.answers}
                   isReviewMode={true}
                   resolvedQuestions={currentSecQuestions}
+                  testCtx={activeSec.raw || activeSec}
                 />
               )
             }
@@ -320,6 +322,7 @@ export default function CompositeHomeworkReview({
                 answers={currentSecAnswers.answers}
                 isReviewMode={true}
                 resolvedQuestions={currentSecQuestions}
+                testCtx={activeSec.raw || activeSec}
               />
             }
           />
