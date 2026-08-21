@@ -119,6 +119,10 @@ export default function OpenEndedReview({
     user_answer_text ||
     question?.userAnswerText ||
     question?.user_answer_text ||
+    question?.studentAnswer ||
+    question?.writtenAnswer ||
+    question?.textAns ||
+    (typeof question?.userAnswer === 'string' && isNaN(Number(question.userAnswer)) && question.userAnswer !== 'empty' && !/^[A-E]$/i.test(question.userAnswer.trim()) ? question.userAnswer : '') ||
     ''
   ).trim();
 
