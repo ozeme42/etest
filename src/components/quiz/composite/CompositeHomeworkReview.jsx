@@ -90,128 +90,97 @@ export default function CompositeHomeworkReview({
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
-  // 4. Live Reactive Overall Statistics — reads DIRECTLY from raw submission.answers
-  //    to avoid all sectionAnswersMap ID-collision issues with duplicate section titles.
+  // 4. Overall stats — mirrors OpticalBubblePanel.reviewStats exactly, per section.
+  //    Uses sectionAnswersMap[sIdx] (numeric index, always reliable) + sec.correctAnswers.
+  //    Never reads submission.answers[i].isCorrect (may be stale/wrong from DB).
   const overallStats = useMemo(() => {
-    const rawAns = submission?.answers
-      || submission?.formattedAnswers
-      || submission?.raw_data?.answers
-      || [];
-
-    let totalQuestions = rawSections.reduce((acc, sec) => acc + (sec.qCount || sec.questions?.length || 1), 0);
+    let totalQuestions = 0;
     let correctCount = 0;
     let wrongCount = 0;
     let blankCount = 0;
     let pendingCount = 0;
 
-    if (Array.isArray(rawAns) && rawAns.length > 0) {
-      rawAns.forEach((a) => {
-        const uAns = a.userAnswer;
-        const textAns = a.userAnswerText || a.textAns || a.studentAnswer || a.writtenAnswer || '';
-        const isOE = Boolean(
-          a.type === 'open_ended' || a.type === 'acik_uclu' || a.type === 'yazili' ||
-          (textAns && String(textAns).trim() !== '')
-        );
+    const normalizeOpt = (v) => {
+      if (v === null || v === undefined || v === '' || v === 'empty') return null;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim().toUpperCase();
+      const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
+      if (map[s] !== undefined) return map[s];
+      const n = Number(s);
+      return isNaN(n) ? null : n;
+    };
 
-        if (isOE) {
-          const hasText = textAns && String(textAns).trim() !== '';
-          const scoreVal = a.score;
-          if (scoreVal !== undefined && scoreVal !== null && scoreVal !== '' && scoreVal !== 'empty') {
-            const scNum = Number(scoreVal);
-            if (scNum > 0) correctCount++;
-            else wrongCount++;
-          } else if (!hasText || scoreVal === 'empty') {
+    rawSections.forEach((sec, sIdx) => {
+      // Always look up by numeric sIdx — this is always set correctly in normalizeUnifiedSubmission
+      const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? { answers: {}, openEndedText: {}, teacherScores: {} };
+
+      const secQs = sec.questions || sec.resolvedQuestions || [];
+      const count = sec.qCount || secQs.length || 1;
+      const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
+
+      for (let i = 1; i <= count; i++) {
+        totalQuestions++;
+        const qObj = secQs[i - 1] || {};
+        const isQOE = isSecOE ||
+          qObj.type === 'open_ended' || qObj.type === 'acik_uclu' || qObj.type === 'yazili' ||
+          Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim()) ||
+          Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim());
+
+        if (isQOE) {
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const ts = teacherScores[sec.id]?.[i] ?? teacherScores[sIdx]?.[i] ?? sa.teacherScores?.[i] ?? sa.teacherScores?.[String(i)];
+          const hasText = textVal && String(textVal).trim() !== '';
+          if (ts !== undefined && ts !== null && ts !== 'empty') {
+            if (Number(ts) > 0) correctCount++; else wrongCount++;
+          } else if (!hasText) {
             blankCount++;
           } else {
             pendingCount++;
           }
         } else {
-          // Multiple-choice
-          const isEmpty = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
-          if (isEmpty) {
+          // ── Exact same logic as OpticalBubblePanel.reviewStats ──
+          const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          const u = normalizeOpt(rawAnsVal);
+
+          if (u === null) {
             blankCount++;
-          } else if (a.isCorrect === true) {
-            correctCount++;
-          } else if (a.isCorrect === false) {
-            wrongCount++;
           } else {
-            // isCorrect undefined → try to compute from correctAnswer field
-            const normU = normalizeAnswerIndex(uAns);
-            const normC = normalizeAnswerIndex(a.correctAnswer ?? a.answer ?? a.correctOption);
-            if (normU === null) {
-              blankCount++;
-            } else if (normC !== null) {
-              if (normU === normC) correctCount++;
-              else wrongCount++;
-            } else {
-              // Truly unknown — count as blank rather than inflate correct
-              blankCount++;
+            // 1. Try sec.correctAnswers array first (most reliable)
+            const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
+              ? sec.correctAnswers[i - 1]
+              : (Array.isArray(sec.raw?.correctAnswers) && sec.raw.correctAnswers[i - 1] !== undefined)
+                ? sec.raw.correctAnswers[i - 1]
+                : (sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1] ??
+                   sec.opticAnswers?.[i - 1] ?? sec.raw?.opticAnswers?.[i - 1] ??
+                   qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption);
+
+            let isCorr = null;
+
+            if (qObj && Object.keys(qObj).length > 0) {
+              isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
+
+            if (isCorr === null && cAns !== undefined && cAns !== null && cAns !== '') {
+              const normC = normalizeOpt(cAns);
+              if (normC !== null) isCorr = (u === normC);
+            }
+
+            // Match OpticalBubblePanel: isCorr===null (no key found) → count as correct
+            if (isCorr === false) wrongCount++;
+            else correctCount++;
           }
         }
-      });
-    } else {
-      // Fallback: traverse sectionAnswersMap if no flat answers array
-      rawSections.forEach((sec, sIdx) => {
-        const sa = sectionAnswersMap[sIdx] ||
-                   sectionAnswersMap[String(sIdx)] ||
-                   { answers: {}, openEndedText: {}, teacherScores: {} };
-        const secQs = sec.questions || sec.resolvedQuestions || [];
-        const count = sec.qCount || secQs.length || 1;
-        const isSecOE2 = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
+      }
+    });
 
-        for (let i = 1; i <= count; i++) {
-          const qObj = secQs[i - 1] || {};
-          const isQOE = isSecOE2 || qObj.type === 'open_ended' || qObj.type === 'acik_uclu';
-          if (isQOE) {
-            const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
-            const ts = sa.teacherScores?.[i] ?? sa.teacherScores?.[String(i)];
-            if (ts !== undefined && ts !== null && ts !== 'empty') {
-              if (Number(ts) > 0) correctCount++; else wrongCount++;
-            } else if (!textVal || String(textVal).trim() === '') {
-              blankCount++;
-            } else {
-              pendingCount++;
-            }
-          } else {
-            const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
-            const u = normalizeAnswerIndex(rawAnsVal);
-            if (u === null) {
-              blankCount++;
-            } else {
-              const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
-                ? sec.correctAnswers[i - 1]
-                : (sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1] ?? qObj.correctAnswer ?? qObj.answer);
-              const normC = normalizeAnswerIndex(cAns);
-              if (normC !== null) {
-                if (u === normC) correctCount++; else wrongCount++;
-              } else {
-                blankCount++;
-              }
-            }
-          }
-        }
-      });
-    }
-
-    const totalScored = correctCount + wrongCount + blankCount + pendingCount;
-    const finalTotal = Math.max(totalQuestions, totalScored);
-    const scorePct = (correctCount + wrongCount) > 0
+    const scorePct = (correctCount + wrongCount + blankCount) > 0
       ? Math.round((correctCount / (correctCount + wrongCount + blankCount)) * 100)
       : 0;
-    const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+    const rawNet = Math.max(0, correctCount - wrongCount * 0.25);
     const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
 
-    return {
-      total: finalTotal,
-      correct: correctCount,
-      wrong: wrongCount,
-      blank: blankCount,
-      pending: pendingCount,
-      scorePct,
-      netScore
-    };
-  }, [submission, rawSections, sectionAnswersMap, teacherScores]);
+    return { total: totalQuestions, correct: correctCount, wrong: wrongCount, blank: blankCount, pending: pendingCount, scorePct, netScore };
+  }, [rawSections, sectionAnswersMap, teacherScores, test]);
 
   const handleSaveAndClose = async () => {
     await saveGrading();
