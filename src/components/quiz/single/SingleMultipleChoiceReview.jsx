@@ -15,6 +15,7 @@ export default function SingleMultipleChoiceReview({
   questions = [],
   onClose
 }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const answers = submission.answers || submission.formattedAnswers || [];
 
   // Map answers to easy lookup with bulletproof null-checks
