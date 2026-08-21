@@ -19,10 +19,11 @@ function unwrapUserAnswer(val) {
     if (next === undefined || next === curr) break;
     curr = next;
   }
-  if (curr === undefined || curr === null || curr === '') return null;
+  if (curr === undefined || curr === null || curr === '' || curr === 'empty' || curr === 'null' || curr === 'Boş' || curr === 'boş') return null;
   if (typeof curr === 'string' && /^[A-Ea-e]$/.test(curr.trim())) {
     return curr.trim().toUpperCase().charCodeAt(0) - 65;
   }
+  if (typeof curr === 'number') return curr;
   if (!isNaN(Number(curr)) && String(curr).trim() !== '') {
     return Number(curr);
   }
@@ -166,12 +167,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           scores[i] = 'empty';
         }
       } else {
-        const userAns = a?.userAnswer;
-        const hasAns = (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
-        if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+        const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
+        const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
+        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
           scores[i] = Number(a.score);
         } else if (hasAns) {
-          const isRight = checkIsAnswerCorrect(userAns, qObj, test, i);
+          const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
           scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
         } else {
           scores[i] = 'empty';
@@ -324,9 +325,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     for (let i = 1; i <= qCount; i++) {
       const qObj = questions[i - 1] || bundleQ || {};
       const ansObj = answers.find(a => (a.questionNo === i || String(a.questionId).includes(`_${i}`))) || answers[i - 1] || {};
-      const userAns = ansObj.userAnswer;
-      const textAns = ansObj.userAnswerText;
-      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || (textAns && String(textAns).trim() !== '');
+      const rawAns = unwrapUserAnswer(ansObj?.userAnswer ?? ansObj);
+      const textAns = typeof ansObj?.userAnswerText === 'string' ? ansObj.userAnswerText.trim() : '';
+      const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty') || textAns.length > 0;
       const teacherSc = questionScores[i];
 
       if (isOpenEndedMode) {
@@ -343,7 +344,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           if (numSc >= 5) cCount++;
           else wCount++;
         } else if (hasAns) {
-          const isRight = checkIsAnswerCorrect(userAns, qObj, test, i);
+          const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
           if (isRight === true) cCount++;
           else if (isRight === false) wCount++;
           else bCount++;

@@ -1,20 +1,30 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react';
 
-function checkIsBlank(userAns) {
-  if (!userAns) return true;
-  if (userAns.hasAnswer === false) return true;
-  if (userAns.evalStatus === 'empty' || userAns.eval_status === 'empty' || userAns.score === 'empty') return true;
-  
-  let val = userAns.userAnswer !== undefined ? userAns.userAnswer : (userAns.answer !== undefined ? userAns.answer : (userAns.selectedOption !== undefined ? userAns.selectedOption : userAns));
-  if (val && typeof val === 'object' && !Array.isArray(val)) {
-    val = val.userAnswer ?? val.selectedOption ?? val.answer ?? val.value;
+function getQuestionReviewStatus(userAns) {
+  if (!userAns) return 'blank';
+  if (userAns.hasAnswer === false) return 'blank';
+  if (userAns.evalStatus === 'empty' || userAns.eval_status === 'empty' || userAns.score === 'empty') return 'blank';
+
+  let raw = userAns.userAnswer !== undefined ? userAns.userAnswer : (userAns.answer !== undefined ? userAns.answer : (userAns.selectedOption !== undefined ? userAns.selectedOption : userAns));
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    raw = raw.userAnswer ?? raw.selectedOption ?? raw.answer ?? raw.value;
   }
-  
-  const isNoVal = (val === undefined || val === null || val === '' || val === 'empty' || val === 'null' || val === 'Boş' || val === 'boş');
+
+  const isRawEmpty = (raw === undefined || raw === null || raw === '' || raw === 'empty' || raw === 'null' || raw === 'Boş' || raw === 'boş');
   const txt = typeof userAns.userAnswerText === 'string' ? userAns.userAnswerText.trim() : (typeof userAns.textAns === 'string' ? userAns.textAns.trim() : '');
-  
-  return isNoVal && txt.length === 0;
+
+  if (isRawEmpty && txt.length === 0) {
+    return 'blank';
+  }
+
+  if (userAns.isCorrect === true) {
+    return 'correct';
+  }
+  if (userAns.isCorrect === false) {
+    return 'wrong';
+  }
+  return 'answered';
 }
 
 export default function QuestionGridNav({
@@ -102,36 +112,28 @@ export default function QuestionGridNav({
             ? (answers[idx] ?? answers[qNo])
             : (answers[qNo] ?? answers[String(qNo)] ?? answers[idx] ?? answers[String(idx)]);
 
-          const isBlank = checkIsBlank(userAns);
-          const isAnswered = !isBlank;
-          let isCorrect = null;
-
-          if (isAnswered && userAns) {
-            if (userAns.isCorrect !== undefined && userAns.isCorrect !== null) {
-              isCorrect = userAns.isCorrect === true;
-            }
-          }
+          const status = getQuestionReviewStatus(userAns);
 
           let bgColor = darkMode ? '#0f172a' : '#f8fafc';
           let textColor = darkMode ? '#94a3b8' : '#64748b';
           let borderColor = darkMode ? '#334155' : '#cbd5e1';
 
           if (isReviewMode) {
-            if (isAnswered && isCorrect === true) {
+            if (status === 'correct') {
               bgColor = darkMode ? '#064e3b' : '#f0fdf4';
               textColor = darkMode ? '#34d399' : '#15803d';
               borderColor = darkMode ? '#059669' : '#86efac';
-            } else if (isAnswered && isCorrect === false) {
+            } else if (status === 'wrong') {
               bgColor = darkMode ? '#7f1d1d' : '#fef2f2';
               textColor = darkMode ? '#f87171' : '#b91c1c';
               borderColor = darkMode ? '#dc2626' : '#fca5a5';
             } else {
-              // Boş / Yanıtlanmadı: Asla kırmızı olamaz!
+              // Boş / Yanıtlanmadı: Asla ve asla kırmızı olamaz!
               bgColor = darkMode ? '#0f172a' : '#f8fafc';
               textColor = darkMode ? '#94a3b8' : '#64748b';
               borderColor = darkMode ? '#334155' : '#cbd5e1';
             }
-          } else if (isAnswered) {
+          } else if (status !== 'blank') {
             bgColor = darkMode ? '#312e81' : '#eff6ff';
             textColor = darkMode ? '#e0e7ff' : '#1d4ed8';
             borderColor = darkMode ? '#6366f1' : '#bfdbfe';
