@@ -136,8 +136,9 @@ export default function CompositeHomeworkRunner({
           questionNoInSection: i,
           sectionId: sec.id,
           sectionTitle: sec.title,
-          userAnswer: uAns !== undefined ? uAns : null,
+          userAnswer: isQOE ? (textVal || null) : (uAns !== undefined ? uAns : null),
           userAnswerText: textVal || null,
+          textAns: textVal || null,
           isOpenEnded: isQOE,
           isCorrect,
           correctAnswer: qObj.correctAnswer

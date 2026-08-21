@@ -83,8 +83,9 @@ export default function SingleOpenEndedRunner({
         questionId: q.id || `q_${qNo}`,
         questionNo: qNo,
         questionNoInSection: qNo,
-        userAnswer: null,
+        userAnswer: textVal,
         userAnswerText: textVal,
+        textAns: textVal,
         isOpenEnded: true,
         isCorrect: null,
         status: 'pending'

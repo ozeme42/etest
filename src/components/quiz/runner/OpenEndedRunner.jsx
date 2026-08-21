@@ -65,14 +65,19 @@ export default function OpenEndedRunner({
   question,
   qNo = 1,
   totalQuestions = 1,
-  answerText = '',
+  answerText,
+  value,
+  userAnswerText,
   onChangeAnswerText,
+  onChange,
+  onTextChange,
   imageUrls = [],
   onOpenLightbox,
   onOpenDrawing,
   isMobile = false
 }) {
-  const textVal = String(answerText || '');
+  const handleChange = onChangeAnswerText || onChange || onTextChange;
+  const textVal = String(answerText ?? value ?? userAnswerText ?? '');
   const hasText = textVal.trim() !== '';
   const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
@@ -202,7 +207,7 @@ export default function OpenEndedRunner({
 
         <textarea
           value={textVal}
-          onChange={(e) => onChangeAnswerText(e.target.value)}
+          onChange={(e) => handleChange && handleChange(e.target.value)}
           placeholder={`Soru ${qNo} için açık uçlu / yazılı yanıtınızı buraya detaylı olarak yazınız...`}
           rows={isMobile ? 4 : 5}
           style={{
