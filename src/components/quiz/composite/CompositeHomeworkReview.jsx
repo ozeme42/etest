@@ -14,7 +14,8 @@ import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
-import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock } from 'lucide-react';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock, Trash2 } from 'lucide-react';
 
 /**
  * CompositeHomeworkReview
@@ -28,6 +29,20 @@ export default function CompositeHomeworkReview({
   onClose
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { deleteSubmission, deleteSubmissionsByTestId } = useEvaluation();
+
+  const handleDeleteThisSubmission = async () => {
+    if (!window.confirm(`"${unifiedTest.title || 'Bu sınav'}" sonucunu kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
+    try {
+      const sId = submission?.id || submission?.submissionId;
+      const tId = test?.id || submission?.testId || submission?.hwId;
+      if (sId) await deleteSubmission(sId);
+      if (tId) await deleteSubmissionsByTestId(tId);
+      if (onClose) onClose();
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
 
   // 1. Standardize test & submission schemas
   const unifiedTest = useMemo(() => {
@@ -316,6 +331,29 @@ export default function CompositeHomeworkReview({
               <span>{overallStats.pending} Değerlendirmede</span>
             </div>
           )}
+
+          {/* Delete Button */}
+          <button
+            type="button"
+            onClick={handleDeleteThisSubmission}
+            title="Bu Sınav Kaydını Kalıcı Olarak Sil"
+            style={{
+              padding: '0.55rem 0.95rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid #fecaca',
+              background: '#fef2f2',
+              color: '#ef4444',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              marginLeft: '0.25rem'
+            }}
+          >
+            <Trash2 size={15} /> Sil
+          </button>
 
           {/* Close Button */}
           <button

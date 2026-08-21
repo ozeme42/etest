@@ -26,11 +26,11 @@ export default memo(function SectionTabBar({
     }}>
       {sections.map((sec, idx) => {
         const isActive = activeSecIdx === idx;
-        const sa = sectionAnswers[sec.id] ||
-                   sectionAnswers[idx] ||
+        const sa = sectionAnswers[idx] ||
                    sectionAnswers[String(idx)] ||
-                   (sec.title && sectionAnswers[sec.title]) ||
+                   sectionAnswers[sec.id] ||
                    (sec.raw?.id && sectionAnswers[sec.raw.id]) ||
+                   (sec.title && sectionAnswers[sec.title]) ||
                    {};
         const answeredCount = Object.keys(sa.answers || {}).length + Object.keys(sa.openEndedText || {}).filter(k => sa.openEndedText[k]).length;
         const totalCount = sec.qCount || sec.resolvedQuestions?.length || 1;
