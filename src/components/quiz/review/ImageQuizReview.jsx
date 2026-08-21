@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
-import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
@@ -45,6 +45,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       location.state?.isTeacher ||
       location.state?.fromTeacher ||
       location.search.includes('teacher=true') ||
+      location.search.includes('from=evaluation') ||
       currentUser?.role === 'teacher' ||
       currentUser?.role === 'admin'
     )
@@ -66,7 +67,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     }
   };
 
-  const answers = submission.answers || [];
+  const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
   const bundleQ = questions[0] || {};
 
   const loadedRef = useRef(null);
@@ -128,17 +129,53 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     return 1;
   }, [test, bundleQ, questions, allAvailableImages, answers]);
 
+  const isOpenEndedMode = useMemo(() => {
+    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0 && !test.isOpenEnded && test.type !== 'gorsel_klasik' && test.questionType !== 'gorsel_klasik')) {
+      return false;
+    }
+    return Boolean(
+      test.questionType === 'gorsel_klasik' || test.type === 'gorsel_klasik' || test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('klasik'))) ||
+      questions.some(q => q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded) ||
+      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
+    );
+  }, [test, questions, answers]);
+
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
-      const a = answers[i - 1];
-      const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '') || (a?.userAnswerText && String(a?.userAnswerText).trim() !== '');
-      if (a?.evalStatus === 'empty' || a?.eval_status === 'empty' || a?.score === 'empty' || (!hasAns && (a?.isCorrect === null || a?.isCorrect === undefined))) scores[i] = 'empty';
-      else if (a?.score !== undefined && a?.score !== null) scores[i] = Number(a.score);
-      else if (a?.isCorrect === true) scores[i] = 10;
-      else if (a?.isCorrect === false) scores[i] = 0;
-      else if (!hasAns) scores[i] = 'empty';
-      else scores[i] = 0;
+      const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
+      const qObj = questions[i - 1] || bundleQ || {};
+      const isQOE = Boolean(
+        a?.isOpenEnded ||
+        a?.type === 'acik_uclu' ||
+        qObj?.type === 'acik_uclu' ||
+        qObj?.isOpenEnded ||
+        isOpenEndedMode
+      );
+
+      const hasTeacherGraded = Boolean(
+        (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') &&
+        (a?.evaluatedByTeacher === true || (typeof a?.score === 'number' && a.score > 0))
+      );
+
+      if (isQOE) {
+        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else {
+          scores[i] = 'empty';
+        }
+      } else {
+        const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+        if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
+          scores[i] = Number(a.score);
+        } else if (hasAns) {
+          const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+          scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
+        } else {
+          scores[i] = 'empty';
+        }
+      }
     }
     return scores;
   });
@@ -158,33 +195,33 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const activeQuestion = questions[currentIndex] || bundleQ || {};
   const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
 
-  const rawUserAns = unwrapUserAnswer(activeAnsObj);
-  const userAns = typeof rawUserAns === 'number' ? rawUserAns : activeAnsObj.userAnswer;
-  const textAns = activeAnsObj.userAnswerText;
-  const hasAnswer = typeof rawUserAns === 'number' || (userAns !== null && userAns !== undefined && userAns !== '');
-
-  const isOpenEndedMode = useMemo(() => {
-    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0)) {
-      return false;
-    }
-    return Boolean(
-      test.questionType === 'gorsel_klasik' || test.type === 'gorsel_klasik' || test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('görsel'))) ||
-      questions.some(q => q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded)
-    );
-  }, [test, questions]);
-
-  const scorePercentage = useMemo(() => {
+  const totalMaxScore = qCount * 10;
+  const totalEarnedScore = useMemo(() => {
     let earned = 0;
-    let max = qCount * 10;
     for (let i = 1; i <= qCount; i++) {
       const s = questionScores[i];
       if (s !== undefined && s !== null && s !== 'empty') {
         earned += Number(s);
       }
     }
-    return max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0;
+    return earned;
   }, [qCount, questionScores]);
+
+  const scorePercentage = useMemo(() => {
+    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+  }, [totalEarnedScore, totalMaxScore]);
+
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      return (
+        totalEarnedScore > 0 ||
+        Boolean(submission.teacherFeedback || submission.teacherNote) ||
+        Object.values(teacherNotes).some(n => n && n.trim() !== '') ||
+        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
+      );
+    }
+    return false;
+  }, [submission, totalEarnedScore, teacherNotes, answers]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -233,7 +270,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           isCorrect,
           evalStatus,
           teacherNote: note,
-          evaluatedAt: new Date().toISOString()
+          evaluatedByTeacher: true
         };
       });
 
@@ -285,14 +322,10 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
     for (let i = 1; i <= qCount; i++) {
       const sc = questionScores[i];
-      if (sc !== undefined && sc !== null) {
-        if (sc === 'empty') {
-          bCount++;
-        } else {
-          const numSc = Number(sc);
-          if (numSc >= 5) cCount++;
-          else wCount++;
-        }
+      if (sc !== undefined && sc !== null && sc !== 'empty') {
+        const numSc = Number(sc);
+        if (numSc >= 5) cCount++;
+        else wCount++;
       } else {
         const a = answers[i - 1];
         if (a?.isCorrect === true) cCount++;
@@ -309,6 +342,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     const collected = [];
     if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) collected.push(activeQuestion.imageUrl);
     if (Array.isArray(activeQuestion.imageUrls)) collected.push(...activeQuestion.imageUrls.filter(isValidImageUrl));
+    if (activeQuestion.contentPayload && isValidImageUrl(activeQuestion.contentPayload)) collected.push(activeQuestion.contentPayload);
     if (collected.length === 0 && allAvailableImages.length > 0) {
       if (allAvailableImages.length === qCount && allAvailableImages[currentIndex]) collected.push(allAvailableImages[currentIndex]);
       else if (allAvailableImages[0]) collected.push(allAvailableImages[0]);
@@ -322,12 +356,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const qNo = i + 1;
       const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
       if (ans) {
-        const sc = questionScores[qNo] ?? (ans.score !== undefined ? Number(ans.score) : null);
-        const isC = sc !== null ? sc >= 5 : ans.isCorrect;
+        const sc = questionScores[qNo];
+        const isC = (sc !== undefined && sc !== null && sc !== 'empty') ? Number(sc) >= 5 : ans.isCorrect;
         map[i] = {
           userAnswer: ans.userAnswer,
           isCorrect: isC,
-          hasAnswer: ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== ''
+          hasAnswer: (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.userAnswer !== 'empty') || (ans.userAnswerText && String(ans.userAnswerText).trim() !== '')
         };
       }
     }
@@ -336,33 +370,15 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;
-  const currentScore = questionScores[currentQNo] ?? (activeAnsObj.score !== undefined ? Number(activeAnsObj.score) : 0);
+  const teacherSc = questionScores[currentQNo];
+  const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
 
-  const numericUserAns = useMemo(() => {
-    const unwrapped = unwrapUserAnswer(userAns ?? activeAnsObj);
-    return typeof unwrapped === 'number' ? unwrapped : null;
-  }, [userAns, activeAnsObj]);
-
-  const resolvedCorrectAns = useMemo(() => {
-    let corr = null;
-    const answerKey = test?.answerKey || bundleQ?.answerKey || questions[0]?.answerKey;
-    if (Array.isArray(answerKey)) {
-      corr = answerKey[currentQNo - 1];
-    } else if (typeof answerKey === 'object' && answerKey !== null) {
-      corr = answerKey[currentQNo] ?? answerKey[String(currentQNo)];
-    }
-    if (corr === null || corr === undefined) {
-      corr = activeAnsObj?.correctAnswerLetter || activeAnsObj?.correctAnswer || activeQuestion?.correctAnswerLetter || activeQuestion?.correctAnswer;
-    }
-    if (corr !== null && corr !== undefined) {
-      if (typeof corr === 'string' && /^[A-Ea-e]$/.test(corr.trim())) {
-        return corr.trim().toUpperCase().charCodeAt(0) - 65;
-      } else if (!isNaN(Number(corr))) {
-        return Number(corr);
-      }
-    }
-    return null;
-  }, [test, bundleQ, questions, currentQNo, activeAnsObj, activeQuestion]);
+  const rawUserAns = unwrapUserAnswer(activeAnsObj);
+  const userAns = typeof rawUserAns === 'number' ? rawUserAns : activeAnsObj.userAnswer;
+  const textAns = activeAnsObj.userAnswerText;
+  const hasAnswer = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty');
+  const isText = Boolean(textAns && String(textAns).trim() !== '');
+  const isItemOE = isOpenEndedMode || isText || activeQuestion?.type === 'acik_uclu' || activeQuestion?.type === 'gorsel_klasik';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
@@ -400,7 +416,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
             title="Geri Dön"
           >
             <ArrowLeft size={isMobile ? 15 : 16} />
-            {!isMobile && "Geri Dön"}
+            {!isMobile && "Kapat / Çık"}
           </button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 style={{
@@ -415,24 +431,127 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               {submission.studentName ? `🎓 ${submission.studentName} — ` : ''}{test.title || test.name || 'Görselli Sınav'}
             </h2>
             <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              🖼️ Görselli Soru & Değerlendirme
+              🖼️ {isOpenEndedMode ? 'Açık Uçlu / Yazılı Görsel Sınavı' : 'Çoktan Seçmeli Görsel Sınavı'} • Toplam {qCount} Soru
             </div>
           </div>
         </div>
 
         {/* Action & Score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-          <div style={{
-            background: isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
-            borderRadius: '0.5rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.78rem' : '0.9rem',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
-          }}>
-            {isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Puan`}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          {isOpenEndedMode ? (
+            !isTrulyEvaluated ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: isMobile ? '0.3rem 0.65rem' : '0.45rem 1rem',
+                borderRadius: '0.65rem',
+                background: '#f5f3ff',
+                border: '1.5px solid #ddd6fe',
+                color: '#6b21a8',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.88rem',
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.12)'
+              }}>
+                <Clock size={16} color="#7c3aed" />
+                <span>⏳ Değerlendirmede</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                  borderRadius: '0.55rem',
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  color: '#6b21a8',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.74rem' : '0.82rem'
+                }}>
+                  <Award size={15} color="#7c3aed" />
+                  <span>{totalEarnedScore} / {totalMaxScore} Puan</span>
+                </div>
+                <div style={{
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  color: '#ffffff',
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                  borderRadius: '0.55rem',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.76rem' : '0.84rem',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                }}>
+                  %{scorePercentage} Başarı
+                </div>
+              </div>
+            )
+          ) : (
+            <>
+              {/* Doğru Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                color: '#15803d',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <span>{correctCount} D</span>
+              </div>
+
+              {/* Yanlış Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                color: '#b91c1c',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <XCircle size={14} color="#ef4444" />
+                <span>{wrongCount} Y</span>
+              </div>
+
+              {/* Boş Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <AlertCircle size={14} color="#64748b" />
+                <span>{blankCount} B</span>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                borderRadius: '0.55rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+              }}>
+                %{scorePercentage} Başarı
+              </div>
+            </>
+          )}
 
           {isTeacherMode && (
             <button
@@ -445,8 +564,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 gap: '0.35rem',
                 background: 'linear-gradient(135deg, #059669, #10b981)',
                 border: 'none',
-                borderRadius: '0.5rem',
-                padding: isMobile ? '0.35rem 0.65rem' : '0.5rem 1.1rem',
+                borderRadius: '0.55rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 1rem',
                 color: 'white',
                 fontWeight: 900,
                 fontSize: isMobile ? '0.75rem' : '0.84rem',
@@ -454,7 +573,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 boxShadow: '0 2px 10px rgba(16,185,129,0.3)'
               }}
             >
-              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet ✓'}
+              <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Puanları Kaydet ✓'}
             </button>
           )}
         </div>
@@ -474,9 +593,48 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
             <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#4f46e5' }}>
               {isTeacherMode ? `Soru ${currentQNo} İncelemesi & Puanlama` : `Soru ${currentQNo} İncelemesi`}
             </h3>
-            <span style={{ fontWeight: 900, fontSize: '0.9rem', color: currentScore === 10 ? '#15803d' : (currentScore >= 5 ? '#d97706' : '#7c3aed') }}>
-              Verilen Not: {currentScore} / 10 Puan
-            </span>
+            {isItemOE ? (
+              hasGradedScore ? (
+                <span style={{
+                  color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
+                  background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '0.4rem',
+                  fontWeight: 900,
+                  fontSize: '0.82rem'
+                }}>
+                  {teacherSc} / 10 Puan
+                </span>
+              ) : isText ? (
+                <span style={{
+                  color: '#7c3aed',
+                  background: '#f5f3ff',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '0.4rem',
+                  border: '1px solid #ddd6fe',
+                  fontWeight: 900,
+                  fontSize: '0.8rem'
+                }}>
+                  ⏳ Değerlendirme Bekliyor
+                </span>
+              ) : (
+                <span style={{
+                  color: '#64748b',
+                  background: '#f8fafc',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '0.4rem',
+                  border: '1px solid #e2e8f0',
+                  fontWeight: 800,
+                  fontSize: '0.8rem'
+                }}>
+                  ○ Yanıtlanmadı / Boş
+                </span>
+              )
+            ) : (
+              <span style={{ fontWeight: 900, fontSize: '0.9rem', color: teacherSc === 10 ? '#15803d' : (teacherSc >= 5 ? '#d97706' : '#7c3aed') }}>
+                {teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' ? `${teacherSc} / 10 Puan` : 'Boş'}
+              </span>
+            )}
           </div>
 
           {imageUrls.length > 0 && (
@@ -499,201 +657,182 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
             </div>
           )}
 
-          {!isOpenEndedMode ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 900, textTransform: 'uppercase', marginBottom: 2 }}>
-                🎯 ŞIKLAR VE DEĞERLENDİRME:
+          {/* Öğrenci Yanıtı */}
+          {isItemOE ? (
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800, marginBottom: '0.35rem' }}>
+                📝 ÖĞRENCİ YAZILI CEVABI:
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '0.65rem' }}>
-                {['A', 'B', 'C', 'D'].map((optLetter, optIdx) => {
-                  const isSelected = hasAnswer && numericUserAns === optIdx;
-                  const isCorrectOpt = resolvedCorrectAns === optIdx;
-
-                  let bg = '#ffffff';
-                  let border = '1.5px solid #cbd5e1';
-                  let color = '#334155';
-                  let statusText = null;
-
-                  if (isSelected && isCorrectOpt) {
-                    bg = '#f0fdf4';
-                    border = '2px solid #16a34a';
-                    color = '#15803d';
-                    statusText = '✓ Doğru Cevabınız';
-                  } else if (isSelected && !isCorrectOpt) {
-                    bg = '#fef2f2';
-                    border = '2px solid #ef4444';
-                    color = '#b91c1c';
-                    statusText = '✗ Yanlış Yanıtınız';
-                  } else if (isCorrectOpt) {
-                    if (hasAnswer) {
-                      bg = '#f0fdf4';
-                      border = '2.5px solid #16a34a';
-                      color = '#15803d';
-                      statusText = '✓ Doğru Şık';
-                    } else {
-                      bg = '#f0f9ff';
-                      border = '2px dashed #0284c7';
-                      color = '#0369a1';
-                      statusText = '🔑 Doğru Şık (Boş Bıraktınız)';
-                    }
-                  }
-
-                  return (
-                    <div
-                      key={optLetter}
-                      style={{
-                        padding: '0.75rem 0.65rem',
-                        borderRadius: '0.75rem',
-                        border,
-                        background: bg,
-                        color,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.25rem',
-                        fontWeight: 900
-                      }}
-                    >
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: isSelected ? (isCorrectOpt ? '#16a34a' : '#dc2626') : (isCorrectOpt ? '#16a34a' : '#475569') }}>
-                        {optLetter}
-                      </span>
-                      {statusText && (
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: (isSelected && !isCorrectOpt) ? '#dc2626' : '#16a34a', background: (isSelected && !isCorrectOpt) ? '#fee2e2' : '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', textAlign: 'center' }}>
-                          {statusText}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {isText ? (
+                <div style={{ fontSize: '0.92rem', background: '#ffffff', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
+                  {textAns}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                  Öğrenci bu soruya yanıt yazmadı.
+                </div>
+              )}
             </div>
           ) : (
-            /* Öğrencinin Yazılı Yanıtı (Açık Uçlu) */
-            <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #bfdbfe' }}>
-              <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 900, textTransform: 'uppercase', marginBottom: 4 }}>✍️ ÖĞRENCİNİN YAZILI CEVABI:</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                {textAns || activeAnsObj.userAnswer || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ SEÇİMİ: </span>
+                <span style={{ fontWeight: 900, color: '#0f172a' }}>
+                  {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
+                </span>
               </div>
             </div>
           )}
 
-          {/* Öğretmen Puanlama Butonları & Not */}
-          {isTeacherMode ? (
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155' }}>🎯 Puan Ver:</span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 10 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1', background: currentScore === 10 ? '#16a34a' : '#ffffff', color: currentScore === 10 ? '#ffffff' : '#15803d', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ✓ Doğru (D)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1', background: currentScore === 0 ? '#dc2626' : '#ffffff', color: currentScore === 0 ? '#ffffff' : '#b91c1c', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ✗ Yanlış (Y)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 'empty' }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1', background: currentScore === 'empty' ? '#64748b' : '#f8fafc', color: currentScore === 'empty' ? '#ffffff' : '#475569', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                  >
-                    ○ Boş (B)
-                  </button>
+          {/* Öğretmen Puanlama Bölümü */}
+          {isTeacherMode && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isItemOE ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 10 }))}
+                  style={{
+                    padding: '0.5rem 0.5rem',
+                    borderRadius: 6,
+                    border: teacherSc === 10 ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                    background: teacherSc === 10 ? '#16a34a' : '#ffffff',
+                    color: teacherSc === 10 ? '#ffffff' : '#15803d',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✓ Doğru (10P)
+                </button>
+                {isItemOE && (
                   <button
                     type="button"
                     onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 5 }))}
-                    style={{ padding: '0.35rem 0.65rem', borderRadius: 6, border: currentScore === 5 ? '2px solid #d97706' : '1px solid #cbd5e1', background: currentScore === 5 ? '#d97706' : '#ffffff', color: currentScore === 5 ? '#ffffff' : '#d97706', fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                    style={{
+                      padding: '0.5rem 0.5rem',
+                      borderRadius: 6,
+                      border: teacherSc === 5 ? '2px solid #d97706' : '1px solid #cbd5e1',
+                      background: teacherSc === 5 ? '#d97706' : '#ffffff',
+                      color: teacherSc === 5 ? '#ffffff' : '#b45309',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
                   >
                     ½ Yarım (5P)
                   </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 0 }))}
+                  style={{
+                    padding: '0.5rem 0.5rem',
+                    borderRadius: 6,
+                    border: teacherSc === 0 ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                    background: teacherSc === 0 ? '#dc2626' : '#ffffff',
+                    color: teacherSc === 0 ? '#ffffff' : '#b91c1c',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✗ Yanlış (0P)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuestionScores(p => ({ ...p, [currentQNo]: 'empty' }))}
+                  style={{
+                    padding: '0.5rem 0.5rem',
+                    borderRadius: 6,
+                    border: teacherSc === 'empty' ? '2px solid #64748b' : '1px solid #cbd5e1',
+                    background: teacherSc === 'empty' ? '#64748b' : '#f8fafc',
+                    color: teacherSc === 'empty' ? '#ffffff' : '#475569',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ○ Boş
+                </button>
               </div>
 
               <input
                 type="text"
-                placeholder="Bu soru için öğrenciye geri bildirim notu..."
                 value={teacherNotes[currentQNo] || ''}
-                onChange={e => setTeacherNotes(p => ({ ...p, [currentQNo]: e.target.value }))}
-                style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                onChange={(e) => setTeacherNotes(p => ({ ...p, [currentQNo]: e.target.value }))}
+                placeholder="Bu soruya özel geri bildirim notu..."
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.84rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
-          ) : teacherNotes[currentQNo] ? (
-            <div style={{ padding: '0.75rem 1rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.75rem', fontSize: '0.85rem', color: '#1e40af' }}>
-              <strong style={{ color: '#1d4ed8' }}>💬 Öğretmen Notu: </strong> {teacherNotes[currentQNo]}
+          )}
+
+          {!isTeacherMode && teacherNotes[currentQNo] && (
+            <div style={{ background: '#f5f3ff', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ddd6fe', fontSize: '0.84rem', color: '#6b21a8' }}>
+              <strong>💬 Öğretmen Notu:</strong> {teacherNotes[currentQNo]}
             </div>
-          ) : null}
+          )}
         </div>
 
-        {/* Genel Karne & İleri/Geri */}
+        {/* Overall Teacher Feedback Box */}
         {isTeacherMode ? (
-          <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#4f46e5' }}>💬 Genel Değerlendirme & Karne Notu:</div>
+          <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #cbd5e1' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: '0.4rem' }}>
+              💬 Öğrenciye Genel Not / Geri Bildirim:
+            </label>
             <textarea
-              rows="2"
-              placeholder="Öğrencinin bu sınavı için genel karne notunuz..."
+              rows="3"
               value={overallFeedback}
-              onChange={e => setOverallFeedback(e.target.value)}
-              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'none' }}
+              onChange={(e) => setOverallFeedback(e.target.value)}
+              placeholder="Sınavın geneli için tavsiyelerinizi yazabilirsiniz..."
+              style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
             />
-            <button
-              type="button"
-              onClick={handleSaveEvaluation}
-              disabled={isSaving}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: isSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-            >
-              <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
-            </button>
           </div>
-        ) : overallFeedback ? (
-          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#334155' }}>👨‍🏫 Öğretmen Değerlendirme Notu / Karne Görüşü:</div>
-            <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5 }}>
-              {overallFeedback}
+        ) : (
+          overallFeedback && (
+            <div style={{ background: '#f5f3ff', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #ddd6fe' }}>
+              <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.92rem', fontWeight: 900, color: '#6b21a8' }}>
+                💬 Öğretmeninizin Genel Notu:
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#1e1b4b', lineHeight: 1.5 }}>
+                {overallFeedback}
+              </p>
             </div>
-          </div>
-        ) : null}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2rem' }}>
-          <button
-            onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
-            disabled={currentIndex === 0}
-            style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: currentIndex === 0 ? '#f1f5f9' : '#ffffff', color: currentIndex === 0 ? '#94a3b8' : '#334155', fontWeight: 800, fontSize: '0.9rem', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <ChevronLeft size={18} /> Önceki Soru
-          </button>
-
-          <button
-            onClick={() => setCurrentIndex(Math.min(qCount - 1, currentIndex + 1))}
-            disabled={currentIndex === qCount - 1}
-            style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', border: 'none', background: currentIndex === qCount - 1 ? '#f1f5f9' : '#4f46e5', color: currentIndex === qCount - 1 ? '#94a3b8' : '#ffffff', fontWeight: 800, fontSize: '0.9rem', cursor: currentIndex === qCount - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(79, 70, 229, 0.25)' }}
-          >
-            Sonraki Soru <ChevronRight size={18} />
-          </button>
-        </div>
+          )
+        )}
       </div>
 
-      <ImageLightbox isOpen={!!lightboxSrc} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
-
-      <ReviewResultModal
-        isOpen={showResultModal}
-        onClose={handleGoBack}
-        studentName={submission.studentName || 'Öğrenci'}
-        testTitle={test.title || submission.testTitle || 'Görsel Sınav'}
-        score={isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? null : scorePercentage}
-        correctCount={correctCount}
-        wrongCount={wrongCount}
-        blankCount={blankCount}
-        totalQuestions={qCount}
-        overallFeedback={overallFeedback}
-        isTeacher={isTeacherMode}
-        isPending={isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0}
+      <ImageLightbox
+        isOpen={Boolean(lightboxSrc)}
+        src={lightboxSrc}
+        onClose={() => setLightboxSrc(null)}
       />
+
+      {showResultModal && (
+        <ReviewResultModal
+          isOpen={showResultModal}
+          onClose={() => {
+            setShowResultModal(false);
+            handleGoBack();
+          }}
+          test={test}
+          submission={{
+            ...submission,
+            score: scorePercentage,
+            correctCount,
+            wrongCount,
+            blankCount,
+            totalCount: qCount
+          }}
+        />
+      )}
     </div>
   );
 }
