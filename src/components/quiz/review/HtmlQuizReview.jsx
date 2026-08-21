@@ -410,15 +410,15 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <div style={{
-            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
-            borderRadius: '0.5rem',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+            borderRadius: '0.55rem',
             fontWeight: 900,
-            fontSize: isMobile ? '0.78rem' : '0.9rem',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
+            fontSize: isMobile ? '0.76rem' : '0.84rem',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
           }}>
-            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Puan`}
+            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%${scorePercentage} Başarı`}
           </div>
 
           {isTeacherMode && (

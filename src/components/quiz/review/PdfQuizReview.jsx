@@ -433,7 +433,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             fontSize: isMobile ? '0.76rem' : '0.84rem',
             boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
           }}>
-            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%{scorePercentage} Başarı`}
+            {isOpenEndedMode && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%${scorePercentage} Başarı`}
           </div>
 
           {isTeacherMode && (
