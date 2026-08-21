@@ -2203,7 +2203,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       const secQs = sec.resolvedQuestions || [];
       const bankQ = sec.bankQ || test;
       const count = sec.qCount || secQs.length || 1;
-      const secOE = Boolean(sec.isOpenEnded || sec.is_open_ended || bankQ?.isOpenEnded || test?.isOpenEnded);
+      const secOE = Boolean(
+        checkIsOE(test) ||
+        checkIsOE(sec) ||
+        checkIsOE(bankQ) ||
+        sec.isOpenEnded ||
+        sec.is_open_ended ||
+        bankQ?.isOpenEnded ||
+        (Array.isArray(userAnswers?.answers) && userAnswers.answers.some(a => a.userAnswerText || a.isOpenEnded))
+      );
 
       for (let i = 1; i <= count; i++) {
         maxPts += 10;
@@ -2211,7 +2219,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         const isQOE = secOE || checkIsOE(qObj);
 
         const teacherSc = teacherScores[sec.id]?.[i];
-        if (isQOE && teacherSc !== undefined && teacherSc !== null) {
+        const hasTeacherGraded = isQOE
+          ? (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'pending')
+          : (teacherSc !== undefined && teacherSc !== null);
+
+        if (isQOE && hasTeacherGraded) {
           if (teacherSc === 'empty') {
             blank++;
           } else {
@@ -2222,13 +2234,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           }
         } else if (isQOE) {
           totalOE++;
-          const textAns = sa.openEndedText?.[i] || sa.openEndedText?.[String(i)];
-          const hasText = textAns !== undefined && textAns !== null && String(textAns).trim() !== '';
-          if (hasText) {
-            pending++;
-          } else {
-            blank++;
-          }
+          pending++;
         } else {
           const userAnsObj = sa.answers?.[i];
           const numUAns = unwrapUserAnswer(userAnsObj);
@@ -2246,12 +2252,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     });
 
-    const isPending = pending > 0;
+    const isPending = totalOE > 0 && pending > 0;
     const pct = maxPts > 0 ? Math.min(100, Math.round((totalPts / maxPts) * 100)) : 0;
     const net = Math.max(0, correct - (wrong * 0.25));
 
     return { totalPts, maxPts, pct, correct, wrong, blank, net, pending, isPending, totalOE };
-  }, [sections, sectionAnswers, teacherScores, test]);
+  }, [sections, sectionAnswers, teacherScores, test, userAnswers]);
 
   const handleSaveTeacherGrading = async () => {
     setIsSavingTeacherGrading(true);
