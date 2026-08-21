@@ -745,6 +745,11 @@ export default function StudentDashboard() {
       });
     });
 
+    const hasOEWordInTitle = (t) => {
+      const s = String(t || '').toLowerCase();
+      return s.includes('açık') || s.includes('acik') || s.includes('yazılı') || s.includes('yazili') || s.includes('klasik');
+    };
+
     const isEval = (s, isOE = false) => {
       if (!s) return false;
       if (!isOE) return true;
@@ -753,10 +758,8 @@ export default function StudentDashboard() {
       if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
 
       const hasTeacherGradingHeader = Boolean(
-        s.isEvaluatedByTeacher ||
-        s.isEvaluated ||
-        rawObj.isEvaluatedByTeacher ||
-        rawObj.isEvaluated ||
+        s.isEvaluatedByTeacher === true ||
+        rawObj.isEvaluatedByTeacher === true ||
         s.status === 'evaluated' ||
         s.status === 'graded' ||
         rawObj.status === 'evaluated' ||
@@ -830,19 +833,10 @@ export default function StudentDashboard() {
       const subject = hw.subject || raw.subject || sub.subject || 'Genel Testler';
       const subTitle = null;
 
-      // Detect open-ended vs multiple choice test
-      const isExplicitMCQ = Boolean(
-        hw.questionType === 'coktan_secmeli' ||
-        hw.type === 'coktan_secmeli' ||
-        hw.contentType === 'coktan_secmeli' ||
-        sub.questionType === 'coktan_secmeli' ||
-        sub.type === 'coktan_secmeli' ||
-        sub.contentType === 'coktan_secmeli' ||
-        raw.questionType === 'coktan_secmeli' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
-      );
+      const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(hw.title) || hasOEWordInTitle(sub.testTitle);
 
-      const isOpenEnded = !isExplicitMCQ && Boolean(
+      const isOpenEnded = Boolean(
+        isOEByTitle ||
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
         hw.contentType === 'acik_uclu' ||
@@ -855,7 +849,7 @@ export default function StudentDashboard() {
         sub.status === 'pending_evaluation' ||
         raw.status === 'pending' ||
         raw.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
@@ -1053,17 +1047,10 @@ export default function StudentDashboard() {
 
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
 
-      const isExplicitMCQ = Boolean(
-        targetTest?.questionType === 'coktan_secmeli' ||
-        targetHw?.questionType === 'coktan_secmeli' ||
-        sub.questionType === 'coktan_secmeli' ||
-        sub.type === 'coktan_secmeli' ||
-        sub.contentType === 'coktan_secmeli' ||
-        raw.questionType === 'coktan_secmeli' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswer !== null && a.userAnswer !== undefined && !a.userAnswerText))
-      );
+      const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(targetTest?.name) || hasOEWordInTitle(targetHw?.title) || hasOEWordInTitle(sub.testTitle);
 
-      const isOpenEnded = !isExplicitMCQ && Boolean(
+      const isOpenEnded = Boolean(
+        isOEByTitle ||
         sub.isOpenEnded ||
         raw.isOpenEnded ||
         targetTest?.isOpenEnded ||
@@ -1071,11 +1058,13 @@ export default function StudentDashboard() {
         sub.questionType === 'acik_uclu' ||
         sub.type === 'acik_uclu' ||
         sub.contentType === 'acik_uclu' ||
+        targetTest?.questionType === 'acik_uclu' ||
+        targetHw?.questionType === 'acik_uclu' ||
         sub.status === 'pending' ||
         sub.status === 'pending_evaluation' ||
         raw.status === 'pending' ||
         raw.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
@@ -3615,7 +3604,7 @@ export default function StudentDashboard() {
                               <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
                                 ❌ Manuel Test • Onaylanmadı
                               </span>
-                            ) : test.isPendingEvaluation ? (
+                            ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
                               <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Öğretmen Değerlendirmesinde
                               </span>
@@ -3694,7 +3683,7 @@ export default function StudentDashboard() {
                                 Reddedildi
                               </div>
                             </div>
-                          ) : test.isPendingEvaluation ? (
+                          ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
                             <div style={{
                               background: 'rgba(124, 58, 237, 0.12)',
                               border: '1.5px solid rgba(167, 139, 250, 0.35)',

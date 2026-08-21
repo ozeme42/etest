@@ -441,10 +441,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
 
       const hasTeacherGradingHeader = Boolean(
-        sub.isEvaluatedByTeacher ||
-        sub.isEvaluated ||
-        rawObj.isEvaluatedByTeacher ||
-        rawObj.isEvaluated ||
+        sub.isEvaluatedByTeacher === true ||
+        rawObj.isEvaluatedByTeacher === true ||
         sub.status === 'evaluated' ||
         sub.status === 'graded' ||
         rawObj.status === 'evaluated' ||
