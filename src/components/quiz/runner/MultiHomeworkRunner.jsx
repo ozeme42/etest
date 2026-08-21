@@ -9,6 +9,7 @@ import { resolveTestQuestions, extractQuestionText, extractQuestionOptions } fro
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
+import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil, Eye, ArrowLeft, Save } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
@@ -371,118 +372,31 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
 // Bu bileşen sadece activeSec.id veya bankQ.id değiştiğinde yeniden yüklenir.
 // sectionAnswers, optik panel cevapları gibi değişkenlerden etkilenmez, iframe titremez.
 const StableHtmlViewer = memo(function StableHtmlViewer({ test, bankQ, secId, testId, title, idbPayload }) {
-  const [iframeSrc, setIframeSrc] = useState(null);
-  const loadedRef = useRef(null);
-  const blobUrlRef = useRef(null);
+  const activeBankQ = bankQ || {};
+  const candidates = [
+    activeBankQ?.contentPayload,
+    activeBankQ?.htmlPayload,
+    activeBankQ?.url,
+    activeBankQ?.pdfUrl,
+    idbPayload,
+    test?.htmlPayload,
+    test?.contentPayload,
+    test?.url
+  ];
+  const directPayload = candidates.find(c => typeof c === 'string' && c.length > 50 && !c.includes('[STORED_IN_INDEXEDDB]') && !c.includes('[LOCALSTORAGE_CACHE]'));
 
-  useEffect(() => {
-    // Temizleme: önceki blob URL'yi serbest bırak
-    return () => {
-      if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [secId]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const makeBlob = (raw) => {
-      try {
-        let html = raw.startsWith('data:') ? atob(raw.split(',')[1] || '') : raw;
-        html = wrapInStyledHtmlDocument(html, title || 'Doküman');
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
-          URL.revokeObjectURL(blobUrlRef.current);
-        }
-        blobUrlRef.current = url;
-        return url;
-      } catch {
-        return null;
-      }
-    };
-
-    const cacheKey = bankQ?.id || secId || testId;
-
-    async function init() {
-      const isHtmlContent = (str) => typeof str === 'string' && (str.includes('<!DOCTYPE') || str.includes('<html') || str.includes('<body') || str.includes('<head') || str.startsWith('data:text/html'));
-
-      // 0. Önce MultiHomeworkRunner'ın bizim için fuzzy-match ile bulduğu idbPayload'ı dene
-      if (idbPayload && typeof idbPayload === 'string' && idbPayload !== '[STORED_IN_INDEXEDDB]') {
-        if (isHtmlContent(idbPayload) || idbPayload.startsWith('http')) {
-          loadedRef.current = cacheKey;
-          if (idbPayload.startsWith('http')) { setIframeSrc(idbPayload); return; }
-          const url = makeBlob(idbPayload);
-          if (url) { setIframeSrc(url); return; }
-        }
-      }
-
-      // 1. Kendi IDB kontrolümüz (kullanıcı editlemiş olabilir)
-      const rawIdsToTry = [bankQ?.id, bankQ?.questionId, secId, testId, test?.id, test?.realTestId, test?.testId].filter(Boolean);
-      const idsToTry = [];
-      for (const id of rawIdsToTry) {
-        idsToTry.push(id, String(id).replace(/^q_?/, ''), `q_${String(id).replace(/^q_?/, '')}`, `q${String(id).replace(/^q_?/, '')}`);
-      }
-
-      for (const id of idsToTry) {
-        const val = await idbGetPayload(id);
-        if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
-          // Eğer IDB'den gelen veri geçerli bir HTML ise yükle
-          if (isHtmlContent(val) || val.startsWith('http') || val.startsWith('data:')) {
-            loadedRef.current = cacheKey;
-            if (val.startsWith('http')) { setIframeSrc(val); return; }
-            const url = makeBlob(val);
-            if (url) { setIframeSrc(url); return; }
-          }
-        }
-      }
-
-      // 2. IDB'de yoksa veya geçerli HTML değilse proplardan geleni kullan
-      if (loadedRef.current === cacheKey) return;
-
-      const candidates = [
-        bankQ?.contentPayload, bankQ?.htmlPayload, bankQ?.pdfUrl, bankQ?.url,
-        test?.contentPayload, test?.htmlPayload, test?.pdfUrl, test?.url
-      ];
-      const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
-      
-      if (direct && isMounted) {
-        if (direct.startsWith('http')) {
-          setIframeSrc(direct);
-          return;
-        }
-        const url = makeBlob(direct);
-        if (url) { 
-          setIframeSrc(url); 
-          return; 
-        }
-      }
-    }
-    
-    init();
-
-    return () => { isMounted = false; };
-  // Sadece bölüm kimliği değiştiğinde yeniden çalış — cevap state'i burada YOK
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secId, bankQ?.id, bankQ?.contentPayload, bankQ?.htmlPayload, idbPayload]);
-
-  if (!iframeSrc) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontWeight: 700 }}>
-        HTML İçerik Yükleniyor...
-      </div>
-    );
-  }
   return (
-    <iframe
-      key={iframeSrc}  /* key sadece src gerçekten değiştiğinde iframe'i sıfırlar */
-      src={iframeSrc}
-      style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
-      title={title}
-      sandbox="allow-scripts allow-same-origin"
-    />
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#ffffff', minHeight: 0 }}>
+      <HtmlViewerWithControls
+        payload={directPayload || idbPayload || activeBankQ?.contentPayload || activeBankQ?.htmlPayload || test?.htmlPayload || test?.contentPayload}
+        id={activeBankQ?.id || secId || testId || test?.id}
+        testId={testId || test?.id}
+        realTestId={test?.realTestId || activeBankQ?.realTestId}
+        qId={activeBankQ?.questionId || activeBankQ?.id}
+        title={title || activeBankQ?.title || 'HTML Dokümanı'}
+        height="100%"
+      />
+    </div>
   );
 });
 
