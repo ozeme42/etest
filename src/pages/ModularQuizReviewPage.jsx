@@ -51,37 +51,83 @@ export default function ModularQuizReviewPage() {
     let foundSubmission = null;
     let foundTest = null;
 
-    // 1. Search in EvaluationContext (global submissions)
-    if (submissions && Array.isArray(submissions)) {
-      const compMatchLocal = String(targetId || '').match(/^(?:bt_|book_test_)?(hw_[^_]+)_(.+)$/);
-      const subCandidateLocal = compMatchLocal ? compMatchLocal[2] : null;
-      const effectiveSearchIds = [
-        String(targetId),
-        subCandidateLocal ? String(subCandidateLocal) : null,
-        subCandidateLocal ? toUUID(subCandidateLocal) : null,
-        toUUID(targetId)
+    const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
+    const cleanTargetId = normalizeId(targetId);
+
+    const compMatchLocal = String(targetId || '').match(/^(?:bt_|book_test_)?(hw_[^_]+)_(.+)$/);
+    const subCandidateLocal = compMatchLocal ? compMatchLocal[2] : null;
+    const cleanSubCandidate = subCandidateLocal ? normalizeId(subCandidateLocal) : null;
+
+    // 0. Check immediate local storage backups
+    try {
+      const backupKeys = [
+        `sub_latest_${targetId}`,
+        `sub_latest_${cleanTargetId}`,
+        subCandidateLocal ? `sub_latest_${subCandidateLocal}` : null,
+        cleanSubCandidate ? `sub_latest_${cleanSubCandidate}` : null
       ].filter(Boolean);
 
-      const candidates = submissions.filter(s => {
-        if (studentId && String(s.studentId) !== String(studentId)) return false;
-        const matchFields = [
-          String(s.id || ''),
-          String(s.testId || ''),
-          String(s.realTestId || ''),
-          String(s.bookTestId || '')
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String));
+      for (const k of backupKeys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && (Array.isArray(parsed.answers) && parsed.answers.length > 0 || parsed.openEndedText)) {
+            foundSubmission = parsed;
+            break;
+          }
         }
-        if (effectiveSearchIds.some(searchId => matchFields.includes(searchId))) return true;
-        if (String(s.hwId) === String(targetId) || String(s.homeworkId) === String(targetId)) {
-          return true;
-        }
+      }
+    } catch {}
+
+    // Gather all submission sources
+    const allCandidatePool = [];
+    if (submissions && Array.isArray(submissions)) allCandidatePool.push(...submissions);
+    try {
+      const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
+      const l2 = JSON.parse(localStorage.getItem('etest_submissions') || '[]');
+      if (Array.isArray(l1)) allCandidatePool.push(...l1);
+      if (Array.isArray(l2)) allCandidatePool.push(...l2);
+    } catch {}
+
+    if (homeworks && Array.isArray(homeworks)) {
+      for (const hw of homeworks) {
+        if (Array.isArray(hw.submissions)) allCandidatePool.push(...hw.submissions);
+        if (hw.submission) allCandidatePool.push(hw.submission);
+      }
+    }
+
+    // 1. Search in all candidates pool
+    if (!foundSubmission && allCandidatePool.length > 0) {
+      const candidates = allCandidatePool.filter(s => {
+        if (!s) return false;
+        if (studentId && s.studentId && String(s.studentId) !== String(studentId)) return false;
+
+        const sId = String(s.id || '');
+        const sTestId = String(s.testId || '');
+        const sRealId = String(s.realTestId || '');
+        const sBookTestId = String(s.bookTestId || '');
+        const sHwId = String(s.hwId || s.homeworkId || '');
+        const sBookTestIds = Array.isArray(s.bookTestIds) ? s.bookTestIds.map(String) : [];
+
+        const allIds = [sId, sTestId, sRealId, sBookTestId, sHwId, ...sBookTestIds].filter(Boolean);
+        const allCleanIds = allIds.map(normalizeId);
+
+        if (allIds.includes(String(targetId))) return true;
+        if (toUUID(targetId) && allIds.map(toUUID).includes(toUUID(targetId))) return true;
+        if (allCleanIds.includes(cleanTargetId)) return true;
+        if (cleanSubCandidate && allCleanIds.includes(cleanSubCandidate)) return true;
+        if (subCandidateLocal && (allIds.includes(subCandidateLocal) || allCleanIds.includes(normalizeId(subCandidateLocal)))) return true;
+
         return false;
       });
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
+          const aHasAnswers = Array.isArray(a.answers) && a.answers.length > 0;
+          const bHasAnswers = Array.isArray(b.answers) && b.answers.length > 0;
+          if (aHasAnswers && !bHasAnswers) return -1;
+          if (!aHasAnswers && bHasAnswers) return 1;
+
           const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
           const bEval = Boolean(b.isEvaluatedByTeacher || b.status === 'evaluated' || b.status === 'graded' || b.teacherFeedback);
           if (aEval && !bEval) return -1;
@@ -95,7 +141,7 @@ export default function ModularQuizReviewPage() {
     // 2. Search in HomeworkContext (homeworks[].submissions)
     if ((!foundSubmission || (!foundSubmission.isEvaluatedByTeacher && foundSubmission.status !== 'evaluated')) && homeworks && Array.isArray(homeworks)) {
       for (const hw of homeworks) {
-        if (String(hw.id) === String(targetId) || (hw.submissions && hw.submissions.some(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId)))) {
+        if (String(hw.id) === String(targetId) || cleanTargetId === normalizeId(hw.id) || (hw.submissions && hw.submissions.some(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId)))) {
           if (hw.submissions && Array.isArray(hw.submissions) && hw.submissions.length > 0) {
             const matched = hw.submissions.find(s =>
               String(s.id) === String(targetId) ||
@@ -115,7 +161,6 @@ export default function ModularQuizReviewPage() {
 
     // 3. Resolve testId from found submission or targetId
     const resolvedTestId = foundSubmission?.testId || foundSubmission?.homeworkId || targetId;
-    const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 
     // Extract composite IDs (e.g. bt_hw_..._tbt_...)
     let subCandidateId = null;

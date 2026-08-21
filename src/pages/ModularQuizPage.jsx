@@ -737,6 +737,12 @@ export default function ModularQuizPage() {
     };
 
     try {
+      try {
+        localStorage.setItem(`sub_latest_${testId}`, JSON.stringify(submissionData));
+        if (test.id) localStorage.setItem(`sub_latest_${test.id}`, JSON.stringify(submissionData));
+        if (submissionData.id) localStorage.setItem(`sub_latest_${submissionData.id}`, JSON.stringify(submissionData));
+      } catch (e) {}
+
       if (draftSubmission) {
         updateSubmission(draftSubmission.id, submissionData);
       } else {
