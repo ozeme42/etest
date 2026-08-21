@@ -18,7 +18,14 @@ import { wrapInStyledHtmlDocument } from '../../HtmlViewerWithControls';
 function checkIsOE(obj) {
   if (!obj) return false;
 
-  const isExplicitlyMultipleChoice = obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli' || obj.contentType === 'coktan_secmeli' || (Array.isArray(obj.options) && obj.options.length > 0 && !obj.isOpenEnded && obj.questionType !== 'acik_uclu' && obj.type !== 'acik_uclu' && obj.type !== 'gorsel_klasik' && obj.questionType !== 'gorsel_klasik');
+  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
+  const hasOEWord = Boolean(titleStr && (
+    titleStr.includes('açık') ||
+    titleStr.includes('acik') ||
+    titleStr.includes('yazılı') ||
+    titleStr.includes('yazili') ||
+    titleStr.includes('klasik')
+  ));
 
   const isOE = Boolean(
     obj.questionType === 'acik_uclu' ||
@@ -35,19 +42,17 @@ function checkIsOE(obj) {
     obj.formatType === 'gorsel_klasik' ||
     obj.sourceFormat === 'gorsel_klasik' ||
     obj.isOpenEnded === true ||
-    obj.openEnded === true
+    obj.openEnded === true ||
+    obj.is_open_ended === true
   );
 
-  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
-  const hasOEWord = titleStr && (
-    titleStr.includes('açık uçlu') ||
-    titleStr.includes('acik uclu') ||
-    titleStr.includes('yazılı') ||
-    titleStr.includes('yazili') ||
-    titleStr.includes('klasik')
-  );
-  
-  return (isOE || hasOEWord) && !isExplicitlyMultipleChoice;
+  if (isOE || hasOEWord) return true;
+
+  if (obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli' || obj.contentType === 'coktan_secmeli') {
+    return false;
+  }
+
+  return false;
 }
 
 // Safely unwraps user answer to a primitive number index (0, 1, 2, 3...) or null
@@ -446,7 +451,6 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
-          const isQOE = isOpenEnded || checkIsOE(qObj);
 
           const userAnsObj = Array.isArray(answers)
             ? (answers[qNo] ?? answers[idx])
@@ -458,6 +462,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           const textVal = (rawTextVal !== undefined && rawTextVal !== null) ? String(rawTextVal) : '';
           const hasUserText = textVal.trim() !== '';
           const isAnswered = hasUserAns || hasUserText;
+          const isQOE = Boolean(isOpenEnded || checkIsOE(qObj) || checkIsOE(bankQ) || checkIsOE(test) || userAnsObj?.isOpenEnded || userAnsObj?.is_open_ended || textVal);
 
           let isCorrect = null;
           if (isReviewMode && isAnswered) {
@@ -478,7 +483,9 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
           }
 
           const teacherSc = teacherScores?.[qNo];
-          const hasTeacherGraded = teacherSc !== undefined && teacherSc !== null;
+          const hasTeacherGraded = isQOE
+            ? (typeof teacherSc === 'number' && teacherSc > 0)
+            : (teacherSc !== undefined && teacherSc !== null);
           const currentTeacherScore = hasTeacherGraded
             ? teacherSc
             : (isQOE ? undefined : (!isAnswered ? 'empty' : (isCorrect === true ? 10 : (isCorrect === false ? 0 : undefined))));
@@ -2045,9 +2052,19 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
           const qObj = targetSec.resolvedQuestions?.[qNo - 1];
           const rawUserAns = unwrapUserAnswer(a);
-          const hasUserAns = rawUserAns !== null && typeof rawUserAns === 'number';
-          const hasUserText = (a.userAnswerText || a.user_answer_text || a.textAns) && String(a.userAnswerText || a.user_answer_text || a.textAns).trim() !== '';
+          const isParentOE = Boolean(
+            checkIsOE(test) ||
+            test?.isOpenEnded ||
+            test?.openEnded ||
+            test?.is_open_ended ||
+            String(test?.title || test?.name || '').toLowerCase().includes('açık') ||
+            String(test?.title || test?.name || '').toLowerCase().includes('acik') ||
+            String(test?.title || test?.name || '').toLowerCase().includes('yazılı') ||
+            (Array.isArray(rawAns) && rawAns.some(item => Boolean(item?.userAnswerText || item?.textAns || item?.isOpenEnded)))
+          );
+
           const isItemOE = Boolean(
+            isParentOE ||
             a.isOpenEnded ||
             a.is_open_ended ||
             a.userAnswerText ||
