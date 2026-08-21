@@ -752,17 +752,24 @@ export default function EvaluationManager() {
         );
       }
 
-      const isExplicitOpenEnded = sub.isOpenEnded ||
-                                  sub.questionType === 'acik_uclu' ||
-                                  sub.questionType === 'yazili' ||
-                                  sub.contentType === 'acik_uclu' ||
-                                  sub.contentType === 'yazili' ||
-                                  sub.type === 'open_ended' ||
-                                  matchedBankQ?.type === 'open_ended' ||
-                                  matchedHw?.type === 'open_ended' ||
-                                  matchedBankQ?.isOpenEnded ||
-                                  matchedHw?.isOpenEnded ||
-                                  hasOpenEndedSection;
+      const isExplicitOpenEnded = Boolean(
+        sub.isOpenEnded === true ||
+        sub.questionType === 'acik_uclu' ||
+        sub.questionType === 'yazili' ||
+        sub.questionType === 'open_ended' ||
+        sub.contentType === 'acik_uclu' ||
+        sub.contentType === 'yazili' ||
+        sub.contentType === 'open_ended' ||
+        sub.type === 'open_ended' ||
+        sub.type === 'acik_uclu' ||
+        matchedBankQ?.type === 'open_ended' ||
+        matchedBankQ?.type === 'acik_uclu' ||
+        matchedHw?.type === 'open_ended' ||
+        matchedBankQ?.isOpenEnded ||
+        matchedHw?.isOpenEnded ||
+        hasOpenEndedSection ||
+        hasWrittenAnswers
+      );
 
       const titleLower = String(title).toLowerCase();
       const hasOEKeywords = titleLower.includes('açık uçlu') ||
@@ -771,16 +778,26 @@ export default function EvaluationManager() {
                             titleLower.includes('yazili') ||
                             titleLower.includes('yaztop') ||
                             titleLower.includes('metinaç') ||
-                            titleLower.includes('metin') ||
-                            titleLower.includes('etiket') ||
-                            titleLower.includes('görsel') ||
-                            titleLower.includes('index') ||
-                            titleLower.includes('gggg') ||
                             titleLower.includes('klasik');
+
+      const isPureMC = !hasWrittenAnswers && !hasOpenEndedSection && (
+        sub.type === 'multiple_choice' ||
+        sub.questionType === 'multiple_choice' ||
+        sub.contentType === 'multiple_choice' ||
+        sub.contentType === 'coktan_secmeli' ||
+        matchedHw?.type === 'multiple_choice' ||
+        matchedBankQ?.type === 'multiple_choice' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => 
+          !a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+          (!a.userAnswerText || String(a.userAnswerText).trim().length === 0)
+        ))
+      );
+
+      const isOpenEndedExam = !isPureMC && (isExplicitOpenEnded || hasOEKeywords || hasWrittenAnswers);
 
       const isPending = isManual
         ? isManualPending
-        : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
+        : (!isAlreadyEvaluated && isOpenEndedExam);
 
       return {
         ...sub,
