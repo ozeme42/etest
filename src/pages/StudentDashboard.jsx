@@ -753,28 +753,28 @@ export default function StudentDashboard() {
     const isEval = (s, isOE = false) => {
       if (!s) return false;
       if (!isOE) return true;
-      if (s.status === 'pending' || s.status === 'pending_evaluation') return false;
-      const rawObj = s.raw_data || {};
-      if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
 
+      const rawObj = s.raw_data || {};
       const hasTeacherGradingHeader = Boolean(
         s.isEvaluatedByTeacher === true ||
         rawObj.isEvaluatedByTeacher === true ||
+        s.isEvaluated === true ||
+        rawObj.isEvaluated === true ||
         s.status === 'evaluated' ||
         s.status === 'graded' ||
         rawObj.status === 'evaluated' ||
         rawObj.status === 'graded' ||
-        s.evaluatedAt ||
-        rawObj.evaluatedAt ||
         s.teacherFeedback ||
         s.teacherNote ||
         rawObj.teacherFeedback ||
-        rawObj.teacherNote
+        rawObj.teacherNote ||
+        (s.evaluatedAt && (s.teacherFeedback || s.teacherNote || s.isEvaluatedByTeacher)) ||
+        (rawObj.evaluatedAt && (rawObj.teacherFeedback || rawObj.teacherNote || rawObj.isEvaluatedByTeacher))
       );
       if (hasTeacherGradingHeader) return true;
 
       if (Array.isArray(s.answers) && s.answers.length > 0) {
-        return s.answers.some(a => 
+        const hasEvaluatedAnswers = s.answers.some(a => 
           a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
@@ -784,7 +784,13 @@ export default function StudentDashboard() {
           a.evalStatus === 'graded' ||
           a.evalStatus === 'evaluated'
         );
+        if (hasEvaluatedAnswers) return true;
       }
+
+      if (s.status === 'pending' || s.status === 'pending_evaluation' || rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') {
+        return false;
+      }
+
       return false;
     };
 
@@ -835,7 +841,22 @@ export default function StudentDashboard() {
 
       const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(hw.title) || hasOEWordInTitle(sub.testTitle);
 
-      const isOpenEnded = Boolean(
+      const isPureMC = (
+        hw.type === 'multiple_choice' ||
+        hw.questionType === 'multiple_choice' ||
+        hw.contentType === 'multiple_choice' ||
+        hw.contentType === 'coktan_secmeli' ||
+        sub.type === 'multiple_choice' ||
+        sub.questionType === 'multiple_choice' ||
+        sub.contentType === 'multiple_choice' ||
+        sub.contentType === 'coktan_secmeli' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a =>
+          !a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+          (!a.userAnswerText || String(a.userAnswerText).trim().length === 0)
+        ))
+      );
+
+      const isOpenEnded = !isPureMC && Boolean(
         isOEByTitle ||
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
@@ -845,11 +866,7 @@ export default function StudentDashboard() {
         sub.questionType === 'acik_uclu' ||
         sub.type === 'acik_uclu' ||
         sub.contentType === 'acik_uclu' ||
-        sub.status === 'pending' ||
-        sub.status === 'pending_evaluation' ||
-        raw.status === 'pending' ||
-        raw.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText && String(a.userAnswerText).trim().length > 0) || a.isOpenEnded || a.is_open_ended))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);
@@ -1069,7 +1086,22 @@ export default function StudentDashboard() {
 
       const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(targetTest?.name) || hasOEWordInTitle(targetHw?.title) || hasOEWordInTitle(sub.testTitle);
 
-      const isOpenEnded = Boolean(
+      const isPureMC = (
+        sub.type === 'multiple_choice' ||
+        sub.questionType === 'multiple_choice' ||
+        sub.contentType === 'multiple_choice' ||
+        sub.contentType === 'coktan_secmeli' ||
+        targetTest?.type === 'multiple_choice' ||
+        targetTest?.questionType === 'multiple_choice' ||
+        targetTest?.contentType === 'multiple_choice' ||
+        targetHw?.type === 'multiple_choice' ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a =>
+          !a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+          (!a.userAnswerText || String(a.userAnswerText).trim().length === 0)
+        ))
+      );
+
+      const isOpenEnded = !isPureMC && Boolean(
         isOEByTitle ||
         sub.isOpenEnded ||
         raw.isOpenEnded ||
@@ -1080,11 +1112,7 @@ export default function StudentDashboard() {
         sub.contentType === 'acik_uclu' ||
         targetTest?.questionType === 'acik_uclu' ||
         targetHw?.questionType === 'acik_uclu' ||
-        sub.status === 'pending' ||
-        sub.status === 'pending_evaluation' ||
-        raw.status === 'pending' ||
-        raw.status === 'pending_evaluation' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText && String(a.userAnswerText).trim().length > 0) || a.isOpenEnded || a.is_open_ended))
       );
 
       const isEvaluated = isEval(sub, isOpenEnded);

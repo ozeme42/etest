@@ -468,28 +468,28 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     const isEval = (sub, isOpenEnded = false) => {
       if (!isOpenEnded) return true;
       if (!sub) return false;
-      if (sub.status === 'pending' || sub.status === 'pending_evaluation') return false;
-      const rawObj = sub.raw_data || {};
-      if (rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') return false;
 
+      const rawObj = sub.raw_data || {};
       const hasTeacherGradingHeader = Boolean(
         sub.isEvaluatedByTeacher === true ||
         rawObj.isEvaluatedByTeacher === true ||
+        sub.isEvaluated === true ||
+        rawObj.isEvaluated === true ||
         sub.status === 'evaluated' ||
         sub.status === 'graded' ||
         rawObj.status === 'evaluated' ||
         rawObj.status === 'graded' ||
-        sub.evaluatedAt ||
-        rawObj.evaluatedAt ||
         sub.teacherFeedback ||
         sub.teacherNote ||
         rawObj.teacherFeedback ||
-        rawObj.teacherNote
+        rawObj.teacherNote ||
+        (sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote || sub.isEvaluatedByTeacher)) ||
+        (rawObj.evaluatedAt && (rawObj.teacherFeedback || rawObj.teacherNote || rawObj.isEvaluatedByTeacher))
       );
       if (hasTeacherGradingHeader) return true;
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-        return sub.answers.some(a => 
+        const hasEvaluatedAnswers = sub.answers.some(a => 
           a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
@@ -499,7 +499,13 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           a.evalStatus === 'graded' ||
           a.evalStatus === 'evaluated'
         );
+        if (hasEvaluatedAnswers) return true;
       }
+
+      if (sub.status === 'pending' || sub.status === 'pending_evaluation' || rawObj.status === 'pending' || rawObj.status === 'pending_evaluation') {
+        return false;
+      }
+
       return false;
     };
     const results = [];

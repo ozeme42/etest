@@ -268,7 +268,7 @@ export function HomeworkProvider({ children }) {
           if (targetTestId && (s.testId || s.bookTestId)) {
             return String(s.testId || s.bookTestId) === String(targetTestId);
           }
-          return !targetTestId && !s.testId;
+          return true;
         });
 
         let nextSubmissions;
