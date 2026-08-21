@@ -99,7 +99,14 @@ export default function CompositeHomeworkReview({
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
         const qObj = secQs[i - 1] || {};
-        const isQOE = isSecOpenEnded || qObj.type === 'open_ended' || qObj.type === 'acik_uclu' || qObj.type === 'yazili';
+        const isQOE = isSecOpenEnded ||
+                      qObj.type === 'open_ended' ||
+                      qObj.type === 'acik_uclu' ||
+                      qObj.type === 'yazili' ||
+                      qObj.questionType === 'acik_uclu' ||
+                      qObj.questionType === 'yazili' ||
+                      Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim() !== '') ||
+                      Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim() !== '');
         
         const teacherScore = teacherScores[sec.id]?.[i] ??
                              teacherScores[sIdx]?.[i] ??
@@ -107,9 +114,6 @@ export default function CompositeHomeworkReview({
                              sa.teacherScores?.[String(i)];
 
         if (isQOE) {
-          const txt = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
-          const hasText = txt && String(txt).trim() !== '';
-
           if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
             const scNum = Number(teacherScore);
             if (scNum > 0) {
@@ -117,9 +121,6 @@ export default function CompositeHomeworkReview({
             } else {
               wrongCount++;
             }
-          } else if (unifiedSub.isEvaluated) {
-            if (hasText) wrongCount++;
-            else blankCount++;
           } else {
             pendingCount++;
           }
