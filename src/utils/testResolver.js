@@ -1,5 +1,6 @@
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD } from './dateHelpers';
+import { checkIsAnswerCorrect } from './answerEvaluation';
 
 /**
  * Intelligently extracts option choices (A, B, C, D, E) from raw question text if present.
@@ -727,8 +728,8 @@ export function computeStudentAnalyticsData({
             if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
               uBlank++;
             } else {
-              const cAns = qObj.correctAnswer ?? qObj.answer;
-              if (cAns !== undefined && cAns !== null && String(uAns).trim().toUpperCase() === String(cAns).trim().toUpperCase()) {
+              const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
+              if (isCorr === true) {
                 uCorr++;
               } else {
                 uWrong++;
