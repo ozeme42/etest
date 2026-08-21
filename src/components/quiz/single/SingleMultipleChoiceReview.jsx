@@ -15,18 +15,21 @@ export default function SingleMultipleChoiceReview({
   questions = [],
   onClose
 }) {
-  const isMobile = useMediaQuery('(max-width: 768px)');
   const answers = submission.answers || submission.formattedAnswers || [];
 
-  // Map answers to easy lookup
+  // Map answers to easy lookup with bulletproof null-checks
   const answersMap = {};
-  answers.forEach((a, idx) => {
-    const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
-    answersMap[qNo] = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
-  });
+  if (Array.isArray(answers)) {
+    answers.forEach((a, idx) => {
+      if (!a) return;
+      const qNo = a.questionNoInSection || a.questionNo || (idx + 1);
+      const raw = a.userAnswer;
+      answersMap[qNo] = (typeof raw === 'object' && raw !== null) ? raw.userAnswer : raw;
+    });
+  }
 
-  const correctCount = submission.correctCount ?? answers.filter(a => a.isCorrect === true).length;
-  const wrongCount = submission.wrongCount ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length;
+  const correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === true).length : 0);
+  const wrongCount = submission.wrongCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length : 0);
   const totalQuestions = questions.length || answers.length || 1;
   const score = submission.score ?? (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
 

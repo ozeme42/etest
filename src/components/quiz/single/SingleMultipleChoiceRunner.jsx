@@ -46,8 +46,27 @@ export default function SingleMultipleChoiceRunner({
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultStats, setResultStats] = useState(null);
   const [submissionPayload, setSubmissionPayload] = useState([]);
+  const saveTimeoutRef = React.useRef(null);
 
   const totalQuestions = questions.length || test.questionCount || 1;
+
+  const triggerAutoSave = React.useCallback((currentAnswers) => {
+    if (!onAutoSave) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const formatted = questions.map((q, idx) => {
+        const num = idx + 1;
+        return {
+          questionId: q.id || `q_${num}`,
+          questionNo: num,
+          questionNoInSection: num,
+          userAnswer: currentAnswers[num] ?? null,
+          isOpenEnded: false
+        };
+      });
+      onAutoSave(formatted);
+    }, 800);
+  }, [onAutoSave, questions]);
 
   const handleSelectOption = (qNo, optIdx) => {
     setAnswers(prev => {
@@ -58,21 +77,7 @@ export default function SingleMultipleChoiceRunner({
         updated[qNo] = optIdx;
       }
       try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
-
-      if (onAutoSave) {
-        const formatted = questions.map((q, idx) => {
-          const num = idx + 1;
-          return {
-            questionId: q.id || `q_${num}`,
-            questionNo: num,
-            questionNoInSection: num,
-            userAnswer: updated[num] ?? null,
-            isOpenEnded: false
-          };
-        });
-        onAutoSave(formatted);
-      }
-
+      triggerAutoSave(updated);
       return updated;
     });
   };

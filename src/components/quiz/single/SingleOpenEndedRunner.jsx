@@ -47,29 +47,36 @@ export default function SingleOpenEndedRunner({
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [submissionPayload, setSubmissionPayload] = useState([]);
+  const saveTimeoutRef = React.useRef(null);
 
   const totalQuestions = questions.length || test.questionCount || 1;
+
+  const triggerAutoSave = React.useCallback((currentTextMap) => {
+    if (!onAutoSave) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const formatted = questions.map((q, idx) => {
+        const num = idx + 1;
+        const txt = currentTextMap[num] ?? null;
+        return {
+          questionId: q.id || `q_${num}`,
+          questionNo: num,
+          questionNoInSection: num,
+          userAnswer: txt,
+          userAnswerText: txt,
+          textAns: txt,
+          isOpenEnded: true
+        };
+      });
+      onAutoSave(formatted);
+    }, 800);
+  }, [onAutoSave, questions]);
 
   const handleTextChange = (qNo, val) => {
     setOpenEndedText(prev => {
       const updated = { ...prev, [qNo]: val };
       try { localStorage.setItem(`${draftKey}_txt`, JSON.stringify(updated)); } catch {}
-
-      if (onAutoSave) {
-        const formatted = questions.map((q, idx) => {
-          const num = idx + 1;
-          return {
-            questionId: q.id || `q_${num}`,
-            questionNo: num,
-            questionNoInSection: num,
-            userAnswer: null,
-            userAnswerText: updated[num] ?? null,
-            isOpenEnded: true
-          };
-        });
-        onAutoSave(formatted);
-      }
-
+      triggerAutoSave(updated);
       return updated;
     });
   };
