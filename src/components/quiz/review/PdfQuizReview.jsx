@@ -3,7 +3,7 @@ import PdfViewerWithControls from '../../PdfViewerWithControls';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
-import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
@@ -126,14 +126,26 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
     for (let i = 1; i <= qCount; i++) {
-      const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i ||
+        String(ans?.questionId).includes(`_${i}`) ||
+        String(ans?.id).includes(`_${i}`)
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : (typeof answers === 'object' ? (answers[i] || answers[String(i)]) : {})) || {};
+
       const qObj = questions[i - 1] || questions[0] || {};
-      const isQOE = Boolean(
+      const userAns = a?.userAnswer;
+      const textVal = a?.userAnswerText || a?.textAns;
+      const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
+      const isQOE = !hasUserOption && (
         a?.isOpenEnded ||
         a?.type === 'acik_uclu' ||
         qObj?.type === 'acik_uclu' ||
         qObj?.isOpenEnded ||
-        isOpenEndedMode
+        isOpenEndedMode ||
+        (textVal && String(textVal).trim() !== '')
       );
 
       const hasTeacherGraded = Boolean(
@@ -150,11 +162,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         }
       } else {
         // Multiple choice
-        const hasAns = (a?.userAnswer !== undefined && a?.userAnswer !== null && a?.userAnswer !== '' && a?.userAnswer !== 'empty');
+        const hasAns = hasUserOption || (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
         if (a?.score !== undefined && a?.score !== null && a?.score !== '') {
           scores[i] = Number(a.score);
         } else if (hasAns) {
-          const isRight = checkIsAnswerCorrect(a.userAnswer, qObj, test, i);
+          const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
+          const uLetter = formatAnswerLetter(userAns);
+          const cLetter = formatAnswerLetter(resolvedCorrect);
+          const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : checkIsAnswerCorrect(userAns, qObj, test, i);
           scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
         } else {
           scores[i] = 'empty';
@@ -222,10 +237,6 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     }
     return earned;
   }, [qCount, questionScores]);
-  
-  const scorePercentage = useMemo(() => {
-    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
-  }, [totalEarnedScore, totalMaxScore]);
 
   const isTrulyEvaluated = useMemo(() => {
     if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
@@ -247,10 +258,19 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     Array.from({ length: qCount }).forEach((_, idx) => {
       const qNo = idx + 1;
       const qObj = questions[idx] || questions[0] || {};
-      const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
+      const ansObj = (Array.isArray(answers) ? answers.find(a => (
+        Number(a?.questionNo) === qNo ||
+        Number(a?.questionNoInSection) === qNo ||
+        Number(a?.number) === qNo ||
+        Number(a?.qNo) === qNo ||
+        String(a?.questionId).includes(`_${qNo}`) ||
+        String(a?.id).includes(`_${qNo}`)
+      )) : null) || (Array.isArray(answers) ? answers[idx] : (typeof answers === 'object' ? (answers[qNo] || answers[String(qNo)]) : {})) || {};
 
       const userAns = ansObj.userAnswer;
-      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
+      const textAns = ansObj.userAnswerText || ansObj.textAns || ansObj.text;
+      const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
+      const hasAnswer = hasUserOption || (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns && String(textAns).trim() !== '');
       const teacherSc = questionScores[qNo];
 
       if (isOpenEndedMode) {
@@ -267,9 +287,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           if (numSc >= 5) cCount++;
           else wCount++;
         } else if (hasAnswer) {
-          const isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-          if (isCorrect === true) cCount++;
-          else if (isCorrect === false) wCount++;
+          const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
+          const uLetter = formatAnswerLetter(userAns);
+          const cLetter = formatAnswerLetter(resolvedCorrect);
+          const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : checkIsAnswerCorrect(userAns, qObj, test, qNo);
+
+          if (isRight === true) cCount++;
+          else if (isRight === false) wCount++;
           else bCount++;
         } else {
           bCount++;
@@ -281,6 +305,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   }, [qCount, questions, answers, test, questionScores, isOpenEndedMode]);
 
   const { correctCount, wrongCount, blankCount } = stats;
+
+  const scorePercentage = useMemo(() => {
+    if (isOpenEndedMode) {
+      return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+    }
+    const totalScored = correctCount + wrongCount + blankCount;
+    return totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : (submission?.score ?? 0);
+  }, [isOpenEndedMode, totalMaxScore, totalEarnedScore, correctCount, wrongCount, blankCount, submission]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -626,31 +658,22 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               const teacherSc = questionScores[qNo];
               const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
 
+              const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
+              const uLetter = formatAnswerLetter(userAns);
+              const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
+
               let isCorrect;
               if (hasGradedScore) {
                 isCorrect = Number(teacherSc) >= 5;
               } else if (hasAnswer && !isItemOE) {
-                isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+                if (uLetter && displayCorrectKey) {
+                  isCorrect = uLetter === displayCorrectKey;
+                } else {
+                  isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+                }
               } else {
                 isCorrect = null;
               }
-
-              const keySource = test.answerKey || questions[0]?.answerKey || null;
-              let rawCorrectKey = null;
-              if (Array.isArray(keySource)) {
-                rawCorrectKey = keySource[qNo - 1];
-              } else if (keySource && typeof keySource === 'object') {
-                rawCorrectKey = keySource[qNo] ?? keySource[qNo - 1];
-              } else if (typeof keySource === 'string') {
-                const clean = keySource.replace(/[^A-Ea-e0-4]/g, '');
-                rawCorrectKey = clean[qNo - 1];
-              } else {
-                rawCorrectKey = qObj.correctAnswer;
-              }
-
-              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null && rawCorrectKey !== '')
-                ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
-                : null;
 
               return (
                 <div
@@ -734,11 +757,11 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
                         <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
-                          {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
+                          {hasAnswer ? (uLetter || (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)) : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (

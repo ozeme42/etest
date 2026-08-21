@@ -200,3 +200,111 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
 
   return false;
 }
+
+/**
+ * Formats any raw answer/option value into a displayable letter ('A', 'B', 'C', 'D', 'E').
+ */
+export function formatAnswerLetter(val) {
+  if (val === null || val === undefined || val === '' || val === 'empty') return null;
+  if (typeof val === 'number') {
+    return val >= 0 && val <= 4 ? String.fromCharCode(65 + val) : String(val);
+  }
+  const str = String(val).trim().toUpperCase();
+  if (/^[A-E]$/.test(str)) return str;
+  const num = Number(str);
+  if (!isNaN(num) && num >= 0 && num <= 4) {
+    return String.fromCharCode(65 + num);
+  }
+  return str;
+}
+
+/**
+ * Robustly extracts the correct answer for question qNo (1-based index)
+ * across all potential test, section, question, submission, and bank payload objects.
+ */
+export function resolveQuestionCorrectAnswer(qNo, qObj = {}, ansObj = {}, testObj = {}, questionsList = []) {
+  const idx = qNo - 1;
+
+  // 1. Direct from ansObj (evaluated during submission)
+  if (ansObj) {
+    const cand = ansObj.correctAnswer ?? ansObj.correctOption ?? ansObj.correctAnswerLetter ?? ansObj.correct_answer;
+    if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+      return cand;
+    }
+  }
+
+  // 2. Answer key arrays and objects in test and question
+  const keySources = [
+    testObj?.answerKey,
+    testObj?.answer_key,
+    testObj?.htmlPayload?.answerKey,
+    testObj?.htmlPayload?.answer_key,
+    testObj?.contentPayload?.answerKey,
+    testObj?.contentPayload?.answer_key,
+    testObj?.bankQ?.answerKey,
+    testObj?.bankQ?.answer_key,
+    questionsList?.[0]?.answerKey,
+    questionsList?.[0]?.answer_key,
+    qObj?.answerKey,
+    qObj?.answer_key
+  ];
+
+  for (const src of keySources) {
+    if (!src) continue;
+    if (Array.isArray(src) && src[idx] !== undefined && src[idx] !== null && src[idx] !== '') {
+      return src[idx];
+    }
+    if (typeof src === 'object' && !Array.isArray(src)) {
+      if (src[qNo] !== undefined && src[qNo] !== null && src[qNo] !== '') return src[qNo];
+      if (src[String(qNo)] !== undefined && src[String(qNo)] !== null && src[String(qNo)] !== '') return src[String(qNo)];
+      if (src[idx] !== undefined && src[idx] !== null && src[idx] !== '') return src[idx];
+      if (src[String(idx)] !== undefined && src[String(idx)] !== null && src[String(idx)] !== '') return src[String(idx)];
+    }
+    if (typeof src === 'string') {
+      const clean = src.replace(/[^A-Ea-e0-4]/g, '');
+      if (clean[idx]) return clean[idx];
+    }
+  }
+
+  // 3. Optic answers
+  const opticSources = [
+    testObj?.opticAnswers,
+    testObj?.optic_answers,
+    testObj?.bankQ?.opticAnswers,
+    testObj?.bankQ?.optic_answers,
+    qObj?.opticAnswers,
+    qObj?.optic_answers
+  ];
+  for (const opt of opticSources) {
+    if (!opt || typeof opt !== 'object') continue;
+    if (opt[qNo] !== undefined && opt[qNo] !== null) return opt[qNo];
+    if (opt[String(qNo)] !== undefined && opt[String(qNo)] !== null) return opt[String(qNo)];
+    if (opt[idx] !== undefined && opt[idx] !== null) return opt[idx];
+    if (opt[String(idx)] !== undefined && opt[String(idx)] !== null) return opt[String(idx)];
+  }
+
+  // 4. Question object direct
+  const specificQ = qObj || questionsList?.[idx] || {};
+  const qDirect = specificQ.correctAnswer ?? specificQ.correct_answer ?? specificQ.correctOption ?? specificQ.correct_option ?? specificQ.correctAnswerLetter ?? specificQ.correct_answer_letter ?? specificQ.dogruCevap ?? specificQ.raw?.correctAnswer;
+  if (qDirect !== undefined && qDirect !== null && qDirect !== '' && qDirect !== 'empty') {
+    return qDirect;
+  }
+
+  // 5. Options array with isCorrect
+  if (Array.isArray(specificQ.options)) {
+    const foundIdx = specificQ.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true));
+    if (foundIdx !== -1) return foundIdx;
+  }
+
+  // 6. Bulk answer key
+  const bulkSources = [testObj?.bulkAnswerKey, qObj?.bulkAnswerKey, testObj?.bankQ?.bulkAnswerKey];
+  for (const bulkStr of bulkSources) {
+    if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
+      const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
+      if (cleanBulk[idx]) return cleanBulk[idx];
+    }
+  }
+
+  return null;
+}
+
