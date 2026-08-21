@@ -22,6 +22,7 @@ import HtmlQuizReview from '../components/quiz/review/HtmlQuizReview';
 import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
 import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
+import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
 import MultiHomeworkRunner, { resolveExactQuestionCount } from '../components/quiz/runner/MultiHomeworkRunner';
 import ImageLightbox, { StandardImageFrame } from '../components/quiz/common/ImageLightbox';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
@@ -508,12 +509,12 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
   const renderFullExamScreen = () => {
     if (isMultiSection) {
       return (
-        <MultiHomeworkRunner
+        <CompositeHomeworkReview
           test={test}
           questions={questions}
-          isReviewMode={true}
-          userAnswers={submission}
-          onSubmit={onClose}
+          submission={submission}
+          isTeacher={true}
+          onClose={onClose}
         />
       );
     }
@@ -575,73 +576,80 @@ export default function EvaluationManager() {
   const teacherId = currentUser?.id;
 
   const combinedSubmissions = useMemo(() => {
-    const activeHws = (homeworks || []).filter(hw => hw && hw.id && !isTrackedBookHw(hw));
     const map = new Map();
 
-    activeHws.forEach(hw => {
-      (hw.submissions || []).forEach(sub => {
-        if (!sub || !sub.studentId) return;
-        const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
-        map.set(subKey, {
-          ...sub,
-          id: subKey,
-          homeworkId: hw.id,
-          hwId: hw.id,
-          testId: hw.id,
-          testTitle: hw.title,
-          subject: hw.subject,
-          totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
-          submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
-        });
+    // 1. Collect all submissions from EvaluationContext
+    (allSubmissions || []).forEach(sub => {
+      if (!sub) return;
+      if (String(sub.id).startsWith('sub_sample')) return;
+      const subKey = String(sub.id || `sub_${sub.testId || sub.homeworkId || sub.questionId}_${sub.studentId || sub.userId}`);
+      map.set(subKey, {
+        ...sub,
+        id: subKey,
+        studentId: sub.studentId || sub.userId,
+        testId: sub.testId || sub.homeworkId || sub.questionId,
+        testTitle: sub.testTitle || sub.title || sub.name || 'Sınav / Test',
+        submittedAt: sub.submittedAt || sub.completedAt || sub.createdAt || new Date().toISOString()
       });
+    });
 
-      (allSubmissions || []).forEach(sub => {
-        if (!sub || !sub.studentId) return;
-        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
-        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-        
-        const matchesHw = String(hw.id) === targetId ||
-          String(hw.id) === normTargetId ||
-          String(hw.id) === String(sub.hwId) ||
-          String(hw.id) === String(sub.homeworkId) ||
-          (hw.submissions && hw.submissions.some(s => String(s.id) === String(sub.id)));
-
-        if (matchesHw) {
-          const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
-          const existing = map.get(subKey);
-          if (!existing || (sub.isEvaluatedByTeacher && !existing.isEvaluatedByTeacher) || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
-            map.set(subKey, {
-              ...sub,
-              id: subKey,
-              homeworkId: hw.id,
-              hwId: hw.id,
-              testId: hw.id,
-              testTitle: hw.title,
-              subject: hw.subject,
-              totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
-              submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
-            });
-          }
+    // 2. Collect submissions attached to homeworks
+    (homeworks || []).forEach(hw => {
+      if (!hw || !hw.id) return;
+      (hw.submissions || []).forEach(sub => {
+        if (!sub) return;
+        if (String(sub.id).startsWith('sub_sample')) return;
+        const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
+        const existing = map.get(subKey);
+        if (!existing || (sub.isEvaluatedByTeacher && !existing.isEvaluatedByTeacher) || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+          map.set(subKey, {
+            ...sub,
+            id: subKey,
+            homeworkId: hw.id,
+            hwId: hw.id,
+            testId: hw.id,
+            testTitle: hw.title || sub.testTitle || 'Ödev Testi',
+            subject: hw.subject || sub.subject,
+            totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+            submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
+          });
         }
       });
     });
 
-    // Also include all manual test submissions
-    (allSubmissions || []).forEach(sub => {
-      if (!sub || !sub.studentId) return;
-      if (sub.isManual || sub.sourceType === 'manual_test') {
-        const subKey = String(sub.id || `manual_sub_${sub.studentId}_${Date.now()}`);
-        map.set(subKey, {
-          ...sub,
-          id: subKey,
-          isManual: true,
-          testTitle: sub.title || sub.testTitle || 'Manuel Test',
-          bookTitle: sub.bookTitle || 'Kitap / Çalışma Kaynağı',
-          subject: sub.subject || 'Genel',
-          totalQuestions: sub.totalQuestions || ((sub.correctCount || 0) + (sub.wrongCount || 0) + (sub.emptyCount || 0)) || 20,
-          submittedAt: sub.submittedAt || sub.completedAt || sub.createdAt || new Date().toISOString()
-        });
-      }
+    // 3. Collect submissions from localStorage caches
+    const localKeys = [
+      'eTestSubmissions',
+      'eTest_modular_submissions',
+      'quiz_submissions',
+      'modular_quiz_submissions',
+      'homework_submissions',
+      'evaluation_submissions'
+    ];
+    localKeys.forEach(k => {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(sub => {
+              if (!sub) return;
+              if (String(sub.id).startsWith('sub_sample')) return;
+              const subKey = String(sub.id || `loc_${sub.testId || sub.homeworkId || sub.questionId}_${sub.studentId || sub.userId}`);
+              if (!map.has(subKey)) {
+                map.set(subKey, {
+                  ...sub,
+                  id: subKey,
+                  studentId: sub.studentId || sub.userId,
+                  testId: sub.testId || sub.homeworkId || sub.questionId,
+                  testTitle: sub.testTitle || sub.title || 'Sınav / Test',
+                  submittedAt: sub.submittedAt || sub.completedAt || sub.createdAt || new Date().toISOString()
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {}
     });
 
     return Array.from(map.values());
@@ -727,22 +735,56 @@ export default function EvaluationManager() {
       const isManualRejected = isManual && (sub.approvalStatus === 'rejected' || sub.status === 'rejected');
 
       const isAlreadyEvaluated = Boolean(
-        sub.status === 'evaluated' ||
-        sub.status === 'graded' ||
-        sub.status === 'completed' ||
         sub.isEvaluatedByTeacher === true ||
         sub.isEvaluated === true ||
-        sub.evaluatedAt
+        sub.status === 'evaluated' ||
+        sub.status === 'graded' ||
+        (sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote))
       );
+
+      // Check if this submission has any open-ended questions
       let hasWrittenAnswers = false;
       if (Array.isArray(sub.answers)) {
-        hasWrittenAnswers = sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);
+        hasWrittenAnswers = sub.answers.some(a => 
+          (a.userAnswerText && String(a.userAnswerText).trim().length > 0) ||
+          a.isOpenEnded === true ||
+          a.is_open_ended === true ||
+          ['acik_uclu', 'yazili', 'open_ended'].includes(a.questionType || a.type)
+        );
       }
-      const isExplicitOpenEnded = sub.isOpenEnded || sub.questionType === 'acik_uclu' || sub.questionType === 'yazili' || sub.contentType === 'acik_uclu' || sub.contentType === 'yazili';
-      const titleLower = String(title).toLowerCase();
-      const hasOEKeywords = titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili');
 
-      const isPending = isManual ? isManualPending : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
+      // Check if sections have open-ended questions
+      let hasOpenEndedSection = false;
+      if (sub.sections && typeof sub.sections === 'object') {
+        hasOpenEndedSection = Object.values(sub.sections).some(sec => 
+          sec.type === 'open_ended' ||
+          (sec.openEndedText && Object.values(sec.openEndedText).some(t => t && String(t).trim().length > 0))
+        );
+      }
+
+      const isExplicitOpenEnded = sub.isOpenEnded ||
+                                  sub.questionType === 'acik_uclu' ||
+                                  sub.questionType === 'yazili' ||
+                                  sub.contentType === 'acik_uclu' ||
+                                  sub.contentType === 'yazili' ||
+                                  matchedBankQ?.type === 'open_ended' ||
+                                  matchedHw?.type === 'open_ended' ||
+                                  matchedBankQ?.isOpenEnded ||
+                                  hasOpenEndedSection;
+
+      const titleLower = String(title).toLowerCase();
+      const hasOEKeywords = titleLower.includes('açık uçlu') ||
+                            titleLower.includes('acik uclu') ||
+                            titleLower.includes('yazılı') ||
+                            titleLower.includes('yazili') ||
+                            titleLower.includes('yaztop') ||
+                            titleLower.includes('metinaç') ||
+                            titleLower.includes('metin') ||
+                            titleLower.includes('klasik');
+
+      const isPending = isManual
+        ? isManualPending
+        : (!isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords));
 
       return {
         ...sub,
@@ -764,37 +806,10 @@ export default function EvaluationManager() {
     return enrichedSubmissions.filter(sub => {
       if (sub.status === 'draft' || sub.status === 'in_progress') return false;
       if (sub.isManual) return false; // Manuel testler Onay Merkezi sayfasında yönetilir
-
-      if (!isAdmin) {
-        if (!teacherId) return false;
-        if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
-
-        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || '');
-        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-
-        const hwMatch = (homeworks || []).find(h =>
-          String(h.id) === targetId ||
-          String(h.id) === normTargetId ||
-          String(h.testId) === targetId ||
-          (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
-        );
-
-        const hwIsMine = hwMatch && (
-          String(hwMatch.createdBy) === String(teacherId) ||
-          String(hwMatch.teacherId) === String(teacherId) ||
-          String(hwMatch.assignedBy) === String(teacherId)
-        );
-
-        const subIsMine =
-          String(sub.createdBy) === String(teacherId) ||
-          String(sub.teacherId) === String(teacherId) ||
-          String(sub.assignedBy) === String(teacherId);
-
-        if (!hwIsMine && !subIsMine) return false;
-      }
+      if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
       return true;
     }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [enrichedSubmissions, homeworks, isAdmin, teacherId, users]);
+  }, [enrichedSubmissions]);
 
   const pendingExamList = useMemo(() => scopedSubmissions.filter(s => s.isPending), [scopedSubmissions]);
   const completedList = useMemo(() => scopedSubmissions.filter(s => !s.isPending), [scopedSubmissions]);
