@@ -410,85 +410,99 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
   const sectionsMap = {};
 
   const rawSections = unifiedTest.sections || [];
-  rawSections.forEach(s => {
-    sectionsMap[s.id] = {
+
+  // Precompute cumulative question ranges for all sections
+  let runningCount = 0;
+  const sectionRanges = rawSections.map((sec, sIdx) => {
+    const qCount = sec.qCount || sec.questions?.length || sec.resolvedQuestions?.length || 1;
+    const start = runningCount + 1;
+    const end = runningCount + qCount;
+    runningCount = end;
+
+    const secData = {
       answers: {},
       openEndedText: {},
       teacherScores: {},
       teacherNotes: {}
     };
+
+    sectionsMap[sec.id] = secData;
+    sectionsMap[sIdx] = secData;
+    sectionsMap[String(sIdx)] = secData;
+    if (sec.title) sectionsMap[sec.title] = secData;
+    if (sec.raw?.id) sectionsMap[sec.raw.id] = secData;
+    if (sec.raw?.questionId) sectionsMap[sec.raw.questionId] = secData;
+
+    return { sec, sIdx, start, end, qCount, secData };
   });
 
   const rawAns = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
   if (Array.isArray(rawAns)) {
     rawAns.forEach((a, idx) => {
-      // Find matching section with bulletproof matching
-      let matchedSec = null;
+      let matchedRange = null;
 
-      // 1. Exact sectionIndex
-      if (a.sectionIndex !== undefined && rawSections[a.sectionIndex]) {
-        matchedSec = rawSections[a.sectionIndex];
+      // 1. Direct sectionIndex property
+      if (a.sectionIndex !== undefined && sectionRanges[a.sectionIndex]) {
+        matchedRange = sectionRanges[a.sectionIndex];
       }
 
-      // 2. Exact sectionTitle match
-      if (!matchedSec && a.sectionTitle) {
-        matchedSec = rawSections.find(s => s.title?.toLowerCase().trim() === a.sectionTitle?.toLowerCase().trim());
+      // 2. Parse numeric section index from sectionId (e.g. sec_0, sec_1, sec0, sec1)
+      if (!matchedRange && a.sectionId) {
+        const secMatch = String(a.sectionId).match(/^sec_?(\d+)$/i);
+        if (secMatch) {
+          const num = parseInt(secMatch[1], 10);
+          if (sectionRanges[num]) {
+            matchedRange = sectionRanges[num];
+          } else if (num > 0 && sectionRanges[num - 1]) {
+            matchedRange = sectionRanges[num - 1];
+          }
+        }
       }
 
-      // 3. Exact or normalized sectionId match
-      if (!matchedSec && a.sectionId) {
+      // 3. Match by sectionTitle
+      if (!matchedRange && a.sectionTitle) {
+        const sTitleNorm = String(a.sectionTitle).toLowerCase().trim();
+        matchedRange = sectionRanges.find(r => r.sec.title && String(r.sec.title).toLowerCase().trim() === sTitleNorm);
+      }
+
+      // 4. Match by exact sectionId or questionId
+      if (!matchedRange && a.sectionId) {
         const cleanA = String(a.sectionId).replace(/^q_|^hw_|^sec_|^sec/, '');
-        matchedSec = rawSections.find(s =>
-          String(s.id) === String(a.sectionId) ||
-          String(s.raw?.id) === String(a.sectionId) ||
-          String(s.raw?.questionId) === String(a.sectionId) ||
-          String(s.id).replace(/^q_|^hw_|^sec_|^sec/, '') === cleanA
+        matchedRange = sectionRanges.find(r =>
+          String(r.sec.id) === String(a.sectionId) ||
+          String(r.sec.raw?.id) === String(a.sectionId) ||
+          String(r.sec.raw?.questionId) === String(a.sectionId) ||
+          String(r.sec.id).replace(/^q_|^hw_|^sec_|^sec/, '') === cleanA
         );
       }
 
-      // 4. By questionId
-      if (!matchedSec && a.questionId) {
-        matchedSec = rawSections.find(s => s.questions?.some(q => String(q.id) === String(a.questionId)));
+      // 5. Match by questionId within section's questions
+      if (!matchedRange && a.questionId) {
+        matchedRange = sectionRanges.find(r => r.sec.questions?.some(q => String(q.id) === String(a.questionId)));
       }
 
-      // 5. Global question number fallback (mapping global question range to correct section)
-      if (!matchedSec && rawSections.length > 1) {
-        const targetGlobalNo = Number(a.questionNo || (idx + 1));
-        let runningTotal = 0;
-        for (const s of rawSections) {
-          const sCount = s.questions?.length || s.qCount || 1;
-          if (targetGlobalNo > runningTotal && targetGlobalNo <= runningTotal + sCount) {
-            matchedSec = s;
-            break;
-          }
-          runningTotal += sCount;
-        }
+      // 6. Global question number mapping against sectionRanges
+      const globalNo = Number(a.questionNo || (idx + 1));
+      if (!matchedRange && sectionRanges.length > 0) {
+        matchedRange = sectionRanges.find(r => globalNo >= r.start && globalNo <= r.end);
       }
 
-      if (!matchedSec) {
-        matchedSec = rawSections[0];
+      if (!matchedRange) {
+        matchedRange = sectionRanges[0] || { sec: rawSections[0], sIdx: 0, start: 1, end: 1, qCount: 1, secData: {} };
       }
 
-      const sId = matchedSec?.id || rawSections[0]?.id || 'sec_1';
+      const { sec: matchedSec, start: rStart, qCount: rCount, secData: targetSecData } = matchedRange;
+      const sId = matchedSec?.id || 'sec_1';
 
-      // Determine local question number in section
+      // Determine local question number within section (1..qCount)
       let qNo = Number(a.questionNoInSection);
-      if (!qNo || isNaN(qNo)) {
-        const globalNo = Number(a.questionNo || (idx + 1));
-        let runningTotal = 0;
-        for (const s of rawSections) {
-          if (s.id === matchedSec?.id) {
-            qNo = Math.max(1, globalNo - runningTotal);
-            break;
-          }
-          runningTotal += (s.questions?.length || s.qCount || 1);
+      if (!qNo || isNaN(qNo) || qNo < 1 || qNo > rCount) {
+        if (globalNo >= rStart && globalNo <= matchedRange.end) {
+          qNo = (globalNo - rStart) + 1;
+        } else {
+          qNo = 1;
         }
-      }
-      if (!qNo || isNaN(qNo)) qNo = (idx + 1);
-
-      if (!sectionsMap[sId]) {
-        sectionsMap[sId] = { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
       }
 
       // MC Answer
@@ -496,8 +510,8 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
         const uVal = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
         const normOpt = normalizeOptionIndex(uVal);
         if (normOpt !== null) {
-          sectionsMap[sId].answers[qNo] = normOpt;
-          sectionsMap[sId].answers[String(qNo)] = normOpt;
+          targetSecData.answers[qNo] = normOpt;
+          targetSecData.answers[String(qNo)] = normOpt;
         }
       }
 
@@ -515,18 +529,18 @@ export function normalizeUnifiedSubmission(rawSubmission = {}, unifiedTest = {})
 
       if (textVal) {
         const str = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
-        sectionsMap[sId].openEndedText[qNo] = str;
-        sectionsMap[sId].openEndedText[String(qNo)] = str;
+        targetSecData.openEndedText[qNo] = str;
+        targetSecData.openEndedText[String(qNo)] = str;
       }
 
       // Teacher Score & Note
       if (a.score !== undefined && a.score !== null && a.score !== '') {
-        sectionsMap[sId].teacherScores[qNo] = a.score === 'empty' ? 'empty' : Number(a.score);
-        sectionsMap[sId].teacherScores[String(qNo)] = sectionsMap[sId].teacherScores[qNo];
+        targetSecData.teacherScores[qNo] = a.score === 'empty' ? 'empty' : Number(a.score);
+        targetSecData.teacherScores[String(qNo)] = targetSecData.teacherScores[qNo];
       }
       if (a.teacherNote || a.note) {
-        sectionsMap[sId].teacherNotes[qNo] = String(a.teacherNote || a.note);
-        sectionsMap[sId].teacherNotes[String(qNo)] = sectionsMap[sId].teacherNotes[qNo];
+        targetSecData.teacherNotes[qNo] = String(a.teacherNote || a.note);
+        targetSecData.teacherNotes[String(qNo)] = targetSecData.teacherNotes[qNo];
       }
     });
   }
