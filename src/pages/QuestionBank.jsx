@@ -3416,7 +3416,9 @@ export default function QuestionBank() {
                     {/* Live Rendered HTML Frame */}
                     <div style={{ background: 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', marginBottom: '1.25rem', height: '520px' }}>
                       <HtmlViewerWithControls
-                        payload={q.htmlPayload || q.contentPayload}
+                        payload={(q.contentPayload && q.contentPayload !== '[STORED_IN_INDEXEDDB]' && q.contentPayload !== '[LOCALSTORAGE_CACHE]') ? q.contentPayload : (q.htmlPayload && q.htmlPayload !== '[STORED_IN_INDEXEDDB]' ? q.htmlPayload : q.contentPayload)}
+                        id={q.id}
+                        testId={q.testId || q.realTestId || q.id}
                         title={q.title || 'HTML Test Paketi'}
                         height="520px"
                       />

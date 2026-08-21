@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { idbGetPayload } from '../services/indexedDbService';
 
 export function wrapInStyledHtmlDocument(content, title = 'Döküman / Soru') {
   if (!content) return '';
   
   // Eğer içerik zaten bir HTML belgesi ise, HİÇBİR stil veya etiket eklemeden %100 saf halini döndür.
-  // Başına banner eklemek <head> ve <script> etiketlerini bozup stillerin yüklenmesini engelliyordu.
   if (
     content.includes('<!DOCTYPE') ||
     content.includes('<html') ||
@@ -91,14 +91,42 @@ function resolveIframeContent(payload, title) {
   return { src: undefined, srcDoc: wrapInStyledHtmlDocument(trimmed, title) };
 }
 
-export default React.memo(function HtmlViewerWithControls({ payload, htmlContent, src, contentPayload, htmlPayload, title = "HTML Dokümanı", height = "100%" }) {
+export default React.memo(function HtmlViewerWithControls(props) {
+  const { payload, htmlContent, src, contentPayload, htmlPayload, title = "HTML Dokümanı", height = "100%", id, testId, realTestId, qId } = props;
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [fetchedHtml, setFetchedHtml] = useState(null);
   const [manualHtml, setManualHtml] = useState(null);
+  const [idbHtml, setIdbHtml] = useState(null);
   const wrapperRef = useRef(null);
 
-  const activePayload = payload || htmlContent || src || contentPayload || htmlPayload;
+  const rawCandidates = [payload, htmlContent, src, contentPayload, htmlPayload];
+  const directPayload = rawCandidates.find(p => typeof p === 'string' && p.length > 50 && !p.includes('[STORED_IN_INDEXEDDB]') && !p.includes('[LOCALSTORAGE_CACHE]'));
+  const activePayload = directPayload || idbHtml || rawCandidates.find(Boolean);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFromIdb() {
+      if (directPayload) return;
+      const keysToTry = [id, testId, realTestId, qId, props?.bankQ?.id, props?.test?.id].filter(Boolean);
+      for (const k of keysToTry) {
+        const candidates = [k, String(k).replace(/^q_?/, ''), `q_${String(k).replace(/^q_?/, '')}`, `q${String(k).replace(/^q_?/, '')}`];
+        for (const candidate of candidates) {
+          try {
+            const val = await idbGetPayload(candidate);
+            if (val && typeof val === 'string' && val.length > 50 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+              setIdbHtml(val);
+              return;
+            }
+          } catch (e) {
+            console.warn('[HtmlViewer] idb fallback error:', e);
+          }
+        }
+      }
+    }
+    loadFromIdb();
+    return () => { isMounted = false; };
+  }, [directPayload, id, testId, realTestId, qId, props]);
 
   useEffect(() => {
     if (typeof activePayload === 'string' && (activePayload.startsWith('http://') || activePayload.startsWith('https://'))) {

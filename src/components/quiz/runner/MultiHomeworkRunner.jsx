@@ -420,18 +420,22 @@ const StableHtmlViewer = memo(function StableHtmlViewer({ test, bankQ, secId, te
       }
 
       // 1. Kendi IDB kontrolümüz (kullanıcı editlemiş olabilir)
-      const idsToTry = [bankQ?.id, bankQ?.questionId, secId, testId].filter(Boolean);
+      const rawIdsToTry = [bankQ?.id, bankQ?.questionId, secId, testId, test?.id, test?.realTestId, test?.testId].filter(Boolean);
+      const idsToTry = [];
+      for (const id of rawIdsToTry) {
+        idsToTry.push(id, String(id).replace(/^q_?/, ''), `q_${String(id).replace(/^q_?/, '')}`, `q${String(id).replace(/^q_?/, '')}`);
+      }
+
       for (const id of idsToTry) {
         const val = await idbGetPayload(id);
         if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
-          // Eğer IDB'den gelen veri düz metin (eski veri) ise ama biz HTML arıyorsak, bunu atla.
-          if (!isHtmlContent(val) && !val.startsWith('http')) {
-            continue; // Atla ve diğer kimliklere bak, veya proplara düş
+          // Eğer IDB'den gelen veri geçerli bir HTML ise yükle
+          if (isHtmlContent(val) || val.startsWith('http') || val.startsWith('data:')) {
+            loadedRef.current = cacheKey;
+            if (val.startsWith('http')) { setIframeSrc(val); return; }
+            const url = makeBlob(val);
+            if (url) { setIframeSrc(url); return; }
           }
-          loadedRef.current = cacheKey;
-          if (val.startsWith('http')) { setIframeSrc(val); return; }
-          const url = makeBlob(val);
-          if (url) { setIframeSrc(url); return; }
         }
       }
 
