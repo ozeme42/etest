@@ -4,6 +4,7 @@ import { useTeacherGrading } from '../hooks/useTeacherGrading';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
 import { resolveTestQuestions } from '../../../utils/testResolver';
+import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 
 import SectionTabBar from './navigation/SectionTabBar';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
@@ -94,16 +95,43 @@ export default function CompositeHomeworkReview({
     const rawAns = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
     if (Array.isArray(rawAns)) {
       rawAns.forEach((a, idx) => {
-        const sId = a.sectionId || rawSections[0]?.id || 'sec_1';
-        const qNo = a.questionNoInSection || (idx + 1);
+        // 1. Match section by ID, question ID, or sectionIndex
+        let matchedSec = null;
+        if (a.sectionId) {
+          matchedSec = rawSections.find(s =>
+            String(s.id) === String(a.sectionId) ||
+            String(s.questionId) === String(a.sectionId) ||
+            String(s.bankQ?.id) === String(a.sectionId) ||
+            String(s.id).replace(/^q_|^hw_|^sec_/, '') === String(a.sectionId).replace(/^q_|^hw_|^sec_/, '')
+          );
+        }
+        if (!matchedSec && a.questionId) {
+          matchedSec = rawSections.find(s =>
+            s.resolvedQuestions?.some(q => String(q.id) === String(a.questionId)) ||
+            s.questions?.some(q => String(q.id) === String(a.questionId))
+          );
+        }
+        if (!matchedSec && a.sectionIndex !== undefined && rawSections[a.sectionIndex]) {
+          matchedSec = rawSections[a.sectionIndex];
+        }
+        if (!matchedSec) {
+          matchedSec = rawSections[0];
+        }
+
+        const sId = matchedSec?.id || rawSections[0]?.id || 'sec_1';
+        const qNo = Number(a.questionNoInSection || a.questionNo || (idx + 1));
         if (!map[sId]) map[sId] = { answers: {}, openEndedText: {} };
 
-        if (a.userAnswer !== null && a.userAnswer !== undefined) {
-          map[sId].answers[qNo] = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty') {
+          const uVal = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+          map[sId].answers[qNo] = uVal;
+          map[sId].answers[String(qNo)] = uVal;
         }
         const textVal = a.userAnswerText || a.user_answer_text || a.textAns || (typeof a.userAnswer === 'string' ? a.userAnswer : null);
         if (textVal) {
-          map[sId].openEndedText[qNo] = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
+          const strText = typeof textVal === 'string' ? textVal : (textVal.text || textVal.userAnswerText || '');
+          map[sId].openEndedText[qNo] = strText;
+          map[sId].openEndedText[String(qNo)] = strText;
         }
       });
     }
@@ -344,9 +372,9 @@ export default function CompositeHomeworkReview({
               <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {currentSecQuestions.map((q, idx) => {
                   const qNo = idx + 1;
-                  const uAns = currentSecAnswers.answers[qNo];
-                  const cAns = q.correctAnswer;
-                  const isCorrect = uAns !== null && uAns !== undefined ? uAns === cAns : null;
+                  const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
+                  const cAns = q.correctAnswer ?? q.answer ?? q.correctOption;
+                  const isCorrect = uAns !== null && uAns !== undefined ? checkIsAnswerCorrect(uAns, q, activeSec, qNo) : null;
 
                   const qImages = [];
                   if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);

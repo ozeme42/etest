@@ -22,16 +22,34 @@ export function useQuizState({
     });
 
     if (draftAnswers && Array.isArray(draftAnswers) && draftAnswers.length > 0) {
-      draftAnswers.forEach(a => {
-        const secId = a.sectionId || sections[0]?.id || 'sec_1';
-        if (!initialMap[secId]) initialMap[secId] = { answers: {}, openEndedText: {} };
-        const qNo = Number(a.questionNoInSection || a.questionNo || 1);
+      draftAnswers.forEach((a, idx) => {
+        let matchedSec = null;
+        if (a.sectionId) {
+          matchedSec = sections.find(s =>
+            String(s.id) === String(a.sectionId) ||
+            String(s.questionId) === String(a.sectionId) ||
+            String(s.id).replace(/^q_|^hw_|^sec_/, '') === String(a.sectionId).replace(/^q_|^hw_|^sec_/, '')
+          );
+        }
+        if (!matchedSec && a.sectionIndex !== undefined && sections[a.sectionIndex]) {
+          matchedSec = sections[a.sectionIndex];
+        }
+        if (!matchedSec) {
+          matchedSec = sections[0];
+        }
 
-        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '') {
-          initialMap[secId].answers[qNo] = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+        const secId = matchedSec?.id || sections[0]?.id || 'sec_1';
+        if (!initialMap[secId]) initialMap[secId] = { answers: {}, openEndedText: {} };
+        const qNo = Number(a.questionNoInSection || a.questionNo || (idx + 1));
+
+        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty') {
+          const uVal = typeof a.userAnswer === 'object' ? a.userAnswer.userAnswer : a.userAnswer;
+          initialMap[secId].answers[qNo] = uVal;
+          initialMap[secId].answers[String(qNo)] = uVal;
         }
         if (a.userAnswerText) {
           initialMap[secId].openEndedText[qNo] = a.userAnswerText;
+          initialMap[secId].openEndedText[String(qNo)] = a.userAnswerText;
         }
       });
       return initialMap;
