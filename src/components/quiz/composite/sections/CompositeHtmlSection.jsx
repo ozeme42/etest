@@ -6,7 +6,7 @@ import QuizPanelLayout from '../../runner/QuizPanelLayout';
 
 /**
  * CompositeHtmlSection
- * Renders an HTML document section inside a composite homework with side optical panel.
+ * Renders an HTML document section inside a composite homework with side optical or written panel.
  */
 export default memo(function CompositeHtmlSection({
   section = {},
@@ -15,10 +15,12 @@ export default memo(function CompositeHtmlSection({
   openEndedText = {},
   isOpenEnded = false,
   onSelectOption,
+  onTextChange,
   onSelectQuestion,
+  isReviewMode = false,
   isMobile = false
 }) {
-  const totalCount = section.qCount || 1;
+  const totalCount = section.qCount || (section.resolvedQuestions?.length) || 1;
 
   return (
     <QuizPanelLayout
@@ -26,7 +28,7 @@ export default memo(function CompositeHtmlSection({
       panelSubtitle={section.title || 'HTML Bölümü'}
       icon={isOpenEnded ? '✍️' : '📋'}
       defaultPosition="right"
-      defaultSize={320}
+      defaultSize={340}
       defaultOpenOnMobile={false}
       documentContent={
         <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
@@ -43,13 +45,17 @@ export default memo(function CompositeHtmlSection({
           <OpenEndedStatusPanel
             qCount={totalCount}
             openEndedText={openEndedText}
+            resolvedQuestions={section.resolvedQuestions || []}
             onSelectQuestion={onSelectQuestion}
+            onTextChange={(qNo, val) => onTextChange && onTextChange(section.id, qNo, val)}
+            isReviewMode={isReviewMode}
           />
         ) : (
           <OpticalBubblePanel
             qCount={totalCount}
             answers={answers}
             onSelectOption={(qNo, optIdx) => onSelectOption(section.id, qNo, optIdx)}
+            resolvedQuestions={section.resolvedQuestions || []}
           />
         )
       }

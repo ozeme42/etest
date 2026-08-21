@@ -221,6 +221,7 @@ export default function CompositeHomeworkRunner({
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             isOpenEnded={isSecOE}
             onSelectOption={handleSelectOption}
+            onTextChange={handleTextChange}
             isMobile={isMobile}
           />
         ) : isSecHtml ? (
@@ -231,6 +232,7 @@ export default function CompositeHomeworkRunner({
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             isOpenEnded={isSecOE}
             onSelectOption={handleSelectOption}
+            onTextChange={handleTextChange}
             isMobile={isMobile}
           />
         ) : isSecOE ? (
