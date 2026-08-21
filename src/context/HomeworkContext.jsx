@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, toUUID } from '../services/supabaseService';
+import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { idbSetPayload, idbDeletePayload } from '../services/indexedDbService';
 
@@ -188,6 +188,11 @@ export function HomeworkProvider({ children }) {
     setHomeworks(prev => prev.filter(hw => hw.id !== id));
     await dbDeleteHomework(id);
     try {
+      await dbDeleteBookSubmissionsForEveryone([], id);
+      const idUuid = toUUID(id);
+      if (idUuid) {
+        await dbDeleteBookSubmissionsForEveryone([], idUuid);
+      }
       localStorage.removeItem(`quiz_draft_${id}`);
       localStorage.removeItem(`homework_sub_${id}`);
       localStorage.removeItem(`quiz_submission_${id}`);
@@ -205,6 +210,9 @@ export function HomeworkProvider({ children }) {
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
       try {
+        await dbDeleteBookSubmissionsForEveryone([], hw.id);
+        const hu = toUUID(hw.id);
+        if (hu) await dbDeleteBookSubmissionsForEveryone([], hu);
         localStorage.removeItem(`quiz_draft_${hw.id}`);
         localStorage.removeItem(`homework_sub_${hw.id}`);
         localStorage.removeItem(`quiz_submission_${hw.id}`);

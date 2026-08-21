@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
-  LayoutGrid, Plus, Edit3
+  LayoutGrid, Plus, Edit3, Trash2
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -327,7 +327,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isDark } = useTheme();
-  const { submissions } = useEvaluation();
+  const { submissions, deleteSubmission, deleteSubmissionsByTestId, clearSubmissionsForStudent } = useEvaluation();
   const { users } = useUser();
   const { homeworks } = useHomework();
   const { data: curData } = useCurriculum();
@@ -337,6 +337,37 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   const { currentUser } = useAuth();
   const isStudentRole = currentUser?.role === 'student';
+
+  const handleDeleteResult = async (subObj, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`"${subObj.testTitle || subObj.testName || 'Bu sınav'}" sonucunu kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
+    try {
+      if (subObj.id) {
+        await deleteSubmission(subObj.id);
+      }
+      if (subObj.supabaseId) {
+        await deleteSubmission(subObj.supabaseId);
+      }
+      if (subObj.testId) {
+        await deleteSubmissionsByTestId(subObj.testId);
+      }
+      if (subObj.hwId && subObj.hwId !== subObj.testId) {
+        await deleteSubmissionsByTestId(subObj.hwId);
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  const handleClearAllResults = async () => {
+    if (!selectedStudent?.id) return;
+    if (!window.confirm(`${selectedStudent.name || 'Öğrencinin'} tüm sınav sonuçlarını ve geçmişini kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+    try {
+      await clearSubmissionsForStudent(selectedStudent.id);
+    } catch (err) {
+      console.error('Clear all error:', err);
+    }
+  };
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
@@ -2093,6 +2124,29 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                   <LayoutGrid size={14} />
                 </button>
               </div>
+
+              {(!isStudentRole || currentUser?.role === 'admin' || currentUser?.role === 'teacher') && studentSubmissions.length > 0 && (
+                <button
+                  onClick={handleClearAllResults}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '0.45rem 0.8rem',
+                    borderRadius: 10,
+                    border: '1.5px solid #fca5a5',
+                    background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                    color: '#dc2626',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  title="Öğrencinin tüm sınav sonuçlarını ve geçmişini sıfırla"
+                >
+                  <Trash2 size={13} /> Tüm Geçmişi Sıfırla
+                </button>
+              )}
             </div>
 
             {/* TABLE VIEW */}
@@ -2157,15 +2211,37 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              {s.type !== 'physicalExam' ? (
-                                <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                                  <Eye size={13} /> İncele
-                                </button>
-                              ) : (
-                                <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                                  <Eye size={13} /> Karne
-                                </button>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {s.type !== 'physicalExam' ? (
+                                  <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                                    <Eye size={13} /> İncele
+                                  </button>
+                                ) : (
+                                  <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
+                                    <Eye size={13} /> Karne
+                                  </button>
+                                )}
+                                {(!isStudentRole || currentUser?.role === 'admin' || currentUser?.role === 'teacher') && (
+                                  <button
+                                    onClick={(e) => handleDeleteResult(s, e)}
+                                    title="Bu Sınavı Kalıcı Olarak Sil"
+                                    style={{
+                                      background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                                      color: '#ef4444',
+                                      border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                                      borderRadius: 9,
+                                      padding: '0.38rem 0.55rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -2222,15 +2298,37 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                           <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
                           <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
-                        {s.type !== 'physicalExam' ? (
-                          <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                            <Eye size={13} /> İncele
-                          </button>
-                        ) : (
-                          <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                            <Eye size={13} /> Karne
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {s.type !== 'physicalExam' ? (
+                            <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                              <Eye size={13} /> İncele
+                            </button>
+                          ) : (
+                            <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
+                              <Eye size={13} /> Karne
+                            </button>
+                          )}
+                          {(!isStudentRole || currentUser?.role === 'admin' || currentUser?.role === 'teacher') && (
+                            <button
+                              onClick={(e) => handleDeleteResult(s, e)}
+                              title="Bu Sınavı Kalıcı Olarak Sil"
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                                color: '#ef4444',
+                                border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                                borderRadius: 10,
+                                padding: '0.4rem 0.6rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

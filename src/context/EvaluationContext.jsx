@@ -474,12 +474,19 @@ export function EvaluationProvider({ children }) {
     const tU = toUUID(tStr);
 
     submissions.forEach(s => {
+      const raw = s.raw_data || {};
       const matches = String(s.testId) === tStr ||
         String(s.hwId) === tStr ||
         String(s.homeworkId) === tStr ||
         String(s.id) === tStr ||
+        String(raw.hwId) === tStr ||
+        String(raw.homeworkId) === tStr ||
+        String(raw.testId) === tStr ||
+        String(s.id || '').startsWith(`hw_sub_${tStr}_`) ||
+        String(s.id || '').startsWith(`hw_${tStr}_`) ||
         (tU && String(s.testId) === tU) ||
-        (tU && String(s.hwId) === tU);
+        (tU && String(s.hwId) === tU) ||
+        (tU && String(s.homeworkId) === tU);
       if (matches) {
         if (s.id) toDelete.push(String(s.id));
         if (s.supabaseId) toDelete.push(String(s.supabaseId));
@@ -491,7 +498,21 @@ export function EvaluationProvider({ children }) {
     }
 
     setSubmissions(prev => {
-      const remaining = prev.filter(s => !toDelete.includes(String(s.id)) && !toDelete.includes(String(s.supabaseId)));
+      const remaining = prev.filter(s => {
+        const sid = String(s.id);
+        const suid = String(s.supabaseId || '');
+        const raw = s.raw_data || {};
+        const isTarget = toDelete.includes(sid) ||
+          toDelete.includes(suid) ||
+          String(s.testId) === tStr ||
+          String(s.hwId) === tStr ||
+          String(s.homeworkId) === tStr ||
+          String(raw.hwId) === tStr ||
+          String(raw.homeworkId) === tStr ||
+          String(s.id || '').startsWith(`hw_sub_${tStr}_`) ||
+          String(s.id || '').startsWith(`hw_${tStr}_`);
+        return !isTarget;
+      });
       try {
         localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
         localStorage.setItem('etest_submissions', JSON.stringify(remaining));
@@ -499,12 +520,16 @@ export function EvaluationProvider({ children }) {
       return remaining;
     });
 
-    if (toDelete.length > 0) {
-      await dbDeleteSubmissionsByIds(toDelete);
-      for (const id of toDelete) {
-        await dbDeleteSubmission(id);
+    try {
+      await dbDeleteBookSubmissionsForEveryone([], tStr);
+      if (tU) await dbDeleteBookSubmissionsForEveryone([], tU);
+      if (toDelete.length > 0) {
+        await dbDeleteSubmissionsByIds(toDelete);
+        for (const id of toDelete) {
+          await dbDeleteSubmission(id);
+        }
       }
-    }
+    } catch (e) {}
   };
 
   useEffect(() => {
