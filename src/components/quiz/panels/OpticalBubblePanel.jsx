@@ -14,9 +14,10 @@ export default memo(function OpticalBubblePanel({
   optionsCount = 4,
   isReviewMode = false,
   resolvedQuestions = [],
+  correctAnswers = [],
   testCtx = {}
 }) {
-  const totalCount = Math.max(qCount, resolvedQuestions.length, 1);
+  const totalCount = Math.max(qCount, resolvedQuestions.length, Array.isArray(correctAnswers) ? correctAnswers.length : 0, 1);
   const options = Number(optionsCount) === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   const normalizeAns = (val) => {
@@ -38,7 +39,17 @@ export default memo(function OpticalBubblePanel({
     for (let i = 1; i <= totalCount; i++) {
       const u = normalizeAns(answers[i] ?? answers[String(i)]);
       const q = resolvedQuestions[i - 1] || {};
-      const isCorr = u !== null ? checkIsAnswerCorrect(u, q.raw || q, testCtx?.raw || testCtx, i) : null;
+      const cAns = (Array.isArray(correctAnswers) && correctAnswers[i - 1] !== undefined) ? correctAnswers[i - 1] : (q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[i - 1]);
+      let isCorr = null;
+
+      if (u !== null) {
+        if (q && Object.keys(q).length > 0) {
+          isCorr = checkIsAnswerCorrect(u, q.raw || q, testCtx?.raw || testCtx, i);
+        } else if (cAns !== undefined && cAns !== null) {
+          const normC = normalizeAns(cAns);
+          isCorr = normC !== null ? (u === normC) : null;
+        }
+      }
 
       if (u === null) {
         b++;
@@ -52,7 +63,7 @@ export default memo(function OpticalBubblePanel({
     }
     const successRate = totalCount > 0 ? Math.round((d / totalCount) * 100) : 0;
     return { d, y, b, successRate };
-  }, [isReviewMode, answers, resolvedQuestions, totalCount, testCtx]);
+  }, [isReviewMode, answers, resolvedQuestions, correctAnswers, totalCount, testCtx]);
 
   const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
 
@@ -114,9 +125,19 @@ export default memo(function OpticalBubblePanel({
             const userAns = normalizeAns(answers[qNo] ?? answers[String(qNo)]);
             const hasAns = userAns !== null;
             const q = resolvedQuestions[idx] || {};
-            const isCorrect = isReviewMode && hasAns ? checkIsAnswerCorrect(userAns, q.raw || q, testCtx?.raw || testCtx, qNo) : null;
+            const cAnsRaw = (Array.isArray(correctAnswers) && correctAnswers[idx] !== undefined) ? correctAnswers[idx] : (q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
+            
+            let isCorrect = null;
+            if (isReviewMode && hasAns) {
+              if (q && Object.keys(q).length > 0) {
+                isCorrect = checkIsAnswerCorrect(userAns, q.raw || q, testCtx?.raw || testCtx, qNo);
+              } else if (cAnsRaw !== undefined && cAnsRaw !== null) {
+                const normC = normalizeAns(cAnsRaw);
+                isCorrect = normC !== null ? (userAns === normC) : null;
+              }
+            }
 
-            let correctAns = normalizeAns(q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
+            let correctAns = normalizeAns(cAnsRaw);
             if (correctAns === null && Array.isArray(q.options)) {
               const optIdx = q.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.correct === true));
               if (optIdx !== -1) correctAns = optIdx;

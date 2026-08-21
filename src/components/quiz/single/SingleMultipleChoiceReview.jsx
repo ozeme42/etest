@@ -211,7 +211,8 @@ export default function SingleMultipleChoiceReview({
             <OpticalBubblePanel
               qCount={totalQuestions}
               answers={answersMap}
-              correctAnswers={questions.map(q => q.correctAnswer)}
+              resolvedQuestions={questions}
+              testCtx={test}
               isReviewMode={true}
             />
           }
