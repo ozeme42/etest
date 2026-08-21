@@ -519,10 +519,10 @@ export default function ModularQuizReviewPage() {
   );
 
   const hasMultipleDistinctSections = Boolean(
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
     (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1) ||
-    (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 0)
+    (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 1)
   );
 
   const isMultiSection = !isPhysical && (hasMultipleDistinctSections || Boolean(

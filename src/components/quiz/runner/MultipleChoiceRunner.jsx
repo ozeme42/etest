@@ -109,12 +109,23 @@ export default function MultipleChoiceRunner({
   // Collect all resolved images
   const resolvedImages = useMemo(() => {
     const urls = [];
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
-    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
-    if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
-    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
-    if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
-    if (idbImage) urls.push(idbImage);
+    const addImg = (val) => {
+      if (typeof val !== 'string' || !val || val.includes('[STORED_IN_INDEXEDDB]') || val.includes('[LOCALSTORAGE_CACHE]')) return;
+      if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
+        const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
+        urls.push(...parts);
+      } else if (val.startsWith('data:image') || val.startsWith('http') || val.length > 50) {
+        urls.push(val);
+      }
+    };
+
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) imageUrls.forEach(addImg);
+    if (Array.isArray(question?.images) && question.images.length > 0) question.images.forEach(addImg);
+    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) question.imageUrls.forEach(addImg);
+    addImg(question?.imageUrl);
+    addImg(question?.contentPayload);
+    addImg(question?.imagePayload);
+    addImg(idbImage);
     return Array.from(new Set(urls.filter(Boolean)));
   }, [imageUrls, question, idbImage]);
 

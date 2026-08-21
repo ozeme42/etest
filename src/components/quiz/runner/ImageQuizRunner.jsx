@@ -29,23 +29,45 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   useEffect(() => {
     let isMounted = true;
     async function checkIdb() {
-      if (
-        test.contentPayload === '[STORED_IN_INDEXEDDB]' ||
-        (questions && questions.some(q => q.contentPayload === '[STORED_IN_INDEXEDDB]' || q.imageUrl === '[STORED_IN_INDEXEDDB]'))
-      ) {
-        try {
-          const payload = await idbGetPayload(test.id);
-          if (isMounted && payload) {
-            setIdbPayload(payload);
-          }
-        } catch (err) {
-          console.error("IDB payload load error:", err);
+      const rawIds = [
+        test.id,
+        test.testId,
+        test.homeworkId,
+        test.sourceTestId,
+        ...(test.questionIds || []),
+        ...(test.selectedQuestions || []),
+        ...(questions || []).map(q => q.id),
+        ...(questions || []).map(q => q.questionId)
+      ];
+
+      const idsToTry = [];
+      rawIds.forEach(id => {
+        if (!id) return;
+        const strId = typeof id === 'object' ? (id.id || id.questionId) : String(id);
+        if (strId) {
+          idsToTry.push(strId);
+          idsToTry.push(strId.replace(/^q_?/, ''));
+          idsToTry.push(strId.replace(/^hw_?/, ''));
+          idsToTry.push(strId.replace(/^hw_?/, 'q_'));
+          idsToTry.push(`q_${strId.replace(/^q_?|^hw_?/, '')}`);
+          idsToTry.push(`hw_${strId.replace(/^q_?|^hw_?/, '')}`);
         }
+      });
+
+      const uniqueIds = [...new Set(idsToTry)];
+      for (const candidate of uniqueIds) {
+        try {
+          const payload = await idbGetPayload(candidate);
+          if (isMounted && payload && payload.length > 50 && !payload.includes('[STORED_IN_INDEXEDDB]')) {
+            setIdbPayload(payload);
+            return;
+          }
+        } catch (err) {}
       }
     }
     checkIdb();
     return () => { isMounted = false; };
-  }, [test.id, test.contentPayload, questions]);
+  }, [test, questions]);
 
   // Load draft answers from localStorage
   useEffect(() => {
@@ -66,10 +88,29 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     let urls = [];
     const getObjUrls = (obj) => {
       if (!obj) return [];
-      if (Array.isArray(obj.imageUrls) && obj.imageUrls.length > 0) return obj.imageUrls;
-      if (obj.imageUrl && isValidImageUrl(obj.imageUrl)) return [obj.imageUrl];
-      if (obj.contentPayload && isValidImageUrl(obj.contentPayload)) return [obj.contentPayload];
-      return [];
+      const list = [];
+      if (Array.isArray(obj.imageUrls)) {
+        obj.imageUrls.forEach(u => {
+          if (typeof u === 'string' && u && !u.includes('[STORED_IN_INDEXEDDB]')) {
+            if (u.includes('\n\n') || u.includes('\n') || u.includes('|')) {
+              list.push(...u.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
+            } else {
+              list.push(u);
+            }
+          }
+        });
+      }
+      if (obj.imageUrl && typeof obj.imageUrl === 'string' && !obj.imageUrl.includes('[STORED_IN_INDEXEDDB]')) {
+        list.push(obj.imageUrl);
+      }
+      if (obj.contentPayload && typeof obj.contentPayload === 'string' && !obj.contentPayload.includes('[STORED_IN_INDEXEDDB]')) {
+        if (obj.contentPayload.includes('\n\n') || obj.contentPayload.includes('\n') || obj.contentPayload.includes('|')) {
+          list.push(...obj.contentPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
+        } else if (obj.contentPayload.startsWith('data:image') || obj.contentPayload.startsWith('http') || obj.contentPayload.length > 50) {
+          list.push(obj.contentPayload);
+        }
+      }
+      return list;
     };
 
     if (questions && questions.length > 0) {
@@ -80,15 +121,15 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     if (urls.length === 0) {
       urls.push(...getObjUrls(test));
     }
-    if (urls.length === 0 && idbPayload) {
-      if (idbPayload.startsWith('http') || idbPayload.startsWith('data:image')) {
-        urls.push(idbPayload);
-      } else if (idbPayload.includes('|') || idbPayload.includes('\n')) {
+    if (idbPayload) {
+      if (idbPayload.includes('\n\n') || idbPayload.includes('\n') || idbPayload.includes('|')) {
         urls.push(...idbPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
+      } else if (idbPayload.startsWith('http') || idbPayload.startsWith('data:image') || idbPayload.length > 50) {
+        urls.push(idbPayload);
       }
     }
 
-    return urls.filter(isValidImageUrl);
+    return Array.from(new Set(urls.filter(isValidImageUrl)));
   }, [questions, test, idbPayload]);
 
   const activeQuestion = questions[currentIndex] || questions[0] || {};

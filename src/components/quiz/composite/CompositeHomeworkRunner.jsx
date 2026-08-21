@@ -173,6 +173,7 @@ export default function CompositeHomeworkRunner({
       {/* Top Bar */}
       <CompositeTopHeader
         title={unifiedTest.title || 'Sınav'}
+        isComposite={unifiedTest.isComposite}
         timeLeft={timeLeft}
         isReviewMode={false}
         isDrawingOpen={isDrawingOpen}

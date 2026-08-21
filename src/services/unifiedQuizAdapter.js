@@ -35,21 +35,27 @@ export function optionIndexToLetter(idx) {
 export function extractDirectImages(item) {
   if (!item) return [];
   const urls = [];
-  if (Array.isArray(item.imageUrls)) {
-    item.imageUrls.forEach(u => {
-      if (typeof u === 'string' && u && !u.includes('[STORED_IN_INDEXEDDB]') && !u.includes('[LOCALSTORAGE_CACHE]')) {
-        urls.push(u);
-      }
-    });
-  }
-  const singleCandidates = [item.imageUrl, item.image, item.contentPayload, item.imagePayload, item.payload, item.url];
-  singleCandidates.forEach(c => {
-    if (typeof c === 'string' && (c.startsWith('data:image') || c.startsWith('http') || (c.length > 50 && !c.includes('<') && !c.includes('PDF')))) {
-      if (!c.includes('[STORED_IN_INDEXEDDB]') && !c.includes('[LOCALSTORAGE_CACHE]')) {
-        urls.push(c);
-      }
+  
+  const processCand = (c) => {
+    if (typeof c !== 'string' || !c || c.includes('[STORED_IN_INDEXEDDB]') || c.includes('[LOCALSTORAGE_CACHE]')) return;
+    if (c.includes('\n\n') || c.includes('\n') || c.includes('|')) {
+      const parts = c.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
+      urls.push(...parts);
+    } else if (c.startsWith('data:image') || c.startsWith('http') || (c.length > 50 && !c.includes('<') && !c.includes('PDF'))) {
+      urls.push(c);
     }
-  });
+  };
+
+  if (Array.isArray(item.imageUrls)) {
+    item.imageUrls.forEach(processCand);
+  }
+  if (Array.isArray(item.images)) {
+    item.images.forEach(processCand);
+  }
+
+  const singleCandidates = [item.imageUrl, item.image, item.contentPayload, item.imagePayload, item.payload, item.url];
+  singleCandidates.forEach(processCand);
+
   return Array.from(new Set(urls.filter(Boolean)));
 }
 
@@ -432,30 +438,67 @@ export async function hydrateIndexedDbPayloads(unifiedTest) {
   if (!unifiedTest || !Array.isArray(unifiedTest.sections)) return unifiedTest;
 
   for (const sec of unifiedTest.sections) {
-    if (!sec.documentPayload || sec.documentPayload.includes('[STORED_IN_INDEXEDDB]')) {
+    const needsDoc = !sec.documentPayload || sec.documentPayload.includes('[STORED_IN_INDEXEDDB]');
+    const needsImages = !sec.images || sec.images.length === 0 || sec.questions.some(q => !q.images || q.images.length === 0);
+
+    if (needsDoc || needsImages) {
       const keysToTry = [
         sec.id,
         sec.raw?.questionId,
+        sec.raw?.id,
         sec.raw?.testId,
         sec.raw?.sourceTestId,
-        unifiedTest.id
+        unifiedTest.id,
+        unifiedTest.raw?.id,
+        unifiedTest.raw?.homeworkId,
+        unifiedTest.raw?.testId
       ].filter(Boolean);
 
       for (const k of keysToTry) {
         const cleanK = String(k);
-        const variants = [cleanK, cleanK.replace(/^q_?/, ''), cleanK.replace(/^hw_?/, ''), cleanK.replace(/^test_?/, ''), `q_${cleanK.replace(/^q_?/, '')}`];
+        const variants = [
+          cleanK,
+          cleanK.replace(/^q_?/, ''),
+          cleanK.replace(/^hw_?/, ''),
+          cleanK.replace(/^test_?/, ''),
+          `q_${cleanK.replace(/^q_?|^hw_?/, '')}`,
+          `hw_${cleanK.replace(/^q_?|^hw_?/, '')}`
+        ];
         for (const candidate of variants) {
           try {
             const val = await idbGetPayload(candidate);
             if (val && typeof val === 'string' && val.length > 10 && !val.includes('[STORED_IN_INDEXEDDB]')) {
-              sec.documentPayload = val;
-              if (sec.format === 'pdf') sec.pdfUrl = val;
-              if (sec.format === 'html') sec.htmlPayload = val;
+              if (sec.format === 'pdf' || val.startsWith('data:application/pdf') || val.includes('.pdf')) {
+                sec.documentPayload = val;
+                sec.pdfUrl = val;
+              } else if (sec.format === 'html' || val.includes('<!DOCTYPE') || val.includes('<html') || val.includes('<div')) {
+                sec.documentPayload = val;
+                sec.htmlPayload = val;
+              } else {
+                // Image or multi-image payload
+                let imgList = [];
+                if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
+                  imgList = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
+                } else if (val.startsWith('data:image') || val.startsWith('http') || val.length > 50) {
+                  imgList = [val];
+                }
+
+                if (imgList.length > 0) {
+                  sec.images = imgList;
+                  sec.questions.forEach((q, qIdx) => {
+                    if (imgList.length === sec.questions.length && imgList[qIdx]) {
+                      q.images = [imgList[qIdx]];
+                    } else if (imgList[0]) {
+                      q.images = [imgList[0]];
+                    }
+                  });
+                }
+              }
               break;
             }
           } catch {}
         }
-        if (sec.documentPayload && !sec.documentPayload.includes('[STORED_IN_INDEXEDDB]')) break;
+        if (sec.documentPayload && !sec.documentPayload.includes('[STORED_IN_INDEXEDDB]') && sec.images && sec.images.length > 0) break;
       }
     }
   }

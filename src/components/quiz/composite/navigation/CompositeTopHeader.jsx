@@ -7,6 +7,8 @@ import { ArrowLeft, Clock, Pencil, Send } from 'lucide-react';
  */
 export default memo(function CompositeTopHeader({
   title = 'Birleşik Ödev',
+  subtitle = null,
+  isComposite = true,
   timeLeft = 0,
   isReviewMode = false,
   isDrawingOpen = false,
@@ -53,8 +55,8 @@ export default memo(function CompositeTopHeader({
           <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
             {title}
           </h3>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-            📚 Çok Bölümlü Birleşik Ödev Paketi
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isComposite ? '#2563eb' : '#059669' }}>
+            {subtitle || (isComposite ? '📚 Çok Bölümlü Birleşik Ödev Paketi' : '🎯 Ödev Testi')}
           </span>
         </div>
       </div>
