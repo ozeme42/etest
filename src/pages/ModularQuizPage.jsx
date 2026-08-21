@@ -646,10 +646,20 @@ export default function ModularQuizPage() {
       const userAns = ans.userAnswer;
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
-      const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || textVal);
+      const isQExplicitOE = Boolean(
+        qObj.type === 'acik_uclu' ||
+        qObj.type === 'yazili' ||
+        qObj.questionType === 'acik_uclu' ||
+        qObj.questionType === 'yazili' ||
+        test.questionType === 'acik_uclu' ||
+        test.type === 'acik_uclu' ||
+        ans.isOpenEnded ||
+        ans.is_open_ended ||
+        (textVal && String(textVal).trim() !== '')
+      );
 
       let isCorrect = ans.isCorrect;
-      if (isOE) {
+      if (isQExplicitOE) {
         isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar pending kalır
       } else if (isCorrect === undefined || isCorrect === null) {
         const testCtx = {
@@ -670,7 +680,7 @@ export default function ModularQuizPage() {
 
       if (isCorrect === true) correctCount++;
       else if (isCorrect === false && (userAns !== null && userAns !== undefined && userAns !== '')) wrongCount++;
-      else if (isOE) pendingCount++;
+      else if (isQExplicitOE) pendingCount++;
       else blankCount++;
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
@@ -689,9 +699,19 @@ export default function ModularQuizPage() {
       };
     });
 
-    const totalQ = correctCount + wrongCount + blankCount + pendingCount;
-    const score = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-    const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || pendingCount > 0 || formattedAnswers.some(a => a.isOpenEnded);
+    const totalScored = correctCount + wrongCount + blankCount;
+    const totalQ = totalScored + pendingCount;
+    const score = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
+    const isAcikUclu = Boolean(
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.contentType === 'acik_uclu' ||
+      test.questionType === 'yazili' ||
+      test.type === 'yazili' ||
+      test.contentType === 'yazili' ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('yazili') || test.title.toLowerCase().includes('klasik'))) ||
+      formattedAnswers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
+    );
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;
 

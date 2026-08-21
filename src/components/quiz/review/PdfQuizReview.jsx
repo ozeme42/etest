@@ -49,14 +49,39 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
   const isOpenEndedMode = useMemo(() => {
+    // 1. If explicitly multiple choice, or has answer key, opticAnswers, or options, NOT open ended!
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+      (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+      (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0) ||
+      (test.opticAnswers && Object.keys(test.opticAnswers).length > 0)
+    ) {
+      return false;
+    }
+
+    // 2. If student answers contain multiple-choice options (e.g. 0, 1, 'A', 'B'), NOT open ended!
+    const hasOptionAnswers = answers.some(a => (
+      typeof a.userAnswer === 'number' ||
+      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+    ));
+    if (hasOptionAnswers && !answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) {
+      return false;
+    }
+
     if (
       test.questionType === 'acik_uclu' ||
+      test.questionType === 'yazili' ||
       test.type === 'acik_uclu' ||
-      test.isOpenEnded ||
-      questions.some(q => q.type === 'acik_uclu' || q.isOpenEnded) ||
-      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')) ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('klasik'))) ||
-      (submission?.testTitle && (submission.testTitle.toLowerCase().includes('açık uçlu') || submission.testTitle.toLowerCase().includes('yazılı') || submission.testTitle.toLowerCase().includes('klasik')))
+      test.type === 'yazili' ||
+      test.contentType === 'acik_uclu' ||
+      test.contentType === 'yazili' ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('yazili') || test.title.toLowerCase().includes('klasik'))) ||
+      (submission?.testTitle && (submission.testTitle.toLowerCase().includes('açık uçlu') || submission.testTitle.toLowerCase().includes('acik uclu') || submission.testTitle.toLowerCase().includes('yazılı') || submission.testTitle.toLowerCase().includes('yazili') || submission.testTitle.toLowerCase().includes('klasik'))) ||
+      questions.some(q => q.type === 'acik_uclu' || q.type === 'yazili' || q.isOpenEnded) ||
+      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
     ) {
       return true;
     }
@@ -593,9 +618,10 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 qObj.textAns
               ];
               const textAns = textCandidates.find(t => t !== undefined && t !== null && String(t).trim() !== '' && String(t).trim() !== 'empty');
-              const hasAnswer = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns);
+              const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
+              const hasAnswer = hasUserOption || (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns);
               const isText = Boolean(textAns && String(textAns).trim() !== '');
-              const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded;
+              const isItemOE = !hasUserOption && (isOpenEndedMode || isText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded);
 
               const teacherSc = questionScores[qNo];
               const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
