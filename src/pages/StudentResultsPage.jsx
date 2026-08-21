@@ -689,23 +689,50 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         String(bTestId).startsWith('sub_manual')
       );
 
+      const rawHwId = sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId;
+      const testIdStr = String(sub.testId || raw.testId || bTestId || '');
+
+      const isHomeworkSub = Boolean(
+        rawHwId ||
+        testIdStr.startsWith('hw_') ||
+        subIdStr.startsWith('hw_sub_') ||
+        sub.type === 'homework' ||
+        sub.type === 'ödev' ||
+        raw.type === 'homework' ||
+        raw.type === 'ödev' ||
+        sub.sourceType === 'homework' ||
+        raw.sourceType === 'homework'
+      );
+
+      const hwObj = (homeworks || []).find(h => {
+        const hId = String(h.id);
+        const hUuid = toUUID(h.id);
+        if (rawHwId && (hId === String(rawHwId) || (hUuid && hUuid === toUUID(rawHwId)))) return true;
+        if (testIdStr && (hId === testIdStr || (hUuid && hUuid === toUUID(testIdStr)))) return true;
+        if (subIdStr.startsWith(`hw_sub_${hId}_`) || subIdStr.startsWith(`hw_${hId}_`)) return true;
+        return false;
+      });
+
       const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const curInfo = allCurTestsMap.get(bTestId) || {};
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
-      const hwObj = (homeworks || []).find(h => String(h.id) === bTestId || String(h.id) === bHwId || (toUUID(h.id) && (String(toUUID(h.id)) === bTestId || String(toUUID(h.id)) === bHwId)));
 
-      const isExplicitDeletedHw = Boolean(
-        !isManual &&
-        (bHwId || sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || sub.sourceType === 'homework' || raw.sourceType === 'homework') &&
-        !sub.bookId &&
-        !sub.bookTestId &&
-        Array.isArray(homeworks) &&
-        homeworks.length > 0 &&
-        !hwObj
-      );
-      if (isExplicitDeletedHw) {
-        return; // Only discard if explicitly an assigned homework that was deleted
+      if (!isManual) {
+        if (isHomeworkSub) {
+          if (!hwObj) {
+            return; // Deleted homework -> discard!
+          }
+          if (curData?.grades && !isHomeworkForStudent(hwObj, selectedStudent, curData.grades)) {
+            return; // Unassigned homework -> discard!
+          }
+        }
+        if ((sub.bookId || raw.bookId) && !bookObj && Array.isArray(books) && books.length > 0) {
+          return; // Deleted book -> discard!
+        }
+        if ((sub.bookTestId || raw.bookTestId) && !testObj && Array.isArray(bookTests) && bookTests.length > 0) {
+          return; // Deleted book test -> discard!
+        }
       }
 
       const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';

@@ -994,6 +994,21 @@ export default function StudentDashboard() {
         String(testId).startsWith('sub_manual')
       );
 
+      const rawHwId = sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId;
+      const testIdStr = String(sub.testId || raw.testId || testId || '');
+
+      const isHomeworkSub = Boolean(
+        rawHwId ||
+        testIdStr.startsWith('hw_') ||
+        subIdStr.startsWith('hw_sub_') ||
+        sub.type === 'homework' ||
+        sub.type === 'ödev' ||
+        raw.type === 'homework' ||
+        raw.type === 'ödev' ||
+        sub.sourceType === 'homework' ||
+        raw.sourceType === 'homework'
+      );
+
       const targetTest = (bookTests || []).find(t => 
         String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
         (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
@@ -1002,29 +1017,25 @@ export default function StudentDashboard() {
         String(b.id) === String(sub.bookId || raw.bookId || targetTest?.bookId) ||
         (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || targetTest?.bookId))
       );
-      const targetHw = (homeworks || []).find(h => String(h.id) === String(sub.hwId || sub.homeworkId || sub.testId || testId));
-      const targetCurTest = (curData?.tests || []).find(t => String(t.id) === String(testId));
-      const targetBankQ = (allQuestions || []).find(q => String(q.id) === String(testId));
+      const targetHw = (homeworks || []).find(h => {
+        const hId = String(h.id);
+        const hUuid = toUUID(h.id);
+        if (rawHwId && (hId === String(rawHwId) || (hUuid && hUuid === toUUID(rawHwId)))) return true;
+        if (testIdStr && (hId === testIdStr || (hUuid && hUuid === toUUID(testIdStr)))) return true;
+        if (subIdStr.startsWith(`hw_sub_${hId}_`) || subIdStr.startsWith(`hw_${hId}_`)) return true;
+        return false;
+      });
 
       // If resource is not manual and no longer exists, it is a deleted test/exam/homework -> discard!
       if (!isManual) {
-        if (!targetBook && !targetTest && !targetCurTest && !targetBankQ && !targetHw) {
+        if (isHomeworkSub) {
+          if (!targetHw) return; // Deleted homework -> discard!
+          if (curData?.grades && !isHomeworkForStudent(targetHw, selectedStudent, curData.grades)) return; // Unassigned homework -> discard!
+        }
+        if ((sub.bookId || raw.bookId) && !targetBook && Array.isArray(books) && books.length > 0) {
           return;
         }
-        if (sub.bookId && !targetBook) {
-          return;
-        }
-        if (sub.hwId && !targetHw && !targetTest) {
-          return;
-        }
-        if (targetHw && targetHw.bookId && !books.some(b => String(b.id) === String(targetHw.bookId) || toUUID(b.id) === toUUID(targetHw.bookId))) {
-          return;
-        }
-        if (targetHw && targetHw.type === 'physicalExam' && !targetBook) {
-          return;
-        }
-        const isExamSub = sub.type === 'physicalExam' || sub.isExam || sub.isTrial || String(sub.title || sub.testTitle || '').toLowerCase().includes('deneme');
-        if (isExamSub && !targetBook && !(studentMockExams || []).some(m => String(m.id) === String(sub.id) || String(m.title) === String(sub.title || sub.testTitle))) {
+        if ((sub.bookTestId || raw.bookTestId) && !targetTest && Array.isArray(bookTests) && bookTests.length > 0) {
           return;
         }
       }
