@@ -1478,9 +1478,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </div>
 
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                        <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                        <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                        {s.isPendingEval ? (
+                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            ⏳ Değerlendirmede
+                          </span>
+                        ) : (
+                          <>
+                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                            <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                          </>
+                        )}
                       </div>
 
                       <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
@@ -1961,9 +1969,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     </div>
 
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                      <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                      <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                      {s.isPendingEval ? (
+                        <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          ⏳ Değerlendirmede
+                        </span>
+                      ) : (
+                        <>
+                          <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                          <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                          <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                        </>
+                      )}
                     </div>
 
                     <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
@@ -2207,11 +2223,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               {s.totalQuestions}
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 4 }}>
-                                <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
-                                <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
-                                <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>—{s.blankCount}</span>
-                              </div>
+                              {s.isPendingEval ? (
+                                <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.72rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                  ⏳ Değerlendirmede
+                                </span>
+                              ) : (
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
+                                  <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
+                                  <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>—{s.blankCount}</span>
+                                </div>
+                              )}
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
@@ -2295,9 +2317,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                        <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                        <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                        {s.isPendingEval ? (
+                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.18rem 0.6rem', fontSize: '0.72rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            ⏳ Değerlendirmede
+                          </span>
+                        ) : (
+                          <>
+                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                            <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                          </>
+                        )}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 8 }}>
                         <div>
