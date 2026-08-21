@@ -1856,6 +1856,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             sectionTitle: sec.title,
             userAnswer: userAns !== undefined ? userAns : null,
             userAnswerText: textAns,
+            isOpenEnded: Boolean(checkIsOE(sec) || checkIsOE(bankQ) || checkIsOE(qObj) || textAns || (qObj.type === 'acik_uclu') || (qObj.questionType === 'acik_uclu') || (qObj.type === 'yazili') || (qObj.questionType === 'yazili')),
             isCorrect,
             correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
           });
@@ -2036,15 +2037,32 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const rawUserAns = unwrapUserAnswer(a);
           const hasUserAns = rawUserAns !== null && typeof rawUserAns === 'number';
           const hasUserText = (a.userAnswerText || a.user_answer_text || a.textAns) && String(a.userAnswerText || a.user_answer_text || a.textAns).trim() !== '';
-          const isItemOE = Boolean(a.isOpenEnded || a.is_open_ended || a.userAnswerText || a.user_answer_text || a.textAns || (targetSec && (checkIsOE(targetSec) || checkIsOE(targetSec.bankQ))) || checkIsOE(qObj));
+          const isItemOE = Boolean(
+            a.isOpenEnded ||
+            a.is_open_ended ||
+            a.userAnswerText ||
+            a.user_answer_text ||
+            a.textAns ||
+            (targetSec && (checkIsOE(targetSec) || checkIsOE(targetSec.bankQ))) ||
+            checkIsOE(qObj) ||
+            (qObj && (qObj.type === 'acik_uclu' || qObj.questionType === 'acik_uclu' || qObj.type === 'yazili' || qObj.questionType === 'yazili'))
+          );
 
           if (isItemOE) {
-            if (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== '' && a.evalStatus !== 'empty' && a.eval_status !== 'empty') {
-              console.log('DEBUG OE Score assigned:', { qNo, score: a.score, evalStatus: a.evalStatus });
-              map[sId][qNo] = Number(a.score);
+            const hasTeacherGrade = Boolean(
+              (typeof a.score === 'number' && a.score > 0) ||
+              (typeof a.earnedScore === 'number' && a.earnedScore > 0) ||
+              a.evaluatedAt ||
+              a.teacherNote ||
+              a.teacher_note ||
+              a.feedback ||
+              a.evalStatus === 'graded' ||
+              a.evalStatus === 'evaluated'
+            );
+            if (hasTeacherGrade) {
+              map[sId][qNo] = typeof a.score === 'number' ? Number(a.score) : (typeof a.earnedScore === 'number' ? Number(a.earnedScore) : 10);
             } else {
-              console.log('DEBUG OE Left undefined:', { qNo, score: a.score, evalStatus: a.evalStatus });
-              // Açık uçlu soru: teacher henüz puanlamadıysa undefined kalsın
+              // Open-ended question awaiting teacher grading: MUST be undefined!
             }
           } else if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
             map[sId][qNo] = 'empty';
@@ -2053,16 +2071,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           } else if (a.isCorrect === true || a.is_correct === true) {
             map[sId][qNo] = 10;
           } else if (a.isCorrect === false || a.is_correct === false) {
-            console.log('DEBUG Fallback to 0 because isCorrect false:', { qNo, isCorrect: a.isCorrect });
             map[sId][qNo] = 0;
           } else if (!hasUserAns && !hasUserText) {
-            console.log('DEBUG Fallback to empty because no answer:', { qNo });
             map[sId][qNo] = 'empty';
           } else if (hasUserAns) {
-            console.log('DEBUG Fallback to 0 because hasUserAns:', { qNo });
             map[sId][qNo] = 0;
           } else {
-            console.log('DEBUG Fallback to empty:', { qNo });
             map[sId][qNo] = 'empty';
           }
         });
@@ -2469,6 +2483,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           sectionTitle: sec.title,
           userAnswer: userAns !== null && userAns !== undefined ? userAns : null,
           userAnswerText: textAns,
+          isOpenEnded: Boolean(isSecOE || checkIsOE(qObj) || textAns || (qObj.type === 'acik_uclu') || (qObj.questionType === 'acik_uclu') || (qObj.type === 'yazili') || (qObj.questionType === 'yazili')),
           isCorrect,
           correctAnswer: correctAns,
           correctAnswerLetter: correctAns !== null && correctAns !== undefined && typeof correctAns === 'number' && correctAns >= 0 && correctAns <= 4
