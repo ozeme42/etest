@@ -215,11 +215,7 @@ export default function ModularQuizPage() {
     };
   }, [test, bookForTest]);
 
-  useEffect(() => {
-    if (completedSub && !isSubmittingRef.current) {
-      navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
-    }
-  }, [completedSub, navigate, testId, studentId]);
+
 
   const resolvedTestIdRef = useRef(null);
   const prevBankQCountRef = useRef(0);

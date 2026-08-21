@@ -2355,6 +2355,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       return;
     }
 
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
     try {
       localStorage.removeItem(`${draftKey}_ans`);
       localStorage.removeItem(`${draftKey}_time`);
