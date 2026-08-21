@@ -33,13 +33,13 @@ import ManualTestModal from '../components/ManualTestModal';
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
   const isMultiSec = Boolean(
-    (hw?.sections && hw.sections.length > 0) ||
-    (hw?.tests && hw.tests.length > 0) ||
-    (hw?.items && hw.items.length > 0) ||
-    (sub?.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 0) ||
-    sub?.type === 'multi' ||
+    hw?.isBulk ||
     hw?.type === 'multi' ||
-    hw?.isBulk
+    sub?.type === 'multi' ||
+    (Array.isArray(hw?.sections) && hw.sections.length > 1) ||
+    (Array.isArray(hw?.tests) && hw.tests.length > 1) ||
+    (Array.isArray(hw?.items) && hw.items.length > 1) ||
+    (sub?.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 1)
   );
 
   if (!isMultiSec) return null;
