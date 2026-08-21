@@ -1026,6 +1026,9 @@ export default function StudentDashboard() {
         return false;
       });
 
+      const targetBankQ = (allQuestions || []).find(q => String(q.id) === testIdStr || (toUUID(q.id) && String(toUUID(q.id)) === testIdStr));
+      const targetCurTest = (curData?.tests || []).find(t => String(t.id) === testIdStr);
+
       // If resource is not manual and no longer exists, it is a deleted test/exam/homework -> discard!
       if (!isManual) {
         if (isHomeworkSub) {
@@ -1037,6 +1040,12 @@ export default function StudentDashboard() {
         }
         if ((sub.bookTestId || raw.bookTestId) && !targetTest && Array.isArray(bookTests) && bookTests.length > 0) {
           return;
+        }
+        const hasValidSource = Boolean(
+          targetTest || targetBook || targetHw || targetBankQ || (targetCurTest && targetCurTest.title)
+        );
+        if (!hasValidSource) {
+          return; // Ghost / deleted test -> discard!
         }
       }
 
