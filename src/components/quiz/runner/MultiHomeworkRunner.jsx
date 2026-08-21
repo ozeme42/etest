@@ -2052,6 +2052,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
           const qObj = targetSec.resolvedQuestions?.[qNo - 1];
           const rawUserAns = unwrapUserAnswer(a);
+          const hasUserAns = rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '' && rawUserAns !== 'B' && rawUserAns !== 'empty';
+          const hasUserText = Boolean(a.userAnswerText || a.user_answer_text || a.textAns);
           const isParentOE = Boolean(
             checkIsOE(test) ||
             test?.isOpenEnded ||
