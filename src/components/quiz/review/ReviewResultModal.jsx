@@ -48,12 +48,12 @@ export default function ReviewResultModal({
       fontFamily: "'Inter', sans-serif"
     }}>
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface, #ffffff)',
+        border: '1.5px solid var(--color-border, #e2e8f0)',
         borderRadius: '1.5rem',
         width: '100%',
         maxWidth: '680px',
-        color: '#0f172a',
+        color: 'var(--color-text, #0f172a)',
         padding: '2rem',
         display: 'flex',
         flexDirection: 'column',
@@ -77,14 +77,14 @@ export default function ReviewResultModal({
           }}>
             {isPendingEvaluation ? '⏳' : '🎉'}
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: 'var(--color-text, #0f172a)' }}>
             {isTeacher ? 'Değerlendirme Başarıyla Kaydedildi!' : (isPendingEvaluation ? 'Sınav Değerlendirmede' : 'Sınav Sonuç Raporu')}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
+            <span style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
               🎓 {studentName}
             </span>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800 }}>
               {testTitle}
             </span>
           </div>
@@ -95,8 +95,8 @@ export default function ReviewResultModal({
           {/* Card 1: BAŞARI DURUMU */}
           {isPendingEvaluation ? (
             <div style={{
-              background: '#f5f3ff',
-              border: '1.5px solid #ddd6fe',
+              background: 'var(--color-surface-hover, #f5f3ff)',
+              border: '1.5px solid var(--color-border, #ddd6fe)',
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
               textAlign: 'center',
@@ -114,8 +114,8 @@ export default function ReviewResultModal({
               </div>
               <span style={{
                 fontSize: '0.72rem', fontWeight: 900,
-                color: '#7c3aed', background: '#ede9fe',
-                border: '1px solid #ddd6fe',
+                color: '#7c3aed', background: 'rgba(124, 58, 237, 0.12)',
+                border: '1px solid rgba(124, 58, 237, 0.3)',
                 padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
               }}>
                 Değerlendirmede
@@ -123,7 +123,7 @@ export default function ReviewResultModal({
             </div>
           ) : (
             <div style={{
-              background: '#f8fafc',
+              background: 'var(--color-surface-hover, #f8fafc)',
               border: `1.5px solid ${status.border}`,
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
@@ -134,7 +134,7 @@ export default function ReviewResultModal({
               justifyContent: 'center',
               gap: '0.2rem'
             }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 BAŞARI DURUMU
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: status.color, lineHeight: 1.1 }}>
@@ -154,8 +154,8 @@ export default function ReviewResultModal({
           {/* Card 2: DOĞRU / YANLIŞ */}
           {isPendingEvaluation ? (
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
               textAlign: 'center',
@@ -165,20 +165,20 @@ export default function ReviewResultModal({
               justifyContent: 'center',
               gap: '0.2rem'
             }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 AÇIK UÇLU
               </div>
               <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.1rem' }}>
                 {total} Soru
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                 Öğretmen İncelemesinde
               </span>
             </div>
           ) : (
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
               textAlign: 'center',
@@ -188,13 +188,13 @@ export default function ReviewResultModal({
               justifyContent: 'center',
               gap: '0.2rem'
             }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 DOĞRU / YANLIŞ
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.1rem' }}>
-                {correctCount} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {wrongCount} Y</span>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981', marginTop: '0.1rem' }}>
+                {correctCount} <span style={{ fontSize: '0.85rem', color: '#ef4444' }}>D / {wrongCount} Y</span>
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                 {blankCount > 0 ? `(${blankCount} Boş Soru)` : '(Boş Soru Yok)'}
               </span>
             </div>
@@ -203,8 +203,8 @@ export default function ReviewResultModal({
           {/* Card 3: NET PUAN */}
           {isPendingEvaluation ? (
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
               textAlign: 'center',
@@ -214,20 +214,20 @@ export default function ReviewResultModal({
               justifyContent: 'center',
               gap: '0.2rem'
             }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 SONUÇ / PUAN
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', lineHeight: 1.1 }}>
                 —
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                 Puanlama Sonrası
               </span>
             </div>
           ) : (
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.85rem 0.65rem',
               textAlign: 'center',
@@ -237,13 +237,13 @@ export default function ReviewResultModal({
               justifyContent: 'center',
               gap: '0.2rem'
             }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 NET PUAN
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>
                 {net.toFixed(2)}
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                 Toplam {total} Soru
               </span>
             </div>
@@ -253,18 +253,18 @@ export default function ReviewResultModal({
         {/* TEACHER FEEDBACK NOTE (IF ANY) */}
         {overallFeedback && overallFeedback.trim() && (
           <div style={{
-            background: '#f0fdf4',
-            border: '1.5px solid #bbf7d0',
+            background: 'rgba(16, 185, 129, 0.1)',
+            border: '1.5px solid rgba(16, 185, 129, 0.3)',
             borderRadius: '0.85rem',
             padding: '0.85rem 1rem',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.35rem'
           }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               💬 Öğretmen Karne Mesajı:
             </div>
-            <div style={{ fontSize: '0.86rem', color: '#14532d', fontWeight: 600, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontSize: '0.86rem', color: 'var(--color-text, #14532d)', fontWeight: 600, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
               {overallFeedback}
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function ReviewResultModal({
         {/* SECTION BREAKDOWN (IF MULTI-SECTION) */}
         {Array.isArray(sectionStats) && sectionStats.length > 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.88rem', color: '#334155' }}>
+            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text, #334155)' }}>
               📊 Bölüm Bazlı Sonuç Özeti
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
@@ -283,8 +283,8 @@ export default function ReviewResultModal({
                   <div
                     key={sIdx}
                     style={{
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      background: 'var(--color-surface-hover, #f8fafc)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
                       borderRadius: '0.75rem',
                       padding: '0.65rem 0.85rem',
                       display: 'flex',
@@ -294,13 +294,13 @@ export default function ReviewResultModal({
                       gap: '0.45rem'
                     }}
                   >
-                    <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #0f172a)' }}>
                       {sec.title}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.78rem', fontWeight: 800 }}>
-                      <span style={{ color: '#16a34a' }}>{sec.mcDoğru || 0} D</span>
-                      <span style={{ color: '#dc2626' }}>{sec.mcYanlış || 0} Y</span>
-                      {(sec.mcBoş || 0) > 0 && <span style={{ color: '#64748b' }}>{sec.mcBoş} B</span>}
+                      <span style={{ color: '#10b981' }}>{sec.mcDoğru || 0} D</span>
+                      <span style={{ color: '#ef4444' }}>{sec.mcYanlış || 0} Y</span>
+                      {(sec.mcBoş || 0) > 0 && <span style={{ color: 'var(--color-text-muted, #64748b)' }}>{sec.mcBoş} B</span>}
                       <span style={{
                         padding: '0.15rem 0.45rem',
                         background: secStat.bg,

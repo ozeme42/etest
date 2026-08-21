@@ -631,8 +631,22 @@ export async function dbGetSubmissions(studentId) {
         testTitle: s.test_title || s.title,
         bookTitle: meta?.bookTitle || s.book_title || null,
         unitTopic: meta?.unitTopic || null,
-        totalNet: meta?.totalNet !== undefined ? meta.totalNet : ((s.correct_count || 0) - ((s.wrong_count || 0) / 4)),
-        scorePercentage: meta?.scorePercentage || (s.score !== undefined ? s.score : null),
+        totalNet: meta?.totalNet !== undefined && meta?.totalNet !== null 
+          ? Number(meta.totalNet) 
+          : Number(((s.correct_count || 0) - ((s.wrong_count || 0) / 4)).toFixed(2)),
+        scorePercentage: (() => {
+          const totQ = s.total_questions || meta?.totalQuestions || ((s.correct_count || 0) + (s.wrong_count || 0) + (s.empty_count || 0));
+          if (totQ > 0 && typeof s.correct_count === 'number' && (s.correct_count > 0 || (s.wrong_count || 0) > 0 || (s.empty_count || 0) > 0)) {
+            return Math.min(100, Math.max(0, Math.round((s.correct_count / totQ) * 100)));
+          }
+          if (typeof meta?.scorePercentage === 'number' && !isNaN(meta.scorePercentage) && meta.scorePercentage > 0) {
+            return Math.round(meta.scorePercentage);
+          }
+          if (typeof s.score === 'number' && s.score > 0 && s.score <= 100 && (!totQ || totQ <= 1)) {
+            return Math.round(s.score);
+          }
+          return 0;
+        })(),
         isManual: isManual,
         sourceType: meta?.sourceType || (isManual ? 'manual_test' : null),
         status: meta?.status || s.status || (isApproved ? 'completed' : 'pending_approval'),

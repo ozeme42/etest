@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, Clock, ArrowLeft } from 'lucide-react';
+import { Pencil, CheckCircle2, Clock, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from './QuizPanelLayout';
@@ -9,6 +10,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers, onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { isDark, toggleTheme } = useTheme();
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -433,14 +435,14 @@ const textAns = openEndedText[qNo];
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       <header style={{ 
         padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#ffffff', 
-        borderBottom: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)', 
+        borderBottom: '1.5px solid var(--color-border)',
         flexShrink: 0,
         gap: '0.6rem',
         flexWrap: 'nowrap',
@@ -453,9 +455,9 @@ const textAns = openEndedText[qNo];
               onClick={onExit}
               title="Sınavdan Çıkış Yap"
               style={{
-                background: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                color: '#334155',
+                background: 'var(--color-surface-hover)',
+                border: '1px solid var(--color-border-input)',
+                color: 'var(--color-text)',
                 padding: isMobile ? '0.22rem 0.5rem' : '0.35rem 0.75rem',
                 borderRadius: '0.5rem',
                 display: 'flex',
@@ -492,7 +494,7 @@ const textAns = openEndedText[qNo];
           )}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <h2 style={{ 
-              color: '#0f172a', 
+              color: 'var(--color-text)', 
               fontSize: isMobile ? '0.82rem' : '1.05rem', 
               fontWeight: 900, 
               margin: 0, 
@@ -503,7 +505,7 @@ const textAns = openEndedText[qNo];
               {test.title || "HTML Testi"}
             </h2>
             {!isMobile && (
-              <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 700 }}>
                 {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
               </span>
             )}
@@ -511,13 +513,37 @@ const textAns = openEndedText[qNo];
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', flexShrink: 0 }}>
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+            style={{
+              padding: isMobile ? '0.25rem 0.5rem' : '0.4rem 0.75rem',
+              borderRadius: '0.65rem',
+              background: 'var(--color-surface-hover)',
+              border: '1px solid var(--color-border-input)',
+              color: 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
+            {!isMobile && <span>{isDark ? 'Açık' : 'Koyu'}</span>}
+          </button>
+
           {/* Total Countdown Timer Badge */}
           <div style={{
             padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
-            border: `1.5px solid ${timeLeft < 300 ? '#fca5a5' : '#e2e8f0'}`,
-            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
+            background: timeLeft < 300 ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface-hover)',
+            border: `1.5px solid ${timeLeft < 300 ? '#fca5a5' : 'var(--color-border-input)'}`,
+            color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
@@ -534,9 +560,9 @@ const textAns = openEndedText[qNo];
             style={{
               padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.95rem',
               borderRadius: '0.65rem',
-              background: isDrawingOpen ? '#f59e0b' : '#ffffff',
-              border: `1.5px solid ${isDrawingOpen ? '#d97706' : '#e2e8f0'}`,
-              color: isDrawingOpen ? 'white' : '#334155',
+              background: isDrawingOpen ? '#f59e0b' : 'var(--color-surface-hover)',
+              border: `1.5px solid ${isDrawingOpen ? '#d97706' : 'var(--color-border-input)'}`,
+              color: isDrawingOpen ? 'white' : 'var(--color-text)',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -566,11 +592,11 @@ const textAns = openEndedText[qNo];
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              boxShadow: '0 4px 16px rgba(16,185,129,0.25)',
               transition: 'all 0.15s ease'
             }}
           >
-            <CheckCircle2 size={18} /> 
+            <CheckCircle2 size={isMobile ? 14 : 18} /> 
             {!isMobile && "Sınavı Bitir ve Gönder"}
             {isMobile && "Bitir"}
           </button>
@@ -584,7 +610,7 @@ const textAns = openEndedText[qNo];
         defaultPosition="right"
         defaultSize={340}
         documentContent={
-          <div style={{ flex: 1, width: '100%', height: '100%', background: '#ffffff', color: '#1e293b' }}>
+          <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
             <HtmlViewerWithControls payload={htmlPayload} title={test.title} height="100%" />
           </div>
         }
@@ -599,19 +625,19 @@ const textAns = openEndedText[qNo];
 
               return (
                 <div key={qNo} style={{
-                  background: '#ffffff',
+                  background: 'var(--color-surface)',
                   padding: '0.85rem 1rem',
                   borderRadius: '0.85rem',
-                  border: isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
-                  boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.06)' : '0 1px 4px rgba(0,0,0,0.02)',
+                  border: isAnswered ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                  boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.08)' : '0 1px 4px rgba(0,0,0,0.02)',
                   transition: 'all 0.15s ease'
                 }}>
-                  <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{
                       padding: '0.2rem 0.55rem',
                       borderRadius: '0.45rem',
-                      background: isAnswered ? '#4f46e5' : '#f1f5f9',
-                      color: isAnswered ? '#ffffff' : '#334155',
+                      background: isAnswered ? '#4f46e5' : 'var(--color-surface-hover)',
+                      color: isAnswered ? '#ffffff' : 'var(--color-text)',
                       fontSize: '0.76rem',
                       letterSpacing: '0.02em'
                     }}>
@@ -623,7 +649,7 @@ const textAns = openEndedText[qNo];
                         {isOpenEndedMode ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + selectedOpt)}`}
                       </span>
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>○ Boş</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>○ Boş</span>
                     )}
                   </div>
 
@@ -637,9 +663,9 @@ const textAns = openEndedText[qNo];
                         width: '100%',
                         padding: '0.65rem 0.8rem',
                         borderRadius: '0.6rem',
-                        background: '#ffffff',
-                        border: textVal ? '1.5px solid #10b981' : '1.5px solid #cbd5e1',
-                        color: '#0f172a',
+                        background: 'var(--color-surface-hover)',
+                        border: textVal ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input)',
+                        color: 'var(--color-text)',
                         fontSize: '0.85rem',
                         outline: 'none',
                         fontFamily: 'inherit',
@@ -676,9 +702,9 @@ const textAns = openEndedText[qNo];
                                 flex: 1,
                                 height: '36px',
                                 borderRadius: '0.6rem',
-                                border: isSelected ? 'none' : '1.5px solid #cbd5e1',
-                                background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : '#ffffff',
-                                color: isSelected ? 'white' : '#334155',
+                                border: isSelected ? 'none' : '1.5px solid var(--color-border-input)',
+                                background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--color-surface)',
+                                color: isSelected ? 'white' : 'var(--color-text)',
                                 fontWeight: 900,
                                 fontSize: '0.88rem',
                                 cursor: 'pointer',

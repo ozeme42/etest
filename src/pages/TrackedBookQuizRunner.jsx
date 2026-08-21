@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -13,7 +14,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
-  Flag, RotateCcw, Cloud, Save
+  Flag, RotateCcw, Cloud, Save, Sun, Moon
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
@@ -49,6 +50,7 @@ export default function TrackedBookQuizRunner() {
   const { submissions, addSubmission, updateSubmission } = useEvaluation();
   const { users } = useUser();
   const { currentUser } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const paramStudentId = searchParams.get('studentId');
@@ -814,6 +816,30 @@ export default function TrackedBookQuizRunner() {
               </div>
             </div>
           )}
+
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+            style={{
+              padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.85rem',
+              borderRadius: '0.7rem',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              color: 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.75rem' : '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
+            {!isMobile && <span>{isDark ? 'Açık' : 'Koyu'}</span>}
+          </button>
 
           {/* PDF Mode Selector */}
           {hasPdf && (

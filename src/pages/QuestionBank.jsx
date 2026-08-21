@@ -882,7 +882,7 @@ export default function QuestionBank() {
       {
         id: `sub_${prev.length + 1}_${Date.now()}`,
         questionText: `${prev.length + 1}) Soru metnini yazınız...`,
-        options: ['Şık A', 'Şık B', 'Şık C', 'Şık D'],
+        options: ['', '', '', ''],
         correctAnswer: 0,
         type: 'coktan_secmeli'
       }

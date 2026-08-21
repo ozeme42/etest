@@ -902,20 +902,24 @@ export default function StudentDashboard() {
       }
 
       let pct = 0;
-      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage)) {
+      if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0 || eCount > 0)) {
+        pct = Math.min(100, Math.max(0, Math.round((cCount / qCount) * 100)));
+      } else if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage) && sub.scorePercentage > 0) {
         pct = Math.round(sub.scorePercentage);
-      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage)) {
+      } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage) && raw.scorePercentage > 0) {
         pct = Math.round(raw.scorePercentage);
-      } else if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0)) {
-        pct = Math.round((cCount / qCount) * 100);
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100) {
         pct = Math.round(sub.score);
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
         pct = Math.round(raw.score);
       } else if (sub.accuracy !== undefined && sub.accuracy !== null) {
         pct = Math.round(Number(sub.accuracy));
       }
       pct = Math.min(100, Math.max(0, pct));
+
+      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
+        ? Number(sub.totalNet)
+        : Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2));
 
       // Do not include if totally empty
       if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
@@ -938,6 +942,7 @@ export default function StudentDashboard() {
         emptyCount: eCount,
         totalQuestions: qCount,
         pct,
+        net: calcNet,
         isOpenEnded,
         isPendingEvaluation,
         type: 'ödev',
@@ -1108,12 +1113,12 @@ export default function StudentDashboard() {
       }
 
       let pct = 0;
-      if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage) && sub.scorePercentage > 0) {
+      if (qCount > 0 && typeof cCount === 'number' && (cCount > 0 || wCount > 0 || eCount > 0)) {
+        pct = Math.min(100, Math.max(0, Math.round((cCount / qCount) * 100)));
+      } else if (typeof sub.scorePercentage === 'number' && !isNaN(sub.scorePercentage) && sub.scorePercentage > 0) {
         pct = Math.round(sub.scorePercentage);
       } else if (typeof raw.scorePercentage === 'number' && !isNaN(raw.scorePercentage) && raw.scorePercentage > 0) {
         pct = Math.round(raw.scorePercentage);
-      } else if (qCount > 0 && typeof cCount === 'number' && cCount >= 0) {
-        pct = Math.round((cCount / qCount) * 100);
       } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100 && (!qCount || qCount <= 1)) {
         pct = Math.round(sub.score);
       } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100 && (!qCount || qCount <= 1)) {
@@ -1122,6 +1127,10 @@ export default function StudentDashboard() {
         pct = Math.round(Number(sub.accuracy));
       }
       pct = Math.min(100, Math.max(0, pct));
+
+      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
+        ? Number(sub.totalNet)
+        : Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2));
 
       // Do not include if totally empty
       if (cCount === 0 && wCount === 0 && eCount === 0 && ansCount === 0 && (!sub.submittedAt && !sub.completedAt)) {
@@ -1145,6 +1154,7 @@ export default function StudentDashboard() {
         emptyCount: eCount,
         totalQuestions: qCount,
         pct,
+        net: calcNet,
         isOpenEnded,
         isPendingEvaluation,
         isManual,
@@ -3618,6 +3628,11 @@ export default function StudentDashboard() {
                                 <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
                                   • {test.totalQuestions} Soru
                                 </span>
+                                {test.net !== undefined && test.net !== null && !test.isOpenEnded && (
+                                  <span style={{ color: '#6366f1', fontWeight: 800 }}>
+                                    • {test.net} Net
+                                  </span>
+                                )}
                               </>
                             )}
                           </div>

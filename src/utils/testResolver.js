@@ -2,6 +2,76 @@ import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD } from './dateHelpers';
 
 /**
+ * Intelligently extracts option choices (A, B, C, D, E) from raw question text if present.
+ */
+export function parseOptionsFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const text = rawText.trim();
+  if (text.length < 4) return null;
+
+  // Match patterns like:
+  // A) ... B) ... C) ... D) ...
+  // A. ... B. ... C. ... D. ...
+  // [A] ... [B] ...
+  // (A) ... (B) ...
+  // A - ... B - ...
+  // A: ... B: ...
+  const optRegex = /(?:^|\s|\n)(?:\(|\[)?([A-Ea-e])(?:\)|\.|\:|\]|-)\s*([\s\S]*?)(?=(?:(?:\s|\n)(?:\(|\[)?[A-Ea-e](?:\)|\.|\:|\]|-)\s*)|$)/g;
+
+  const matches = [];
+  let m;
+  while ((m = optRegex.exec(text)) !== null) {
+    const letter = m[1].toUpperCase();
+    const content = (m[2] || '').trim();
+    matches.push({ letter, content, fullIndex: m.index });
+  }
+
+  if (matches.length >= 2) {
+    const letters = matches.map(m => m.letter);
+    const hasA = letters.includes('A');
+    const hasB = letters.includes('B');
+    if (hasA && hasB) {
+      const optMap = {};
+      matches.forEach(match => {
+        if (!optMap[match.letter] && match.content) {
+          optMap[match.letter] = match.content;
+        }
+      });
+
+      const maxLetter = letters.includes('E') ? 'E' : (letters.includes('D') ? 'D' : (letters.includes('C') ? 'C' : 'B'));
+      const count = maxLetter === 'E' ? 5 : (maxLetter === 'D' ? 4 : (maxLetter === 'C' ? 3 : 2));
+      const opts = [];
+      let foundAnyText = false;
+      for (let i = 0; i < count; i++) {
+        const L = String.fromCharCode(65 + i);
+        const val = optMap[L] || '';
+        if (val) foundAnyText = true;
+        opts.push(val);
+      }
+      if (foundAnyText) {
+        return opts;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Strips option block (A) ... B) ...) from question stem if options were extracted from text.
+ */
+export function stripOptionsFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return rawText;
+  const match = rawText.match(/(?:^|\s|\n)(?:\(|\[)?A(?:\)|\.|\:|\]|-)\s*[\s\S]*$/i);
+  if (match && match.index > 0) {
+    const stem = rawText.slice(0, match.index).trim();
+    if (stem.length > 2) {
+      return stem;
+    }
+  }
+  return rawText;
+}
+
+/**
  * Helper to extract question text robustly from any question object format.
  */
 export function extractQuestionText(qObj, testObj = {}, index = 0) {
@@ -31,7 +101,12 @@ export function extractQuestionText(qObj, testObj = {}, index = 0) {
 
   for (const c of candidates) {
     if (c && typeof c === 'string' && c.trim() && !c.startsWith('data:') && !c.startsWith('http')) {
-      return c.trim();
+      const trimmed = c.trim();
+      const parsedOpts = parseOptionsFromText(trimmed);
+      if (parsedOpts && parsedOpts.length >= 2) {
+        return stripOptionsFromText(trimmed);
+      }
+      return trimmed;
     }
   }
 
@@ -50,7 +125,7 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   let optArray = [];
 
   if (Array.isArray(rawOptions) && rawOptions.length > 0) {
-    optArray = rawOptions;
+    optArray = [...rawOptions];
   } else if (rawOptions && typeof rawOptions === 'object') {
     const keys = ['A', 'B', 'C', 'D', 'E'];
     const foundKeys = keys.filter(k => rawOptions[k] !== undefined || rawOptions[k.toLowerCase()] !== undefined);
@@ -58,6 +133,48 @@ export function extractQuestionOptions(qObj, testObj = {}) {
       optArray = keys.map(k => rawOptions[k] ?? rawOptions[k.toLowerCase()]);
     } else {
       optArray = Object.values(rawOptions);
+    }
+  }
+
+  // Check if options are embedded inside question text candidates
+  const rawTextCandidates = [
+    qObj.questionText,
+    qObj.text,
+    qObj.question,
+    qObj.soruMetni,
+    qObj.content,
+    qObj.prompt,
+    (typeof qObj.contentPayload === 'string' && !qObj.contentPayload.startsWith('http') && !qObj.contentPayload.startsWith('data:') && !qObj.contentPayload.startsWith('[') && !qObj.contentPayload.startsWith('{') ? qObj.contentPayload : null),
+    testObj.questionText,
+    testObj.text
+  ].filter(t => t && typeof t === 'string');
+
+  let parsedFromText = null;
+  for (const rawText of rawTextCandidates) {
+    parsedFromText = parseOptionsFromText(rawText);
+    if (parsedFromText && parsedFromText.length >= 2) break;
+  }
+
+  if (parsedFromText && parsedFromText.length > 0) {
+    if (optArray.length === 0) {
+      optArray = parsedFromText;
+    } else {
+      // Merge: if optArray has empty or placeholder items, replace with parsedFromText
+      optArray = optArray.map((opt, idx) => {
+        const textVal = (typeof opt === 'string' ? opt : (opt?.text || opt?.optionText || '')).trim();
+        const letter = String.fromCharCode(65 + idx);
+        const lower = textVal.toLowerCase();
+        const isPlaceholder = !textVal || lower === letter.toLowerCase() || lower === `şık ${letter.toLowerCase()}` || lower === `sik ${letter.toLowerCase()}` || lower === `seçenek ${letter.toLowerCase()}` || lower === `secenek ${letter.toLowerCase()}` || lower === `option ${letter.toLowerCase()}`;
+        if (isPlaceholder && parsedFromText[idx]) {
+          return parsedFromText[idx];
+        }
+        return opt;
+      });
+      if (optArray.length < parsedFromText.length) {
+        for (let i = optArray.length; i < parsedFromText.length; i++) {
+          optArray.push(parsedFromText[i]);
+        }
+      }
     }
   }
 
@@ -92,11 +209,9 @@ export function extractQuestionOptions(qObj, testObj = {}) {
     return null;
   });
 
-  // Eğer tüm seçenekler gerçek metin içeriyorsa döndür
   const realOptions = mapped.filter(Boolean);
   if (realOptions.length > 0) return mapped.map((m, i) => m || String.fromCharCode(65 + i));
 
-  // Tüm seçenekler boş - boş array döndür (soru girişi tamamlanmamış)
   return [];
 }
 

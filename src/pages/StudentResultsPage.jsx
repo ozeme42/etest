@@ -567,16 +567,16 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
 
       let score = 0;
-      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+      if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
+        score = Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
+      } else if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
         score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
-      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
         score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score)) {
+      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100) {
         score = Math.min(100, Math.max(0, Math.round(sub.score)));
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score)) {
+      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
         score = Math.min(100, Math.max(0, Math.round(raw.score)));
-      } else if (total > 0) {
-        score = Math.min(100, Math.round((correct / total) * 100));
       }
 
       const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
@@ -593,6 +593,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (sub.id) processedTestKeys.add(String(sub.id));
       if (sub.testId) processedTestKeys.add(String(sub.testId));
 
+      const calcNet = sub.totalNet !== undefined && sub.totalNet !== null
+        ? Number(sub.totalNet)
+        : Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2));
+
       results.push({
         ...sub,
         id: sub.id || `hw_sub_${hw.id}_${selectedStudent.id}`,
@@ -608,6 +612,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         blankCount: blank,
         totalQuestions: total,
         computedScore: score,
+        totalNet: calcNet,
         submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
       });
     });
@@ -695,12 +700,12 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       let scorePct = 0;
-      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
+      if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
+        scorePct = Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
+      } else if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
         scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
       } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
         scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (total > 0 && typeof correct === 'number' && correct >= 0) {
-        scorePct = Math.min(100, Math.round((correct / total) * 100));
       } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100 && (!total || total <= 1)) {
         scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
       } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100 && (!total || total <= 1)) {

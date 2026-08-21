@@ -98,8 +98,9 @@ body.global-draw-lock * {
   display: flex;
   align-items: center;
   padding: 1rem 1.5rem;
-  background: white;
-  border: 2px solid rgba(0,0,0,0.05);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--border-radius-md);
   cursor: pointer;
   text-align: left;
@@ -117,17 +118,17 @@ body.global-draw-lock * {
 
 .option-btn.selected {
   border-color: var(--color-primary);
-  background: rgba(124, 58, 237, 0.05);
+  background: rgba(124, 58, 237, 0.15);
 }
 
 .option-btn.correct {
   border-color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .option-btn.incorrect {
   border-color: var(--color-error);
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 .option-letter {
@@ -136,7 +137,7 @@ body.global-draw-lock * {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(0,0,0,0.05);
+  background: var(--color-surface-hover);
   border-radius: 50%;
   margin-right: 1rem;
   font-weight: 700;
@@ -187,7 +188,9 @@ body.global-draw-lock * {
   width: 100%;
   padding: 1rem;
   border-radius: var(--border-radius-md);
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1.5px solid var(--color-border-input);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-family: inherit;
   font-size: 1rem;
   outline: none;
@@ -201,8 +204,8 @@ body.global-draw-lock * {
   align-items: stretch;
   border-radius: var(--border-radius-md);
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: white;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
   height: calc(100vh - 200px);
   min-height: 720px;
 }
@@ -238,7 +241,7 @@ body.global-draw-lock * {
 .resizer-horizontal {
   width: 8px;
   cursor: col-resize;
-  background: rgba(0,0,0,0.05);
+  background: var(--color-border);
   transition: background 0.2s;
   display: flex;
   align-items: center;
@@ -253,7 +256,7 @@ body.global-draw-lock * {
 .resizer-vertical {
   height: 8px;
   cursor: row-resize;
-  background: rgba(0,0,0,0.05);
+  background: var(--color-border);
   transition: background 0.2s;
   display: flex;
   align-items: center;
@@ -282,6 +285,7 @@ body.global-draw-lock * {
 .optic-num {
   font-weight: 700;
   width: 30px;
+  color: var(--color-text);
 }
 
 .optic-options {
@@ -293,8 +297,9 @@ body.global-draw-lock * {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.1);
-  background: white;
+  border: 1.5px solid var(--color-border-input);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-weight: 600;
   font-size: 0.85rem;
   display: flex;
@@ -309,9 +314,9 @@ body.global-draw-lock * {
 }
 
 .optic-bubble.selected {
-  background: var(--color-text);
+  background: var(--color-primary);
   color: white;
-  border-color: var(--color-text);
+  border-color: var(--color-primary);
 }
 
 .optic-bubble.correct {
@@ -348,7 +353,8 @@ body.global-draw-lock * {
   top: 0;
   left: 0;
   z-index: 99999;
-  background: #f8fafc;
+  background: var(--color-bg);
+  color: var(--color-text);
   overflow: hidden;
   font-family: inherit;
 }
@@ -358,17 +364,18 @@ body.global-draw-lock * {
   align-items: center;
   justify-content: space-between;
   height: 52px;
-  background: #0f172a;
-  color: white;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
   padding: 0 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .mobile-top-bar-title {
   font-weight: 800;
   font-size: 0.9rem;
-  color: #f8fafc;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -379,7 +386,7 @@ body.global-draw-lock * {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(249, 115, 22, 0.2);
+  background: rgba(249, 115, 22, 0.15);
   color: #f97316;
   border: 1px solid rgba(249, 115, 22, 0.4);
   padding: 3px 8px;
@@ -391,7 +398,8 @@ body.global-draw-lock * {
 .mobile-tab-bar {
   display: flex;
   align-items: center;
-  background: #1e293b;
+  background: var(--color-surface-hover);
+  border-bottom: 1px solid var(--color-border);
   padding: 4px 8px;
   gap: 4px;
   flex-shrink: 0;
@@ -408,7 +416,7 @@ body.global-draw-lock * {
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
@@ -438,8 +446,8 @@ body.global-draw-lock * {
   align-items: center;
   justify-content: space-between;
   height: 58px;
-  background: white;
-  border-top: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
   padding: 0 12px;
   flex-shrink: 0;
   box-shadow: 0 -4px 15px rgba(0,0,0,0.06);
@@ -464,8 +472,9 @@ body.global-draw-lock * {
 }
 
 .mobile-nav-btn.prev {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-input);
 }
 
 .mobile-nav-btn.next {
@@ -485,9 +494,9 @@ body.global-draw-lock * {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #e0e7ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 20px;
   font-weight: 800;
   font-size: 0.8rem;
@@ -508,17 +517,17 @@ body.global-draw-lock * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: var(--color-surface);
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .mobile-optic-num {
   font-weight: 900;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--color-text);
   min-width: 32px;
 }
 
@@ -531,9 +540,9 @@ body.global-draw-lock * {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 2px solid #cbd5e1;
-  background: #f8fafc;
-  color: #334155;
+  border: 1.5px solid var(--color-border-input);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
   font-weight: 900;
   font-size: 0.9rem;
   display: flex;
@@ -559,7 +568,7 @@ body.global-draw-lock * {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   z-index: 10000;
   display: flex;
@@ -568,14 +577,15 @@ body.global-draw-lock * {
 }
 
 .mobile-drawer-content {
-  background: #f8fafc;
+  background: var(--color-bg);
+  color: var(--color-text);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
   animation: slideUp 0.25s ease-out;
 }
 
@@ -589,7 +599,7 @@ body.global-draw-lock * {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 

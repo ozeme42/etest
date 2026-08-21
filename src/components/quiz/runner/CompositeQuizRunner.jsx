@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
@@ -6,7 +7,7 @@ import { idbGetPayload } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, Sun, Moon } from 'lucide-react';
 import QuizPanelLayout from './QuizPanelLayout';
 
 function getSectionIcon(contentType, type) {
@@ -79,13 +80,13 @@ function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onO
         const textVal = openEndedText[qNo] || '';
 
         return (
-          <div key={qNo} style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.8rem', color: '#0f172a' }}>
+          <div key={qNo} style={{ background: 'var(--color-surface)', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-text)' }}>
               <span>Soru {qNo}</span>
               {userAns !== undefined || textVal ? (
                 <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
               ) : (
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>— Boş</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>— Boş</span>
               )}
             </div>
 
@@ -95,7 +96,7 @@ function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onO
                 onChange={(e) => onTextChange(qNo, e.target.value)}
                 placeholder={`Soru ${qNo} açık uçlu yanıt...`}
                 rows={2}
-                style={{ width: '100%', padding: '0.4rem', borderRadius: '0.4rem', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '0.4rem', borderRadius: '0.4rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
             ) : (
               <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -109,9 +110,9 @@ function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onO
                         flex: 1,
                         height: '32px',
                         borderRadius: '0.4rem',
-                        border: isSelected ? 'none' : '1px solid #cbd5e1',
-                        background: isSelected ? '#059669' : '#ffffff',
-                        color: isSelected ? 'white' : '#334155',
+                        border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                        background: isSelected ? '#059669' : 'var(--color-surface-hover)',
+                        color: isSelected ? 'white' : 'var(--color-text-secondary)',
                         fontWeight: 900,
                         fontSize: '0.8rem',
                         cursor: 'pointer',
@@ -161,7 +162,7 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'auto', padding: '1.5rem', gap: '1.25rem' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--color-bg)', overflow: 'auto', padding: '1.5rem', gap: '1.25rem' }}>
       
       {/* Banner */}
       <div style={{ background: isOpenEndedMode ? 'linear-gradient(135deg, #4f46e5, #3730a3)' : 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '1rem', padding: '1.25rem 1.5rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 6px 20px rgba(79,70,229,0.3)' }}>
@@ -182,7 +183,7 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
       </div>
 
       {/* Optik / Yazılı Grid */}
-      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: isOpenEndedMode ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: isOpenEndedMode ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = resolvedQuestions[idx] || {};
@@ -193,13 +194,13 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
           const textVal = openEndedText[qNo] || '';
 
           return (
-            <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+            <div key={qNo} style={{ background: 'var(--color-surface-hover)', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>
                 <span>{qObj.questionText && qObj.questionText !== 'Soru' && !/^Soru\s+\d+$/i.test(qObj.questionText.trim()) ? `Soru ${qNo}: ${qObj.questionText}` : `Soru ${qNo}`}</span>
                 {userAns !== undefined || textVal ? (
                   <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
                 ) : (
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>— Boş</span>
                 )}
               </div>
 
@@ -213,7 +214,7 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
                     onChange={(e) => handleText(qNo, e.target.value)}
                     placeholder={`Soru ${qNo} açık uçlu yanıtınızı buraya yazınız...`}
                     rows={3}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.55rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.55rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
                   />
                 </div>
               ) : (
@@ -228,9 +229,9 @@ const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions
                           flex: 1,
                           height: '34px',
                           borderRadius: '0.4rem',
-                          border: isSelected ? 'none' : '1px solid #cbd5e1',
-                          background: isSelected ? '#059669' : '#ffffff',
-                          color: isSelected ? 'white' : '#334155',
+                          border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                          background: isSelected ? '#059669' : 'var(--color-surface)',
+                          color: isSelected ? 'white' : 'var(--color-text-secondary)',
                           fontWeight: 900,
                           fontSize: '0.85rem',
                           cursor: 'pointer',
@@ -292,12 +293,12 @@ const PdfSection = React.memo(function PdfSection({ bankQ, totalCount, sectionAn
 
   return (
     <QuizPanelLayout
-      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
-      panelSubtitle="Dokümanı okuyup soruları cevaplayınız."
-      icon={sectionOE ? "✍️" : "🎯"}
+      panelTitle={sectionOE ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Paneli'}
+      panelSubtitle='Dokümanı okuyup soruları cevaplayınız.'
+      icon={sectionOE ? '✍️' : '🎯'}
       documentContent={
-        <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflow: 'hidden' }}>
-          <PdfViewerWithControls payload={pdfPayload} title={bankQ.title} height="100%" />
+        <div style={{ flex: 1, minWidth: 0, background: 'var(--color-bg)', overflow: 'hidden' }}>
+          <PdfViewerWithControls payload={pdfPayload} title={bankQ.title} height='100%' />
         </div>
       }
       answerContent={
@@ -355,12 +356,12 @@ const HtmlSection = React.memo(function HtmlSection({ bankQ, totalCount, section
 
   return (
     <QuizPanelLayout
-      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
-      panelSubtitle="Dokümanı okuyup soruları cevaplayınız."
-      icon={sectionOE ? "✍️" : "🎯"}
+      panelTitle={sectionOE ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Paneli'}
+      panelSubtitle='Dokümanı okuyup soruları cevaplayınız.'
+      icon={sectionOE ? '✍️' : '🎯'}
       documentContent={
-        <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflow: 'hidden' }}>
-          <HtmlViewerWithControls payload={htmlPayload} title={bankQ.title} height="100%" />
+        <div style={{ flex: 1, minWidth: 0, background: 'var(--color-bg)', overflow: 'hidden' }}>
+          <HtmlViewerWithControls payload={htmlPayload} title={bankQ.title} height='100%' />
         </div>
       }
       answerContent={
@@ -413,21 +414,21 @@ const ImageSection = React.memo(function ImageSection({ bankQ, resolvedQuestions
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
       <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
-      <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflow: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ flex: 1, minWidth: 0, background: 'var(--color-bg)', overflow: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
           {Array.from({ length: qCount }).map((_, i) => (
             <button key={i} onClick={() => setCurrentIdx(i)} style={{
-              width: 32, height: 32, borderRadius: '0.4rem', border: currentIdx === i ? '2px solid #6366f1' : '1px solid #cbd5e1',
-              background: currentIdx === i ? '#6366f1' : '#ffffff', color: currentIdx === i ? 'white' : '#475569',
+              width: 32, height: 32, borderRadius: '0.4rem', border: currentIdx === i ? '2px solid #6366f1' : '1px solid var(--color-border)',
+              background: currentIdx === i ? '#6366f1' : 'var(--color-surface)', color: currentIdx === i ? 'white' : 'var(--color-text)',
               fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem'
             }}>{i + 1}</button>
           ))}
         </div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>Soru {currentIdx + 1} / {qCount}</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Soru {currentIdx + 1} / {qCount}</div>
         {imageUrls.map((url, idx) => (
           <StandardImageFrame key={idx} src={url} alt={`Soru ${currentIdx + 1}`} onOpenFullscreen={() => setLightboxSrc(url)} />
         ))}
-        {imageUrls.length === 0 && <div style={{ color: '#64748b', fontWeight: 700, padding: '2rem', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '0.75rem', background: '#ffffff' }}>Görsel bulunamadı</div>}
+        {imageUrls.length === 0 && <div style={{ color: 'var(--color-text-muted)', fontWeight: 700, padding: '2rem', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: '0.75rem', background: 'var(--color-surface)' }}>Görsel bulunamadı</div>}
       </div>
       <InlineOptikPanel
         qCount={qCount}
@@ -474,11 +475,11 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
 
   return (
     <QuizPanelLayout
-      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
-      panelSubtitle="Soruları okuyup cevaplarınızı işaretleyiniz."
-      icon={sectionOE ? "✍️" : "🎯"}
+      panelTitle={sectionOE ? 'Açık Uçlu Cevap Paneli' : 'Optik Cevap Paneli'}
+      panelSubtitle='Soruları okuyup cevaplarınızı işaretleyiniz.'
+      icon={sectionOE ? '✍️' : '🎯'}
       documentContent={
-        <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ flex: 1, minWidth: 0, background: 'var(--color-bg)', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {Array.from({ length: qCount }).map((_, idx) => {
             const qNo = idx + 1;
@@ -505,13 +506,13 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
             const textVal = openEndedText[qNo] || '';
 
             return (
-              <div key={qNo} style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div key={qNo} style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
                     Soru {qNo}
                   </h4>
                   {isQOpenEnded && (
-                    <span style={{ padding: '0.2rem 0.5rem', background: '#faf5ff', color: '#7c3aed', border: '1px solid #e9d5ff', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Yazılı</span>
+                    <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Yazılı</span>
                   )}
                 </div>
 
@@ -524,7 +525,7 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
                 )}
 
                 {qText && qText !== `Soru ${qNo}` && (
-                  <div style={{ fontSize: '1rem', color: '#0f172a', lineHeight: 1.6, fontWeight: 700, marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '1rem', color: 'var(--color-text)', lineHeight: 1.6, fontWeight: 700, marginBottom: '1.25rem' }}>
                     {qText}
                   </div>
                 )}
@@ -543,8 +544,8 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
                           style={{
                             padding: '0.85rem 1.25rem',
                             borderRadius: '0.85rem',
-                            border: isSelected ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
-                            background: isSelected ? '#eff6ff' : '#ffffff',
+                            border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--color-border)',
+                            background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'var(--color-surface-hover)',
                             textAlign: 'left',
                             display: 'flex',
                             alignItems: 'center',
@@ -552,10 +553,10 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
                             transition: 'all 0.15s ease'
                           }}
                         >
-                          <span style={{ fontWeight: 900, color: isSelected ? '#1d4ed8' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                          <span style={{ fontWeight: 900, color: isSelected ? '#3b82f6' : 'var(--color-text-secondary)', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
                             {optLetter})
                           </span>
-                          <span style={{ fontSize: '0.95rem', color: isSelected ? '#1d4ed8' : '#334155', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.95rem', color: isSelected ? '#3b82f6' : 'var(--color-text)', fontWeight: 700 }}>
                             {showText ? optText : `Seçenek ${optLetter}`}
                           </span>
                         </button>
@@ -564,7 +565,7 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                       ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
                     </label>
                     <textarea
@@ -572,7 +573,7 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
                       onChange={e => handleText(qNo, e.target.value)}
                       placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
                       rows={4}
-                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
                     />
                   </div>
                 )}
@@ -600,6 +601,7 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
 
 // ─── MAIN COMPOSITE RUNNER EXPORT ─────────────────────────────────────────────
 export default function CompositeQuizRunner({ test, onSubmit }) {
+  const { isDark, toggleTheme } = useTheme();
   const [sections, setSections] = useState([]);
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
   const [sectionAnswers, setSectionAnswers] = useState({});
@@ -718,7 +720,7 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
   };
 
   const currentSection = sections[currentSectionIdx];
-  if (!currentSection) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>Bölümler Yükleniyor...</div>;
+  if (!currentSection) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>Bölümler Yükleniyor...</div>;
 
   const currentSA = sectionAnswers[currentSection.id] || {};
   const bankQ = currentSection.bankQ || {};
@@ -726,22 +728,46 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
   const sectionOE = checkIsOE(bankQ);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
 
       {/* ── Header ── */}
-      <header style={{ padding: '0.65rem 1.25rem', background: '#ffffff', borderBottom: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', flexShrink: 0, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <header style={{ padding: '0.65rem 1.25rem', background: 'var(--color-surface)', borderBottom: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', flexShrink: 0, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <span style={{ padding: '0.28rem 0.6rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.7rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <Layers size={13} /> BÖLÜMLÜ SORU BANKASI ÖDEVİ
           </span>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: 900, margin: 0, color: '#0f172a', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.title || test.name}</h2>
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 900, margin: 0, color: 'var(--color-text)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.title || test.name}</h2>
+          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
             {getSectionIcon(bankQ?.contentType, bankQ?.type)} {currentSection.title}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', background: timeLeft < 300 ? '#fef2f2' : '#ffffff', color: timeLeft < 300 ? '#dc2626' : '#0f172a', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}` }}>
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={isDark ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
+            style={{
+              padding: '0.32rem 0.65rem',
+              borderRadius: '0.5rem',
+              background: 'var(--color-surface-hover)',
+              border: '1.5px solid var(--color-border-input)',
+              color: 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {isDark ? <Sun size={14} color='#f59e0b' /> : <Moon size={14} color='#6366f1' />}
+            <span>{isDark ? 'Açık' : 'Koyu'}</span>
+          </button>
+
+          <div style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', background: timeLeft < 300 ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface-hover)', color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border-input)'}` }}>
             <Clock size={14} color={timeLeft < 300 ? '#dc2626' : '#059669'} /> {formatTime(timeLeft)}
           </div>
           <button onClick={handleFinalSubmit} style={{ padding: '0.4rem 1rem', borderRadius: '0.55rem', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 3px 10px rgba(16,185,129,0.25)' }}>
@@ -751,7 +777,7 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
       </header>
 
       {/* ── Section Navigation Bar ── */}
-      <div style={{ background: '#ffffff', borderBottom: '1.5px solid #e2e8f0', padding: '0.55rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexShrink: 0, overflowX: 'auto' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1.5px solid var(--color-border)', padding: '0.55rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexShrink: 0, overflowX: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           {sections.map((sec, idx) => {
             const isCurrent = idx === currentSectionIdx;
@@ -763,9 +789,9 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.85rem',
                   borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.78rem', whiteSpace: 'nowrap', cursor: 'pointer',
-                  background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#f8fafc',
-                  border: isCurrent ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
-                  color: isCurrent ? 'white' : '#475569',
+                  background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                  border: isCurrent ? '2px solid #6366f1' : '1.5px solid var(--color-border)',
+                  color: isCurrent ? 'white' : 'var(--color-text-secondary)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -782,8 +808,8 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
             onClick={() => setCurrentSectionIdx(p => Math.max(0, p - 1))}
             disabled={currentSectionIdx === 0}
             style={{
-              padding: '0.35rem 0.85rem', borderRadius: '0.5rem', background: currentSectionIdx === 0 ? '#f1f5f9' : '#ffffff',
-              border: '1.5px solid #cbd5e1', color: currentSectionIdx === 0 ? '#94a3b8' : '#334155', fontWeight: 800, fontSize: '0.78rem',
+              padding: '0.35rem 0.85rem', borderRadius: '0.5rem', background: currentSectionIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+              border: '1.5px solid var(--color-border-input)', color: currentSectionIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem',
               cursor: currentSectionIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem'
             }}
           >
@@ -793,8 +819,8 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
             onClick={() => setCurrentSectionIdx(p => Math.min(sections.length - 1, p + 1))}
             disabled={currentSectionIdx === sections.length - 1}
             style={{
-              padding: '0.35rem 0.85rem', borderRadius: '0.5rem', background: currentSectionIdx === sections.length - 1 ? '#f1f5f9' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
-              border: currentSectionIdx === sections.length - 1 ? '1.5px solid #cbd5e1' : 'none', color: currentSectionIdx === sections.length - 1 ? '#94a3b8' : 'white', fontWeight: 800, fontSize: '0.78rem',
+              padding: '0.35rem 0.85rem', borderRadius: '0.5rem', background: currentSectionIdx === sections.length - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
+              border: currentSectionIdx === sections.length - 1 ? '1.5px solid var(--color-border-input)' : 'none', color: currentSectionIdx === sections.length - 1 ? 'var(--color-text-muted)' : 'white', fontWeight: 800, fontSize: '0.78rem',
               cursor: currentSectionIdx === sections.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem'
             }}
           >
@@ -823,4 +849,13 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
       </div>
     </div>
   );
+}
+
+function formatTime(seconds) {
+  if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const p = n => String(n).padStart(2, '0');
+  return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
 }

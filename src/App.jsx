@@ -489,7 +489,7 @@ function AppContent() {
     }
   });
 
-  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/', '/study-room'];
+  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/quiz-review/', '/login', '/physical-exam/', '/study-room'];
   const isLandingPage = location.pathname === '/';
   const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
   const shouldHideSidebar = !currentUser || isLandingPage || isQuizRoute;

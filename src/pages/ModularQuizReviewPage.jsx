@@ -5,6 +5,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -24,12 +25,13 @@ export default function ModularQuizReviewPage() {
   const location = useLocation();
   const studentId = searchParams.get('studentId');
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
 
   const { homeworks, isLoading: hwLoading } = useHomework();
   const { submissions, isLoading: subLoading } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
   const { questions: allBankQuestions } = useQuestionBank();
-  const { bookTests, isLoading: booksLoading } = useTrackedBooks();
+  const { bookTests, books, isLoading: booksLoading } = useTrackedBooks();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -47,7 +49,6 @@ export default function ModularQuizReviewPage() {
 
     // 1. Search in EvaluationContext (global submissions)
     if (submissions && Array.isArray(submissions)) {
-      // Check if targetId is composite (e.g. bt_hw_..._tbt_...)
       const compMatchLocal = String(targetId || '').match(/^(?:bt_|book_test_)?(hw_[^_]+)_(.+)$/);
       const subCandidateLocal = compMatchLocal ? compMatchLocal[2] : null;
       const effectiveSearchIds = [
@@ -68,10 +69,7 @@ export default function ModularQuizReviewPage() {
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
           matchFields.push(...s.bookTestIds.map(String));
         }
-        // Direct test match
         if (effectiveSearchIds.some(searchId => matchFields.includes(searchId))) return true;
-
-        // Fallback to hwId ONLY if searchId was the hwId directly
         if (String(s.hwId) === String(targetId) || String(s.homeworkId) === String(targetId)) {
           return true;
         }
@@ -124,7 +122,41 @@ export default function ModularQuizReviewPage() {
       subCandidateId = compMatch[2];
     }
 
-    // 5. Search in bookTests by subCandidateId or resolvedTestId
+    // 4. Search test in homeworks
+    if (!foundTest && homeworks && Array.isArray(homeworks)) {
+      const searchHwId = explicitHwId || resolvedTestId;
+      foundTest = homeworks.find(h =>
+        String(h.id) === String(searchHwId) ||
+        String(h.id) === String(targetId) ||
+        toUUID(h.id) === String(searchHwId) ||
+        toUUID(h.id) === String(targetId) ||
+        normalizeId(h.id) === normalizeId(searchHwId) ||
+        normalizeId(h.id) === normalizeId(targetId)
+      );
+    }
+
+    // 5. Search if test is in any homework's tests list
+    if (!foundTest && homeworks && Array.isArray(homeworks)) {
+      const parentHw = homeworks.find(h => h.tests && Array.isArray(h.tests) && h.tests.some(t => {
+        const tid = typeof t === 'object' ? t.id : String(t);
+        return String(tid) === String(resolvedTestId) || String(tid) === String(targetId) || toUUID(tid) === String(resolvedTestId) || toUUID(tid) === String(targetId) || normalizeId(tid) === normalizeId(resolvedTestId);
+      }));
+      if (parentHw) {
+        const specificTest = (bookTests || []).find(bt => String(bt.id) === String(resolvedTestId) || toUUID(bt.id) === String(resolvedTestId) || normalizeId(bt.id) === normalizeId(resolvedTestId));
+        foundTest = specificTest ? { ...specificTest, hwId: parentHw.id } : parentHw;
+      }
+    }
+
+    // 6. Search in allBankQuestions
+    if (!foundTest && allBankQuestions && Array.isArray(allBankQuestions)) {
+      foundTest = allBankQuestions.find(bq =>
+        String(bq.id) === String(resolvedTestId) ||
+        String(bq.id) === String(targetId) ||
+        normalizeId(bq.id) === normalizeId(resolvedTestId)
+      );
+    }
+
+    // 7. Search in bookTests by subCandidateId or resolvedTestId
     if (!foundTest && bookTests) {
       if (subCandidateId) {
         foundTest = bookTests.find(t =>
@@ -150,32 +182,7 @@ export default function ModularQuizReviewPage() {
       }
     }
 
-    // 6. Search test in homeworks
-    if (!foundTest && homeworks && Array.isArray(homeworks)) {
-      const searchHwId = explicitHwId || resolvedTestId;
-      foundTest = homeworks.find(h =>
-        String(h.id) === String(searchHwId) ||
-        String(h.id) === String(targetId) ||
-        toUUID(h.id) === String(searchHwId) ||
-        toUUID(h.id) === String(targetId) ||
-        normalizeId(h.id) === normalizeId(searchHwId) ||
-        normalizeId(h.id) === normalizeId(targetId)
-      );
-    }
-
-    // 6.5 Search if test is in any homework's tests list
-    if (!foundTest && homeworks && Array.isArray(homeworks)) {
-      const parentHw = homeworks.find(h => h.tests && Array.isArray(h.tests) && h.tests.some(t => {
-        const tid = typeof t === 'object' ? t.id : String(t);
-        return String(tid) === String(resolvedTestId) || String(tid) === String(targetId) || toUUID(tid) === String(resolvedTestId) || toUUID(tid) === String(targetId) || normalizeId(tid) === normalizeId(resolvedTestId);
-      }));
-      if (parentHw) {
-        const specificTest = (bookTests || []).find(bt => String(bt.id) === String(resolvedTestId) || toUUID(bt.id) === String(resolvedTestId) || normalizeId(bt.id) === normalizeId(resolvedTestId));
-        foundTest = specificTest ? { ...specificTest, hwId: parentHw.id } : parentHw;
-      }
-    }
-
-    // 7. Search test in curriculumData.tests
+    // 8. Search test in curriculumData.tests
     if (!foundTest && curriculumData?.tests) {
       foundTest = curriculumData.tests.find(t =>
         String(t.id) === String(resolvedTestId) ||
@@ -184,16 +191,7 @@ export default function ModularQuizReviewPage() {
       );
     }
 
-    // 8. Search test in allBankQuestions
-    if (!foundTest && allBankQuestions && Array.isArray(allBankQuestions)) {
-      foundTest = allBankQuestions.find(bq =>
-        String(bq.id) === String(resolvedTestId) ||
-        String(bq.id) === String(targetId) ||
-        normalizeId(bq.id) === normalizeId(resolvedTestId)
-      );
-    }
-
-    // 8.2 Search by title matching if not found by ID
+    // 9. Search by title matching if not found by ID
     if (!foundTest && foundSubmission) {
       const subTitle = (foundSubmission.testTitle || foundSubmission.title || '').trim().toLowerCase();
       if (subTitle && subTitle.length > 1) {
@@ -201,22 +199,22 @@ export default function ModularQuizReviewPage() {
           const name = String(t?.name || t?.title || '').trim().toLowerCase();
           return name && (name === subTitle || name.includes(subTitle) || subTitle.includes(name));
         };
-        foundTest = (bookTests || []).find(matchTitle)
-          || (allBankQuestions || []).find(matchTitle)
+        foundTest = (allBankQuestions || []).find(matchTitle)
           || (homeworks || []).find(matchTitle)
-          || (curriculumData?.tests || []).find(matchTitle);
+          || (curriculumData?.tests || []).find(matchTitle)
+          || (bookTests || []).find(matchTitle);
       }
     }
 
-    // 8.5 Check submission for embedded test object or sections
+    // 10. Check submission for embedded test object or sections
     if (!foundTest && foundSubmission) {
       const embedded = foundSubmission.test || foundSubmission.homework || foundSubmission.testDetails;
-      if (embedded && (embedded.sections || embedded.questions || embedded.contentPayload || embedded.pdfPayload)) {
+      if (embedded && (embedded.sections || embedded.questions || embedded.contentPayload || embedded.pdfPayload || embedded.questionsList)) {
         foundTest = embedded;
       }
     }
 
-    // 9. Synthetic test fallback if submission exists but test object was deleted/missing
+    // 11. Synthetic test fallback if submission exists but test object was deleted/missing
     if (!foundTest && foundSubmission) {
       let sectionsArr = foundSubmission.sections || null;
       if (!sectionsArr && foundSubmission.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
@@ -238,12 +236,12 @@ export default function ModularQuizReviewPage() {
         sections: sectionsArr || [],
         questions: foundSubmission.questions || foundSubmission.answers || [],
         questionCount: foundSubmission.totalQuestions || (foundSubmission.answers?.length) || 1,
-        sourceFormat: foundSubmission.sourceFormat || 'physical',
-        sourceType: foundSubmission.sourceType || 'trackedBook'
+        sourceFormat: foundSubmission.sourceFormat || 'digital',
+        sourceType: foundSubmission.sourceType || 'questionBank'
       };
     }
 
-    // 10. Synthetic submission fallback if test is found
+    // 12. Synthetic submission fallback if test is found
     if (foundTest && !foundSubmission) {
       foundSubmission = {
         id: `mock_${targetId}`,
@@ -264,16 +262,19 @@ export default function ModularQuizReviewPage() {
       if (Array.isArray(questionIdList) && questionIdList.length > 0) {
         sections = questionIdList.map((item, idx) => {
           const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
-          const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || bookTests?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
-          const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : [];
-          const title = bankQ?.title || bankQ?.name || (typeof item === 'object' ? (item.title || item.name) : null) || `${idx + 1}. Bölüm`;
-          const qCount = bankQ?.questionCount || bankQ?.totalQuestions || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
+          const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId) || normalizeId(q.id) === normalizeId(itemId)) ||
+                        bookTests?.find(q => String(q.id) === String(itemId) || normalizeId(q.id) === normalizeId(itemId)) ||
+                        (typeof item === 'object' ? item : null);
+          const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (item?.questions || item?.questionsList || []);
+          const title = (typeof item === 'object' ? (item.title || item.name) : null) || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`;
+          const qCount = (typeof item === 'object' ? (item.questionCount || item.totalQuestions || item.qCount) : null) || bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
 
           return {
+            ...(typeof item === 'object' ? item : {}),
             id: itemId || `sec_${idx}`,
             questionId: itemId,
             title,
-            bankQ: bankQ || { id: itemId, title },
+            bankQ: bankQ || (typeof item === 'object' ? item : { id: itemId, title }),
             questionCount: qCount,
             questions: resolvedQuestions
           };
@@ -282,6 +283,21 @@ export default function ModularQuizReviewPage() {
 
       if (sections.length > 0) {
         foundTest = { ...foundTest, sections };
+      } else {
+        const singleQId = (Array.isArray(questionIdList) && questionIdList.length === 1)
+          ? (typeof questionIdList[0] === 'object' ? (questionIdList[0].id || questionIdList[0].questionId) : questionIdList[0])
+          : (foundTest.questionIds?.[0] || foundTest.id);
+        const bankQ = singleQId ? allBankQuestions?.find(q => String(q.id) === String(singleQId) || normalizeId(q.id) === normalizeId(singleQId)) : null;
+
+        if (bankQ) {
+          foundTest = {
+            ...bankQ,
+            ...foundTest,
+            questionCount: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+            totalQuestions: bankQ.questionCount || bankQ.questionsList?.length || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
+            isOpenEnded: bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu' || foundTest.isOpenEnded
+          };
+        }
       }
 
       // 2. Resolve questions
@@ -324,7 +340,8 @@ export default function ModularQuizReviewPage() {
             options: ans.options || ['A', 'B', 'C', 'D', 'E'],
             correctAnswer: correctOpt !== undefined ? correctOpt : null,
             correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
-            userAnswer: ans.userAnswer
+            userAnswer: ans.userAnswer,
+            userAnswerText: ans.userAnswerText
           };
 
           qCountInSection++;
@@ -348,7 +365,7 @@ export default function ModularQuizReviewPage() {
           let sectionIndex = 0;
           let qCountInSection = 0;
           foundSubmission.answers = foundSubmission.answers.map((ans) => {
-            if (ans.sectionId) return ans; // Zaten sectionId varsa atla
+            if (ans.sectionId) return ans;
             
             let currentSec = sectionsArr[sectionIndex] || {};
             let expectedCount = currentSec.questionCount || currentSec.totalQuestions || currentSec.qCount || currentSec.bankQ?.questionCount || currentSec.bankQ?.totalQuestions || 1;
@@ -376,7 +393,7 @@ export default function ModularQuizReviewPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
         İnceleme Raporu Yükleniyor...
       </div>
     );
@@ -384,10 +401,10 @@ export default function ModularQuizReviewPage() {
 
   if (!test || !submission) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '3rem' }}>📋</div>
-        <h2 style={{ margin: 0, color: '#0f172a', fontWeight: 900 }}>İnceleme Raporu Bulunamadı</h2>
-        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0, maxWidth: 420 }}>Bu sınava ait herhangi bir tamamlanmış çözüm kaydı bulunamadı.</p>
+        <h2 style={{ margin: 0, color: 'var(--color-text)', fontWeight: 900 }}>İnceleme Raporu Bulunamadı</h2>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0, maxWidth: 420 }}>Bu sınava ait herhangi bir tamamlanmış çözüm kaydı bulunamadı.</p>
         <button onClick={() => navigate('/student', { replace: true })} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
           Geri Dön
         </button>
@@ -407,16 +424,6 @@ export default function ModularQuizReviewPage() {
     test.isOpenEnded ||
     (test.questions && Array.isArray(test.questions) && test.questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu')) ||
     (questions && Array.isArray(questions) && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu'))
-  );
-
-  const isRealStandardQuiz = Boolean(
-    questions && Array.isArray(questions) && questions.length > 0 && questions.some(q => {
-      if (!q.questionText) return false;
-      const text = q.questionText.trim();
-      if (text.length <= 10) return false;
-      if (/^soru\s*\d+/i.test(text) || /^\d+\.\s*soru/i.test(text)) return false;
-      return true;
-    })
   );
 
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
@@ -472,34 +479,36 @@ export default function ModularQuizReviewPage() {
     (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('pdf'))
   );
 
-  const isQuestionBankAssignment = Boolean(
-    test?.isQuestionBank ||
-    test?.sourceType === 'questionBank' ||
-    submission?.sourceType === 'questionBank' ||
-    (test?.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 0 && typeof test.selectedQuestions[0] === 'string' && !test.selectedQuestions[0].startsWith('bt_'))
+  const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && q.imageUrls.length > 0) || (q.imageUrl && typeof q.imageUrl === 'string' && q.imageUrl !== '[STORED_IN_INDEXEDDB]')
+  ));
+
+  const isImageTest = !isHtml && !isPdf && Boolean(
+    test.sourceFormat === 'image' || test.formatType === 'image' ||
+    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions ||
+    Boolean(test.imageUrl || (test.imageUrls && test.imageUrls.length > 0)) ||
+    (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
-  const isTrackedBook = !isQuestionBankAssignment && Boolean(
-    submission?.sourceType === 'trackedBook' ||
-    submission?.bookTestId ||
-    test?.bookId ||
-    test?.isBookTest ||
-    test?.sourceType === 'trackedBook' ||
-    (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
-      String(bt.id) === String(test?.id) || 
-      String(bt.id) === String(submission?.testId) || 
-      String(bt.id) === String(submission?.bookTestId) ||
-      toUUID(bt.id) === String(test?.id) ||
-      toUUID(bt.id) === String(submission?.testId)
-    )) ||
-    (submission?.hwId && homeworks?.some(hw => String(hw.id) === String(submission.hwId) && (hw.isBookAssignment || hw.bookId)))
+  // STRICTLY for standalone paper book tests that have NO digital questions, NO question texts, NO images, NO payload
+  const isPhysical = Boolean(
+    !String(targetId || '').startsWith('hw_') &&
+    !String(test.id || '').startsWith('hw_') &&
+    !String(submission?.hwId || '').startsWith('hw_') &&
+    (
+      test.sourceFormat === 'physical' ||
+      test.formatType === 'physical' ||
+      test.questionType === 'optik_form' ||
+      test.type === 'optik_form' ||
+      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
+    )
   );
 
-  const isMultiSection = !isTrackedBook && Boolean(
-    String(targetId || '').trim().startsWith('hw_') ||
-    String(test?.id || '').trim().startsWith('hw_') ||
-    String(submission?.hwId || '').trim().startsWith('hw_') ||
-    String(submission?.homeworkId || '').trim().startsWith('hw_') ||
+  const isMultiSection = !isPhysical && Boolean(
+    String(targetId || '').startsWith('hw_') ||
+    String(test.id || '').startsWith('hw_') ||
+    String(submission?.hwId || '').startsWith('hw_') ||
+    String(submission?.homeworkId || '').startsWith('hw_') ||
     (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
     (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
     (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 0) ||
@@ -510,23 +519,6 @@ export default function ModularQuizReviewPage() {
     test.isQuestionBank ||
     test.sourceType === 'questionBank' ||
     submission?.sourceType === 'questionBank'
-  );
-
-  const isPhysical = isTrackedBook || (!isMultiSection && Boolean(
-    test.sourceFormat === 'physicalExam' ||
-    test.contentType === 'physicalExam' ||
-    test.type === 'physicalExam' ||
-    test.bookType === 'exam' ||
-    (test.questionType === 'optik_form' && (!questions || questions.length === 0 || !questions[0]?.text))
-  ));
-
-  const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
-    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
-  ));
-  const isDefinitelyStandardForImage = isRealStandardQuiz && !hasExplicitImageQuestions;
-  const isImageTest = !isHtml && !isPdf && !isPhysical && !isDefinitelyStandardForImage && Boolean(
-    test.sourceFormat === 'image' || test.formatType === 'image' ||
-    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions
   );
 
   const handleCloseReview = () => {
@@ -540,12 +532,12 @@ export default function ModularQuizReviewPage() {
     } else if (fromParam) {
       navigate(fromParam, { replace: true });
     } else {
-      navigate('/student-results', { replace: true });
+      navigate('/student', { replace: true });
     }
   };
 
   // ── Render the correct review component based on test type ──────────────────
-  // Multi-section composite homework → always MultiHomeworkRunner
+  // Multi-section composite homework or Question Bank assignment → always MultiHomeworkRunner (Review Mode)
   if (isMultiSection) {
     return (
       <MultiHomeworkRunner

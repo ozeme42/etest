@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, PanelTop, Maximize2, X as XIcon, EyeOff, Eye } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, PanelTop, Maximize2, X as XIcon, EyeOff, Eye, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { isDark, toggleTheme } = useTheme();
   const hasPdf = !!(bookPdfUrl);
   const navigate = useNavigate();
   // 'side' | 'top' | 'float' | 'hidden'
@@ -247,14 +249,14 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc', color: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#ffffff', 
-        borderBottom: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)', 
+        borderBottom: '1.5px solid var(--color-border)',
         position: 'sticky', 
         top: 0, 
         zIndex: 10,
@@ -273,13 +275,13 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   navigate('/');
                 }
               }}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Geri Dön"
             >
               <ArrowLeft size={isMobile ? 18 : 22} />
             </button>
             <h2 style={{ 
-              color: '#0f172a', 
+              color: 'var(--color-text)', 
               fontSize: isMobile ? '0.9rem' : '1.15rem', 
               fontWeight: 900, 
               margin: 0, 
@@ -290,18 +292,42 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               {test.title || test.name || 'Fiziki Test'}
             </h2>
           </div>
-          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
             Fiziki Sınav • {qCount} Soru
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+            style={{
+              padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.75rem',
+              borderRadius: '0.65rem',
+              background: 'var(--color-surface-hover)',
+              border: '1px solid var(--color-border-input)',
+              color: 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.75rem' : '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
+            {!isMobile && <span>{isDark ? 'Açık' : 'Koyu'}</span>}
+          </button>
+
           <div style={{
             padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
-            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
-            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
+            background: timeLeft < 300 ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface-hover)',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border-input)'}`,
+            color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
@@ -311,7 +337,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
             <span>{formatTime(timeLeft)}</span>
             {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                 (Toplam {qCount * perQuestionMins} dk)
               </span>
             )}
@@ -328,9 +354,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#bfdbfe' : '#cbd5e1'}`,
-                    background: pdfMode === 'side' ? '#eff6ff' : '#ffffff',
-                    color: pdfMode === 'side' ? '#1d4ed8' : '#475569',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#bfdbfe' : 'var(--color-border-input)'}`,
+                    background: pdfMode === 'side' ? (isDark ? 'rgba(37, 99, 235, 0.25)' : '#eff6ff') : 'var(--color-surface)',
+                    color: pdfMode === 'side' ? (isDark ? '#93c5fd' : '#1d4ed8') : 'var(--color-text)',
                     fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                   }}
                 >
@@ -345,9 +371,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#bfdbfe' : '#cbd5e1'}`,
-                  background: pdfMode === 'top' ? '#eff6ff' : '#ffffff',
-                  color: pdfMode === 'top' ? '#1d4ed8' : '#475569',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#bfdbfe' : 'var(--color-border-input)'}`,
+                  background: pdfMode === 'top' ? (isDark ? 'rgba(37, 99, 235, 0.25)' : '#eff6ff') : 'var(--color-surface)',
+                  color: pdfMode === 'top' ? (isDark ? '#93c5fd' : '#1d4ed8') : 'var(--color-text)',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -361,9 +387,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#bfdbfe' : '#cbd5e1'}`,
-                  background: pdfMode === 'float' ? '#eff6ff' : '#ffffff',
-                  color: pdfMode === 'float' ? '#1d4ed8' : '#475569',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#bfdbfe' : 'var(--color-border-input)'}`,
+                  background: pdfMode === 'float' ? (isDark ? 'rgba(37, 99, 235, 0.25)' : '#eff6ff') : 'var(--color-surface)',
+                  color: pdfMode === 'float' ? (isDark ? '#93c5fd' : '#1d4ed8') : 'var(--color-text)',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -377,9 +403,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
-                  background: pdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
-                  color: pdfMode === 'hidden' ? '#dc2626' : '#64748b',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#fecaca' : 'var(--color-border-input)'}`,
+                  background: pdfMode === 'hidden' ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface)',
+                  color: pdfMode === 'hidden' ? '#dc2626' : 'var(--color-text)',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -400,9 +426,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: showOptikForm ? 'linear-gradient(135deg, #059669, #10b981)' : '#ffffff',
-              border: `1.5px solid ${showOptikForm ? '#059669' : '#cbd5e1'}`,
-              color: showOptikForm ? 'white' : '#334155',
+              background: showOptikForm ? 'linear-gradient(135deg, #059669, #10b981)' : 'var(--color-surface)',
+              border: `1.5px solid ${showOptikForm ? '#059669' : 'var(--color-border-input)'}`,
+              color: showOptikForm ? 'white' : 'var(--color-text)',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -422,9 +448,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#ffffff',
-              border: `1.5px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
-              color: isDrawingOpen ? 'white' : '#334155',
+              background: isDrawingOpen ? '#eab308' : 'var(--color-surface)',
+              border: `1.5px solid ${isDrawingOpen ? '#eab308' : 'var(--color-border-input)'}`,
+              color: isDrawingOpen ? 'white' : 'var(--color-text)',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -488,7 +514,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
         {/* RIGHT/BOTTOM: Optik Form — scrollable */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#f8fafc' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -503,7 +529,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             </div>
 
             {/* Optik Grid Form */}
-            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
               {Array.from({ length: qCount }).map((_, idx) => {
                 const qNo = idx + 1;
                 const qObj = questions[idx] || {};
@@ -511,13 +537,13 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
                 return (
-                  <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                  <div key={qNo} style={{ background: 'var(--color-surface-hover)', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>
                       <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
                       {selectedOpt !== undefined || textVal ? (
                         <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
                       ) : (
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>— Boş</span>
                       )}
                     </div>
 
@@ -527,7 +553,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                         onChange={(e) => handleTextChange(qNo, e.target.value)}
                         placeholder={`Soru ${qNo} açık uçlu yanıt...`}
                         rows={2}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.82rem', fontFamily: 'inherit' }}
                       />
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -554,9 +580,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                                 onClick={() => handleOptionSelect(qNo, optIdx)}
                                 style={{
                                   flex: 1, height: '34px', borderRadius: '0.5rem',
-                                  border: isSelected ? 'none' : '1px solid #cbd5e1',
-                                  background: isSelected ? '#059669' : '#ffffff',
-                                  color: isSelected ? 'white' : '#334155',
+                                  border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                                  background: isSelected ? '#059669' : 'var(--color-surface)',
+                                  color: isSelected ? 'white' : 'var(--color-text)',
                                   fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease'
                                 }}
                               >

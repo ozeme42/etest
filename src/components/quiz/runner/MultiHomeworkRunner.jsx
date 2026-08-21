@@ -489,7 +489,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 padding: isMobile ? '0.35rem 0.55rem' : '0.75rem 0.85rem',
                 borderRadius: isMobile ? '0.6rem' : '0.85rem',
                 border: isReviewMode
-                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' || (!isAnswered && !hasTeacherGraded) ? '1.5px solid #e2e8f0' : (isQOE && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
+                  ? (currentTeacherScore === 10 || isCorrect === true ? '1.5px solid #86efac' : currentTeacherScore === 5 ? '1.5px solid #fde68a' : currentTeacherScore === 'empty' ? '1.5px solid #e2e8f0' : (isQOE && !hasTeacherGraded) ? '1.5px solid #ddd6fe' : (currentTeacherScore === 0 || isCorrect === false) ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0')
                   : isAnswered ? '1.5px solid #c7d2fe' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 flexDirection: 'column',
@@ -525,7 +525,7 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                       <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                     ) : currentTeacherScore === 5 ? (
                       <span style={{ fontSize: '0.68rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                    ) : currentTeacherScore === 'empty' || (!isAnswered && !hasTeacherGraded) ? (
+                    ) : currentTeacherScore === 'empty' ? (
                       <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                     ) : isQOE && !hasTeacherGraded ? (
                       isTeacherMode ? (
@@ -1294,7 +1294,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
               }}
             >
-              <Eye size={18} /> Cevapları İncele
+              <Eye size={18} /> Cevapları Kaydet ve İncele
             </button>
           )}
           <button
@@ -1317,7 +1317,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onRe
               gap: '0.5rem'
             }}
           >
-            <CheckCircle2 size={20} /> {isReviewMode ? (isTeacher ? 'Değerlendirmeyi Onayla & Tamamla' : 'Kapat & Sonuçlara Dön') : 'Sınavı Tamamla & Listeye Dön'}
+            <CheckCircle2 size={20} /> {isReviewMode ? (isTeacher ? 'Değerlendirmeyi Onayla & Tamamla' : 'Kapat & Öğrenci Paneline Dön') : 'Sınavı Tamamla & Listeye Dön'}
           </button>
         </div>
       </div>
@@ -2032,26 +2032,37 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
           if (!map[sId]) map[sId] = {};
 
+          const qObj = targetSec.resolvedQuestions?.[qNo - 1];
           const rawUserAns = unwrapUserAnswer(a);
           const hasUserAns = rawUserAns !== null && typeof rawUserAns === 'number';
           const hasUserText = (a.userAnswerText || a.user_answer_text || a.textAns) && String(a.userAnswerText || a.user_answer_text || a.textAns).trim() !== '';
-          const isItemOE = Boolean(a.isOpenEnded || a.is_open_ended || a.userAnswerText || a.user_answer_text || a.textAns || (targetSec && (targetSec.isOpenEnded || targetSec.is_open_ended)));
+          const isItemOE = Boolean(a.isOpenEnded || a.is_open_ended || a.userAnswerText || a.user_answer_text || a.textAns || (targetSec && (checkIsOE(targetSec) || checkIsOE(targetSec.bankQ))) || checkIsOE(qObj));
 
-          if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty' || (!hasUserAns && !hasUserText && (a.isCorrect === null || a.isCorrect === undefined))) {
+          if (isItemOE) {
+            if (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== '' && a.evalStatus !== 'empty' && a.eval_status !== 'empty') {
+              console.log('DEBUG OE Score assigned:', { qNo, score: a.score, evalStatus: a.evalStatus });
+              map[sId][qNo] = Number(a.score);
+            } else {
+              console.log('DEBUG OE Left undefined:', { qNo, score: a.score, evalStatus: a.evalStatus });
+              // Açık uçlu soru: teacher henüz puanlamadıysa undefined kalsın
+            }
+          } else if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
             map[sId][qNo] = 'empty';
           } else if (a.score !== undefined && a.score !== null && a.score !== '') {
             map[sId][qNo] = Number(a.score);
           } else if (a.isCorrect === true || a.is_correct === true) {
             map[sId][qNo] = 10;
           } else if (a.isCorrect === false || a.is_correct === false) {
+            console.log('DEBUG Fallback to 0 because isCorrect false:', { qNo, isCorrect: a.isCorrect });
             map[sId][qNo] = 0;
           } else if (!hasUserAns && !hasUserText) {
+            console.log('DEBUG Fallback to empty because no answer:', { qNo });
             map[sId][qNo] = 'empty';
-          } else if (isItemOE) {
-            // Açık uçlu soru henüz öğretmen tarafından değerlendirilmemiş: map'e 0 koyma, undefined kalsın!
           } else if (hasUserAns) {
+            console.log('DEBUG Fallback to 0 because hasUserAns:', { qNo });
             map[sId][qNo] = 0;
           } else {
+            console.log('DEBUG Fallback to empty:', { qNo });
             map[sId][qNo] = 'empty';
           }
         });
@@ -2470,12 +2481,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const handleConfirmCloseResult = () => {
     setShowResultModal(false);
     if (onSubmit) {
-      onSubmit(submissionAnswers || []);
+      onSubmit(submissionAnswers || [], { isCloseAction: true });
     }
   };
 
   const handleReviewResult = () => {
     setShowResultModal(false);
+    if (onSubmit) {
+      onSubmit(submissionAnswers || [], { isReviewAction: true });
+    }
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
@@ -3504,7 +3518,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                 <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                               ) : currentTeacherScore === 5 ? (
                                 <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                              ) : currentTeacherScore === 'empty' || (!isQAnswered && !hasTeacherGraded) ? (
+                              ) : currentTeacherScore === 'empty' ? (
                                 <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                               ) : currentTeacherScore === 0 ? (
                                 <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
@@ -4078,7 +4092,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                               <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                             ) : currentTeacherScore === 5 ? (
                               <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>½ YARIM (5P)</span>
-                            ) : currentTeacherScore === 'empty' || (!isStdAnswered && !hasTeacherGraded) ? (
+                            ) : currentTeacherScore === 'empty' ? (
                               <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                             ) : currentTeacherScore === 0 ? (
                               <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>

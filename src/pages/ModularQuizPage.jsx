@@ -6,14 +6,14 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
-import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap, Sun, Moon } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
 import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
 import ImageQuizRunner from '../components/quiz/runner/ImageQuizRunner';
-import StandardQuizRunner from '../components/quiz/runner/StandardQuizRunner';
 import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
 import BulkHomeworkRunner from '../components/quiz/runner/BulkHomeworkRunner';
 import CompositeQuizRunner from '../components/quiz/runner/CompositeQuizRunner';
@@ -24,6 +24,7 @@ import { resolveTestQuestions } from '../utils/testResolver';
 export default function ModularQuizPage() {
   const { testId } = useParams();
   const { currentUser } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
   const studentId = searchParams.get('studentId') || currentUser?.id;
   const navigate = useNavigate();
@@ -563,7 +564,7 @@ export default function ModularQuizPage() {
 
   if (completedSub && !isSubmittingRef.current) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
         Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
       </div>
     );
@@ -574,7 +575,7 @@ export default function ModularQuizPage() {
 
   if (loading || isDataLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
         Sınav Yükleniyor...
       </div>
     );
@@ -583,23 +584,23 @@ export default function ModularQuizPage() {
   if (!test) {
     if (initLoading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
           Sınav Yükleniyor...
         </div>
       );
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '3rem' }}>🔍</div>
-        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>Sınav Bulunamadı</h2>
-        <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', maxWidth: '400px', lineHeight: 1.5 }}>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)' }}>Sınav Bulunamadı</h2>
+        <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem', maxWidth: '400px', lineHeight: 1.5 }}>
           Bu teste ait kayıt bulunamadı veya henüz yükleniyor olabilir. Lütfen listenizi kontrol ediniz.
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
           <button onClick={() => navigate('/student')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
             Öğrenci Paneline Dön
           </button>
-          <button onClick={() => navigate('/student/books')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
+          <button onClick={() => navigate('/student/books')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1.5px solid var(--color-border-input)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
             Kitaplarıma Dön
           </button>
         </div>
@@ -621,23 +622,26 @@ export default function ModularQuizPage() {
       const userAns = ans.userAnswer;
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNo || (idx + 1);
+      const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || textVal);
 
       let isCorrect = ans.isCorrect;
-      if (userAns !== null && userAns !== undefined && userAns !== '') {
+      if (isOE) {
+        isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar her zaman null (pending) kalır
+      } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
+        isCorrect = ans.isCorrect; // Runner'ın her bölüm için doğru hesapladığı sonucu koru
+      } else if (userAns !== null && userAns !== undefined && userAns !== '') {
         const effectiveTest = {
           ...test,
           answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers
         };
         isCorrect = checkIsAnswerCorrect(userAns, qObj, effectiveTest, qNo);
-      } else if (textVal) {
-        isCorrect = null; // Open ended pending
       } else {
-        isCorrect = null; // Blank
+        isCorrect = null;
       }
 
       if (isCorrect === true) correctCount++;
       else if (isCorrect === false && (userAns !== null && userAns !== undefined && userAns !== '')) wrongCount++;
-      else if (isCorrect === null && textVal) pendingCount++;
+      else if (isOE && textVal) pendingCount++;
       else blankCount++;
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
@@ -720,6 +724,15 @@ export default function ModularQuizPage() {
       }
 
       setSubmittedResult(submissionData);
+      isSubmittingRef.current = false;
+      
+      if (options.isReviewAction) {
+         navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
+      } else if (options.isCloseAction) {
+         navigate('/student', { replace: true });
+      }
+      // If neither is true (e.g. from HtmlQuizRunner), do nothing! The inline submittedResult block will render.
+
     } catch (err) {
       console.error('Error saving submission:', err);
       isSubmittingRef.current = false;
@@ -870,30 +883,27 @@ export default function ModularQuizPage() {
 
   const renderRunner = () => {
     if (hasMultipleDistinctSections) {
-      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
+      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
     }
 
     if (isHtml) {
-      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
+      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
     }
 
     if (isPdf) {
-      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
+      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
     }
 
     if (isImageTest) {
-      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
+      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate('/student')} />;
     }
 
     if (isPhysical) {
-      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
+      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
     }
 
-    if (isMultiSection) {
-      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate(-1)} />;
-    }
-
-    return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} onExit={() => navigate(-1)} />;
+    // Default: Use MultiHomeworkRunner for all other tests (both single and multi-section)
+    return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} onExit={() => navigate('/student')} />;
   };
 
   if (!hasStarted) {
@@ -940,18 +950,40 @@ export default function ModularQuizPage() {
 
           {/* BADGES & TITLE */}
           <div>
-            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
               <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', color: '#60a5fa', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {testSubject}
               </span>
-              <span style={{ padding: '0.25rem 0.65rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: isDark ? 'rgba(22, 163, 74, 0.2)' : '#f0fdf4', border: `1px solid ${isDark ? '#15803d' : '#bbf7d0'}`, color: isDark ? '#4ade80' : '#15803d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
                 {formatLabel}
               </span>
               {activeHomework && (
-                <span style={{ padding: '0.25rem 0.65rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+                <span style={{ padding: '0.25rem 0.65rem', background: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fffbeb', border: `1px solid ${isDark ? '#b45309' : '#fde68a'}`, color: isDark ? '#fbbf24' : '#b45309', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
                   Ödev Görevi
                 </span>
               )}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+                style={{
+                  background: 'var(--color-surface-hover)',
+                  border: '1px solid var(--color-border-input)',
+                  color: 'var(--color-text)',
+                  padding: '0.22rem 0.6rem',
+                  borderRadius: '99px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isDark ? <Sun size={12} color="#f59e0b" /> : <Moon size={12} color="#6366f1" />}
+                <span>{isDark ? 'Açık Tema' : 'Koyu Tema'}</span>
+              </button>
             </div>
 
             <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'var(--color-text)', lineHeight: 1.25 }}>
@@ -1092,12 +1124,12 @@ export default function ModularQuizPage() {
             fontFamily: "'Inter', sans-serif"
           }}>
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.5rem',
               width: '100%',
               maxWidth: '680px',
-              color: '#0f172a',
+              color: 'var(--color-text)',
               padding: '2rem',
               display: 'flex',
               flexDirection: 'column',
@@ -1120,14 +1152,14 @@ export default function ModularQuizPage() {
                 }}>
                   {submittedResult.isOpenEnded ? '⏳' : '🎉'}
                 </div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
                   {submittedResult.isOpenEnded ? 'Sınav Başarıyla Gönderildi!' : 'Sınav Sonuç Raporu'}
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
+                  <span style={{ background: isDark ? 'rgba(37, 99, 235, 0.2)' : '#eff6ff', color: isDark ? '#93c5fd' : '#2563eb', border: `1px solid ${isDark ? '#1d4ed8' : '#bfdbfe'}`, padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900, fontSize: '0.78rem' }}>
                     🎓 {submittedResult.studentName || 'Öğrenci'}
                   </span>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 800 }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
                     {submittedResult.testTitle}
                   </span>
                 </div>
@@ -1146,10 +1178,10 @@ export default function ModularQuizPage() {
                 }}>
                   <div style={{ fontSize: '1.6rem' }}>📝</div>
                   <div>
-                    <h4 style={{ margin: '0 0 0.3rem 0', fontWeight: 900, color: '#7c3aed', fontSize: '0.95rem' }}>
+                    <h4 style={{ margin: '0 0 0.3rem 0', fontWeight: 900, color: '#a78bfa', fontSize: '0.95rem' }}>
                       Yazılı / Açık Uçlu Cevaplarınız Öğretmen Değerlendirmesine İletildi
                     </h4>
-                    <p style={{ margin: 0, fontSize: '0.84rem', color: '#475569', lineHeight: 1.5 }}>
+                    <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
                       Açık uçlu ({submittedResult.pendingCount || submittedResult.totalQuestions} soru) cevaplarınız öğretmeniniz tarafından incelenip puanlandıktan sonra karne ve başarı durumunuza yansıyacaktır.
                     </p>
                   </div>
@@ -1161,7 +1193,7 @@ export default function ModularQuizPage() {
                 {/* Card 1: BAŞARI DURUMU */}
                 {submittedResult.isOpenEnded ? (
                   <div style={{
-                    background: '#f5f3ff',
+                    background: isDark ? 'rgba(124, 58, 237, 0.15)' : '#f5f3ff',
                     border: '1.5px solid #ddd6fe',
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
@@ -1172,15 +1204,15 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       DURUM
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#7c3aed', lineHeight: 1.1 }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#a78bfa', lineHeight: 1.1 }}>
                       ⏳
                     </div>
                     <span style={{
                       fontSize: '0.72rem', fontWeight: 900,
-                      color: '#7c3aed', background: '#ede9fe',
+                      color: isDark ? '#ddd6fe' : '#7c3aed', background: isDark ? 'rgba(124, 58, 237, 0.3)' : '#ede9fe',
                       border: '1px solid #ddd6fe',
                       padding: '0.12rem 0.5rem', borderRadius: '12px', marginTop: '0.2rem'
                     }}>
@@ -1189,7 +1221,7 @@ export default function ModularQuizPage() {
                   </div>
                 ) : (
                   <div style={{
-                    background: '#f8fafc',
+                    background: 'var(--color-surface-hover)',
                     border: `1.5px solid ${status.border}`,
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
@@ -1200,7 +1232,7 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       BAŞARI DURUMU
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: status.color, lineHeight: 1.1 }}>
@@ -1220,8 +1252,8 @@ export default function ModularQuizPage() {
                 {/* Card 2: DOĞRU / YANLIŞ / BOŞ */}
                 {submittedResult.isOpenEnded ? (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
                     textAlign: 'center',
@@ -1231,20 +1263,20 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       AÇIK UÇLU
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.1rem' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#a78bfa', marginTop: '0.1rem' }}>
                       {submittedResult.totalQuestions || total} Soru
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                       Öğretmen İncelemesinde
                     </span>
                   </div>
                 ) : (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
                     textAlign: 'center',
@@ -1254,13 +1286,13 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       DOĞRU / YANLIŞ
                     </div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.1rem' }}>
                       {cCount} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {wCount} Y</span>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                       {bCount > 0 ? `(${bCount} Boş Soru)` : '(Tümü Yanıtlandı)'}
                     </span>
                   </div>
@@ -1269,8 +1301,8 @@ export default function ModularQuizPage() {
                 {/* Card 3: NET PUAN */}
                 {submittedResult.isOpenEnded ? (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
                     textAlign: 'center',
@@ -1280,20 +1312,20 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       SONUÇ / PUAN
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1.1 }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text-muted)', lineHeight: 1.1 }}>
                       —
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                       Puanlama Sonrası
                     </span>
                   </div>
                 ) : (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '1rem',
                     padding: '0.85rem 0.65rem',
                     textAlign: 'center',
@@ -1303,13 +1335,13 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                       NET PUAN
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7', lineHeight: 1.1 }}>
                       {net.toFixed(2)}
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                       Net
                     </span>
                   </div>
@@ -1329,11 +1361,11 @@ export default function ModularQuizPage() {
                     justifyContent: 'center',
                     gap: '0.2rem'
                   }}>
-                    <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#7c3aed', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#a78bfa', marginTop: 2 }}>
                       {pCount || totQ} Soru
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 700 }}>
                       ⏳ Değerlendirmede
                     </span>
                   </div>
@@ -1342,13 +1374,13 @@ export default function ModularQuizPage() {
 
               {/* SECTION BREAKDOWN */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.88rem', color: '#334155' }}>
+                <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)' }}>
                   📊 Bölüm Bazlı Sonuç Özeti
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '0.75rem',
                     padding: '0.65rem 0.85rem',
                     display: 'flex',
@@ -1361,20 +1393,20 @@ export default function ModularQuizPage() {
                       <span style={{ padding: '0.15rem 0.45rem', background: submittedResult.isOpenEnded ? '#7c3aed' : '#0284c7', borderRadius: '0.35rem', fontSize: '0.68rem', fontWeight: 900, color: 'white' }}>
                         {submittedResult.isOpenEnded ? '✍️ Yazılı Bölüm' : '📝 Test Bölümü'}
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text)' }}>
                         {submittedResult.testTitle}
                       </span>
                     </div>
 
                     {submittedResult.isOpenEnded ? (
-                      <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.4rem', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(167, 139, 250, 0.4)', color: '#7c3aed', fontSize: '0.75rem', fontWeight: 900 }}>
+                      <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.4rem', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(167, 139, 250, 0.4)', color: '#a78bfa', fontSize: '0.75rem', fontWeight: 900 }}>
                         ⏳ Öğretmen Değerlendirmesinde
                       </span>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.78rem', fontWeight: 800, flexWrap: 'wrap' }}>
                         <span style={{ color: '#16a34a' }}>{cCount} Doğru</span>
                         <span style={{ color: '#dc2626' }}>{wCount} Yanlış</span>
-                        <span style={{ color: '#64748b' }}>{bCount} Boş</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>{bCount} Boş</span>
                         <span style={{
                           padding: '0.15rem 0.45rem',
                           background: status.bg,
@@ -1406,9 +1438,9 @@ export default function ModularQuizPage() {
                     minWidth: 150,
                     padding: '0.85rem 1.25rem',
                     borderRadius: '0.85rem',
-                    background: '#ffffff',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#334155',
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid var(--color-border-input)',
+                    color: 'var(--color-text)',
                     fontWeight: 900,
                     fontSize: '0.9rem',
                     cursor: 'pointer',
@@ -1425,13 +1457,7 @@ export default function ModularQuizPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (bookForTest?.bookType === 'exam' || submittedResult?.isExam) {
-                      navigate('/student/exams');
-                    } else if (submittedResult.bookId) {
-                      navigate(`/student/books/${submittedResult.bookId}`);
-                    } else {
-                      navigate('/student/exams');
-                    }
+                    navigate('/student');
                   }}
                   style={{
                     flex: 1.3,
