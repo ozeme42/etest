@@ -13,7 +13,7 @@ import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
-import { ArrowLeft, Save, Award } from 'lucide-react';
+import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock } from 'lucide-react';
 
 /**
  * CompositeHomeworkReview
@@ -75,6 +75,89 @@ export default function CompositeHomeworkReview({
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
+  // 4. Live Reactive Overall Statistics (Doğru, Yanlış, Boş, Başarı %, Net, Değerlendirmede)
+  const overallStats = useMemo(() => {
+    let totalQuestions = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+    let pendingCount = 0;
+
+    rawSections.forEach((sec, sIdx) => {
+      const sa = sectionAnswersMap[sec.id] ||
+                 sectionAnswersMap[sIdx] ||
+                 sectionAnswersMap[String(sIdx)] ||
+                 (sec.title && sectionAnswersMap[sec.title]) ||
+                 (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
+                 (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
+                 { answers: {}, openEndedText: {}, teacherScores: {} };
+
+      const secQs = sec.questions || [];
+      const count = sec.qCount || secQs.length || 1;
+      const isSecOpenEnded = sec.type === 'open_ended';
+
+      for (let i = 1; i <= count; i++) {
+        totalQuestions++;
+        const qObj = secQs[i - 1] || {};
+        const isQOE = isSecOpenEnded || qObj.type === 'open_ended' || qObj.type === 'acik_uclu' || qObj.type === 'yazili';
+        
+        const teacherScore = teacherScores[sec.id]?.[i] ??
+                             teacherScores[sIdx]?.[i] ??
+                             sa.teacherScores?.[i] ??
+                             sa.teacherScores?.[String(i)];
+
+        if (isQOE) {
+          const txt = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const hasText = txt && String(txt).trim() !== '';
+
+          if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
+            const scNum = Number(teacherScore);
+            if (scNum > 0) {
+              correctCount++;
+            } else {
+              wrongCount++;
+            }
+          } else if (unifiedSub.isEvaluated) {
+            if (hasText) wrongCount++;
+            else blankCount++;
+          } else {
+            pendingCount++;
+          }
+        } else {
+          // Multiple choice
+          const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
+            blankCount++;
+          } else {
+            const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
+            if (isCorr === true) {
+              correctCount++;
+            } else if (isCorr === false) {
+              wrongCount++;
+            } else {
+              correctCount++;
+            }
+          }
+        }
+      }
+    });
+
+    const totalScored = correctCount + wrongCount + blankCount;
+    const scorePct = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
+    const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+    const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
+
+    return {
+      total: totalQuestions,
+      correct: correctCount,
+      wrong: wrongCount,
+      blank: blankCount,
+      pending: pendingCount,
+      scorePct,
+      netScore
+    };
+  }, [rawSections, sectionAnswersMap, teacherScores, unifiedSub.isEvaluated]);
+
   const handleSaveAndClose = async () => {
     await saveGrading();
     if (onClose) onClose();
@@ -86,10 +169,12 @@ export default function CompositeHomeworkReview({
       <div style={{
         background: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
-        padding: '0.75rem 1.5rem',
+        padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
         boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -106,35 +191,126 @@ export default function CompositeHomeworkReview({
               alignItems: 'center',
               color: '#475569'
             }}
+            title="Geri Dön"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#0f172a' }}>
               🔍 {unifiedTest.title || 'Sınav İncelemesi'}
             </h3>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm
+              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm ({overallStats.total} Soru)
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        {/* Right: Informative Metric Pills & Action */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+          {/* Doğru Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <CheckCircle2 size={15} color="#16a34a" />
+            <span>{overallStats.correct} Doğru</span>
+          </div>
+
+          {/* Yanlış Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <XCircle size={15} color="#ef4444" />
+            <span>{overallStats.wrong} Yanlış</span>
+          </div>
+
+          {/* Boş Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.7rem',
+            borderRadius: '0.65rem',
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
+            fontWeight: 800,
+            fontSize: '0.82rem'
+          }}>
+            <HelpCircle size={15} color="#64748b" />
+            <span>{overallStats.blank} Boş</span>
+          </div>
+
+          {/* Başarı & Net Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0.35rem 0.75rem',
+            borderRadius: '0.65rem',
+            background: '#eff6ff',
+            border: '1px solid #93c5fd',
+            color: '#1d4ed8',
+            fontWeight: 900,
+            fontSize: '0.82rem'
+          }}>
+            <Award size={15} color="#2563eb" />
+            <span>%{overallStats.scorePct} Başarı (Net: {overallStats.netScore})</span>
+          </div>
+
+          {/* Değerlendirmede / Bekleyen Soru Pill */}
+          {overallStats.pending > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '0.35rem 0.75rem',
+              borderRadius: '0.65rem',
+              background: '#faf5ff',
+              border: '1.5px solid #ddd6fe',
+              color: '#7c3aed',
+              fontWeight: 900,
+              fontSize: '0.82rem'
+            }}>
+              <Clock size={15} color="#8b5cf6" />
+              <span>{overallStats.pending} Değerlendirmede</span>
+            </div>
+          )}
+
+          {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
             style={{
-              padding: '0.65rem 1.25rem',
+              padding: '0.55rem 1.15rem',
               borderRadius: '0.75rem',
               border: '1.5px solid #cbd5e1',
               background: '#ffffff',
               color: '#334155',
               fontWeight: 800,
               fontSize: '0.85rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              marginLeft: '0.25rem'
             }}
           >
-            {isTeacher ? 'Kapat' : 'Kapat & Çık'}
+            {isTeacher ? 'Kapat' : 'Kapat / Çık'}
           </button>
 
           {isTeacher && (
@@ -143,7 +319,7 @@ export default function CompositeHomeworkReview({
               disabled={isSaving}
               onClick={handleSaveAndClose}
               style={{
-                padding: '0.65rem 1.25rem',
+                padding: '0.55rem 1.15rem',
                 borderRadius: '0.75rem',
                 border: 'none',
                 background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
