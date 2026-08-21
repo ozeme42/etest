@@ -691,7 +691,45 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const curInfo = allCurTestsMap.get(bTestId) || {};
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
-      const hwObj = (homeworks || []).find(h => String(h.id) === bTestId || String(h.id) === bHwId);
+      const hwObj = (homeworks || []).find(h => String(h.id) === bTestId || String(h.id) === bHwId || (toUUID(h.id) && (String(toUUID(h.id)) === bTestId || String(toUUID(h.id)) === bHwId)));
+
+      const isHomeworkSub = Boolean(
+        bHwId ||
+        sub.hwId ||
+        sub.homeworkId ||
+        sub.type === 'homework' ||
+        sub.type === 'ödev' ||
+        sub.sourceType === 'homework' ||
+        raw.hwId ||
+        raw.homeworkId ||
+        raw.sourceType === 'homework' ||
+        String(sub.id || '').startsWith('hw_')
+      );
+
+      // Discard deleted resources (homeworks, books, tests)
+      if (!isManual) {
+        if (isHomeworkSub && !hwObj) {
+          return;
+        }
+        if (hwObj && curData?.grades && !isHomeworkForStudent(hwObj, selectedStudent, curData.grades)) {
+          return;
+        }
+        if (sub.bookId && !bookObj) {
+          return;
+        }
+        if (sub.bookTestId && !testObj) {
+          return;
+        }
+        if (!bookObj && !testObj && !curInfo?.title && !bankQ && !hwObj) {
+          return;
+        }
+        if (hwObj && hwObj.bookId && !books.some(b => String(b.id) === String(hwObj.bookId) || toUUID(b.id) === toUUID(hwObj.bookId))) {
+          return;
+        }
+        if (hwObj && (hwObj.type === 'physicalExam' || hwObj.isPhysical) && !bookObj) {
+          return;
+        }
+      }
 
       const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
       const cleanBookTitle = rawBookTitle ? rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim() : '';
