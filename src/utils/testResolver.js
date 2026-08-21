@@ -1,6 +1,6 @@
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD } from './dateHelpers';
-import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from './answerEvaluation';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 
 /**
@@ -643,11 +643,22 @@ export function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
           }
         } else {
           // Multiple choice
-          const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
-          if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') {
+          const rawAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          const u = normalizeAnswerIndex(rawAns);
+          if (u === null) {
             blankCount++;
           } else {
-            const isCorr = checkIsAnswerCorrect(uAns, qObj.raw || qObj, sec.raw || sec, i);
+            let isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
+            if (isCorr === null) {
+              const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
+                ? sec.correctAnswers[i - 1]
+                : (qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption ?? sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1]);
+              if (cAns !== undefined && cAns !== null) {
+                const normC = normalizeAnswerIndex(cAns);
+                isCorr = normC !== null ? (u === normC) : null;
+              }
+            }
+
             if (isCorr === true) {
               correctCount++;
             } else if (isCorr === false) {
