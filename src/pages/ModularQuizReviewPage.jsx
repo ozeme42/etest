@@ -125,6 +125,11 @@ export default function ModularQuizReviewPage() {
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
+          const aExact = String(a.id) === String(targetId) || String(a.submissionId) === String(targetId);
+          const bExact = String(b.id) === String(targetId) || String(b.submissionId) === String(targetId);
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+
           if (submissionIdParam) {
             const aMatch = String(a.id) === String(submissionIdParam) || String(a.submissionId) === String(submissionIdParam);
             const bMatch = String(b.id) === String(submissionIdParam) || String(b.submissionId) === String(submissionIdParam);
@@ -173,7 +178,7 @@ export default function ModularQuizReviewPage() {
     }
 
     // 3. Resolve testId from found submission or targetId
-    const resolvedTestId = foundSubmission?.testId || foundSubmission?.homeworkId || targetId;
+    const resolvedTestId = foundSubmission?.testId || foundSubmission?.realTestId || foundSubmission?.bookTestId || foundSubmission?.homeworkId || targetId;
 
     // Extract composite IDs (e.g. bt_hw_..._tbt_...)
     let subCandidateId = null;
@@ -218,10 +223,10 @@ export default function ModularQuizReviewPage() {
       );
     }
 
-    // 7. Search in bookTests by subCandidateId or resolvedTestId
-    if (!foundTest && bookTests) {
+    // 7. Search in bookTests and deep search in books
+    if (!foundTest) {
       if (subCandidateId) {
-        foundTest = bookTests.find(t =>
+        foundTest = (bookTests || []).find(t =>
           String(t.id) === subCandidateId ||
           toUUID(t.id) === subCandidateId ||
           String(t.id) === toUUID(subCandidateId) ||
@@ -232,7 +237,7 @@ export default function ModularQuizReviewPage() {
         }
       }
 
-      if (!foundTest) {
+      if (!foundTest && bookTests) {
         foundTest = bookTests.find(t =>
           String(t.id) === String(resolvedTestId) ||
           String(t.id) === String(targetId) ||
@@ -241,6 +246,33 @@ export default function ModularQuizReviewPage() {
           normalizeId(t.id) === normalizeId(resolvedTestId) ||
           normalizeId(t.id) === normalizeId(targetId)
         );
+      }
+
+      if (!foundTest && books && Array.isArray(books)) {
+        for (const b of books) {
+          if (b.subjects && Array.isArray(b.subjects)) {
+            for (const s of b.subjects) {
+              if (s.tests && Array.isArray(s.tests)) {
+                const ft = s.tests.find(t => String(t.id) === String(resolvedTestId) || toUUID(t.id) === String(resolvedTestId) || normalizeId(t.id) === normalizeId(resolvedTestId));
+                if (ft) {
+                  foundTest = { ...ft, bookId: b.id, bookTitle: b.title, subjectId: s.id, subject: s.name || b.subject };
+                  break;
+                }
+              }
+              if (s.topics && Array.isArray(s.topics)) {
+                for (const tp of s.topics) {
+                  if (tp.tests && Array.isArray(tp.tests)) {
+                    const ft = tp.tests.find(t => String(t.id) === String(resolvedTestId) || toUUID(t.id) === String(resolvedTestId) || normalizeId(t.id) === normalizeId(resolvedTestId));
+                    if (ft) {
+                      foundTest = { ...ft, bookId: b.id, bookTitle: b.title, subjectId: s.id, topicId: tp.id, subject: s.name || b.subject, topic: tp.name };
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
 

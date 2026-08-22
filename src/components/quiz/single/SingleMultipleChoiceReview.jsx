@@ -39,7 +39,31 @@ export default function SingleMultipleChoiceReview({
     return (!isNaN(num) && num >= 0 && num <= 4) ? num : str;
   };
 
-  const totalQuestions = questions.length || answers.length || 1;
+  const resolveCorrectForQ = (qNo, idx, ansObj, q, testObj) => {
+    if (ansObj?.correctAnswer !== undefined && ansObj?.correctAnswer !== null) return ansObj.correctAnswer;
+    if (ansObj?.correctAnswerLetter) return ansObj.correctAnswerLetter;
+    if (q?.correctAnswer !== undefined && q?.correctAnswer !== null) return q.correctAnswer;
+    if (q?.correctAnswerLetter) return q.correctAnswerLetter;
+    if (q?.correctOption !== undefined && q?.correctOption !== null) return q.correctOption;
+    if (q?.answer !== undefined && q?.answer !== null) return q.answer;
+
+    const ak = testObj?.answerKey || testObj?.answers || testObj?.correctAnswers;
+    if (ak) {
+      if (typeof ak === 'object' && !Array.isArray(ak)) {
+        const val = ak[qNo] ?? ak[String(qNo)] ?? ak[idx] ?? ak[String(idx)];
+        if (val !== undefined && val !== null) return val;
+      } else if (Array.isArray(ak)) {
+        const val = ak[idx] ?? ak[qNo];
+        if (val !== undefined && val !== null) return val;
+      } else if (typeof ak === 'string') {
+        const clean = ak.replace(/[^A-Ea-e]/g, '').toUpperCase();
+        if (clean[idx]) return clean[idx];
+      }
+    }
+    return null;
+  };
+
+  const totalQuestions = questions.length || answers.length || submission.totalQuestions || 1;
 
   // Recompute stats live and build synchronized maps
   const isCorrectMap = {};
@@ -52,7 +76,7 @@ export default function SingleMultipleChoiceReview({
     const q = (Array.isArray(questions) ? questions[idx] : null) || {};
     const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
     const uAns = answersMap[qNo] ?? ansObj.userAnswer;
-    const cAns = ansObj.correctAnswer ?? ansObj.correctAnswerLetter ?? q.correctAnswer ?? q.answer ?? q.correctOption ?? test.answerKey?.[idx];
+    const cAns = resolveCorrectForQ(qNo, idx, ansObj, q, test);
     const normU = normalizeAns(uAns);
     const normC = normalizeAns(cAns);
 
@@ -63,7 +87,9 @@ export default function SingleMultipleChoiceReview({
       if (normC !== null && normC !== undefined) {
         isCorr = (normU === normC);
       } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
-        isCorr = ansObj.isCorrect;
+        isCorr = Boolean(ansObj.isCorrect);
+      } else {
+        isCorr = true;
       }
     }
 
@@ -74,8 +100,14 @@ export default function SingleMultipleChoiceReview({
     correctAnswersArray.push(normC);
   }
 
+  // If live counts are both 0 and submission already had validated counts, preserve them
+  if (correctCount === 0 && wrongCount === 0 && (submission.correctCount || submission.wrongCount)) {
+    correctCount = Number(submission.correctCount || 0);
+    wrongCount = Number(submission.wrongCount || 0);
+  }
+
   const blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
-  const score      = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const score      = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : (submission.score || 0);
   const rawNet     = Math.max(0, correctCount - wrongCount * 0.25);
   const netScore   = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
 
