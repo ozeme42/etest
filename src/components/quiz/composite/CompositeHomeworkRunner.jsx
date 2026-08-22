@@ -13,6 +13,7 @@ import CompositePdfSection from './sections/CompositePdfSection';
 import CompositeHtmlSection from './sections/CompositeHtmlSection';
 import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
+import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 /**
  * CompositeHomeworkRunner
@@ -177,7 +178,7 @@ export default function CompositeHomeworkRunner({
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       {/* Top Bar */}
       <CompositeTopHeader
         title={unifiedTest.title || 'Sınav'}
@@ -235,6 +236,7 @@ export default function CompositeHomeworkRunner({
             section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             onSelectOption={handleSelectOption}
+            onOpenDrawing={() => setIsDrawingOpen(true)}
             isMobile={isMobile}
           />
         )}
@@ -245,6 +247,98 @@ export default function CompositeHomeworkRunner({
           onClose={() => setIsDrawingOpen(false)}
         />
       </div>
+
+      {/* Multi-Section Bottom Navigation Dock (if more than 1 section) */}
+      {rawSections.length > 1 && (
+        <div style={{
+          background: 'var(--color-surface)',
+          borderTop: '1px solid var(--color-border)',
+          padding: isMobile ? '0.45rem 0.75rem' : '0.6rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.65rem',
+          flexShrink: 0,
+          zIndex: 50,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)'
+        }}>
+          {activeSecIdx > 0 ? (
+            <button
+              type="button"
+              onClick={() => setActiveSecIdx(prev => Math.max(0, prev - 1))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1.1rem',
+                borderRadius: '0.75rem',
+                border: '1.5px solid var(--color-border-input)',
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text)',
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <ChevronLeft size={16} />
+              <span>{isMobile ? 'Önceki Bölüm' : `Önceki: ${rawSections[activeSecIdx - 1]?.title || `${activeSecIdx}. Bölüm`}`}</span>
+            </button>
+          ) : <div />}
+
+          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
+            {activeSecIdx + 1} / {rawSections.length}. Bölüm
+          </div>
+
+          {activeSecIdx < rawSections.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setActiveSecIdx(prev => Math.min(rawSections.length - 1, prev + 1))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                color: '#ffffff',
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{isMobile ? 'Sonraki Bölüm' : `Sonraki: ${rawSections[activeSecIdx + 1]?.title || `${activeSecIdx + 2}. Bölüm`}`}</span>
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFinishExam}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                color: '#ffffff',
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <CheckCircle2 size={16} />
+              <span>Sınavı Tamamla</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Results Modal */}
       <QuizResultModal

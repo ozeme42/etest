@@ -10,7 +10,7 @@ import {
   ChevronDown, ChevronRight, ChevronUp, Plus, Edit, Trash2, 
   ListX, Send, XCircle, X, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
   Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings, RotateCcw, RefreshCw,
-  Search, Eye
+  Search, Eye, Copy, AlertCircle
 } from 'lucide-react';
 import './BookManager.css';
 
@@ -116,12 +116,16 @@ export default function BookContentManager() {
     name: "",
     pdfUrl: "",
     questionCount: 20,
-    answerKey: {}
+    answerKey: {},
+    isOpenEnded: false,
+    questionType: 'coktan_secmeli'
   });
   
   // Bulk Wizard Form States
   const [bulkTextInput, setBulkTextInput] = useState("");
   const [jsonInput, setJsonInput] = useState("");
+  const [sampleFormatTab, setSampleFormatTab] = useState("standard"); // "standard" | "direct" | "open_ended" | "mixed"
+  const [copiedFormat, setCopiedFormat] = useState(null);
   const [bulkSeriesData, setBulkSeriesData] = useState({
     subjectName: "",
     topicName: "",
@@ -129,8 +133,160 @@ export default function BookContentManager() {
     prefix: "Test",
     testCount: 10,
     questionCount: 20,
-    rawAnswerKey: ""
+    rawAnswerKey: "",
+    testType: "coktan_secmeli" // "coktan_secmeli" | "acik_uclu"
   });
+
+  const sampleJsonFormats = {
+    standard: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "topics": [
+        {
+          "name": "Üslü Sayılar",
+          "tests": [
+            {
+              "name": "Test 1",
+              "questionType": "coktan_secmeli",
+              "questionCount": 12,
+              "answerKey": ["A", "B", "C", "D", "E", "A", "B", "C", "D", "A", "B", "C"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}`,
+    direct: `{
+  "subjects": [
+    {
+      "name": "Türkçe",
+      "tests": [
+        {
+          "name": "Kazanım Testi 1",
+          "questionType": "coktan_secmeli",
+          "questionCount": 20,
+          "answerKey": ["A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D"]
+        },
+        {
+          "name": "Kazanım Testi 2",
+          "questionType": "coktan_secmeli",
+          "questionCount": 20,
+          "answerKey": ["B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A"]
+        }
+      ]
+    }
+  ]
+}`,
+    open_ended: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "topics": [
+        {
+          "name": "Problemler",
+          "tests": [
+            {
+              "name": "7-8. Sayfa",
+              "questionType": "acik_uclu",
+              "questionCount": 8,
+              "answerKey": {
+                "1": "103959",
+                "2": "2",
+                "3": "503976",
+                "4": "22",
+                "5": "715392",
+                "6": "34253",
+                "7": "186149",
+                "8": "153092"
+              }
+            },
+            {
+              "name": "11-12. Sayfa",
+              "questionType": "acik_uclu",
+              "questionCount": 5,
+              "answerKey": {
+                "1": "732705",
+                "2": "0",
+                "3": "700",
+                "4": "77777",
+                "5": "3"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}`,
+    mixed: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "tests": [
+        {
+          "name": "7-8. Sayfa (Açık Uçlu)",
+          "questionType": "acik_uclu",
+          "questionCount": 16,
+          "answerKey": {
+            "1": "103959",
+            "2": "2",
+            "3": "503976",
+            "4": "22",
+            "5": "715392",
+            "6": "34253",
+            "7": "186149",
+            "8": "153092",
+            "9": "910910",
+            "10": "201030",
+            "11": "69930",
+            "12": "987615",
+            "13": "176740",
+            "14": "66",
+            "15": "619250",
+            "16": "148"
+          }
+        },
+        {
+          "name": "79-80. Sayfa (Çoktan Seçmeli)",
+          "questionType": "coktan_secmeli",
+          "questionCount": 16,
+          "answerKey": {
+            "1": "B",
+            "2": "A",
+            "3": "A",
+            "4": "A",
+            "5": "D",
+            "6": "A",
+            "7": "C",
+            "8": "D",
+            "9": "A",
+            "10": "C",
+            "11": "B",
+            "12": "A",
+            "13": "A",
+            "14": "C",
+            "15": "B",
+            "16": "B"
+          }
+        },
+        {
+          "name": "83-84. Sayfa (Cevap Anahtarsız)",
+          "questionType": "acik_uclu",
+          "questionCount": 10
+        }
+      ]
+    }
+  ]
+}`
+  };
+
+  const copyToClipboard = (key, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedFormat(key);
+    setTimeout(() => setCopiedFormat(null), 2000);
+  };
 
   // Assign Homework Modal Form States
   const [assignTargetMode, setAssignTargetMode] = useState("student"); // "student" | "class"
@@ -466,11 +622,23 @@ export default function BookContentManager() {
     setCurrentTopic(topic || null);
     setCurrentTest(test);
     const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
+
+    // Test bazında tip tespiti (karma kitaplar için)
+    const testIsOpenEnded =
+      test.isOpenEnded === true ||
+      test.questionType === 'acik_uclu' ||
+      (book?.bookType === 'open_ended' && test.questionType !== 'coktan_secmeli');
+
+    const testQuestionType = test.questionType ||
+      (book?.bookType === 'open_ended' ? 'acik_uclu' : 'coktan_secmeli');
+
     setTestFormData({
       name: test.name || '',
       questionCount: qCount,
       answerKey: test.answerKey ? { ...test.answerKey } : {},
-      pdfUrl: test.pdfUrl || ''
+      pdfUrl: test.pdfUrl || '',
+      isOpenEnded: testIsOpenEnded,
+      questionType: testQuestionType
     });
     setIsTestDialogOpen(true);
   };
@@ -491,11 +659,11 @@ export default function BookContentManager() {
       name: testFormData.name.trim(),
       questionCount: Number(testFormData.questionCount) || 20,
       pdfUrl: testFormData.pdfUrl || '',
+      isOpenEnded: testFormData.isOpenEnded || false,
+      questionType: testFormData.questionType || 'coktan_secmeli',
+      // Cevap anahtarını her zaman sakla (açık uçlu için sayısal cevaplar da tutulur)
+      answerKey: testFormData.answerKey || {},
     };
-    
-    if (book.bookType !== 'open_ended') {
-      testPayload.answerKey = testFormData.answerKey || {};
-    }
 
     try {
       if (currentTest) {
@@ -533,12 +701,30 @@ export default function BookContentManager() {
       sData.directTests.forEach((tObj) => {
         const testName = typeof tObj === 'string' ? tObj : tObj.name;
         const rawAns = typeof tObj === 'object' ? tObj.rawAns : "";
+        const isOe = (book?.bookType === 'open_ended') ||
+          testName.toLowerCase().includes('açık uçlu') ||
+          testName.toLowerCase().includes('acik uclu') ||
+          testName.toLowerCase().includes('klasik');
+
+        let ansObj = {};
+        if (rawAns) {
+          if (isOe && (rawAns.includes(',') || !/^[A-Ea-e]+$/.test(rawAns))) {
+            rawAns.split(/[,;\s]+/).filter(Boolean).forEach((p, idx) => {
+              ansObj[String(idx + 1)] = p.trim();
+            });
+          } else {
+            ansObj = parseAnswerKeyString(rawAns, 20);
+          }
+        }
+
         addTrackedBookTest(book.id, {
           subjectId: String(subject.id),
           topicId: null,
           name: testName,
           questionCount: 20,
-          answerKey: parseAnswerKeyString(rawAns, 20)
+          answerKey: ansObj,
+          isOpenEnded: isOe,
+          questionType: isOe ? 'acik_uclu' : 'coktan_secmeli'
         });
       });
 
@@ -552,12 +738,30 @@ export default function BookContentManager() {
         testObjs.forEach((tObj) => {
           const testName = typeof tObj === 'string' ? tObj : tObj.name;
           const rawAns = typeof tObj === 'object' ? tObj.rawAns : "";
+          const isOe = (book?.bookType === 'open_ended') ||
+            testName.toLowerCase().includes('açık uçlu') ||
+            testName.toLowerCase().includes('acik uclu') ||
+            testName.toLowerCase().includes('klasik');
+
+          let ansObj = {};
+          if (rawAns) {
+            if (isOe && (rawAns.includes(',') || !/^[A-Ea-e]+$/.test(rawAns))) {
+              rawAns.split(/[,;\s]+/).filter(Boolean).forEach((p, idx) => {
+                ansObj[String(idx + 1)] = p.trim();
+              });
+            } else {
+              ansObj = parseAnswerKeyString(rawAns, 20);
+            }
+          }
+
           addTrackedBookTest(book.id, {
             subjectId: String(subject.id),
             topicId: String(topic.id),
             name: testName,
             questionCount: 20,
-            answerKey: parseAnswerKeyString(rawAns, 20)
+            answerKey: ansObj,
+            isOpenEnded: isOe,
+            questionType: isOe ? 'acik_uclu' : 'coktan_secmeli'
           });
         });
       });
@@ -570,13 +774,25 @@ export default function BookContentManager() {
   };
 
   const handleExecuteBulkSeries = () => {
-    const { subjectName, topicName, isDirectSubject, prefix, testCount, questionCount, rawAnswerKey } = bulkSeriesData;
+    const { subjectName, topicName, isDirectSubject, prefix, testCount, questionCount, rawAnswerKey, testType } = bulkSeriesData;
     if (!subjectName.trim() || testCount <= 0) {
       showToast("Lütfen ders adı ve geçerli test sayısı giriniz.", "error");
       return;
     }
 
-    const answerKeyObj = parseAnswerKeyString(rawAnswerKey, questionCount);
+    const isOe = testType === 'acik_uclu' || book?.bookType === 'open_ended';
+    let answerKeyObj = {};
+
+    if (rawAnswerKey && rawAnswerKey.trim()) {
+      if (isOe && (rawAnswerKey.includes(',') || !/^[A-Ea-e]+$/.test(rawAnswerKey.trim()))) {
+        const parts = rawAnswerKey.split(/[,;\s]+/).filter(Boolean);
+        parts.forEach((p, idx) => {
+          if (idx < (questionCount || 20)) answerKeyObj[String(idx + 1)] = p.trim();
+        });
+      } else {
+        answerKeyObj = parseAnswerKeyString(rawAnswerKey, questionCount || 20);
+      }
+    }
 
     const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
     let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjectName.trim().toLocaleLowerCase('tr-TR'));
@@ -605,92 +821,141 @@ export default function BookContentManager() {
         topicId: topicId,
         name: `${prefix || 'Test'} ${i}`,
         questionCount: questionCount || 20,
-        answerKey: answerKeyObj
+        answerKey: answerKeyObj,
+        isOpenEnded: isOe,
+        questionType: isOe ? 'acik_uclu' : 'coktan_secmeli'
       });
     }
 
-    showToast(`${testCount} adet test cevap anahtarı ile başarıyla eklendi!`);
+    showToast(`${testCount} adet test başarıyla eklendi!`);
     setIsBulkWizardOpen(false);
   };
 
   const handleExecuteJsonImport = () => {
-    if (!jsonInput.trim()) return;
+    if (!jsonInput.trim() || !book) return;
     try {
       const parsedData = JSON.parse(jsonInput);
       const subjectsList = parsedData.subjects || (Array.isArray(parsedData) ? parsedData : null);
-      if (!subjectsList || !Array.isArray(subjectsList)) throw new Error("Geçersiz JSON formatı");
 
-      const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
+      if (!subjectsList || !Array.isArray(subjectsList)) {
+        throw new Error("Geçersiz format: JSON verisi bir 'subjects' dizisi içermelidir.");
+      }
+
+      const existingSubjects = book.subjects || [];
+      const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects));
+      const testsToCreate = [];
+
+      const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
+
+      updatedSubjects.forEach(s => {
+        if (!s.id) s.id = genId("s");
+        if (s.topics && Array.isArray(s.topics)) {
+          s.topics.forEach(t => {
+            if (!t.id) t.id = genId("t");
+          });
+        }
+      });
+
+      const formatTestPayload = (testData, subjectId, topicId = null) => {
+        const testIsOpenEnded =
+          testData.isOpenEnded === true ||
+          testData.questionType === 'acik_uclu' ||
+          (book.bookType === 'open_ended' && testData.questionType !== 'coktan_secmeli') ||
+          String(testData.name || '').toLowerCase().includes('açık uçlu') ||
+          String(testData.name || '').toLowerCase().includes('acik uclu') ||
+          String(testData.name || '').toLowerCase().includes('klasik');
+
+        const questionType = testData.questionType ||
+          (testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
+
+        const testPayload = {
+          subjectId: String(subjectId),
+          topicId: topicId ? String(topicId) : null,
+          name: String(testData.name || "İsimsiz Test"),
+          questionCount: Number(testData.questionCount) || 20,
+          answerKey: {},
+          isOpenEnded: testIsOpenEnded,
+          questionType,
+          pdfUrl: testData.pdfUrl || ''
+        };
+
+        if (testData.answerKey) {
+          if (Array.isArray(testData.answerKey)) {
+            testData.answerKey.forEach((ans, idx) => {
+              if (ans !== undefined && ans !== null && ans !== "") {
+                testPayload.answerKey[String(idx + 1)] = String(ans);
+              }
+            });
+          } else if (typeof testData.answerKey === 'object') {
+            Object.entries(testData.answerKey).forEach(([k, v]) => {
+              if (v !== undefined && v !== null && v !== "") {
+                testPayload.answerKey[String(k)] = String(v);
+              }
+            });
+          } else if (typeof testData.answerKey === 'string') {
+            testPayload.answerKey = parseAnswerKeyString(testData.answerKey, testPayload.questionCount);
+          }
+        }
+        return testPayload;
+      };
 
       for (const subjData of subjectsList) {
         if (!subjData.name) continue;
+
         let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
         if (!subject) {
-          subject = { id: `subj_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: subjData.name, topics: [] };
+          subject = {
+            id: genId("s"),
+            name: subjData.name,
+            topics: []
+          };
           updatedSubjects.push(subject);
         }
+        if (!subject.topics) subject.topics = [];
 
+        // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
-          subjData.tests.forEach(testData => {
-            let ansObj = {};
-            if (testData.answerKey) {
-              if (Array.isArray(testData.answerKey)) {
-                testData.answerKey.forEach((ans, idx) => { if (ans) ansObj[String(idx + 1)] = String(ans); });
-              } else if (typeof testData.answerKey === 'object') {
-                ansObj = testData.answerKey;
-              } else if (typeof testData.answerKey === 'string') {
-                ansObj = parseAnswerKeyString(testData.answerKey, testData.questionCount || 20);
-              }
-            }
-            addTrackedBookTest(book.id, {
-              subjectId: String(subject.id),
-              topicId: null,
-              name: testData.name || "Test",
-              questionCount: testData.questionCount || 20,
-              answerKey: ansObj
-            });
-          });
+          for (const testData of subjData.tests) {
+            testsToCreate.push(formatTestPayload(testData, subject.id, null));
+          }
         }
 
+        // 2. Topic-based tests (Ders > Konu > Test)
         if (subjData.topics && Array.isArray(subjData.topics)) {
-          if (!subject.topics) subject.topics = [];
           for (const topicData of subjData.topics) {
+            if (!topicData.name) continue;
+
             let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
             if (!topic) {
-              topic = { id: `topic_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: topicData.name };
+              topic = {
+                id: genId("t"),
+                name: topicData.name
+              };
               subject.topics.push(topic);
             }
+
             if (topicData.tests && Array.isArray(topicData.tests)) {
-              topicData.tests.forEach(testData => {
-                let ansObj = {};
-                if (testData.answerKey) {
-                  if (Array.isArray(testData.answerKey)) {
-                    testData.answerKey.forEach((ans, idx) => { if (ans) ansObj[String(idx + 1)] = String(ans); });
-                  } else if (typeof testData.answerKey === 'object') {
-                    ansObj = testData.answerKey;
-                  } else if (typeof testData.answerKey === 'string') {
-                    ansObj = parseAnswerKeyString(testData.answerKey, testData.questionCount || 20);
-                  }
-                }
-                addTrackedBookTest(book.id, {
-                  subjectId: String(subject.id),
-                  topicId: String(topic.id),
-                  name: testData.name || "Test",
-                  questionCount: testData.questionCount || 20,
-                  answerKey: ansObj
-                });
-              });
+              for (const testData of topicData.tests) {
+                testsToCreate.push(formatTestPayload(testData, subject.id, topic.id));
+              }
             }
           }
         }
       }
 
       updateTrackedBook(book.id, { subjects: updatedSubjects });
-      showToast("JSON Verisi Başarıyla İçerik Yapısına Dönüştürüldü!");
-      setIsBulkWizardOpen(false);
+
+      if (testsToCreate.length > 0) {
+        for (const testPayload of testsToCreate) {
+          addTrackedBookTest(book.id, testPayload);
+        }
+      }
+
+      showToast(`${book.title} kitabına ${testsToCreate.length} test başarıyla eklendi!`);
       setJsonInput("");
-    } catch (e) {
-      showToast("Geçersiz JSON formatı! Lütfen veriyi kontrol edin.", "error");
+      setIsBulkWizardOpen(false);
+    } catch (error) {
+      showToast("Geçersiz JSON formatı. Lütfen verilen örnekleri inceleyin.", "error");
     }
   };
 
@@ -2188,6 +2453,35 @@ export default function BookContentManager() {
                   </div>
                 )}
 
+                {/* Test Tipi Seçimi */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>Test Tipi</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 0.85rem', border: `1.5px solid ${bulkSeriesData.testType !== 'acik_uclu' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.65rem', cursor: 'pointer', background: bulkSeriesData.testType !== 'acik_uclu' ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                      <input
+                        type="radio"
+                        name="bulkTestType"
+                        value="coktan_secmeli"
+                        checked={bulkSeriesData.testType !== 'acik_uclu'}
+                        onChange={() => setBulkSeriesData(p => ({ ...p, testType: 'coktan_secmeli' }))}
+                        style={{ accentColor: '#6366f1' }}
+                      />
+                      <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 0.85rem', border: `1.5px solid ${bulkSeriesData.testType === 'acik_uclu' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.65rem', cursor: 'pointer', background: bulkSeriesData.testType === 'acik_uclu' ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                      <input
+                        type="radio"
+                        name="bulkTestType"
+                        value="acik_uclu"
+                        checked={bulkSeriesData.testType === 'acik_uclu'}
+                        onChange={() => setBulkSeriesData(p => ({ ...p, testType: 'acik_uclu' }))}
+                        style={{ accentColor: '#8b5cf6' }}
+                      />
+                      <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu / Sayısal</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}>Test Ön Eki</label>
@@ -2221,16 +2515,16 @@ export default function BookContentManager() {
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(16, 185, 129, 0.12)', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(16, 185, 129, 0.3)' }}>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.85rem', color: '#10b981' }}>
-                    🔑 Toplu Cevap Anahtarı (İsteğe Bağlı - Örn: ABCDEABCDE...)
+                <div style={{ background: bulkSeriesData.testType === 'acik_uclu' ? 'rgba(139,92,246,0.12)' : 'rgba(16, 185, 129, 0.12)', padding: '0.85rem', borderRadius: '0.75rem', border: `1.5px solid ${bulkSeriesData.testType === 'acik_uclu' ? 'rgba(139,92,246,0.3)' : 'rgba(16, 185, 129, 0.3)'}` }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.85rem', color: bulkSeriesData.testType === 'acik_uclu' ? '#8b5cf6' : '#10b981' }}>
+                    {bulkSeriesData.testType === 'acik_uclu' ? '✍️ Cevap Anahtarı (İsteğe Bağlı - Virgülle Ayrılmış Sayılar)' : '🔑 Toplu Cevap Anahtarı (İsteğe Bağlı - Örn: ABCDEABCDE...)'}
                   </label>
                   <input
                     type="text"
                     value={bulkSeriesData.rawAnswerKey || ''}
-                    onChange={(e) => setBulkSeriesData(p => ({ ...p, rawAnswerKey: e.target.value.toUpperCase() }))}
-                    placeholder="Örn: ABCDEABCDEABCDEABCDE"
-                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1.5px solid rgba(16, 185, 129, 0.4)', background: 'var(--color-surface)', color: 'var(--color-text)', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', letterSpacing: '0.08em', boxSizing: 'border-box' }}
+                    onChange={(e) => setBulkSeriesData(p => ({ ...p, rawAnswerKey: e.target.value }))}
+                    placeholder={bulkSeriesData.testType === 'acik_uclu' ? "Örn: 103959, 2, 503976, 22... veya boş bırakın" : "Örn: ABCDEABCDEABCDEABCDE"}
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: `1.5px solid ${bulkSeriesData.testType === 'acik_uclu' ? 'rgba(139,92,246,0.4)' : 'rgba(16, 185, 129, 0.4)'}`, background: 'var(--color-surface)', color: 'var(--color-text)', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', letterSpacing: bulkSeriesData.testType === 'acik_uclu' ? 'normal' : '0.08em', boxSizing: 'border-box' }}
                   />
                 </div>
 
@@ -2242,23 +2536,104 @@ export default function BookContentManager() {
               </div>
             )}
 
-            {/* TAB 3: JSON IMPORT */}
+            {/* TAB 3: JSON IMPORT (FULL 4-FORMAT TEMPLATES) */}
             {bulkWizardTab === "json" && (
               <div>
-                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', marginTop: 0 }}>
-                  Ders, konu ve testlerinizi içeren JSON formatındaki yapıyı buraya yapıştırabilirsiniz.
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', marginTop: 0, marginBottom: '1rem' }}>
+                  <strong style={{ color: '#60a5fa' }}>{book.title}</strong> kitabına ait dersleri, konuları ve testleri (çoktan seçmeli veya açık uçlu) JSON ile tek seferde ekleyin.
                 </p>
-                <textarea
-                  value={jsonInput}
-                  onChange={(e) => setJsonInput(e.target.value)}
-                  placeholder={`{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        { "name": "Üslü İfadeler", "tests": [{ "name": "Test 1", "questionCount": 12, "answerKey": ["A","B","C","D","E"] }] }\n      ]\n    }\n  ]\n}`}
-                  rows={8}
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                  <button onClick={handleExecuteJsonImport} style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '0.65rem', color: 'white', cursor: 'pointer' }}>
-                    JSON İçe Aktar
-                  </button>
+
+                <div style={{ background: 'rgba(37,99,235,0.1)', border: '1.5px solid #3b82f6', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ fontWeight: 800, color: '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <AlertCircle size={16} /> Kopyalanabilir Örnek JSON Formatları:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sampleCode = sampleJsonFormats[sampleFormatTab];
+                        copyToClipboard(sampleFormatTab, sampleCode);
+                        setJsonInput(sampleCode);
+                      }}
+                      style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      {copiedFormat === sampleFormatTab ? <Check size={14} /> : <Copy size={14} />} 
+                      {copiedFormat === sampleFormatTab ? 'Kopyalandı & Yapıştırıldı!' : 'Kopyala ve Kutuya Yapıştır'}
+                    </button>
+                  </div>
+
+                  {/* Format Selection Sub-tabs */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSampleFormatTab("standard")}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                        background: sampleFormatTab === "standard" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                        color: sampleFormatTab === "standard" ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: sampleFormatTab === "standard" ? '0 2px 8px rgba(99,102,241,0.2)' : 'none'
+                      }}
+                    >
+                      📘 3 Kademeli (Ders &gt; Konu &gt; Test)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSampleFormatTab("direct")}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                        background: sampleFormatTab === "direct" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                        color: sampleFormatTab === "direct" ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: sampleFormatTab === "direct" ? '0 2px 8px rgba(99,102,241,0.2)' : 'none'
+                      }}
+                    >
+                      📗 2 Kademeli (Ders &gt; Test)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSampleFormatTab("open_ended")}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                        background: sampleFormatTab === "open_ended" ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'var(--color-surface)',
+                        color: sampleFormatTab === "open_ended" ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: sampleFormatTab === "open_ended" ? '0 2px 8px rgba(139,92,246,0.2)' : 'none'
+                      }}
+                    >
+                      ✍️ Açık Uçlu / Sayısal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSampleFormatTab("mixed")}
+                      style={{
+                        padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                        background: sampleFormatTab === "mixed" ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'var(--color-surface)',
+                        color: sampleFormatTab === "mixed" ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: sampleFormatTab === "mixed" ? '0 2px 8px rgba(8,145,178,0.2)' : 'none'
+                      }}
+                    >
+                      🔀 Karma (ÇS + Açık Uçlu)
+                    </button>
+                  </div>
+
+                  <pre style={{ background: 'var(--color-surface)', color: '#38bdf8', padding: '0.85rem', borderRadius: '0.5rem', fontSize: '0.82rem', overflowX: 'auto', margin: 0, maxHeight: '180px', border: '1px solid var(--color-border)' }}>
+                    {sampleJsonFormats[sampleFormatTab]}
+                  </pre>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>JSON Verisini Buraya Yapıştırın</label>
+                  <textarea
+                    autoFocus
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    placeholder='Yukarıdaki "Kopyala ve Kutuya Yapıştır" butonuna basarak örnek veriyi buraya aktarabilir ve düzenleyebilirsiniz...'
+                    style={{ width: '100%', minHeight: '180px', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    spellCheck={false}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+                  <button className="btn btn-outline" onClick={() => setIsBulkWizardOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface-hover)', padding: '0.65rem 1.25rem', borderRadius: '0.5rem' }}>Vazgeç</button>
+                  <button className="btn btn-primary" onClick={handleExecuteJsonImport} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 900, color: 'white', padding: '0.65rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}>Verileri Aktar</button>
                 </div>
               </div>
             )}
@@ -2348,7 +2723,88 @@ export default function BookContentManager() {
               />
             </div>
 
-            {book.bookType !== 'open_ended' && (
+            {/* ── Test Tipi Seçimi (Karma kitaplar için) ── */}
+            {(book.bookType === 'mixed' || book.bookType === 'open_ended' || testFormData.isOpenEnded) && (
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Tipi</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${!testFormData.isOpenEnded ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: !testFormData.isOpenEnded ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                    <input type="radio" name="testType" value="coktan_secmeli"
+                      checked={!testFormData.isOpenEnded}
+                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: false, questionType: 'coktan_secmeli' }))}
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${testFormData.isOpenEnded ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: testFormData.isOpenEnded ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                    <input type="radio" name="testType" value="acik_uclu"
+                      checked={testFormData.isOpenEnded}
+                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: true, questionType: 'acik_uclu', answerKey: {} }))}
+                      style={{ accentColor: '#8b5cf6' }}
+                    />
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu/Sayısal</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* ── Cevap Anahtarı ── */}
+            {testFormData.isOpenEnded ? (
+              /* Açık Uçlu: Sayısal/Metin cevap alanları */
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                  <span>✍️ Cevap Anahtarı (Sayısal / Boş Bırakılabilir)</span>
+                  <button
+                    type="button"
+                    onClick={() => setTestFormData(p => ({ ...p, answerKey: {} }))}
+                    style={{ fontSize: '0.75rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Temizle
+                  </button>
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.4rem', maxHeight: '260px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
+                  {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
+                    const qNum = i + 1;
+                    const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
+                    return (
+                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: val ? 'rgba(139,92,246,0.07)' : 'var(--color-surface)', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', border: val ? '1px solid #c4b5fd' : '1px solid var(--color-border)' }}>
+                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={val}
+                          onChange={e => setTestFormData(p => ({
+                            ...p,
+                            answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
+                          }))}
+                          placeholder="—"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: '0.25rem 0.4rem',
+                            borderRadius: '0.35rem',
+                            border: '1px solid var(--color-border-input)',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            fontFamily: 'monospace',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                  {(!testFormData.questionCount || testFormData.questionCount === 0) && (
+                    <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
+                  )}
+                </div>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                  💡 Boş bırakılan sorular "öğretmen kontrolünde" olarak işaretlenir.
+                </p>
+              </div>
+            ) : book.bookType !== 'open_ended' ? (
+              /* Çoktan Seçmeli: ABCDE balonlar */
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
                   <span>Cevap Anahtarı ({book.optionCount === 4 ? 'A, B, C, D' : 'A, B, C, D, E'})</span>
@@ -2403,7 +2859,7 @@ export default function BookContentManager() {
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
               <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>

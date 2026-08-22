@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, CheckCircle2, XCircle, Clock, Eye, X, Layers } from 'lucide-react';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 /**
  * QuizResultModal
@@ -19,6 +20,7 @@ export default function QuizResultModal({
   onConfirmClose,
   onConfirmReview
 }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   if (!isOpen) return null;
 
   const handleClose = onConfirmClose || onClose;
@@ -55,106 +57,109 @@ export default function QuizResultModal({
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(15, 23, 42, 0.7)',
-      backdropFilter: 'blur(6px)',
+      background: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
-      padding: '1rem'
+      zIndex: 99999,
+      padding: isMobile ? '0.75rem' : '1.25rem'
     }}>
       <div style={{
-        background: '#ffffff',
-        borderRadius: '1.5rem',
-        maxWidth: isMultiSection ? '540px' : '460px',
+        background: 'var(--color-surface)',
+        borderRadius: isMobile ? '1.25rem' : '1.5rem',
+        maxWidth: isMultiSection ? '560px' : '480px',
         width: '100%',
-        maxHeight: '90vh',
+        maxHeight: '92vh',
         overflowY: 'auto',
-        padding: '2rem',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        padding: isMobile ? '1.5rem 1.25rem' : '2rem',
+        boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
         textAlign: 'center',
-        position: 'relative'
+        position: 'relative',
+        border: '1.5px solid var(--color-border)'
       }}>
         {/* Close Button */}
         <button
           onClick={handleClose}
           style={{
             position: 'absolute',
-            top: '1.1rem',
-            right: '1.1rem',
-            background: '#f1f5f9',
-            border: 'none',
+            top: '1rem',
+            right: '1rem',
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border)',
             borderRadius: '50%',
-            width: '32px',
-            height: '32px',
+            width: '34px',
+            height: '34px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#64748b'
+            color: 'var(--color-text)'
           }}
         >
-          <X size={16} />
+          <X size={17} />
         </button>
 
         {/* Icon */}
         <div style={{
-          width: '68px',
-          height: '68px',
+          width: '64px',
+          height: '64px',
           borderRadius: '50%',
-          background: isPureOpenEnded ? '#f5f3ff' : '#eff6ff',
-          color: isPureOpenEnded ? '#7c3aed' : '#2563eb',
+          background: isPureOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(99,102,241,0.15)',
+          color: isPureOpenEnded ? '#a78bfa' : '#6366f1',
+          border: `2px solid ${isPureOpenEnded ? 'rgba(167,139,250,0.4)' : 'rgba(99,102,241,0.4)'}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1.15rem',
-          fontSize: '1.85rem'
+          margin: '0 auto 1rem',
+          fontSize: '1.75rem'
         }}>
-          {isPureOpenEnded ? '⏳' : <Award size={34} />}
+          {isPureOpenEnded ? '⏳' : <Award size={32} />}
         </div>
 
         {/* Title & Subtitle */}
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.4rem' }}>
+        <h2 style={{ fontSize: isMobile ? '1.25rem' : '1.4rem', fontWeight: 900, color: 'var(--color-text)', margin: '0 0 0.35rem' }}>
           {isPureOpenEnded ? 'Değerlendirmeye Gönderildi!' : title}
         </h2>
-        <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 1.35rem' }}>
+        <p style={{ fontSize: '0.86rem', color: 'var(--color-text-muted)', margin: '0 0 1.25rem', lineHeight: 1.45 }}>
           {isPureOpenEnded
             ? 'Cevaplarınız başarıyla kaydedildi ve öğretmen değerlendirmesine iletildi.'
             : 'Sınavınızı başarıyla tamamladınız. İşte detaylı karneniz:'}
         </p>
 
-        {/* Score & Key Metrics Banner - ALWAYS shown */}
+        {/* Score & Key Metrics Banner */}
         <div style={{
           background: 'linear-gradient(135deg, #0f172a, #1e293b)',
           borderRadius: '1.15rem',
           padding: '1.25rem',
           color: '#ffffff',
-          marginBottom: '1.35rem',
-          boxShadow: '0 6px 18px rgba(15,23,42,0.18)'
+          marginBottom: '1.25rem',
+          boxShadow: '0 6px 20px rgba(15,23,42,0.25)',
+          border: '1px solid rgba(255,255,255,0.08)'
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', textAlign: 'center', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', textAlign: 'center', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>DOĞRU</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80' }}>
+              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>DOĞRU</span>
+              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#4ade80' }}>
                 {isPureOpenEnded ? '-' : (stats.correct ?? 0)}
               </span>
             </div>
             <div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>YANLIŞ</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f87171' }}>
+              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>YANLIŞ</span>
+              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#f87171' }}>
                 {isPureOpenEnded ? '-' : (stats.wrong ?? 0)}
               </span>
             </div>
             <div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BOŞ</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#cbd5e1' }}>
+              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>BOŞ</span>
+              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#cbd5e1' }}>
                 {stats.blank ?? submission?.blankCount ?? 0}
               </span>
             </div>
             <div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BAŞARI</span>
+              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>BAŞARI</span>
               <span style={{
-                fontSize: isPureOpenEnded ? '0.78rem' : '1.3rem',
+                fontSize: isPureOpenEnded ? '0.75rem' : (isMobile ? '1.2rem' : '1.35rem'),
                 fontWeight: 900,
                 color: isPureOpenEnded ? '#c084fc' : '#60a5fa',
                 display: 'block',
@@ -175,7 +180,7 @@ export default function QuizResultModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.4rem',
-              fontSize: '0.75rem',
+              fontSize: '0.74rem',
               fontWeight: 800,
               color: '#d8b4fe'
             }}>
@@ -188,17 +193,17 @@ export default function QuizResultModal({
         {/* If pure open ended, also show informative note */}
         {isPureOpenEnded && (
           <div style={{
-            background: '#faf5ff',
-            border: '1.5px solid #ddd6fe',
+            background: 'rgba(124, 58, 237, 0.08)',
+            border: '1.5px solid rgba(167, 139, 250, 0.35)',
             borderRadius: '1rem',
             padding: '0.9rem 1.1rem',
-            marginBottom: '1.35rem',
-            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.06)'
+            marginBottom: '1.25rem',
+            textAlign: 'left'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#6b21a8', fontWeight: 900, fontSize: '0.88rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#a78bfa', fontWeight: 900, fontSize: '0.88rem' }}>
               <Clock size={16} /> Öğretmen Değerlendirmesi Bekleniyor
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#581c87', margin: '0.4rem 0 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '0.35rem 0 0', lineHeight: 1.5 }}>
               Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip notlandırdıktan sonra nihai karneniz ve başarı yüzdeniz güncellenecektir.
             </p>
           </div>
@@ -206,11 +211,11 @@ export default function QuizResultModal({
 
         {/* Section Breakdown (Only if multi-section) */}
         {isMultiSection && (
-          <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#334155', margin: '0 0 0.65rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Layers size={15} /> Bölüm Bölüm Sonuçlar:
+          <div style={{ textAlign: 'left', marginBottom: '1.35rem' }}>
+            <h4 style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)', margin: '0 0 0.55rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Layers size={15} /> Bölüm Bazlı Sonuçlar:
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
               {sectionBreakdown.map((sec, idx) => (
                 <div
                   key={idx}
@@ -218,33 +223,33 @@ export default function QuizResultModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.7rem 0.9rem',
-                    background: '#f8fafc',
+                    padding: '0.65rem 0.85rem',
+                    background: 'var(--color-surface-hover)',
                     borderRadius: '0.75rem',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid var(--color-border)'
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', display: 'block' }}>
                       {sec.title}
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
                       {sec.isOE ? '✍️ Açık Uçlu / Yazılı' : `🔘 Çoktan Seçmeli (${sec.qCount} Soru)`}
                     </span>
                   </div>
 
                   <div>
                     {sec.isOE ? (
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6b21a8', background: '#f5f3ff', padding: '0.2rem 0.5rem', borderRadius: '0.35rem', border: '1px solid #ddd6fe' }}>
-                        Değerlendirme Bekliyor
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', background: 'rgba(124,58,237,0.1)', padding: '0.2rem 0.5rem', borderRadius: '0.35rem', border: '1px solid rgba(167,139,250,0.3)' }}>
+                        Değerlendirmede
                       </span>
                     ) : (
                       <span style={{ fontSize: '0.82rem', fontWeight: 900, display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
                         <span style={{ color: '#16a34a' }}>{sec.secDoğru} D</span>
-                        <span style={{ color: '#94a3b8' }}>/</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>/</span>
                         <span style={{ color: '#dc2626' }}>{sec.secYanlış} Y</span>
-                        <span style={{ color: '#94a3b8' }}>/</span>
-                        <span style={{ color: '#64748b' }}>{sec.secBoş ?? 0} B</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>/</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>{sec.secBoş ?? 0} B</span>
                       </span>
                     )}
                   </div>
@@ -255,17 +260,19 @@ export default function QuizResultModal({
         )}
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button
             onClick={handleClose}
             style={{
               flex: 1,
+              minWidth: '120px',
               padding: '0.85rem',
               borderRadius: '0.85rem',
-              border: '1.5px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
+              border: '1.5px solid var(--color-border-input)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
               fontWeight: 800,
+              fontSize: '0.88rem',
               cursor: 'pointer'
             }}
           >
@@ -275,15 +282,17 @@ export default function QuizResultModal({
             <button
               onClick={handleReview}
               style={{
-                flex: 1,
+                flex: 1.2,
+                minWidth: '150px',
                 padding: '0.85rem',
                 borderRadius: '0.85rem',
                 border: 'none',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                 color: '#ffffff',
                 fontWeight: 900,
+                fontSize: '0.88rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

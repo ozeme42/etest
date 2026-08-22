@@ -1456,7 +1456,25 @@ export default function StudentDashboard() {
       });
     });
 
-    return solvedList
+    const uniqueSolved = [];
+    const seenSolvedKeys = new Set();
+    for (const item of solvedList) {
+      if (!item) continue;
+      const keyCandidates = [
+        item.submissionId ? `sub_${item.submissionId}` : null,
+        item.id ? `id_${item.id}` : null,
+        item.testId ? `test_${item.testId}` : null,
+        (item.title && item.date) ? `title_${item.title}_${new Date(item.date).toLocaleDateString('tr-TR')}` : null
+      ].filter(Boolean);
+
+      const isDup = keyCandidates.some(k => seenSolvedKeys.has(k));
+      if (!isDup) {
+        keyCandidates.forEach(k => seenSolvedKeys.add(k));
+        uniqueSolved.push(item);
+      }
+    }
+
+    return uniqueSolved
       .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
       .slice(0, 5);
   }, [selectedStudent, submissions, homeworks, books, bookTests, curData, allQuestions]);

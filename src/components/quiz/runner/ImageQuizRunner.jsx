@@ -4,8 +4,9 @@ import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
+import DrawingCanvas from '../common/DrawingCanvas';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react';
 
 export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId }) {
   const { isDark, toggleTheme } = useTheme();
@@ -22,6 +23,7 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   const [openEndedText, setOpenEndedText] = useState({});
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [idbPayload, setIdbPayload] = useState(null);
+  const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
   const draftKey = useMemo(() => {
     return `quiz_draft_${test.id || 'unassigned'}_${studentId || 'anon'}`;
@@ -512,6 +514,28 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
           </div>
 
           <button
+            type="button"
+            onClick={() => setIsDrawingOpen(prev => !prev)}
+            style={{
+              padding: isMobile ? '0.28rem 0.65rem' : '0.4rem 0.85rem',
+              borderRadius: '0.55rem',
+              border: `1.5px solid ${isDrawingOpen ? '#6366f1' : 'var(--color-border-input)'}`,
+              background: isDrawingOpen ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)',
+              color: isDrawingOpen ? '#4f46e5' : 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Pencil size={isMobile ? 13 : 15} />
+            <span>{isMobile ? 'Çizim' : 'Çizim Tahtası'}</span>
+          </button>
+
+          <button
             onClick={handleSubmit}
             style={{
               padding: isMobile ? '0.28rem 0.65rem' : '0.4rem 1rem',
@@ -634,9 +658,32 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
                 <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   Soru {currentIndex + 1}
                 </span>
-                {isOpenEndedMode && (
-                  <span style={{ padding: '0.15rem 0.45rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>✍️ Açık Uçlu / Yazılı</span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawingOpen(prev => !prev)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '0.4rem',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text-secondary)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    title="Çizim Tahtası"
+                  >
+                    <Pencil size={12} />
+                    <span>Çizim</span>
+                  </button>
+                  {isOpenEndedMode && (
+                    <span style={{ padding: '0.15rem 0.45rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>✍️ Açık Uçlu / Yazılı</span>
+                  )}
+                </div>
               </div>
 
               {isOpenEndedMode ? (
@@ -746,9 +793,32 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
                 <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   Soru {currentIndex + 1}
                 </span>
-                {isOpenEndedMode && (
-                  <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu / Yazılı</span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawingOpen(prev => !prev)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '0.45rem',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text-secondary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    title="Çizim Tahtası"
+                  >
+                    <Pencil size={13} />
+                    <span>Çizim Tahtası</span>
+                  </button>
+                  {isOpenEndedMode && (
+                    <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu / Yazılı</span>
+                  )}
+                </div>
               </div>
 
               {isOpenEndedMode ? (
@@ -932,6 +1002,12 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
           </button>
         </div>
       )}
+
+      {/* Global Drawing Pad */}
+      <DrawingCanvas
+        isOpen={isDrawingOpen}
+        onClose={() => setIsDrawingOpen(false)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Check, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 /**
  * OpticalBubblePanel
@@ -19,6 +20,7 @@ export default memo(function OpticalBubblePanel({
   submissionAnswers = [],
   testCtx = {}
 }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const totalCount = Math.max(qCount, resolvedQuestions.length, Array.isArray(correctAnswers) ? correctAnswers.length : 0, 1);
   const options = Number(optionsCount) === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
@@ -93,22 +95,22 @@ export default memo(function OpticalBubblePanel({
   const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#ffffff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)' }}>
       {/* Panel Header */}
-      <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }}>
+      <div style={{ padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isReviewMode ? '0.45rem' : 0 }}>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             📋 {isReviewMode ? 'Optik Değerlendirme' : 'Optik Cevap Kağıdı'}
           </h4>
           {!isReviewMode ? (
             <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              background: answeredCount === totalCount ? '#dcfce7' : '#eff6ff',
-              color: answeredCount === totalCount ? '#15803d' : '#1d4ed8',
+              fontSize: '0.74rem',
+              fontWeight: 900,
+              background: answeredCount === totalCount ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.12)',
+              color: answeredCount === totalCount ? '#10b981' : '#6366f1',
               padding: '0.2rem 0.55rem',
               borderRadius: '0.4rem',
-              border: `1px solid ${answeredCount === totalCount ? '#86efac' : '#bfdbfe'}`
+              border: `1px solid ${answeredCount === totalCount ? 'rgba(16,185,129,0.3)' : 'rgba(99,102,241,0.3)'}`
             }}>
               {answeredCount} / {totalCount} Kodlandı
             </span>
@@ -135,7 +137,7 @@ export default memo(function OpticalBubblePanel({
             <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #fca5a5' }}>
               {reviewStats.y} Yanlış
             </span>
-            <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1' }}>
+            <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid var(--color-border)' }}>
               {reviewStats.b} Boş
             </span>
           </div>
@@ -143,28 +145,28 @@ export default memo(function OpticalBubblePanel({
       </div>
 
       {/* Optical Bubbles Grid */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.65rem' : '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {Array.from({ length: totalCount }).map((_, idx) => {
             const { qNo, userAns, hasAns, correctAns, isCorrect } = resolveEvaluation(idx);
 
-            let rowBg = '#ffffff';
-            let rowBorder = '1px solid #e2e8f0';
+            let rowBg = 'var(--color-surface)';
+            let rowBorder = '1px solid var(--color-border)';
 
             if (isReviewMode) {
               if (!hasAns) {
-                rowBg = '#f8fafc';
-                rowBorder = '1px solid #e2e8f0';
+                rowBg = 'var(--color-surface-hover)';
+                rowBorder = '1px solid var(--color-border)';
               } else if (isCorrect === true) {
-                rowBg = '#f0fdf4';
-                rowBorder = '1px solid #86efac';
+                rowBg = 'rgba(16,185,129,0.08)';
+                rowBorder = '1px solid rgba(16,185,129,0.3)';
               } else if (isCorrect === false) {
-                rowBg = '#fef2f2';
-                rowBorder = '1px solid #fca5a5';
+                rowBg = 'rgba(239,68,68,0.08)';
+                rowBorder = '1px solid rgba(239,68,68,0.3)';
               }
             } else if (hasAns) {
-              rowBg = '#f0fdf4';
-              rowBorder = '1px solid #bbf7d0';
+              rowBg = 'rgba(99,102,241,0.06)';
+              rowBorder = '1px solid rgba(99,102,241,0.25)';
             }
 
             return (
@@ -174,7 +176,7 @@ export default memo(function OpticalBubblePanel({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.45rem 0.7rem',
+                  padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.75rem',
                   borderRadius: '0.65rem',
                   background: rowBg,
                   border: rowBorder,
@@ -184,9 +186,9 @@ export default memo(function OpticalBubblePanel({
                 {/* Question Number & Status Badge */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <span style={{
-                    fontSize: '0.82rem',
+                    fontSize: isMobile ? '0.8rem' : '0.85rem',
                     fontWeight: 900,
-                    color: isReviewMode ? (isCorrect === true ? '#15803d' : (isCorrect === false ? '#b91c1c' : '#64748b')) : (hasAns ? '#15803d' : '#64748b'),
+                    color: isReviewMode ? (isCorrect === true ? '#10b981' : (isCorrect === false ? '#ef4444' : 'var(--color-text-muted)')) : (hasAns ? '#6366f1' : 'var(--color-text-secondary)'),
                     minWidth: '24px'
                   }}>
                     {qNo}.
@@ -194,25 +196,25 @@ export default memo(function OpticalBubblePanel({
                   {isReviewMode && (
                     <span style={{ fontSize: '0.68rem', fontWeight: 800 }}>
                       {!hasAns ? (
-                        <span style={{ color: '#64748b' }}>Boş</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>Boş</span>
                       ) : isCorrect === true ? (
-                        <span style={{ color: '#15803d' }}>✓</span>
+                        <span style={{ color: '#10b981' }}>✓</span>
                       ) : (
-                        <span style={{ color: '#b91c1c' }}>✗</span>
+                        <span style={{ color: '#ef4444' }}>✗</span>
                       )}
                     </span>
                   )}
                 </div>
 
                 {/* Option Bubbles */}
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <div style={{ display: 'flex', gap: isMobile ? '0.3rem' : '0.4rem' }}>
                   {options.map((letter, optIdx) => {
                     const isSelected = userAns === optIdx;
                     const isKeyOption = isReviewMode && correctAns === optIdx;
 
-                    let btnBg = '#ffffff';
-                    let btnBorder = '1.5px solid #cbd5e1';
-                    let btnColor = '#334155';
+                    let btnBg = 'var(--color-surface)';
+                    let btnBorder = '1.5px solid var(--color-border-input)';
+                    let btnColor = 'var(--color-text)';
 
                     if (isReviewMode) {
                       if (isSelected) {
@@ -232,32 +234,35 @@ export default memo(function OpticalBubblePanel({
                         btnColor = '#15803d';
                       }
                     } else if (isSelected) {
-                      btnBg = '#2563eb';
-                      btnBorder = '2px solid #2563eb';
+                      btnBg = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+                      btnBorder = '2px solid #4f46e5';
                       btnColor = '#ffffff';
                     }
+
+                    const bubbleSize = isMobile ? '32px' : '30px';
 
                     return (
                       <button
                         key={letter}
                         type="button"
                         disabled={isReviewMode}
-                        onClick={() => onSelectOption && onSelectOption(qNo, optIdx)}
+                        onClick={() => onSelectOption && onSelectOption(qNo, isSelected ? null : optIdx)}
                         style={{
-                          width: '30px',
-                          height: '30px',
+                          width: bubbleSize,
+                          height: bubbleSize,
                           borderRadius: '50%',
                           border: btnBorder,
                           background: btnBg,
                           color: btnColor,
                           fontWeight: 900,
-                          fontSize: '0.8rem',
+                          fontSize: isMobile ? '0.82rem' : '0.8rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: isReviewMode ? 'default' : 'pointer',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.15)' : 'none'
+                          transition: 'all 0.12s ease',
+                          boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+                          touchAction: 'manipulation'
                         }}
                       >
                         {letter}

@@ -68,7 +68,7 @@ export function TrackedBookProvider({ children }) {
     const success = safeSetItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
     if (!success) {
       const minimalTests = bookTests.map(t => ({
-        id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, optionCount: t.optionCount
+        id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, questionType: t.questionType, optionCount: t.optionCount
       }));
       safeSetItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
     }

@@ -1799,6 +1799,7 @@ export default function StudyRoomPage() {
   const [activeTheme, setActiveTheme] = useState('system');
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
   const [completedCycles, setCompletedCycles] = useState(0);
 
@@ -2827,10 +2828,10 @@ export default function StudyRoomPage() {
         }}>
           {/* SVG Timer Ring */}
           {(() => {
-            const timerSize = isFullscreenView ? 280 : isMobile ? 190 : 230;
+            const timerSize = isFullscreenView ? 320 : isMobile ? 210 : 270;
             const timerCenter = timerSize / 2;
-            const timerRadius = isFullscreenView ? 122 : isMobile ? 80 : 98;
-            const timerStroke = isFullscreenView ? 12 : isMobile ? 8 : 9;
+            const timerRadius = isFullscreenView ? 140 : isMobile ? 89 : 115;
+            const timerStroke = isFullscreenView ? 13 : isMobile ? 9 : 11;
 
             return (
               <div style={{
@@ -2865,12 +2866,12 @@ export default function StudyRoomPage() {
                 </svg>
 
                 <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '2.8rem' : isMobile ? '1.6rem' : '2.1rem', marginBottom: 2 }}>
+                  <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '3.2rem' : isMobile ? '1.9rem' : '2.5rem', marginBottom: 2 }}>
                     {treeGrowthStage.icon}
                   </div>
 
                   <div className="sr-timer-digits" style={{
-                    fontSize: isFullscreenView ? '4.2rem' : isMobile ? '2.4rem' : '3.2rem',
+                    fontSize: isFullscreenView ? '4.8rem' : isMobile ? '2.7rem' : '3.7rem',
                     fontWeight: 900,
                     letterSpacing: '-0.04em',
                     lineHeight: 1,
@@ -4663,54 +4664,264 @@ export default function StudyRoomPage() {
 
         {/* Action controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8, flexShrink: 0 }}>
-          {/* Theme Selector */}
-          <div style={{ display: 'flex', gap: 2, background: themeObj.innerBg, padding: 3, borderRadius: 12, border: `1.5px solid ${themeObj.border}`, overflowX: 'auto' }}>
-            {THEMES.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTheme(t.id)}
-                title={t.name}
-                className="sr-theme-btn"
-                style={{
-                  padding: isMobile ? '0.25rem 0.45rem' : '0.35rem 0.6rem',
-                  borderRadius: 8,
-                  border: 'none',
-                  fontSize: isMobile ? '0.65rem' : '0.7rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  background: activeTheme === t.id ? themeObj.accent : 'transparent',
-                  color: activeTheme === t.id ? '#ffffff' : themeObj.text,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {t.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
+          {/* Masaüstünde tema seçici görünür, mobilde gizlenir */}
+          {!isMobile && (
+            <div style={{ display: 'flex', gap: 2, background: themeObj.innerBg, padding: 3, borderRadius: 12, border: `1.5px solid ${themeObj.border}` }}>
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTheme(t.id)}
+                  title={t.name}
+                  className="sr-theme-btn"
+                  style={{
+                    padding: '0.3rem 0.55rem',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: activeTheme === t.id ? themeObj.accent : 'transparent',
+                    color: activeTheme === t.id ? '#ffffff' : themeObj.text,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {t.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Fullscreen Button */}
+          {/* Ayarlar Butonu - drawer açar */}
           <button
-            onClick={toggleFullscreen}
+            onClick={() => setShowSettingsDrawer(v => !v)}
+            title="Ayarlar (Tema, Zen, Ses)"
             style={{
-              background: themeObj.buttonBg,
-              border: `1.5px solid ${themeObj.border}`,
-              color: themeObj.text,
+              background: showSettingsDrawer ? themeObj.accent : themeObj.buttonBg,
+              border: `1.5px solid ${showSettingsDrawer ? themeObj.accent : themeObj.border}`,
+              color: showSettingsDrawer ? '#ffffff' : themeObj.text,
               borderRadius: isMobile ? 10 : 12,
-              padding: isMobile ? '0.4rem 0.55rem' : '0.5rem 0.75rem',
+              padding: isMobile ? '0.4rem 0.6rem' : '0.5rem 0.75rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
               fontSize: isMobile ? '0.7rem' : '0.75rem',
               fontWeight: 800,
               transition: 'all 0.15s'
             }}
           >
-            {isFullscreen ? <Minimize2 size={isMobile ? 14 : 16} /> : <Maximize2 size={isMobile ? 14 : 16} />}
-            <span className="sr-zen-btn-text">Zen</span>
+            <Settings2 size={isMobile ? 15 : 17} />
+            {!isMobile && <span>Ayarlar</span>}
           </button>
         </div>
       </div>
+
+      {/* ─── AYARLAR DRAWER (sağdan kayan panel) ─── */}
+      {showSettingsDrawer && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 200,
+          display: 'flex'
+        }}>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowSettingsDrawer(false)}
+            style={{ flex: 1, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }}
+          />
+          {/* Panel */}
+          <div style={{
+            width: isMobile ? '80vw' : 320,
+            maxWidth: 360,
+            background: themeObj.isDark ? 'rgba(15,23,42,0.97)' : 'rgba(255,255,255,0.98)',
+            backdropFilter: 'blur(20px)',
+            borderLeft: `1.5px solid ${themeObj.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+            padding: '1.25rem 1rem',
+            overflowY: 'auto',
+            boxShadow: '-8px 0 32px rgba(0,0,0,0.18)'
+          }}>
+            {/* Başlık */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Settings2 size={18} color={themeObj.accent} />
+                <span style={{ fontWeight: 900, fontSize: '1rem', color: themeObj.text }}>Ayarlar</span>
+              </div>
+              <button
+                onClick={() => setShowSettingsDrawer(false)}
+                style={{ background: 'transparent', border: 'none', color: themeObj.subText, cursor: 'pointer', padding: '0.25rem', borderRadius: 8 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Tema Seçici */}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                🎨 Tema
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {THEMES.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTheme(t.id)}
+                    title={t.name}
+                    style={{
+                      padding: '0.5rem 0.6rem',
+                      borderRadius: 10,
+                      border: `1.5px solid ${activeTheme === t.id ? themeObj.accent : themeObj.border}`,
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: activeTheme === t.id ? themeObj.accent : themeObj.innerBg,
+                      color: activeTheme === t.id ? '#ffffff' : themeObj.text,
+                      textAlign: 'left',
+                      transition: 'all 0.12s'
+                    }}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tam Ekran / Zen */}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                🖥️ Ekran
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  onClick={() => { toggleFullscreen(); setShowSettingsDrawer(false); }}
+                  style={{
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: 10,
+                    border: `1.5px solid ${themeObj.border}`,
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: isFullscreen ? themeObj.accent : themeObj.buttonBg,
+                    color: isFullscreen ? '#ffffff' : themeObj.text,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'all 0.12s'
+                  }}
+                >
+                  {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                  {isFullscreen ? 'Tam Ekrandan Çık' : 'Zen Tam Ekran Modu'}
+                </button>
+                <button
+                  onClick={() => { setIsCardFullscreen(v => !v); setShowSettingsDrawer(false); }}
+                  style={{
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: 10,
+                    border: `1.5px solid ${themeObj.border}`,
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: isCardFullscreen ? themeObj.accent : themeObj.buttonBg,
+                    color: isCardFullscreen ? '#ffffff' : themeObj.text,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'all 0.12s'
+                  }}
+                >
+                  {isCardFullscreen ? <Shrink size={15} /> : <Expand size={15} />}
+                  {isCardFullscreen ? 'Zen Odaktan Çık' : 'Zen Odak Modu (Kart)'}
+                </button>
+              </div>
+            </div>
+
+            {/* Ambiyans Sesleri */}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                🎵 Ambiyans Sesi
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                {[
+                  { id: 'rain', label: '💧 Yağmur', icon: '💧' },
+                  { id: 'fire', label: '🔥 Ateş', icon: '🔥' },
+                  { id: 'whitenoise', label: '⬜ Beyaz', icon: '⬜' }
+                ].map(s => {
+                  const isActive = (soundVolumes[s.id] || 0) > 0;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        if (isActive) {
+                          handleVolumeChange(s.id, 0);
+                          ambientAudio.stopSound(s.id);
+                        } else {
+                          handleVolumeChange(s.id, 40);
+                        }
+                      }}
+                      style={{
+                        padding: '0.5rem 0.3rem',
+                        borderRadius: 10,
+                        border: `1.5px solid ${isActive ? themeObj.accent : themeObj.border}`,
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: isActive ? themeObj.accent : themeObj.innerBg,
+                        color: isActive ? '#ffffff' : themeObj.text,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 3,
+                        transition: 'all 0.12s'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.1rem' }}>{s.icon}</span>
+                      <span style={{ fontSize: '0.62rem' }}>{isActive ? 'Açık' : 'Kapalı'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Soru Başı Çan Sesi */}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                🔔 Hatırlatıcı
+              </div>
+              <button
+                onClick={() => {
+                  setQuestionChimeEnabled(v => {
+                    const next = !v;
+                    localStorage.setItem('study_question_chime_enabled', String(next));
+                    return next;
+                  });
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: 10,
+                  border: `1.5px solid ${questionChimeEnabled ? themeObj.accent : themeObj.border}`,
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: questionChimeEnabled ? themeObj.accent : themeObj.buttonBg,
+                  color: questionChimeEnabled ? '#ffffff' : themeObj.text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.12s'
+                }}
+              >
+                {questionChimeEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                Soru Başı Zil {questionChimeEnabled ? '(Açık)' : '(Kapalı)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── MAIN CONTENT ─── */}
       <div style={{

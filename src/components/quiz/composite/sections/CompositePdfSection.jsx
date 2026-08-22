@@ -18,13 +18,20 @@ export default memo(function CompositePdfSection({
   onTextChange,
   onSelectQuestion,
   isReviewMode = false,
+  isTeacher = false,
+  teacherScores = {},
+  teacherNotes = {},
+  submissionAnswers = [],
+  isTrulyEvaluated = false,
+  onSetTeacherScore,
+  onSetTeacherNote,
   isMobile = false
 }) {
   const totalCount = section.qCount || (section.resolvedQuestions?.length) || 1;
 
   return (
     <QuizPanelLayout
-      panelTitle={isOpenEnded ? 'Yazılı Yanıtlar' : 'Optik Form'}
+      panelTitle={isOpenEnded ? (isReviewMode ? 'Yazılı Değerlendirme' : 'Yazılı Yanıtlar') : 'Optik Form'}
       panelSubtitle={section.title || 'PDF Bölümü'}
       icon={isOpenEnded ? '✍️' : '📋'}
       defaultPosition="right"
@@ -50,6 +57,13 @@ export default memo(function CompositePdfSection({
             onSelectQuestion={onSelectQuestion}
             onTextChange={(qNo, val) => onTextChange && onTextChange(section.id, qNo, val)}
             isReviewMode={isReviewMode}
+            isTeacher={isTeacher}
+            teacherScores={teacherScores}
+            teacherNotes={teacherNotes}
+            submissionAnswers={submissionAnswers}
+            isTrulyEvaluated={isTrulyEvaluated}
+            onSetTeacherScore={onSetTeacherScore}
+            onSetTeacherNote={onSetTeacherNote}
           />
         ) : (
           <OpticalBubblePanel

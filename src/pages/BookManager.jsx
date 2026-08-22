@@ -26,7 +26,7 @@ export default function BookManager() {
   // Bulk Import States
   const [importModal, setImportModal] = useState({ isOpen: false, book: null });
   const [jsonInput, setJsonInput] = useState("");
-  const [sampleFormatTab, setSampleFormatTab] = useState("standard"); // "standard" | "direct" | "open_ended"
+  const [sampleFormatTab, setSampleFormatTab] = useState("standard"); // "standard" | "direct" | "open_ended" | "mixed"
   const [copiedFormat, setCopiedFormat] = useState(null);
 
   // Dropdown State
@@ -179,24 +179,36 @@ export default function BookManager() {
         if (!subject.topics) subject.topics = [];
 
         const formatTestPayload = (testData, topicId = null) => {
+          // Test başına tip tespiti: JSON'daki alan > kitap tipi > varsayılan
+          const testIsOpenEnded =
+            testData.isOpenEnded === true ||
+            testData.questionType === 'acik_uclu' ||
+            (targetBook.bookType === 'open_ended' && testData.questionType !== 'coktan_secmeli');
+
+          const questionType = testData.questionType ||
+            (targetBook.bookType === 'open_ended' ? 'acik_uclu' : 'coktan_secmeli');
+
           const testPayload = {
             subjectId: String(subject.id),
             topicId: topicId ? String(topicId) : null,
-            name: String(testData.name || "İsimsiz Test"),
+            name: String(testData.name || 'İsimsiz Test'),
             questionCount: Number(testData.questionCount) || 20,
-            answerKey: {}
+            answerKey: {},
+            isOpenEnded: testIsOpenEnded,
+            questionType
           };
 
-          if (targetBook.bookType !== 'open_ended' && testData.answerKey) {
+          // Cevap anahtarını işle
+          if (testData.answerKey) {
             if (Array.isArray(testData.answerKey)) {
-              testData.answerKey.forEach((ans, idx) => { 
-                if (ans !== undefined && ans !== null && ans !== "") {
-                  testPayload.answerKey[String(idx + 1)] = String(ans); 
+              testData.answerKey.forEach((ans, idx) => {
+                if (ans !== undefined && ans !== null && ans !== '') {
+                  testPayload.answerKey[String(idx + 1)] = String(ans);
                 }
               });
             } else if (typeof testData.answerKey === 'object') {
               Object.entries(testData.answerKey).forEach(([k, v]) => {
-                if (v !== undefined && v !== null && v !== "") {
+                if (v !== undefined && v !== null && v !== '') {
                   testPayload.answerKey[k] = String(v);
                 }
               });
@@ -252,9 +264,148 @@ export default function BookManager() {
   };
 
   const sampleJsonFormats = {
-    standard: `{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        {\n          "name": "Üslü Sayılar",\n          "tests": [\n            { \n              "name": "Test 1", \n              "questionCount": 12, \n              "answerKey": ["A", "B", "C", "D", "E"] \n            }\n          ]\n        }\n      ]\n    }\n  ]\n}`,
-    direct: `{\n  "subjects": [\n    {\n      "name": "Türkçe",\n      "tests": [\n        { \n          "name": "Kazanım Testi 1", \n          "questionCount": 20, \n          "answerKey": ["A", "B", "C", "D"] \n        },\n        { \n          "name": "Kazanım Testi 2", \n          "questionCount": 20, \n          "answerKey": ["B", "C", "D", "A"] \n        }\n      ]\n    }\n  ]\n}`,
-    open_ended: `{\n  "subjects": [\n    {\n      "name": "Sosyal Bilgiler",\n      "topics": [\n        {\n          "name": "Milli Uyanış",\n          "tests": [\n            { "name": "Klasik Çalışma Kağıdı 1", "questionCount": 5 },\n            { "name": "Klasik Çalışma Kağıdı 2", "questionCount": 8 }\n          ]\n        }\n      ]\n    }\n  ]\n}`
+    standard: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "topics": [
+        {
+          "name": "Üslü Sayılar",
+          "tests": [
+            {
+              "name": "Test 1",
+              "questionType": "coktan_secmeli",
+              "questionCount": 12,
+              "answerKey": ["A", "B", "C", "D", "E", "A", "B", "C", "D", "A", "B", "C"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}`,
+    direct: `{
+  "subjects": [
+    {
+      "name": "Türkçe",
+      "tests": [
+        {
+          "name": "Kazanım Testi 1",
+          "questionType": "coktan_secmeli",
+          "questionCount": 20,
+          "answerKey": ["A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D"]
+        },
+        {
+          "name": "Kazanım Testi 2",
+          "questionType": "coktan_secmeli",
+          "questionCount": 20,
+          "answerKey": ["B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D", "A"]
+        }
+      ]
+    }
+  ]
+}`,
+    open_ended: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "topics": [
+        {
+          "name": "Problemler",
+          "tests": [
+            {
+              "name": "7-8. Sayfa",
+              "questionType": "acik_uclu",
+              "questionCount": 8,
+              "answerKey": {
+                "1": "103959",
+                "2": "2",
+                "3": "503976",
+                "4": "22",
+                "5": "715392",
+                "6": "34253",
+                "7": "186149",
+                "8": "153092"
+              }
+            },
+            {
+              "name": "11-12. Sayfa",
+              "questionType": "acik_uclu",
+              "questionCount": 5,
+              "answerKey": {
+                "1": "732705",
+                "2": "0",
+                "3": "700",
+                "4": "77777",
+                "5": "3"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}`,
+    mixed: `{
+  "subjects": [
+    {
+      "name": "Matematik",
+      "tests": [
+        {
+          "name": "7-8. Sayfa (Açık Uçlu)",
+          "questionType": "acik_uclu",
+          "questionCount": 16,
+          "answerKey": {
+            "1": "103959",
+            "2": "2",
+            "3": "503976",
+            "4": "22",
+            "5": "715392",
+            "6": "34253",
+            "7": "186149",
+            "8": "153092",
+            "9": "910910",
+            "10": "201030",
+            "11": "69930",
+            "12": "987615",
+            "13": "176740",
+            "14": "66",
+            "15": "619250",
+            "16": "148"
+          }
+        },
+        {
+          "name": "79-80. Sayfa (Çoktan Seçmeli)",
+          "questionType": "coktan_secmeli",
+          "questionCount": 16,
+          "answerKey": {
+            "1": "B",
+            "2": "A",
+            "3": "A",
+            "4": "A",
+            "5": "D",
+            "6": "A",
+            "7": "C",
+            "8": "D",
+            "9": "A",
+            "10": "C",
+            "11": "B",
+            "12": "A",
+            "13": "A",
+            "14": "C",
+            "15": "B",
+            "16": "B"
+          }
+        },
+        {
+          "name": "83-84. Sayfa (Cevap Anahtarsız)",
+          "questionType": "acik_uclu",
+          "questionCount": 10
+        }
+      ]
+    }
+  ]
+}`
   };
 
   const copyToClipboard = (key, text) => {
@@ -401,12 +552,20 @@ export default function BookManager() {
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                <span className="book-badge" style={{ margin: 0 }}>
-                  {book.bookType === 'open_ended' ? '📝 Açık Uçlu Kitap' : '🔘 Standart Soru Bankası'}
+                <span className="book-badge" style={{ margin: 0,
+                  background: book.bookType === 'mixed' ? 'rgba(8,145,178,0.12)' : book.bookType === 'open_ended' ? 'rgba(139,92,246,0.12)' : undefined,
+                  color: book.bookType === 'mixed' ? '#0891b2' : book.bookType === 'open_ended' ? '#8b5cf6' : undefined,
+                  borderColor: book.bookType === 'mixed' ? '#0891b2' : book.bookType === 'open_ended' ? '#8b5cf6' : undefined
+                }}>
+                  {book.bookType === 'open_ended' ? '✍️ Açık Uçlu Kitap'
+                    : book.bookType === 'mixed' ? '🔀 Karma Kitap'
+                    : '🔘 Standart Soru Bankası'}
                 </span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.3rem 0.65rem', borderRadius: '9999px', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)' }}>
-                  {book.optionCount === 4 ? '🎯 4 Şık (A-D)' : '🎯 5 Şık (A-E)'}
-                </span>
+                {book.bookType !== 'open_ended' && book.bookType !== 'mixed' && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.3rem 0.65rem', borderRadius: '9999px', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)' }}>
+                    {book.optionCount === 4 ? '🎯 4 Şık (A-D)' : '🎯 5 Şık (A-E)'}
+                  </span>
+                )}
               </div>
 
               <div className="book-stats">
@@ -499,26 +658,46 @@ export default function BookManager() {
               <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Kitap Türü</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'standard' ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)' }}>
-                  <input 
-                    type="radio" 
-                    name="bookType" 
-                    value="standard" 
-                    checked={newBook.bookType === 'standard'} 
+                  <input
+                    type="radio"
+                    name="bookType"
+                    value="standard"
+                    checked={newBook.bookType === 'standard'}
                     onChange={() => setNewBook({ ...newBook, bookType: 'standard' })}
                     style={{ accentColor: '#6366f1' }}
                   />
-                  <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>Standart Soru Bankası</strong> (Çoktan Seçmeli)
+                  <div>
+                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>🔘 Standart Soru Bankası</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler çoktan seçmeli (A/B/C/D veya A/B/C/D/E)</div>
+                  </div>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
-                  <input 
-                    type="radio" 
-                    name="bookType" 
-                    value="open_ended" 
-                    checked={newBook.bookType === 'open_ended'} 
+                  <input
+                    type="radio"
+                    name="bookType"
+                    value="open_ended"
+                    checked={newBook.bookType === 'open_ended'}
                     onChange={() => setNewBook({ ...newBook, bookType: 'open_ended' })}
                     style={{ accentColor: '#8b5cf6' }}
                   />
-                  <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>Açık Uçlu Kitap</strong> (Klasik / Yazılı Sorular)
+                  <div>
+                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>✍️ Açık Uçlu Kitap</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler klasik / yazılı / sayısal cevaplı sorular</div>
+                  </div>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'mixed' ? 'rgba(8,145,178,0.12)' : 'var(--color-surface-hover)' }}>
+                  <input
+                    type="radio"
+                    name="bookType"
+                    value="mixed"
+                    checked={newBook.bookType === 'mixed'}
+                    onChange={() => setNewBook({ ...newBook, bookType: 'mixed' })}
+                    style={{ accentColor: '#0891b2' }}
+                  />
+                  <div>
+                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>🔀 Karma Kitap</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Her test kendi tipini JSON'dan alır (çoktan seçmeli + açık uçlu karışık)</div>
+                  </div>
                 </label>
               </div>
             </div>
@@ -644,7 +823,19 @@ export default function BookManager() {
                     boxShadow: sampleFormatTab === "open_ended" ? '0 2px 8px rgba(139,92,246,0.2)' : 'none'
                   }}
                 >
-                  ✍️ Açık Uçlu / Klasik
+                  ✍️ Açık Uçlu / Sayısal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSampleFormatTab("mixed")}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    background: sampleFormatTab === "mixed" ? 'linear-gradient(135deg, #0891b2, #0e7490)' : 'var(--color-surface)',
+                    color: sampleFormatTab === "mixed" ? '#ffffff' : 'var(--color-text)',
+                    boxShadow: sampleFormatTab === "mixed" ? '0 2px 8px rgba(8,145,178,0.2)' : 'none'
+                  }}
+                >
+                  🔀 Karma (ÇS + Açık Uçlu)
                 </button>
               </div>
 

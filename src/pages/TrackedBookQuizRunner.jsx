@@ -307,7 +307,10 @@ export default function TrackedBookQuizRunner() {
   }, [showOptikForm, effectivePdfMode]);
 
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
-  const isOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.questionType === 'acik_uclu';
+  const isOpenEnded = 
+    resolvedBook?.bookType === 'open_ended' ||
+    resolvedTest?.isOpenEnded === true ||
+    resolvedTest?.questionType === 'acik_uclu';
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
 
@@ -330,12 +333,12 @@ export default function TrackedBookQuizRunner() {
     return totalSeconds;
   });
 
-  // Calculate results based on answer key
   const calculateTestResults = useCallback((answersToCalc) => {
     if (!resolvedTest) return null;
     const targetAnswers = answersToCalc || answers;
     const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
     const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
+    const testIsOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.isOpenEnded === true || resolvedTest?.questionType === 'acik_uclu';
 
     const toLetter = (val) => {
       if (val === null || val === undefined || val === '' || val === 'empty') return '';
@@ -347,46 +350,88 @@ export default function TrackedBookQuizRunner() {
       return str;
     };
 
+    // Sayısal/metin cevap normalizer (açık uçlu için)
+    const normalizeNumeric = (val) => {
+      if (val === null || val === undefined || val === '') return '';
+      const str = String(val).trim().replace(/\s/g, '').replace(',', '.');
+      // Eğer sayıya çevrilebiliyorsa sayısal karşılaştır
+      const num = Number(str);
+      if (!isNaN(num)) return String(num);
+      return str.toLowerCase();
+    };
+
     let correct = 0;
     let wrong = 0;
     let blank = 0;
+    let pending = 0; // Cevap anahtarı olmayan açık uçlu sorular
     const detailed = [];
 
     for (let i = 1; i <= questionCount; i++) {
       const rawUserAns = targetAnswers[i] || targetAnswers[String(i)] || '';
-      const userAns = toLetter(rawUserAns);
 
-      const rawCorrectKey = Array.isArray(answerKey) 
-        ? (answerKey[i - 1] ?? answerKey[i] ?? '') 
+      const rawCorrectKey = Array.isArray(answerKey)
+        ? (answerKey[i - 1] ?? answerKey[i] ?? '')
         : (answerKey[i] ?? answerKey[String(i)] ?? answerKey[i - 1] ?? '');
-      const correctKey = toLetter(rawCorrectKey);
 
       let isCorrect = false;
       let isWrong = false;
+      let isPending = false;
 
-      if (!userAns) {
+      if (!rawUserAns && rawUserAns !== 0) {
         blank++;
-      } else if (correctKey && userAns === correctKey) {
-        correct++;
-        isCorrect = true;
-      } else if (correctKey) {
-        wrong++;
-        isWrong = true;
+      } else if (testIsOpenEnded) {
+        // Açık uçlu mod: sayısal/metin karşılaştırma
+        if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
+          const userNorm = normalizeNumeric(rawUserAns);
+          const keyNorm = normalizeNumeric(rawCorrectKey);
+          if (userNorm && keyNorm && userNorm === keyNorm) {
+            correct++;
+            isCorrect = true;
+          } else if (userNorm) {
+            wrong++;
+            isWrong = true;
+          } else {
+            blank++;
+          }
+        } else {
+          // Cevap anahtarı yok — pending (öğretmen onayı bekliyor)
+          pending++;
+          isPending = true;
+        }
       } else {
-        // If no answer key defined, count marked as correct
-        correct++;
-        isCorrect = true;
+        // Çoktan seçmeli mod (harf karşılaştırma)
+        const userAns = toLetter(rawUserAns);
+        const correctKey = toLetter(rawCorrectKey);
+
+        if (!userAns) {
+          blank++;
+        } else if (correctKey && userAns === correctKey) {
+          correct++;
+          isCorrect = true;
+        } else if (correctKey) {
+          wrong++;
+          isWrong = true;
+        } else {
+          // Cevap anahtarı tanımsız → doğru say
+          correct++;
+          isCorrect = true;
+        }
       }
 
       detailed.push({
         questionNo: i,
-        userAnswer: userAns,
-        correctAnswer: correctKey,
+        userAnswer: testIsOpenEnded ? String(rawUserAns || '') : toLetter(rawUserAns),
+        correctAnswer: testIsOpenEnded ? String(rawCorrectKey || '') : toLetter(rawCorrectKey),
         isCorrect,
         isWrong,
-        isBlank: !userAns
+        isBlank: !rawUserAns && rawUserAns !== 0,
+        isPending
       });
     }
+
+    const hasAnswerKey = testIsOpenEnded
+      ? Object.keys(answerKey).length > 0
+      : true;
 
     const rawNet = correct - (penaltyRatio > 0 ? wrong / penaltyRatio : 0);
     const net = Math.max(0, Number(rawNet.toFixed(2)));
@@ -396,10 +441,13 @@ export default function TrackedBookQuizRunner() {
       correct,
       wrong,
       blank,
+      pending,
       net,
       scorePct,
       detailed,
-      totalQuestions: questionCount
+      totalQuestions: questionCount,
+      isOpenEnded: testIsOpenEnded,
+      hasAnswerKey
     };
   }, [resolvedTest, resolvedBook, questionCount, answers]);
 
@@ -1178,22 +1226,41 @@ export default function TrackedBookQuizRunner() {
                         <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
                       </div>
 
-                      {/* Toplam Net */}
-                      <div style={{
-                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                        borderRadius: 16,
-                        padding: '0.55rem 1.25rem',
-                        textAlign: 'center',
-                        minWidth: 95,
-                        boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
-                      }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                          {results.net}
+                      {/* Kontrol Bekliyor (açık uçlu, anahtarsız) */}
+                      {(results.pending || 0) > 0 && (
+                        <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#b45309', lineHeight: 1.1 }}>{results.pending}</div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#d97706', letterSpacing: '0.04em', marginTop: 3 }}>KONTROL</div>
                         </div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
-                          🎯 NET
+                      )}
+
+                      {/* Toplam Net (çoktan seçmeli) veya Yüzde (açık uçlu) */}
+                      {results.isOpenEnded && !results.hasAnswerKey ? (
+                        <div style={{ background: 'rgba(8,145,178,0.12)', border: '1.5px solid #67e8f9', borderRadius: 16, padding: '0.55rem 1.25rem', textAlign: 'center', minWidth: 95 }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0891b2', lineHeight: 1.1 }}>
+                            {results.pending}/{results.totalQuestions}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#0e7490', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                            ✍️ YAZILDI
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div style={{
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          borderRadius: 16,
+                          padding: '0.55rem 1.25rem',
+                          textAlign: 'center',
+                          minWidth: 95,
+                          boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
+                        }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                            {results.isOpenEnded ? `%${results.scorePct}` : results.net}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                            {results.isOpenEnded ? '🎯 BAŞARI' : '🎯 NET'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1302,19 +1369,120 @@ export default function TrackedBookQuizRunner() {
                             }
 
                             if (isOpenEnded) {
+                              // Açık uçlu soru değerlendirmesi
+                              const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+                              const rawCorrectKey = Array.isArray(answerKey)
+                                ? (answerKey[idx] ?? '')
+                                : (answerKey[qNo] ?? answerKey[String(qNo)] ?? '');
+                              const hasKey = rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined;
+
+                              const normalizeNum = (v) => {
+                                const s = String(v || '').trim().replace(/\s/g, '').replace(',', '.');
+                                const n = Number(s);
+                                return !isNaN(n) ? String(n) : s.toLowerCase();
+                              };
+
+                              const isOeCorrect = isSubmitted && hasKey && selected &&
+                                normalizeNum(selected) === normalizeNum(rawCorrectKey);
+                              const isOeWrong = isSubmitted && hasKey && selected && !isOeCorrect;
+                              const isOePending = isSubmitted && !hasKey && selected;
+
                               return (
-                                <div key={qNo} style={{ background: 'var(--color-surface-hover)', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #2563eb' : '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: 6, boxSizing: 'border-box', width: '100%' }}>
-                                  <span style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>
-                                    Soru {qNo}
-                                  </span>
-                                  <textarea
+                                <div key={qNo} style={{
+                                  background: isOeCorrect ? 'rgba(22,163,74,0.08)'
+                                    : isOeWrong ? 'rgba(220,38,38,0.06)'
+                                    : isOePending ? 'rgba(245,158,11,0.08)'
+                                    : selected ? 'rgba(37,99,235,0.07)'
+                                    : 'var(--color-surface-hover)',
+                                  padding: isVeryNarrow ? '0.65rem 0.75rem' : '0.85rem 1rem',
+                                  borderRadius: '1rem',
+                                  border: isOeCorrect ? '1.5px solid #bbf7d0'
+                                    : isOeWrong ? '1.5px solid #fecaca'
+                                    : isOePending ? '1.5px solid #fde68a'
+                                    : selected ? '1.5px solid #93c5fd'
+                                    : '1.5px solid var(--color-border)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 6,
+                                  boxSizing: 'border-box',
+                                  width: '100%',
+                                  transition: 'all 0.15s ease'
+                                }}>
+                                  {/* Soru no + durum rozeti */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      {flagged[qNo] && !isSubmitted && (
+                                        <Flag size={12} color="#d97706" fill="#d97706" />
+                                      )}
+                                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                                        {qNo}.
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                      {isOeCorrect && (
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#15803d', background: '#f0fdf4', padding: '0.1rem 0.5rem', borderRadius: 99, border: '1px solid #bbf7d0' }}>✓ Doğru</span>
+                                      )}
+                                      {isOeWrong && (
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#b91c1c', background: '#fef2f2', padding: '0.1rem 0.5rem', borderRadius: 99, border: '1px solid #fecaca' }}>✗ Yanlış</span>
+                                      )}
+                                      {isOePending && (
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#b45309', background: '#fffbeb', padding: '0.1rem 0.5rem', borderRadius: 99, border: '1px solid #fde68a' }}>? Kontrol</span>
+                                      )}
+                                      {!isSubmitted && (
+                                        <button
+                                          onClick={() => toggleFlag(qNo)}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                                          title={flagged[qNo] ? 'İşareti Kaldır' : 'Soruyu İşaretle'}
+                                        >
+                                          <Flag size={13} color={flagged[qNo] ? '#d97706' : '#94a3b8'} fill={flagged[qNo] ? '#d97706' : 'none'} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Cevap input alanı */}
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
                                     disabled={isSubmitted}
                                     value={selected}
                                     onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                    placeholder="Cevabınızı buraya yazınız..."
-                                    rows={2}
-                                    style={{ width: '100%', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', borderRadius: 8, padding: '0.5rem', color: 'var(--color-text)', fontSize: '0.85rem', resize: 'vertical' }}
+                                    placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap (boş bırakılabilir)'}
+                                    style={{
+                                      width: '100%',
+                                      background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                                      border: `1.5px solid ${isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)'}`,
+                                      borderRadius: 8,
+                                      padding: '0.45rem 0.65rem',
+                                      color: 'var(--color-text)',
+                                      fontSize: '0.95rem',
+                                      fontWeight: 700,
+                                      fontFamily: "'JetBrains Mono', monospace",
+                                      boxSizing: 'border-box',
+                                      outline: 'none',
+                                      letterSpacing: '0.04em'
+                                    }}
                                   />
+
+                                  {/* Doğru cevabı göster (gönderim sonrası + cevap anahtarı varsa) */}
+                                  {isSubmitted && hasKey && (
+                                    <div style={{
+                                      fontSize: '0.78rem',
+                                      fontWeight: 800,
+                                      color: isOeCorrect ? '#15803d' : '#b91c1c',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 4
+                                    }}>
+                                      <span style={{ color: '#94a3b8', fontWeight: 600 }}>Doğru:</span>
+                                      <span style={{ fontFamily: 'monospace' }}>{rawCorrectKey}</span>
+                                    </div>
+                                  )}
+                                  {isSubmitted && !hasKey && (
+                                    <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 700 }}>
+                                      ⚠️ Cevap anahtarı girilmemiş — öğretmen kontrolünde
+                                    </div>
+                                  )}
                                 </div>
                               );
                             }

@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
-import { Check, Eye } from 'lucide-react';
+import { Check, Eye, Pencil } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
@@ -19,8 +19,8 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
       justifyContent: 'center',
       borderRadius: '0.85rem',
       overflow: 'hidden',
-      background: '#f8fafc',
-      border: '1px solid #e2e8f0',
+      background: 'var(--color-surface-hover)',
+      border: '1px solid var(--color-border)',
       marginBottom: '0.75rem'
     }}>
       <img
@@ -42,9 +42,10 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
             position: 'absolute',
             top: 8,
             right: 8,
-            padding: '0.35rem',
+            padding: '0.4rem',
             borderRadius: '0.5rem',
-            background: 'rgba(15,23,42,0.65)',
+            background: 'rgba(15,23,42,0.7)',
+            backdropFilter: 'blur(4px)',
             color: 'white',
             border: 'none',
             cursor: 'pointer',
@@ -53,7 +54,7 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
             justifyContent: 'center'
           }}
         >
-          <Eye size={14} />
+          <Eye size={16} />
         </button>
       )}
     </div>
@@ -74,6 +75,7 @@ export default function MultipleChoiceRunner({
   optionsCount = 4,
   imageUrls = [],
   onOpenLightbox,
+  onOpenDrawing,
   isMobile = false
 }) {
   const [activeLightbox, setActiveLightbox] = useState(null);
@@ -106,28 +108,61 @@ export default function MultipleChoiceRunner({
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
-  // Collect all resolved images
+  // Collect all resolved images with single-source priority to avoid duplicate stacked images
   const resolvedImages = useMemo(() => {
+    const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
+
     const urls = [];
-    const addImg = (val) => {
-      if (typeof val !== 'string' || !val || val.includes('[STORED_IN_INDEXEDDB]') || val.includes('[LOCALSTORAGE_CACHE]')) return;
-      if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
-        const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
-        urls.push(...parts);
-      } else if (val.startsWith('data:image') || val.startsWith('http') || val.length > 50) {
-        urls.push(val);
+    const addVal = (val) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach(addVal);
+      } else if (isValidImg(val)) {
+        if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
+          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImg);
+          urls.push(...parts);
+        } else {
+          urls.push(val.trim());
+        }
       }
     };
 
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) imageUrls.forEach(addImg);
-    if (Array.isArray(question?.images) && question.images.length > 0) question.images.forEach(addImg);
-    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) question.imageUrls.forEach(addImg);
-    addImg(question?.imageUrl);
-    addImg(question?.contentPayload);
-    addImg(question?.imagePayload);
-    addImg(idbImage);
+    // 1. Explicit imageUrls prop passed specifically for this question
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      imageUrls.forEach(addVal);
+    }
+
+    // 2. Direct question.imageUrl (specific to this single question)
+    if (urls.length === 0 && question?.imageUrl) {
+      addVal(question.imageUrl);
+    }
+
+    // 3. Question-level images array
+    if (urls.length === 0) {
+      const qImages = question?.images || question?.imageUrls;
+      if (Array.isArray(qImages) && qImages.length > 0) {
+        const subIdx = (typeof question?.subIndex === 'number') ? question.subIndex : (qNo - 1);
+        if (qImages.length > 1 && subIdx >= 0 && subIdx < qImages.length) {
+          addVal(qImages[subIdx]);
+        } else {
+          qImages.forEach(addVal);
+        }
+      }
+    }
+
+    // 4. Content payload or image payload
+    if (urls.length === 0) {
+      addVal(question?.imagePayload);
+      addVal(question?.contentPayload);
+    }
+
+    // 5. IndexedDB fallback only if still empty
+    if (urls.length === 0 && idbImage) {
+      addVal(idbImage);
+    }
+
     return Array.from(new Set(urls.filter(Boolean)));
-  }, [imageUrls, question, idbImage]);
+  }, [imageUrls, question, qNo, idbImage]);
 
   const handleOpenImage = (src) => {
     if (onOpenLightbox) {
@@ -157,84 +192,175 @@ export default function MultipleChoiceRunner({
   const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
   return (
-    <div style={{
-      background: '#ffffff',
-      borderRadius: '1.25rem',
-      border: '1.5px solid #e2e8f0',
-      padding: isMobile ? '1rem' : '1.5rem',
-      boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.15rem'
-    }}>
-      {/* Header */}
+    <div
+      id={`q-card-${qNo}`}
+      style={{
+        background: 'var(--color-surface)',
+        borderRadius: isMobile ? '1.15rem' : '1.35rem',
+        border: (selectedOption !== null && selectedOption !== undefined) ? '1.5px solid rgba(99, 102, 241, 0.45)' : '1.5px solid var(--color-border)',
+        padding: isMobile ? '1rem' : '1.35rem',
+        boxShadow: (selectedOption !== null && selectedOption !== undefined) ? '0 8px 25px -4px rgba(99, 102, 241, 0.08)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.15rem',
+        transition: 'all 0.2s ease',
+        position: 'relative'
+      }}
+    >
+      {/* ── TOP HEADER BAR ── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid #e2e8f0',
-        paddingBottom: '0.75rem'
+        borderBottom: '1px solid var(--color-border)',
+        paddingBottom: '0.75rem',
+        flexWrap: 'wrap',
+        gap: '0.5rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
           <span style={{
-            padding: '0.35rem 0.85rem',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            color: '#1d4ed8',
-            borderRadius: '0.5rem',
+            padding: '0.3rem 0.75rem',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(79, 70, 229, 0.12))',
+            border: '1.5px solid rgba(99, 102, 241, 0.35)',
+            color: '#6366f1',
+            borderRadius: '0.6rem',
             fontWeight: 900,
-            fontSize: '0.9rem'
+            fontSize: isMobile ? '0.82rem' : '0.88rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
           }}>
             SORU {qNo} {totalQuestions > 1 && `/ ${totalQuestions}`}
           </span>
           <span style={{
-            padding: '0.2rem 0.6rem',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            color: '#64748b',
-            borderRadius: '0.4rem',
+            padding: '0.22rem 0.55rem',
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+            borderRadius: '0.5rem',
             fontWeight: 800,
-            fontSize: '0.75rem'
+            fontSize: '0.72rem'
           }}>
-            Çoktan Seçmeli
+            🔘 Çoktan Seçmeli
           </span>
         </div>
 
-        {selectedOption !== null && selectedOption !== undefined ? (
-          <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Check size={14} /> Cevaplandı
-          </span>
-        ) : (
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 700 }}>
-            — Yanıtlanmadı
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          {onOpenDrawing && (
+            <button
+              type="button"
+              onClick={onOpenDrawing}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.22rem 0.55rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text-secondary)',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+              title="Çizim ve Karalama Tahtası"
+            >
+              <Pencil size={13} />
+              <span>{isMobile ? 'Çizim' : 'Çizim Tahtası'}</span>
+            </button>
+          )}
+
+          {selectedOption !== null && selectedOption !== undefined ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{
+                fontSize: '0.78rem',
+                color: '#10b981',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '99px'
+              }}>
+                <Check size={13} strokeWidth={3} /> Cevaplandı ({optionLetters[selectedOption] || selectedOption})
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectOption && onSelectOption(null)}
+                style={{
+                  padding: '0.2rem 0.45rem',
+                  borderRadius: '0.4rem',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Seçimi Temizle"
+              >
+                Temizle
+              </button>
+            </div>
+          ) : (
+            <span style={{
+              fontSize: '0.76rem',
+              color: 'var(--color-text-muted)',
+              fontWeight: 800,
+              background: 'var(--color-surface-hover)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '99px',
+              border: '1px solid var(--color-border)'
+            }}>
+              — Yanıtlanmadı
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── BEAUTIFUL FRAMED QUESTION BOX ── */}
+      <div style={{
+        background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.04) 0%, rgba(99, 102, 241, 0.01) 100%)',
+        border: '1.5px solid rgba(99, 102, 241, 0.22)',
+        borderRadius: '1rem',
+        padding: isMobile ? '0.85rem 1rem' : '1.15rem 1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.85rem',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
+      }}>
+        {/* Question Images */}
+        {resolvedImages.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {resolvedImages.map((url, idx) => (
+              <StandardImageFrame
+                key={idx}
+                src={url}
+                alt={`Soru ${qNo} Görsel ${idx + 1}`}
+                onOpenFullscreen={() => handleOpenImage(url)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Question Text */}
+        {qText && !qText.startsWith('Soru ') && (
+          <div style={{
+            fontSize: isMobile ? '0.94rem' : '1.02rem',
+            lineHeight: 1.65,
+            color: 'var(--color-text)',
+            fontWeight: 600,
+            whiteSpace: 'pre-wrap'
+          }}>
+            {qText}
+          </div>
         )}
       </div>
 
-      {/* Images */}
-      {resolvedImages.map((url, idx) => (
-        <StandardImageFrame
-          key={idx}
-          src={url}
-          alt={`Soru ${qNo} Görsel ${idx + 1}`}
-          onOpenFullscreen={() => handleOpenImage(url)}
-        />
-      ))}
-
-      {/* Question Text */}
-      {qText && !qText.startsWith('Soru ') && (
-        <div style={{
-          fontSize: '1rem',
-          lineHeight: 1.65,
-          color: '#0f172a',
-          fontWeight: 700,
-          whiteSpace: 'pre-wrap'
-        }}>
-          {qText}
-        </div>
-      )}
-
-      {/* Options Rendering */}
+      {/* ── OPTIONS RENDERING ── */}
       {hasAnyOptionText ? (
         /* Vertical Stacked Options with Full Text */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
@@ -244,36 +370,38 @@ export default function MultipleChoiceRunner({
               <button
                 key={optIdx}
                 type="button"
-                onClick={() => onSelectOption && onSelectOption(optIdx)}
+                onClick={() => onSelectOption && onSelectOption(isSelected ? null : optIdx)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.85rem',
-                  padding: '0.85rem 1rem',
+                  padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1rem',
                   borderRadius: '0.85rem',
-                  border: `2px solid ${isSelected ? '#2563eb' : '#e2e8f0'}`,
-                  background: isSelected ? '#eff6ff' : '#ffffff',
-                  color: isSelected ? '#1e40af' : '#1e293b',
+                  border: `2px solid ${isSelected ? '#6366f1' : 'var(--color-border)'}`,
+                  background: isSelected ? 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.06))' : 'var(--color-surface)',
+                  color: isSelected ? '#4f46e5' : 'var(--color-text)',
                   fontWeight: isSelected ? 800 : 500,
-                  fontSize: '0.92rem',
+                  fontSize: isMobile ? '0.88rem' : '0.92rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s ease',
-                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.12)' : 'none'
+                  boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.15)' : 'none'
                 }}
               >
                 <span style={{
-                  width: '30px',
-                  height: '30px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
-                  background: isSelected ? '#2563eb' : '#f1f5f9',
-                  color: isSelected ? '#ffffff' : '#475569',
+                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                  color: isSelected ? '#ffffff' : 'var(--color-text)',
+                  border: isSelected ? 'none' : '1px solid var(--color-border)',
                   fontWeight: 900,
-                  fontSize: '0.85rem',
+                  fontSize: '0.88rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
                 }}>
                   {optObj.letter}
                 </span>
@@ -290,38 +418,41 @@ export default function MultipleChoiceRunner({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#f8fafc',
-          padding: '0.85rem 1.25rem',
+          background: 'var(--color-surface-hover)',
+          padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.25rem',
           borderRadius: '0.85rem',
-          border: '1.5px solid #e2e8f0',
-          marginTop: '0.25rem'
+          border: '1.5px solid var(--color-border)',
+          marginTop: '0.25rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
         }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+          <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
             Cevabınızı İşaretleyin:
           </span>
-          <div style={{ display: 'flex', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', gap: isMobile ? '0.5rem' : '0.65rem' }}>
             {optionLetters.map((opt, optIdx) => {
               const isSelected = selectedOption === optIdx;
               return (
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => onSelectOption && onSelectOption(optIdx)}
+                  onClick={() => onSelectOption && onSelectOption(isSelected ? null : optIdx)}
                   style={{
-                    width: '38px',
-                    height: '38px',
+                    width: isMobile ? '38px' : '42px',
+                    height: isMobile ? '38px' : '42px',
                     borderRadius: '50%',
-                    border: `2px solid ${isSelected ? '#2563eb' : '#cbd5e1'}`,
-                    background: isSelected ? '#2563eb' : '#ffffff',
-                    color: isSelected ? '#ffffff' : '#334155',
+                    border: `2px solid ${isSelected ? '#4f46e5' : 'var(--color-border-input)'}`,
+                    background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                    color: isSelected ? '#ffffff' : 'var(--color-text)',
                     fontWeight: 900,
-                    fontSize: '0.9rem',
+                    fontSize: '0.92rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: isSelected ? '0 4px 10px rgba(37,99,235,0.25)' : 'none',
-                    transition: 'all 0.15s ease'
+                    boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                    transition: 'all 0.15s ease',
+                    touchAction: 'manipulation'
                   }}
                 >
                   {opt}

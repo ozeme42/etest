@@ -80,19 +80,29 @@ export function EvaluationProvider({ children }) {
           return true;
         });
 
-        // Auto-sync any local mistake reasons into submissions and Supabase
+        // Auto-sync any local mistake reasons into submissions and Supabase (strict key matching)
         const updatedSubs = validDbSubs.map(sub => {
           const testId = String(sub.testId || sub.realTestId || sub.bookTestId || '');
+          const studentId = String(sub.studentId || '');
+          if (!testId || !studentId || testId.length < 2) return sub;
+
           const cleanTId = testId.replace(/^bt_/, '').replace(/^q_/, '');
           let subMistakeReasons = (sub.mistakeReasons && typeof sub.mistakeReasons === 'object') ? { ...sub.mistakeReasons } : {};
           let changed = false;
 
+          const targetKeys = [
+            `mistake_reasons_${testId}_${studentId}`,
+            `mistake_reasons_bt_${testId}_${studentId}`,
+            `mistake_reasons_${cleanTId}_${studentId}`,
+            `mistake_reasons_bt_${cleanTId}_${studentId}`
+          ];
+
           try {
-            for (let i = 0; i < localStorage.length; i++) {
-              const k = localStorage.key(i);
-              if (k && (k.startsWith('mistake_reasons_') || k.startsWith('mistake_reason_'))) {
-                if (k.includes(testId) || (cleanTId && k.includes(cleanTId))) {
-                  const parsed = JSON.parse(localStorage.getItem(k));
+            targetKeys.forEach(k => {
+              const raw = localStorage.getItem(k);
+              if (raw) {
+                try {
+                  const parsed = JSON.parse(raw);
                   if (parsed && typeof parsed === 'object') {
                     Object.entries(parsed).forEach(([qNo, r]) => {
                       if (r && subMistakeReasons[qNo] !== r) {
@@ -101,9 +111,9 @@ export function EvaluationProvider({ children }) {
                       }
                     });
                   }
-                }
+                } catch {}
               }
-            }
+            });
           } catch {}
 
           if (changed && Object.keys(subMistakeReasons).length > 0) {

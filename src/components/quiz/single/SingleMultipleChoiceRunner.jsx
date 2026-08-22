@@ -5,9 +5,10 @@ import MultipleChoiceRunner from '../runner/MultipleChoiceRunner';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import QuizResultModal from '../modals/QuizResultModal';
+import DrawingCanvas from '../common/DrawingCanvas';
 import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
-import { Clock, Send, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Clock, Send, ArrowLeft, Sun, Moon, ChevronLeft, ChevronRight, Check, LayoutList, Square, Pencil } from 'lucide-react';
 
 /**
  * SingleMultipleChoiceRunner
@@ -24,6 +25,10 @@ export default function SingleMultipleChoiceRunner({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark, toggleTheme } = useTheme();
   const draftKey = `draft_single_mc_${test.id || 'test'}`;
+
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [viewMode, setViewMode] = useState('single'); // 'single' | 'list'
+  const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
   // 1. Convert to unified standardized questions
   const unifiedTest = useMemo(() => {
@@ -98,117 +103,165 @@ export default function SingleMultipleChoiceRunner({
         updated[qNo] = optIdx;
         updated[String(qNo)] = optIdx;
       }
-      try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
+      try {
+        localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated));
+      } catch {}
       triggerAutoSave(updated);
       return updated;
     });
   };
 
   const handleFinishExam = () => {
-    let correct = 0;
-    let wrong = 0;
-    let blank = 0;
+    let cCount = 0;
+    let wCount = 0;
+    let bCount = 0;
 
-    const formatted = activeQuestions.map((q, idx) => {
+    const formattedAnswers = activeQuestions.map((q, idx) => {
       const qNo = idx + 1;
-      const uAns = answers[qNo] ?? answers[String(qNo)];
-      const hasAns = uAns !== undefined && uAns !== null && uAns !== '' && uAns !== 'empty';
-      const isCorrect = hasAns ? checkIsAnswerCorrect(uAns, q.raw || q, test, qNo) : null;
+      const userOpt = answers[qNo] ?? answers[String(qNo)];
+      const hasAns = userOpt !== null && userOpt !== undefined && userOpt !== 'empty';
 
-      if (isCorrect === true) correct++;
-      else if (hasAns) wrong++;
-      else blank++;
+      let isCorr = null;
+      if (hasAns) {
+        isCorr = checkIsAnswerCorrect(userOpt, q.raw || q, test.raw || test, qNo);
+        if (isCorr === true) cCount++;
+        else wCount++;
+      } else {
+        bCount++;
+      }
 
       return {
         questionId: q.id || `q_${qNo}`,
         questionNo: qNo,
         questionNoInSection: qNo,
-        userAnswer: hasAns ? uAns : null,
-        isOpenEnded: false,
-        isCorrect,
-        correctAnswer: q.correctAnswer
+        userAnswer: hasAns ? userOpt : null,
+        isCorrect: isCorr,
+        score: isCorr === true ? 100 : 0,
+        isOpenEnded: false
       };
     });
 
-    const score = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
-    const net = Math.max(0, correct - (wrong * 0.25));
+    const scorePct = totalQuestions > 0 ? Math.round((cCount / totalQuestions) * 100) : 0;
+    const rawNet = Math.max(0, cCount - (wCount * 0.25));
 
-    setResultStats({ correct, wrong, blank, score, net, total: totalQuestions });
-    setSubmissionPayload(formatted);
+    setResultStats({
+      correct: cCount,
+      wrong: wCount,
+      blank: bCount,
+      score: scorePct,
+      net: Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2),
+      total: totalQuestions
+    });
+
+    setSubmissionPayload(formattedAnswers);
     setShowResultModal(true);
   };
 
   const handleConfirmClose = () => {
-    try { localStorage.removeItem(`${draftKey}_ans`); } catch {}
     setShowResultModal(false);
-    if (onSubmit) onSubmit(submissionPayload, { isCloseAction: true });
+    try {
+      localStorage.removeItem(`${draftKey}_ans`);
+    } catch {}
+    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: false });
   };
 
   const handleConfirmReview = () => {
-    try { localStorage.removeItem(`${draftKey}_ans`); } catch {}
     setShowResultModal(false);
     if (onSubmit) onSubmit(submissionPayload, { isReviewAction: true });
   };
 
+  const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
+  const activeQuestion = activeQuestions[activeQIdx] || activeQuestions[0] || {};
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden', position: 'relative' }}>
       {/* Top Header */}
       <div style={{
-        background: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '0.75rem 1.5rem',
+        background: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+        flexWrap: 'wrap',
+        gap: '0.65rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', minWidth: 0 }}>
           <button
             type="button"
             onClick={onExit}
             style={{
-              padding: '0.45rem',
-              borderRadius: '0.6rem',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
+              padding: isMobile ? '0.45rem' : '0.55rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid var(--color-border-input)',
+              background: 'var(--color-surface-hover)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              color: '#475569'
+              justifyContent: 'center',
+              color: 'var(--color-text)',
+              flexShrink: 0
             }}
+            title="Geri Dön"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={isMobile ? 18 : 20} />
           </button>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {unifiedTest.title || 'Çoktan Seçmeli Test'}
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
+            <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: '#2563eb' }}>
               🔘 Çoktan Seçmeli • {totalQuestions} Soru
             </span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleFinishExam}
-          style={{
-            padding: '0.65rem 1.25rem',
-            borderRadius: '0.75rem',
-            border: 'none',
-            background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-            color: '#ffffff',
-            fontWeight: 900,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(22,163,74,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}
-        >
-          <Send size={15} /> Sınavı Bitir ve Gönder
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.65rem' }}>
+          <button
+            type="button"
+            onClick={() => setIsDrawingOpen(prev => !prev)}
+            style={{
+              padding: isMobile ? '0.45rem 0.7rem' : '0.55rem 1rem',
+              borderRadius: '0.75rem',
+              border: `1.5px solid ${isDrawingOpen ? '#6366f1' : 'var(--color-border-input)'}`,
+              background: isDrawingOpen ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)',
+              color: isDrawingOpen ? '#4f46e5' : 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.78rem' : '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+          >
+            <Pencil size={15} />
+            <span>{isMobile ? 'Çizim' : 'Çizim Tahtası'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFinishExam}
+            style={{
+              padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+              borderRadius: '0.75rem',
+              border: 'none',
+              background: 'linear-gradient(135deg, #16a34a, #15803d)',
+              color: '#ffffff',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.82rem' : '0.88rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}
+          >
+            <Send size={15} />
+            <span>{isMobile ? 'Bitir' : 'Sınavı Bitir ve Gönder'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Layout */}
@@ -221,29 +274,228 @@ export default function SingleMultipleChoiceRunner({
           defaultSize={320}
           defaultOpenOnMobile={false}
           documentContent={
-            <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {activeQuestions.map((q, idx) => (
-                <MultipleChoiceRunner
-                  key={q.id || idx}
-                  question={q}
-                  qNo={idx + 1}
-                  totalQuestions={totalQuestions}
-                  imageUrls={q.images || []}
-                  selectedOption={answers[idx + 1] ?? answers[String(idx + 1)]}
-                  onSelectOption={(optIdx) => handleSelectOption(idx + 1, optIdx)}
-                  isMobile={isMobile}
-                />
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'var(--color-bg)' }}>
+              {/* ── TOP QUESTION NAVIGATOR STRIP ── */}
+              <div style={{
+                background: 'var(--color-surface)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 1.15rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.65rem',
+                zIndex: 10,
+                flexShrink: 0
+              }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-secondary)', flexShrink: 0 }}>
+                  <b style={{ color: '#6366f1' }}>{activeQIdx + 1}</b> / {totalQuestions} Soru • <span style={{ color: answeredCount === totalQuestions ? '#10b981' : 'var(--color-text-muted)' }}>{answeredCount} Yanıtlandı</span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  padding: '0.1rem 0',
+                  flex: 1,
+                  justifyContent: isMobile ? 'flex-start' : 'center'
+                }}>
+                  {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((qNo) => {
+                    const isCurrent = activeQIdx === qNo - 1;
+                    const isAnswered = answers[qNo] !== null && answers[qNo] !== undefined && answers[qNo] !== 'empty';
+
+                    let bBg = 'var(--color-surface-hover)';
+                    let bBorder = '1px solid var(--color-border-input)';
+                    let bColor = 'var(--color-text-muted)';
+
+                    if (isCurrent) {
+                      bBg = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+                      bBorder = '2px solid #6366f1';
+                      bColor = '#ffffff';
+                    } else if (isAnswered) {
+                      bBg = 'rgba(22, 163, 74, 0.15)';
+                      bBorder = '1.5px solid #16a34a';
+                      bColor = '#16a34a';
+                    }
+
+                    return (
+                      <button
+                        key={qNo}
+                        type="button"
+                        onClick={() => {
+                          setActiveQIdx(qNo - 1);
+                          if (viewMode === 'list') {
+                            document.getElementById(`q-card-${qNo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }
+                        }}
+                        style={{
+                          width: isMobile ? '28px' : '30px',
+                          height: isMobile ? '28px' : '30px',
+                          borderRadius: '50%',
+                          border: bBorder,
+                          background: bBg,
+                          color: bColor,
+                          fontWeight: 900,
+                          fontSize: '0.74rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: isCurrent ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={`Soru ${qNo}'e Geç`}
+                      >
+                        {isAnswered && !isCurrent ? <Check size={13} strokeWidth={3} /> : qNo}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text-secondary)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    title={viewMode === 'single' ? 'Tüm Soruları Liste Halinde Göster' : 'Tek Tek Sırayla Göster'}
+                  >
+                    {viewMode === 'single' ? <LayoutList size={13} /> : <Square size={13} />}
+                    <span>{isMobile ? '' : (viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ── MAIN CONTENT ── */}
+              <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {viewMode === 'single' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <MultipleChoiceRunner
+                      key={activeQuestion.id || activeQIdx}
+                      question={activeQuestion}
+                      qNo={activeQIdx + 1}
+                      totalQuestions={totalQuestions}
+                      imageUrls={activeQuestion.images || activeQuestion.imageUrls || (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : [])}
+                      selectedOption={answers[activeQIdx + 1]}
+                      onSelectOption={(optIdx) => handleSelectOption(activeQIdx + 1, optIdx)}
+                      onOpenDrawing={() => setIsDrawingOpen(true)}
+                      isMobile={isMobile}
+                    />
+
+                    {/* Stepper Footer */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--color-surface)',
+                      border: '1.5px solid var(--color-border)',
+                      borderRadius: '1rem',
+                      padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1.25rem',
+                      marginTop: '0.25rem'
+                    }}>
+                      <button
+                        type="button"
+                        disabled={activeQIdx === 0}
+                        onClick={() => setActiveQIdx(prev => Math.max(0, prev - 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1.1rem',
+                          borderRadius: '0.7rem',
+                          border: '1.5px solid var(--color-border-input)',
+                          background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                          color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                          fontSize: isMobile ? '0.78rem' : '0.85rem',
+                          fontWeight: 800,
+                          cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx === 0 ? 0.5 : 1,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <ChevronLeft size={16} />
+                        <span>Önceki Soru</span>
+                      </button>
+
+                      <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
+                        {activeQIdx + 1} / {totalQuestions}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={activeQIdx >= totalQuestions - 1}
+                        onClick={() => setActiveQIdx(prev => Math.min(totalQuestions - 1, prev + 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.2rem',
+                          borderRadius: '0.7rem',
+                          border: 'none',
+                          background: activeQIdx >= totalQuestions - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                          color: activeQIdx >= totalQuestions - 1 ? 'var(--color-text-muted)' : '#ffffff',
+                          fontSize: isMobile ? '0.78rem' : '0.85rem',
+                          fontWeight: 900,
+                          cursor: activeQIdx >= totalQuestions - 1 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx >= totalQuestions - 1 ? 0.5 : 1,
+                          boxShadow: activeQIdx >= totalQuestions - 1 ? 'none' : '0 2px 8px rgba(79,70,229,0.3)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span>Sonraki Soru</span>
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  activeQuestions.map((q, idx) => (
+                    <div key={idx} id={`q-card-${idx + 1}`}>
+                      <MultipleChoiceRunner
+                        question={q}
+                        qNo={idx + 1}
+                        totalQuestions={totalQuestions}
+                        imageUrls={q.images || q.imageUrls || (q.imageUrl ? [q.imageUrl] : [])}
+                        selectedOption={answers[idx + 1]}
+                        onSelectOption={(optIdx) => handleSelectOption(idx + 1, optIdx)}
+                        onOpenDrawing={() => setIsDrawingOpen(true)}
+                        isMobile={isMobile}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           }
           answerContent={
             <OpticalBubblePanel
               qCount={totalQuestions}
               answers={answers}
-              onSelectOption={handleSelectOption}
+              onSelectOption={(qNo, optIdx) => {
+                setActiveQIdx(qNo - 1);
+                handleSelectOption(qNo, optIdx);
+              }}
               resolvedQuestions={activeQuestions}
             />
           }
+        />
+
+        {/* Global Drawing Pad */}
+        <DrawingCanvas
+          isOpen={isDrawingOpen}
+          onClose={() => setIsDrawingOpen(false)}
         />
       </div>
 

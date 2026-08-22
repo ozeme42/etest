@@ -628,14 +628,14 @@ export default function StudentBookDetailsPage() {
     };
 
     const normalizeReason = (r) => {
-      if (!r) return null;
-      const str = String(r).toLowerCase().trim();
+      if (!r || typeof r !== 'string') return null;
+      const str = r.toLowerCase().trim();
       if (str.includes('işlem') || str.includes('islem') || str.includes('hesap')) return '⚡ İşlem Hatası';
       if (str.includes('dikkat') || str.includes('okuma') || str.includes('yanlış okuma')) return '⚠️ Dikkat Kaybı';
       if (str.includes('formül') || str.includes('formul') || str.includes('bilgi') || str.includes('unutul')) return '📖 Formül / Bilgi';
       if (str.includes('konu') || str.includes('anlamadım') || str.includes('kavram') || str.includes('tarz')) return '🧠 Konu Eksiği';
       if (str.includes('zaman') || str.includes('süre') || str.includes('sure') || str.includes('yetmedi') || str.includes('yetiş')) return '⏱️ Zaman Yetmedi';
-      return '⚡ İşlem Hatası';
+      return null;
     };
 
     // 1. Collect all mistake reason dictionaries from localStorage
@@ -717,15 +717,16 @@ export default function StudentBookDetailsPage() {
           String(s.metadata?.realTestId || ''),
           String(s.metadata?.bookTestId || ''),
           String(s.metadata?.realId || '')
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) matchFields.push(...s.bookTestIds.map(String));
+        ].filter(f => Boolean(f) && f.length >= 2);
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2));
+        }
 
-        return matchFields.some(f => f && (
+        return matchFields.some(f => (
           f === tIdStr ||
-          f === tCleanId ||
-          f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+          (tCleanId && tCleanId.length >= 2 && f === tCleanId) ||
           (tUuidStr && f === tUuidStr) ||
-          toUUID(f) === tIdStr ||
+          (toUUID(f) && toUUID(f) === tIdStr) ||
           (tUuidStr && toUUID(f) === tUuidStr)
         ));
       });
@@ -747,10 +748,8 @@ export default function StudentBookDetailsPage() {
 
       // B. Check from homeworks (HomeworkContext)
       (homeworks || []).forEach(hw => {
-        const isMatchHwTest = String(hw.id) === tIdStr ||
-          String(hw.testId) === tIdStr ||
-          String(hw.bookTestId) === tIdStr ||
-          (tCleanId && (String(hw.id) === tCleanId || String(hw.testId) === tCleanId)) ||
+        const isMatchHwTest = (tIdStr && tIdStr.length >= 2 && (String(hw.id) === tIdStr || String(hw.testId) === tIdStr || String(hw.bookTestId) === tIdStr)) ||
+          (tCleanId && tCleanId.length >= 2 && (String(hw.id) === tCleanId || String(hw.testId) === tCleanId)) ||
           (tUuidStr && (String(hw.id) === tUuidStr || String(hw.testId) === tUuidStr));
 
         if (isMatchHwTest && Array.isArray(hw.submissions)) {
@@ -777,15 +776,23 @@ export default function StudentBookDetailsPage() {
         }
       });
 
-      // C. Check from localStorage entries matching this test ID
-      Object.entries(localMap).forEach(([k, val]) => {
-        if (!val || typeof val !== 'object') return;
-        const isTestMatch = k.includes(tIdStr) || 
-          (tCleanId && k.includes(tCleanId)) || 
-          (tUuidStr && k.includes(tUuidStr)) ||
-          (t.name && k.toLowerCase().includes(t.name.toLowerCase().trim()));
-        if (isTestMatch) {
-          foundReasonsList.push(val);
+      // C. Check strictly from localStorage entries matching this test ID and student
+      const validLocalKeys = [
+        `mistake_reasons_${tIdStr}_${studentIdStr}`,
+        `mistake_reasons_bt_${tIdStr}_${studentIdStr}`,
+        `mistake_reasons_${tCleanId}_${studentIdStr}`,
+        `mistake_reasons_bt_${tCleanId}_${studentIdStr}`,
+        `mistake_reasons_${tUuidStr}_${studentIdStr}`,
+        `mistake_reasons_bt_${tUuidStr}_${studentIdStr}`,
+        `mistake_reasons_${tIdStr}_${currentUserIdStr}`,
+        `mistake_reasons_bt_${tIdStr}_${currentUserIdStr}`,
+        `mistake_reasons_${tCleanId}_${currentUserIdStr}`,
+        `mistake_reasons_bt_${tCleanId}_${currentUserIdStr}`,
+      ];
+
+      validLocalKeys.forEach(vk => {
+        if (localMap[vk]) {
+          foundReasonsList.push(localMap[vk]);
         }
       });
 
@@ -898,21 +905,6 @@ export default function StudentBookDetailsPage() {
         });
       }
     });
-
-    // Fallback: If still 0 classified but there are mistake_reasons_ keys in localStorage, aggregate all of them
-    if (totalClassified === 0 && Object.keys(localMap).length > 0) {
-      Object.values(localMap).forEach(parsed => {
-        if (parsed && typeof parsed === 'object') {
-          Object.entries(parsed).forEach(([qNo, rawReason]) => {
-            const normKey = normalizeReason(rawReason);
-            if (normKey && reasonDefs[normKey]) {
-              reasonDefs[normKey].count++;
-              totalClassified++;
-            }
-          });
-        }
-      });
-    }
 
     const unclassifiedCount = Math.max(0, totalWrongInBook - totalClassified);
 

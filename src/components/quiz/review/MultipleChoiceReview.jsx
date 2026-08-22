@@ -128,17 +128,61 @@ export default function MultipleChoiceReview({
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
 
-  // Collect all resolved images
+  // Collect all resolved images with single-source priority to avoid duplicate stacked images
   const resolvedImages = useMemo(() => {
+    const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
+
     const urls = [];
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) urls.push(...imageUrls);
-    if (Array.isArray(question?.imageUrls) && question.imageUrls.length > 0) urls.push(...question.imageUrls);
-    if (question?.imageUrl && typeof question.imageUrl === 'string' && question.imageUrl !== '[STORED_IN_INDEXEDDB]') urls.push(question.imageUrl);
-    if (question?.contentPayload && typeof question.contentPayload === 'string' && (question.contentPayload.startsWith('data:image') || question.contentPayload.startsWith('http'))) urls.push(question.contentPayload);
-    if (question?.imagePayload && typeof question.imagePayload === 'string' && (question.imagePayload.startsWith('data:image') || question.imagePayload.startsWith('http'))) urls.push(question.imagePayload);
-    if (idbImage) urls.push(idbImage);
+    const addVal = (val) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach(addVal);
+      } else if (isValidImg(val)) {
+        if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
+          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImg);
+          urls.push(...parts);
+        } else {
+          urls.push(val.trim());
+        }
+      }
+    };
+
+    // 1. Explicit imageUrls prop passed specifically for this question
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      imageUrls.forEach(addVal);
+    }
+
+    // 2. Direct question.imageUrl (specific to this single question)
+    if (urls.length === 0 && question?.imageUrl) {
+      addVal(question.imageUrl);
+    }
+
+    // 3. Question-level images array
+    if (urls.length === 0) {
+      const qImages = question?.images || question?.imageUrls;
+      if (Array.isArray(qImages) && qImages.length > 0) {
+        const subIdx = (typeof question?.subIndex === 'number') ? question.subIndex : (qNo - 1);
+        if (qImages.length > 1 && subIdx >= 0 && subIdx < qImages.length) {
+          addVal(qImages[subIdx]);
+        } else {
+          qImages.forEach(addVal);
+        }
+      }
+    }
+
+    // 4. Content payload or image payload
+    if (urls.length === 0) {
+      addVal(question?.imagePayload);
+      addVal(question?.contentPayload);
+    }
+
+    // 5. IndexedDB fallback only if still empty
+    if (urls.length === 0 && idbImage) {
+      addVal(idbImage);
+    }
+
     return Array.from(new Set(urls.filter(Boolean)));
-  }, [imageUrls, question, idbImage]);
+  }, [imageUrls, question, qNo, idbImage]);
 
   const handleOpenImage = (src) => {
     if (onOpenLightbox) {

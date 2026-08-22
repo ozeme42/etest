@@ -15,7 +15,7 @@ import QuizPanelLayout from '../runner/QuizPanelLayout';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import { useEvaluation } from '../../../context/EvaluationContext';
-import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * CompositeHomeworkReview
@@ -57,6 +57,8 @@ export default function CompositeHomeworkReview({
   }, [submission, unifiedTest]);
 
   const [activeSecIdx, setActiveSecIdx] = useState(0);
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [viewMode, setViewMode] = useState('single');
   const activeSec = rawSections[activeSecIdx] || rawSections[0] || {};
 
   // 2. Teacher Grading State & Save Handlers
@@ -219,43 +221,45 @@ export default function CompositeHomeworkReview({
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       {/* Top Header */}
       <div style={{
-        background: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.5rem',
+        background: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.75rem',
+        gap: '0.65rem',
         boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', minWidth: 0 }}>
           <button
             type="button"
             onClick={onClose}
             style={{
-              padding: '0.45rem',
-              borderRadius: '0.6rem',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
+              padding: isMobile ? '0.45rem' : '0.55rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid var(--color-border-input)',
+              background: 'var(--color-surface-hover)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              color: '#475569'
+              justifyContent: 'center',
+              color: 'var(--color-text)',
+              flexShrink: 0
             }}
             title="Geri Dön"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={isMobile ? 18 : 20} />
           </button>
-          <div>
-            <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               🔍 {unifiedTest.title || 'Sınav İncelemesi'}
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-              Öğrenci: {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm ({overallStats.total} Soru)
+            <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: '#2563eb' }}>
+              {unifiedSub.studentName || 'Öğrenci'} • {rawSections.length} Bölüm ({overallStats.total} Soru)
             </span>
           </div>
         </div>
@@ -398,7 +402,10 @@ export default function CompositeHomeworkReview({
       <SectionTabBar
         sections={rawSections}
         activeSecIdx={activeSecIdx}
-        onSelectSection={setActiveSecIdx}
+        onSelectSection={(idx) => {
+          setActiveSecIdx(idx);
+          setActiveQIdx(0);
+        }}
         sectionAnswers={sectionAnswersMap}
         isReviewMode={true}
       />
@@ -430,6 +437,13 @@ export default function CompositeHomeworkReview({
                   openEndedText={currentSecAnswers.openEndedText}
                   resolvedQuestions={currentSecQuestions}
                   isReviewMode={true}
+                  isTeacher={isTeacher}
+                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
+                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
+                  submissionAnswers={submission?.answers || []}
+                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                  onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
+                  onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
                 />
               ) : (
                 <OpticalBubblePanel
@@ -466,6 +480,13 @@ export default function CompositeHomeworkReview({
                   openEndedText={currentSecAnswers.openEndedText}
                   resolvedQuestions={currentSecQuestions}
                   isReviewMode={true}
+                  isTeacher={isTeacher}
+                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
+                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
+                  submissionAnswers={submission?.answers || []}
+                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                  onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
+                  onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
                 />
               ) : (
                 <OpticalBubblePanel
@@ -486,31 +507,196 @@ export default function CompositeHomeworkReview({
             defaultPosition="right"
             defaultSize={300}
             documentContent={
-              <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {currentSecQuestions.map((q, idx) => {
-                  const qNo = idx + 1;
-                  const text = currentSecAnswers.openEndedText[qNo] || '';
-                  const score = teacherScores[activeSec.id]?.[qNo];
-                  const note = teacherNotes[activeSec.id]?.[qNo] || '';
+              <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Question Bubbles Navigator & View Mode Toggle */}
+                {currentSecQuestions.length > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid var(--color-border)',
+                    borderRadius: '0.85rem',
+                    padding: '0.45rem 0.75rem',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                      {currentSecQuestions.map((q, idx) => {
+                        const qNo = idx + 1;
+                        const score = teacherScores[activeSec.id]?.[qNo];
+                        const text = currentSecAnswers.openEndedText[qNo] || '';
+                        const isSelected = viewMode === 'single' && activeQIdx === idx;
+                        const isGraded = score !== undefined && score !== null && score !== '' && score !== 'empty';
+                        const isBlank = !text || text.trim() === '';
 
-                  return (
-                    <OpenEndedReview
-                      key={q.id || idx}
-                      question={q}
-                      qNo={qNo}
-                      totalQuestions={currentSecQuestions.length}
-                      imageUrls={q.images || []}
-                      userAnswerText={text}
-                      teacherScore={score}
-                      teacherNote={note}
-                      isTrulyEvaluated={unifiedSub.isEvaluated}
-                      onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
-                      onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
-                      isTeacher={isTeacher}
-                      isMobile={isMobile}
-                    />
-                  );
-                })}
+                        return (
+                          <button
+                            key={q.id || idx}
+                            type="button"
+                            onClick={() => {
+                              setViewMode('single');
+                              setActiveQIdx(idx);
+                            }}
+                            style={{
+                              minWidth: '32px',
+                              height: '32px',
+                              borderRadius: '0.5rem',
+                              border: isSelected ? '2px solid #7c3aed' : '1px solid var(--color-border-input)',
+                              background: isSelected ? '#7c3aed' : (isGraded ? '#dcfce7' : (isBlank ? 'var(--color-surface)' : '#faf5ff')),
+                              color: isSelected ? '#ffffff' : (isGraded ? '#15803d' : (isBlank ? 'var(--color-text-muted)' : '#7c3aed')),
+                              fontWeight: 900,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {qNo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
+                      style={{
+                        padding: '0.3rem 0.6rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--color-border-input)',
+                        background: 'var(--color-surface-hover)',
+                        color: 'var(--color-text-secondary)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Content */}
+                {viewMode === 'single' && currentSecQuestions.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {(() => {
+                      const q = currentSecQuestions[activeQIdx] || currentSecQuestions[0];
+                      const qNo = activeQIdx + 1;
+                      const text = currentSecAnswers.openEndedText[qNo] || '';
+                      const score = teacherScores[activeSec.id]?.[qNo];
+                      const note = teacherNotes[activeSec.id]?.[qNo] || '';
+
+                      return (
+                        <OpenEndedReview
+                          key={q.id || activeQIdx}
+                          question={q}
+                          qNo={qNo}
+                          totalQuestions={currentSecQuestions.length}
+                          imageUrls={q.images || []}
+                          userAnswerText={text}
+                          teacherScore={score}
+                          teacherNote={note}
+                          isTrulyEvaluated={unifiedSub.isEvaluated}
+                          onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
+                          onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
+                          isTeacher={isTeacher}
+                          isMobile={isMobile}
+                        />
+                      );
+                    })()}
+
+                    {/* Stepper Bottom Action */}
+                    {currentSecQuestions.length > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--color-surface)',
+                        border: '1.5px solid var(--color-border)',
+                        borderRadius: '0.85rem',
+                        padding: '0.5rem 0.85rem',
+                        marginTop: '0.25rem'
+                      }}>
+                        <button
+                          type="button"
+                          disabled={activeQIdx === 0}
+                          onClick={() => setActiveQIdx(prev => Math.max(0, prev - 1))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: '0.6rem',
+                            border: '1.5px solid var(--color-border-input)',
+                            background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                            color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
+                            opacity: activeQIdx === 0 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={15} />
+                          <span>Önceki Soru</span>
+                        </button>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
+                          {activeQIdx + 1} / {currentSecQuestions.length}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={activeQIdx >= currentSecQuestions.length - 1}
+                          onClick={() => setActiveQIdx(prev => Math.min(currentSecQuestions.length - 1, prev + 1))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '0.6rem',
+                            border: 'none',
+                            background: activeQIdx >= currentSecQuestions.length - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                            color: activeQIdx >= currentSecQuestions.length - 1 ? 'var(--color-text-muted)' : '#ffffff',
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: activeQIdx >= currentSecQuestions.length - 1 ? 'not-allowed' : 'pointer',
+                            opacity: activeQIdx >= currentSecQuestions.length - 1 ? 0.45 : 1
+                          }}
+                        >
+                          <span>Sonraki Soru</span>
+                          <ChevronRight size={15} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  currentSecQuestions.map((q, idx) => {
+                    const qNo = idx + 1;
+                    const text = currentSecAnswers.openEndedText[qNo] || '';
+                    const score = teacherScores[activeSec.id]?.[qNo];
+                    const note = teacherNotes[activeSec.id]?.[qNo] || '';
+
+                    return (
+                      <OpenEndedReview
+                        key={q.id || idx}
+                        question={q}
+                        qNo={qNo}
+                        totalQuestions={currentSecQuestions.length}
+                        imageUrls={q.images || []}
+                        userAnswerText={text}
+                        teacherScore={score}
+                        teacherNote={note}
+                        isTrulyEvaluated={unifiedSub.isEvaluated}
+                        onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
+                        onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
+                        isTeacher={isTeacher}
+                        isMobile={isMobile}
+                      />
+                    );
+                  })
+                )}
               </div>
             }
             answerContent={
@@ -530,28 +716,189 @@ export default function CompositeHomeworkReview({
             defaultPosition="right"
             defaultSize={320}
             documentContent={
-              <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {currentSecQuestions.map((q, idx) => {
-                  const qNo = idx + 1;
-                  const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
-                  const cAns = q.correctAnswer;
-                  const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
-                  const isCorrect = isBlank ? null : checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo);
+              <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Question Bubbles Navigator & View Mode Toggle */}
+                {currentSecQuestions.length > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid var(--color-border)',
+                    borderRadius: '0.85rem',
+                    padding: '0.45rem 0.75rem',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                      {currentSecQuestions.map((q, idx) => {
+                        const qNo = idx + 1;
+                        const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
+                        const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                        const isCorr = isBlank ? null : checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo);
+                        const isSelected = viewMode === 'single' && activeQIdx === idx;
 
-                  return (
-                    <MultipleChoiceReview
-                      key={q.id || idx}
-                      question={q}
-                      qNo={qNo}
-                      totalQuestions={currentSecQuestions.length}
-                      imageUrls={q.images || []}
-                      userAnswer={uAns}
-                      correctAnswer={cAns}
-                      isCorrect={isCorrect}
-                      isMobile={isMobile}
-                    />
-                  );
-                })}
+                        return (
+                          <button
+                            key={q.id || idx}
+                            type="button"
+                            onClick={() => {
+                              setViewMode('single');
+                              setActiveQIdx(idx);
+                            }}
+                            style={{
+                              minWidth: '32px',
+                              height: '32px',
+                              borderRadius: '0.5rem',
+                              border: isSelected ? '2px solid #2563eb' : '1px solid var(--color-border-input)',
+                              background: isSelected ? '#2563eb' : (isCorr === true ? '#dcfce7' : (isCorr === false ? '#fee2e2' : 'var(--color-surface)')),
+                              color: isSelected ? '#ffffff' : (isCorr === true ? '#15803d' : (isCorr === false ? '#b91c1c' : 'var(--color-text-muted)')),
+                              fontWeight: 900,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {qNo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
+                      style={{
+                        padding: '0.3rem 0.6rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--color-border-input)',
+                        background: 'var(--color-surface-hover)',
+                        color: 'var(--color-text-secondary)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Content */}
+                {viewMode === 'single' && currentSecQuestions.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {(() => {
+                      const q = currentSecQuestions[activeQIdx] || currentSecQuestions[0];
+                      const qNo = activeQIdx + 1;
+                      const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
+                      const cAns = q.correctAnswer;
+                      const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                      const isCorrect = isBlank ? null : checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo);
+
+                      return (
+                        <MultipleChoiceReview
+                          key={q.id || activeQIdx}
+                          question={q}
+                          qNo={qNo}
+                          totalQuestions={currentSecQuestions.length}
+                          imageUrls={q.images || []}
+                          userAnswer={uAns}
+                          correctAnswer={cAns}
+                          isCorrect={isCorrect}
+                          isMobile={isMobile}
+                        />
+                      );
+                    })()}
+
+                    {/* Stepper Bottom Action */}
+                    {currentSecQuestions.length > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--color-surface)',
+                        border: '1.5px solid var(--color-border)',
+                        borderRadius: '0.85rem',
+                        padding: '0.5rem 0.85rem',
+                        marginTop: '0.25rem'
+                      }}>
+                        <button
+                          type="button"
+                          disabled={activeQIdx === 0}
+                          onClick={() => setActiveQIdx(prev => Math.max(0, prev - 1))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: '0.6rem',
+                            border: '1.5px solid var(--color-border-input)',
+                            background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                            color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
+                            opacity: activeQIdx === 0 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={15} />
+                          <span>Önceki Soru</span>
+                        </button>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
+                          {activeQIdx + 1} / {currentSecQuestions.length}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={activeQIdx >= currentSecQuestions.length - 1}
+                          onClick={() => setActiveQIdx(prev => Math.min(currentSecQuestions.length - 1, prev + 1))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '0.6rem',
+                            border: 'none',
+                            background: activeQIdx >= currentSecQuestions.length - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                            color: activeQIdx >= currentSecQuestions.length - 1 ? 'var(--color-text-muted)' : '#ffffff',
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: activeQIdx >= currentSecQuestions.length - 1 ? 'not-allowed' : 'pointer',
+                            opacity: activeQIdx >= currentSecQuestions.length - 1 ? 0.45 : 1
+                          }}
+                        >
+                          <span>Sonraki Soru</span>
+                          <ChevronRight size={15} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  currentSecQuestions.map((q, idx) => {
+                    const qNo = idx + 1;
+                    const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
+                    const cAns = q.correctAnswer;
+                    const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                    const isCorrect = isBlank ? null : checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo);
+
+                    return (
+                      <MultipleChoiceReview
+                        key={q.id || idx}
+                        question={q}
+                        qNo={qNo}
+                        totalQuestions={currentSecQuestions.length}
+                        imageUrls={q.images || []}
+                        userAnswer={uAns}
+                        correctAnswer={cAns}
+                        isCorrect={isCorrect}
+                        isMobile={isMobile}
+                      />
+                    );
+                  })
+                )}
               </div>
             }
             answerContent={
@@ -566,6 +913,113 @@ export default function CompositeHomeworkReview({
           />
         )}
       </div>
+
+      {/* ── MULTI-SECTION BOTTOM NAVIGATION DOCK (if rawSections.length > 1) ── */}
+      {rawSections.length > 1 && (
+        <div style={{
+          background: 'var(--color-surface)',
+          borderTop: '1.5px solid var(--color-border)',
+          padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.65rem',
+          flexShrink: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
+          zIndex: 40,
+          userSelect: 'none'
+        }}>
+          {/* Previous Section Button */}
+          <button
+            type="button"
+            disabled={activeSecIdx === 0}
+            onClick={() => {
+              setActiveSecIdx(prev => Math.max(0, prev - 1));
+              setActiveQIdx(0);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: isMobile ? '0.45rem 0.8rem' : '0.55rem 1.25rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid var(--color-border-input)',
+              background: activeSecIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+              color: activeSecIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+              fontSize: isMobile ? '0.78rem' : '0.86rem',
+              fontWeight: 800,
+              cursor: activeSecIdx === 0 ? 'not-allowed' : 'pointer',
+              opacity: activeSecIdx === 0 ? 0.45 : 1,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <ChevronLeft size={16} />
+            <span>{isMobile ? 'Önceki Bölüm' : `Önceki: ${rawSections[activeSecIdx - 1]?.title || `${activeSecIdx}. Bölüm`}`}</span>
+          </button>
+
+          {/* Section Indicator */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+            <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 900, color: 'var(--color-text)' }}>
+              Bölüm {activeSecIdx + 1} / {rawSections.length}
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+              {activeSec.title || 'Bölüm İncelemesi'}
+            </span>
+          </div>
+
+          {/* Next Section Button */}
+          {activeSecIdx < rawSections.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSecIdx(prev => Math.min(rawSections.length - 1, prev + 1));
+                setActiveQIdx(0);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                color: '#ffffff',
+                fontSize: isMobile ? '0.78rem' : '0.86rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(79,70,229,0.3)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{isMobile ? 'Sonraki Bölüm' : `Sonraki: ${rawSections[activeSecIdx + 1]?.title || `${activeSecIdx + 2}. Bölüm`}`}</span>
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#ffffff',
+                fontSize: isMobile ? '0.78rem' : '0.86rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <CheckCircle2 size={16} />
+              <span>İncelemeyi Bitir</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

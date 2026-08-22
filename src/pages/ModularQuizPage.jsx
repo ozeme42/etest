@@ -21,9 +21,11 @@ import CompositeHomeworkRunner from '../components/quiz/composite/CompositeHomew
 import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function ModularQuizPage() {
   const { testId } = useParams();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
@@ -1047,41 +1049,41 @@ export default function ModularQuizPage() {
     const hasExistingDraft = Boolean(draftSubmission && draftSubmission.answers && draftSubmission.answers.length > 0);
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)', padding: '1.5rem', color: 'var(--color-text)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)', padding: isMobile ? '1rem 0.75rem' : '2rem 1.5rem', color: 'var(--color-text)' }}>
         <div style={{
           background: 'var(--color-surface)',
           border: '1.5px solid var(--color-border)',
-          borderRadius: '1.5rem',
-          padding: '2.5rem 2rem',
-          maxWidth: '620px',
+          borderRadius: isMobile ? '1.25rem' : '1.5rem',
+          padding: isMobile ? '1.5rem 1.15rem' : '2.5rem 2rem',
+          maxWidth: '640px',
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 4px 25px rgba(0,0,0,0.04)',
+          boxShadow: '0 10px 35px rgba(0,0,0,0.06)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '1.35rem'
+          gap: isMobile ? '1.15rem' : '1.35rem'
         }}>
           {/* ICON BADGE */}
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: isMobile ? '64px' : '80px',
+            height: isMobile ? '64px' : '80px',
             borderRadius: '50%',
-            background: 'rgba(37,99,235,0.12)',
-            border: '2px solid #3b82f6',
-            color: '#60a5fa',
+            background: 'rgba(99,102,241,0.12)',
+            border: '2px solid #6366f1',
+            color: '#6366f1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(37,99,235,0.15)'
+            boxShadow: '0 4px 16px rgba(99,102,241,0.2)'
           }}>
-            <Sparkles size={40} />
+            <Sparkles size={isMobile ? 32 : 40} />
           </div>
 
           {/* BADGES & TITLE */}
-          <div>
+          <div style={{ width: '100%' }}>
             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
-              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', color: '#60a5fa', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1', borderRadius: '99px', fontWeight: 900, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {testSubject}
               </span>
               <span style={{ padding: '0.25rem 0.65rem', background: isDark ? 'rgba(22, 163, 74, 0.2)' : '#f0fdf4', border: `1px solid ${isDark ? '#15803d' : '#bbf7d0'}`, color: isDark ? '#4ade80' : '#15803d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
@@ -1112,53 +1114,53 @@ export default function ModularQuizPage() {
                 }}
               >
                 {isDark ? <Sun size={12} color="#f59e0b" /> : <Moon size={12} color="#6366f1" />}
-                <span>{isDark ? 'Açık Tema' : 'Koyu Tema'}</span>
+                <span>{isDark ? 'Açık' : 'Koyu'}</span>
               </button>
             </div>
 
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'var(--color-text)', lineHeight: 1.25 }}>
+            <h1 style={{ fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight: 900, margin: '0 0 0.45rem 0', color: 'var(--color-text)', lineHeight: 1.25 }}>
               {testTitle}
             </h1>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.82rem' : '0.88rem', lineHeight: 1.5, margin: 0 }}>
               Sınavınız hazırlandı. Başlamaya hazır olduğunuzda <b>"{hasExistingDraft ? 'Kaldığın Yerden Devam Et' : 'Sınava Başla'}"</b> butonuna tıklayınız.
             </p>
           </div>
 
           {/* STATS 4-CARD GRID */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '0.75rem', width: '100%' }}>
-            <div style={{ background: 'var(--color-surface-hover)', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ color: '#4f46e5', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Layers size={17} /></div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>{displayQuestionCount} Soru</div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>Toplam Soru</div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '0.65rem', width: '100%' }}>
+            <div style={{ background: 'var(--color-surface-hover)', padding: '0.75rem 0.6rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
+              <div style={{ color: '#6366f1', display: 'flex', justifyContent: 'center', marginBottom: 3 }}><Layers size={16} /></div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>{displayQuestionCount} Soru</div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>Toplam Soru</div>
             </div>
             
-            <div style={{ background: 'var(--color-surface-hover)', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ color: '#16a34a', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Clock3 size={17} /></div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{totalMinutes} Dk</div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{timePerQ} dk / soru</div>
+            <div style={{ background: 'var(--color-surface-hover)', padding: '0.75rem 0.6rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
+              <div style={{ color: '#10b981', display: 'flex', justifyContent: 'center', marginBottom: 3 }}><Clock3 size={16} /></div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: '#10b981' }}>{totalMinutes} Dk</div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>{timePerQ} dk / soru</div>
             </div>
 
             {dueDateStr && (
-              <div style={{ background: 'var(--color-surface-hover)', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
-                <div style={{ color: '#d97706', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Calendar size={17} /></div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#d97706', lineHeight: 1.2, marginTop: 3 }}>{dueDateStr}</div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>Son Teslim</div>
+              <div style={{ background: 'var(--color-surface-hover)', padding: '0.75rem 0.6rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: '#d97706', display: 'flex', justifyContent: 'center', marginBottom: 3 }}><Calendar size={16} /></div>
+                <div style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: 900, color: '#d97706', lineHeight: 1.2, marginTop: 2 }}>{dueDateStr}</div>
+                <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>Son Teslim</div>
               </div>
             )}
 
-            <div style={{ background: 'var(--color-surface-hover)', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ color: '#0284c7', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><ShieldCheck size={17} /></div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0284c7', marginTop: 2 }}>Aktif</div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>Sınav Durumu</div>
+            <div style={{ background: 'var(--color-surface-hover)', padding: '0.75rem 0.6rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)', textAlign: 'center' }}>
+              <div style={{ color: '#0284c7', display: 'flex', justifyContent: 'center', marginBottom: 3 }}><ShieldCheck size={16} /></div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.1rem', fontWeight: 900, color: '#0284c7', marginTop: 1 }}>Aktif</div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>Sınav Durumu</div>
             </div>
           </div>
 
           {/* RULES / TIPS BOX */}
-          <div style={{ width: '100%', background: 'var(--color-surface-hover)', borderRadius: '0.9rem', border: '1.5px solid var(--color-border)', padding: '0.9rem 1.15rem', textAlign: 'left' }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '100%', background: 'var(--color-surface-hover)', borderRadius: '0.9rem', border: '1.5px solid var(--color-border)', padding: '0.85rem 1rem', textAlign: 'left' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               💡 Sınav Bilgilendirmesi
             </div>
-            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.76rem', color: 'var(--color-text-muted)', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.75rem', color: 'var(--color-text-muted)', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
               <li>İşaretlediğiniz cevaplar anlık olarak otomatik kaydedilir.</li>
               <li>Sorular arasında dilediğiniz gibi geçiş yapabilir, cevabınızı güncelleyebilirsiniz.</li>
               <li>Testi bitirdikten sonra sağ üstteki <b>"Sınavı Tamamla"</b> butonuna basarak teslim ediniz.</li>
@@ -1166,18 +1168,18 @@ export default function ModularQuizPage() {
           </div>
 
           {/* ACTION BUTTONS */}
-          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.65rem', width: '100%', marginTop: '0.3rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => setHasStarted(true)}
               style={{
                 flex: 2,
-                minWidth: '180px',
-                padding: '0.9rem 1.5rem',
+                minWidth: isMobile ? '100%' : '180px',
+                padding: '0.9rem 1.25rem',
                 borderRadius: '0.85rem',
                 background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: '1rem',
+                fontSize: isMobile ? '0.95rem' : '1rem',
                 border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
@@ -1195,14 +1197,14 @@ export default function ModularQuizPage() {
               <button
                 onClick={() => navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true })}
                 style={{
-                  flex: 1.5,
-                  minWidth: '160px',
-                  padding: '0.9rem 1.25rem',
+                  flex: 1.2,
+                  minWidth: isMobile ? '100%' : '150px',
+                  padding: '0.85rem 1.15rem',
                   borderRadius: '0.85rem',
                   background: 'var(--color-surface)',
                   color: '#4f46e5',
                   fontWeight: 900,
-                  fontSize: '0.9rem',
+                  fontSize: '0.88rem',
                   border: '2px solid #6366f1',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1221,8 +1223,8 @@ export default function ModularQuizPage() {
               onClick={() => navigate(-1)}
               style={{
                 flex: 1,
-                minWidth: '100px',
-                padding: '0.9rem 1.1rem',
+                minWidth: isMobile ? '100%' : '100px',
+                padding: '0.85rem 1rem',
                 borderRadius: '0.85rem',
                 background: 'var(--color-surface-hover)',
                 color: 'var(--color-text)',
@@ -1276,21 +1278,21 @@ export default function ModularQuizPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.25rem',
+            padding: isMobile ? '0.75rem' : '1.25rem',
             overflowY: 'auto',
             fontFamily: "'Inter', sans-serif"
           }}>
             <div style={{
               background: 'var(--color-surface)',
               border: '1.5px solid var(--color-border)',
-              borderRadius: '1.5rem',
+              borderRadius: isMobile ? '1.25rem' : '1.5rem',
               width: '100%',
               maxWidth: '680px',
               color: 'var(--color-text)',
-              padding: '2rem',
+              padding: isMobile ? '1.5rem 1.15rem' : '2rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.25rem',
+              gap: isMobile ? '1rem' : '1.25rem',
               boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
               margin: 'auto'
             }}>

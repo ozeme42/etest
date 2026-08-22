@@ -658,7 +658,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           onClick={() => setShowMobileOpticModal(true)}
           style={{
             position: 'fixed',
-            bottom: '1.5rem',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4.5rem)',
             right: '1.25rem',
             zIndex: 9999,
             background: 'linear-gradient(135deg, #10b981, #059669)',

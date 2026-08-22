@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import { ArrowLeft, Award, CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle2, XCircle, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * SingleMultipleChoiceReview
@@ -17,6 +17,8 @@ export default function SingleMultipleChoiceReview({
   onClose
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [viewMode, setViewMode] = useState('single');
   const answers = submission.answers || submission.formattedAnswers || [];
 
   // Map answers to easy lookup with bulletproof null-checks
@@ -255,30 +257,191 @@ export default function SingleMultipleChoiceReview({
           defaultSize={320}
           defaultOpenOnMobile={false}
           documentContent={
-            <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {Array.from({ length: totalQuestions }).map((_, idx) => {
-                const qNo = idx + 1;
-                const q = (Array.isArray(questions) ? questions[idx] : null) || {};
-                const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
-                const normU = normalizeAns(uAns);
-                const normC = correctAnswersArray[idx];
-                const isCorrect = isCorrectMap[qNo];
+            <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Top Question Bubbles Navigator & View Mode Toggle */}
+              {totalQuestions > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
+                  borderRadius: '0.85rem',
+                  padding: '0.45rem 0.75rem',
+                  flexShrink: 0
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                    {Array.from({ length: totalQuestions }).map((_, idx) => {
+                      const qNo = idx + 1;
+                      const isCorr = isCorrectMap[qNo];
+                      const isSelected = viewMode === 'single' && activeQIdx === idx;
 
-                return (
-                  <MultipleChoiceReview
-                    key={q.id || idx}
-                    question={q}
-                    qNo={qNo}
-                    totalQuestions={totalQuestions}
-                    selectedOption={normU}
-                    userAnswer={normU}
-                    correctOption={normC}
-                    correctAnswer={normC}
-                    isCorrect={isCorrect}
-                    isMobile={isMobile}
-                  />
-                );
-              })}
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setViewMode('single');
+                            setActiveQIdx(idx);
+                          }}
+                          style={{
+                            minWidth: '32px',
+                            height: '32px',
+                            borderRadius: '0.5rem',
+                            border: isSelected ? '2px solid #2563eb' : '1px solid var(--color-border-input)',
+                            background: isSelected ? '#2563eb' : (isCorr === true ? '#dcfce7' : (isCorr === false ? '#fee2e2' : 'var(--color-surface)')),
+                            color: isSelected ? '#ffffff' : (isCorr === true ? '#15803d' : (isCorr === false ? '#b91c1c' : 'var(--color-text-muted)')),
+                            fontWeight: 900,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {qNo}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
+                    style={{
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--color-border-input)',
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text-secondary)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru'}
+                  </button>
+                </div>
+              )}
+
+              {/* Question Content */}
+              {viewMode === 'single' && totalQuestions > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(() => {
+                    const idx = activeQIdx;
+                    const qNo = idx + 1;
+                    const q = (Array.isArray(questions) ? questions[idx] : null) || {};
+                    const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
+                    const normU = normalizeAns(uAns);
+                    const normC = correctAnswersArray[idx];
+                    const isCorrect = isCorrectMap[qNo];
+
+                    return (
+                      <MultipleChoiceReview
+                        key={q.id || idx}
+                        question={q}
+                        qNo={qNo}
+                        totalQuestions={totalQuestions}
+                        selectedOption={normU}
+                        userAnswer={normU}
+                        correctOption={normC}
+                        correctAnswer={normC}
+                        isCorrect={isCorrect}
+                        isMobile={isMobile}
+                      />
+                    );
+                  })()}
+
+                  {/* Stepper Bottom Action */}
+                  {totalQuestions > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--color-surface)',
+                      border: '1.5px solid var(--color-border)',
+                      borderRadius: '0.85rem',
+                      padding: '0.5rem 0.85rem',
+                      marginTop: '0.25rem'
+                    }}>
+                      <button
+                        type="button"
+                        disabled={activeQIdx === 0}
+                        onClick={() => setActiveQIdx(prev => Math.max(0, prev - 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.4rem 0.75rem',
+                          borderRadius: '0.6rem',
+                          border: '1.5px solid var(--color-border-input)',
+                          background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                          color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx === 0 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={15} />
+                        <span>Önceki Soru</span>
+                      </button>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
+                        {activeQIdx + 1} / {totalQuestions}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={activeQIdx >= totalQuestions - 1}
+                        onClick={() => setActiveQIdx(prev => Math.min(totalQuestions - 1, prev + 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '0.6rem',
+                          border: 'none',
+                          background: activeQIdx >= totalQuestions - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                          color: activeQIdx >= totalQuestions - 1 ? 'var(--color-text-muted)' : '#ffffff',
+                          fontSize: '0.78rem',
+                          fontWeight: 900,
+                          cursor: activeQIdx >= totalQuestions - 1 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx >= totalQuestions - 1 ? 0.45 : 1
+                        }}
+                      >
+                        <span>Sonraki Soru</span>
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                Array.from({ length: totalQuestions }).map((_, idx) => {
+                  const qNo = idx + 1;
+                  const q = (Array.isArray(questions) ? questions[idx] : null) || {};
+                  const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
+                  const normU = normalizeAns(uAns);
+                  const normC = correctAnswersArray[idx];
+                  const isCorrect = isCorrectMap[qNo];
+
+                  return (
+                    <MultipleChoiceReview
+                      key={q.id || idx}
+                      question={q}
+                      qNo={qNo}
+                      totalQuestions={totalQuestions}
+                      selectedOption={normU}
+                      userAnswer={normU}
+                      correctOption={normC}
+                      correctAnswer={normC}
+                      isCorrect={isCorrect}
+                      isMobile={isMobile}
+                    />
+                  );
+                })
+              )}
             </div>
           }
           answerContent={
@@ -291,6 +454,9 @@ export default function SingleMultipleChoiceReview({
               submissionAnswers={answers}
               testCtx={test}
               isReviewMode={true}
+              onSelectOption={(qNo) => {
+                setActiveQIdx(qNo - 1);
+              }}
             />
           }
         />
