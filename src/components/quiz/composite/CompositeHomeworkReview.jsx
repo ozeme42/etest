@@ -92,7 +92,7 @@ export default function CompositeHomeworkReview({
 
   // 4. Overall stats — computed directly from raw submission data.
   //    MC sections: userAnswer vs correctAnswer per question.
-  //    OE sections: teacherScores from DB (submission.teacherScores).
+  //    OE sections: teacherScores (live hook state OR DB).
   const overallStats = useMemo(() => {
     let totalQuestions = 0;
     let correctCount   = 0;
@@ -101,23 +101,22 @@ export default function CompositeHomeworkReview({
     let pendingCount   = 0;
 
     // DB teacher scores: { [secId]: { [qNo]: score } }
-    // These are ONLY set by real teacher evaluation — not from isCorrect flags.
     const dbTS = submission?.teacherScores || {};
 
-    // Pre-build a map: sectionId → set of question numbers that have teacher scores
-    // If any question in a section has a DB teacher score → that whole section is OE
-    const oeSectionIds = new Set(Object.keys(dbTS).filter(k => {
-      const v = dbTS[k];
-      return v && typeof v === 'object' && Object.keys(v).length > 0;
-    }));
-
-    // Also collect numeric sIdx for sections with teacher scores (for index-based keys)
-    const oeByIdx = new Set();
+    // Sections that have REAL teacher scores — either from DB or from live hook state.
+    // This ensures first-time evaluations (not yet saved) are also detected.
+    const oeSectionIds = new Set();
     rawSections.forEach((sec, sIdx) => {
       const rawId = sec.raw?.id || sec.raw?.questionId || sec.id;
-      if (oeSectionIds.has(sec.id) || oeSectionIds.has(rawId) || oeSectionIds.has(String(sIdx))) {
-        oeByIdx.add(sIdx);
-      }
+      // DB: already saved teacher scores
+      const dbHas = (dbTS[sec.id] && Object.keys(dbTS[sec.id]).length > 0) ||
+                    (dbTS[rawId] && Object.keys(dbTS[rawId]).length > 0) ||
+                    (dbTS[String(sIdx)] && Object.keys(dbTS[String(sIdx)]).length > 0);
+      // Live hook state: teacher scoring right now (before save)
+      const liveHas = (teacherScores[sec.id] && Object.keys(teacherScores[sec.id]).length > 0) ||
+                      (teacherScores[rawId] && Object.keys(teacherScores[rawId]).length > 0) ||
+                      (teacherScores[sIdx] && Object.keys(teacherScores[sIdx]).length > 0);
+      if (dbHas || liveHas) oeSectionIds.add(sIdx);
     });
 
     rawSections.forEach((sec, sIdx) => {
@@ -129,9 +128,7 @@ export default function CompositeHomeworkReview({
       const isOESection =
         sec.type === 'open_ended' ||
         isSectionOpenEnded(sec, test) ||
-        oeSectionIds.has(sec.id) ||
-        oeSectionIds.has(rawId) ||
-        oeByIdx.has(sIdx);
+        oeSectionIds.has(sIdx);
 
       // DB teacher scores for this section
       const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
@@ -141,7 +138,7 @@ export default function CompositeHomeworkReview({
         const qObj = secQs[i - 1] || {};
 
         if (isOESection) {
-          // OE path: use teacher scores (live hook state first, then DB)
+          // OE path: live hook state scores first, then DB fallback
           const ts =
             teacherScores[sec.id]?.[i]   ??
             teacherScores[rawId]?.[i]     ??
@@ -155,13 +152,13 @@ export default function CompositeHomeworkReview({
 
           if (ts !== undefined && ts !== null && ts !== 'empty') {
             if (Number(ts) > 0) correctCount++; else wrongCount++;
-          } else if (!hasText) {
-            blankCount++;
+          } else if (hasText) {
+            pendingCount++;  // student answered but teacher hasn't scored yet
           } else {
-            pendingCount++;
+            blankCount++;    // student didn't answer
           }
         } else {
-          // MC path: get answer from sectionAnswersMap, compare to correct answer
+          // MC path: compare userAnswer to correctAnswer
           const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
           const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
 
@@ -190,8 +187,9 @@ export default function CompositeHomeworkReview({
       }
     });
 
-    const scorePct = (correctCount + wrongCount + blankCount) > 0
-      ? Math.round((correctCount / (correctCount + wrongCount + blankCount)) * 100)
+    // scorePct = correct / total (pending + blank are still "unanswered")
+    const scorePct = totalQuestions > 0
+      ? Math.round((correctCount / totalQuestions) * 100)
       : 0;
     const rawNet   = Math.max(0, correctCount - wrongCount * 0.25);
     const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);

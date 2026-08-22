@@ -310,12 +310,9 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         if (submission.answers && Array.isArray(submission.answers)) {
           submission.answers.forEach((a, idx) => {
             const qNo = a.questionNo || a.questionNoInSection || (idx + 1);
-            if (a.score !== undefined && a.score !== null) {
+            // Only load scores that were explicitly set by teacher evaluation
+            if (a.score !== undefined && a.score !== null && a.evaluatedByTeacher === true) {
               scores[qNo] = Number(a.score);
-            } else if (a.isCorrect === true) {
-              scores[qNo] = 10;
-            } else if (a.isCorrect === false) {
-              scores[qNo] = 0;
             }
             if (a.teacherNote || a.teacher_note || a.feedback) {
               notes[qNo] = a.teacherNote || a.teacher_note || a.feedback;
@@ -438,12 +435,14 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
       const updatedAnswers = (submission.answers || []).map((ans, idx) => {
         const qNo = ans.questionNo || (idx + 1);
-        const score = questionScores[qNo] ?? (ans.isCorrect === true ? 10 : 0);
+        const hasScore = questionScores[qNo] !== undefined && questionScores[qNo] !== null;
+        const score = hasScore ? questionScores[qNo] : null;
         const note = teacherNotes[qNo] || '';
         return {
           ...ans,
-          score,
-          isCorrect: score >= 5,
+          score: score !== null ? score : (ans.score ?? null),
+          isCorrect: score !== null ? (score >= 5) : null,
+          evaluatedByTeacher: hasScore,
           teacherNote: note,
           evaluatedAt: new Date().toISOString()
         };

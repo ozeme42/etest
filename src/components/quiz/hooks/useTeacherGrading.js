@@ -19,26 +19,27 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
       if (s.id !== String(sIdx)) map[sIdx] = {};
     });
 
+    // Load REAL teacher scores saved to DB (submission.teacherScores is set only on teacher save)
     if (submission?.teacherScores && typeof submission.teacherScores === 'object') {
       Object.entries(submission.teacherScores).forEach(([k, v]) => {
         if (v && typeof v === 'object') map[k] = { ...(map[k] || {}), ...v };
       });
     }
 
+    // Also load per-answer scores — but ONLY if teacher explicitly evaluated that answer.
+    // Never auto-derive score from isCorrect (stale MC data that pollutes OE sections).
     const rawAns = submission?.answers || submission?.formattedAnswers || [];
     if (Array.isArray(rawAns)) {
       rawAns.forEach((a, idx) => {
         const sId = a.sectionId || sections[0]?.id || 'sec_1';
         const qNo = a.questionNoInSection || (idx + 1);
         if (!map[sId]) map[sId] = {};
-        if (map[sId][qNo] !== undefined) return;
-        if (a.score !== undefined && a.score !== null) {
+        if (map[sId][qNo] !== undefined) return; // already set from submission.teacherScores
+        // Only load a score if it was explicitly set by a teacher evaluation
+        if (a.score !== undefined && a.score !== null && a.evaluatedByTeacher === true) {
           map[sId][qNo] = typeof a.score === 'number' ? a.score : Number(a.score);
-        } else if (a.isCorrect === true) {
-          map[sId][qNo] = 10;
-        } else if (a.isCorrect === false) {
-          map[sId][qNo] = 0;
         }
+        // Do NOT map isCorrect → 10/0. That would pre-fill OE questions with wrong marks.
       });
     }
     return map;
