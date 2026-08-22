@@ -5395,33 +5395,34 @@ export default function StudyRoomPage() {
                 {/* Gün Seçici Yatay Çubuk (Genişletilmiş & Belirginleştirilmiş) */}
                 <div style={{
                   display: 'flex',
-                  gap: 7,
+                  gap: 8,
                   overflowX: 'auto',
-                  padding: '4px 2px 10px',
-                  borderBottom: '1px solid var(--color-border, #e2e8f0)',
+                  padding: '6px 3px 12px',
+                  borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
                   scrollbarWidth: 'thin'
                 }}>
                   <button
                     type="button"
                     onClick={() => setSelectedProgramDay('all')}
                     style={{
-                      padding: isMobile ? '0.6rem 0.95rem' : '0.65rem 1.15rem',
-                      borderRadius: 12,
-                      border: `1.5px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
-                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.22)' : '#eff6ff') : 'transparent',
+                      padding: isMobile ? '0.75rem 1.15rem' : '0.8rem 1.35rem',
+                      borderRadius: 14,
+                      border: `2px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
+                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.25)' : '#eff6ff') : 'transparent',
                       color: selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.84rem' : '0.9rem',
+                      fontSize: isMobile ? '0.92rem' : '1rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      boxShadow: selectedProgramDay === 'all' ? '0 3px 10px rgba(59,130,246,0.25)' : 'none',
+                      gap: 7,
+                      boxShadow: selectedProgramDay === 'all' ? '0 4px 14px rgba(59,130,246,0.3)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span>🌟 Tüm Hafta</span>
+                    <span style={{ fontSize: '1.15rem' }}>🌟</span>
+                    <span>Tüm Hafta</span>
                   </button>
 
                   {WEEK_DAYS_CONFIG.map(dayCfg => {
@@ -5438,39 +5439,39 @@ export default function StudyRoomPage() {
                         type="button"
                         onClick={() => setSelectedProgramDay(dayCfg.key)}
                         style={{
-                          padding: isMobile ? '0.6rem 0.95rem' : '0.65rem 1.15rem',
-                          borderRadius: 12,
-                          border: `1.5px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
+                          padding: isMobile ? '0.75rem 1.15rem' : '0.8rem 1.35rem',
+                          borderRadius: 14,
+                          border: `2px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
                           background: isSelected
-                            ? (isDark ? 'rgba(59,130,246,0.22)' : dayCfg.bg)
+                            ? (isDark ? 'rgba(59,130,246,0.25)' : dayCfg.bg)
                             : isToday
-                              ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb')
+                              ? (isDark ? 'rgba(245,158,11,0.2)' : '#fffbeb')
                               : 'transparent',
                           color: isSelected ? dayCfg.color : 'var(--color-text)',
                           fontWeight: 900,
-                          fontSize: isMobile ? '0.84rem' : '0.9rem',
+                          fontSize: isMobile ? '0.92rem' : '1rem',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 6,
+                          gap: 7,
                           boxShadow: isSelected
-                            ? '0 3px 10px rgba(59,130,246,0.25)'
+                            ? '0 4px 14px rgba(59,130,246,0.3)'
                             : isToday
-                              ? '0 2px 8px rgba(245,158,11,0.2)'
+                              ? '0 3px 10px rgba(245,158,11,0.25)'
                               : 'none',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <span style={{ fontSize: '0.95rem' }}>{dayCfg.icon}</span>
+                        <span style={{ fontSize: '1.15rem' }}>{dayCfg.icon}</span>
                         <span>{dayCfg.long}</span>
                         {displayCount > 0 && (
                           <span style={{
-                            fontSize: isMobile ? '0.7rem' : '0.74rem',
+                            fontSize: isMobile ? '0.76rem' : '0.82rem',
                             fontWeight: 900,
                             background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
                             color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
-                            padding: '2px 7px',
+                            padding: '3px 9px',
                             borderRadius: 99
                           }}>
                             {displayCount}
@@ -5478,14 +5479,14 @@ export default function StudyRoomPage() {
                         )}
                         {isToday && (
                           <span style={{
-                            fontSize: '0.64rem',
+                            fontSize: '0.7rem',
                             fontWeight: 900,
                             color: '#ffffff',
                             background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            padding: '2px 6px',
-                            borderRadius: 5,
-                            letterSpacing: '0.03em',
-                            boxShadow: '0 2px 6px rgba(245,158,11,0.3)'
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            letterSpacing: '0.04em',
+                            boxShadow: '0 2px 8px rgba(245,158,11,0.35)'
                           }}>
                             BUGÜN
                           </span>
