@@ -1360,80 +1360,162 @@ export default function GoalsAndSchedulePage() {
             <div style={{
               background: 'var(--color-surface, #ffffff)',
               border: '1.5px solid var(--color-border, #e2e8f0)',
-              borderRadius: '1.15rem',
-              padding: '0.9rem 1.15rem',
+              borderRadius: isMobile ? '1rem' : '1.15rem',
+              padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1.15rem',
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
               justifyContent: 'space-between',
-              gap: 10,
-              flexWrap: 'wrap',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+              gap: isMobile ? 10 : 12,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>Periyot:</span>
-                <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover, #f1f5f9)', padding: 2, borderRadius: 8 }}>
-                  {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPeriodFilter(p)}
-                      style={{
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: periodFilter === p ? '#4f46e5' : 'transparent',
-                        color: periodFilter === p ? '#ffffff' : 'var(--color-text-muted, #475569)',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ))}
+              {/* Header Title + CTA Button on Mobile */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: 'rgba(244, 63, 94, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#e11d48'
+                  }}>
+                    <Target size={16} />
+                  </div>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                    Hedef Filtreleri
+                  </span>
                 </div>
 
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginLeft: 8 }}>Tür:</span>
-                <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover, #f1f5f9)', padding: 2, borderRadius: 8 }}>
-                  {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      style={{
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: typeFilter === t ? '#e11d48' : 'transparent',
-                        color: typeFilter === t ? '#ffffff' : 'var(--color-text-muted, #475569)',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGoalModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1rem',
+                    borderRadius: '0.75rem',
+                    background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+                    color: 'white',
+                    border: 'none',
+                    fontSize: isMobile ? '0.75rem' : '0.8rem',
+                    fontWeight: 900,
+                    boxShadow: '0 3px 10px rgba(244,63,94,0.3)',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <Plus size={15} /> Yeni Hedef Ekle
+                </button>
               </div>
 
-              <button
-                onClick={() => setShowGoalModal(true)}
-                style={{
+              {/* Filters Section (Periyot & Tür) */}
+              <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'stretch' : 'center',
+                gap: isMobile ? 8 : 12,
+                flex: 1,
+                justifyContent: isMobile ? 'flex-start' : 'flex-start'
+              }}>
+                {/* 1. PERİYOT SEÇİCİ */}
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
-                  padding: '0.55rem 1rem',
-                  borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 900,
-                  boxShadow: '0 3px 10px rgba(244,63,94,0.3)',
-                  cursor: 'pointer'
-                }}
-              >
-                <Plus size={15} /> + Yeni Hedef Ekle
-              </button>
+                  gap: 6,
+                  width: isMobile ? '100%' : 'auto'
+                }}>
+                  {!isMobile && (
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', whiteSpace: 'nowrap' }}>Periyot:</span>
+                  )}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    background: 'var(--color-surface-hover, #f1f5f9)',
+                    padding: 2,
+                    borderRadius: 10,
+                    width: isMobile ? '100%' : 'auto',
+                    gap: 2
+                  }}>
+                    {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPeriodFilter(p)}
+                        style={{
+                          padding: isMobile ? '0.35rem 0.2rem' : '0.3rem 0.65rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: periodFilter === p ? '#4f46e5' : 'transparent',
+                          color: periodFilter === p ? '#ffffff' : 'var(--color-text-muted, #475569)',
+                          fontSize: isMobile ? '0.68rem' : '0.74rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s ease',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. TÜR SEÇİCİ */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  width: isMobile ? '100%' : 'auto'
+                }}>
+                  {!isMobile && (
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', whiteSpace: 'nowrap' }}>Tür:</span>
+                  )}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    background: 'var(--color-surface-hover, #f1f5f9)',
+                    padding: 2,
+                    borderRadius: 10,
+                    width: isMobile ? '100%' : 'auto',
+                    gap: 2
+                  }}>
+                    {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTypeFilter(t)}
+                        style={{
+                          padding: isMobile ? '0.35rem 0.15rem' : '0.3rem 0.65rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: typeFilter === t ? '#e11d48' : 'transparent',
+                          color: typeFilter === t ? '#ffffff' : 'var(--color-text-muted, #475569)',
+                          fontSize: isMobile ? '0.66rem' : '0.74rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s ease',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Visual Cards Grid */}
