@@ -7,6 +7,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { toUUID } from '../services/supabaseService';
 import { checkIsTaskSolved } from '../components/ProgramCenter';
 import {
@@ -419,6 +420,8 @@ export default function StudyRoomPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isSmallMobile = useMediaQuery('(max-width: 480px)');
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
   const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
@@ -2397,22 +2400,28 @@ export default function StudyRoomPage() {
       gap: isFullscreenView ? 20 : 16
     }}>
       {/* 1. ÜST MOD SWITCHER BARI & DERS PROGRAMINA GİT BUTONU */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        gap: isMobile ? 8 : 10,
+        width: '100%'
+      }}>
         <div className="sr-timer-modes" style={{
           flex: 1,
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 6,
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gap: isMobile ? 4 : 6,
           background: themeObj.innerBg,
-          padding: 5,
-          borderRadius: 18,
+          padding: isMobile ? 3 : 5,
+          borderRadius: isMobile ? 14 : 18,
           border: `1.5px solid ${themeObj.border}`
         }}>
           {[
-            { id: 'question', label: '✏️ Soru Çözümü', sub: `${calculatedQuestionBudgetMinutes} dk` },
-            { id: 'book', label: '📖 Kitap Okuma', sub: 'Sayfa' },
-            { id: 'study', label: '🎯 Konu Çalışma', sub: `${durations.pomodoro || calculatedQuestionBudgetMinutes} dk` },
-            { id: 'break', label: '☕ Mola', sub: `${durations.shortBreak || 10} dk` }
+            { id: 'question', label: isMobile ? '✏️ Soru' : '✏️ Soru Çözümü', sub: `${calculatedQuestionBudgetMinutes} dk` },
+            { id: 'book', label: isMobile ? '📖 Kitap' : '📖 Kitap Okuma', sub: 'Sayfa' },
+            { id: 'study', label: isMobile ? '🎯 Konu' : '🎯 Konu Çalışma', sub: `${durations.pomodoro || calculatedQuestionBudgetMinutes} dk` },
+            { id: 'break', label: isMobile ? '☕ Mola' : '☕ Mola', sub: `${durations.shortBreak || 10} dk` }
           ].map(m => {
             const isSelected = activeStudyMode === m.id;
             return (
@@ -2421,11 +2430,11 @@ export default function StudyRoomPage() {
                 onClick={() => handleSwitchMasterMode(m.id)}
                 className="sr-timer-mode-btn"
                 style={{
-                  padding: isFullscreenView ? '0.75rem 0.6rem' : '0.6rem 0.5rem',
-                  borderRadius: 14,
+                  padding: isFullscreenView ? '0.75rem 0.6rem' : isMobile ? '0.45rem 0.2rem' : '0.6rem 0.5rem',
+                  borderRadius: isMobile ? 10 : 14,
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: isFullscreenView ? '0.86rem' : '0.78rem',
+                  fontSize: isFullscreenView ? '0.86rem' : isMobile ? '0.72rem' : '0.78rem',
                   cursor: 'pointer',
                   background: isSelected
                     ? (m.id === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : m.id === 'book' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : m.id === 'study' ? 'linear-gradient(135deg, #10b981, #059669)' : themeObj.accent)
@@ -2434,68 +2443,79 @@ export default function StudyRoomPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 3,
+                  gap: 2,
                   boxShadow: isSelected ? '0 6px 16px rgba(0,0,0,0.18)' : 'none',
                   transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                  overflow: 'hidden'
                 }}
               >
-                <span>{m.label}</span>
-                <span style={{ fontSize: isFullscreenView ? '0.7rem' : '0.64rem', opacity: isSelected ? 0.95 : 0.65 }}>{m.sub}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{m.label}</span>
+                <span style={{ fontSize: isFullscreenView ? '0.7rem' : isMobile ? '0.58rem' : '0.64rem', opacity: isSelected ? 0.95 : 0.65 }}>{m.sub}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
-        <button
-          onClick={() => navigate('/student/program')}
-          style={{
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            border: 'none',
-            color: '#ffffff',
-            borderRadius: 16,
-            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
-            fontWeight: 900,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
-            transition: 'all 0.15s'
-          }}
-          title="Haftalık ders programı sayfasına git ve oradan doğrudan görev seçip başlat"
-        >
-          <Calendar size={17} />
-          <span>📅 Program Sayfası</span>
-        </button>
+        {/* 2 Buton (Program Sayfası ve Zen Odak) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'auto auto',
+          gap: isMobile ? 6 : 8
+        }}>
+          {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
+          <button
+            onClick={() => navigate('/student/program')}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              border: 'none',
+              color: '#ffffff',
+              borderRadius: isMobile ? 12 : 16,
+              padding: isFullscreenView ? '0.85rem 1.1rem' : isMobile ? '0.55rem 0.75rem' : '0.75rem 0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontSize: isFullscreenView ? '0.84rem' : isMobile ? '0.72rem' : '0.78rem',
+              fontWeight: 900,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+              transition: 'all 0.15s'
+            }}
+            title="Haftalık ders programı sayfasına git ve oradan doğrudan görev seçip başlat"
+          >
+            <Calendar size={isMobile ? 14 : 17} />
+            <span>📅 Program</span>
+          </button>
 
-        {/* Zen Tam Ekran Butonu */}
-        <button
-          onClick={() => setIsCardFullscreen(!isCardFullscreen)}
-          style={{
-            background: isCardFullscreen ? themeObj.accent : themeObj.buttonBg,
-            border: `1.5px solid ${themeObj.border}`,
-            color: isCardFullscreen ? 'white' : themeObj.text,
-            borderRadius: 16,
-            padding: isFullscreenView ? '0.85rem 1.1rem' : '0.75rem 0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: isFullscreenView ? '0.84rem' : '0.78rem',
-            fontWeight: 900,
-            whiteSpace: 'nowrap',
-            boxShadow: isCardFullscreen ? '0 6px 16px rgba(0,0,0,0.25)' : 'none',
-            transition: 'all 0.15s'
-          }}
-          title={isCardFullscreen ? "Normal Ekrana Dön" : "Geniş Zen Odak Moduna Geç"}
-        >
-          {isCardFullscreen ? <Shrink size={18} /> : <Expand size={18} />}
-          <span>{isCardFullscreen ? 'Küçült' : 'Zen Odak'}</span>
-        </button>
+          {/* Zen Tam Ekran Butonu */}
+          <button
+            onClick={() => setIsCardFullscreen(!isCardFullscreen)}
+            style={{
+              background: isCardFullscreen ? themeObj.accent : themeObj.buttonBg,
+              border: `1.5px solid ${themeObj.border}`,
+              color: isCardFullscreen ? 'white' : themeObj.text,
+              borderRadius: isMobile ? 12 : 16,
+              padding: isFullscreenView ? '0.85rem 1.1rem' : isMobile ? '0.55rem 0.75rem' : '0.75rem 0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontSize: isFullscreenView ? '0.84rem' : isMobile ? '0.72rem' : '0.78rem',
+              fontWeight: 900,
+              whiteSpace: 'nowrap',
+              boxShadow: isCardFullscreen ? '0 6px 16px rgba(0,0,0,0.25)' : 'none',
+              transition: 'all 0.15s'
+            }}
+            title={isCardFullscreen ? "Normal Ekrana Dön" : "Geniş Zen Odak Moduna Geç"}
+          >
+            {isCardFullscreen ? <Shrink size={isMobile ? 15 : 18} /> : <Expand size={isMobile ? 15 : 18} />}
+            <span>{isCardFullscreen ? 'Küçült' : 'Zen Odak'}</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. AKTİF GÖREV BİLGİ KARTI (SADECE BİR GÖREV YÜKLENDİĞİNDE GÖSTERİLİR) */}
@@ -2616,110 +2636,119 @@ export default function StudyRoomPage() {
           position: 'relative'
         }}>
           {/* SVG Timer Ring */}
-          <div style={{
-            position: 'relative',
-            width: isFullscreenView ? 280 : 230,
-            height: isFullscreenView ? 280 : 230,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width={isFullscreenView ? 280 : 230} height={isFullscreenView ? 280 : 230} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
-              <circle
-                cx={isFullscreenView ? 140 : 115}
-                cy={isFullscreenView ? 140 : 115}
-                r={isFullscreenView ? 122 : 98}
-                stroke={themeObj.isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
-                strokeWidth={isFullscreenView ? 12 : 9}
-                fill="transparent"
-              />
-              <circle
-                cx={isFullscreenView ? 140 : 115}
-                cy={isFullscreenView ? 140 : 115}
-                r={isFullscreenView ? 122 : 98}
-                stroke={activeStudyMode === 'question' ? '#f59e0b' : activeStudyMode === 'book' ? '#6366f1' : activeStudyMode === 'break' ? '#38bdf8' : '#10b981'}
-                strokeWidth={isFullscreenView ? 12 : 9}
-                fill="transparent"
-                strokeDasharray={2 * Math.PI * (isFullscreenView ? 122 : 98)}
-                strokeDashoffset={2 * Math.PI * (isFullscreenView ? 122 : 98) * (1 - progressPct / 100)}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 0.8s ease' }}
-              />
-            </svg>
+          {(() => {
+            const timerSize = isFullscreenView ? 280 : isMobile ? 190 : 230;
+            const timerCenter = timerSize / 2;
+            const timerRadius = isFullscreenView ? 122 : isMobile ? 80 : 98;
+            const timerStroke = isFullscreenView ? 12 : isMobile ? 8 : 9;
 
-            <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '2.8rem' : '2.1rem', marginBottom: 2 }}>
-                {treeGrowthStage.icon}
-              </div>
-
-              <div className="sr-timer-digits" style={{
-                fontSize: isFullscreenView ? '4.2rem' : '3.2rem',
-                fontWeight: 900,
-                letterSpacing: '-0.04em',
-                lineHeight: 1,
-                fontVariantNumeric: 'tabular-nums',
-                color: themeObj.text
+            return (
+              <div style={{
+                position: 'relative',
+                width: timerSize,
+                height: timerSize,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
-                {activeStudyMode === 'stopwatch' ? formatTime(stopwatchSeconds) : formatTime(timeLeft)}
-              </div>
+                <svg width={timerSize} height={timerSize} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
+                  <circle
+                    cx={timerCenter}
+                    cy={timerCenter}
+                    r={timerRadius}
+                    stroke={themeObj.isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
+                    strokeWidth={timerStroke}
+                    fill="transparent"
+                  />
+                  <circle
+                    cx={timerCenter}
+                    cy={timerCenter}
+                    r={timerRadius}
+                    stroke={activeStudyMode === 'question' ? '#f59e0b' : activeStudyMode === 'book' ? '#6366f1' : activeStudyMode === 'break' ? '#38bdf8' : '#10b981'}
+                    strokeWidth={timerStroke}
+                    fill="transparent"
+                    strokeDasharray={2 * Math.PI * timerRadius}
+                    strokeDashoffset={2 * Math.PI * timerRadius * (1 - progressPct / 100)}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                  />
+                </svg>
 
-              {(activeStudyMode === 'question' || activeStudyMode === 'book') ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: 6 }}>
-                  <div style={{
-                    fontSize: isFullscreenView ? '1rem' : '0.84rem',
-                    fontWeight: 900,
-                    color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6
-                  }}>
-                    <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
-                    <span style={{ fontSize: '0.74rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
+                <div style={{ textAlign: 'center', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <div className={isRunning ? "sr-tree-pulse" : ""} style={{ fontSize: isFullscreenView ? '2.8rem' : isMobile ? '1.6rem' : '2.1rem', marginBottom: 2 }}>
+                    {treeGrowthStage.icon}
                   </div>
 
-                  {activeStudyMode === 'question' && livePacingData && (
+                  <div className="sr-timer-digits" style={{
+                    fontSize: isFullscreenView ? '4.2rem' : isMobile ? '2.4rem' : '3.2rem',
+                    fontWeight: 900,
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: themeObj.text
+                  }}>
+                    {activeStudyMode === 'stopwatch' ? formatTime(stopwatchSeconds) : formatTime(timeLeft)}
+                  </div>
+
+                  {(activeStudyMode === 'question' || activeStudyMode === 'book') ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: isMobile ? 3 : 6 }}>
+                      <div style={{
+                        fontSize: isFullscreenView ? '1rem' : isMobile ? '0.78rem' : '0.84rem',
+                        fontWeight: 900,
+                        color: activeStudyMode === 'question' ? '#f59e0b' : themeObj.accent,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4
+                      }}>
+                        <span>{currentProgressCount} / {targetGoalCount} {activeStudyMode === 'question' ? 'Soru' : 'Sayfa'}</span>
+                        <span style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
+                      </div>
+
+                      {activeStudyMode === 'question' && livePacingData && (
+                        <div style={{
+                          fontSize: isMobile ? '0.64rem' : '0.72rem',
+                          fontWeight: 800,
+                          color: livePacingData.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: livePacingData.bg,
+                          border: `1px solid ${livePacingData.border}`,
+                          padding: isMobile ? '1px 6px' : '2px 8px',
+                          borderRadius: 99,
+                          marginTop: 2,
+                          boxShadow: `0 2px 8px ${livePacingData.glow}`
+                        }}>
+                          {livePacingData.icon}
+                          <span>{livePacingData.label}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
                     <div style={{
-                      fontSize: '0.72rem',
+                      fontSize: isMobile ? '0.68rem' : '0.75rem',
                       fontWeight: 800,
-                      color: livePacingData.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      background: livePacingData.bg,
-                      border: `1px solid ${livePacingData.border}`,
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      marginTop: 2,
-                      boxShadow: `0 2px 8px ${livePacingData.glow}`
+                      color: themeObj.subText,
+                      marginTop: isMobile ? 3 : 6
                     }}>
-                      {livePacingData.icon}
-                      <span>{livePacingData.label}</span>
+                      {treeGrowthStage.label}
                     </div>
                   )}
                 </div>
-              ) : (
-                <div style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  color: themeObj.subText,
-                  marginTop: 6
-                }}>
-                  {treeGrowthStage.label}
-                </div>
-              )}
-            </div>
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Ana Kontroller (Başlat / Duraklat / Sıfırla / Ayarlar) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 8 : 10, marginTop: isMobile ? 10 : 14 }}>
             <button
               onClick={resetTimer}
               title="Sıfırla"
               style={{
-                width: isFullscreenView ? 50 : 44,
-                height: isFullscreenView ? 50 : 44,
-                borderRadius: 14,
+                width: isFullscreenView ? 50 : isMobile ? 40 : 44,
+                height: isFullscreenView ? 50 : isMobile ? 40 : 44,
+                borderRadius: isMobile ? 12 : 14,
                 background: themeObj.buttonBg,
                 border: `1.5px solid ${themeObj.border}`,
                 color: themeObj.text,
@@ -2730,22 +2759,22 @@ export default function StudyRoomPage() {
                 transition: 'all 0.2s'
               }}
             >
-              <RotateCcw size={isFullscreenView ? 20 : 17} />
+              <RotateCcw size={isFullscreenView ? 20 : isMobile ? 16 : 17} />
             </button>
 
             <button
               onClick={handleToggleRunning}
               className="sr-action-btn-main"
               style={{
-                padding: isFullscreenView ? '1rem 2.8rem' : '0.85rem 2.2rem',
-                borderRadius: 18,
+                padding: isFullscreenView ? '1rem 2.8rem' : isMobile ? '0.75rem 1.6rem' : '0.85rem 2.2rem',
+                borderRadius: isMobile ? 14 : 18,
                 background: isRunning 
                   ? '#ef4444' 
                   : (activeStudyMode === 'question' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)'),
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: isFullscreenView ? '1.15rem' : '1.02rem',
+                fontSize: isFullscreenView ? '1.15rem' : isMobile ? '0.92rem' : '1.02rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -2757,12 +2786,12 @@ export default function StudyRoomPage() {
               }}
             >
               {isRunning ? (
-                <><Pause size={isFullscreenView ? 22 : 18} fill="white" /> Duraklat</>
+                <><Pause size={isFullscreenView ? 22 : isMobile ? 16 : 18} fill="white" /> Duraklat</>
               ) : (
                 sessionElapsedSeconds > 0 ? (
-                  <><Play size={isFullscreenView ? 22 : 18} fill="white" /> Devam Et</>
+                  <><Play size={isFullscreenView ? 22 : isMobile ? 16 : 18} fill="white" /> Devam Et</>
                 ) : (
-                  <><Play size={isFullscreenView ? 22 : 18} fill="white" /> Başlat</>
+                  <><Play size={isFullscreenView ? 22 : isMobile ? 16 : 18} fill="white" /> Başlat</>
                 )
               )}
             </button>
@@ -2771,9 +2800,9 @@ export default function StudyRoomPage() {
               onClick={() => setShowSettings(!showSettings)}
               title="Süre Ayarları"
               style={{
-                width: isFullscreenView ? 50 : 44,
-                height: isFullscreenView ? 50 : 44,
-                borderRadius: 14,
+                width: isFullscreenView ? 50 : isMobile ? 40 : 44,
+                height: isFullscreenView ? 50 : isMobile ? 40 : 44,
+                borderRadius: isMobile ? 12 : 14,
                 background: showSettings ? themeObj.accent : themeObj.buttonBg,
                 border: `1.5px solid ${themeObj.border}`,
                 color: showSettings ? 'white' : themeObj.text,
@@ -2784,7 +2813,7 @@ export default function StudyRoomPage() {
                 transition: 'all 0.2s'
               }}
             >
-              <Settings2 size={isFullscreenView ? 20 : 17} />
+              <Settings2 size={isFullscreenView ? 20 : isMobile ? 16 : 17} />
             </button>
           </div>
 
@@ -2792,37 +2821,37 @@ export default function StudyRoomPage() {
           {activeStudyMode === 'question' && livePacingData && (
             <div style={{
               width: '100%',
-              marginTop: 14,
+              marginTop: isMobile ? 10 : 14,
               background: themeObj.cardBg,
-              borderRadius: 18,
-              padding: '0.85rem 1rem',
+              borderRadius: isMobile ? 14 : 18,
+              padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem',
               border: `1.5px solid ${livePacingData.border}`,
               boxShadow: `0 4px 16px ${livePacingData.glow}`,
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
+              gap: isMobile ? 6 : 8,
               transition: 'all 0.3s ease',
               boxSizing: 'border-box'
             }}>
               {/* Başlık ve Durum */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 5,
+                  gap: 4,
                   background: livePacingData.bg,
                   color: livePacingData.color,
                   border: `1px solid ${livePacingData.border}`,
                   borderRadius: 99,
-                  padding: '0.2rem 0.65rem',
-                  fontSize: '0.74rem',
+                  padding: isMobile ? '0.15rem 0.5rem' : '0.2rem 0.65rem',
+                  fontSize: isMobile ? '0.66rem' : '0.74rem',
                   fontWeight: 900
                 }}>
                   {livePacingData.icon}
                   <span>{livePacingData.label}</span>
                 </div>
 
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText }}>
+                <span style={{ fontSize: isMobile ? '0.66rem' : '0.72rem', fontWeight: 800, color: themeObj.subText }}>
                   🎯 Hedef: <strong style={{ color: themeObj.text }}>{formatSecToMinSec(livePacingData.targetSecPerQ)}/soru</strong>
                 </span>
               </div>
@@ -2830,18 +2859,18 @@ export default function StudyRoomPage() {
               {/* 3'lü Hız ve Süre Göstergesi */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 6,
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: isMobile ? 3 : 6,
                 background: themeObj.innerBg,
-                padding: '0.5rem 0.65rem',
+                padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 0.65rem',
                 borderRadius: 12,
                 border: `1px solid ${themeObj.border}`
               }}>
                 {/* 1. Kalan Her Soru Başına Süre */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORUYA</div>
+                <div style={{ textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>KALAN SORUYA</div>
                   <div style={{
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.82rem' : '0.95rem',
                     fontWeight: 900,
                     color: livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ 
                       ? '#10b981' 
@@ -2857,10 +2886,10 @@ export default function StudyRoomPage() {
                 </div>
 
                 {/* 2. Şu Anki Gerçekleşen Hız */}
-                <div style={{ textAlign: 'center', borderLeft: `1px solid ${themeObj.border}`, borderRight: `1px solid ${themeObj.border}` }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>ŞU ANKİ HIZIN</div>
+                <div style={{ textAlign: 'center', borderLeft: `1px solid ${themeObj.border}`, borderRight: `1px solid ${themeObj.border}`, minWidth: 0 }}>
+                  <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>ŞU ANKİ HIZIN</div>
                   <div style={{
-                    fontSize: '0.95rem',
+                    fontSize: isMobile ? '0.82rem' : '0.95rem',
                     fontWeight: 900,
                     color: liveSessionSecPerQ <= livePacingData.targetSecPerQ ? '#10b981' : '#f59e0b',
                     marginTop: 2
@@ -2870,9 +2899,9 @@ export default function StudyRoomPage() {
                 </div>
 
                 {/* 3. Kalan Soru */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORU</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: themeObj.text, marginTop: 2 }}>
+                <div style={{ textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>KALAN SORU</div>
+                  <div style={{ fontSize: isMobile ? '0.82rem' : '0.95rem', fontWeight: 900, color: themeObj.text, marginTop: 2 }}>
                     {livePacingData.remainingQuestions} / {targetGoalCount}
                   </div>
                 </div>
@@ -2899,23 +2928,26 @@ export default function StudyRoomPage() {
         </div>
 
         {/* ── SAĞ BÖLÜM: DERS SEÇİMİ, HEDEF VE SORU ÇÖZME BUTONU ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           
           {/* SORU ÇÖZME MODU KONTROLLERİ */}
           {activeStudyMode === 'question' && (
             <div style={{
               background: themeObj.innerBg,
-              borderRadius: 22,
-              padding: isFullscreenView ? '1.25rem 1.4rem' : '1.1rem 1.25rem',
+              borderRadius: isMobile ? 18 : 22,
+              padding: isFullscreenView ? '1.25rem 1.4rem' : isMobile ? '0.85rem 0.75rem' : '1.1rem 1.25rem',
               border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
               flexDirection: 'column',
-              gap: 14
+              gap: isMobile ? 10 : 14,
+              boxSizing: 'border-box',
+              width: '100%',
+              minWidth: 0
             }}>
               {/* Ders & Soru Başı Süre Seçimi */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : '1.2fr 1fr', gap: isMobile ? 8 : 10 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: themeObj.subText, marginBottom: 5 }}>
+                  <label style={{ display: 'block', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: themeObj.subText, marginBottom: 4 }}>
                     📚 Ders:
                   </label>
                   <select
@@ -2927,9 +2959,9 @@ export default function StudyRoomPage() {
                       border: `1.5px solid ${themeObj.border}`,
                       color: themeObj.text,
                       borderRadius: 12,
-                      fontSize: '0.84rem',
+                      fontSize: isMobile ? '0.78rem' : '0.84rem',
                       fontWeight: 900,
-                      padding: '0.5rem 0.6rem',
+                      padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.6rem',
                       outline: 'none',
                       cursor: 'pointer'
                     }}
@@ -2943,7 +2975,7 @@ export default function StudyRoomPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: themeObj.subText, marginBottom: 5 }}>
+                  <label style={{ display: 'block', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: themeObj.subText, marginBottom: 4 }}>
                     ⏱️ Soru Başı:
                   </label>
                   <select
@@ -2959,9 +2991,9 @@ export default function StudyRoomPage() {
                       border: `1.5px solid ${themeObj.border}`,
                       color: themeObj.text,
                       borderRadius: 12,
-                      fontSize: '0.84rem',
+                      fontSize: isMobile ? '0.78rem' : '0.84rem',
                       fontWeight: 900,
-                      padding: '0.5rem 0.6rem',
+                      padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.6rem',
                       outline: 'none',
                       cursor: 'pointer'
                     }}
@@ -2982,20 +3014,20 @@ export default function StudyRoomPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 background: themeObj.cardBg,
-                padding: '0.6rem 0.9rem',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.9rem',
                 borderRadius: 14,
                 border: `1.5px solid ${themeObj.border}`
               }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>
+                <span style={{ fontSize: isMobile ? '0.76rem' : '0.82rem', fontWeight: 900, color: themeObj.text }}>
                   🎯 Hedef Soru:
                 </span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: isMobile ? 4 : 6 }}>
                   <button
                     type="button"
                     onClick={() => handleSetNewTargetGoal(Math.max(1, targetGoalCount - 1), true)}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: isMobile ? 28 : 32,
+                      height: isMobile ? 28 : 32,
                       borderRadius: 8,
                       border: `1px solid ${themeObj.border}`,
                       background: themeObj.innerBg,
@@ -3007,7 +3039,7 @@ export default function StudyRoomPage() {
                       fontWeight: 900
                     }}
                   >
-                    <Minus size={14} />
+                    <Minus size={isMobile ? 12 : 14} />
                   </button>
                   <input
                     type="text"
@@ -3023,9 +3055,9 @@ export default function StudyRoomPage() {
                       if (!targetInputVal || Number(targetInputVal) < 1) setTargetInputVal(String(targetGoalCount || 12));
                     }}
                     style={{
-                      width: 44,
+                      width: isMobile ? 38 : 44,
                       textAlign: 'center',
-                      fontSize: '1rem',
+                      fontSize: isMobile ? '0.92rem' : '1rem',
                       fontWeight: 900,
                       border: 'none',
                       background: 'transparent',
@@ -3037,8 +3069,8 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => handleSetNewTargetGoal(Math.min(500, targetGoalCount + 1), true)}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: isMobile ? 28 : 32,
+                      height: isMobile ? 28 : 32,
                       borderRadius: 8,
                       border: `1px solid ${themeObj.border}`,
                       background: themeObj.innerBg,
@@ -3050,9 +3082,9 @@ export default function StudyRoomPage() {
                       fontWeight: 900
                     }}
                   >
-                    <Plus size={14} />
+                    <Plus size={isMobile ? 12 : 14} />
                   </button>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: themeObj.subText, marginLeft: 2 }}>
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 800, color: themeObj.subText, marginLeft: 2 }}>
                     ({calculatedQuestionBudgetMinutes} dk)
                   </span>
                 </div>
@@ -3064,7 +3096,7 @@ export default function StudyRoomPage() {
                 gridTemplateColumns: '1fr 1fr',
                 gap: 6,
                 background: themeObj.cardBg,
-                padding: 4,
+                padding: 3,
                 borderRadius: 14,
                 border: `1.5px solid ${themeObj.border}`
               }}>
@@ -3075,7 +3107,7 @@ export default function StudyRoomPage() {
                     localStorage.setItem('study_optical_mode', 'optical');
                   }}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
                     borderRadius: 10,
                     border: 'none',
                     background: opticalInputMode === 'optical'
@@ -3083,23 +3115,23 @@ export default function StudyRoomPage() {
                       : 'transparent',
                     color: opticalInputMode === 'optical' ? '#ffffff' : themeObj.subText,
                     fontWeight: 900,
-                    fontSize: '0.82rem',
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 6,
+                    gap: 5,
                     transition: 'all 0.15s'
                   }}
                 >
-                  <BookMarked size={15} />
+                  <BookMarked size={isMobile ? 13 : 15} />
                   <span>Optik Form</span>
                   {Object.keys(opticalAnswers).length > 0 && (
                     <span style={{
                       background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.3)' : '#f59e0b',
                       color: '#ffffff',
-                      fontSize: '0.68rem',
-                      padding: '1px 6px',
+                      fontSize: '0.64rem',
+                      padding: '1px 5px',
                       borderRadius: 99,
                       fontWeight: 900
                     }}>
@@ -3115,7 +3147,7 @@ export default function StudyRoomPage() {
                     localStorage.setItem('study_optical_mode', 'counter');
                   }}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
                     borderRadius: 10,
                     border: 'none',
                     background: opticalInputMode === 'counter'
@@ -3123,23 +3155,23 @@ export default function StudyRoomPage() {
                       : 'transparent',
                     color: opticalInputMode === 'counter' ? '#ffffff' : themeObj.subText,
                     fontWeight: 900,
-                    fontSize: '0.82rem',
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 6,
+                    gap: 5,
                     transition: 'all 0.15s'
                   }}
                 >
-                  <Target size={15} />
+                  <Target size={isMobile ? 13 : 15} />
                   <span>Hızlı Sayaç (+1)</span>
                 </button>
               </div>
 
               {/* OPTİK FORM GÖRÜNÜMÜ */}
               {opticalInputMode === 'optical' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10 }}>
                   {/* Optik Araç Çubuğu */}
                   <div style={{
                     display: 'flex',
@@ -3147,18 +3179,18 @@ export default function StudyRoomPage() {
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
                     gap: 6,
-                    padding: '0.4rem 0.6rem',
+                    padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.6rem',
                     background: themeObj.cardBg,
                     borderRadius: 12,
                     border: `1px solid ${themeObj.border}`
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{
-                        fontSize: '0.74rem',
+                        fontSize: isMobile ? '0.68rem' : '0.74rem',
                         fontWeight: 900,
                         color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : '#f59e0b',
                         background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                        padding: '3px 8px',
+                        padding: '2px 7px',
                         borderRadius: 8,
                         border: `1px solid ${themeObj.border}`
                       }}>
@@ -3176,12 +3208,12 @@ export default function StudyRoomPage() {
                             localStorage.setItem('study_optical_opt_count', '4');
                           }}
                           style={{
-                            padding: '2px 7px',
+                            padding: '2px 6px',
                             borderRadius: 6,
                             border: 'none',
                             background: opticalOptionCount === 4 ? '#6366f1' : 'transparent',
                             color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
-                            fontSize: '0.68rem',
+                            fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 900,
                             cursor: 'pointer'
                           }}
@@ -3195,12 +3227,12 @@ export default function StudyRoomPage() {
                             localStorage.setItem('study_optical_opt_count', '5');
                           }}
                           style={{
-                            padding: '2px 7px',
+                            padding: '2px 6px',
                             borderRadius: 6,
                             border: 'none',
                             background: opticalOptionCount === 5 ? '#6366f1' : 'transparent',
                             color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
-                            fontSize: '0.68rem',
+                            fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 900,
                             cursor: 'pointer'
                           }}
@@ -3214,12 +3246,12 @@ export default function StudyRoomPage() {
                           type="button"
                           onClick={handleClearOpticalAnswers}
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: 8,
+                            padding: '2px 6px',
+                            borderRadius: 6,
                             border: `1px solid ${themeObj.border}`,
                             background: 'transparent',
                             color: '#ef4444',
-                            fontSize: '0.68rem',
+                            fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 800,
                             cursor: 'pointer'
                           }}
@@ -3233,15 +3265,15 @@ export default function StudyRoomPage() {
 
                   {/* Optik Sorular Grid Listesi */}
                   <div style={{
-                    maxHeight: isFullscreenView ? '600px' : '500px',
+                    maxHeight: isFullscreenView ? '600px' : isMobile ? '360px' : '500px',
                     overflowY: 'auto',
-                    padding: '0.65rem',
+                    padding: isMobile ? '0.45rem' : '0.65rem',
                     background: themeObj.cardBg,
                     borderRadius: 14,
                     border: `1.5px solid ${themeObj.border}`,
                     display: 'grid',
-                    gridTemplateColumns: targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))',
-                    gap: 8,
+                    gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))'),
+                    gap: isMobile ? 6 : 8,
                     alignItems: 'start'
                   }} className="custom-scrollbar">
                     {Array.from({ length: targetGoalCount }).map((_, idx) => {
@@ -3256,16 +3288,17 @@ export default function StudyRoomPage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '0.35rem 0.6rem',
+                            padding: isMobile ? '0.3rem 0.4rem' : '0.35rem 0.6rem',
                             borderRadius: 10,
                             background: userAns ? (isDark ? 'rgba(245,158,11,0.14)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
                             border: `1px solid ${userAns ? (isDark ? 'rgba(245,158,11,0.4)' : '#fde68a') : themeObj.border}`,
-                            transition: 'all 0.15s'
+                            transition: 'all 0.15s',
+                            minWidth: 0
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: 36, flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 2, width: isMobile ? 24 : 36, flexShrink: 0 }}>
                             <span style={{
-                              fontSize: '0.78rem',
+                              fontSize: isMobile ? '0.72rem' : '0.78rem',
                               fontWeight: 900,
                               color: userAns ? '#f59e0b' : themeObj.text
                             }}>
@@ -3273,7 +3306,7 @@ export default function StudyRoomPage() {
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 3 : 5 }}>
                             {opts.map(opt => {
                               const isSelected = userAns === opt;
                               return (
@@ -3282,8 +3315,8 @@ export default function StudyRoomPage() {
                                   type="button"
                                   onClick={() => handleSelectOpticalOption(qNo, opt)}
                                   style={{
-                                    width: 30,
-                                    height: 30,
+                                    width: isMobile ? 25 : 30,
+                                    height: isMobile ? 25 : 30,
                                     borderRadius: '50%',
                                     border: isSelected ? 'none' : `1.5px solid ${themeObj.border}`,
                                     background: isSelected
@@ -3291,14 +3324,15 @@ export default function StudyRoomPage() {
                                       : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                                     color: isSelected ? '#ffffff' : themeObj.text,
                                     fontWeight: 900,
-                                    fontSize: '0.8rem',
+                                    fontSize: isMobile ? '0.72rem' : '0.8rem',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     boxShadow: isSelected ? '0 2px 8px rgba(245,158,11,0.4)' : 'none',
                                     transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                    flexShrink: 0
                                   }}
                                 >
                                   {opt}
@@ -3319,7 +3353,7 @@ export default function StudyRoomPage() {
                     className="sr-action-btn-main"
                     style={{
                       width: '100%',
-                      padding: '0.85rem 1.1rem',
+                      padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
                       borderRadius: 14,
                       background: Object.keys(opticalAnswers).length > 0
                         ? 'linear-gradient(135deg, #10b981, #059669)'
@@ -3327,7 +3361,7 @@ export default function StudyRoomPage() {
                       color: Object.keys(opticalAnswers).length > 0 ? '#ffffff' : themeObj.subText,
                       border: 'none',
                       fontWeight: 900,
-                      fontSize: '0.92rem',
+                      fontSize: isMobile ? '0.82rem' : '0.92rem',
                       cursor: Object.keys(opticalAnswers).length > 0 ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
@@ -3337,9 +3371,9 @@ export default function StudyRoomPage() {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <CheckCircle2 size={18} />
+                    <CheckCircle2 size={isMobile ? 16 : 18} />
                     <span>
-                      {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Sınavı Tamamla (${Object.keys(opticalAnswers).length} Soru) 🎯`}
+                      {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Bitir (${Object.keys(opticalAnswers).length} Soru) 🎯`}
                     </span>
                   </button>
                 </div>
@@ -3351,13 +3385,13 @@ export default function StudyRoomPage() {
                     <button
                       onClick={() => handleIncrementProgress(-1)}
                       style={{
-                        padding: isFullscreenView ? '1.1rem 1.4rem' : '0.95rem 1.15rem',
-                        borderRadius: 16,
+                        padding: isFullscreenView ? '1.1rem 1.4rem' : isMobile ? '0.75rem 1rem' : '0.95rem 1.15rem',
+                        borderRadius: isMobile ? 14 : 16,
                         background: themeObj.buttonBg,
                         border: `1.5px solid ${themeObj.border}`,
                         color: themeObj.text,
                         fontWeight: 900,
-                        fontSize: '1.05rem',
+                        fontSize: isMobile ? '0.95rem' : '1.05rem',
                         cursor: 'pointer'
                       }}
                       title="1 Soru Geri Al"
@@ -3369,13 +3403,13 @@ export default function StudyRoomPage() {
                       onClick={() => handleIncrementProgress(1)}
                       className="sr-action-btn-main"
                       style={{
-                        padding: isFullscreenView ? '1.1rem 1.6rem' : '0.95rem 1.3rem',
-                        borderRadius: 16,
+                        padding: isFullscreenView ? '1.1rem 1.6rem' : isMobile ? '0.75rem 1.1rem' : '0.95rem 1.3rem',
+                        borderRadius: isMobile ? 14 : 16,
                         background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                         border: 'none',
                         color: 'white',
                         fontWeight: 900,
-                        fontSize: isFullscreenView ? '1.15rem' : '1.02rem',
+                        fontSize: isFullscreenView ? '1.15rem' : isMobile ? '0.92rem' : '1.02rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3384,7 +3418,7 @@ export default function StudyRoomPage() {
                         boxShadow: '0 6px 20px rgba(245,158,11,0.35)'
                       }}
                     >
-                      <Plus size={22} strokeWidth={3} />
+                      <Plus size={isMobile ? 18 : 22} strokeWidth={3} />
                       <span>+1 Soru Çözdüm 🎯</span>
                     </button>
                   </div>
@@ -3409,13 +3443,13 @@ export default function StudyRoomPage() {
                       className="sr-action-btn-main"
                       style={{
                         width: '100%',
-                        padding: '0.85rem 1.1rem',
+                        padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
                         borderRadius: 14,
                         background: 'linear-gradient(135deg, #10b981, #059669)',
                         color: 'white',
                         border: 'none',
                         fontWeight: 900,
-                        fontSize: '0.92rem',
+                        fontSize: isMobile ? '0.84rem' : '0.92rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3424,7 +3458,7 @@ export default function StudyRoomPage() {
                         boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)'
                       }}
                     >
-                      <Zap size={18} fill="white" />
+                      <Zap size={isMobile ? 16 : 18} fill="white" />
                       <span>Testi Bitir & Molaya Geç ({currentProgressCount} Soru) 🏖️</span>
                     </button>
                   )}
@@ -3437,32 +3471,33 @@ export default function StudyRoomPage() {
           {activeStudyMode === 'book' && (
             <div style={{
               background: themeObj.innerBg,
-              borderRadius: 22,
-              padding: isFullscreenView ? '1.25rem 1.4rem' : '1.1rem 1.25rem',
+              borderRadius: isMobile ? 18 : 22,
+              padding: isFullscreenView ? '1.25rem 1.4rem' : isMobile ? '0.85rem 0.75rem' : '1.1rem 1.25rem',
               border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
               flexDirection: 'column',
-              gap: 14
+              gap: isMobile ? 10 : 14,
+              boxSizing: 'border-box'
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 background: themeObj.cardBg,
-                padding: '0.6rem 0.9rem',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.9rem',
                 borderRadius: 14,
                 border: `1.5px solid ${themeObj.border}`
               }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>
+                <span style={{ fontSize: isMobile ? '0.76rem' : '0.82rem', fontWeight: 900, color: themeObj.text }}>
                   📖 Hedef Sayfa:
                 </span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: isMobile ? 4 : 6 }}>
                   <button
                     type="button"
                     onClick={() => handleSetNewTargetGoal(Math.max(1, targetGoalCount - 5), true)}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: isMobile ? 28 : 32,
+                      height: isMobile ? 28 : 32,
                       borderRadius: 8,
                       border: `1px solid ${themeObj.border}`,
                       background: themeObj.innerBg,
@@ -3474,7 +3509,7 @@ export default function StudyRoomPage() {
                       fontWeight: 900
                     }}
                   >
-                    <Minus size={14} />
+                    <Minus size={isMobile ? 12 : 14} />
                   </button>
                   <input
                     type="text"
@@ -3490,9 +3525,9 @@ export default function StudyRoomPage() {
                       if (!targetInputVal || Number(targetInputVal) < 1) setTargetInputVal(String(targetGoalCount || 20));
                     }}
                     style={{
-                      width: 44,
+                      width: isMobile ? 38 : 44,
                       textAlign: 'center',
-                      fontSize: '1rem',
+                      fontSize: isMobile ? '0.92rem' : '1rem',
                       fontWeight: 900,
                       border: 'none',
                       background: 'transparent',
@@ -3504,8 +3539,8 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => handleSetNewTargetGoal(Math.min(500, targetGoalCount + 5), true)}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: isMobile ? 28 : 32,
+                      height: isMobile ? 28 : 32,
                       borderRadius: 8,
                       border: `1px solid ${themeObj.border}`,
                       background: themeObj.innerBg,
@@ -3517,7 +3552,7 @@ export default function StudyRoomPage() {
                       fontWeight: 900
                     }}
                   >
-                    <Plus size={14} />
+                    <Plus size={isMobile ? 12 : 14} />
                   </button>
                 </div>
               </div>
@@ -3526,13 +3561,13 @@ export default function StudyRoomPage() {
                 <button
                   onClick={() => handleIncrementProgress(-1)}
                   style={{
-                    padding: isFullscreenView ? '1.1rem 1.4rem' : '0.95rem 1.15rem',
-                    borderRadius: 16,
+                    padding: isFullscreenView ? '1.1rem 1.4rem' : isMobile ? '0.75rem 1rem' : '0.95rem 1.15rem',
+                    borderRadius: isMobile ? 14 : 16,
                     background: themeObj.buttonBg,
                     border: `1.5px solid ${themeObj.border}`,
                     color: themeObj.text,
                     fontWeight: 900,
-                    fontSize: '1.05rem',
+                    fontSize: isMobile ? '0.95rem' : '1.05rem',
                     cursor: 'pointer'
                   }}
                   title="1 Sayfa Geri Al"
@@ -3544,13 +3579,13 @@ export default function StudyRoomPage() {
                   onClick={() => handleIncrementProgress(1)}
                   className="sr-action-btn-main"
                   style={{
-                    padding: isFullscreenView ? '1.1rem 1.6rem' : '0.95rem 1.3rem',
-                    borderRadius: 16,
+                    padding: isFullscreenView ? '1.1rem 1.6rem' : isMobile ? '0.75rem 1.1rem' : '0.95rem 1.3rem',
+                    borderRadius: isMobile ? 14 : 16,
                     background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                     border: 'none',
                     color: 'white',
                     fontWeight: 900,
-                    fontSize: isFullscreenView ? '1.15rem' : '1.02rem',
+                    fontSize: isFullscreenView ? '1.15rem' : isMobile ? '0.92rem' : '1.02rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -3559,7 +3594,7 @@ export default function StudyRoomPage() {
                     boxShadow: '0 6px 20px rgba(99,102,241,0.35)'
                   }}
                 >
-                  <Plus size={22} strokeWidth={3} />
+                  <Plus size={isMobile ? 18 : 22} strokeWidth={3} />
                   <span>+1 Sayfa Okudum 📖</span>
                 </button>
               </div>
@@ -3570,19 +3605,20 @@ export default function StudyRoomPage() {
           {(activeStudyMode === 'study' || activeStudyMode === 'break') && (
             <div style={{
               background: themeObj.innerBg,
-              borderRadius: 22,
-              padding: '1.25rem',
+              borderRadius: isMobile ? 18 : 22,
+              padding: isMobile ? '0.85rem 0.75rem' : '1.25rem',
               border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 12,
-              textAlign: 'center'
+              gap: isMobile ? 8 : 12,
+              textAlign: 'center',
+              boxSizing: 'border-box'
             }}>
-              <span style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text }}>
+              <span style={{ fontSize: isMobile ? '0.78rem' : '0.86rem', fontWeight: 900, color: themeObj.text }}>
                 {activeStudyMode === 'study' ? '🎯 Hızlı Süre Seçimi:' : '☕ Mola Süresi:'}
               </span>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', gap: isMobile ? 5 : 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {(activeStudyMode === 'study' ? [15, 25, 30, 45, 60] : [5, 10, 15, 20]).map(mins => (
                   <button
                     key={mins}
@@ -3595,13 +3631,13 @@ export default function StudyRoomPage() {
                       if (!isRunning) setTimeLeft(mins * 60);
                     }}
                     style={{
-                      padding: '0.5rem 0.9rem',
-                      borderRadius: 12,
+                      padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 0.9rem',
+                      borderRadius: 10,
                       border: `1.5px solid ${themeObj.border}`,
                       background: themeObj.cardBg,
                       color: themeObj.text,
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: isMobile ? '0.74rem' : '0.82rem',
                       cursor: 'pointer'
                     }}
                   >
@@ -3678,12 +3714,12 @@ export default function StudyRoomPage() {
           {showSettings && (
             <div style={{
               background: themeObj.innerBg,
-              padding: '1.25rem',
-              borderRadius: 20,
+              padding: isMobile ? '0.85rem 0.75rem' : '1.25rem',
+              borderRadius: isMobile ? 16 : 20,
               border: `1.5px solid ${themeObj.border}`,
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: 14,
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: isMobile ? 10 : 14,
               boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
             }}>
               {/* ODAK SÜRESİ */}
@@ -4190,6 +4226,7 @@ export default function StudyRoomPage() {
         @media (max-width: 960px) {
           .sr-main-grid {
             grid-template-columns: 1fr !important;
+            padding: 0 !important;
           }
         }
         @media (max-width: 640px) {
@@ -4197,109 +4234,116 @@ export default function StudyRoomPage() {
             display: none !important;
           }
           .sr-header-title {
-            font-size: 1rem !important;
+            font-size: 0.95rem !important;
           }
           .sr-sub-text {
             display: none !important;
           }
           .sr-timer-digits {
-            font-size: 2.7rem !important;
+            font-size: 2.4rem !important;
           }
           .sr-timer-modes {
             gap: 3px !important;
             padding: 3px !important;
           }
           .sr-timer-mode-btn {
-            padding: 0.35rem 0.5rem !important;
-            font-size: 0.7rem !important;
+            padding: 0.35rem 0.2rem !important;
+            font-size: 0.68rem !important;
           }
         }
       `}</style>
 
       {/* ─── HEADER / NAV BAR ─── */}
       <div style={{
-        padding: '0.9rem 1.4rem',
+        padding: isMobile ? '0.6rem 0.75rem' : '0.9rem 1.4rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: `1.5px solid ${themeObj.border}`,
         background: themeObj.isDark ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.85)',
         backdropFilter: 'blur(12px)',
-        zIndex: 10
+        zIndex: 10,
+        gap: 8,
+        flexWrap: isMobile ? 'wrap' : 'nowrap'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, minWidth: 0 }}>
           <button
             onClick={() => navigate('/student')}
             style={{
               background: themeObj.buttonBg,
               border: `1.5px solid ${themeObj.border}`,
               color: themeObj.text,
-              borderRadius: 12,
-              padding: '0.5rem',
+              borderRadius: isMobile ? 10 : 12,
+              padding: isMobile ? '0.4rem' : '0.5rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backdropFilter: 'blur(8px)',
-              transition: 'all 0.15s'
+              transition: 'all 0.15s',
+              flexShrink: 0
             }}
             title="Öğrenci Paneline Dön"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={isMobile ? 16 : 18} />
           </button>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '1.2rem' }}>🎧</span>
-              <h1 className="sr-header-title" style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', color: themeObj.text }}>
-                Odaklı Çalışma Odası
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>🎧</span>
+              <h1 className="sr-header-title" style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', color: themeObj.text, whiteSpace: 'nowrap' }}>
+                {isSmallMobile ? 'Odak Odası' : 'Odaklı Çalışma Odası'}
               </h1>
 
               {/* 6. GÜNLÜK STREAK ROZETİ */}
               <span className="sr-flame-glow" style={{
                 background: themeObj.isDark ? 'rgba(249, 115, 22, 0.22)' : '#fff7ed',
                 color: '#f97316',
-                fontSize: '0.72rem',
+                fontSize: isMobile ? '0.62rem' : '0.72rem',
                 fontWeight: 900,
-                padding: '0.2rem 0.6rem',
+                padding: isMobile ? '0.15rem 0.45rem' : '0.2rem 0.6rem',
                 borderRadius: 99,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
-                border: '1.5px solid #fdba74'
+                gap: 3,
+                border: '1.5px solid #fdba74',
+                whiteSpace: 'nowrap'
               }}>
-                <Flame size={14} color="#f97316" fill="#f97316" />
-                <span>{streakData.currentStreak} Günlük Seri!</span>
+                <Flame size={isMobile ? 12 : 14} color="#f97316" fill="#f97316" />
+                <span>{streakData.currentStreak} Gün!</span>
               </span>
 
               {/* 🌟 EKRAN KAPANMAMA MODU ROZETİ */}
-              {wakeLockActive && (
+              {wakeLockActive && !isSmallMobile && (
                 <span style={{
                   background: 'rgba(16, 185, 129, 0.14)',
                   color: '#10b981',
-                  fontSize: '0.72rem',
+                  fontSize: '0.65rem',
                   fontWeight: 900,
-                  padding: '0.2rem 0.6rem',
+                  padding: '0.15rem 0.45rem',
                   borderRadius: 99,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4,
-                  border: '1.5px solid #a7f3d0'
+                  gap: 3,
+                  border: '1.5px solid #a7f3d0',
+                  whiteSpace: 'nowrap'
                 }} title="Sayaç çalıştığı sürece ekranınız hiç kapanmaz.">
-                  <Sun size={13} />
-                  <span>Ekran Açık Tutuluyor</span>
+                  <Sun size={11} />
+                  <span>Ekran Açık</span>
                 </span>
               )}
             </div>
-            <div className="sr-sub-text" style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 600, marginTop: 1 }}>
-              {currentUser?.name || 'Öğrenci'} · Birleşik Odaklanma & Hızlı Mola İstasyonu
-            </div>
+            {!isMobile && (
+              <div className="sr-sub-text" style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 600, marginTop: 1 }}>
+                {currentUser?.name || 'Öğrenci'} · Birleşik Odaklanma & Hızlı Mola İstasyonu
+              </div>
+            )}
           </div>
         </div>
 
         {/* Action controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8, flexShrink: 0 }}>
           {/* Theme Selector */}
-          <div style={{ display: 'flex', gap: 4, background: themeObj.innerBg, padding: 4, borderRadius: 14, border: `1.5px solid ${themeObj.border}`, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: 2, background: themeObj.innerBg, padding: 3, borderRadius: 12, border: `1.5px solid ${themeObj.border}`, overflowX: 'auto' }}>
             {THEMES.map(t => (
               <button
                 key={t.id}
@@ -4307,10 +4351,10 @@ export default function StudyRoomPage() {
                 title={t.name}
                 className="sr-theme-btn"
                 style={{
-                  padding: '0.35rem 0.6rem',
-                  borderRadius: 10,
+                  padding: isMobile ? '0.25rem 0.45rem' : '0.35rem 0.6rem',
+                  borderRadius: 8,
                   border: 'none',
-                  fontSize: '0.7rem',
+                  fontSize: isMobile ? '0.65rem' : '0.7rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   background: activeTheme === t.id ? themeObj.accent : 'transparent',
@@ -4330,19 +4374,19 @@ export default function StudyRoomPage() {
               background: themeObj.buttonBg,
               border: `1.5px solid ${themeObj.border}`,
               color: themeObj.text,
-              borderRadius: 12,
-              padding: '0.5rem 0.75rem',
+              borderRadius: isMobile ? 10 : 12,
+              padding: isMobile ? '0.4rem 0.55rem' : '0.5rem 0.75rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              fontSize: '0.75rem',
+              gap: 4,
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
               fontWeight: 800,
               transition: 'all 0.15s'
             }}
           >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            <span className="sr-zen-btn-text">Zen Ekran</span>
+            {isFullscreen ? <Minimize2 size={isMobile ? 14 : 16} /> : <Maximize2 size={isMobile ? 14 : 16} />}
+            <span className="sr-zen-btn-text">Zen</span>
           </button>
         </div>
       </div>
@@ -4353,26 +4397,29 @@ export default function StudyRoomPage() {
         maxWidth: 1440,
         margin: '0 auto',
         width: '100%',
-        padding: '1.5rem 1.75rem',
+        padding: isMobile ? '0.75rem 0.5rem 3.5rem' : '1.5rem 1.75rem',
         boxSizing: 'border-box'
       }}>
         <div className="sr-main-grid">
 
           {/* ─── LEFT COLUMN: 🌟 BİRLEŞİK ODAK & HEDEF İSTASYONU (MASTER CARD) ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '1rem' : '1.5rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
             {/* MASTER CARD: SAYAÇ + HEDEF TAKİPÇİSİ BİRLEŞİK */}
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
-              borderRadius: 30,
+              borderRadius: isMobile ? 20 : 30,
               border: `1.5px solid ${themeObj.border}`,
-              padding: '1.75rem 2rem',
+              padding: isMobile ? '0.85rem 0.75rem' : '1.75rem 2rem',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: themeObj.isDark ? '0 20px 50px rgba(0,0,0,0.3)' : '0 6px 25px -2px rgba(0,0,0,0.05)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}>
               {renderMasterStationContent(false)}
             </div>
@@ -4381,28 +4428,31 @@ export default function StudyRoomPage() {
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
-              borderRadius: 24,
+              borderRadius: isMobile ? 18 : 24,
               border: `1.5px solid ${themeObj.border}`,
-              padding: '1.25rem',
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
+              padding: isMobile ? '0.85rem 0.75rem' : '1.25rem',
+              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               {/* Başlık ve Butonlar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? 8 : 12, flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
-                    width: 32, height: 32, borderRadius: 10,
+                    width: isMobile ? 28 : 32, height: isMobile ? 28 : 32, borderRadius: 10,
                     background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+                    flexShrink: 0
                   }}>
-                    <Gauge size={18} color="white" />
+                    <Gauge size={isMobile ? 15 : 18} color="white" />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: themeObj.text }}>
                       Ders Bazlı Soru Başı Süre & Hız Analizi
                     </h3>
-                    <div style={{ fontSize: '0.68rem', color: themeObj.subText, fontWeight: 600 }}>
-                      Hangi derste bir soruya ortalama kaç dakika harcadığınızın tespiti
+                    <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: themeObj.subText, fontWeight: 600 }}>
+                      Hangi derste bir soruya ortalama kaç dakika harcandığının tespiti
                     </div>
                   </div>
                 </div>
@@ -4420,9 +4470,9 @@ export default function StudyRoomPage() {
                         background: themeObj.innerBg,
                         border: `1px solid ${themeObj.border}`,
                         color: themeObj.subText,
-                        padding: '0.3rem 0.55rem',
+                        padding: isMobile ? '0.25rem 0.45rem' : '0.3rem 0.55rem',
                         borderRadius: 8,
-                        fontSize: '0.68rem',
+                        fontSize: isMobile ? '0.64rem' : '0.68rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
@@ -4430,7 +4480,7 @@ export default function StudyRoomPage() {
                         gap: 4
                       }}
                     >
-                      <RotateCcw size={12} />
+                      <RotateCcw size={11} />
                       <span>Sıfırla</span>
                     </button>
                   ) : (
@@ -4440,14 +4490,14 @@ export default function StudyRoomPage() {
                         background: 'rgba(99, 102, 241, 0.12)',
                         border: '1px solid rgba(99, 102, 241, 0.3)',
                         color: '#6366f1',
-                        padding: '0.3rem 0.65rem',
+                        padding: isMobile ? '0.25rem 0.5rem' : '0.3rem 0.65rem',
                         borderRadius: 8,
-                        fontSize: '0.68rem',
+                        fontSize: isMobile ? '0.64rem' : '0.68rem',
                         fontWeight: 800,
                         cursor: 'pointer'
                       }}
                     >
-                      ✨ Örnek Veri Yükle
+                      ✨ Demo Veri
                     </button>
                   )}
                 </div>
@@ -4456,68 +4506,71 @@ export default function StudyRoomPage() {
               {/* Üst Özet Rozetleri (KPIs) */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
-                marginBottom: 12
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: isMobile ? 4 : 8,
+                marginBottom: isMobile ? 8 : 12
               }}>
                 <div style={{
                   background: themeObj.innerBg,
-                  borderRadius: 14,
-                  padding: '0.65rem 0.75rem',
+                  borderRadius: isMobile ? 10 : 14,
+                  padding: isMobile ? '0.45rem 0.4rem' : '0.65rem 0.75rem',
                   border: `1px solid ${themeObj.border}`,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 2
+                  gap: 2,
+                  minWidth: 0
                 }}>
-                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>⚡ Genel Ortalama</span>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6366f1' }}>
-                    {totalTrackedQuestions > 0 ? `${formatSecToMinSec(overallAvgSecPerQ)} / soru` : 'Henüz Veri Yok'}
+                  <span style={{ fontSize: isMobile ? '0.54rem' : '0.64rem', fontWeight: 800, color: themeObj.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>⚡ Genel Ortalama</span>
+                  <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: '#6366f1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {totalTrackedQuestions > 0 ? `${formatSecToMinSec(overallAvgSecPerQ)}/s` : 'Veri Yok'}
                   </span>
-                  <span style={{ fontSize: '0.62rem', color: themeObj.subText, opacity: 0.85 }}>
-                    {totalTrackedQuestions > 0 ? `${totalTrackedQuestions} soru çözüldü` : 'Seans başlatın'}
+                  <span style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', color: themeObj.subText, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {totalTrackedQuestions > 0 ? `${totalTrackedQuestions} soru` : 'Seans başlatın'}
                   </span>
                 </div>
 
                 <div style={{
                   background: themeObj.innerBg,
-                  borderRadius: 14,
-                  padding: '0.65rem 0.75rem',
+                  borderRadius: isMobile ? 10 : 14,
+                  padding: isMobile ? '0.45rem 0.4rem' : '0.65rem 0.75rem',
                   border: `1px solid ${themeObj.border}`,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 2
+                  gap: 2,
+                  minWidth: 0
                 }}>
-                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>🏎️ En Hızlı Ders</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#10b981', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontSize: isMobile ? '0.54rem' : '0.64rem', fontWeight: 800, color: themeObj.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏎️ En Hızlı</span>
+                  <span style={{ fontSize: isMobile ? '0.74rem' : '0.85rem', fontWeight: 900, color: '#10b981', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {fastestSubject ? `${fastestSubject.icon} ${fastestSubject.name.split(' ')[0]}` : '-'}
                   </span>
-                  <span style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 800 }}>
-                    {fastestSubject ? `${formatSecToMinSec(fastestSubject.avgSec)} / soru` : '-'}
+                  <span style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', color: '#10b981', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {fastestSubject ? `${formatSecToMinSec(fastestSubject.avgSec)}/s` : '-'}
                   </span>
                 </div>
 
                 <div style={{
                   background: themeObj.innerBg,
-                  borderRadius: 14,
-                  padding: '0.65rem 0.75rem',
+                  borderRadius: isMobile ? 10 : 14,
+                  padding: isMobile ? '0.45rem 0.4rem' : '0.65rem 0.75rem',
                   border: `1px solid ${themeObj.border}`,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 2
+                  gap: 2,
+                  minWidth: 0
                 }}>
-                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: themeObj.subText }}>⏳ En Detaylı Ders</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#f59e0b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontSize: isMobile ? '0.54rem' : '0.64rem', fontWeight: 800, color: themeObj.subText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>⏳ En Detaylı</span>
+                  <span style={{ fontSize: isMobile ? '0.74rem' : '0.85rem', fontWeight: 900, color: '#f59e0b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {slowestSubject ? `${slowestSubject.icon} ${slowestSubject.name.split(' ')[0]}` : '-'}
                   </span>
-                  <span style={{ fontSize: '0.62rem', color: '#f59e0b', fontWeight: 800 }}>
-                    {slowestSubject ? `${formatSecToMinSec(slowestSubject.avgSec)} / soru` : '-'}
+                  <span style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', color: '#f59e0b', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {slowestSubject ? `${formatSecToMinSec(slowestSubject.avgSec)}/s` : '-'}
                   </span>
                 </div>
               </div>
 
               {/* Ders Listesi ve Hız Kartları */}
               {activeTrackedCount > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 4 : 6, maxHeight: 320, overflowY: 'auto' }}>
                   {trackedSubjectsList
                     .filter(subj => subj.hasData)
                     .sort((a, b) => a.avgSec - b.avgSec)
@@ -4530,58 +4583,60 @@ export default function StudyRoomPage() {
                           style={{
                             background: isSelected ? (themeObj.isDark ? 'rgba(99, 102, 241, 0.18)' : '#eef2ff') : themeObj.innerBg,
                             border: isSelected ? '1.5px solid #6366f1' : `1px solid ${themeObj.border}`,
-                            borderRadius: 14,
-                            padding: '0.65rem 0.85rem',
+                            borderRadius: isMobile ? 10 : 14,
+                            padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 0.85rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             cursor: 'pointer',
-                            transition: 'all 0.15s ease'
+                            transition: 'all 0.15s ease',
+                            gap: 6
                           }}
                         >
                           {/* Sol: Ders Adı & İkonu & Çözülen Soru Sayısı */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: '1.25rem' }}>{subj.icon}</span>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, minWidth: 0 }}>
+                            <span style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', flexShrink: 0 }}>{subj.icon}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ fontSize: isMobile ? '0.76rem' : '0.82rem', fontWeight: 900, color: themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {subj.name}
                                 </span>
                                 {isSelected && (
                                   <span style={{
-                                    fontSize: '0.6rem',
+                                    fontSize: '0.58rem',
                                     background: '#6366f1',
                                     color: 'white',
-                                    padding: '1px 5px',
+                                    padding: '1px 4px',
                                     borderRadius: 99,
-                                    fontWeight: 800
+                                    fontWeight: 800,
+                                    flexShrink: 0
                                   }}>
                                     Aktif
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: '0.65rem', color: themeObj.subText, fontWeight: 700 }}>
-                                {subj.totalQuestions} Soru · {subj.sessionCount} Seans · Toplam {Math.round(subj.totalSeconds / 60)} dk
+                              <div style={{ fontSize: isMobile ? '0.58rem' : '0.65rem', color: themeObj.subText, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {subj.totalQuestions} Soru · {subj.sessionCount} Seans · {Math.round(subj.totalSeconds / 60)} dk
                               </div>
                             </div>
                           </div>
 
                           {/* Sağ: Soru Başı Ortalama Süre & Değerlendirme Rozeti */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, flexShrink: 0 }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 900, color: subj.evaluation.color }}>
+                              <div style={{ fontSize: isMobile ? '0.78rem' : '0.9rem', fontWeight: 900, color: subj.evaluation.color }}>
                                 {formatSecToMinSec(subj.avgSec)}
-                                <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.85 }}> / soru</span>
+                                <span style={{ fontSize: isMobile ? '0.58rem' : '0.68rem', fontWeight: 700, opacity: 0.85 }}> / soru</span>
                               </div>
                               <div style={{
-                                fontSize: '0.62rem',
+                                fontSize: isMobile ? '0.56rem' : '0.62rem',
                                 fontWeight: 800,
                                 color: subj.evaluation.color,
                                 background: subj.evaluation.bg,
-                                padding: '1px 6px',
+                                padding: '1px 5px',
                                 borderRadius: 6,
                                 display: 'inline-block',
-                                marginTop: 2
+                                marginTop: 1
                               }}>
                                 {subj.evaluation.label}
                               </div>
@@ -4597,9 +4652,9 @@ export default function StudyRoomPage() {
                                 background: isSelected ? '#6366f1' : themeObj.buttonBg,
                                 border: `1px solid ${isSelected ? '#6366f1' : themeObj.border}`,
                                 color: isSelected ? 'white' : themeObj.text,
-                                borderRadius: 10,
-                                padding: '0.35rem 0.6rem',
-                                fontSize: '0.7rem',
+                                borderRadius: 8,
+                                padding: isMobile ? '0.25rem 0.45rem' : '0.35rem 0.6rem',
+                                fontSize: isMobile ? '0.65rem' : '0.7rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -4607,7 +4662,7 @@ export default function StudyRoomPage() {
                                 gap: 3
                               }}
                             >
-                              <Play size={11} fill={isSelected ? 'white' : 'currentColor'} />
+                              <Play size={10} fill={isSelected ? 'white' : 'currentColor'} />
                               <span>Çalış</span>
                             </button>
                           </div>
@@ -4619,14 +4674,14 @@ export default function StudyRoomPage() {
                 <div style={{
                   background: themeObj.innerBg,
                   borderRadius: 16,
-                  padding: '1.25rem 1rem',
+                  padding: isMobile ? '0.9rem 0.75rem' : '1.25rem 1rem',
                   border: `1.5px dashed ${themeObj.border}`,
                   textAlign: 'center'
                 }}>
-                  <Clock size={26} color="#6366f1" style={{ marginBottom: 4 }} />
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: themeObj.text }}>Henüz Kayıtlı Soru Seansı Yok</div>
-                  <div style={{ fontSize: '0.72rem', color: themeObj.subText, marginTop: 3, lineHeight: 1.4, maxWidth: 380, margin: '3px auto 8px' }}>
-                    Yukarıdaki <strong>✏️ Soru Çözümü</strong> modundan dersinizi seçip soru çözdükçe, her ders için soru başına harcadığınız süre otomatik olarak burada analiz edilecektir.
+                  <Clock size={isMobile ? 22 : 26} color="#6366f1" style={{ marginBottom: 4 }} />
+                  <div style={{ fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 800, color: themeObj.text }}>Henüz Kayıtlı Soru Seansı Yok</div>
+                  <div style={{ fontSize: isMobile ? '0.66rem' : '0.72rem', color: themeObj.subText, marginTop: 3, lineHeight: 1.4, maxWidth: 380, margin: '3px auto 8px' }}>
+                    Yukarıdaki <strong>✏️ Soru Çözümü</strong> modundan dersinizi seçip soru çözdükçe ortalama süreniz burada analiz edilir.
                   </div>
                   <button
                     onClick={loadDemoSubjectStats}
@@ -4634,14 +4689,14 @@ export default function StudyRoomPage() {
                       background: 'rgba(99, 102, 241, 0.12)',
                       border: '1.5px solid rgba(99, 102, 241, 0.3)',
                       color: '#6366f1',
-                      padding: '0.45rem 1rem',
-                      borderRadius: 12,
-                      fontSize: '0.75rem',
+                      padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 1rem',
+                      borderRadius: 10,
+                      fontSize: isMobile ? '0.7rem' : '0.75rem',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
                   >
-                    ✨ Örnek Analiz Verilerini Gör (Demo)
+                    ✨ Demo Verileri Gör
                   </button>
                 </div>
               )}
@@ -4651,15 +4706,17 @@ export default function StudyRoomPage() {
             <div className="sr-card" style={{
               background: themeObj.cardBg,
               backdropFilter: 'blur(20px)',
-              borderRadius: 24,
+              borderRadius: isMobile ? 18 : 24,
               border: `1.5px solid ${themeObj.border}`,
-              padding: '1.25rem',
-              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
+              padding: isMobile ? '0.85rem 0.75rem' : '1.25rem',
+              boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? 8 : 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <TreePine size={20} color="#10b981" />
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
+                  <TreePine size={isMobile ? 18 : 20} color="#10b981" />
+                  <h3 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: themeObj.text }}>
                     Bugünün Başarı Ormanı
                   </h3>
                 </div>
@@ -4667,12 +4724,12 @@ export default function StudyRoomPage() {
                   background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5',
                   color: '#10b981',
                   border: '1px solid #a7f3d0',
-                  padding: '0.2rem 0.55rem',
+                  padding: isMobile ? '0.15rem 0.45rem' : '0.2rem 0.55rem',
                   borderRadius: 99,
-                  fontSize: '0.72rem',
+                  fontSize: isMobile ? '0.65rem' : '0.72rem',
                   fontWeight: 900
                 }}>
-                  {plantedForest.length} Ağaç Dikildi
+                  {plantedForest.length} Ağaç
                 </span>
               </div>
 
@@ -4680,12 +4737,12 @@ export default function StudyRoomPage() {
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 10,
+                  gap: isMobile ? 6 : 10,
                   background: themeObj.innerBg,
                   borderRadius: 16,
-                  padding: '0.85rem',
+                  padding: isMobile ? '0.65rem' : '0.85rem',
                   border: `1.5px solid ${themeObj.border}`,
-                  minHeight: 65,
+                  minHeight: 60,
                   alignItems: 'center'
                 }}>
                   {plantedForest.map((tree, i) => (
@@ -4698,14 +4755,14 @@ export default function StudyRoomPage() {
                         alignItems: 'center',
                         gap: 2,
                         background: themeObj.cardBg,
-                        padding: '0.4rem 0.6rem',
-                        borderRadius: 12,
+                        padding: isMobile ? '0.3rem 0.45rem' : '0.4rem 0.6rem',
+                        borderRadius: 10,
                         border: `1px solid ${themeObj.border}`,
                         cursor: 'default'
                       }}
                     >
-                      <span style={{ fontSize: '1.4rem' }}>{tree.icon}</span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText }}>{tree.time}</span>
+                      <span style={{ fontSize: isMobile ? '1.15rem' : '1.4rem' }}>{tree.icon}</span>
+                      <span style={{ fontSize: isMobile ? '0.56rem' : '0.62rem', fontWeight: 800, color: themeObj.subText }}>{tree.time}</span>
                     </div>
                   ))}
                 </div>
@@ -4713,14 +4770,14 @@ export default function StudyRoomPage() {
                 <div style={{
                   background: themeObj.innerBg,
                   borderRadius: 16,
-                  padding: '1.25rem 1rem',
+                  padding: isMobile ? '0.9rem 0.75rem' : '1.25rem 1rem',
                   border: `1.5px dashed ${themeObj.border}`,
                   textAlign: 'center',
                   color: themeObj.subText
                 }}>
-                  <Sprout size={28} color="#10b981" style={{ marginBottom: 4 }} />
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: themeObj.text }}>Ormanın Henüz Boş</div>
-                  <div style={{ fontSize: '0.72rem', marginTop: 2 }}>Hedefini tamamla veya odaklanma seansını bitir ve ilk ağacını dik!</div>
+                  <Sprout size={isMobile ? 24 : 28} color="#10b981" style={{ marginBottom: 4 }} />
+                  <div style={{ fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 800, color: themeObj.text }}>Ormanın Henüz Boş</div>
+                  <div style={{ fontSize: isMobile ? '0.66rem' : '0.72rem', marginTop: 2 }}>Hedefini tamamla veya odaklanma seansını bitir ve ilk ağacını dik!</div>
                 </div>
               )}
             </div>
@@ -4728,8 +4785,8 @@ export default function StudyRoomPage() {
             {/* 6. GÜNLÜK HEDEF & ROZETLER */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: isMobile ? 6 : 10
             }}>
               {[
                 {
@@ -4761,22 +4818,23 @@ export default function StudyRoomPage() {
                     background: badge.unlocked
                       ? (isDark ? 'rgba(234, 179, 8, 0.15)' : '#fefce8')
                       : themeObj.cardBg,
-                    borderRadius: 20,
+                    borderRadius: isMobile ? 14 : 20,
                     border: badge.unlocked ? '1.5px solid #facc15' : `1.5px solid ${themeObj.border}`,
-                    padding: '0.85rem 0.75rem',
+                    padding: isMobile ? '0.65rem 0.4rem' : '0.85rem 0.75rem',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     textAlign: 'center',
-                    gap: 3,
-                    opacity: badge.unlocked ? 1 : 0.65
+                    gap: 2,
+                    opacity: badge.unlocked ? 1 : 0.65,
+                    minWidth: 0
                   }}
                 >
-                  <span style={{ fontSize: '1.6rem' }}>{badge.icon}</span>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 900, color: badge.unlocked ? (isDark ? '#fde047' : '#854d0e') : themeObj.text }}>
+                  <span style={{ fontSize: isMobile ? '1.3rem' : '1.6rem' }}>{badge.icon}</span>
+                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', fontWeight: 900, color: badge.unlocked ? (isDark ? '#fde047' : '#854d0e') : themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                     {badge.title}
                   </span>
-                  <span style={{ fontSize: '0.64rem', color: themeObj.subText, fontWeight: 700 }}>
+                  <span style={{ fontSize: isMobile ? '0.58rem' : '0.64rem', color: themeObj.subText, fontWeight: 700, whiteSpace: 'nowrap' }}>
                     {badge.unlocked ? '✅ Kazanıldı' : `${badge.req}`}
                   </span>
                 </div>
@@ -4797,72 +4855,56 @@ export default function StudyRoomPage() {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '1.5rem',
+          padding: isMobile ? '0.75rem 0.5rem' : '1.5rem',
           backdropFilter: 'blur(30px)',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          boxSizing: 'border-box'
         }}>
           {/* Zen Üst Barı */}
           <div style={{
             position: 'absolute',
-            top: 20,
-            left: 24,
-            right: 24,
+            top: isMobile ? 10 : 20,
+            left: isMobile ? 12 : 24,
+            right: isMobile ? 12 : 24,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            zIndex: 10
+            zIndex: 10,
+            gap: 6,
+            flexWrap: isMobile ? 'wrap' : 'nowrap'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '1.4rem' }}>🎧</span>
-              <span style={{ fontWeight: 900, fontSize: '1.05rem', color: themeObj.text }}>Zen Odak Modu</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
+              <span style={{ fontSize: isMobile ? '1.1rem' : '1.4rem' }}>🎧</span>
+              <span style={{ fontWeight: 900, fontSize: isMobile ? '0.9rem' : '1.05rem', color: themeObj.text }}>Zen Mod</span>
               <span className="sr-flame-glow" style={{
                 background: themeObj.isDark ? 'rgba(249, 115, 22, 0.22)' : '#fff7ed',
                 color: '#f97316',
-                fontSize: '0.72rem',
+                fontSize: isMobile ? '0.62rem' : '0.72rem',
                 fontWeight: 900,
-                padding: '0.2rem 0.6rem',
+                padding: isMobile ? '0.12rem 0.45rem' : '0.2rem 0.6rem',
                 borderRadius: 99,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 3,
                 border: '1.5px solid #fdba74'
               }}>
-                <Flame size={14} color="#f97316" fill="#f97316" />
-                <span>{streakData.currentStreak} Günlük Seri!</span>
+                <Flame size={isMobile ? 12 : 14} color="#f97316" fill="#f97316" />
+                <span>{streakData.currentStreak} Gün!</span>
               </span>
-
-              {/* 🌟 EKRAN KAPANMAMA MODU ROZETİ */}
-              {wakeLockActive && (
-                <span style={{
-                  background: 'rgba(16, 185, 129, 0.14)',
-                  color: '#10b981',
-                  fontSize: '0.72rem',
-                  fontWeight: 900,
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: 99,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  border: '1.5px solid #a7f3d0'
-                }} title="Sayaç çalıştığı sürece ekranınız hiç kapanmaz.">
-                  <Sun size={13} />
-                  <span>Ekran Açık</span>
-                </span>
-              )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8 }}>
               {/* Theme Selector */}
-              <div style={{ display: 'flex', gap: 4, background: themeObj.innerBg, padding: 3, borderRadius: 12, border: `1.5px solid ${themeObj.border}` }}>
+              <div style={{ display: 'flex', gap: 2, background: themeObj.innerBg, padding: 3, borderRadius: 12, border: `1.5px solid ${themeObj.border}` }}>
                 {THEMES.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setActiveTheme(t.id)}
                     style={{
-                      padding: '0.3rem 0.55rem',
+                      padding: isMobile ? '0.25rem 0.45rem' : '0.3rem 0.55rem',
                       borderRadius: 8,
                       border: 'none',
-                      fontSize: '0.68rem',
+                      fontSize: isMobile ? '0.64rem' : '0.68rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: activeTheme === t.id ? themeObj.accent : 'transparent',
@@ -4881,18 +4923,18 @@ export default function StudyRoomPage() {
                   background: themeObj.buttonBg,
                   border: `1.5px solid ${themeObj.border}`,
                   color: themeObj.text,
-                  borderRadius: 12,
-                  padding: '0.5rem 0.9rem',
+                  borderRadius: isMobile ? 10 : 12,
+                  padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 0.9rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  fontSize: '0.82rem',
+                  gap: 5,
+                  fontSize: isMobile ? '0.74rem' : '0.82rem',
                   fontWeight: 900
                 }}
               >
-                <Shrink size={16} />
-                <span>Normal Ekrana Dön</span>
+                <Shrink size={isMobile ? 14 : 16} />
+                <span>{isMobile ? 'Çık' : 'Normal Ekrana Dön'}</span>
               </button>
             </div>
           </div>
@@ -4900,13 +4942,14 @@ export default function StudyRoomPage() {
           {/* Merkezde Büyük İstasyon Kartı */}
           <div style={{
             background: themeObj.cardBg,
-            borderRadius: 32,
+            borderRadius: isMobile ? 22 : 32,
             border: `1.5px solid ${themeObj.border}`,
-            padding: '2.5rem 2.8rem',
+            padding: isMobile ? '1.1rem 0.85rem' : '2.5rem 2.8rem',
             maxWidth: 1060,
             width: '100%',
             boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
-            marginTop: '2.5rem'
+            marginTop: isMobile ? '3.2rem' : '2.5rem',
+            boxSizing: 'border-box'
           }}>
             {renderMasterStationContent(true)}
           </div>
@@ -4929,19 +4972,20 @@ export default function StudyRoomPage() {
           <div style={{
             background: 'var(--color-surface, #ffffff)',
             borderRadius: 24,
-            padding: '2rem 1.75rem',
+            padding: isMobile ? '1.25rem 1rem' : '2rem 1.75rem',
             maxWidth: 460,
             width: '100%',
             border: '2px solid #10b981',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
             textAlign: 'center',
-            color: 'var(--color-text, #0f172a)'
+            color: 'var(--color-text, #0f172a)',
+            boxSizing: 'border-box'
           }}>
             <div style={{ fontSize: '3rem', marginBottom: 6 }}>
               🏖️⚡🎉
             </div>
 
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#10b981' }}>
+            <h2 style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#10b981' }}>
               Harika Hız! Mola Kazandın!
             </h2>
 
@@ -5010,12 +5054,12 @@ export default function StudyRoomPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1rem'
+          padding: isMobile ? '0.5rem' : '1rem'
         }}>
           <div style={{
             background: 'var(--color-surface, #ffffff)',
-            borderRadius: 24,
-            padding: '1.75rem 1.6rem',
+            borderRadius: isMobile ? 18 : 24,
+            padding: isMobile ? '1.1rem 0.9rem' : '1.75rem 1.6rem',
             maxWidth: 720,
             width: '100%',
             maxHeight: '92vh',
@@ -5028,53 +5072,54 @@ export default function StudyRoomPage() {
             overflow: 'hidden'
           }}>
             {/* Modal Başlığı */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? 8 : 12, gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
                 <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
+                  width: isMobile ? 32 : 40,
+                  height: isMobile ? 32 : 40,
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)'
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
+                  flexShrink: 0
                 }}>
-                  <BookMarked size={20} />
+                  <BookMarked size={isMobile ? 16 : 20} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
-                    Çalışma Görevi / Test / Program Seç
+                  <h2 style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
+                    Çalışma Görevi / Test Seç
                   </h2>
-                  <p style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', margin: '2px 0 0', fontWeight: 600 }}>
-                    Haftalık ders programından gün seçerek veya ödevlerinden birini seçerek çalışmayı başlat
+                  <p style={{ fontSize: isMobile ? '0.68rem' : '0.76rem', color: 'var(--color-text-muted)', margin: '1px 0 0', fontWeight: 600 }}>
+                    Haftalık program veya ödevlerinden görev başlat
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 {/* Bitenleri / Çözülenleri Gizle/Göster Butonu */}
                 <button
                   type="button"
                   onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
                   title={hideCompletedTasks ? 'Çözülenleri Göster' : 'Çözülenleri Gizle'}
                   style={{
-                    padding: '0.4rem 0.75rem',
-                    borderRadius: 10,
+                    padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.75rem',
+                    borderRadius: 8,
                     border: `1.5px solid ${hideCompletedTasks ? '#10b981' : 'var(--color-border, #e2e8f0)'}`,
                     background: hideCompletedTasks ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'transparent',
                     color: hideCompletedTasks ? '#10b981' : 'var(--color-text-muted)',
                     fontWeight: 800,
-                    fontSize: '0.74rem',
+                    fontSize: isMobile ? '0.66rem' : '0.74rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 4,
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  {hideCompletedTasks ? <EyeOff size={13} color="#10b981" /> : <Eye size={13} />}
+                  {hideCompletedTasks ? <EyeOff size={12} color="#10b981" /> : <Eye size={12} />}
                   <span>{hideCompletedTasks ? 'Bitenler Gizli' : 'Bitenleri Göster'}</span>
                 </button>
 
@@ -5084,9 +5129,9 @@ export default function StudyRoomPage() {
                   style={{
                     background: 'var(--color-surface-hover, #f1f5f9)',
                     border: 'none',
-                    borderRadius: 10,
-                    width: 32,
-                    height: 32,
+                    borderRadius: 8,
+                    width: 28,
+                    height: 28,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -5094,7 +5139,7 @@ export default function StudyRoomPage() {
                     color: 'var(--color-text)'
                   }}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
@@ -5103,20 +5148,20 @@ export default function StudyRoomPage() {
             <div style={{
               background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(79, 70, 229, 0.18))' : 'linear-gradient(135deg, #eff6ff, #e0e7ff)',
               border: '1.5px solid #818cf8',
-              borderRadius: 14,
-              padding: '0.6rem 0.85rem',
+              borderRadius: 12,
+              padding: isMobile ? '0.5rem 0.75rem' : '0.6rem 0.85rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 8,
-              marginBottom: 10,
+              gap: 6,
+              marginBottom: 8,
               flexWrap: 'wrap'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '1.1rem' }}>📅</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '1rem' }}>📅</span>
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text)' }}>Haftalık Program Sayfasından Seç ve Başlat</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm haftalık planını tam sayfa görüp 'Odada Başlat' ile çalışma odasına dönebilirsin.</div>
+                  <div style={{ fontSize: isMobile ? '0.74rem' : '0.8rem', fontWeight: 900, color: 'var(--color-text)' }}>Haftalık Program Sayfasından Seç</div>
+                  <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm haftalık planını tam sayfa görüp 'Odada Başlat' yapabilirsin.</div>
                 </div>
               </div>
               <button
@@ -5126,38 +5171,38 @@ export default function StudyRoomPage() {
                   navigate('/student/program');
                 }}
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: 10,
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: 8,
                   background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.74rem',
+                  fontSize: isMobile ? '0.68rem' : '0.74rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 3
                 }}
               >
-                <span>Program Sayfasına Git</span>
-                <ChevronRight size={13} />
+                <span>Git</span>
+                <ChevronRight size={12} />
               </button>
             </div>
 
             {/* Ana Kategori Sekmeleri (Tabs) */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 6,
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: 4,
               background: 'var(--color-surface-hover, #f1f5f9)',
-              padding: 4,
-              borderRadius: 14,
-              marginBottom: 12
+              padding: 3,
+              borderRadius: 12,
+              marginBottom: 10
             }}>
               {[
-                { id: 'program', label: '📅 Haftalık Program', count: allAssignedTasks.filter(t => (t.sourceType === 'program' || t.sourceType === 'roadmap' || t.dayKey) && (!hideCompletedTasks || !t.isCompleted)).length },
+                { id: 'program', label: '📅 Program', count: allAssignedTasks.filter(t => (t.sourceType === 'program' || t.sourceType === 'roadmap' || t.dayKey) && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.filter(t => (!hideCompletedTasks || !t.isCompleted)).length }
@@ -5169,29 +5214,29 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => setHwSourceTab(tab.id)}
                     style={{
-                      padding: '0.55rem 0.4rem',
-                      borderRadius: 10,
+                      padding: isMobile ? '0.4rem 0.3rem' : '0.55rem 0.4rem',
+                      borderRadius: 8,
                       border: 'none',
                       background: isTabActive ? '#3b82f6' : 'transparent',
                       color: isTabActive ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: '0.76rem',
+                      fontSize: isMobile ? '0.72rem' : '0.76rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 5,
+                      gap: 4,
                       transition: 'all 0.15s ease',
                       whiteSpace: 'nowrap'
                     }}
                   >
                     <span>{tab.label}</span>
                     <span style={{
-                      fontSize: '0.66rem',
+                      fontSize: isMobile ? '0.6rem' : '0.66rem',
                       fontWeight: 900,
                       background: isTabActive ? 'rgba(255,255,255,0.25)' : 'var(--color-border, #e2e8f0)',
                       color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
-                      padding: '0.05rem 0.35rem',
+                      padding: '0.05rem 0.3rem',
                       borderRadius: 99
                     }}>
                       {tab.count}
@@ -5906,32 +5951,33 @@ export default function StudyRoomPage() {
         }}>
           <div style={{
             background: themeObj.cardBg,
-            borderRadius: 24,
+            borderRadius: isMobile ? 18 : 24,
             width: '100%',
             maxWidth: 580,
             maxHeight: '90vh',
             overflowY: 'auto',
-            padding: '1.75rem',
+            padding: isMobile ? '1.1rem 0.9rem' : '1.75rem',
             border: `2px solid ${themeObj.border}`,
             boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 16
+            gap: isMobile ? 12 : 16,
+            boxSizing: 'border-box'
           }}>
             {/* Header */}
             <div style={{ textAlign: 'center', position: 'relative' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 4 }}>🏆</div>
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: themeObj.text }}>
+              <div style={{ fontSize: isMobile ? '2.2rem' : '3rem', marginBottom: 2 }}>🏆</div>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '1.15rem' : '1.35rem', fontWeight: 900, color: themeObj.text }}>
                 Tebrikler! Sınavınız Kaydedildi
               </h2>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: themeObj.subText, marginTop: 4 }}>
+              <div style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: 800, color: themeObj.subText, marginTop: 4 }}>
                 {completedQuizResult.testTitle}
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '2px 8px', borderRadius: 6 }}>
+                <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '2px 8px', borderRadius: 6 }}>
                   {completedQuizResult.subject}
                 </span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.subText }}>
+                <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800, color: themeObj.subText }}>
                   ⏱️ Süre: {formatSecToMinSec(completedQuizResult.durationSeconds)}
                 </span>
               </div>
@@ -5940,34 +5986,34 @@ export default function StudyRoomPage() {
             {/* Stats Cards */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 8,
+              gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: 6,
               background: themeObj.innerBg,
-              padding: '0.85rem',
-              borderRadius: 16,
+              padding: isMobile ? '0.65rem' : '0.85rem',
+              borderRadius: 14,
               border: `1.5px solid ${themeObj.border}`,
               textAlign: 'center'
             }}>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{completedQuizResult.correctCount}</div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Doğru</div>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#10b981' }}>{completedQuizResult.correctCount}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: themeObj.subText }}>Doğru</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>{completedQuizResult.wrongCount}</div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Yanlış</div>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#ef4444' }}>{completedQuizResult.wrongCount}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: themeObj.subText }}>Yanlış</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#64748b' }}>{completedQuizResult.blankCount}</div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Boş</div>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#64748b' }}>{completedQuizResult.blankCount}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: themeObj.subText }}>Boş</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b' }}>{completedQuizResult.netScore}</div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Net (%{completedQuizResult.score})</div>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#f59e0b' }}>{completedQuizResult.netScore}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: themeObj.subText }}>Net (%{completedQuizResult.score})</div>
               </div>
             </div>
 
             {!completedQuizResult.hasAnswerKey && (
-              <div style={{ fontSize: '0.74rem', color: themeObj.subText, textAlign: 'center', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.72rem', color: themeObj.subText, textAlign: 'center', fontWeight: 700 }}>
                 ℹ️ Teste ait cevap anahtarı bulunamadığı için işaretlenen tüm sorular doğru kabul edilerek kaydedildi.
               </div>
             )}
@@ -5975,16 +6021,16 @@ export default function StudyRoomPage() {
             {/* Soru Soru Cevap Analizi */}
             {completedQuizResult.answers && completedQuizResult.answers.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.subText }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 900, color: themeObj.subText }}>
                   📋 Kodlanan Cevaplar:
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))',
-                  gap: 6,
-                  maxHeight: '180px',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
+                  gap: 5,
+                  maxHeight: '160px',
                   overflowY: 'auto',
-                  padding: '0.5rem',
+                  padding: '0.45rem',
                   background: themeObj.innerBg,
                   borderRadius: 12,
                   border: `1px solid ${themeObj.border}`
@@ -6014,20 +6060,20 @@ export default function StudyRoomPage() {
                       <div
                         key={ans.questionNo}
                         style={{
-                          padding: '0.35rem 0.2rem',
+                          padding: '0.3rem 0.2rem',
                           borderRadius: 8,
                           border: `1px solid ${badgeBorder}`,
                           background: badgeBg,
                           textAlign: 'center'
                         }}
                       >
-                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: themeObj.subText }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText }}>
                           Soru {ans.questionNo}
                         </div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: badgeText, marginTop: 2 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: badgeText, marginTop: 2 }}>
                           {ans.userAnswerLetter || '—'}
                           {hasKey && ans.correctAnswerLetter && !ans.isCorrect && ans.userAnswerLetter && (
-                            <span style={{ fontSize: '0.65rem', color: '#10b981', marginLeft: 3 }}>
+                            <span style={{ fontSize: '0.62rem', color: '#10b981', marginLeft: 2 }}>
                               ({ans.correctAnswerLetter})
                             </span>
                           )}
@@ -6040,7 +6086,12 @@ export default function StudyRoomPage() {
             )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+              gap: 8,
+              marginTop: 4
+            }}>
               <button
                 type="button"
                 onClick={() => {
@@ -6057,23 +6108,22 @@ export default function StudyRoomPage() {
                   }
                 }}
                 style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 12,
+                  padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.85rem',
+                  fontSize: isMobile ? '0.76rem' : '0.85rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 5,
                   boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
                 }}
               >
-                <Eye size={16} /> Sınavı İncele
+                <Eye size={15} /> İncele
               </button>
 
               <button
@@ -6085,23 +6135,22 @@ export default function StudyRoomPage() {
                   navigate('/student-results');
                 }}
                 style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 12,
+                  padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.85rem',
+                  fontSize: isMobile ? '0.76rem' : '0.85rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 5,
                   boxShadow: '0 4px 14px rgba(59,130,246,0.3)'
                 }}
               >
-                <BarChart2 size={16} /> Sonuçlarıma Git
+                <BarChart2 size={15} /> Sonuçlar
               </button>
 
               <button
@@ -6111,36 +6160,35 @@ export default function StudyRoomPage() {
                   handleClearOpticalAnswers();
                 }}
                 style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 12,
+                  padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.85rem',
+                  fontSize: isMobile ? '0.76rem' : '0.85rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 5,
                   boxShadow: '0 4px 14px rgba(16,185,129,0.3)'
                 }}
               >
-                <RotateCcw size={16} /> Yeni Çalışma
+                <RotateCcw size={15} /> Yeni
               </button>
 
               <button
                 type="button"
                 onClick={() => setCompletedQuizResult(null)}
                 style={{
-                  padding: '0.75rem 1.25rem',
-                  borderRadius: 12,
+                  padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1.25rem',
+                  borderRadius: 10,
                   background: 'transparent',
                   color: themeObj.subText,
                   border: `1.5px solid ${themeObj.border}`,
                   fontWeight: 800,
-                  fontSize: '0.85rem',
+                  fontSize: isMobile ? '0.76rem' : '0.85rem',
                   cursor: 'pointer'
                 }}
               >
