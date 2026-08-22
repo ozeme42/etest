@@ -753,6 +753,13 @@ export default function GoalsAndSchedulePage() {
   const { submissions } = useEvaluation();
   const { homeworks } = useHomework();
   const { books = [], bookTests = [] } = useTrackedBooks();
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Active Tab: 'habits' (Alışkanlıklar & Rutinler) | 'visual' (Hedef Takibi) | 'academic' (Akademik & Sınav)
   const [activeTab, setActiveTab] = useState('habits');
@@ -1208,7 +1215,14 @@ export default function GoalsAndSchedulePage() {
         </div>
 
         {/* TOP SUMMARY STATS BANNER */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: isMobile ? '0.5rem' : '0.85rem',
+          marginBottom: '1.25rem',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
           {[
             { label: 'Çözülen Soru (Bugün)', value: `${solvedQuestionsStats.today} Soru`, sub: `Bu Hafta: ${solvedQuestionsStats.thisWeek}`, icon: Target, color: '#e11d48', border: 'rgba(244,63,94,0.3)', bg: 'rgba(244,63,94,0.12)' },
             { label: 'Kitap Okuma', value: `${totalPagesRead} Sayfa`, sub: 'Hedefe doğru', icon: BookOpen, color: '#0284c7', border: 'rgba(2,132,199,0.3)', bg: 'rgba(2,132,199,0.12)' },
@@ -1220,19 +1234,54 @@ export default function GoalsAndSchedulePage() {
               <div key={s.label} style={{
                 background: 'var(--color-surface, #ffffff)',
                 border: `1.5px solid ${s.border}`,
-                borderRadius: '1.15rem',
-                padding: '0.85rem 1.1rem',
+                borderRadius: isMobile ? '0.9rem' : '1.15rem',
+                padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1.1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+                gap: isMobile ? '0.55rem' : '0.85rem',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                minWidth: 0,
+                overflow: 'hidden',
+                boxSizing: 'border-box'
               }}>
-                <div style={{ width: 42, height: 42, borderRadius: '0.85rem', background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={20} />
+                <div style={{
+                  width: isMobile ? 36 : 42,
+                  height: isMobile ? 36 : 42,
+                  borderRadius: isMobile ? '0.65rem' : '0.85rem',
+                  background: s.bg,
+                  color: s.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Icon size={isMobile ? 18 : 20} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{s.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{s.value}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{
+                    fontSize: isMobile ? '0.58rem' : '0.68rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text-muted, #64748b)',
+                    textTransform: 'uppercase',
+                    letterSpacing: isMobile ? '0.01em' : '0.04em',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {s.label}
+                  </span>
+                  <span style={{
+                    fontSize: isMobile ? '0.95rem' : '1.15rem',
+                    fontWeight: 900,
+                    color: 'var(--color-text, #0f172a)',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {s.value}
+                  </span>
                 </div>
               </div>
             );
