@@ -1172,30 +1172,120 @@ export default function StudyRoomPage() {
   const matchedTestObj = useMemo(() => {
     if (!selectedTask) return null;
     const testId = selectedTask.bookTestId || selectedTask.realTestId || selectedTask.testId || selectedTask.id;
-    if (!testId) return null;
+    const taskTitle = (selectedTask.title || selectedTask.text || selectedTask.topic || '').toLowerCase();
 
-    const foundBookTest = (bookTests || []).find(bt => String(bt.id) === String(testId) || String(bt.realTestId) === String(testId) || (selectedTask.bookTestId && String(bt.id) === String(selectedTask.bookTestId)));
-    if (foundBookTest) return foundBookTest;
+    // 1. Check in bookTests directly
+    if (bookTests && Array.isArray(bookTests)) {
+      const found = bookTests.find(bt => 
+        (testId && (String(bt.id) === String(testId) || toUUID(bt.id) === String(testId) || String(bt.realTestId) === String(testId))) ||
+        (selectedTask.bookTestId && String(bt.id) === String(selectedTask.bookTestId)) ||
+        (taskTitle && bt.name && taskTitle.includes(bt.name.toLowerCase()))
+      );
+      if (found) return found;
+    }
 
-    const foundHw = (homeworks || []).find(hw => String(hw.id) === String(testId) || String(hw.id) === String(selectedTask.hwId));
-    if (foundHw) return foundHw;
+    // 2. Search deeply inside books -> subjects -> topics -> tests
+    if (books && Array.isArray(books)) {
+      for (const b of books) {
+        if (b.subjects && Array.isArray(b.subjects)) {
+          for (const s of b.subjects) {
+            if (s.tests && Array.isArray(s.tests)) {
+              const fTest = s.tests.find(t =>
+                (testId && (String(t.id) === String(testId) || toUUID(t.id) === String(testId))) ||
+                (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase()))
+              );
+              if (fTest) return fTest;
+            }
+            if (s.topics && Array.isArray(s.topics)) {
+              for (const tp of s.topics) {
+                if (tp.tests && Array.isArray(tp.tests)) {
+                  const fTest = tp.tests.find(t =>
+                    (testId && (String(t.id) === String(testId) || toUUID(t.id) === String(testId))) ||
+                    (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase()))
+                  );
+                  if (fTest) return fTest;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Search in homeworks
+    if (homeworks && Array.isArray(homeworks)) {
+      const found = homeworks.find(hw => 
+        (testId && (String(hw.id) === String(testId) || toUUID(hw.id) === String(testId))) ||
+        (selectedTask.hwId && String(hw.id) === String(selectedTask.hwId))
+      );
+      if (found) return found;
+    }
 
     return null;
-  }, [selectedTask, bookTests, homeworks]);
+  }, [selectedTask, bookTests, books, homeworks]);
 
   const resolvedAnswerKey = useMemo(() => {
     const src = matchedTestObj || selectedTask;
     if (!src) return null;
-    let key = src.answerKey || src.correctAnswers || src.test?.answerKey;
+
+    let key = src.answerKey || src.correctAnswers || src.opticAnswers || src.test?.answerKey || src.rawAnswerKey;
+
+    if (!key && src.answers && Array.isArray(src.answers)) {
+      key = src.answers.map(a => a.correctAnswer ?? a.correctAnswerLetter);
+    }
+
+    if (!key && src.questions && Array.isArray(src.questions)) {
+      key = src.questions.map(q => q.correctAnswer ?? q.answer ?? q.correctOption ?? q.correctAnswerLetter);
+    }
+
+    if (!key) return null;
+
+    // Format 1: Object { "1": "A", "2": "B", ... } or { 0: "A", 1: "B" }
+    if (typeof key === 'object' && !Array.isArray(key)) {
+      const total = Math.max(Object.keys(key).length, targetGoalCount || 1);
+      const arr = [];
+      for (let i = 1; i <= total; i++) {
+        const val = key[String(i)] ?? key[i] ?? key[String(i - 1)] ?? key[i - 1];
+        if (val !== undefined && val !== null && val !== '') {
+          const str = String(val).trim().toUpperCase();
+          if (/^[A-E]$/.test(str)) {
+            arr.push(str);
+          } else {
+            const num = Number(str);
+            if (!isNaN(num) && num >= 0 && num <= 4) {
+              arr.push(String.fromCharCode(65 + num));
+            } else {
+              arr.push(null);
+            }
+          }
+        } else {
+          arr.push(null);
+        }
+      }
+      if (arr.some(Boolean)) return arr;
+    }
+
+    // Format 2: Array ["A", "B", ...]
+    if (Array.isArray(key) && key.length > 0) {
+      return key.map(k => {
+        if (k === null || k === undefined || k === '') return null;
+        if (typeof k === 'number') return String.fromCharCode(65 + k);
+        const str = String(k).trim().toUpperCase();
+        if (/^[A-E]$/.test(str)) return str;
+        const num = Number(str);
+        if (!isNaN(num) && num >= 0 && num <= 4) return String.fromCharCode(65 + num);
+        return null;
+      });
+    }
+
+    // Format 3: String "ABCD..." or "A B C D..."
     if (typeof key === 'string') {
       const clean = key.replace(/[^A-Ea-e]/g, '').toUpperCase();
       return clean.length > 0 ? clean.split('') : null;
     }
-    if (Array.isArray(key) && key.length > 0) {
-      return key.map(k => typeof k === 'number' ? String.fromCharCode(65 + k) : String(k).toUpperCase());
-    }
+
     return null;
-  }, [matchedTestObj, selectedTask]);
+  }, [matchedTestObj, selectedTask, targetGoalCount]);
 
   // Optik Cevap Seçme / Kaldırma
   const handleSelectOpticalOption = (qNo, optLetter) => {
@@ -1255,6 +1345,7 @@ export default function StudyRoomPage() {
         if (isCorrect) correctCount++;
         else wrongCount++;
       } else {
+        isCorrect = true;
         correctCount++;
       }
 
@@ -1272,12 +1363,13 @@ export default function StudyRoomPage() {
     const scorePct = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
 
     const submissionId = `sub_study_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const resolvedTestId = selectedTask?.bookTestId || selectedTask?.realTestId || selectedTask?.testId || selectedTask?.id || submissionId;
     const subPayload = {
       id: submissionId,
       studentId: currentUser?.id || 'guest',
       studentName: currentUser?.name || 'Öğrenci',
-      testId: selectedTask?.bookTestId || selectedTask?.realTestId || selectedTask?.testId || selectedTask?.id || submissionId,
-      testTitle: selectedTask?.title || `${selectedSubject} Optik Sınavı`,
+      testId: resolvedTestId,
+      testTitle: selectedTask?.title || selectedTask?.topic || `${selectedSubject} Optik Sınavı`,
       subject: selectedSubject,
       unit: selectedTask?.unit || '',
       topic: selectedTask?.topic || '',
@@ -1298,9 +1390,11 @@ export default function StudyRoomPage() {
       submittedAt: new Date().toISOString()
     };
 
+    let savedId = submissionId;
     if (typeof addSubmission === 'function') {
       try {
-        await addSubmission(subPayload);
+        const res = await addSubmission(subPayload);
+        if (res) savedId = res;
       } catch (e) {
         console.warn('Error saving study optical submission:', e);
       }
@@ -1316,6 +1410,7 @@ export default function StudyRoomPage() {
     // Show result state
     setCompletedQuizResult({
       ...subPayload,
+      id: savedId,
       hasAnswerKey: Boolean(resolvedAnswerKey)
     });
     setIsSubmittingOptical(false);
@@ -5607,46 +5702,37 @@ export default function StudyRoomPage() {
             </div>
 
             {/* Stats Cards */}
-            {completedQuizResult.hasAnswerKey ? (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: 8,
-                background: themeObj.innerBg,
-                padding: '0.85rem',
-                borderRadius: 16,
-                border: `1.5px solid ${themeObj.border}`,
-                textAlign: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{completedQuizResult.correctCount}</div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Doğru</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>{completedQuizResult.wrongCount}</div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Yanlış</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#64748b' }}>{completedQuizResult.blankCount}</div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Boş</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b' }}>{completedQuizResult.netScore}</div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Net (%{completedQuizResult.score})</div>
-                </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 8,
+              background: themeObj.innerBg,
+              padding: '0.85rem',
+              borderRadius: 16,
+              border: `1.5px solid ${themeObj.border}`,
+              textAlign: 'center'
+            }}>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{completedQuizResult.correctCount}</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Doğru</div>
               </div>
-            ) : (
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1.5px solid #10b981',
-                padding: '1rem',
-                borderRadius: 16,
-                textAlign: 'center',
-                color: '#10b981',
-                fontWeight: 800,
-                fontSize: '0.9rem'
-              }}>
-                ✅ Toplam <strong>{completedQuizResult.totalQuestions} Soru</strong> optik kodlaması başarıyla kaydedildi ve çalışma istatistiklerinize eklendi!
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>{completedQuizResult.wrongCount}</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Yanlış</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#64748b' }}>{completedQuizResult.blankCount}</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Boş</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b' }}>{completedQuizResult.netScore}</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Net (%{completedQuizResult.score})</div>
+              </div>
+            </div>
+
+            {!completedQuizResult.hasAnswerKey && (
+              <div style={{ fontSize: '0.74rem', color: themeObj.subText, textAlign: 'center', fontWeight: 700 }}>
+                ℹ️ Teste ait cevap anahtarı bulunamadığı için işaretlenen tüm sorular doğru kabul edilerek kaydedildi.
               </div>
             )}
 
@@ -5722,6 +5808,35 @@ export default function StudyRoomPage() {
               <button
                 type="button"
                 onClick={() => {
+                  const subId = completedQuizResult.id;
+                  setCompletedQuizResult(null);
+                  handleClearOpticalAnswers();
+                  handleClearSelectedTask();
+                  navigate(`/review/${subId}?studentId=${currentUser?.id || ''}`);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
+                }}
+              >
+                <Eye size={16} /> Sınavı İncele
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
                   handleClearSelectedTask();
@@ -5770,7 +5885,7 @@ export default function StudyRoomPage() {
                   boxShadow: '0 4px 14px rgba(16,185,129,0.3)'
                 }}
               >
-                <RotateCcw size={16} /> Yeni Çalışma Başlat
+                <RotateCcw size={16} /> Yeni Çalışma
               </button>
 
               <button
