@@ -4,10 +4,12 @@ import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon } from 'lucide-react';
 
 export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId }) {
   const { isDark, toggleTheme } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { tests: globalTests } = useQuestionBank();
 
   // Resolve questions if not fully populated
@@ -418,227 +420,518 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       
       {/* ── Header ── */}
-      <header style={{ padding: '0.65rem 1.25rem', background: 'var(--color-surface)', borderBottom: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', flexShrink: 0, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <span style={{ padding: '0.28rem 0.6rem', background: 'linear-gradient(135deg, #059669, #10b981)', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.7rem', color: 'white' }}>
+      <header style={{
+        padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.25rem',
+        background: 'var(--color-surface)',
+        borderBottom: '1.5px solid var(--color-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap',
+        gap: '0.5rem',
+        flexShrink: 0,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        zIndex: 20
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+          <span style={{
+            padding: isMobile ? '0.2rem 0.45rem' : '0.28rem 0.6rem',
+            background: 'linear-gradient(135deg, #059669, #10b981)',
+            borderRadius: '0.4rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.62rem' : '0.7rem',
+            color: 'white',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}>
             🖼️ GÖRSEL TEST
           </span>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: 900, margin: 0, color: 'var(--color-text)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.title || test.name}</h2>
-          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-            Soru {currentIndex + 1} / {qCount}
+          <h2 style={{
+            fontSize: isMobile ? '0.82rem' : '0.95rem',
+            fontWeight: 900,
+            margin: 0,
+            color: 'var(--color-text)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0
+          }}>
+            {test.title || test.name}
+          </h2>
+          <span style={{
+            fontSize: isMobile ? '0.68rem' : '0.78rem',
+            color: 'var(--color-text-muted)',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}>
+            Soru {currentIndex + 1}/{qCount}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.6rem', flexShrink: 0 }}>
           {/* Theme Toggle Button */}
           <button
             type="button"
             onClick={toggleTheme}
             title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
             style={{
-              padding: '0.32rem 0.65rem',
+              padding: isMobile ? '0.25rem 0.45rem' : '0.32rem 0.65rem',
               borderRadius: '0.5rem',
               background: 'var(--color-surface-hover)',
               border: '1.5px solid var(--color-border-input)',
               color: 'var(--color-text)',
               fontWeight: 800,
-              fontSize: '0.8rem',
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
+              gap: '0.25rem',
               transition: 'all 0.15s ease'
             }}
           >
-            {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
-            <span>{isDark ? 'Açık' : 'Koyu'}</span>
+            {isDark ? <Sun size={isMobile ? 12 : 14} color="#f59e0b" /> : <Moon size={isMobile ? 12 : 14} color="#6366f1" />}
+            {!isMobile && <span>{isDark ? 'Açık' : 'Koyu'}</span>}
           </button>
 
-          <div style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', background: timeLeft < 300 ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface-hover)', color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border-input)'}` }}>
-            <Clock size={14} color={timeLeft < 300 ? '#dc2626' : '#059669'} /> {formatTime(timeLeft)}
+          <div style={{
+            padding: isMobile ? '0.25rem 0.55rem' : '0.32rem 0.75rem',
+            borderRadius: '0.5rem',
+            background: timeLeft < 300 ? (isDark ? 'rgba(220, 38, 38, 0.2)' : '#fef2f2') : 'var(--color-surface-hover)',
+            color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.82rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border-input)'}`,
+            whiteSpace: 'nowrap'
+          }}>
+            <Clock size={isMobile ? 12 : 14} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
+            <span>{formatTime(timeLeft)}</span>
           </div>
-          <button onClick={handleSubmit} style={{ padding: '0.4rem 1rem', borderRadius: '0.55rem', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 3px 10px rgba(16,185,129,0.25)' }}>
-            <CheckCircle2 size={16} /> Testi Bitir
+
+          <button
+            onClick={handleSubmit}
+            style={{
+              padding: isMobile ? '0.28rem 0.65rem' : '0.4rem 1rem',
+              borderRadius: '0.55rem',
+              background: 'linear-gradient(135deg,#10b981,#059669)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.72rem' : '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              boxShadow: '0 3px 10px rgba(16,185,129,0.25)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <CheckCircle2 size={isMobile ? 13 : 16} />
+            <span>{isMobile ? 'Bitir' : 'Testi Bitir'}</span>
           </button>
         </div>
       </header>
 
-      {/* ── Main Content Split ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        
-        {/* Left Side: Question Image Viewer */}
-        <div style={{ flex: 1, minWidth: 0, background: 'var(--color-bg)', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '1rem' }}>
+      {/* ── Mobile Horizontal Question Navigator Bar ── */}
+      {isMobile && (
+        <div style={{
+          padding: '0.4rem 0.6rem',
+          background: 'var(--color-surface)',
+          borderBottom: '1px solid var(--color-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          overflowX: 'auto',
+          flexShrink: 0,
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          {Array.from({ length: qCount }).map((_, idx) => {
+            const qNum = idx + 1;
+            const isCurrent = idx === currentIndex;
+            const hasAns = answers[qNum] !== undefined || Boolean(openEndedText[qNum]);
+            return (
+              <button
+                key={qNum}
+                onClick={() => setCurrentIndex(idx)}
+                style={{
+                  minWidth: '34px',
+                  height: '30px',
+                  padding: '0 0.35rem',
+                  borderRadius: '0.45rem',
+                  fontWeight: 900,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  border: isCurrent ? '2px solid #6366f1' : (hasAns ? '1.5px solid #10b981' : '1px solid var(--color-border-input)'),
+                  background: isCurrent ? '#6366f1' : (hasAns ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5') : 'var(--color-surface)'),
+                  color: isCurrent ? 'white' : (hasAns ? '#10b981' : 'var(--color-text)')
+                }}
+              >
+                {qNum}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Main Content Area ── */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        overflow: 'hidden',
+        minHeight: 0
+      }}>
+        {/* Question Image Viewer */}
+        <div style={{
+          flex: isMobile ? 1 : 1,
+          minWidth: 0,
+          background: 'var(--color-bg)',
+          overflowY: 'auto',
+          padding: isMobile ? '0.75rem' : '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: isMobile ? '0.65rem' : '1rem'
+        }}>
           <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
-          
+
           {imageUrls.length > 0 ? (
             imageUrls.map((url, idx) => (
               <StandardImageFrame key={idx} src={url} alt={`Soru ${currentIndex + 1}`} onOpenFullscreen={() => setLightboxSrc(url)} />
             ))
           ) : (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', border: '2px dashed var(--color-border)', borderRadius: '1rem', background: 'var(--color-surface)', maxWidth: '400px' }}>
-              <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.5rem' }}>🖼️</span>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-text)' }}>Görsel Yüklenemedi</h4>
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>Bu soruya ait görsel içerik bulunamadı veya henüz yüklenmedi.</p>
+            <div style={{ padding: isMobile ? '1.5rem' : '3rem', textAlign: 'center', color: 'var(--color-text-muted)', border: '2px dashed var(--color-border)', borderRadius: '1rem', background: 'var(--color-surface)', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
+              <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem', display: 'block', marginBottom: '0.4rem' }}>🖼️</span>
+              <h4 style={{ margin: '0 0 0.4rem 0', color: 'var(--color-text)', fontSize: isMobile ? '0.9rem' : '1rem' }}>Görsel Yüklenemedi</h4>
+              <p style={{ margin: 0, fontSize: isMobile ? '0.75rem' : '0.85rem' }}>Bu soruya ait görsel içerik bulunamadı veya henüz yüklenmedi.</p>
+            </div>
+          )}
+
+          {/* On Mobile: Question Input is embedded right below the image inside the scrollable container */}
+          {isMobile && (
+            <div style={{
+              width: '100%',
+              background: 'var(--color-surface)',
+              borderRadius: '0.85rem',
+              border: '1.5px solid var(--color-border)',
+              padding: '0.85rem',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  Soru {currentIndex + 1}
+                </span>
+                {isOpenEndedMode && (
+                  <span style={{ padding: '0.15rem 0.45rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>✍️ Açık Uçlu</span>
+                )}
+              </div>
+
+              {isOpenEndedMode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
+                    ✍️ Yanıtınızı Giriniz:
+                  </label>
+                  <textarea
+                    value={currentTextAnswer}
+                    onChange={(e) => handleTextChange(e.target.value)}
+                    placeholder={`Soru ${currentIndex + 1} için yanıtınızı buraya yazınız...`}
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      borderRadius: '0.65rem',
+                      border: '1.5px solid var(--color-border-input)',
+                      background: 'var(--color-bg)',
+                      color: 'var(--color-text)',
+                      fontFamily: 'inherit',
+                      fontSize: '0.88rem',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
+                    Seçeneğinizi İşaretleyiniz:
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                      const isSelected = currentAnswer === optIdx;
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handleOptionSelect(optIdx)}
+                          style={{
+                            flex: 1,
+                            height: '42px',
+                            borderRadius: '0.55rem',
+                            border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--color-border-input)',
+                            background: isSelected ? '#2563eb' : 'var(--color-surface-hover)',
+                            color: isSelected ? 'white' : 'var(--color-text)',
+                            fontWeight: 900,
+                            fontSize: '0.95rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Right Side: Answer Form / Optical Bubble Bar */}
-        <div style={{ width: '360px', flexShrink: 0, background: 'var(--color-surface)', borderLeft: '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          
-          {/* Question Grid Bar */}
-          <div style={{ padding: '1rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text-secondary)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Sorular ({qCount})
+        {/* Right Side on Desktop: Answer Form / Optical Bubble Bar */}
+        {!isMobile && (
+          <div style={{ width: '360px', flexShrink: 0, background: 'var(--color-surface)', borderLeft: '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            
+            {/* Desktop Question Grid Bar */}
+            <div style={{ padding: '1rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text-secondary)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Sorular ({qCount})
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.35rem', maxHeight: '110px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                {Array.from({ length: qCount }).map((_, idx) => {
+                  const qNum = idx + 1;
+                  const isCurrent = idx === currentIndex;
+                  const hasAns = answers[qNum] !== undefined || Boolean(openEndedText[qNum]);
+                  return (
+                    <button
+                      key={qNum}
+                      onClick={() => setCurrentIndex(idx)}
+                      style={{
+                        height: '32px',
+                        borderRadius: '0.45rem',
+                        fontWeight: 900,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                        border: isCurrent ? '2px solid #6366f1' : (hasAns ? '1.5px solid #10b981' : '1px solid var(--color-border-input)'),
+                        background: isCurrent ? '#6366f1' : (hasAns ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5') : 'var(--color-surface)'),
+                        color: isCurrent ? 'white' : (hasAns ? '#10b981' : 'var(--color-text)')
+                      }}
+                    >
+                      {qNum}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.35rem', maxHeight: '110px', overflowY: 'auto', paddingRight: '0.2rem' }}>
-              {Array.from({ length: qCount }).map((_, idx) => {
-                const qNum = idx + 1;
-                const isCurrent = idx === currentIndex;
-                const hasAns = answers[qNum] !== undefined || openEndedText[qNum];
-                return (
-                  <button
-                    key={qNum}
-                    onClick={() => setCurrentIndex(idx)}
-                    style={{
-                      height: '32px',
-                      borderRadius: '0.45rem',
-                      fontWeight: 900,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.15s ease',
-                      border: isCurrent ? '2px solid #6366f1' : (hasAns ? '1.5px solid #10b981' : '1px solid var(--color-border-input)'),
-                      background: isCurrent ? '#6366f1' : (hasAns ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5') : 'var(--color-surface)'),
-                      color: isCurrent ? 'white' : (hasAns ? '#10b981' : 'var(--color-text)')
-                    }}
-                  >
-                    {qNum}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Active Question Input Card */}
-          <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                Soru {currentIndex + 1}
-              </span>
-              {isOpenEndedMode && (
-                <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu</span>
+            {/* Active Question Input Card */}
+            <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  Soru {currentIndex + 1}
+                </span>
+                {isOpenEndedMode && (
+                  <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu</span>
+                )}
+              </div>
+
+              {isOpenEndedMode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
+                    ✍️ Yanıtınızı Giriniz:
+                  </label>
+                  <textarea
+                    value={currentTextAnswer}
+                    onChange={(e) => handleTextChange(e.target.value)}
+                    placeholder={`Soru ${currentIndex + 1} için yanıtınızı buraya yazınız...`}
+                    rows={6}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.65rem',
+                      border: '1.5px solid var(--color-border-input)',
+                      background: 'var(--color-bg)',
+                      color: 'var(--color-text)',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
+                    Seçeneğinizi İşaretleyiniz:
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                      const isSelected = currentAnswer === optIdx;
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handleOptionSelect(optIdx)}
+                          style={{
+                            flex: 1,
+                            height: '46px',
+                            borderRadius: '0.6rem',
+                            border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--color-border-input)',
+                            background: isSelected ? '#2563eb' : 'var(--color-surface-hover)',
+                            color: isSelected ? 'white' : 'var(--color-text)',
+                            fontWeight: 900,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
 
-            {isOpenEndedMode ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
-                  ✍️ Yanıtınızı Giriniz:
-                </label>
-                <textarea
-                  value={currentTextAnswer}
-                  onChange={(e) => handleTextChange(e.target.value)}
-                  placeholder={`Soru ${currentIndex + 1} için yanıtınızı buraya yazınız...`}
-                  rows={6}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.65rem',
-                    border: '1.5px solid var(--color-border-input)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontFamily: 'inherit',
-                    fontSize: '0.9rem',
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
-                  Seçeneğinizi İşaretleyiniz:
-                </label>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                    const isSelected = currentAnswer === optIdx;
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() => handleOptionSelect(optIdx)}
-                        style={{
-                          flex: 1,
-                          height: '46px',
-                          borderRadius: '0.6rem',
-                          border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--color-border-input)',
-                          background: isSelected ? '#2563eb' : 'var(--color-surface-hover)',
-                          color: isSelected ? 'white' : 'var(--color-text)',
-                          fontWeight: 900,
-                          fontSize: '1rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* Desktop Bottom Navigation */}
+            <div style={{ padding: '0.85rem 1.25rem', borderTop: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+              <button
+                onClick={() => setCurrentIndex(p => Math.max(0, p - 1))}
+                disabled={currentIndex === 0}
+                style={{
+                  flex: 1,
+                  padding: '0.55rem',
+                  borderRadius: '0.55rem',
+                  background: currentIndex === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border-input)',
+                  color: currentIndex === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: currentIndex === 0 ? 'default' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <ChevronLeft size={16} /> Önceki
+              </button>
+              <button
+                onClick={() => setCurrentIndex(p => Math.min(qCount - 1, p + 1))}
+                disabled={currentIndex === qCount - 1}
+                style={{
+                  flex: 1,
+                  padding: '0.55rem',
+                  borderRadius: '0.55rem',
+                  background: currentIndex === qCount - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  border: currentIndex === qCount - 1 ? '1.5px solid var(--color-border-input)' : 'none',
+                  color: currentIndex === qCount - 1 ? 'var(--color-text-muted)' : 'white',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: currentIndex === qCount - 1 ? 'default' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                Sonraki <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
-
-          {/* Bottom Navigation */}
-          <div style={{ padding: '0.85rem 1.25rem', borderTop: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-            <button
-              onClick={() => setCurrentIndex(p => Math.max(0, p - 1))}
-              disabled={currentIndex === 0}
-              style={{
-                flex: 1,
-                padding: '0.55rem',
-                borderRadius: '0.55rem',
-                background: currentIndex === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
-                border: '1.5px solid var(--color-border-input)',
-                color: currentIndex === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: currentIndex === 0 ? 'default' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.3rem'
-              }}
-            >
-              <ChevronLeft size={16} /> Önceki
-            </button>
-            <button
-              onClick={() => setCurrentIndex(p => Math.min(qCount - 1, p + 1))}
-              disabled={currentIndex === qCount - 1}
-              style={{
-                flex: 1,
-                padding: '0.55rem',
-                borderRadius: '0.55rem',
-                background: currentIndex === qCount - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                border: currentIndex === qCount - 1 ? '1.5px solid var(--color-border-input)' : 'none',
-                color: currentIndex === qCount - 1 ? 'var(--color-text-muted)' : 'white',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: currentIndex === qCount - 1 ? 'default' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.3rem'
-              }}
-            >
-              Sonraki <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* ── Mobile Bottom Navigation Bar ── */}
+      {isMobile && (
+        <div style={{
+          padding: '0.5rem 0.75rem',
+          borderTop: '1.5px solid var(--color-border)',
+          background: 'var(--color-surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          flexShrink: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
+          zIndex: 15
+        }}>
+          <button
+            onClick={() => setCurrentIndex(p => Math.max(0, p - 1))}
+            disabled={currentIndex === 0}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              borderRadius: '0.55rem',
+              background: currentIndex === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+              border: '1.5px solid var(--color-border-input)',
+              color: currentIndex === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: currentIndex === 0 ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem'
+            }}
+          >
+            <ChevronLeft size={15} /> Önceki
+          </button>
+
+          <span style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--color-text-secondary)', padding: '0 0.25rem', whiteSpace: 'nowrap' }}>
+            {currentIndex + 1} / {qCount}
+          </span>
+
+          <button
+            onClick={() => {
+              if (currentIndex < qCount - 1) {
+                setCurrentIndex(p => p + 1);
+              } else {
+                handleSubmit();
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              borderRadius: '0.55rem',
+              background: currentIndex === qCount - 1 ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+              boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+            }}
+          >
+            {currentIndex === qCount - 1 ? (
+              <>Testi Bitir <CheckCircle2 size={15} /></>
+            ) : (
+              <>Sonraki <ChevronRight size={15} /></>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
