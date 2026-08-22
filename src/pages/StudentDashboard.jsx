@@ -26,6 +26,7 @@ import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
+import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import ManualTestModal from '../components/ManualTestModal';
@@ -49,6 +50,17 @@ function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
     const rawSections = unifiedTest.sections;
     if (!rawSections || rawSections.length === 0) return null;
 
+    if (sub.isEvaluatedByTeacher && typeof sub.correctCount === 'number' && typeof sub.wrongCount === 'number') {
+      const correct = Number(sub.correctCount);
+      const wrong = Number(sub.wrongCount);
+      const blank = Number(sub.blankCount ?? sub.emptyCount ?? 0);
+      const total = Number(sub.totalQuestions || (correct + wrong + blank) || 27);
+      const scorePct = sub.scorePercentage ?? sub.score ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
+      const rawNet = typeof sub.netScore === 'number' ? sub.netScore : Math.max(0, correct - (wrong * 0.25));
+      const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
+      return { total, correct, wrong, blank, pending: 0, scorePct, netScore };
+    }
+
     const unifiedSub = normalizeUnifiedSubmission(sub, unifiedTest);
     const sectionAnswersMap = unifiedSub.sections || {};
     const teacherScores = sub.teacherScores || sub.scores || (sub.raw_data && (sub.raw_data.teacherScores || sub.raw_data.scores)) || {};
@@ -59,6 +71,13 @@ function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
     let blankCount = 0;
     let pendingCount = 0;
 
+    const secOffsets = [];
+    let acc = 0;
+    rawSections.forEach(s => {
+      secOffsets.push(acc);
+      acc += (s.qCount || s.questions?.length || s.resolvedQuestions?.length || 1);
+    });
+
     rawSections.forEach((sec, sIdx) => {
       const sa = sectionAnswersMap[sec.id] ||
                  sectionAnswersMap[sIdx] ||
@@ -68,75 +87,68 @@ function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
                  (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
                  { answers: {}, openEndedText: {}, teacherScores: {} };
 
-      const secQs = sec.questions || [];
+      const secQs = sec.questions || sec.resolvedQuestions || [];
       const count = sec.qCount || secQs.length || 1;
-      const isSecOpenEnded = sec.type === 'open_ended';
+      const isSecOpenEnded = sec.type === 'open_ended' || isSectionOpenEnded(sec, hw);
+      const secStart = secOffsets[sIdx] || 0;
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
+        const globalQNo = secStart + i;
         const qObj = secQs[i - 1] || {};
-        const isQOE = isSecOpenEnded ||
-                      qObj.type === 'open_ended' ||
-                      qObj.type === 'acik_uclu' ||
-                      qObj.type === 'yazili' ||
-                      qObj.questionType === 'acik_uclu' ||
-                      qObj.questionType === 'yazili' ||
-                      Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim() !== '') ||
-                      Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim() !== '');
+        const isQOE = isSecOpenEnded || isQuestionOpenEnded(qObj, sec, hw);
+
+        const rawAnsItem = Array.isArray(sub?.answers)
+          ? sub.answers.find(a =>
+              (a.sectionId && (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(sec.raw?.id)) && Number(a.questionNoInSection) === i) ||
+              Number(a.questionNo) === globalQNo ||
+              (sIdx === 0 && Number(a.questionNo) === i)
+            )
+          : null;
 
         const teacherScore = teacherScores[sec.id]?.[i] ??
                              teacherScores[sIdx]?.[i] ??
                              sa.teacherScores?.[i] ??
-                             sa.teacherScores?.[String(i)];
+                             sa.teacherScores?.[String(i)] ??
+                             rawAnsItem?.score;
 
         if (isQOE) {
-          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText;
           const hasText = textVal && String(textVal).trim() !== '';
 
-          if (teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty') {
-            const scNum = Number(teacherScore);
-            if (scNum >= 5 || scNum > 0) {
-              correctCount++;
-            } else {
-              wrongCount++;
-            }
-          } else if (teacherScore === 'empty' || !hasText) {
+          const isExplicitEmpty = teacherScore === 'empty' || rawAnsItem?.score === 'empty' || rawAnsItem?.evalStatus === 'empty' || (rawAnsItem?.score === 0 && rawAnsItem?.isCorrect === null);
+          const hasExplicitTeacherScore = !isExplicitEmpty && teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty';
+
+          if (isExplicitEmpty) {
             blankCount++;
+          } else if (hasExplicitTeacherScore) {
+            if (Number(teacherScore) >= 5) correctCount++;
+            else wrongCount++;
+          } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null) {
+            if (Number(rawAnsItem.score) >= 5) correctCount++;
+            else if (Number(rawAnsItem.score) > 0 || hasText) wrongCount++;
+            else blankCount++;
+          } else if (hasText) {
+            pendingCount++;
           } else {
-            correctCount++;
+            blankCount++;
           }
         } else {
           // Multiple choice
-          const rawAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          const rawAns = sa.answers?.[i] ?? sa.answers?.[String(i)] ?? rawAnsItem?.userAnswer;
           const u = normalizeAnswerIndex(rawAns);
-          if (u === null) {
+
+          if (u === null && (!rawAnsItem || (rawAnsItem.userAnswer === null && !rawAnsItem.answer))) {
             blankCount++;
+          } else if (rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
+            if (rawAnsItem.isCorrect) correctCount++;
+            else wrongCount++;
+          } else if (u !== null) {
+            let isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
+            if (isCorr === false) wrongCount++;
+            else correctCount++;
           } else {
-            const cAns = (Array.isArray(sec.correctAnswers) && sec.correctAnswers[i - 1] !== undefined)
-              ? sec.correctAnswers[i - 1]
-              : (Array.isArray(sec.raw?.correctAnswers) && sec.raw.correctAnswers[i - 1] !== undefined)
-                ? sec.raw.correctAnswers[i - 1]
-                : (sec.answerKey?.[i - 1] ?? sec.raw?.answerKey?.[i - 1] ?? sec.opticAnswers?.[i - 1] ?? sec.raw?.opticAnswers?.[i - 1] ?? qObj.correctAnswer ?? qObj.answer ?? qObj.correctOption);
-
-            let isCorr = null;
-            if (cAns !== undefined && cAns !== null && cAns !== '') {
-              const normC = normalizeAnswerIndex(cAns);
-              if (normC !== null) {
-                isCorr = (u === normC);
-              }
-            }
-
-            if (isCorr === null) {
-              isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
-            }
-
-            if (isCorr === true) {
-              correctCount++;
-            } else if (isCorr === false) {
-              wrongCount++;
-            } else {
-              correctCount++;
-            }
+            blankCount++;
           }
         }
       }
@@ -1012,15 +1024,15 @@ export default function StudentDashboard() {
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         sub.answers.forEach(ans => {
-          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
-          if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
-            cCount++;
-          } else if (ans.evalStatus === 'empty') {
+          const numScore = ans.score !== undefined && ans.score !== null && ans.score !== 'empty' ? Number(ans.score) : null;
+          const isBlankAns = ans.evalStatus === 'empty' || ans.score === 'empty' || ((ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '' || ans.userAnswer === 'empty') && (!ans.userAnswerText || String(ans.userAnswerText).trim() === ''));
+
+          if (isBlankAns) {
             eCount++;
-          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
-            const isB = (ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '') && !ans.userAnswerText;
-            if (isB) eCount++;
-            else wCount++;
+          } else if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
+            cCount++;
+          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore < 5 && ans.evaluatedByTeacher)) {
+            wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
             if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.correctAnswer !== undefined) {
               if (String(ans.userAnswer).trim().toUpperCase() === String(ans.correctAnswer).trim().toUpperCase()) {
@@ -1267,15 +1279,15 @@ export default function StudentDashboard() {
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         sub.answers.forEach(ans => {
-          const numScore = ans.score !== undefined && ans.score !== null ? Number(ans.score) : null;
-          if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
-            cCount++;
-          } else if (ans.evalStatus === 'empty') {
+          const numScore = ans.score !== undefined && ans.score !== null && ans.score !== 'empty' ? Number(ans.score) : null;
+          const isBlankAns = ans.evalStatus === 'empty' || ans.score === 'empty' || ((ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '' || ans.userAnswer === 'empty') && (!ans.userAnswerText || String(ans.userAnswerText).trim() === ''));
+
+          if (isBlankAns) {
             eCount++;
-          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore === 0)) {
-            const isB = (ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '') && !ans.userAnswerText;
-            if (isB) eCount++;
-            else wCount++;
+          } else if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
+            cCount++;
+          } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore < 5 && ans.evaluatedByTeacher)) {
+            wCount++;
           } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
             if (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '' && ans.correctAnswer !== undefined) {
               if (String(ans.userAnswer).trim().toUpperCase() === String(ans.correctAnswer).trim().toUpperCase()) {
