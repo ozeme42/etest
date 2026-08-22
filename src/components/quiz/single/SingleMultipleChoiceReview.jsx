@@ -30,6 +30,15 @@ export default function SingleMultipleChoiceReview({
     });
   }
 
+  const normalizeAns = (val) => {
+    if (val === null || val === undefined || val === '' || val === 'empty') return null;
+    if (typeof val === 'number') return val;
+    const str = String(val).trim().toUpperCase();
+    if (/^[A-E]$/.test(str)) return str.charCodeAt(0) - 65;
+    const num = Number(str);
+    return (!isNaN(num) && num >= 0 && num <= 4) ? num : str;
+  };
+
   const totalQuestions = questions.length || answers.length || 1;
 
   // Recompute stats live from userAnswer vs correctAnswer (never trust stale DB isCorrect)
@@ -37,13 +46,18 @@ export default function SingleMultipleChoiceReview({
   let wrongCount = 0;
   if (Array.isArray(questions) && questions.length > 0) {
     questions.forEach((q, idx) => {
-      const ansObj = answers[idx] || {};
       const qNo = idx + 1;
-      const uAns = answersMap[qNo];
-      if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') return; // blank — skip
-      const cAns = ansObj.correctAnswer ?? q.correctAnswer;
-      if (cAns !== undefined && cAns !== null) {
-        if (uAns === cAns) correctCount++; else wrongCount++;
+      const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
+      const uAns = answersMap[qNo] ?? ansObj.userAnswer;
+      const cAns = ansObj.correctAnswer ?? q.correctAnswer ?? test.answerKey?.[idx];
+      const normU = normalizeAns(uAns);
+      const normC = normalizeAns(cAns);
+
+      if (normU === null) return; // blank — skip
+
+      if (normC !== null && normC !== undefined) {
+        if (normU === normC) correctCount++;
+        else wrongCount++;
       } else {
         // No answer key available — fall back to stored isCorrect
         if (ansObj.isCorrect === true) correctCount++;
@@ -207,15 +221,17 @@ export default function SingleMultipleChoiceReview({
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {questions.map((q, idx) => {
                 const qNo = idx + 1;
-                const ansObj = answers[idx] || {};
-                const uAns = answersMap[qNo];
-                const cAns = ansObj.correctAnswer ?? q.correctAnswer;
-                const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
+                const uAns = answersMap[qNo] ?? ansObj.userAnswer;
+                const cAns = ansObj.correctAnswer ?? q.correctAnswer ?? test.answerKey?.[idx];
+                const normU = normalizeAns(uAns);
+                const normC = normalizeAns(cAns);
+                const isBlank = normU === null;
                 const isCorrect = isBlank
                   ? null  // never mark blank as wrong
-                  : (cAns !== undefined && cAns !== null
-                      ? uAns === cAns
-                      : (ansObj.isCorrect ?? null));  // fallback to DB only if no answer key
+                  : (normC !== null && normC !== undefined
+                      ? normU === normC
+                      : (ansObj.isCorrect ?? null));
 
                 return (
                   <MultipleChoiceReview
@@ -223,10 +239,10 @@ export default function SingleMultipleChoiceReview({
                     question={q}
                     qNo={qNo}
                     totalQuestions={totalQuestions}
-                    selectedOption={uAns}
-                    userAnswer={uAns}
-                    correctOption={cAns}
-                    correctAnswer={cAns}
+                    selectedOption={normU}
+                    userAnswer={normU}
+                    correctOption={normC}
+                    correctAnswer={normC}
                     isCorrect={isCorrect}
                     isMobile={isMobile}
                   />
