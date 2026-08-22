@@ -124,29 +124,28 @@ export default function CompositeHomeworkReview({
           : null;
 
         if (isQOE) {
-          // OE path: check teacher score
-          const ansScore = (rawAnsItem && (rawAnsItem.evaluatedByTeacher || Boolean(rawAnsItem.evaluatedAt) || typeof rawAnsItem.score === 'number') && rawAnsItem.score !== undefined && rawAnsItem.score !== null)
-            ? rawAnsItem.score
-            : undefined;
-
-          const ts =
-            teacherScores[sec.id]?.[i]   ??
-            teacherScores[rawId]?.[i]     ??
-            teacherScores[sIdx]?.[i]      ??
-            dbSecScores[i]                ??
-            dbSecScores[String(i)]        ??
-            ansScore;
-
           const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
           const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText;
           const hasText = Boolean(textVal && String(textVal).trim());
 
-          if (ts !== undefined && ts !== null && ts !== 'empty') {
-            if (Number(ts) >= 5) correctCount++; else wrongCount++;
+          const directTeacherSc = teacherScores[sec.id]?.[i] ?? teacherScores[rawId]?.[i] ?? teacherScores[sIdx]?.[i] ?? dbSecScores[i] ?? dbSecScores[String(i)];
+          const hasExplicitTeacherScore = directTeacherSc !== undefined && directTeacherSc !== null && directTeacherSc !== 'empty';
+
+          if (hasExplicitTeacherScore) {
+            if (Number(directTeacherSc) >= 5) correctCount++;
+            else wrongCount++;
           } else if (hasText) {
-            pendingCount++;  // student answered but teacher hasn't scored yet
+            // Student wrote text: check if answer has a positive score from DB
+            if (rawAnsItem && typeof rawAnsItem.score === 'number' && rawAnsItem.score >= 5) {
+              correctCount++;
+            } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evalStatus === 'wrong')) {
+              wrongCount++;
+            } else {
+              pendingCount++;
+            }
           } else {
-            blankCount++;    // student didn't answer
+            // Student never answered this open-ended question -> BLANK!
+            blankCount++;
           }
         } else {
           // MC path: evaluate userAnswer vs correctAnswer

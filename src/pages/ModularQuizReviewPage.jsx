@@ -95,10 +95,13 @@ export default function ModularQuizReviewPage() {
       }
     }
 
+    const submissionIdParam = searchParams.get('submissionId');
+
     // 1. Search in all candidates pool
     if (allCandidatePool.length > 0) {
       const candidates = allCandidatePool.filter(s => {
         if (!s) return false;
+        if (submissionIdParam && (String(s.id) === String(submissionIdParam) || String(s.submissionId) === String(submissionIdParam))) return true;
         if (studentId && s.studentId && String(s.studentId) !== String(studentId)) return false;
 
         const sId = String(s.id || '');
@@ -122,6 +125,13 @@ export default function ModularQuizReviewPage() {
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
+          if (submissionIdParam) {
+            const aMatch = String(a.id) === String(submissionIdParam) || String(a.submissionId) === String(submissionIdParam);
+            const bMatch = String(b.id) === String(submissionIdParam) || String(b.submissionId) === String(submissionIdParam);
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+          }
+
           const aAnsCount = (Array.isArray(a.answers) ? a.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
           const bAnsCount = (Array.isArray(b.answers) ? b.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
           if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount; // More answered questions first!
