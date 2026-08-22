@@ -65,29 +65,140 @@ export default function VisualGoalSection({ studentId }) {
     'Dakika': { color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', text: '#34d399', unit: 'Dk', step: 15 },
   };
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
   return (
     <CoachingCard emoji="📊" title={`Görsel Özel Hedef Takip Panosu (${studentGoals.length} hedef)`}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 8, gap: 2 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        marginBottom: 14,
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        {/* Mobile Header + CTA */}
+        {isMobile && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.75rem',
+                padding: '0.55rem 0.85rem',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                boxShadow: '0 3px 10px rgba(225,29,72,0.3)'
+              }}
+            >
+              <Plus size={15} /> + Yeni Hedef Ekle
+            </button>
+          </div>
+        )}
+
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: isMobile ? 8 : 10,
+          flex: 1
+        }}>
+          {/* Periyot */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            background: 'var(--color-surface-hover)',
+            padding: 3,
+            borderRadius: 10,
+            gap: 2,
+            width: isMobile ? '100%' : 'auto'
+          }}>
             {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
-              <button key={p} onClick={() => setPeriodFilter(p)} style={{ border: 'none', background: periodFilter === p ? '#4f46e5' : 'transparent', color: periodFilter === p ? 'white' : 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: 6, cursor: 'pointer' }}>
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriodFilter(p)}
+                style={{
+                  border: 'none',
+                  background: periodFilter === p ? '#4f46e5' : 'transparent',
+                  color: periodFilter === p ? 'white' : 'var(--color-text-muted)',
+                  fontSize: isMobile ? '0.68rem' : '0.74rem',
+                  fontWeight: 900,
+                  padding: isMobile ? '0.35rem 0.2rem' : '0.28rem 0.6rem',
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
                 {p}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 8, gap: 2 }}>
+
+          {/* Tür */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            background: 'var(--color-surface-hover)',
+            padding: 3,
+            borderRadius: 10,
+            gap: 2,
+            width: isMobile ? '100%' : 'auto'
+          }}>
             {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
-              <button key={t} onClick={() => setTypeFilter(t)} style={{ border: 'none', background: typeFilter === t ? '#e11d48' : 'transparent', color: typeFilter === t ? 'white' : 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: 6, cursor: 'pointer' }}>
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTypeFilter(t)}
+                style={{
+                  border: 'none',
+                  background: typeFilter === t ? '#e11d48' : 'transparent',
+                  color: typeFilter === t ? 'white' : 'var(--color-text-muted)',
+                  fontSize: isMobile ? '0.66rem' : '0.74rem',
+                  fontWeight: 900,
+                  padding: isMobile ? '0.35rem 0.15rem' : '0.28rem 0.6rem',
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
                 {t}
               </button>
             ))}
           </div>
         </div>
 
-        <button onClick={() => setShowModal(true)} style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.45rem 0.85rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Plus size={14} /> + Özel Hedef Ekle
-        </button>
+        {!isMobile && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #e11d48, #be123c)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.65rem',
+              padding: '0.45rem 0.85rem',
+              fontWeight: 900,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              flexShrink: 0
+            }}
+          >
+            <Plus size={14} /> + Özel Hedef Ekle
+          </button>
+        )}
       </div>
 
       {filteredGoals.length === 0 ? (
