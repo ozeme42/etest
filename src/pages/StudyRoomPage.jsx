@@ -2485,11 +2485,11 @@ export default function StudyRoomPage() {
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'auto auto',
           gap: isMobile ? 6 : 8
         }}>
-          {/* Haftalık Ders Programına Doğrudan Gitme Butonu */}
+          {/* Ödev / Test Seç Modalı Butonu */}
           <button
-            onClick={() => navigate('/student/program')}
+            onClick={() => setShowHomeworkPickerModal(true)}
             style={{
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
               border: 'none',
               color: '#ffffff',
               borderRadius: isMobile ? 12 : 16,
@@ -2502,13 +2502,13 @@ export default function StudyRoomPage() {
               fontSize: isFullscreenView ? '0.84rem' : isMobile ? '0.72rem' : '0.78rem',
               fontWeight: 900,
               whiteSpace: 'nowrap',
-              boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+              boxShadow: '0 4px 14px rgba(59,130,246,0.35)',
               transition: 'all 0.15s'
             }}
-            title="Haftalık ders programı sayfasına git ve oradan doğrudan görev seçip başlat"
+            title="Ödev veya test seçip çalışma odasında başlat"
           >
-            <Calendar size={isMobile ? 14 : 17} />
-            <span>📅 Program</span>
+            <BookMarked size={isMobile ? 14 : 17} />
+            <span>📝 Ödev Seç</span>
           </button>
 
           {/* Zen Tam Ekran Butonu */}
@@ -3553,30 +3553,6 @@ export default function StudyRoomPage() {
                     </div>
                   </div>
 
-                  {/* Test / Ödev Seçme Aksiyon Butonu */}
-                  <button
-                    type="button"
-                    onClick={() => setShowHomeworkPickerModal(true)}
-                    style={{
-                      width: '100%',
-                      padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1rem',
-                      borderRadius: 12,
-                      background: themeObj.innerBg,
-                      border: `1.5px dashed ${themeObj.border}`,
-                      color: themeObj.accent,
-                      fontWeight: 800,
-                      fontSize: isMobile ? '0.76rem' : '0.84rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    <BookMarked size={16} />
-                    <span>Ödev / Test Seç (Optik Formu Başlat)</span>
-                  </button>
 
                   {/* Testi Bitir & Molaya Geç */}
                   {currentProgressCount > 0 && (
