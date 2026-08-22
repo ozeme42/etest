@@ -234,17 +234,58 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
   return false;
 }
 
+/* ─── Subject Detection & Publisher Helper ─── */
+export const KNOWN_PUBLISHERS = [
+  'atlı karınca', 'atli karinca', '3d', '3d yayınları', 'karekök', 'limit', 'hız yayınları', 'hiz',
+  'tonguç', 'tonguc', 'bilfen', 'apotemi', 'palme', 'çap', 'cap', 'okyanus', 'aydın', 'aydin',
+  'birey', 'esen', 'endemik', 'supara', 'kafadengi', 'nitelik', 'model', 'mozaik', 'arı', 'ari',
+  'sadık uygun', 'sadik uygun', 'newton', 'tudem', 'sınav', 'sinav', 'kırmızı beyaz', 'kirmizi beyaz',
+  'evrensel', 'fenomen', 'ankara', 'editör', 'editor', 'vip', 'yanıt', 'yanit', 'paraf', 'yayın denizi',
+  'test okul', 'merkez', 'metin', 'bilgi sarmal', 'orijinal', 'acil', 'hocalara geldik', 'benim hocam',
+  'pegem', 'yediiklim', 'murat', 'isem', 'data', 'uzman kariyer', 'tasarım', 'beyaz kalem', 'lider',
+  'puan', 'kültür', 'kultur', 'doğa', 'doga', 'uğur', 'ugur', 'bahçeşehir', 'final', 'açı', 'aci'
+];
+
+export const detectSubjectFromText = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  const lower = text.toLowerCase();
+  
+  if (lower.includes('matematik') || lower.includes('geometri')) return lower.includes('geometri') ? 'Geometri' : 'Matematik';
+  if (lower.includes('türkçe') || lower.includes('turkce') || lower.includes('edebiyat') || lower.includes('paragraf') || lower.includes('dil bilgisi')) {
+    if (lower.includes('edebiyat')) return 'Türk Dili ve Edebiyatı';
+    if (lower.includes('paragraf')) return 'Paragraf';
+    return 'Türkçe';
+  }
+  if (lower.includes('fen bilim') || lower.includes('fen ve tek') || lower.includes('fen lisesi fen') || lower.includes('fen ')) return 'Fen Bilimleri';
+  if (lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('t.c.')) return 'T.C. İnkılap Tarihi';
+  if (lower.includes('sosyal bilim') || lower.includes('sosyal bilg') || lower.includes('sosyal')) return 'Sosyal Bilgiler';
+  if (lower.includes('ingilizce') || lower.includes('english') || lower.includes('yabancı dil') || lower.includes('yabanci dil')) return 'İngilizce';
+  if (lower.includes('din kültür') || lower.includes('din kultur') || lower.includes('din ve ahlak') || lower.includes('din ')) return 'Din Kültürü';
+  if (lower.includes('fizik')) return 'Fizik';
+  if (lower.includes('kimya')) return 'Kimya';
+  if (lower.includes('biyoloji')) return 'Biyoloji';
+  if (lower.includes('tarih')) return 'Tarih';
+  if (lower.includes('coğrafya') || lower.includes('cografya')) return 'Coğrafya';
+  if (lower.includes('felsefe') || lower.includes('mantık') || lower.includes('sosyoloji') || lower.includes('psikoloji')) return 'Felsefe';
+  if (lower.includes('hayat bilgisi') || lower.includes('hayat bil')) return 'Hayat Bilgisi';
+  if (lower.includes('bilişim') || lower.includes('bilisim') || lower.includes('kodlama')) return 'Bilişim';
+  if (lower.includes('almanca')) return 'Almanca';
+  if (lower.includes('fransızca') || lower.includes('fransizca')) return 'Fransızca';
+  return '';
+};
+
 /* ─── resolveBookTestInfo Helper ─── */
 export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
   if (!item) return null;
 
   const isExplicitBook = item.taskType === 'kitap' || item.isBookAssignment || Boolean(item.bookId || item.bookTestId || item.testName || item.unit || item.bookName);
 
-  let subject = item.subject || '';
-  let unit = item.unit || '';
-  let testName = item.testName || '';
-  let bookTitle = item.bookName || item.bookTitle || '';
-  let questionCount = item.questionCount || '';
+  let rawSubject = (item.subject || '').trim();
+  let unit = (item.unit || '').trim();
+  let testName = (item.testName || '').trim();
+  let bookTitle = (item.bookName || item.bookTitle || '').trim();
+  let questionCount = (item.questionCount || '').trim();
+  let publisher = (item.publisher || '').trim();
 
   // Match test in bookTests if testId / bookTestId / realTestId exists
   const tid = String(item.testId || item.bookTestId || item.realTestId || '');
@@ -266,12 +307,29 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
     });
   }
 
+  if (matchedBook?.publisher && !publisher) {
+    publisher = matchedBook.publisher;
+  }
+
+  // Check if raw subject is actually a publisher or placeholder
+  const rawSubjLower = rawSubject.toLowerCase();
+  const isRawSubjPublisher = Boolean(
+    (publisher && rawSubjLower === publisher.toLowerCase()) ||
+    KNOWN_PUBLISHERS.some(p => rawSubjLower === p || rawSubjLower.startsWith(p + ' ')) ||
+    rawSubjLower === 'atanan kitap' ||
+    rawSubjLower === 'atanmış ödev' ||
+    rawSubjLower === 'kitap takibi' ||
+    rawSubjLower === 'genel' ||
+    rawSubjLower === 'ödev'
+  );
+
+  if (isRawSubjPublisher && !publisher && rawSubject && rawSubjLower !== 'atanan kitap' && rawSubjLower !== 'atanmış ödev' && rawSubjLower !== 'kitap takibi' && rawSubjLower !== 'genel') {
+    publisher = rawSubject;
+  }
+
   if (matchedTest) {
     if (!testName) testName = matchedTest.name || matchedTest.title || '';
     if (!unit) unit = matchedTest.unit || matchedTest.unitName || '';
-    if (!subject || subject === 'Atanan Kitap' || subject === 'Atanmış Ödev' || subject === 'Genel') {
-      subject = matchedTest.subject || matchedTest.subjectName || '';
-    }
     if (!questionCount && matchedTest.questionCount) {
       questionCount = `${matchedTest.questionCount} soru`;
     }
@@ -279,13 +337,9 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
 
   if (matchedBook) {
     if (!bookTitle) bookTitle = matchedBook.title || '';
-    if (!subject || subject === 'Atanan Kitap' || subject === 'Atanmış Ödev' || subject === 'Genel') {
-      subject = matchedBook.subject || '';
-    }
     if (!unit && matchedTest?.subjectId && Array.isArray(matchedBook.subjects)) {
       const sObj = matchedBook.subjects.find(s => String(s.id) === String(matchedTest.subjectId));
       if (sObj) {
-        if (!subject) subject = sObj.name || '';
         if (matchedTest.topicId && Array.isArray(sObj.topics)) {
           const tObj = sObj.topics.find(t => String(t.id) === String(matchedTest.topicId));
           if (tObj && !unit) unit = tObj.name || '';
@@ -307,10 +361,57 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
     testName = item.topic;
   }
 
-  if (subject && typeof subject === 'string' && subject.includes(' • ')) {
-    const sParts = subject.split(' • ');
-    subject = sParts[0];
+  if (rawSubject && rawSubject.includes(' • ')) {
+    const sParts = rawSubject.split(' • ');
     if (!unit) unit = sParts.slice(1).join(' • ');
+  }
+
+  // Resolve REAL Subject (Ders Adı)
+  let subject = '';
+
+  // 1. From matched test
+  if (matchedTest?.subject && !KNOWN_PUBLISHERS.includes(matchedTest.subject.toLowerCase()) && matchedTest.subject.toLowerCase() !== publisher.toLowerCase()) {
+    subject = matchedTest.subject;
+  } else if (matchedTest?.subjectName && !KNOWN_PUBLISHERS.includes(matchedTest.subjectName.toLowerCase()) && matchedTest.subjectName.toLowerCase() !== publisher.toLowerCase()) {
+    subject = matchedTest.subjectName;
+  }
+
+  // 2. From matched test's subjectId in matchedBook
+  if (!subject && matchedTest?.subjectId && Array.isArray(matchedBook?.subjects)) {
+    const sObj = matchedBook.subjects.find(s => String(s.id) === String(matchedTest.subjectId));
+    if (sObj?.name && !KNOWN_PUBLISHERS.includes(sObj.name.toLowerCase()) && sObj.name.toLowerCase() !== publisher.toLowerCase()) {
+      subject = sObj.name;
+    }
+  }
+
+  // 3. From matched book's first defined subject
+  if (!subject && Array.isArray(matchedBook?.subjects) && matchedBook.subjects.length > 0) {
+    const sObj = matchedBook.subjects.find(s => s?.name && !KNOWN_PUBLISHERS.includes(s.name.toLowerCase()) && s.name.toLowerCase() !== publisher.toLowerCase());
+    if (sObj?.name) subject = sObj.name;
+  }
+
+  // 4. From matched book's subject field
+  if (!subject && matchedBook?.subject && matchedBook.subject.toLowerCase() !== publisher.toLowerCase() && !KNOWN_PUBLISHERS.includes(matchedBook.subject.toLowerCase())) {
+    subject = matchedBook.subject;
+  }
+
+  // 5. From text content detection (keywords in bookTitle, testName, topic, unit)
+  if (!subject) {
+    subject = detectSubjectFromText(bookTitle || matchedBook?.title || '') ||
+              detectSubjectFromText(testName || matchedTest?.name || '') ||
+              detectSubjectFromText(item.topic || '') ||
+              detectSubjectFromText(unit || '') ||
+              detectSubjectFromText(rawSubject);
+  }
+
+  // 6. If rawSubject was a legitimate subject (not publisher / placeholder)
+  if (!subject && !isRawSubjPublisher && rawSubject) {
+    subject = rawSubject.includes(' • ') ? rawSubject.split(' • ')[0] : rawSubject;
+  }
+
+  // 7. Smart Default for Turkish curriculum books
+  if (!subject) {
+    subject = 'Matematik';
   }
 
   const cleanBookTitle = (bookTitle || '')
@@ -323,7 +424,8 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
 
   return {
     isBookTest,
-    subject: subject || (isBookTest ? 'Kitap Çalışması' : ''),
+    subject: subject || (isBookTest ? 'Matematik' : ''),
+    publisher: publisher || '',
     unit: unit || '',
     testName: testName || (isBookTest ? 'Kitap Testi' : ''),
     bookTitle: cleanBookTitle,
@@ -958,57 +1060,96 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                 )}
 
                 {/* Ders Başlığı & Kitap Adı */}
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none', wordBreak: 'break-word', lineHeight: 1.3 }}>
-                  {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}
-                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
-                    <span style={{ fontSize: '0.7rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600, marginLeft: 5 }}>
-                      📖 {bookInfo.bookTitle}
-                    </span>
-                  )}
-                </div>
-
-                {/* Ünite ve Test Adı Rozetleri (Kitap Testi ise) veya Standart Konu */}
                 {bookInfo?.isBookTest ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                    {bookInfo.unit && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 2,
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Ders Adı & Yayınevi */}
+                    <div style={{
+                      fontSize: '0.84rem',
+                      fontWeight: 900,
+                      color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                      textDecoration: item.done ? 'line-through' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 4,
+                      lineHeight: 1.3
+                    }}>
+                      <span>📚 {bookInfo.subject}</span>
+                      {bookInfo.publisher && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 700,
+                          color: isDark ? '#c7d2fe' : '#4f46e5',
+                          background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                          border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                          borderRadius: 4,
+                          padding: '1px 5px'
+                        }}>
+                          🏢 {bookInfo.publisher}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Kitap Adı */}
+                    {bookInfo.bookTitle && (
+                      <div style={{
+                        fontSize: '0.74rem',
                         fontWeight: 700,
-                        fontSize: '0.68rem',
-                        color: isDark ? '#93c5fd' : '#1d4ed8',
-                        background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
-                        border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
-                        borderRadius: '0.35rem',
-                        padding: '1px 6px'
+                        color: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
+                        wordBreak: 'break-word',
+                        lineHeight: 1.3
                       }}>
-                        📂 {bookInfo.unit}
-                      </span>
+                        📖 {bookInfo.bookTitle}
+                      </div>
                     )}
-                    {bookInfo.testName && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        fontWeight: 800,
-                        fontSize: '0.68rem',
-                        color: isDark ? '#c084fc' : '#6d28d9',
-                        background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
-                        border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
-                        borderRadius: '0.35rem',
-                        padding: '1px 6px'
-                      }}>
-                        🎯 {bookInfo.testName}
-                      </span>
-                    )}
+
+                    {/* Ünite ve Test Adı Rozetleri */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                      {bookInfo.unit && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          color: isDark ? '#93c5fd' : '#1d4ed8',
+                          background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                          border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                          borderRadius: '0.35rem',
+                          padding: '1px 6px'
+                        }}>
+                          📂 {bookInfo.unit}
+                        </span>
+                      )}
+                      {bookInfo.testName && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          fontWeight: 800,
+                          fontSize: '0.68rem',
+                          color: isDark ? '#c084fc' : '#6d28d9',
+                          background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                          border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                          borderRadius: '0.35rem',
+                          padding: '1px 6px'
+                        }}>
+                          🎯 {bookInfo.testName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  item.topic && (
-                    <div style={{ fontSize: '0.72rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word', lineHeight: 1.35 }}>
-                      {item.topic}
+                  <>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                      {item.bookName || item.subject || 'Ders Çalışması'}
                     </div>
-                  )
+                    {item.topic && (
+                      <div style={{ fontSize: '0.72rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word', lineHeight: 1.35 }}>
+                        {item.topic}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {(item.startTime || item.endTime) && (
@@ -2530,10 +2671,18 @@ export function MonthlyListPanel({
                                   flexWrap: 'wrap',
                                   gap: 6
                                 }}>
-                                  <span>{bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}</span>
-                                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
-                                    <span style={{ fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600 }}>
-                                      📖 {bookInfo.bookTitle}
+                                  <span>📚 {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}</span>
+                                  {bookInfo?.isBookTest && bookInfo.publisher && (
+                                    <span style={{
+                                      fontSize: '0.64rem',
+                                      fontWeight: 700,
+                                      color: isDark ? '#c7d2fe' : '#4f46e5',
+                                      background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                                      border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                      borderRadius: 4,
+                                      padding: '1px 5px'
+                                    }}>
+                                      🏢 {bookInfo.publisher}
                                     </span>
                                   )}
                                   {isClickable && (
@@ -2553,6 +2702,11 @@ export function MonthlyListPanel({
                                     </span>
                                   )}
                                 </div>
+                                {bookInfo?.isBookTest && bookInfo.bookTitle && (
+                                  <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.85)' : '#334155', fontWeight: 700, marginTop: 1 }}>
+                                    📖 {bookInfo.bookTitle}
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -4257,8 +4411,15 @@ export default function ProgramCenter({
                               </div>
                               <div className="print-wk-col-info">
                                 <div className="print-wk-subject">
-                                  {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject)}
-                                  {bookInfo?.isBookTest && bookInfo.bookTitle ? ` — 📖 ${bookInfo.bookTitle}` : ''}
+                                  {bookInfo?.isBookTest ? (
+                                    <>
+                                      <span>📚 {bookInfo.subject}</span>
+                                      {bookInfo.publisher && <span style={{ color: '#4f46e5', marginLeft: 4 }}>({bookInfo.publisher})</span>}
+                                      {bookInfo.bookTitle && <div style={{ fontSize: '7.2pt', color: '#334155', fontWeight: 700, marginTop: 1 }}>📖 {bookInfo.bookTitle}</div>}
+                                    </>
+                                  ) : (
+                                    item.bookName || item.subject
+                                  )}
                                 </div>
                                 {bookInfo?.isBookTest ? (
                                   <div className="print-wk-topic" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 1 }}>
@@ -4538,65 +4699,101 @@ export default function ProgramCenter({
                                                       {tt?.label}
                                                     </span>
                                                   )}
-                                                  <span style={{
-                                                    fontSize: '0.84rem',
-                                                    fontWeight: 800,
-                                                    color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                                    textDecoration: item.done ? 'line-through' : 'none',
-                                                    wordBreak: 'break-word'
-                                                  }}>
-                                                    {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject)}
-                                                  </span>
-                                                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
-                                                    <span style={{ fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600 }}>
-                                                      📖 {bookInfo.bookTitle}
-                                                    </span>
+                                                  {bookInfo?.isBookTest ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                                                      <div style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 5,
+                                                        flexWrap: 'wrap'
+                                                      }}>
+                                                        <span style={{
+                                                          fontSize: '0.86rem',
+                                                          fontWeight: 900,
+                                                          color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                                          textDecoration: item.done ? 'line-through' : 'none',
+                                                          wordBreak: 'break-word'
+                                                        }}>
+                                                          📚 {bookInfo.subject}
+                                                        </span>
+                                                        {bookInfo.publisher && (
+                                                          <span style={{
+                                                            fontSize: '0.64rem',
+                                                            fontWeight: 700,
+                                                            color: isDark ? '#c7d2fe' : '#4f46e5',
+                                                            background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                                                            border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                                            borderRadius: 4,
+                                                            padding: '1px 5px'
+                                                          }}>
+                                                            🏢 {bookInfo.publisher}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      {bookInfo.bookTitle && (
+                                                        <div style={{
+                                                          fontSize: '0.74rem',
+                                                          fontWeight: 700,
+                                                          color: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
+                                                          wordBreak: 'break-word'
+                                                        }}>
+                                                          📖 {bookInfo.bookTitle}
+                                                        </div>
+                                                      )}
+                                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                                                        {bookInfo.unit && (
+                                                          <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 2,
+                                                            fontWeight: 700,
+                                                            fontSize: '0.68rem',
+                                                            color: isDark ? '#93c5fd' : '#1d4ed8',
+                                                            background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                                                            border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                                                            borderRadius: 5,
+                                                            padding: '1px 5px'
+                                                          }}>
+                                                            📂 {bookInfo.unit}
+                                                          </span>
+                                                        )}
+                                                        {bookInfo.testName && (
+                                                          <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 2,
+                                                            fontWeight: 800,
+                                                            fontSize: '0.68rem',
+                                                            color: isDark ? '#c084fc' : '#6d28d9',
+                                                            background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                                                            border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                                                            borderRadius: 5,
+                                                            padding: '1px 5px'
+                                                          }}>
+                                                            🎯 {bookInfo.testName}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <div>
+                                                      <span style={{
+                                                        fontSize: '0.84rem',
+                                                        fontWeight: 800,
+                                                        color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                                        textDecoration: item.done ? 'line-through' : 'none',
+                                                        wordBreak: 'break-word'
+                                                      }}>
+                                                        {item.bookName || item.subject}
+                                                      </span>
+                                                      {item.topic && (
+                                                        <div style={{ fontSize: '0.74rem', color: item.done ? (isDark ? '#34d399' : '#166534') : (isDark ? 'rgba(255,255,255,0.8)' : '#475569'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
+                                                          📌 {item.topic}
+                                                        </div>
+                                                      )}
+                                                    </div>
                                                   )}
                                                 </div>
-
-                                                {/* Ünite ve Test Adı Rozetleri (Kitap Testi) veya Standart Konu */}
-                                                {bookInfo?.isBookTest ? (
-                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                                                    {bookInfo.unit && (
-                                                      <span style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 2,
-                                                        fontWeight: 700,
-                                                        fontSize: '0.68rem',
-                                                        color: isDark ? '#93c5fd' : '#1d4ed8',
-                                                        background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
-                                                        border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
-                                                        borderRadius: 5,
-                                                        padding: '1px 5px'
-                                                      }}>
-                                                        📂 {bookInfo.unit}
-                                                      </span>
-                                                    )}
-                                                    {bookInfo.testName && (
-                                                      <span style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 2,
-                                                        fontWeight: 800,
-                                                        fontSize: '0.68rem',
-                                                        color: isDark ? '#c084fc' : '#6d28d9',
-                                                        background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
-                                                        border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
-                                                        borderRadius: 5,
-                                                        padding: '1px 5px'
-                                                      }}>
-                                                        🎯 {bookInfo.testName}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                ) : (
-                                                  item.topic && (
-                                                    <div style={{ fontSize: '0.74rem', color: item.done ? (isDark ? '#34d399' : '#166534') : (isDark ? 'rgba(255,255,255,0.8)' : '#475569'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
-                                                      📌 {item.topic}
-                                                    </div>
-                                                  )
-                                                )}
                                               </div>
                                             </div>
 
