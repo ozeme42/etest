@@ -1288,29 +1288,31 @@ export default function MyCoachingPage() {
                 whiteSpace: 'nowrap'
               }}
             >
-              <FileText size={isMobile ? 14 : 16} /> <span>{isMobile ? 'Karne' : 'Veli Karnesi (PDF)'}</span>
+              <FileText size={isMobile ? 14 : 16} /> <span>{isMobile ? 'Veli Karnesi' : 'Veli Karnesi (PDF)'}</span>
             </button>
-            <button
-              onClick={handleSave}
-              style={{
-                background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.22)',
-                border: '1.5px solid rgba(255,255,255,0.35)',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1.1rem',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.74rem' : '0.83rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                backdropFilter: 'blur(8px)',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {saved ? <><CheckCircle2 size={isMobile ? 14 : 16} /> {isMobile ? 'Kaydedildi' : 'Kaydedildi!'}</> : <><Save size={isMobile ? 14 : 16} /> {isMobile ? 'Kaydet' : 'Kaydet'}</>}
-            </button>
+            {!isMobile && (
+              <button
+                onClick={handleSave}
+                style={{
+                  background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.22)',
+                  border: '1.5px solid rgba(255,255,255,0.35)',
+                  borderRadius: '0.75rem',
+                  padding: '0.55rem 1.1rem',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '0.83rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  backdropFilter: 'blur(8px)',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
+              </button>
+            )}
           </div>
         </div>
 
@@ -4597,16 +4599,41 @@ export default function MyCoachingPage() {
       )}
       </div>
 
-      {/* ── FLOATING SAVE ── */}
-      <div style={{ position: 'fixed', bottom: '1.25rem', right: '1.25rem', zIndex: 100 }}>
-        <button onClick={handleSave} style={{
-          background: saved ? '#059669' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
-          color: 'white', border: 'none', borderRadius: '1rem',
-          padding: '0.7rem 1.4rem', fontWeight: 900, fontSize: '0.85rem',
-          cursor: 'pointer', boxShadow: '0 8px 24px rgba(124,58,237,0.35)',
-          display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.25s'
-        }}>
-          {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
+      {/* ── FLOATING SAVE (Mobile: Above Bottom Nav / Desktop: Bottom-Right) ── */}
+      <div
+        className="no-print"
+        style={{
+          position: 'fixed',
+          bottom: isMobile ? 'calc(62px + env(safe-area-inset-bottom) + 12px)' : '1.5rem',
+          right: isMobile ? '0.85rem' : '1.5rem',
+          zIndex: 80,
+          pointerEvents: 'none',
+          animation: 'fadeIn 0.2s ease'
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleSave}
+          style={{
+            pointerEvents: 'auto',
+            background: saved ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+            color: 'white',
+            border: isMobile ? '1.5px solid rgba(255,255,255,0.45)' : '1px solid rgba(255,255,255,0.3)',
+            borderRadius: isMobile ? '99px' : '1rem',
+            padding: isMobile ? '0.55rem 1.15rem' : '0.75rem 1.5rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.82rem' : '0.88rem',
+            cursor: 'pointer',
+            boxShadow: saved ? '0 6px 20px rgba(16,185,129,0.5)' : '0 8px 24px rgba(124,58,237,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? 6 : 8,
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: 'scale(1)'
+          }}
+        >
+          {saved ? <><CheckCircle2 size={isMobile ? 16 : 18} /> Kaydedildi!</> : <><Save size={isMobile ? 16 : 18} /> Kaydet</>}
         </button>
       </div>
 
