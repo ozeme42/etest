@@ -2505,8 +2505,8 @@ export default function StudentDashboard() {
         .sd-success:hover { transform: scale(1.08) rotate(2deg); }
         .sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
         .sd-avatar-ring { animation: ringRotate 8s linear infinite; }
-        .sd-grid-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; align-items: start; width: 100%; max-width: 100%; box-sizing: border-box; }
-        @media (max-width: 1024px) { .sd-grid-layout { grid-template-columns: 1fr; gap: 1.25rem; } }
+        .sd-grid-layout { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.98fr); gap: 1.75rem; align-items: start; width: 100%; max-width: 100%; box-sizing: border-box; }
+        @media (max-width: 1100px) { .sd-grid-layout { grid-template-columns: 1fr; gap: 1.25rem; } }
         .sd-hide-scrollbar::-webkit-scrollbar { display: none; }
         .sd-hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 99px; } ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 99px; }
@@ -2521,7 +2521,7 @@ export default function StudentDashboard() {
         overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        paddingBottom: isMobile ? '2.5rem' : '3.8rem'
+        paddingBottom: isMobile ? '2.5rem' : '4rem'
       }}>
         {/* Mesh texture */}
         <div style={{
@@ -2540,9 +2540,9 @@ export default function StudentDashboard() {
 
         {/* ── Profil Satırı ── */}
         <div style={{
-          maxWidth: 1280,
+          maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '1rem 0.85rem 0.75rem' : '1.8rem 2.5rem 1.1rem',
+          padding: isMobile ? '1rem 0.85rem 0.75rem' : '2rem 2.5rem 1.25rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -2716,7 +2716,7 @@ export default function StudentDashboard() {
 
         {/* Teacher Selector */}
         {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth:1280, margin:'0 auto', padding: isMobile ? '0 0.85rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:8, position:'relative', zIndex:1, width:'100%', boxSizing:'border-box' }}>
+          <div style={{ maxWidth:1440, margin:'0 auto', padding: isMobile ? '0 0.85rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:8, position:'relative', zIndex:1, width:'100%', boxSizing:'border-box' }}>
             <span style={{ fontSize:'0.72rem', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>👁️ Öğrenci:</span>
             <select
               value={selectedStudent?.id || ''}
@@ -2734,7 +2734,7 @@ export default function StudentDashboard() {
 
       {/* ── KPI Kartları — yarısı header'a biner, yarısı içeriğe taşar (Overlap) ── */}
       <div style={{
-        maxWidth: 1280,
+        maxWidth: 1440,
         margin: '0 auto',
         padding: isMobile ? '0 0.65rem' : '0 2.5rem',
         marginTop: isMobile ? '-28px' : '-52px',
@@ -2746,7 +2746,7 @@ export default function StudentDashboard() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? 'repeat(5, minmax(0, 1fr))' : 'repeat(5, 1fr)',
-          gap: isMobile ? '0.25rem' : '0.75rem',
+          gap: isMobile ? '0.25rem' : '0.85rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
@@ -2765,18 +2765,18 @@ export default function StudentDashboard() {
                 background: kpi.grad,
                 border: '1px solid rgba(255,255,255,0.22)',
                 borderRadius: isMobile ? 12 : 22,
-                padding: isMobile ? '0.5rem 0.1rem 0.4rem' : '1.15rem 0.5rem 1rem',
+                padding: isMobile ? '0.5rem 0.1rem 0.4rem' : '1.25rem 0.75rem 1.1rem',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 textAlign: 'center',
                 boxShadow: `0 10px 30px ${kpi.glow}, 0 2px 0 rgba(255,255,255,0.15) inset`,
-                minHeight: isMobile ? 64 : 108,
+                minHeight: isMobile ? 64 : 112,
                 minWidth: 0,
                 overflow: 'hidden'
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '2.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
-              <div style={{ fontSize: isMobile ? '0.42rem' : '0.66rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: isMobile ? '0.01em' : '0.1em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{kpi.label}</div>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.55rem', lineHeight: 1, marginBottom: 3 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '2.35rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
+              <div style={{ fontSize: isMobile ? '0.42rem' : '0.68rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: isMobile ? '0.01em' : '0.1em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{kpi.label}</div>
             </div>
           ))}
         </div>
@@ -2785,7 +2785,7 @@ export default function StudentDashboard() {
       {/* ════════════════════════════════════════════
           ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
       ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.75rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
 
         {/* ── MODERN UYGULAMA İKONLARI HIZLI KISAYOL ŞERİDİ (iOS/Android App Style) ── */}
         <div
@@ -3708,7 +3708,11 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1rem' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : (assignedBooksList.length === 1 ? '1fr' : 'repeat(2, 1fr)'),
+                  gap: isMobile ? '0.75rem' : '1.1rem'
+                }}>
                   {assignedBooksList.map((book, idx) => {
                     const pal = BOOK_PALETTES[idx % BOOK_PALETTES.length];
                     const isCompleted = book.progressPct >= 100;
@@ -3983,275 +3987,6 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* 📝 BÖLÜM 5: SON ÇÖZÜLEN TESTLER */}
-            <div className="sd-card" style={{
-              padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-              borderRadius: 16,
-              background: 'var(--color-surface)',
-              border: '1.5px solid var(--color-border)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.95rem',
-                    boxShadow: '0 3px 10px rgba(16, 185, 129, 0.35)'
-                  }}>
-                    📝
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-                      Son Çözülen Testler
-                    </h2>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      Son 5 test ve başarı analizleriniz
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    onClick={() => setIsManualTestModalOpen(true)}
-                    className="sd-btn"
-                    style={{
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: 99,
-                      padding: '0.3rem 0.75rem',
-                      fontSize: '0.7rem',
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-                    }}
-                  >
-                    <Plus size={12} />
-                    <span>{isMobile ? 'Ekle' : 'Test Sonucu Ekle'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/student/results')}
-                    className="sd-btn"
-                    style={{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981',
-                      border: '1px solid rgba(16, 185, 129, 0.35)',
-                      borderRadius: 99,
-                      padding: '0.25rem 0.7rem',
-                      fontSize: '0.7rem',
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3
-                    }}
-                  >
-                    <span>Tümü</span>
-                    <ChevronRight size={12} />
-                  </button>
-                </div>
-              </div>
-
-              {recentSolvedTests.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
-                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📊</div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
-                    Henüz tamamlanmış bir test bulunmuyor
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
-                    Kitap testlerinizi veya atanan ödevlerinizi çözdüğünüzde sonuçlarınız burada listelenecektir.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {recentSolvedTests.map((test, idx) => {
-                    const pctColor = test.pct >= 80 ? '#10b981' : test.pct >= 60 ? '#f59e0b' : '#ef4444';
-                    const pctBg = test.pct >= 80 ? 'rgba(16, 185, 129, 0.15)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)';
-                    const pctBorder = test.pct >= 80 ? 'rgba(16, 185, 129, 0.35)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)';
-
-                    return (
-                      <div
-                        key={test.id || idx}
-                        onClick={() => {
-                          const targetId = test.testId || test.submissionId || test.id;
-                          navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
-                            state: { from: '/student' }
-                          });
-                        }}
-                        className="sd-card"
-                        style={{
-                          background: 'var(--color-surface-hover, #f8fafc)',
-                          border: '1.5px solid var(--color-border, #e2e8f0)',
-                          borderRadius: 14,
-                          padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1.1rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.75rem',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, flexWrap: 'wrap' }}>
-                            <span style={{
-                              background: 'rgba(99, 102, 241, 0.12)',
-                              color: '#6366f1',
-                              border: '1px solid rgba(165, 180, 252, 0.35)',
-                              borderRadius: 6,
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              padding: '1px 5px'
-                            }}>
-                              {test.subject}
-                            </span>
-                            {Boolean(test.unitTopic && test.unitTopic !== test.title && test.unitTopic !== test.subTitle && (!test.subTitle || !test.unitTopic.toLowerCase().includes(test.subTitle.toLowerCase()))) && (
-                              <span style={{
-                                background: 'rgba(245, 158, 11, 0.12)',
-                                color: '#b45309',
-                                border: '1px solid rgba(245, 158, 11, 0.30)',
-                                borderRadius: 6,
-                                fontSize: '0.62rem',
-                                fontWeight: 800,
-                                padding: '1px 5px'
-                              }}>
-                                📌 {test.unitTopic}
-                              </span>
-                            )}
-                            {test.date && (
-                              <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
-                                🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
-                              </span>
-                            )}
-                          </div>
-
-                          <div style={{ fontWeight: 900, fontSize: isMobile ? '0.84rem' : '0.88rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.3, wordBreak: 'break-word' }}>
-                            {test.title}
-                          </div>
-                          {test.subTitle && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                              <span>📖 {test.subTitle}</span>
-                            </div>
-                          )}
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: '0.7rem', fontWeight: 800, flexWrap: 'wrap' }}>
-                            {test.isManualPending ? (
-                              <span style={{ color: '#a855f7', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
-                                ⏳ Manuel Test • Öğretmen Onayı Bekleniyor
-                              </span>
-                            ) : test.isManualRejected ? (
-                              <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
-                                ❌ Manuel Test • Onaylanmadı
-                              </span>
-                            ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
-                              <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Değerlendirmede
-                              </span>
-                            ) : (
-                              <>
-                                <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                                  ✓ {test.correctCount ?? 0} D
-                                </span>
-                                <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                                  ✗ {test.wrongCount ?? 0} Y
-                                </span>
-                                {(test.emptyCount > 0 || ((test.correctCount ?? 0) === 0 && (test.wrongCount ?? 0) === 0)) && (
-                                  <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                                    ○ {test.emptyCount ?? 0} B
-                                  </span>
-                                )}
-                                <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
-                                  • {test.totalQuestions} Soru
-                                </span>
-                                {test.net !== undefined && test.net !== null && (
-                                  <span style={{ color: '#6366f1', fontWeight: 800 }}>
-                                    • {test.net} Net
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                          {test.isManualPending ? (
-                            <div style={{
-                              background: 'rgba(124, 58, 237, 0.12)',
-                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
-                              color: '#a855f7',
-                              padding: '0.35rem 0.55rem',
-                              borderRadius: 10,
-                              textAlign: 'center',
-                              minWidth: 48
-                            }}>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>⏳</div>
-                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Onay</div>
-                            </div>
-                          ) : test.isManualRejected ? (
-                            <div style={{
-                              background: 'rgba(239, 68, 68, 0.12)',
-                              border: '1.5px solid rgba(239, 68, 68, 0.35)',
-                              color: '#ef4444',
-                              padding: '0.35rem 0.55rem',
-                              borderRadius: 10,
-                              textAlign: 'center',
-                              minWidth: 48
-                            }}>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>❌</div>
-                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Red</div>
-                            </div>
-                          ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
-                            <div style={{
-                              background: 'rgba(124, 58, 237, 0.12)',
-                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
-                              color: '#7c3aed',
-                              padding: '0.35rem 0.55rem',
-                              borderRadius: 10,
-                              textAlign: 'center',
-                              minWidth: 48
-                            }}>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>⏳</div>
-                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Bekliyor</div>
-                            </div>
-                          ) : (
-                            <div style={{
-                              background: pctBg,
-                              border: `1.5px solid ${pctBorder}`,
-                              color: pctColor,
-                              padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.75rem',
-                              borderRadius: 10,
-                              textAlign: 'center',
-                              minWidth: 48
-                            }}>
-                              <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, lineHeight: 1 }}>
-                                %{test.pct}
-                              </div>
-                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 1 }}>
-                                Başarı
-                              </div>
-                            </div>
-                          )}
-
-                          <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center' }}>
-                            <ChevronRight size={15} />
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
@@ -4521,6 +4256,275 @@ export default function StudentDashboard() {
                   >
                     <Plus size={13} /> Hedef Belirle 🎯
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* 📝 BÖLÜM 3: SON ÇÖZÜLEN TESTLER */}
+            <div className="sd-card" style={{
+              padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
+              borderRadius: 16,
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.95rem',
+                    boxShadow: '0 3px 10px rgba(16, 185, 129, 0.35)'
+                  }}>
+                    📝
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
+                      Son Çözülen Testler
+                    </h2>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      Son 5 test ve başarı analizleriniz
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={() => setIsManualTestModalOpen(true)}
+                    className="sd-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 99,
+                      padding: '0.3rem 0.75rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <Plus size={12} />
+                    <span>{isMobile ? 'Ekle' : 'Test Sonucu Ekle'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/student/results')}
+                    className="sd-btn"
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: 99,
+                      padding: '0.25rem 0.7rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3
+                    }}
+                  >
+                    <span>Tümü</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {recentSolvedTests.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📊</div>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz tamamlanmış bir test bulunmuyor
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+                    Kitap testlerinizi veya atanan ödevlerinizi çözdüğünüzde sonuçlarınız burada listelenecektir.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {recentSolvedTests.map((test, idx) => {
+                    const pctColor = test.pct >= 80 ? '#10b981' : test.pct >= 60 ? '#f59e0b' : '#ef4444';
+                    const pctBg = test.pct >= 80 ? 'rgba(16, 185, 129, 0.15)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+                    const pctBorder = test.pct >= 80 ? 'rgba(16, 185, 129, 0.35)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)';
+
+                    return (
+                      <div
+                        key={test.id || idx}
+                        onClick={() => {
+                          const targetId = test.testId || test.submissionId || test.id;
+                          navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+                            state: { from: '/student' }
+                          });
+                        }}
+                        className="sd-card"
+                        style={{
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          border: '1.5px solid var(--color-border, #e2e8f0)',
+                          borderRadius: 14,
+                          padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1.1rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, flexWrap: 'wrap' }}>
+                            <span style={{
+                              background: 'rgba(99, 102, 241, 0.12)',
+                              color: '#6366f1',
+                              border: '1px solid rgba(165, 180, 252, 0.35)',
+                              borderRadius: 6,
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '1px 5px'
+                            }}>
+                              {test.subject}
+                            </span>
+                            {Boolean(test.unitTopic && test.unitTopic !== test.title && test.unitTopic !== test.subTitle && (!test.subTitle || !test.unitTopic.toLowerCase().includes(test.subTitle.toLowerCase()))) && (
+                              <span style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: '#b45309',
+                                border: '1px solid rgba(245, 158, 11, 0.30)',
+                                borderRadius: 6,
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                padding: '1px 5px'
+                              }}>
+                                📌 {test.unitTopic}
+                              </span>
+                            )}
+                            {test.date && (
+                              <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
+                                🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ fontWeight: 900, fontSize: isMobile ? '0.84rem' : '0.88rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                            {test.title}
+                          </div>
+                          {test.subTitle && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                              <span>📖 {test.subTitle}</span>
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: '0.7rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                            {test.isManualPending ? (
+                              <span style={{ color: '#a855f7', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
+                                ⏳ Manuel Test • Öğretmen Onayı Bekleniyor
+                              </span>
+                            ) : test.isManualRejected ? (
+                              <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 900 }}>
+                                ❌ Manuel Test • Onaylanmadı
+                              </span>
+                            ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
+                              <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                📝 {test.totalQuestions || 1} Açık Uçlu Soru • ⏳ Değerlendirmede
+                              </span>
+                            ) : (
+                              <>
+                                <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                  ✓ {test.correctCount ?? 0} D
+                                </span>
+                                <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                  ✗ {test.wrongCount ?? 0} Y
+                                </span>
+                                {(test.emptyCount > 0 || ((test.correctCount ?? 0) === 0 && (test.wrongCount ?? 0) === 0)) && (
+                                  <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                    ○ {test.emptyCount ?? 0} B
+                                  </span>
+                                )}
+                                <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
+                                  • {test.totalQuestions} Soru
+                                </span>
+                                {test.net !== undefined && test.net !== null && (
+                                  <span style={{ color: '#6366f1', fontWeight: 800 }}>
+                                    • {test.net} Net
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          {test.isManualPending ? (
+                            <div style={{
+                              background: 'rgba(124, 58, 237, 0.12)',
+                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
+                              color: '#a855f7',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: 10,
+                              textAlign: 'center',
+                              minWidth: 48
+                            }}>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>⏳</div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Onay</div>
+                            </div>
+                          ) : test.isManualRejected ? (
+                            <div style={{
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                              color: '#ef4444',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: 10,
+                              textAlign: 'center',
+                              minWidth: 48
+                            }}>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>❌</div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Red</div>
+                            </div>
+                          ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
+                            <div style={{
+                              background: 'rgba(124, 58, 237, 0.12)',
+                              border: '1.5px solid rgba(167, 139, 250, 0.35)',
+                              color: '#7c3aed',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: 10,
+                              textAlign: 'center',
+                              minWidth: 48
+                            }}>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 900, lineHeight: 1 }}>⏳</div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 2, whiteSpace: 'nowrap' }}>Bekliyor</div>
+                            </div>
+                          ) : (
+                            <div style={{
+                              background: pctBg,
+                              border: `1.5px solid ${pctBorder}`,
+                              color: pctColor,
+                              padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.75rem',
+                              borderRadius: 10,
+                              textAlign: 'center',
+                              minWidth: 48
+                            }}>
+                              <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                                %{test.pct}
+                              </div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.9, marginTop: 1 }}>
+                                Başarı
+                              </div>
+                            </div>
+                          )}
+
+                          <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center' }}>
+                            <ChevronRight size={15} />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
