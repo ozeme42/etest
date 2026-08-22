@@ -974,9 +974,7 @@ export default function StudentDashboard() {
       const subIdStr = String(sub.id || `hw_${hw.id}_${studentIdStr}`);
       processedSubIds.add(subIdStr);
       if (sub.id) processedSubIds.add(String(sub.id));
-      processedTestKeys.add(String(hw.id));
-      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
-      if (sub.testId) processedTestKeys.add(String(sub.testId));
+      if (sub.supabaseId) processedSubIds.add(String(sub.supabaseId));
 
       const raw = sub.raw_data || {};
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || hw.createdAt;
@@ -1135,22 +1133,14 @@ export default function StudentDashboard() {
 
       const subIdStr = String(sub.id || '');
       if (subIdStr && processedSubIds.has(subIdStr)) return;
+      if (sub.supabaseId && processedSubIds.has(String(sub.supabaseId))) return;
 
       const raw = sub.raw_data || {};
       if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
       const testId = String(sub.testId || sub.bookTestId || sub.realTestId || raw.testId || raw.bookTestId || '');
       const hwId = String(sub.hwId || sub.homeworkId || raw.hwId || raw.homeworkId || '');
-      if (!testId && !hwId) return;
-
-      // If this submission belongs to a regular non-book assigned homework that was already handled in Step 1, do not duplicate
-      if (hwId && allHomeworkIds.has(hwId)) return;
-      if (allHomeworkIds.has(testId)) return;
-      if (compositeSectionIds.has(testId)) return;
-      if (testId && (processedTestKeys.has(testId) || (toUUID(testId) && processedTestKeys.has(String(toUUID(testId)))))) return;
-
-      const isNonBookHw = allHomeworkIds.has(testId) || compositeSectionIds.has(testId);
-      if (isNonBookHw) return;
+      if (!testId && !hwId && !sub.title && !sub.testTitle) return;
 
       // Skip sample mock submissions
       if (subIdStr.startsWith('sub_sample') || String(sub.id).startsWith('sub_sample')) {
@@ -1181,14 +1171,44 @@ export default function StudentDashboard() {
         raw.sourceType === 'homework'
       );
 
-      const targetTest = (bookTests || []).find(t => 
+      let targetTest = (bookTests || []).find(t => 
         String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
         (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
       );
-      const targetBook = (books || []).find(b => 
+      let targetBook = (books || []).find(b => 
         String(b.id) === String(sub.bookId || raw.bookId || targetTest?.bookId) ||
         (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || targetTest?.bookId))
       );
+
+      if (!targetTest && books && Array.isArray(books)) {
+        for (const b of books) {
+          if (b.subjects && Array.isArray(b.subjects)) {
+            for (const s of b.subjects) {
+              if (s.tests && Array.isArray(s.tests)) {
+                const ft = s.tests.find(t => String(t.id) === testIdStr || (toUUID(t.id) && String(toUUID(t.id)) === testIdStr));
+                if (ft) {
+                  targetTest = { ...ft, bookId: b.id, subjectId: s.id };
+                  if (!targetBook) targetBook = b;
+                  break;
+                }
+              }
+              if (s.topics && Array.isArray(s.topics)) {
+                for (const tp of s.topics) {
+                  if (tp.tests && Array.isArray(tp.tests)) {
+                    const ft = tp.tests.find(t => String(t.id) === testIdStr || (toUUID(t.id) && String(toUUID(t.id)) === testIdStr));
+                    if (ft) {
+                      targetTest = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id };
+                      if (!targetBook) targetBook = b;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       const targetHw = (homeworks || []).find(h => {
         const hId = String(h.id);
         const hUuid = toUUID(h.id);
@@ -1198,31 +1218,14 @@ export default function StudentDashboard() {
         return false;
       });
 
-      const targetBankQ = (allQuestions || []).find(q => String(q.id) === testIdStr || (toUUID(q.id) && String(toUUID(q.id)) === testIdStr));
       const targetCurTest = (curData?.tests || []).find(t => String(t.id) === testIdStr);
 
-      // If resource is not manual and no longer exists, it is a deleted test/exam/homework -> discard!
-      if (!isManual) {
-        if (isHomeworkSub) {
-          if (!targetHw) return; // Deleted homework -> discard!
-          if (curData?.grades && !isHomeworkForStudent(targetHw, selectedStudent, curData.grades)) return; // Unassigned homework -> discard!
-        }
-        if ((sub.bookId || raw.bookId) && !targetBook && Array.isArray(books) && books.length > 0) {
-          return;
-        }
-        if ((sub.bookTestId || raw.bookTestId) && !targetTest && Array.isArray(bookTests) && bookTests.length > 0) {
-          return;
-        }
-        const hasValidSource = Boolean(
-          targetTest || targetBook || targetHw || targetBankQ || (targetCurTest && targetCurTest.title)
-        );
-        if (!hasValidSource) {
-          return; // Ghost / deleted test -> discard!
-        }
+      if (!isManual && sub.sourceType !== 'study_room_optical' && (!sub.answers || sub.answers.length === 0) && !sub.correctCount && !sub.wrongCount) {
+        if (isHomeworkSub && !targetHw) return;
       }
 
       if (sub.id) processedSubIds.add(String(sub.id));
-      if (testId) processedTestKeys.add(testId);
+      if (sub.supabaseId) processedSubIds.add(String(sub.supabaseId));
 
       const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
       const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(targetTest?.topicId || raw.topicId || sub.topicId));
@@ -1231,7 +1234,7 @@ export default function StudentDashboard() {
       const bookTitle = sub.bookTitle || raw.bookTitle || targetBook?.title || targetHw?.title || '';
       const cleanBookTitle = bookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
-      let title = sub.testTitle || raw.testTitle || sub.title || targetTest?.name || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
+      let title = targetTest?.name || sub.testTitle || raw.testTitle || sub.title || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
       title = title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
       const subject = sub.subject || raw.subject || subjObj?.name || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || cleanBookTitle || 'Genel Testler';
@@ -1310,13 +1313,20 @@ export default function StudentDashboard() {
         eCount = typeof sub.emptyCount === 'number' ? sub.emptyCount : (typeof sub.blankCount === 'number' ? sub.blankCount : (typeof raw.blankCount === 'number' ? raw.blankCount : 0));
       }
 
+      const isSingleTestSubmission = Boolean(
+        sub.sourceType === 'study_room_optical' ||
+        sub.sourceType === 'bookTest' ||
+        sub.bookTestId ||
+        targetTest ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && (!sub.sections || Object.keys(sub.sections || {}).length <= 1))
+      );
+
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = cCount + wCount + eCount;
-      const rawTotal = targetTest?.questionCount || sub.totalQuestions || raw.totalQuestions || (targetHw && !isBookHomework(targetHw) ? targetHw.totalQuestions : 0) || (Array.isArray(sub.questions) ? sub.questions.length : 0);
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || (isSingleTestSubmission ? (targetTest?.questionCount || ansCount) : (targetHw?.totalQuestions || targetTest?.questionCount || 0));
       let qCount = Math.max(rawTotal, ansCount, sumCount, 1);
 
-      if (cCount > qCount && qCount > 0) {
-        cCount = Math.min(qCount, Math.round((cCount / 100) * qCount));
+      if (isSingleTestSubmission && qCount >= (cCount + wCount)) {
         eCount = Math.max(0, qCount - (cCount + wCount));
       }
 
@@ -1340,14 +1350,16 @@ export default function StudentDashboard() {
         ? Number(((cCount || 0) - ((wCount || 0) / 4)).toFixed(2))
         : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
-      const unifiedStats = computeUnifiedSubmissionStats(sub, targetHw || targetTest, allQuestions);
-      if (unifiedStats) {
-        cCount = unifiedStats.correct;
-        wCount = unifiedStats.wrong;
-        eCount = unifiedStats.blank;
-        qCount = unifiedStats.total;
-        pct = unifiedStats.scorePct;
-        calcNet = unifiedStats.netScore;
+      if (!isSingleTestSubmission) {
+        const unifiedStats = computeUnifiedSubmissionStats(sub, targetHw || targetTest, allQuestions);
+        if (unifiedStats) {
+          cCount = unifiedStats.correct;
+          wCount = unifiedStats.wrong;
+          eCount = unifiedStats.blank;
+          qCount = unifiedStats.total;
+          pct = unifiedStats.scorePct;
+          calcNet = unifiedStats.netScore;
+        }
       }
 
       // Do not include if totally empty
