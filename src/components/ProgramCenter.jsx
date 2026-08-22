@@ -2553,26 +2553,38 @@ export default function ProgramCenter({
 
   const handleStartInStudyRoom = useCallback((item) => {
     if (!item) return;
+
+    let qCount = 20;
+    const countStr = String(item.questionCount || item.targetQuestions || item.text || item.topic || '');
+    const numMatch = countStr.match(/(\d+)\s*(?:soru|q|test)?/i);
+    if (numMatch && parseInt(numMatch[1], 10) > 0) {
+      qCount = parseInt(numMatch[1], 10);
+    } else if (typeof item.questionCount === 'number' && item.questionCount > 0) {
+      qCount = item.questionCount;
+    }
+
     const taskPayload = {
       id: item.id,
       title: item.bookName || item.subject || item.text || item.topic || 'Ders Çalışması',
-      subject: item.subject || item.bookName || 'Genel',
+      subject: item.subject || item.bookName || item.title || '',
       unit: item.unit || '',
       topic: item.topic || item.text || '',
-      questionCount: Number(item.questionCount || item.targetQuestions) || 20,
+      text: item.text || '',
+      questionCount: qCount,
       testId: item.testId || item.realTestId || item.bookTestId || null,
       bookTestId: item.bookTestId || item.testId || null,
       hwId: item.hwId || null,
       roadmapAssignmentId: item.roadmapAssignmentId || null,
       sourceType: item.roadmapAssignmentId ? 'roadmap' : (item.testId || item.bookTestId) ? 'bookTest' : item.hwId ? 'homework' : 'program',
-      sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (item.testId || item.bookTestId) ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı'
+      sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (item.testId || item.bookTestId) ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı',
+      autoStart: true
     };
 
     try {
       localStorage.setItem('study_active_selected_task', JSON.stringify(taskPayload));
     } catch(e) {}
 
-    navigate('/study-room', { state: { autoStartTask: taskPayload } });
+    navigate('/study-room', { state: { autoStartTask: taskPayload, autoStart: true } });
   }, [navigate]);
 
   const weekInfo = useMemo(() => {

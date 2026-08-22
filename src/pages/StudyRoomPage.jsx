@@ -381,6 +381,38 @@ export const getSpeedEvaluation = (avgSec, defaultMinPerQ) => {
   return { label: 'Detaylı / Uzun', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: '⏳' };
 };
 
+export const matchSubjectFromTask = (task) => {
+  if (!task) return 'Matematik';
+  const text = `${task.subject || ''} ${task.title || ''} ${task.text || ''} ${task.topic || ''} ${task.unit || ''} ${task.bookName || ''}`.toLowerCase();
+  
+  if (text.includes('mat') || text.includes('geo')) return 'Matematik';
+  if (text.includes('fen') || text.includes('fizik') || text.includes('kimya') || text.includes('biyo')) return 'Fen Bilimleri';
+  if (text.includes('türk') || text.includes('turk') || text.includes('paragraf') || text.includes('edebiyat') || text.includes('dil bilgisi')) return 'Türkçe';
+  if (text.includes('inkılap') || text.includes('inkilap') || text.includes('tarih')) return 'T.C. İnkılap Tarihi';
+  if (text.includes('sosyal') || text.includes('coğraf') || text.includes('cograf')) return 'Sosyal Bilgiler';
+  if (text.includes('din') || text.includes('ahlak')) return 'Din Kültürü';
+  if (text.includes('ing') || text.includes('eng') || text.includes('yabancı') || text.includes('yabanci')) return 'İngilizce';
+  if (text.includes('felsefe') || text.includes('mantık') || text.includes('mantik') || text.includes('psikoloji') || text.includes('sosyoloji')) return 'Felsefe / Mantık';
+  
+  const found = STUDY_SUBJECTS.find(s => text.includes(s.id.toLowerCase()));
+  if (found) return found.id;
+
+  return 'Matematik';
+};
+
+export const extractQuestionCountFromTask = (task) => {
+  if (!task) return 20;
+  if (typeof task.questionCount === 'number' && task.questionCount > 0) return task.questionCount;
+  if (typeof task.targetQuestions === 'number' && task.targetQuestions > 0) return task.targetQuestions;
+  
+  const str = `${task.questionCount || ''} ${task.targetQuestions || ''} ${task.text || ''} ${task.topic || ''} ${task.title || ''}`;
+  const match = str.match(/(\d+)\s*(?:soru|q|test)?/i);
+  if (match && parseInt(match[1], 10) > 0) {
+    return parseInt(match[1], 10);
+  }
+  return 20;
+};
+
 export default function StudyRoomPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1013,22 +1045,26 @@ export default function StudyRoomPage() {
     });
   }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery, hideCompletedTasks]);
 
-  // Görevi / Testi Seçerek Süre & Hedef Hazırlama
+  // Görevi / Testi Seçerek Süre & Hedef Hazırlama ve Otomatik Başlatma
   const handleSelectTask = (task, startImmediately = false) => {
     if (!task) return;
     setSelectedTask(task);
     setShowHomeworkPickerModal(false);
 
     // Dersi otomatik eşle
-    const taskSubject = task.subject || '';
-    const matchedSubj = STUDY_SUBJECTS.find(s => s.id.toLowerCase() === taskSubject.toLowerCase() || taskSubject.toLowerCase().includes(s.id.toLowerCase()));
-    if (matchedSubj) {
-      setSelectedSubject(matchedSubj.id);
-      localStorage.setItem('study_selected_subject', matchedSubj.id);
+    const matchedSubjId = matchSubjectFromTask(task);
+    if (matchedSubjId) {
+      setSelectedSubject(matchedSubjId);
+      localStorage.setItem('study_selected_subject', matchedSubjId);
+      const subjObj = STUDY_SUBJECTS.find(s => s.id === matchedSubjId);
+      if (subjObj) {
+        setMinutesPerQuestion(subjObj.defaultMinPerQ || 2.0);
+        localStorage.setItem('study_min_per_q', String(subjObj.defaultMinPerQ || 2.0));
+      }
     }
 
     // Hedef soru sayısını ayarla
-    const qCount = Math.max(1, Number(task.questionCount) || 12);
+    const qCount = extractQuestionCountFromTask(task);
     handleSetNewTargetGoal(qCount, true);
 
     // Soru moduna geç
@@ -1037,13 +1073,15 @@ export default function StudyRoomPage() {
 
     if (startImmediately) {
       setIsRunning(true);
-      ambientAudio.playChime();
+      try {
+        ambientAudio.playChime();
+      } catch (e) {}
     } else {
       setIsRunning(false);
     }
   };
 
-  // Program sayfasından gelindiğinde görevi otomatik yükle ve hazırla (hemen başlatmaz, öğrenci hazır olunca başlatır)
+  // Program sayfasından gelindiğinde görevi otomatik yükle, ders & soru sayısını aktar ve doğrudan başlat
   useEffect(() => {
     const incomingTask = location.state?.autoStartTask || (() => {
       try {
@@ -1057,7 +1095,8 @@ export default function StudyRoomPage() {
     })();
 
     if (incomingTask) {
-      handleSelectTask(incomingTask, false);
+      const shouldAutoStart = location.state?.autoStart ?? incomingTask.autoStart ?? true;
+      handleSelectTask(incomingTask, shouldAutoStart);
     }
   }, [location.state]);
 
