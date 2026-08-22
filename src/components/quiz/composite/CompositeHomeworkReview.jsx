@@ -4,7 +4,7 @@ import { useTeacherGrading } from '../hooks/useTeacherGrading';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../../../utils/answerEvaluation';
-import { isSectionOpenEnded } from '../utils/quizTypeDetector';
+import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
 
 import SectionTabBar from './navigation/SectionTabBar';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
@@ -101,56 +101,34 @@ export default function CompositeHomeworkReview({
     let blankCount     = 0;
     let pendingCount   = 0;
 
-    // DB teacher scores: { [secId]: { [qNo]: score } }
     const dbTS = submission?.teacherScores || {};
-
-    // Sections that have REAL teacher scores — either from DB or from live hook state.
-    // This ensures first-time evaluations (not yet saved) are also detected.
-    const oeSectionIds = new Set();
-    rawSections.forEach((sec, sIdx) => {
-      const rawId = sec.raw?.id || sec.raw?.questionId || sec.id;
-      // DB: already saved teacher scores
-      const dbHas = (dbTS[sec.id] && Object.keys(dbTS[sec.id]).length > 0) ||
-                    (dbTS[rawId] && Object.keys(dbTS[rawId]).length > 0) ||
-                    (dbTS[String(sIdx)] && Object.keys(dbTS[String(sIdx)]).length > 0);
-      // Live hook state: teacher scoring right now (before save)
-      const liveHas = (teacherScores[sec.id] && Object.keys(teacherScores[sec.id]).length > 0) ||
-                      (teacherScores[rawId] && Object.keys(teacherScores[rawId]).length > 0) ||
-                      (teacherScores[sIdx] && Object.keys(teacherScores[sIdx]).length > 0);
-      if (dbHas || liveHas) oeSectionIds.add(sIdx);
-    });
 
     rawSections.forEach((sec, sIdx) => {
       const secQs  = sec.questions || sec.resolvedQuestions || [];
       const count  = sec.qCount || secQs.length || 1;
       const rawId  = sec.raw?.id || sec.raw?.questionId || sec.id;
+      const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
 
-      // Is this section open-ended?
-      const isOESection =
-        sec.type === 'open_ended' ||
-        isSectionOpenEnded(sec, test) ||
-        oeSectionIds.has(sIdx);
-
-      // DB teacher scores for this section
       const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
         const qObj = secQs[i - 1] || {};
+        const isQOE = isSecOE || isQuestionOpenEnded(qObj, sec, test);
 
-        if (isOESection) {
-          // Check if per-answer score exists on submission.answers
-          const rawAnsItem = Array.isArray(submission?.answers)
-            ? submission.answers.find(a =>
-                (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId) || Number(a.sectionIndex) === sIdx) &&
-                Number(a.questionNoInSection || a.questionNo) === i
-              )
-            : null;
+        const rawAnsItem = Array.isArray(submission?.answers)
+          ? submission.answers.find(a =>
+              (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId) || Number(a.sectionIndex) === sIdx) &&
+              Number(a.questionNoInSection || a.questionNo) === i
+            )
+          : null;
+
+        if (isQOE) {
+          // OE path: check teacher score
           const ansScore = (rawAnsItem && (rawAnsItem.evaluatedByTeacher || Boolean(rawAnsItem.evaluatedAt) || typeof rawAnsItem.score === 'number') && rawAnsItem.score !== undefined && rawAnsItem.score !== null)
             ? rawAnsItem.score
             : undefined;
 
-          // OE path: live hook state scores first, then DB fallback, then per-answer score
           const ts =
             teacherScores[sec.id]?.[i]   ??
             teacherScores[rawId]?.[i]     ??
@@ -164,16 +142,16 @@ export default function CompositeHomeworkReview({
           const hasText = Boolean(textVal && String(textVal).trim());
 
           if (ts !== undefined && ts !== null && ts !== 'empty') {
-            if (Number(ts) > 0) correctCount++; else wrongCount++;
+            if (Number(ts) >= 5) correctCount++; else wrongCount++;
           } else if (hasText) {
             pendingCount++;  // student answered but teacher hasn't scored yet
           } else {
             blankCount++;    // student didn't answer
           }
         } else {
-          // MC path: compare userAnswer to correctAnswer
+          // MC path: evaluate userAnswer vs correctAnswer
           const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
-          const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
+          const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)] ?? rawAnsItem?.userAnswer;
 
           const normalizeOpt = (v) => {
             if (v === null || v === undefined || v === '' || v === 'empty') return null;
@@ -193,6 +171,9 @@ export default function CompositeHomeworkReview({
             if (qObj && Object.keys(qObj).length > 0) {
               isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
+            if (isCorr === null && rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
+              isCorr = rawAnsItem.isCorrect;
+            }
             if (isCorr === false) wrongCount++;
             else correctCount++;
           }
@@ -200,7 +181,6 @@ export default function CompositeHomeworkReview({
       }
     });
 
-    // scorePct = correct / total (pending + blank are still "unanswered")
     const scorePct = totalQuestions > 0
       ? Math.round((correctCount / totalQuestions) * 100)
       : 0;

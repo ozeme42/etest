@@ -2314,38 +2314,50 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             ? sa.openEndedText[qNo] 
             : (existingAns.userAnswerText || null);
           
+          const isQOE = isQuestionOE(secQs[idx] || {}, sec, test, existingAns);
           const teacherSc = teacherScores[sec.id]?.[qNo];
           let score = 0;
           let isCorrect = null;
           let evalStatus = 'empty';
 
-          if (teacherSc === 'empty') {
-            score = 0;
-            isCorrect = null;
-            evalStatus = 'empty';
-          } else if (teacherSc !== undefined && teacherSc !== null) {
-            score = Number(teacherSc);
-            isCorrect = score >= 5;
-            evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
-            totalPts += score;
-          } else if (existingAns.score !== undefined && existingAns.score !== null) {
-            score = Number(existingAns.score);
-            isCorrect = score >= 5;
-            evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
-            totalPts += score;
-          } else if (existingAns.isCorrect === true) {
-            score = 10;
-            isCorrect = true;
-            evalStatus = 'correct';
-            totalPts += 10;
-          } else if (existingAns.isCorrect === false) {
-            score = 0;
-            isCorrect = false;
-            evalStatus = 'wrong';
+          if (isQOE) {
+            if (teacherSc === 'empty') {
+              score = 0;
+              isCorrect = null;
+              evalStatus = 'empty';
+            } else if (teacherSc !== undefined && teacherSc !== null) {
+              score = Number(teacherSc);
+              isCorrect = score >= 5;
+              evalStatus = score >= 5 ? (score === 5 ? 'half' : 'correct') : 'wrong';
+              totalPts += score;
+            } else {
+              score = 0;
+              isCorrect = null;
+              evalStatus = textAns ? 'pending' : 'empty';
+            }
           } else {
-            score = 0;
-            isCorrect = null;
-            evalStatus = 'empty';
+            // Multiple Choice: evaluate against answer key
+            const numUAns = unwrapUserAnswer(userAns);
+            const hasAns = typeof numUAns === 'number';
+            if (hasAns) {
+              const testCtx = resolveTestContext(test, sec, sec.bankQ || test);
+              const isCorr = checkIsAnswerCorrect(numUAns, secQs[idx] || {}, testCtx, qNo);
+              if (isCorr === true) {
+                score = 10;
+                isCorrect = true;
+                evalStatus = 'correct';
+                totalPts += 10;
+              } else {
+                score = 0;
+                isCorrect = false;
+                evalStatus = 'wrong';
+              }
+            } else {
+              // Student left MC question blank
+              score = 0;
+              isCorrect = null;
+              evalStatus = 'empty';
+            }
           }
 
           maxPts += 10;
