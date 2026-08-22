@@ -52,6 +52,14 @@ export default function CompositeHomeworkReview({
   const rawSections = unifiedTest.sections;
 
   const unifiedSub = useMemo(() => {
+    // 🐛 DEBUG: raw submission.answers
+    const rawA = submission?.answers || submission?.formattedAnswers || submission?.raw_data?.answers || [];
+    console.log('📦 submission.answers count:', rawA.length);
+    if (Array.isArray(rawA)) {
+      rawA.forEach((a, i) => {
+        console.log(`  [${i}] questionNo=${a.questionNo} sectionIdx=${a.sectionIndex} sectionId=${a.sectionId} sectionTitle="${a.sectionTitle}" qNoInSec=${a.questionNoInSection} userAnswer=${a.userAnswer}`);
+      });
+    }
     return normalizeUnifiedSubmission(submission, unifiedTest);
   }, [submission, unifiedTest]);
 
