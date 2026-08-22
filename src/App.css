@@ -326,6 +326,13 @@ html.ssp-in-fullscreen .sidebar {
   transform: translateY(-2px);
 }
 
+@media (max-width: 1024px) {
+  .sidebar-floating-toggle-btn {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
 /* Sidebar Collapsed State (Tablet & Desktop) */
 .sidebar.collapsed {
   width: 0 !important;

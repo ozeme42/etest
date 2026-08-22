@@ -11,6 +11,7 @@ import {
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
 import { useTheme } from './context/ThemeContext';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 // Lazy Loaded Pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -146,7 +147,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
     return manualTests + manualMocks;
   }, [submissions, mockExams, currentUser]);
 
-  const hasCoach = currentUser?.role === 'student' ? isStudentCoached(currentUser?.id) : true;
+  const isMobile = useMediaQuery('(max-width: 1024px)');
 
   return (
     <>
@@ -183,8 +184,8 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
 
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={closeSidebar}></div>
 
-      {/* FLOATING TOGGLE BUTTON (VISIBLE WHEN SIDEBAR IS COLLAPSED ON DESKTOP/TABLET) */}
-      {isCollapsed && (
+      {/* FLOATING TOGGLE BUTTON (VISIBLE WHEN SIDEBAR IS COLLAPSED ON DESKTOP ONLY - NEVER ON MOBILE) */}
+      {!isMobile && isCollapsed && (
         <button
           onClick={toggleCollapse}
           className="sidebar-floating-toggle-btn"
