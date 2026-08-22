@@ -717,7 +717,53 @@ export default function TrackedBookQuizRunner() {
     );
   }
 
-  const subjectName = (resolvedBook?.subjects || []).find(s => String(s.id) === String(resolvedTest.subjectId))?.name || resolvedBook?.title || 'Kitap Testi';
+  const { resolvedSubject, resolvedUnit, resolvedTopic } = useMemo(() => {
+    let subj = null;
+    let unit = null;
+    let topic = null;
+
+    if (resolvedBook?.subjects && Array.isArray(resolvedBook.subjects)) {
+      for (const s of resolvedBook.subjects) {
+        if (resolvedTest?.subjectId && String(s.id) === String(resolvedTest.subjectId)) {
+          subj = s.name;
+        }
+        if (s.topics && Array.isArray(s.topics)) {
+          for (const tp of s.topics) {
+            const hasTest = String(tp.id) === String(resolvedTest?.topicId) || (tp.tests && Array.isArray(tp.tests) && tp.tests.some(t => String(t.id) === String(resolvedTest?.id) || toUUID(t.id) === String(resolvedTest?.id)));
+            if (hasTest) {
+              if (!subj) subj = s.name;
+              topic = tp.name;
+              break;
+            }
+          }
+        }
+        if (s.units && Array.isArray(s.units)) {
+          for (const u of s.units) {
+            const hasTest = String(u.id) === String(resolvedTest?.unitId) || (u.tests && Array.isArray(u.tests) && u.tests.some(t => String(t.id) === String(resolvedTest?.id)));
+            if (hasTest) {
+              if (!subj) subj = s.name;
+              unit = u.name;
+              break;
+            }
+          }
+        }
+        if (s.tests && Array.isArray(s.tests) && s.tests.some(t => String(t.id) === String(resolvedTest?.id))) {
+          if (!subj) subj = s.name;
+        }
+      }
+    }
+
+    const finalSubj = subj || resolvedTest?.subject || resolvedBook?.subject || 'Ders';
+    const finalUnit = unit || resolvedTest?.unit || resolvedTest?.unitName || topic || resolvedTest?.topic || resolvedTest?.topicName || '';
+
+    return {
+      resolvedSubject: finalSubj,
+      resolvedUnit: finalUnit,
+      resolvedTopic: topic || resolvedTest?.topic || ''
+    };
+  }, [resolvedBook, resolvedTest]);
+
+  const subjectName = resolvedSubject;
   
   const explicitOptionCount = Number(
     resolvedBook?.optionCount ||
@@ -810,9 +856,15 @@ export default function TrackedBookQuizRunner() {
               {resolvedBook?.title ? `${resolvedBook.title} — ` : ''}{resolvedTest.name}
             </h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
-              {subjectName} • {questionCount} Soru
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span>{resolvedSubject}</span>
+              {resolvedUnit && (
+                <span style={{ color: '#0284c7', fontWeight: 800, background: 'rgba(2,132,199,0.12)', padding: '0.08rem 0.45rem', borderRadius: 6, border: '1px solid rgba(2,132,199,0.25)' }}>
+                  📌 {resolvedUnit}
+                </span>
+              )}
+              <span>• {questionCount} Soru</span>
             </span>
             {!isSubmitted && (
               <span style={{ color: '#16a34a', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800 }}>
@@ -1101,7 +1153,9 @@ export default function TrackedBookQuizRunner() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.15)', border: '1px solid #3b82f6', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
                           <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>TEST TAMAMLANDI</span>
                         </div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>{resolvedTest.name}</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {resolvedUnit ? `${resolvedUnit} › ${resolvedTest.name}` : resolvedTest.name}
+                        </div>
                       </div>
                     </div>
 
@@ -1199,7 +1253,7 @@ export default function TrackedBookQuizRunner() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} />
                     <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                      {resolvedTest.name} — Optik Form
+                      {resolvedUnit ? `${resolvedUnit} › ${resolvedTest.name}` : resolvedTest.name} — Optik Form
                     </h3>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
                       ({questionCount} Soru)
