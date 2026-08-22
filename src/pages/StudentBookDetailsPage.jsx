@@ -237,7 +237,7 @@ export default function StudentBookDetailsPage() {
             matchFields.push(...s.bookTestIds.map(String));
           }
 
-          return matchFields.some(f => f && (
+          const isDirectMatch = matchFields.some(f => f && (
             f === tIdStr ||
             f === tCleanId ||
             f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
@@ -245,6 +245,18 @@ export default function StudentBookDetailsPage() {
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
+          if (isDirectMatch) return true;
+
+          const isSameBook = String(s.bookId || '') === String(book?.id) || (s.bookTitle && book?.title && (s.bookTitle.includes(book.title) || book.title.includes(s.bookTitle)));
+          if (isSameBook && t.name) {
+            const subTitleClean = String(s.testTitle || s.title || s.topic || s.unit || '').trim().toLowerCase();
+            const tNameClean = String(t.name || '').trim().toLowerCase();
+            if (subTitleClean === tNameClean || subTitleClean.endsWith(`(${tNameClean})`) || subTitleClean.includes(`› ${tNameClean}`) || subTitleClean.includes(`(${tNameClean})`)) {
+              return true;
+            }
+          }
+
+          return false;
         });
 
         const pendingManualSub = submissions.find(s => {

@@ -635,7 +635,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         const hasEvaluatedAnswers = sub.answers.some(a => 
-          a.evaluatedAt || 
+a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
           a.feedback || 
@@ -664,7 +664,12 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       hw?.sourceType === 'trackedBook' ||
       hw?.title?.includes('(Tüm Kitap Görevi)') ||
       hw?.title?.includes('(Tüm Kitap)') ||
-      hw?.title?.includes('(Kendi Eklediğim)')
+      hw?.title?.includes('(Kendi Eklediğim)') ||
+      (books && Array.isArray(books) && books.some(b => 
+        String(b.id) === String(hw.id) ||
+        String(b.id) === String(hw.bookId) ||
+        (b.title && hw.title && (hw.title.toLowerCase().includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(hw.title.toLowerCase())))
+      ))
     );
 
     const isMatchStudent = (s) => {
@@ -714,175 +719,165 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         ))
       ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
 
-      allMatchingSubs.sort((a, b) => {
-        const aEval = isEval(a, true) ? 1 : 0;
-        const bEval = isEval(b, true) ? 1 : 0;
-        if (aEval !== bEval) return bEval - aEval;
-        const aDate = new Date(a.submittedAt || a.completedAt || a.createdAt || 0).getTime();
-        const bDate = new Date(b.submittedAt || b.completedAt || b.createdAt || 0).getTime();
-        return bDate - aDate;
-      });
+      allMatchingSubs.forEach(sub => {
+        if (!sub) return;
 
-      const sub = allMatchingSubs[0];
-      if (!sub) return;
+        const subIdStr = String(sub.id || `hw_${hw.id}_${selectedStudent.id}`);
+        if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+        if (sub.status === 'in_progress' || sub.status === 'draft') return;
+        const raw = sub.raw_data || {};
+        if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-      const subIdStr = String(sub.id || `hw_${hw.id}_${selectedStudent.id}`);
-      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
-      if (sub.status === 'in_progress' || sub.status === 'draft') return;
-      const raw = sub.raw_data || {};
-      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+        const title = sub.testTitle || raw.testTitle || hw.title || 'Ödev Testi';
+        const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(hw.title) || hasOEWordInTitle(sub.testTitle);
 
-      const title = hw.title || sub.testTitle || raw.testTitle || 'Ödev Testi';
-      const isOEByTitle = hasOEWordInTitle(title) || hasOEWordInTitle(hw.title) || hasOEWordInTitle(sub.testTitle);
+        const isOpenEnded = Boolean(
+          isOEByTitle ||
+          hw.questionType === 'acik_uclu' ||
+          hw.type === 'acik_uclu' ||
+          hw.contentType === 'acik_uclu' ||
+          sub.isOpenEnded ||
+          raw.isOpenEnded ||
+          sub.questionType === 'acik_uclu' ||
+          sub.type === 'acik_uclu' ||
+          sub.contentType === 'acik_uclu' ||
+          (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.userAnswerText))
+        );
+        const isEvaluated = isEval(sub, isOpenEnded);
+        const isPendingEval = isOpenEnded && !isEvaluated;
 
-      const isOpenEnded = Boolean(
-        isOEByTitle ||
-        hw.questionType === 'acik_uclu' ||
-        hw.type === 'acik_uclu' ||
-        hw.contentType === 'acik_uclu' ||
-        sub.isOpenEnded ||
-        raw.isOpenEnded ||
-        sub.questionType === 'acik_uclu' ||
-        sub.type === 'acik_uclu' ||
-        sub.contentType === 'acik_uclu' ||
-        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => Boolean(a.userAnswerText) || a.isOpenEnded || a.is_open_ended))
-      );
-      const isEvaluated = isEval(sub, isOpenEnded);
-      const isPendingEval = isOpenEnded && !isEvaluated;
+        let correct = sub.correctCount ?? raw.correctCount ?? 0;
+        let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
+        let blank = sub.blankCount ?? raw.blankCount ?? 0;
+        let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
 
-      let correct = sub.correctCount ?? raw.correctCount ?? 0;
-      let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
-      let blank = sub.blankCount ?? raw.blankCount ?? 0;
+        if (sub.isEvaluatedByTeacher && typeof sub.correctCount === 'number') {
+          correct = Number(sub.correctCount);
+          wrong = Number(sub.wrongCount ?? 0);
+          blank = Number(sub.blankCount ?? sub.emptyCount ?? 0);
+        } else if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+          let aCorr = 0;
+          let aWrong = 0;
+          let aEmpty = 0;
+          let aPend = 0;
+          sub.answers.forEach((ans, aIdx) => {
+            const userAns = ans.userAnswer;
+            const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
+            const numScore = ans.score !== undefined && ans.score !== null && ans.score !== 'empty' ? Number(ans.score) : null;
+            const isBlankAns = ans.evalStatus === 'empty' || ans.score === 'empty' || ((userAns === null || userAns === undefined || userAns === '' || userAns === 'empty') && (!ans.userAnswerText || String(ans.userAnswerText).trim() === ''));
 
-      let pending = sub.pendingCount ?? raw.pendingCount ?? 0;
-
-      if (sub.isEvaluatedByTeacher && typeof sub.correctCount === 'number') {
-        correct = Number(sub.correctCount);
-        wrong = Number(sub.wrongCount ?? 0);
-        blank = Number(sub.blankCount ?? sub.emptyCount ?? 0);
-      } else if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-        let aCorr = 0;
-        let aWrong = 0;
-        let aEmpty = 0;
-        let aPend = 0;
-        sub.answers.forEach((ans, aIdx) => {
-          const qNo = ans.questionNoInSection || ans.questionNo || (aIdx + 1);
-          const userAns = ans.userAnswer;
-          const isOE = Boolean(ans.isOpenEnded || ans.is_open_ended || ans.userAnswerText);
-          const numScore = ans.score !== undefined && ans.score !== null && ans.score !== 'empty' ? Number(ans.score) : null;
-          const isBlankAns = ans.evalStatus === 'empty' || ans.score === 'empty' || ((userAns === null || userAns === undefined || userAns === '' || userAns === 'empty') && (!ans.userAnswerText || String(ans.userAnswerText).trim() === ''));
-
-          if (isBlankAns) {
-            aEmpty++;
-            return;
-          }
-
-          if (isOE || numScore !== null) {
-            if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
-              aCorr++;
-            } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore < 5 && ans.evaluatedByTeacher)) {
-              aWrong++;
-            } else {
-              aPend++;
+            if (isBlankAns) {
+              aEmpty++;
+              return;
             }
-            return;
-          }
 
-          const hasOption = userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty';
-          if (!hasOption) {
-            aEmpty++;
-            return;
-          }
-
-          const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, null, ans, hw, []);
-          const uLetter = formatAnswerLetter(userAns);
-          const cLetter = formatAnswerLetter(resolvedCorrect);
-
-          let isRight = null;
-          if (uLetter && cLetter) {
-            isRight = (uLetter === cLetter);
-          } else if (ans.isCorrect !== undefined && ans.isCorrect !== null) {
-            isRight = ans.isCorrect;
-          } else {
-            isRight = checkIsAnswerCorrect(userAns, null, hw, qNo);
-          }
-
-          if (isRight === true) aCorr++;
-          else if (isRight === false) aWrong++;
-          else aEmpty++;
-        });
-
-        if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
+            if (isOE || numScore !== null) {
+              if (ans.isCorrect === true || (numScore !== null && numScore >= 5)) {
+                aCorr++;
+              } else if (ans.isCorrect === false || ans.evalStatus === 'wrong' || (numScore !== null && numScore < 5 && ans.evaluatedByTeacher)) {
+                aWrong++;
+              } else {
+                aPend++;
+              }
+            } else if (ans.isCorrect === true) {
+              aCorr++;
+            } else if (ans.isCorrect === false) {
+              aWrong++;
+            } else if (ans.isCorrect === null || ans.isCorrect === undefined) {
+              if (userAns !== null && userAns !== undefined && userAns !== '' && ans.correctAnswer !== undefined) {
+                if (String(userAns).trim().toUpperCase() === String(ans.correctAnswer).trim().toUpperCase()) {
+                  aCorr++;
+                } else {
+                  aWrong++;
+                }
+              } else {
+                aCorr++;
+              }
+            }
+          });
           correct = aCorr;
           wrong = aWrong;
           blank = aEmpty;
           pending = aPend;
         }
-      }
 
-      const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
-      const sumCount = correct + wrong + blank;
-      const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || raw.totalQuestions || 0;
-      let total = Math.max(rawTotal, ansCount, sumCount, 1);
+        const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+        const sumCount = correct + wrong + blank + pending;
+        const isSingleSub = sub.sourceType === 'study_room_optical' || sub.sourceType === 'bookTest' || (ansCount > 0 && ansCount < (hw.totalQuestions || 0));
+        let rawTotal = isSingleSub ? ansCount : (hw.totalQuestions || hw.questionCount || sub.totalQuestions || raw.totalQuestions || 0);
+        if (!rawTotal && Array.isArray(hw.sections) && hw.sections.length > 0) {
+          rawTotal = hw.sections.reduce((acc, sec) => acc + (sec.qCount || sec.questionCount || 0), 0);
+        }
+        if (!rawTotal && Array.isArray(hw.questionIds) && hw.questionIds.length > 0) {
+          rawTotal = hw.questionIds.length;
+        }
+        let total = Math.max(rawTotal, ansCount, sumCount, 1);
 
-      if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
+        if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
 
-      let score = 0;
-      if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
-        score = Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
-      } else if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
-        score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
-      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
-        score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100) {
-        score = Math.min(100, Math.max(0, Math.round(sub.score)));
-      } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
-        score = Math.min(100, Math.max(0, Math.round(raw.score)));
-      }
+        if (isSingleSub && total >= (correct + wrong)) {
+          blank = Math.max(0, total - (correct + wrong));
+        }
 
-      let calcNet = (correct > 0 || wrong > 0)
-        ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
-        : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
+        let score = 0;
+        if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
+          score = Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
+        } else if (sub.scorePercentage !== undefined && sub.scorePercentage !== null && sub.scorePercentage > 0) {
+          score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
+        } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null && raw.scorePercentage > 0) {
+          score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
+        } else if (typeof sub.score === 'number' && !isNaN(sub.score) && sub.score > 0 && sub.score <= 100) {
+          score = Math.min(100, Math.max(0, Math.round(sub.score)));
+        } else if (typeof raw.score === 'number' && !isNaN(raw.score) && raw.score > 0 && raw.score <= 100) {
+          score = Math.min(100, Math.max(0, Math.round(raw.score)));
+        }
 
-      const unifiedStats = computeUnifiedSubmissionStats(sub, hw, allBankQuestions || []);
-      if (unifiedStats) {
-        correct = unifiedStats.correct;
-        wrong = unifiedStats.wrong;
-        blank = unifiedStats.blank;
-        total = unifiedStats.total;
-        score = unifiedStats.scorePct;
-        calcNet = unifiedStats.netScore;
-      }
+        let calcNet = (correct > 0 || wrong > 0)
+          ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
+          : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
-      const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
-      const subjKey = getSubjectKey({
-        testTitle: hw.title || curInfo.title,
-        subjectKey: hw.subject || curInfo.subject || sub.subjectKey
-      });
+        if (!isSingleSub) {
+          const unifiedStats = computeUnifiedSubmissionStats(sub, hw, allBankQuestions || []);
+          if (unifiedStats) {
+            correct = unifiedStats.correct;
+            wrong = unifiedStats.wrong;
+            blank = unifiedStats.blank;
+            total = unifiedStats.total;
+            score = unifiedStats.scorePct;
+            calcNet = unifiedStats.netScore;
+          }
+        }
 
-      const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
-      const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
+        const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
+        const subjKey = getSubjectKey({
+          testTitle: hw.title || curInfo.title,
+          subjectKey: hw.subject || curInfo.subject || sub.subjectKey
+        });
 
-      if (sub.id) processedTestKeys.add(String(sub.id));
-      if (sub.supabaseId) processedTestKeys.add(String(sub.supabaseId));
+        const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
+        const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
 
-      results.push({
-        ...sub,
-        id: sub.id || `hw_sub_${hw.id}_${selectedStudent?.id || 'student'}`,
-        testId: hw.id,
-        testTitle: hw.title,
-        subjectKey: subjKey,
-        typeKey,
-        isEvaluated,
-        isOpenEnded,
-        isPendingEval,
-        correctCount: correct,
-        wrongCount: wrong,
-        blankCount: blank,
-        totalQuestions: total,
-        computedScore: score,
-        totalNet: calcNet,
-        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
+        if (sub.id) processedTestKeys.add(String(sub.id));
+        if (sub.supabaseId) processedTestKeys.add(String(sub.supabaseId));
+
+        results.push({
+          ...sub,
+          id: sub.id || `hw_sub_${hw.id}_${selectedStudent?.id || 'student'}`,
+          testId: hw.id,
+          testTitle: title,
+          subjectKey: subjKey,
+          typeKey,
+          isEvaluated,
+          isOpenEnded,
+          isPendingEval,
+          correctCount: correct,
+          wrongCount: wrong,
+          blankCount: blank,
+          totalQuestions: total,
+          computedScore: score,
+          totalNet: calcNet,
+          submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
+        });
       });
     });
 

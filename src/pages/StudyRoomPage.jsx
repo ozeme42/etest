@@ -1363,19 +1363,31 @@ export default function StudyRoomPage() {
     const scorePct = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
 
     const submissionId = `sub_study_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const resolvedTestId = selectedTask?.bookTestId || selectedTask?.realTestId || selectedTask?.testId || selectedTask?.id || submissionId;
+    const finalBookTestId = matchedTestObj?.id || selectedTask?.bookTestId || selectedTask?.realTestId || null;
+    const finalBookId = selectedTask?.bookId || matchedTestObj?.bookId || null;
+    const finalBookTitle = selectedTask?.bookTitle || matchedTestObj?.bookTitle || null;
+    const resolvedTestId = finalBookTestId || selectedTask?.testId || selectedTask?.id || submissionId;
+    const finalTestTitle = matchedTestObj?.name || selectedTask?.testName || selectedTask?.title || selectedTask?.topic || `${selectedSubject} Optik Sınavı`;
+    const finalUnit = selectedTask?.unit || matchedTestObj?.unit || matchedTestObj?.unitName || '';
+    const finalTopic = selectedTask?.topic || matchedTestObj?.topic || matchedTestObj?.topicName || '';
+
     const subPayload = {
       id: submissionId,
       studentId: currentUser?.id || 'guest',
       studentName: currentUser?.name || 'Öğrenci',
       testId: resolvedTestId,
-      testTitle: selectedTask?.title || selectedTask?.topic || `${selectedSubject} Optik Sınavı`,
+      realTestId: resolvedTestId,
+      bookTestId: finalBookTestId,
+      bookId: finalBookId,
+      bookTitle: finalBookTitle,
+      testTitle: finalTestTitle,
+      title: finalTestTitle,
       subject: selectedSubject,
-      unit: selectedTask?.unit || '',
-      topic: selectedTask?.topic || '',
+      unit: finalUnit,
+      topic: finalTopic,
+      unitTopic: (finalUnit && finalTopic) ? `${finalUnit} › ${finalTopic}` : (finalUnit || finalTopic || ''),
       sourceType: selectedTask?.sourceType || 'study_room_optical',
       hwId: selectedTask?.hwId || null,
-      bookTestId: selectedTask?.bookTestId || null,
       roadmapAssignmentId: selectedTask?.roadmapAssignmentId || null,
       answers: answersList,
       correctCount,
