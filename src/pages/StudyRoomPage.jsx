@@ -3035,15 +3035,16 @@ export default function StudyRoomPage() {
 
                   {/* Optik Sorular Grid Listesi */}
                   <div style={{
-                    maxHeight: isFullscreenView ? '360px' : '250px',
+                    maxHeight: isFullscreenView ? '600px' : '500px',
                     overflowY: 'auto',
-                    padding: '0.5rem',
+                    padding: '0.65rem',
                     background: themeObj.cardBg,
                     borderRadius: 14,
                     border: `1.5px solid ${themeObj.border}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6
+                    display: 'grid',
+                    gridTemplateColumns: targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))',
+                    gap: 8,
+                    alignItems: 'start'
                   }} className="custom-scrollbar">
                     {Array.from({ length: targetGoalCount }).map((_, idx) => {
                       const qNo = idx + 1;
@@ -3057,14 +3058,14 @@ export default function StudyRoomPage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '0.35rem 0.65rem',
+                            padding: '0.35rem 0.6rem',
                             borderRadius: 10,
-                            background: userAns ? (isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'),
-                            border: `1px solid ${userAns ? (isDark ? 'rgba(245,158,11,0.3)' : '#fde68a') : themeObj.border}`,
+                            background: userAns ? (isDark ? 'rgba(245,158,11,0.14)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
+                            border: `1px solid ${userAns ? (isDark ? 'rgba(245,158,11,0.4)' : '#fde68a') : themeObj.border}`,
                             transition: 'all 0.15s'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 44 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: 36, flexShrink: 0 }}>
                             <span style={{
                               fontSize: '0.78rem',
                               fontWeight: 900,
@@ -3074,7 +3075,7 @@ export default function StudyRoomPage() {
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             {opts.map(opt => {
                               const isSelected = userAns === opt;
                               return (
@@ -3083,8 +3084,8 @@ export default function StudyRoomPage() {
                                   type="button"
                                   onClick={() => handleSelectOpticalOption(qNo, opt)}
                                   style={{
-                                    width: 32,
-                                    height: 32,
+                                    width: 30,
+                                    height: 30,
                                     borderRadius: '50%',
                                     border: isSelected ? 'none' : `1.5px solid ${themeObj.border}`,
                                     background: isSelected
@@ -3092,7 +3093,7 @@ export default function StudyRoomPage() {
                                       : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                                     color: isSelected ? '#ffffff' : themeObj.text,
                                     fontWeight: 900,
-                                    fontSize: '0.82rem',
+                                    fontSize: '0.8rem',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -3907,28 +3908,43 @@ export default function StudyRoomPage() {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
-          max-width: 1020px;
+          max-width: 1420px;
           margin: 0 auto;
           width: 100%;
+          padding: 0 0.5rem;
         }
         .sr-card-body-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 1.25rem;
         }
-        @media (min-width: 1080px) {
+        @media (min-width: 960px) {
           .sr-card-body-grid {
             display: grid;
-            grid-template-columns: 1fr 1.12fr;
-            gap: 1.5rem;
+            grid-template-columns: 1fr 1.35fr;
+            gap: 1.75rem;
+            align-items: start;
+          }
+        }
+        @media (min-width: 1300px) {
+          .sr-card-body-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.55fr;
+            gap: 2.25rem;
             align-items: start;
           }
         }
         .sr-zen-grid {
           display: grid;
-          grid-template-columns: 1fr 1.22fr;
+          grid-template-columns: 1fr 1.45fr;
           gap: 2.25rem;
           align-items: start;
+        }
+        @media (min-width: 1300px) {
+          .sr-zen-grid {
+            grid-template-columns: 1fr 1.65fr;
+            gap: 2.75rem;
+          }
         }
         @media (max-width: 920px) {
           .sr-zen-grid {
