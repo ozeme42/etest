@@ -3383,142 +3383,322 @@ export default function MyCoachingPage() {
 
         {/* ═══ ALIŞKANLIKLARIM (ZİNCİRİ KIRMA SEKMESİ) ═══ */}
         {activeTab === 'aliskanlik' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem', animation: 'fadeIn 0.2s ease' }}>
             <Tip>Zinciri Kırma! Her gün tamamladığın alışkanlıkları işaretle, serini bozma ve hedeflerine adım adım ulaş!</Tip>
 
             {/* Zinciri Kırma İstatistik Kartları */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', borderRadius: '1rem', padding: '1.15rem', color: 'white', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.25)' }}>
-                <div style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 700, marginBottom: 4 }}>EN UZUN AKTİF SERİ</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isSmallMobile ? '1fr' : isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: isMobile ? 6 : '1rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', borderRadius: isMobile ? 12 : '1rem', padding: isMobile ? '0.75rem 0.65rem' : '1.15rem', color: 'white', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.78rem', opacity: 0.85, fontWeight: 700, marginBottom: 2 }}>EN UZUN SERİ</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.3rem', lineHeight: 1.1 }}>
                   🔥 {Math.max(0, ...habits.map(h => calculateHabitStreak(h).currentStreak))} Gün
                 </div>
-                <div style={{ fontSize: '0.72rem', opacity: 0.8, marginTop: 4 }}>Kesintisiz alışkanlık seriniz</div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.72rem', opacity: 0.8, marginTop: 3 }}>Kesintisiz seriniz</div>
               </div>
 
-              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>TOPLAM İŞARETLENEN</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
-                  {habits.reduce((sum, h) => sum + Object.values(h.days || {}).filter(Boolean).length, 0)} / {habits.length * 7}
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: isMobile ? 12 : '1rem', padding: isMobile ? '0.75rem 0.65rem' : '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 2 }}>TOPLAM İŞARET</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 900, color: '#10b981', lineHeight: 1.1 }}>
+                  {habits.reduce((sum, h) => sum + Object.values(h.days || {}).filter(Boolean).length, 0)} <span style={{ fontSize: isMobile ? '0.72rem' : '1rem', color: 'var(--color-text-muted)' }}>/ {habits.length * 7}</span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>Haftalık yapılan alışkanlık</div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 3 }}>Haftalık alışkanlık</div>
               </div>
 
-              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>ZİNCİRİ TAMAMLIYOR</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#818cf8' }}>
-                  {habits.filter(h => calculateHabitStreak(h).maxStreak >= 5).length} Alışkanlık
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: isMobile ? 12 : '1rem', padding: isMobile ? '0.75rem 0.65rem' : '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 2 }}>ZİNCİRİ TAMAM</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '2rem', fontWeight: 900, color: '#818cf8', lineHeight: 1.1 }}>
+                  {habits.filter(h => calculateHabitStreak(h).maxStreak >= 5).length} <span style={{ fontSize: isMobile ? '0.72rem' : '1rem', color: 'var(--color-text-muted)' }}>Adet</span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>5+ gün üst üste yapılan</div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 3 }}>5+ gün üst üste</div>
               </div>
             </div>
 
             {/* Alışkanlık Takibi & Zincir Görünümü */}
-            <Card emoji="🔥" title="Alışkanlık Takibim & Seri Rekorları">
-              <form onSubmit={e => { e.preventDefault(); if (newHabit.trim()) { setHabits(p => [...p, { id: uid(), label: newHabit.trim(), days: DAYS.reduce((a, d) => ({ ...a, [d]: false }), {}) }]); setNewHabit(''); }}} style={{ display: 'flex', gap: 6, marginBottom: '1.25rem' }}>
+            <Card emoji="🔥" title="Alışkanlık Takibim & Seri Rekorları" isMobile={isMobile}>
+              <form onSubmit={e => { e.preventDefault(); if (newHabit.trim()) { setHabits(p => [...p, { id: uid(), label: newHabit.trim(), days: DAYS.reduce((a, d) => ({ ...a, [d]: false }), {}) }]); setNewHabit(''); }}} style={{ display: 'flex', gap: 6, marginBottom: isMobile ? '0.85rem' : '1.25rem' }}>
                 <input style={{ ...inp, flex: 1 }} value={newHabit} onChange={e => setNewHabit(e.target.value)} placeholder="Yeni alışkanlık ekle (ör: Paragraf Çöz, Erken Kalk)..." />
-                <button type="submit" style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.6rem 1.15rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Plus size={16} /> Ekle
+                <button type="submit" style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.65rem', padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.15rem', fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.84rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <Plus size={15} /> Ekle
                 </button>
               </form>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', minWidth: 500 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Alışkanlık</th>
-                      <th style={{ textAlign: 'center', padding: '0.5rem', fontWeight: 800, fontSize: '0.75rem', color: '#ea580c', width: 95 }}>Seri / Zincir</th>
-                      {weekDates.map(w => (
-                        <th
-                          key={w.dayName}
-                          style={{
-                            textAlign: 'center', width: 55, padding: '0.35rem 0.2rem',
-                            background: w.isToday ? 'rgba(234, 88, 12, 0.15)' : 'transparent',
-                            borderRadius: w.isToday ? '0.5rem 0.5rem 0 0' : '0'
-                          }}
-                        >
-                          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: w.isToday ? '#f97316' : 'var(--color-text-muted, #475569)' }}>{w.dayName}</div>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: w.isToday ? '#ea580c' : 'var(--color-text-muted, #94a3b8)' }}>{w.fullDateStr}</div>
-                        </th>
-                      ))}
-                      <th style={{ width: 35 }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {habits.map(h => {
-                      const streakInfo = calculateHabitStreak(h);
-                      const count = Object.values(h.days || {}).filter(Boolean).length;
+              {habits.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', padding: '2rem 1rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                  Henüz alışkanlık eklenmedi. Yukarıdan yeni bir alışkanlık ekleyerek zincirini başlat!
+                </div>
+              ) : isMobile ? (
+                /* Mobile Native Habit Cards View */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {habits.map(h => {
+                    const streakInfo = calculateHabitStreak(h);
+                    const count = Object.values(h.days || {}).filter(Boolean).length;
 
-                      return (
-                        <tr key={h.id}>
-                          <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderRight: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
-                              <button
-                                onClick={() => setSelectedMonthlyHabit(h)}
-                                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                                title="Aylık takvim ve detayını gör"
-                              >
-                                <span>{h.label}</span>
-                                <span style={{ fontSize: '0.7rem', color: '#818cf8', background: 'rgba(99, 102, 241, 0.15)', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>📅 Aylık</span>
-                              </button>
-                              {count === 7 && <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7</span>}
-                            </div>
-                          </td>
-
-                          {/* Seri Badgesi */}
-                          <td style={{ textAlign: 'center', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
+                    return (
+                      <div
+                        key={h.id}
+                        style={{
+                          background: 'var(--color-surface, #ffffff)',
+                          borderRadius: 14,
+                          padding: '0.75rem 0.85rem',
+                          border: '1.5px solid var(--color-border, #e2e8f0)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.65rem',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {/* Top Row: Habit Name, 7/7 Badge, Streak Pill, Monthly Calendar, Delete */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                             <button
+                              type="button"
                               onClick={() => setSelectedMonthlyHabit(h)}
                               style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.55rem', borderRadius: '1rem',
-                                background: streakInfo.currentStreak >= 3 ? 'rgba(234, 88, 12, 0.15)' : 'var(--color-surface, #f1f5f9)',
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                textAlign: 'left',
+                                fontWeight: 900,
+                                fontSize: '0.88rem',
+                                color: 'var(--color-text, #0f172a)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                minWidth: 0
+                              }}
+                            >
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.label}</span>
+                            </button>
+                            {count === 7 && (
+                              <span style={{ fontSize: '0.6rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.08rem 0.35rem', borderRadius: 99, fontWeight: 900, flexShrink: 0 }}>
+                                ⚡ 7/7
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMonthlyHabit(h)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                padding: '0.18rem 0.45rem',
+                                borderRadius: '99px',
+                                background: streakInfo.currentStreak >= 3 ? 'rgba(234, 88, 12, 0.15)' : 'var(--color-surface-hover, #f1f5f9)',
                                 color: streakInfo.currentStreak >= 3 ? '#f97316' : 'var(--color-text-muted, #64748b)',
-                                fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid rgba(234, 88, 12, 0.35)' : '1px solid var(--color-border, #e2e8f0)',
+                                fontWeight: 900,
+                                fontSize: '0.7rem',
+                                border: streakInfo.currentStreak >= 3 ? '1px solid rgba(234, 88, 12, 0.35)' : '1px solid var(--color-border, #e2e8f0)',
                                 cursor: 'pointer'
                               }}
                               title="Aylık takvimi incele"
                             >
                               🔥 {streakInfo.currentStreak} Gün
                             </button>
-                          </td>
 
-                          {/* Günlük Kutucuklar */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMonthlyHabit(h)}
+                              style={{
+                                background: 'rgba(99, 102, 241, 0.12)',
+                                border: '1px solid rgba(99, 102, 241, 0.3)',
+                                color: '#818cf8',
+                                borderRadius: 6,
+                                padding: '0.18rem 0.4rem',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                              title="Aylık takvim"
+                            >
+                              📅 Aylık
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setHabits(p => p.filter(x => x.id !== h.id))}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: 'var(--color-text-muted, #cbd5e1)',
+                                padding: 2,
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                              title="Sil"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 7 Days Grid Circles for Fast Touch Logging */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                          gap: 3,
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          padding: '0.4rem 0.25rem',
+                          borderRadius: 10,
+                          border: '1px solid var(--color-border, #f1f5f9)'
+                        }}>
                           {weekDates.map((w) => {
                             const d = w.dayName;
                             const isChecked = h.days?.[d];
                             const isToday = w.isToday;
 
                             return (
-                              <td key={d} style={{ textAlign: 'center', background: isToday ? 'rgba(234, 88, 12, 0.08)' : 'var(--color-surface-hover, #f8fafc)', border: isToday ? '1px solid #fb923c' : '1px solid var(--color-border, #e2e8f0)', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
+                              <div
+                                key={d}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: 2,
+                                  background: isToday ? 'rgba(234, 88, 12, 0.08)' : 'transparent',
+                                  padding: '0.2rem 0.05rem',
+                                  borderRadius: 6
+                                }}
+                              >
+                                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: isToday ? '#f97316' : 'var(--color-text-muted, #64748b)' }}>
+                                  {d}
+                                </span>
+                                <span style={{ fontSize: '0.55rem', fontWeight: 700, color: isToday ? '#ea580c' : 'var(--color-text-muted, #94a3b8)' }}>
+                                  {w.dateNum}
+                                </span>
                                 <button
+                                  type="button"
                                   onClick={() => toggleHabitDay(h.id, d, w.isoDate)}
                                   style={{
-                                    width: 32, height: 32, borderRadius: '50%',
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
                                     background: isChecked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--color-surface, white)',
-                                    border: isChecked ? 'none' : isToday ? '2px solid #fb923c' : '2px solid var(--color-border-input, #cbd5e1)',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 'auto',
-                                    transition: 'all 0.15s',
-                                    boxShadow: isChecked ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none'
+                                    border: isChecked ? 'none' : isToday ? '2px solid #fb923c' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isChecked ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none',
+                                    marginTop: 2
                                   }}
-                                  title={`${d} - ${w.fullDateStr}${isToday ? ' (Bugün)' : ''}`}
                                 >
-                                  {isChecked && <Check size={14} color="white" strokeWidth={3} />}
+                                  {isChecked && <Check size={13} color="white" strokeWidth={3} />}
                                 </button>
-                              </td>
+                              </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Desktop Table View */
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', minWidth: 500 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Alışkanlık</th>
+                        <th style={{ textAlign: 'center', padding: '0.5rem', fontWeight: 800, fontSize: '0.75rem', color: '#ea580c', width: 95 }}>Seri / Zincir</th>
+                        {weekDates.map(w => (
+                          <th
+                            key={w.dayName}
+                            style={{
+                              textAlign: 'center', width: 55, padding: '0.35rem 0.2rem',
+                              background: w.isToday ? 'rgba(234, 88, 12, 0.15)' : 'transparent',
+                              borderRadius: w.isToday ? '0.5rem 0.5rem 0 0' : '0'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: w.isToday ? '#f97316' : 'var(--color-text-muted, #475569)' }}>{w.dayName}</div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: w.isToday ? '#ea580c' : 'var(--color-text-muted, #94a3b8)' }}>{w.fullDateStr}</div>
+                          </th>
+                        ))}
+                        <th style={{ width: 35 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {habits.map(h => {
+                        const streakInfo = calculateHabitStreak(h);
+                        const count = Object.values(h.days || {}).filter(Boolean).length;
 
-                          <td style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', textAlign: 'center' }}>
-                            <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4 }} title="Sil">
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        return (
+                          <tr key={h.id}>
+                            <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderRight: 'none' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+                                <button
+                                  onClick={() => setSelectedMonthlyHabit(h)}
+                                  style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                  title="Aylık takvim ve detayını gör"
+                                >
+                                  <span>{h.label}</span>
+                                  <span style={{ fontSize: '0.7rem', color: '#818cf8', background: 'rgba(99, 102, 241, 0.15)', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>📅 Aylık</span>
+                                </button>
+                                {count === 7 && <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7</span>}
+                              </div>
+                            </td>
+
+                            {/* Seri Badgesi */}
+                            <td style={{ textAlign: 'center', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
+                              <button
+                                onClick={() => setSelectedMonthlyHabit(h)}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.55rem', borderRadius: '1rem',
+                                  background: streakInfo.currentStreak >= 3 ? 'rgba(234, 88, 12, 0.15)' : 'var(--color-surface, #f1f5f9)',
+                                  color: streakInfo.currentStreak >= 3 ? '#f97316' : 'var(--color-text-muted, #64748b)',
+                                  fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid rgba(234, 88, 12, 0.35)' : '1px solid var(--color-border, #e2e8f0)',
+                                  cursor: 'pointer'
+                                }}
+                                title="Aylık takvimi incele"
+                              >
+                                🔥 {streakInfo.currentStreak} Gün
+                              </button>
+                            </td>
+
+                            {/* Günlük Kutucuklar */}
+                            {weekDates.map((w) => {
+                              const d = w.dayName;
+                              const isChecked = h.days?.[d];
+                              const isToday = w.isToday;
+
+                              return (
+                                <td key={d} style={{ textAlign: 'center', background: isToday ? 'rgba(234, 88, 12, 0.08)' : 'var(--color-surface-hover, #f8fafc)', border: isToday ? '1px solid #fb923c' : '1px solid var(--color-border, #e2e8f0)', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
+                                  <button
+                                    onClick={() => toggleHabitDay(h.id, d, w.isoDate)}
+                                    style={{
+                                      width: 32, height: 32, borderRadius: '50%',
+                                      background: isChecked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--color-surface, white)',
+                                      border: isChecked ? 'none' : isToday ? '2px solid #fb923c' : '2px solid var(--color-border-input, #cbd5e1)',
+                                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 'auto',
+                                      transition: 'all 0.15s',
+                                      boxShadow: isChecked ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none'
+                                    }}
+                                    title={`${d} - ${w.fullDateStr}${isToday ? ' (Bugün)' : ''}`}
+                                  >
+                                    {isChecked && <Check size={14} color="white" strokeWidth={3} />}
+                                  </button>
+                                </td>
+                              );
+                            })}
+
+                            <td style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', textAlign: 'center' }}>
+                              <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4 }} title="Sil">
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </Card>
           </div>
         )}
