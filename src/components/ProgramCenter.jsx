@@ -2464,6 +2464,8 @@ export default function ProgramCenter({
   const todayKey = getTodayKey();
   const [selectedDayFilter, setSelectedDayFilter] = useState(() => getTodayKey()); // 'all' | 'Pzt' | 'Sal' | 'Çrş' | 'Prş' | 'Cum' | 'Cts' | 'Paz' (Varsayılan: Bugün)
   const [weeklySubView, setWeeklySubView] = useState('agenda'); // default 'agenda' (Liste / Ajanda görünümü)
+  const [collapsedAgendaDays, setCollapsedAgendaDays] = useState({});
+  const [expandedDayTasks, setExpandedDayTasks] = useState({});
   const navigate = useNavigate();
 
   const handlePrevDay = useCallback(() => {
@@ -3980,6 +3982,11 @@ export default function ProgramCenter({
                     const isDayToday = weekOffset === 0 && dayObj.day === todayKey;
                     const items = dayObj.items || [];
                     const doneCount = items.filter(it => it.done).length;
+                    const isDayCollapsed = !!collapsedAgendaDays[dayObj.day];
+                    const isShowAllTasks = !!expandedDayTasks[dayObj.day] || !isMobile;
+                    const MAX_AGENDA_ITEMS = 3;
+                    const shouldShowMoreBtn = isMobile && items.length > MAX_AGENDA_ITEMS;
+                    const visibleItems = (shouldShowMoreBtn && !isShowAllTasks) ? items.slice(0, MAX_AGENDA_ITEMS) : items;
 
                     return (
                       <div key={dayObj.day} style={{
@@ -3987,19 +3994,25 @@ export default function ProgramCenter({
                         border: isDayToday ? (isDark ? '2px solid #818cf8' : '2px solid #6366f1') : (isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e2e8f0'),
                         borderRadius: '1.15rem',
                         overflow: 'hidden',
-                        boxShadow: isDayToday ? '0 4px 20px rgba(99,102,241,0.15)' : '0 2px 10px rgba(0,0,0,0.03)'
+                        boxShadow: isDayToday ? '0 4px 20px rgba(99,102,241,0.15)' : '0 2px 10px rgba(0,0,0,0.03)',
+                        transition: 'all 0.2s ease'
                       }}>
-                        {/* Day Row Header */}
-                        <div style={{
-                          padding: '0.75rem 1.1rem',
-                          background: isDayToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: 6
-                        }}>
+                        {/* Day Row Header - Tap to collapse/expand entire day */}
+                        <div
+                          onClick={() => setCollapsedAgendaDays(p => ({ ...p, [dayObj.day]: !p[dayObj.day] }))}
+                          style={{
+                            padding: '0.75rem 1.1rem',
+                            background: isDayToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 6,
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                          }}
+                        >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
                               {dayObj.dateLabel ? `${dayObj.dateLabel} - ` : ''}{dayMeta.long}
@@ -4016,7 +4029,10 @@ export default function ProgramCenter({
                             </span>
                             <button
                               type="button"
-                              onClick={() => setAddingToDay(dayObj.day)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAddingToDay(dayObj.day);
+                              }}
                               style={{
                                 background: 'rgba(255,255,255,0.25)',
                                 color: '#ffffff',
@@ -4033,169 +4049,231 @@ export default function ProgramCenter({
                             >
                               <Plus size={12} /> Görev Ekle
                             </button>
+                            <span style={{ color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center' }}>
+                              {isDayCollapsed ? <ChevronDown size={17} /> : <ChevronUp size={17} />}
+                            </span>
                           </div>
                         </div>
 
                         {/* Tasks List */}
-                        <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {items.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '1rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>
-                              Bu gün için kayıtlı görev bulunmuyor.
-                            </div>
-                          ) : (
-                            items.map(item => {
-                              const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                              const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+                        {!isDayCollapsed && (
+                          <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {items.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '1rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                                Bu gün için kayıtlı görev bulunmuyor.
+                              </div>
+                            ) : (
+                              <>
+                                {visibleItems.map(item => {
+                                  const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                                  const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
 
-                              return (
-                                <div
-                                  key={item.id}
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: isMobile ? 'column' : 'row',
-                                    alignItems: isMobile ? 'stretch' : 'center',
-                                    justifyContent: 'space-between',
-                                    gap: isMobile ? 8 : 10,
-                                    padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
-                                    borderRadius: '0.85rem',
-                                    background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
-                                    border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0')
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleToggle(dayObj.day, item.id)}
+                                  return (
+                                    <div
+                                      key={item.id}
                                       style={{
-                                        width: 22,
-                                        height: 22,
-                                        marginTop: 2,
-                                        borderRadius: 6,
-                                        border: item.done ? 'none' : '1.5px solid #94a3b8',
-                                        background: item.done ? '#22c55e' : 'transparent',
+                                        display: 'flex',
+                                        flexDirection: isMobile ? 'column' : 'row',
+                                        alignItems: isMobile ? 'stretch' : 'center',
+                                        justifyContent: 'space-between',
+                                        gap: isMobile ? 8 : 10,
+                                        padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
+                                        borderRadius: '0.85rem',
+                                        background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
+                                        border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0')
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggle(dayObj.day, item.id)}
+                                          style={{
+                                            width: 22,
+                                            height: 22,
+                                            marginTop: 2,
+                                            borderRadius: 6,
+                                            border: item.done ? 'none' : '1.5px solid #94a3b8',
+                                            background: item.done ? '#22c55e' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            padding: 0,
+                                            flexShrink: 0
+                                          }}
+                                        >
+                                          {item.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                                        </button>
+
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                            {item.taskType && (
+                                              <span style={{
+                                                fontSize: '0.62rem',
+                                                fontWeight: 800,
+                                                color: tt?.color || '#6366f1',
+                                                background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
+                                                padding: '1px 6px',
+                                                borderRadius: 5,
+                                                border: `1px solid ${tt?.color || '#6366f1'}33`,
+                                                flexShrink: 0
+                                              }}>
+                                                {tt?.label}
+                                              </span>
+                                            )}
+                                            <span style={{
+                                              fontSize: '0.84rem',
+                                              fontWeight: 800,
+                                              color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                              textDecoration: item.done ? 'line-through' : 'none',
+                                              wordBreak: 'break-word'
+                                            }}>
+                                              {item.bookName || item.subject}
+                                            </span>
+                                          </div>
+                                          {item.topic && (
+                                            <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
+                                              📌 {item.topic}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        padding: 0,
-                                        flexShrink: 0
-                                      }}
-                                    >
-                                      {item.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
-                                    </button>
-
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                        {item.taskType && (
-                                          <span style={{
-                                            fontSize: '0.62rem',
-                                            fontWeight: 800,
-                                            color: tt?.color || '#6366f1',
-                                            background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
-                                            padding: '1px 6px',
-                                            borderRadius: 5,
-                                            border: `1px solid ${tt?.color || '#6366f1'}33`,
-                                            flexShrink: 0
-                                          }}>
-                                            {tt?.label}
+                                        justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                                        gap: 6,
+                                        flexWrap: 'wrap',
+                                        paddingLeft: isMobile ? 31 : 0
+                                      }}>
+                                        {item.questionCount && (
+                                          <span style={{ fontSize: '0.7rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700 }}>
+                                            ✏️ {item.questionCount}
                                           </span>
                                         )}
-                                        <span style={{
-                                          fontSize: '0.84rem',
-                                          fontWeight: 800,
-                                          color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                          textDecoration: item.done ? 'line-through' : 'none',
-                                          wordBreak: 'break-word'
-                                        }}>
-                                          {item.bookName || item.subject}
-                                        </span>
+                                        {!item.done && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleStartInStudyRoom(item)}
+                                            style={{
+                                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                              color: '#ffffff',
+                                              border: 'none',
+                                              borderRadius: 8,
+                                              padding: '0.35rem 0.65rem',
+                                              fontSize: '0.72rem',
+                                              fontWeight: 900,
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 3,
+                                              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
+                                            }}
+                                            title="Bu görevi Çalışma Odası'na aktar ve hazırla"
+                                          >
+                                            <Play size={11} fill="#ffffff" /> Odada Çalış
+                                          </button>
+                                        )}
+                                        {isQuizTask && !item.done && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenTaskResult(item)}
+                                            style={{
+                                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                              color: '#ffffff',
+                                              border: 'none',
+                                              borderRadius: 8,
+                                              padding: '0.35rem 0.65rem',
+                                              fontSize: '0.72rem',
+                                              fontWeight: 900,
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 3,
+                                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
+                                            }}
+                                          >
+                                            <PlayCircle size={13} /> Çöz
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDelete(dayObj.day, item.id)}
+                                          style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#94a3b8',
+                                            cursor: 'pointer',
+                                            padding: 4
+                                          }}
+                                          title="Görevi Sil"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
                                       </div>
-                                      {item.topic && (
-                                        <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
-                                          📌 {item.topic}
-                                        </div>
-                                      )}
                                     </div>
-                                  </div>
+                                  );
+                                })}
 
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                                    gap: 6,
-                                    flexWrap: 'wrap',
-                                    paddingLeft: isMobile ? 31 : 0
-                                  }}>
-                                    {item.questionCount && (
-                                      <span style={{ fontSize: '0.7rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700 }}>
-                                        ✏️ {item.questionCount}
-                                      </span>
+                                {shouldShowMoreBtn && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedDayTasks(prev => ({ ...prev, [dayObj.day]: !prev[dayObj.day] }))}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem 0.85rem',
+                                      borderRadius: '0.75rem',
+                                      background: isDark
+                                        ? (isShowAllTasks ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))')
+                                        : (isShowAllTasks ? '#f1f5f9' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)'),
+                                      border: isDark
+                                        ? '1px solid rgba(255,255,255,0.12)'
+                                        : (isShowAllTasks ? '1px solid #cbd5e1' : '1.5px dashed #a5b4fc'),
+                                      color: isDark ? '#a5b4fc' : '#4f46e5',
+                                      fontWeight: 900,
+                                      fontSize: '0.74rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: 6,
+                                      marginTop: 4,
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                  >
+                                    {isShowAllTasks ? (
+                                      <>
+                                        <ChevronUp size={14} /> ▲ Daha Az Göster (Kapat)
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown size={14} /> ▼ Diğer {items.length - MAX_AGENDA_ITEMS} Görevi Göster (Aç)
+                                      </>
                                     )}
-                                    {!item.done && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleStartInStudyRoom(item)}
-                                        style={{
-                                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                          color: '#ffffff',
-                                          border: 'none',
-                                          borderRadius: 8,
-                                          padding: '0.35rem 0.65rem',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 900,
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 3,
-                                          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
-                                        }}
-                                        title="Bu görevi Çalışma Odası'na aktar ve hazırla"
-                                      >
-                                        <Play size={11} fill="#ffffff" /> Odada Çalış
-                                      </button>
-                                    )}
-                                    {isQuizTask && !item.done && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenTaskResult(item)}
-                                        style={{
-                                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                                          color: '#ffffff',
-                                          border: 'none',
-                                          borderRadius: 8,
-                                          padding: '0.35rem 0.65rem',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 900,
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 3,
-                                          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
-                                        }}
-                                      >
-                                        <PlayCircle size={13} /> Çöz
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDelete(dayObj.day, item.id)}
-                                      style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: '#94a3b8',
-                                        cursor: 'pointer',
-                                        padding: 4
-                                      }}
-                                      title="Görevi Sil"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        {isDayCollapsed && (
+                          <div
+                            onClick={() => setCollapsedAgendaDays(p => ({ ...p, [dayObj.day]: false }))}
+                            style={{
+                              padding: '0.65rem 1rem',
+                              textAlign: 'center',
+                              color: isDark ? '#94a3b8' : '#64748b',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                            }}
+                          >
+                            📌 Bu gün için {items.length} görev kayıtlı · Görmek için dokunun
+                          </div>
+                        )}
                       </div>
                     );
                   })}
