@@ -804,32 +804,232 @@ export default function StudyRoomPage() {
     return taskList;
   }, [homeworks, books, bookTests, submissions, coachingProfile, studyPlans, studyAssignments, currentUser, studentIdStr, studentUuidStr, weekDayDateMap, WEEK_DAYS_CONFIG]);
 
-  // Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Tekilleştirilmiş ve Sıralı)
+  // Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Birebir Ders Programı ile Özdeş)
   const weeklyProgramGrouped = useMemo(() => {
+    const weeklyProg = coachingProfile?.weeklyProgram || [];
+    const studentHws = (homeworks || []).filter(hw => {
+      if (!hw || !currentUser) return false;
+      if (hw.studentId === currentUser.id || hw.student_id === currentUser.id) return true;
+      if (studentUuidStr && (hw.studentId === studentUuidStr || hw.student_id === studentUuidStr)) return true;
+      if (Array.isArray(hw.targetIds)) {
+        if (hw.targetIds.includes(currentUser.id) || (studentUuidStr && hw.targetIds.includes(studentUuidStr))) return true;
+        if (hw.targetIds.some(tid => String(tid) === studentIdStr || (studentUuidStr && String(tid) === studentUuidStr))) return true;
+      }
+      return false;
+    });
+    const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(currentUser.id) || toUUID(a.studentId) === studentUuidStr);
+
     return WEEK_DAYS_CONFIG.map(dayCfg => {
       const dayTasks = [];
       const seenDayTaskKeys = new Set();
       const dayInfo = weekDayDateMap[dayCfg.key] || {};
 
-      allAssignedTasks.forEach(task => {
-        const isMatchDay = task.dayKey === dayCfg.key || 
-                           task.dayName === dayCfg.long || 
-                           (dayInfo.ymd && task.dueDate && String(task.dueDate).startsWith(dayInfo.ymd));
+      // 1. Koçluk / Ders Programındaki Manuel Öğeler (Sadece bu güne ait olanlar)
+      const dayProgObj = weeklyProg.find(d => resolveDayKey(d.day) === dayCfg.key);
+      const progItems = dayProgObj?.items || [];
 
-        if (isMatchDay) {
-          const dedupeKey = task.bookTestId 
-            ? `bt_${task.bookTestId}` 
-            : task.hwId 
-            ? `hw_${task.hwId}` 
-            : task.roadmapTargetId 
-            ? `roadmap_${task.roadmapAssignmentId || ''}_${task.roadmapTargetId}`
-            : (task.dedupeKey || task.id);
+      progItems.forEach((item, idx) => {
+        const dedupeKey = `prog_${dayCfg.key}_${item.id || idx}_${item.text || item.topic}`;
+        if (!seenDayTaskKeys.has(dedupeKey)) {
+          seenDayTaskKeys.add(dedupeKey);
+          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
+          const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
+          const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
 
-          if (!seenDayTaskKeys.has(dedupeKey)) {
-            seenDayTaskKeys.add(dedupeKey);
-            dayTasks.push(task);
+          dayTasks.push({
+            id: dedupeKey,
+            dedupeKey,
+            title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
+            subtitle: `${dayCfg.long} Programı`,
+            dayName: dayCfg.long,
+            dayKey: dayCfg.key,
+            subject: item.subject || matchedBook?.subject || 'Genel',
+            unit: item.unit || matchedBookTest?.unit || '',
+            topic: item.topic || item.text || matchedBookTest?.topic || '',
+            questionCount: qCount,
+            sourceType: matchedBookTest ? 'bookTest' : 'program',
+            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            bookTestId: matchedBookTest?.id || item.bookTestId,
+            realTestId: matchedBookTest?.id || item.realTestId || item.testId,
+            bookTitle: matchedBook?.title,
+            testName: matchedBookTest?.name || matchedBookTest?.title,
+            isCompleted: isSolved,
+            programItem: item
+          });
+        }
+      });
+
+      // 2. Bu Güne Özel Olarak Atanmış Kitap Testleri (hw.testDueDates)
+      studentHws.forEach(hw => {
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.id));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .trim();
+
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object') {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const targetDayKey = resolveDayKey(tDateStr);
+            const isMatchDate = (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd)) || (targetDayKey === dayCfg.key);
+
+            if (isMatchDate) {
+              const dedupeKey = `bt_${testId}`;
+              if (!seenDayTaskKeys.has(dedupeKey)) {
+                seenDayTaskKeys.add(dedupeKey);
+                const bt = (bookTests || []).find(b => String(b.id) === String(testId));
+                const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
+                const isSolved = checkIsTaskSolved({ testId: testId, bookTestId: testId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
+
+                dayTasks.push({
+                  id: dedupeKey,
+                  dedupeKey,
+                  title: `${cleanBookTitle} — ${bt?.name || bt?.title || 'Test'}`,
+                  subtitle: `${dayCfg.long} Kitap Testi`,
+                  dayName: dayCfg.long,
+                  dayKey: dayCfg.key,
+                  subject: bt?.subject || hw.subject || bookObj?.subject || 'Genel',
+                  unit: bt?.unit || bt?.unitName || '',
+                  topic: bt?.topic || bt?.topicName || '',
+                  questionCount: qCount,
+                  dueDate: tDateStr,
+                  sourceType: 'bookTest',
+                  sourceLabel: '📚 Kitap Testi',
+                  bookTestId: testId,
+                  realTestId: testId,
+                  bookId: bookObj?.id || hw.bookId,
+                  bookTitle: cleanBookTitle,
+                  testName: bt?.name || bt?.title,
+                  isCompleted: isSolved,
+                  isBookAssignment: true
+                });
+              }
+            }
+          });
+        } else if (!isBook && hw.dueDate) {
+          const hwDayKey = resolveDayKey(hw.dueDate);
+          const isDateMatch = (dayInfo.ymd && hw.dueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
+
+          if (isDateMatch) {
+            const dedupeKey = `hw_${hw.id}`;
+            if (!seenDayTaskKeys.has(dedupeKey)) {
+              seenDayTaskKeys.add(dedupeKey);
+              const qCount = Number(hw.questionCount || hw.totalQuestions) || 12;
+              const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
+
+              dayTasks.push({
+                id: dedupeKey,
+                dedupeKey,
+                title: hw.title || 'Ödev Görevi',
+                subtitle: `${dayCfg.long} Ödevi`,
+                dayName: dayCfg.long,
+                dayKey: dayCfg.key,
+                subject: hw.subject || 'Genel',
+                unit: hw.unit || '',
+                topic: hw.topic || '',
+                questionCount: qCount,
+                dueDate: hw.dueDate,
+                sourceType: 'homework',
+                sourceLabel: '📝 Atanmış Ödev',
+                realTestId: hw.realTestId || hw.testId || hw.id,
+                isCompleted: isSolved
+              });
+            }
           }
         }
+      });
+
+      // 3. Bu Güne Ait Yol Haritası Konuları (studyAssignments)
+      studentAssignments.forEach(assignment => {
+        if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+        if (!plan) return;
+
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+        } else if (typeof assignment.topic === 'string') {
+          try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+        }
+        const completedTopicsSet = new Set(compTopics.map(String));
+
+        (plan.subjects || []).forEach(subject => {
+          const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+          const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+          if (!hasChildTopics && subject.dueDate) {
+            const sDayKey = resolveDayKey(subject.dueDate);
+            const isMatch = (dayInfo.ymd && subject.dueDate.startsWith(dayInfo.ymd)) || (sDayKey === dayCfg.key);
+            if (isMatch) {
+              const subId = `roadmap_sub_${assignment.id}_${subject.id}`;
+              if (!seenDayTaskKeys.has(subId)) {
+                seenDayTaskKeys.add(subId);
+                dayTasks.push({
+                  id: subId,
+                  dedupeKey: subId,
+                  roadmapAssignmentId: assignment.id,
+                  roadmapPlanId: plan.id,
+                  roadmapSubjectId: subject.id,
+                  roadmapSubjectName: subject.name,
+                  roadmapTargetId: subject.id,
+                  isRoadmapTask: true,
+                  sourceType: 'roadmap',
+                  sourceLabel: '🗺️ Yol Haritası',
+                  subject: subject.name || plan.title || 'Genel',
+                  topic: subject.name,
+                  title: `${plan.title} • ${subject.name}`,
+                  subtitle: `${dayCfg.long} Yol Haritası`,
+                  dayName: dayCfg.long,
+                  dayKey: dayCfg.key,
+                  questionCount: 0,
+                  dueDate: subject.dueDate,
+                  isCompleted: isSubjectCompleted
+                });
+              }
+            }
+          }
+
+          (subject.topics || []).forEach(topic => {
+            if (topic.dueDate) {
+              const tDayKey = resolveDayKey(topic.dueDate);
+              const isMatch = (dayInfo.ymd && topic.dueDate.startsWith(dayInfo.ymd)) || (tDayKey === dayCfg.key);
+              if (isMatch) {
+                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+                const topId = `roadmap_top_${assignment.id}_${topic.id}`;
+                if (!seenDayTaskKeys.has(topId)) {
+                  seenDayTaskKeys.add(topId);
+                  dayTasks.push({
+                    id: topId,
+                    dedupeKey: topId,
+                    roadmapAssignmentId: assignment.id,
+                    roadmapPlanId: plan.id,
+                    roadmapTopicId: topic.id,
+                    roadmapTopicName: topic.name,
+                    roadmapSubjectId: subject.id,
+                    roadmapSubjectName: subject.name,
+                    roadmapTargetId: topic.id,
+                    isRoadmapTask: true,
+                    sourceType: 'roadmap',
+                    sourceLabel: '🗺️ Yol Haritası',
+                    subject: subject.name || plan.title || 'Genel',
+                    topic: topic.name,
+                    title: `${plan.title} • ${topic.name}`,
+                    subtitle: `${dayCfg.long} Yol Haritası`,
+                    dayName: dayCfg.long,
+                    dayKey: dayCfg.key,
+                    questionCount: 0,
+                    dueDate: topic.dueDate,
+                    isCompleted
+                  });
+                }
+              }
+            }
+          });
+        });
       });
 
       return {
@@ -840,7 +1040,7 @@ export default function StudyRoomPage() {
         completedCount: dayTasks.filter(t => t.isCompleted).length
       };
     });
-  }, [allAssignedTasks, WEEK_DAYS_CONFIG, weekDayDateMap]);
+  }, [coachingProfile, homeworks, studyAssignments, studyPlans, books, bookTests, submissions, currentUser, studentIdStr, studentUuidStr, WEEK_DAYS_CONFIG, weekDayDateMap]);
 
   // Kitap Testlerini Kitap Bazında Gruplama
   const bookGroupedTests = useMemo(() => {
@@ -5328,7 +5528,11 @@ export default function StudyRoomPage() {
               marginBottom: isMobile ? 8 : 12
             }}>
               {[
-                { id: 'program', label: '📅 Program (Aç ↗)', isNav: true },
+                { 
+                  id: 'program', 
+                  label: '📅 Program', 
+                  count: weeklyProgramGrouped.reduce((acc, g) => acc + (hideCompletedTasks ? (g.tasks || []).filter(t => !t.isCompleted).length : (g.tasks || []).length), 0) 
+                },
                 { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.filter(t => (!hideCompletedTasks || !t.isCompleted)).length }
@@ -5338,26 +5542,15 @@ export default function StudyRoomPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => {
-                      if (tab.id === 'program' || tab.isNav) {
-                        setShowHomeworkPickerModal(false);
-                        navigate('/student/program');
-                      } else {
-                        setHwSourceTab(tab.id);
-                      }
-                    }}
+                    onClick={() => setHwSourceTab(tab.id)}
                     style={{
                       padding: isMobile ? '0.6rem 0.5rem' : '0.75rem 0.85rem',
                       borderRadius: 10,
                       border: 'none',
-                      background: tab.id === 'program'
-                        ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
-                        : isTabActive
-                          ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
-                          : 'transparent',
-                      color: (tab.id === 'program' || isTabActive) ? '#ffffff' : 'var(--color-text)',
+                      background: isTabActive ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
+                      color: isTabActive ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.8rem' : '0.92rem',
+                      fontSize: isMobile ? '0.82rem' : '0.94rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -5365,22 +5558,20 @@ export default function StudyRoomPage() {
                       gap: 6,
                       transition: 'all 0.15s ease',
                       whiteSpace: 'nowrap',
-                      boxShadow: (tab.id === 'program' || isTabActive) ? '0 3px 10px rgba(59,130,246,0.35)' : 'none'
+                      boxShadow: isTabActive ? '0 3px 10px rgba(59,130,246,0.35)' : 'none'
                     }}
                   >
                     <span>{tab.label}</span>
-                    {tab.count !== undefined && (
-                      <span style={{
-                        fontSize: isMobile ? '0.7rem' : '0.78rem',
-                        fontWeight: 900,
-                        background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
-                        color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
-                        padding: isMobile ? '2px 6px' : '2px 8px',
-                        borderRadius: 99
-                      }}>
-                        {tab.count}
-                      </span>
-                    )}
+                    <span style={{
+                      fontSize: isMobile ? '0.7rem' : '0.78rem',
+                      fontWeight: 900,
+                      background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
+                      color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
+                      padding: isMobile ? '2px 6px' : '2px 8px',
+                      borderRadius: 99
+                    }}>
+                      {tab.count}
+                    </span>
                   </button>
                 );
               })}
