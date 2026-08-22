@@ -41,34 +41,39 @@ export default function SingleMultipleChoiceReview({
 
   const totalQuestions = questions.length || answers.length || 1;
 
-  // Recompute stats live from userAnswer vs correctAnswer (never trust stale DB isCorrect)
+  // Recompute stats live and build synchronized maps
+  const isCorrectMap = {};
+  const correctAnswersArray = [];
   let correctCount = 0;
   let wrongCount = 0;
-  if (Array.isArray(questions) && questions.length > 0) {
-    questions.forEach((q, idx) => {
-      const qNo = idx + 1;
-      const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
-      const uAns = answersMap[qNo] ?? ansObj.userAnswer;
-      const cAns = ansObj.correctAnswer ?? q.correctAnswer ?? test.answerKey?.[idx];
-      const normU = normalizeAns(uAns);
-      const normC = normalizeAns(cAns);
 
-      if (normU === null) return; // blank — skip
+  for (let idx = 0; idx < totalQuestions; idx++) {
+    const qNo = idx + 1;
+    const q = (Array.isArray(questions) ? questions[idx] : null) || {};
+    const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
+    const uAns = answersMap[qNo] ?? ansObj.userAnswer;
+    const cAns = ansObj.correctAnswer ?? ansObj.correctAnswerLetter ?? q.correctAnswer ?? q.answer ?? q.correctOption ?? test.answerKey?.[idx];
+    const normU = normalizeAns(uAns);
+    const normC = normalizeAns(cAns);
 
+    const isBlank = normU === null;
+    let isCorr = null;
+
+    if (!isBlank) {
       if (normC !== null && normC !== undefined) {
-        if (normU === normC) correctCount++;
-        else wrongCount++;
-      } else {
-        // No answer key available — fall back to stored isCorrect
-        if (ansObj.isCorrect === true) correctCount++;
-        else if (ansObj.isCorrect === false) wrongCount++;
+        isCorr = (normU === normC);
+      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+        isCorr = ansObj.isCorrect;
       }
-    });
-  } else {
-    // No questions list — fall back to DB counts
-    correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a?.isCorrect === true).length : 0);
-    wrongCount   = submission.wrongCount   ?? (Array.isArray(answers) ? answers.filter(a => a?.isCorrect === false && a?.userAnswer != null && a?.userAnswer !== '' && a?.userAnswer !== 'empty').length : 0);
+    }
+
+    if (isCorr === true) correctCount++;
+    else if (isCorr === false) wrongCount++;
+
+    isCorrectMap[qNo] = isCorr;
+    correctAnswersArray.push(normC);
   }
+
   const blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
   const score      = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
   const rawNet     = Math.max(0, correctCount - wrongCount * 0.25);
@@ -219,19 +224,13 @@ export default function SingleMultipleChoiceReview({
           defaultOpenOnMobile={false}
           documentContent={
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {questions.map((q, idx) => {
+              {Array.from({ length: totalQuestions }).map((_, idx) => {
                 const qNo = idx + 1;
-                const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
-                const uAns = answersMap[qNo] ?? ansObj.userAnswer;
-                const cAns = ansObj.correctAnswer ?? q.correctAnswer ?? test.answerKey?.[idx];
+                const q = (Array.isArray(questions) ? questions[idx] : null) || {};
+                const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
                 const normU = normalizeAns(uAns);
-                const normC = normalizeAns(cAns);
-                const isBlank = normU === null;
-                const isCorrect = isBlank
-                  ? null  // never mark blank as wrong
-                  : (normC !== null && normC !== undefined
-                      ? normU === normC
-                      : (ansObj.isCorrect ?? null));
+                const normC = correctAnswersArray[idx];
+                const isCorrect = isCorrectMap[qNo];
 
                 return (
                   <MultipleChoiceReview
@@ -255,6 +254,9 @@ export default function SingleMultipleChoiceReview({
               qCount={totalQuestions}
               answers={answersMap}
               resolvedQuestions={questions}
+              correctAnswers={correctAnswersArray}
+              isCorrectMap={isCorrectMap}
+              submissionAnswers={answers}
               testCtx={test}
               isReviewMode={true}
             />

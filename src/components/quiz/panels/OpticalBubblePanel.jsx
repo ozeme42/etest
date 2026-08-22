@@ -15,6 +15,8 @@ export default memo(function OpticalBubblePanel({
   isReviewMode = false,
   resolvedQuestions = [],
   correctAnswers = [],
+  isCorrectMap = {},
+  submissionAnswers = [],
   testCtx = {}
 }) {
   const totalCount = Math.max(qCount, resolvedQuestions.length, Array.isArray(correctAnswers) ? correctAnswers.length : 0, 1);
@@ -29,6 +31,44 @@ export default memo(function OpticalBubblePanel({
     return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
   };
 
+  const resolveEvaluation = (idx) => {
+    const qNo = idx + 1;
+    const userAns = normalizeAns(answers[qNo] ?? answers[String(qNo)]);
+    const hasAns = userAns !== null;
+    const q = resolvedQuestions[idx] || {};
+    const subAnsObj = (Array.isArray(submissionAnswers) ? submissionAnswers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || submissionAnswers[idx];
+
+    // Determine correct answer
+    let cAnsRaw = (Array.isArray(correctAnswers) && correctAnswers[idx] !== undefined)
+      ? correctAnswers[idx]
+      : (subAnsObj?.correctAnswer ?? subAnsObj?.correctAnswerLetter ?? q.correctAnswer ?? q.answer ?? q.correctOption ?? q.correctAnswerLetter ?? testCtx?.answerKey?.[idx]);
+
+    let correctAns = normalizeAns(cAnsRaw);
+    if (correctAns === null && Array.isArray(q.options)) {
+      const optIdx = q.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.correct === true));
+      if (optIdx !== -1) correctAns = optIdx;
+    }
+
+    // Determine isCorrect
+    let isCorrect = null;
+    if (isReviewMode && hasAns) {
+      if (isCorrectMap && isCorrectMap[qNo] !== undefined && isCorrectMap[qNo] !== null) {
+        isCorrect = isCorrectMap[qNo];
+      } else if (correctAns !== null && correctAns !== undefined) {
+        isCorrect = (userAns === correctAns);
+      } else if (subAnsObj?.isCorrect !== undefined && subAnsObj?.isCorrect !== null) {
+        isCorrect = subAnsObj.isCorrect;
+      } else if (q && Object.keys(q).length > 0) {
+        isCorrect = checkIsAnswerCorrect(userAns, q.raw || q, testCtx?.raw || testCtx, qNo);
+      } else if (cAnsRaw !== undefined && cAnsRaw !== null) {
+        const normC = normalizeAns(cAnsRaw);
+        isCorrect = normC !== null ? (userAns === normC) : null;
+      }
+    }
+
+    return { qNo, userAns, hasAns, correctAns, isCorrect };
+  };
+
   // Review stats
   const reviewStats = useMemo(() => {
     if (!isReviewMode) return null;
@@ -36,34 +76,19 @@ export default memo(function OpticalBubblePanel({
     let y = 0;
     let b = 0;
 
-    for (let i = 1; i <= totalCount; i++) {
-      const u = normalizeAns(answers[i] ?? answers[String(i)]);
-      const q = resolvedQuestions[i - 1] || {};
-      const cAns = (Array.isArray(correctAnswers) && correctAnswers[i - 1] !== undefined) ? correctAnswers[i - 1] : (q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[i - 1]);
-      let isCorr = null;
-
-      if (u !== null) {
-        if (q && Object.keys(q).length > 0) {
-          isCorr = checkIsAnswerCorrect(u, q.raw || q, testCtx?.raw || testCtx, i);
-        } else if (cAns !== undefined && cAns !== null) {
-          const normC = normalizeAns(cAns);
-          isCorr = normC !== null ? (u === normC) : null;
-        }
-      }
-
-      if (u === null) {
+    for (let i = 0; i < totalCount; i++) {
+      const { hasAns, isCorrect } = resolveEvaluation(i);
+      if (!hasAns) {
         b++;
-      } else if (isCorr === true) {
+      } else if (isCorrect === true) {
         d++;
-      } else if (isCorr === false) {
-        y++;
       } else {
-        d++;
+        y++;
       }
     }
     const successRate = totalCount > 0 ? Math.round((d / totalCount) * 100) : 0;
     return { d, y, b, successRate };
-  }, [isReviewMode, answers, resolvedQuestions, correctAnswers, totalCount, testCtx]);
+  }, [isReviewMode, answers, resolvedQuestions, correctAnswers, isCorrectMap, submissionAnswers, totalCount, testCtx]);
 
   const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
 
@@ -121,27 +146,7 @@ export default memo(function OpticalBubblePanel({
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {Array.from({ length: totalCount }).map((_, idx) => {
-            const qNo = idx + 1;
-            const userAns = normalizeAns(answers[qNo] ?? answers[String(qNo)]);
-            const hasAns = userAns !== null;
-            const q = resolvedQuestions[idx] || {};
-            const cAnsRaw = (Array.isArray(correctAnswers) && correctAnswers[idx] !== undefined) ? correctAnswers[idx] : (q.correctAnswer ?? q.answer ?? q.correctOption ?? testCtx?.answerKey?.[idx]);
-            
-            let isCorrect = null;
-            if (isReviewMode && hasAns) {
-              if (q && Object.keys(q).length > 0) {
-                isCorrect = checkIsAnswerCorrect(userAns, q.raw || q, testCtx?.raw || testCtx, qNo);
-              } else if (cAnsRaw !== undefined && cAnsRaw !== null) {
-                const normC = normalizeAns(cAnsRaw);
-                isCorrect = normC !== null ? (userAns === normC) : null;
-              }
-            }
-
-            let correctAns = normalizeAns(cAnsRaw);
-            if (correctAns === null && Array.isArray(q.options)) {
-              const optIdx = q.options.findIndex(o => typeof o === 'object' && o !== null && (o.isCorrect === true || o.correct === true));
-              if (optIdx !== -1) correctAns = optIdx;
-            }
+            const { qNo, userAns, hasAns, correctAns, isCorrect } = resolveEvaluation(idx);
 
             let rowBg = '#ffffff';
             let rowBorder = '1px solid #e2e8f0';
