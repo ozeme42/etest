@@ -5337,10 +5337,10 @@ export default function StudyRoomPage() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-              gap: 4,
+              gap: 6,
               background: 'var(--color-surface-hover, #f1f5f9)',
-              padding: 3,
-              borderRadius: 12,
+              padding: 4,
+              borderRadius: 14,
               marginBottom: 10
             }}>
               {[
@@ -5356,29 +5356,30 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => setHwSourceTab(tab.id)}
                     style={{
-                      padding: isMobile ? '0.4rem 0.3rem' : '0.55rem 0.4rem',
-                      borderRadius: 8,
+                      padding: isMobile ? '0.55rem 0.5rem' : '0.65rem 0.75rem',
+                      borderRadius: 10,
                       border: 'none',
-                      background: isTabActive ? '#3b82f6' : 'transparent',
+                      background: isTabActive ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
                       color: isTabActive ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.72rem' : '0.76rem',
+                      fontSize: isMobile ? '0.8rem' : '0.86rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 4,
+                      gap: 6,
                       transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      boxShadow: isTabActive ? '0 3px 10px rgba(59,130,246,0.35)' : 'none'
                     }}
                   >
                     <span>{tab.label}</span>
                     <span style={{
-                      fontSize: isMobile ? '0.6rem' : '0.66rem',
+                      fontSize: isMobile ? '0.68rem' : '0.72rem',
                       fontWeight: 900,
-                      background: isTabActive ? 'rgba(255,255,255,0.25)' : 'var(--color-border, #e2e8f0)',
+                      background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
                       color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
-                      padding: '0.05rem 0.3rem',
+                      padding: '2px 7px',
                       borderRadius: 99
                     }}>
                       {tab.count}
@@ -5391,30 +5392,33 @@ export default function StudyRoomPage() {
             {/* 1. GÖRÜNÜM: HAFTALIK DERS PROGRAMI (GÜN GÜN SEÇİM & LİSTE) */}
             {hwSourceTab === 'program' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
-                {/* Gün Seçici Yatay Çubuk */}
+                {/* Gün Seçici Yatay Çubuk (Genişletilmiş & Belirginleştirilmiş) */}
                 <div style={{
                   display: 'flex',
-                  gap: 5,
+                  gap: 7,
                   overflowX: 'auto',
-                  paddingBottom: 4,
-                  borderBottom: '1px solid var(--color-border, #e2e8f0)'
+                  padding: '4px 2px 10px',
+                  borderBottom: '1px solid var(--color-border, #e2e8f0)',
+                  scrollbarWidth: 'thin'
                 }}>
                   <button
                     type="button"
                     onClick={() => setSelectedProgramDay('all')}
                     style={{
-                      padding: '0.45rem 0.75rem',
-                      borderRadius: 10,
+                      padding: isMobile ? '0.6rem 0.95rem' : '0.65rem 1.15rem',
+                      borderRadius: 12,
                       border: `1.5px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
-                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff') : 'transparent',
+                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.22)' : '#eff6ff') : 'transparent',
                       color: selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: '0.75rem',
+                      fontSize: isMobile ? '0.84rem' : '0.9rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 6,
+                      boxShadow: selectedProgramDay === 'all' ? '0 3px 10px rgba(59,130,246,0.25)' : 'none',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <span>🌟 Tüm Hafta</span>
@@ -5434,39 +5438,55 @@ export default function StudyRoomPage() {
                         type="button"
                         onClick={() => setSelectedProgramDay(dayCfg.key)}
                         style={{
-                          padding: '0.45rem 0.75rem',
-                          borderRadius: 10,
+                          padding: isMobile ? '0.6rem 0.95rem' : '0.65rem 1.15rem',
+                          borderRadius: 12,
                           border: `1.5px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
                           background: isSelected
-                            ? (isDark ? 'rgba(59,130,246,0.2)' : dayCfg.bg)
+                            ? (isDark ? 'rgba(59,130,246,0.22)' : dayCfg.bg)
                             : isToday
-                              ? (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb')
+                              ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb')
                               : 'transparent',
                           color: isSelected ? dayCfg.color : 'var(--color-text)',
                           fontWeight: 900,
-                          fontSize: '0.75rem',
+                          fontSize: isMobile ? '0.84rem' : '0.9rem',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 5
+                          gap: 6,
+                          boxShadow: isSelected
+                            ? '0 3px 10px rgba(59,130,246,0.25)'
+                            : isToday
+                              ? '0 2px 8px rgba(245,158,11,0.2)'
+                              : 'none',
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        <span>{dayCfg.icon} {dayCfg.long}</span>
+                        <span style={{ fontSize: '0.95rem' }}>{dayCfg.icon}</span>
+                        <span>{dayCfg.long}</span>
                         {displayCount > 0 && (
                           <span style={{
-                            fontSize: '0.66rem',
+                            fontSize: isMobile ? '0.7rem' : '0.74rem',
                             fontWeight: 900,
                             background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
                             color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
-                            padding: '0.05rem 0.35rem',
+                            padding: '2px 7px',
                             borderRadius: 99
                           }}>
                             {displayCount}
                           </span>
                         )}
                         {isToday && (
-                          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.2)', padding: '0.05rem 0.3rem', borderRadius: 4 }}>
+                          <span style={{
+                            fontSize: '0.64rem',
+                            fontWeight: 900,
+                            color: '#ffffff',
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            padding: '2px 6px',
+                            borderRadius: 5,
+                            letterSpacing: '0.03em',
+                            boxShadow: '0 2px 6px rgba(245,158,11,0.3)'
+                          }}>
                             BUGÜN
                           </span>
                         )}
