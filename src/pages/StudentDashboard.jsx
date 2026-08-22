@@ -2787,67 +2787,169 @@ export default function StudentDashboard() {
       ════════════════════════════════════════════ */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* ── HIZLI KISAYOLLAR MOBİL KARTLARI / MENÜSÜ ── */}
+        {/* ── MODERN UYGULAMA İKONLARI HIZLI KISAYOL ŞERİDİ (iOS/Android App Style) ── */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)',
-            gap: isMobile ? '0.45rem' : '0.65rem',
-            marginBottom: isMobile ? '0.85rem' : '1.25rem',
-            width: '100%',
-            boxSizing: 'border-box'
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: isMobile ? '0.25rem' : '0.85rem',
+            padding: isMobile ? '0.75rem 0.35rem 0.65rem' : '0.9rem 1.25rem',
+            marginBottom: isMobile ? '0.9rem' : '1.35rem',
+            background: 'var(--color-surface, #ffffff)',
+            border: '1.5px solid var(--color-border, #e2e8f0)',
+            borderRadius: isMobile ? 18 : 22,
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+            boxSizing: 'border-box',
+            width: '100%'
           }}
         >
           {[
-            { label: '📋 Ödevlerim', shortLabel: '📋 Ödevler', badge: pendingCount > 0 ? pendingCount : null, badgeColor: '#ef4444', onClick: () => navigate('/student/homeworks') },
-            { label: '📅 Haftalık Program', shortLabel: '📅 Program', onClick: () => navigate('/my-program') },
-            { label: '📚 Kitaplarım', shortLabel: '📚 Kitaplar', badge: assignedBooksList.length || null, badgeColor: '#6366f1', onClick: () => navigate('/student/books') },
-            { label: '📊 Gelişim & Karne', shortLabel: '📊 Gelişim', onClick: () => navigate('/student/results') },
-            { label: '🎯 Hedeflerim', shortLabel: '🎯 Hedefler', badge: goalTrackingData.totalItemsCount || null, badgeColor: '#a855f7', onClick: () => navigate('/goals') },
-            { label: '➕ Test Ekle', shortLabel: '➕ Test Ekle', isAction: true, onClick: () => setIsManualTestModalOpen(true) },
-          ].map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={item.onClick}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-                padding: isMobile ? '0.55rem 0.3rem' : '0.5rem 0.95rem',
-                borderRadius: isMobile ? 12 : 99,
-                background: item.isAction ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--color-surface)',
-                border: item.isAction ? 'none' : '1.5px solid var(--color-border)',
-                color: item.isAction ? '#ffffff' : 'var(--color-text)',
-                fontSize: isMobile ? '0.72rem' : '0.78rem',
-                fontWeight: 800,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                boxShadow: item.isAction ? '0 2px 8px rgba(16,185,129,0.3)' : '0 1px 4px rgba(0,0,0,0.02)',
-                transition: 'all 0.15s ease',
-                position: 'relative',
-                minHeight: isMobile ? 44 : 'auto',
-                boxSizing: 'border-box'
-              }}
-            >
-              <span>{isMobile ? item.shortLabel : item.label}</span>
-              {item.badge !== null && item.badge !== undefined && (
-                <span style={{
-                  background: item.badgeColor,
-                  color: '#ffffff',
-                  fontSize: '0.6rem',
-                  fontWeight: 900,
-                  padding: '1px 5px',
-                  borderRadius: 99,
-                  lineHeight: 1.1,
-                  flexShrink: 0
-                }}>
-                  {item.badge}
+            {
+              id: 'homeworks',
+              label: 'Ödevler',
+              icon: ClipboardList,
+              gradient: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+              shadow: 'rgba(244, 63, 94, 0.35)',
+              badge: pendingCount > 0 ? pendingCount : null,
+              badgeBg: '#e11d48',
+              onClick: () => navigate('/student/homeworks')
+            },
+            {
+              id: 'program',
+              label: 'Program',
+              icon: CalendarDays,
+              gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              shadow: 'rgba(59, 130, 246, 0.35)',
+              badge: null,
+              onClick: () => navigate('/my-program')
+            },
+            {
+              id: 'books',
+              label: 'Kitaplar',
+              icon: BookOpen,
+              gradient: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+              shadow: 'rgba(139, 92, 246, 0.35)',
+              badge: assignedBooksList.length || null,
+              badgeBg: '#6366f1',
+              onClick: () => navigate('/student/books')
+            },
+            {
+              id: 'results',
+              label: 'Karne',
+              icon: BarChart3,
+              gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              shadow: 'rgba(245, 158, 11, 0.35)',
+              badge: null,
+              onClick: () => navigate('/student/results')
+            },
+            {
+              id: 'goals',
+              label: 'Hedefler',
+              icon: Target,
+              gradient: 'linear-gradient(135deg, #ec4899, #d946ef)',
+              shadow: 'rgba(236, 72, 153, 0.35)',
+              badge: goalTrackingData.totalItemsCount || null,
+              badgeBg: '#d946ef',
+              onClick: () => navigate('/goals')
+            },
+            {
+              id: 'add_test',
+              label: 'Test Ekle',
+              icon: Plus,
+              gradient: 'linear-gradient(135deg, #10b981, #059669)',
+              shadow: 'rgba(16, 185, 129, 0.35)',
+              badge: null,
+              onClick: () => setIsManualTestModalOpen(true)
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={item.onClick}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  minWidth: 0,
+                  userSelect: 'none',
+                  transition: 'transform 0.15s ease',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+              >
+                {/* App Squircle Icon */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: isMobile ? 42 : 50,
+                    height: isMobile ? 42 : 50,
+                    borderRadius: isMobile ? 13 : 16,
+                    background: item.gradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    boxShadow: `0 4px 12px ${item.shadow}`,
+                    marginBottom: isMobile ? 4 : 6,
+                    border: '1px solid rgba(255, 255, 255, 0.25)'
+                  }}
+                >
+                  <Icon size={isMobile ? 20 : 24} strokeWidth={2.4} />
+
+                  {/* Notification Badge on top right of icon */}
+                  {item.badge !== null && item.badge !== undefined && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: isMobile ? -4 : -5,
+                        right: isMobile ? -4 : -5,
+                        background: '#ffffff',
+                        color: item.badgeBg || '#e11d48',
+                        border: `2px solid ${item.badgeBg || '#e11d48'}`,
+                        fontSize: isMobile ? '0.58rem' : '0.65rem',
+                        fontWeight: 900,
+                        minWidth: isMobile ? 16 : 18,
+                        height: isMobile ? 16 : 18,
+                        borderRadius: 99,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 2px',
+                        lineHeight: 1,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.18)'
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* App Title Label */}
+                <span
+                  style={{
+                    fontSize: isMobile ? '0.65rem' : '0.74rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text, #0f172a)',
+                    lineHeight: 1.1,
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%'
+                  }}
+                >
+                  {item.label}
                 </span>
-              )}
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* ════════════════════════════════════════════
