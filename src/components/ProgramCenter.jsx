@@ -3497,7 +3497,7 @@ export default function ProgramCenter({
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: isMobile ? '0.45rem 0.3rem' : '0.55rem 0.3rem',
+                      padding: isMobile ? '0.45rem 0.35rem' : '0.55rem 0.35rem',
                       borderRadius: 14,
                       border: isSelected
                         ? `2px solid ${theme.badgeBg || '#6366f1'}`
@@ -3507,35 +3507,38 @@ export default function ProgramCenter({
                         : (isDayToday ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff')),
                       color: isSelected ? '#ffffff' : (isDayToday ? (isDark ? '#fcd34d' : '#b45309') : (isDark ? '#cbd5e1' : '#334155')),
                       cursor: 'pointer',
-                      minWidth: isMobile ? 54 : 46,
-                      flex: isMobile ? '0 0 54px' : '1',
+                      minWidth: isMobile ? 58 : 48,
+                      flex: isMobile ? '0 0 58px' : '1',
                       position: 'relative',
                       boxShadow: isSelected
                         ? '0 4px 14px rgba(0,0,0,0.18)'
                         : (isDayToday ? '0 2px 8px rgba(245,158,11,0.2)' : '0 2px 5px rgba(0,0,0,0.02)'),
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      boxSizing: 'border-box'
                     }}
                   >
-                    {isDayToday && (
-                      <span style={{
-                        position: 'absolute',
-                        top: -5,
-                        right: -3,
-                        background: '#f59e0b',
-                        color: '#ffffff',
-                        fontSize: '0.5rem',
-                        fontWeight: 900,
-                        padding: '0px 4px',
-                        borderRadius: 99,
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }}>
-                        BUGÜN
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 1 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.9 }}>
+                        {dayMeta.key}
                       </span>
-                    )}
+                      {isDayToday && (
+                        <span style={{
+                          background: isSelected ? 'rgba(255,255,255,0.3)' : '#f59e0b',
+                          color: '#ffffff',
+                          fontSize: '0.48rem',
+                          fontWeight: 900,
+                          padding: '1px 4px',
+                          borderRadius: 99,
+                          letterSpacing: '0.02em',
+                          lineHeight: 1,
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                        }}>
+                          BUGÜN
+                        </span>
+                      )}
+                    </div>
 
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.9 }}>
-                      {dayMeta.key}
-                    </span>
                     <span style={{ fontSize: '0.95rem', fontWeight: 900, marginTop: 1, lineHeight: 1.1 }}>
                       {dateNumber}
                     </span>
@@ -3550,7 +3553,8 @@ export default function ProgramCenter({
                         ? '#ffffff'
                         : (dayItemCount > 0 && dayDoneCount === dayItemCount ? (isDark ? '#34d399' : '#15803d') : (isDark ? '#94a3b8' : '#64748b')),
                       padding: '1px 5px',
-                      borderRadius: 99
+                      borderRadius: 99,
+                      whiteSpace: 'nowrap'
                     }}>
                       {dayItemCount > 0 ? `${dayDoneCount}/${dayItemCount}` : '0'}
                     </span>

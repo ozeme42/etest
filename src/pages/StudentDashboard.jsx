@@ -2770,13 +2770,24 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* 7-Day Week Buttons Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, 1fr)', gap: isMobile ? 3 : 8, width: '100%', boxSizing: 'border-box' }}>
+          {/* 7-Day Week Buttons Strip */}
+          <div style={{
+            display: isMobile ? 'flex' : 'grid',
+            gridTemplateColumns: isMobile ? 'none' : 'repeat(7, 1fr)',
+            gap: isMobile ? 6 : 8,
+            width: '100%',
+            boxSizing: 'border-box',
+            overflowX: isMobile ? 'auto' : 'visible',
+            paddingBottom: isMobile ? 4 : 0,
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}>
             {DAYS_OF_WEEK.map(day => {
               const isSelected = activeDayKey === day.key;
               const isCurrentToday = todayDayKey === day.key;
               const taskCount = weekTasksCountMap[day.key] || 0;
               const dayDate = weekInfo.dayDateMap[day.key];
+              const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';
 
               return (
                 <button
@@ -2787,57 +2798,78 @@ export default function StudentDashboard() {
                     background: isSelected
                       ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                       : isCurrentToday
-                      ? 'var(--color-surface-hover)'
+                      ? (isDark ? 'rgba(245,158,11,0.16)' : '#fffbeb')
                       : 'var(--color-surface)',
                     border: isSelected
                       ? '2px solid #6366f1'
                       : isCurrentToday
-                      ? '1.5px solid #6366f1'
+                      ? '2px solid #f59e0b'
                       : '1px solid var(--color-border)',
                     borderRadius: 12,
-                    padding: isMobile ? '0.45rem 0.1rem' : '0.7rem 0.5rem',
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#818cf8' : 'var(--color-text)',
+                    padding: isMobile ? '0.45rem 0.35rem' : '0.65rem 0.5rem',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 2,
-                    boxShadow: isSelected ? '0 6px 20px rgba(99, 102, 241, 0.35)' : 'none',
+                    gap: 3,
+                    boxShadow: isSelected
+                      ? '0 6px 20px rgba(99, 102, 241, 0.35)'
+                      : isCurrentToday
+                      ? '0 2px 8px rgba(245,158,11,0.18)'
+                      : 'none',
                     transition: 'all 0.15s ease',
-                    minWidth: 0,
-                    overflow: 'hidden'
+                    minWidth: isMobile ? 54 : 0,
+                    flex: isMobile ? '0 0 54px' : '1',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <span style={{ fontSize: isMobile ? '0.65rem' : '0.85rem', fontWeight: 900 }}>
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', fontWeight: 900 }}>
                     {day.short}
                   </span>
 
                   <span style={{
-                    fontSize: isMobile ? '0.52rem' : '0.72rem',
+                    fontSize: isMobile ? '0.65rem' : '0.72rem',
                     fontWeight: 800,
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#6366f1' : 'var(--color-text-muted, #64748b)',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted, #64748b)',
                     background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
-                    padding: isMobile ? '1px 2px' : '2px 6px',
+                    padding: '1px 5px',
                     borderRadius: 4,
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    maxWidth: '100%'
+                    lineHeight: 1.1
                   }}>
-                    {dayDate?.dateLabel || ''}
+                    {isMobile ? (dateNumber || dayDate?.dateLabel || '') : (dayDate?.dateLabel || '')}
                   </span>
 
                   {isCurrentToday ? (
-                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', fontWeight: 900, color: isSelected ? '#fde047' : '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{
+                      fontSize: '0.54rem',
+                      fontWeight: 900,
+                      color: isSelected ? '#ffffff' : '#d97706',
+                      background: isSelected ? 'rgba(0,0,0,0.25)' : (isDark ? 'rgba(245,158,11,0.3)' : '#fef3c7'),
+                      padding: '1px 4px',
+                      borderRadius: 4,
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.1
+                    }}>
                       ● Bugün
                     </span>
                   ) : taskCount > 0 ? (
-                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#6366f1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{
+                      fontSize: '0.56rem',
+                      fontWeight: 800,
+                      color: isSelected ? '#ffffff' : '#6366f1',
+                      background: isSelected ? 'rgba(255,255,255,0.2)' : (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff'),
+                      padding: '1px 4px',
+                      borderRadius: 4,
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.1
+                    }}>
                       {taskCount} g
                     </span>
                   ) : (
-                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', opacity: 0.4 }}>
+                    <span style={{ fontSize: '0.56rem', opacity: 0.4 }}>
                       -
                     </span>
                   )}
