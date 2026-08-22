@@ -196,7 +196,7 @@ export default function StudentCoachingPage() {
 
   const [saved, setSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('hedefler');
+  const [activeTab, setActiveTab] = useState('ozet');
 
   /* ── Hedeflerim ── */
   const [goals, setGoals] = useState({

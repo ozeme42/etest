@@ -252,7 +252,7 @@ export default function MyCoachingPage() {
 
   const [saved, setSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('hedefler');
+  const [activeTab, setActiveTab] = useState('ozet');
   const [expandedExams, setExpandedExams] = useState({});
   const [chartMetric, setChartMetric] = useState('Toplam Net');
 
