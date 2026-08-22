@@ -506,7 +506,7 @@ const textAns = openEndedText[qNo];
             </h2>
             {!isMobile && (
               <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', fontWeight: 700 }}>
-                {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
+                {isOpenEndedMode ? "Açık Uçlu / Yazılı Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
               </span>
             )}
           </div>

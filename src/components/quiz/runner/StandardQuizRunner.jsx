@@ -501,7 +501,7 @@ export default function StandardQuizRunner({ test, questions: initialQuestions, 
                 Soru {currentIndex + 1}
               </h3>
               {isOpenEndedMode && (
-                <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu</span>
+                <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(124, 58, 237, 0.15)', color: '#a855f7', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Açık Uçlu / Yazılı</span>
               )}
             </div>
 
