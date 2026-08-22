@@ -2115,58 +2115,92 @@ export default function MyCoachingPage() {
 
         {/* ═══ HEDEFLERİM & TAKİP PANOSU ═══ */}
         {activeTab === 'hedefler' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem', animation: 'fadeIn 0.2s ease' }}>
             
             {/* 1. ÜST HERO HEDEF KARTI */}
             <div style={{
               background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6d28d9 100%)',
-              borderRadius: 20, padding: '1.25rem 1.5rem', color: 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14,
-              boxShadow: '0 8px 24px rgba(49,46,129,0.22)', border: '1px solid rgba(255,255,255,0.2)'
+              borderRadius: isMobile ? 16 : 20,
+              padding: isMobile ? '0.95rem 0.85rem' : '1.25rem 1.5rem',
+              color: 'white',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: 'space-between',
+              gap: isMobile ? 10 : 14,
+              boxShadow: '0 8px 24px rgba(49,46,129,0.22)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
-                  {isGradeTracking ? (goals.gradeTarget === 'Onur' ? '⭐' : goals.gradeTarget === 'Takdir' ? '🏅' : '🎓') : '🏛️'}
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {goals.examGoalType || 'Hedef Planı'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14 }}>
+                  <div style={{
+                    width: isMobile ? 40 : 48,
+                    height: isMobile ? 40 : 48,
+                    borderRadius: isMobile ? 12 : 16,
+                    background: 'rgba(255,255,255,0.18)',
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: isMobile ? '1.25rem' : '1.5rem',
+                    flexShrink: 0
+                  }}>
+                    {isGradeTracking ? (goals.gradeTarget === 'Onur' ? '⭐' : goals.gradeTarget === 'Takdir' ? '🏅' : '🎓') : '🏛️'}
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'white', marginTop: 2 }}>
-                    {isGradeTracking
-                      ? `${goals.gradeClass || 'Sınıf Belirtilmedi'} · ${goals.gradeTerm === 'yıllık' ? 'Yıllık' : `${goals.gradeTerm}. Dönem`} · Hedef: ${goals.gradeTarget || 'Takdir'}`
-                      : (goals.targetSchool || 'Hedef Okul / Bölüm Belirtilmedi')
-                    }
-                  </div>
-                  {(goals.targetScore || goals.targetNet) && !isGradeTracking && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                      {goals.targetScore && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.65rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800 }}>🏆 Hedef Puan: {goals.targetScore}</span>}
-                      {goals.targetNet && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.65rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800 }}>🎯 Hedef Net: {goals.targetNet}</span>}
+                  <div>
+                    <div style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {goals.examGoalType || 'Hedef Planı'}
                     </div>
-                  )}
+                    <div style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: 'white', marginTop: 1, lineHeight: 1.2 }}>
+                      {isGradeTracking
+                        ? `${goals.gradeClass || 'Sınıf Belirtilmedi'} · ${goals.gradeTerm === 'yıllık' ? 'Yıllık' : `${goals.gradeTerm}. Dönem`} · Hedef: ${goals.gradeTarget || 'Takdir'}`
+                        : (goals.targetSchool || 'Hedef Okul / Bölüm Belirtilmedi')
+                      }
+                    </div>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingLongTermGoal(prev => !prev)}
+                  style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    backdropFilter: 'blur(10px)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    borderRadius: 10,
+                    padding: isMobile ? '0.4rem 0.65rem' : '0.55rem 1.1rem',
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  ✏️ {isEditingLongTermGoal ? 'Kapat' : isMobile ? 'Düzenle' : 'Hedefleri Düzenle'}
+                </button>
               </div>
 
-              <button
-                onClick={() => setIsEditingLongTermGoal(prev => !prev)}
-                style={{
-                  background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(10px)', color: 'white',
-                  border: '1px solid rgba(255,255,255,0.35)', borderRadius: 12, padding: '0.55rem 1.1rem',
-                  fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                ✏️ {isEditingLongTermGoal ? 'Kapat' : 'Hedefleri Düzenle'}
-              </button>
+              {(goals.targetScore || goals.targetNet) && !isGradeTracking && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: isMobile ? 2 : 0 }}>
+                  {goals.targetScore && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.55rem', borderRadius: 6, fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800 }}>🏆 Hedef: {goals.targetScore} Puan</span>}
+                  {goals.targetNet && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.55rem', borderRadius: 6, fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800 }}>🎯 Hedef: {goals.targetNet} Net</span>}
+                </div>
+              )}
             </div>
 
             {/* Form if editing long term goal */}
             {isEditingLongTermGoal && (
-              <div style={{ background: 'var(--color-surface, white)', borderRadius: 20, padding: '1.25rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'var(--color-surface, white)', borderRadius: isMobile ? 16 : 20, padding: isMobile ? '0.95rem 0.85rem' : '1.25rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', boxSizing: 'border-box' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Sınav</label>
-                    <select style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.examGoalType} onChange={e => setGoals(p => ({ ...p, examGoalType: e.target.value }))}>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 3 }}>Hedef Sınav</label>
+                    <select style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.examGoalType} onChange={e => setGoals(p => ({ ...p, examGoalType: e.target.value }))}>
                       <option value="LGS 2026">LGS (Liselere Geçiş)</option>
                       <option value="YKS (TYT/AYT) 2026">YKS (TYT / AYT)</option>
                       <option value="KPSS">KPSS</option>
@@ -2175,39 +2209,39 @@ export default function MyCoachingPage() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Okul / Bölüm</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetSchool || ''} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Fen Lisesi / Tıp" />
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 3 }}>Hedef Okul / Bölüm</label>
+                    <input type="text" style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem', boxSizing: 'border-box' }} value={goals.targetSchool || ''} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Fen Lisesi / Tıp" />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Puan</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetScore || ''} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 480" />
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 3 }}>Hedef Puan</label>
+                    <input type="text" style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem', boxSizing: 'border-box' }} value={goals.targetScore || ''} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 480" />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Net</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetNet || ''} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 85 Net" />
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 3 }}>Hedef Net</label>
+                    <input type="text" style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem', boxSizing: 'border-box' }} value={goals.targetNet || ''} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 85 Net" />
                   </div>
                 </div>
-                <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-                  <button onClick={() => setIsEditingLongTermGoal(false)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 10, padding: '0.5rem 1.2rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
+                <div style={{ marginTop: '0.85rem', textAlign: 'right' }}>
+                  <button type="button" onClick={() => setIsEditingLongTermGoal(false)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 8, padding: '0.5rem 1.2rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
                     Tamamlandı
                   </button>
                 </div>
               </div>
             )}
 
-            {/* 2. SADE VE ŞIK İSTATİSTİK ROZETLERİ (4 KPI Cards) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
+            {/* 2. SADE VE ŞIK İSTATİSTİK ROZETLERİ (4 KPI Cards - 2x2 on Mobile) */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: isMobile ? 6 : '0.85rem' }}>
               {/* Günlük */}
               {(() => {
                 const dDone = (goals.dailyGoals || []).filter(g => g.done).length;
                 const dTotal = (goals.dailyGoals || []).length;
                 const dPct = dTotal > 0 ? Math.round((dDone / dTotal) * 100) : 0;
                 return (
-                  <div style={{ background: 'rgba(245, 158, 11, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase' }}>☀️ GÜNLÜK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.12)', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.75rem 0.65rem' : '1rem', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                    <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase' }}>☀️ GÜNLÜK</div>
+                    <div style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', fontWeight: 900, color: '#fbbf24', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{dDone}/{dTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{dPct}</span>
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', background: 'rgba(245, 158, 11, 0.2)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>%{dPct}</span>
                     </div>
                   </div>
                 );
@@ -2219,11 +2253,11 @@ export default function MyCoachingPage() {
                 const wTotal = (goals.weeklyGoals || []).length;
                 const wPct = wTotal > 0 ? Math.round((wDone / wTotal) * 100) : 0;
                 return (
-                  <div style={{ background: 'rgba(124, 58, 237, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(124, 58, 237, 0.3)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 800, textTransform: 'uppercase' }}>⚡ HAFTALIK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d8b4fe', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(124, 58, 237, 0.12)', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.75rem 0.65rem' : '1rem', border: '1px solid rgba(124, 58, 237, 0.3)' }}>
+                    <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: '#c084fc', fontWeight: 800, textTransform: 'uppercase' }}>⚡ HAFTALIK</div>
+                    <div style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', fontWeight: 900, color: '#d8b4fe', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{wDone}/{wTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(124, 58, 237, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{wPct}</span>
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', background: 'rgba(124, 58, 237, 0.2)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>%{wPct}</span>
                     </div>
                   </div>
                 );
@@ -2235,39 +2269,46 @@ export default function MyCoachingPage() {
                 const mTotal = (goals.monthlyGoals || []).length;
                 const mPct = mTotal > 0 ? Math.round((mDone / mTotal) * 100) : 0;
                 return (
-                  <div style={{ background: 'rgba(59, 130, 246, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 800, textTransform: 'uppercase' }}>📅 AYLIK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#93c5fd', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.12)', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.75rem 0.65rem' : '1rem', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: '#60a5fa', fontWeight: 800, textTransform: 'uppercase' }}>📅 AYLIK</div>
+                    <div style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', fontWeight: 900, color: '#93c5fd', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{mDone}/{mTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(59, 130, 246, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{mPct}</span>
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', background: 'rgba(59, 130, 246, 0.2)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>%{mPct}</span>
                     </div>
                   </div>
                 );
               })()}
 
               {/* Sayısal Sayaçlar */}
-              <div style={{ background: 'rgba(16, 185, 129, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 800, textTransform: 'uppercase' }}>📊 SAYISAL SAYAÇLAR</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>{(goals.counterGoals || []).length} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Hedef</span></span>
-                  <span style={{ fontSize: '0.8rem', background: 'rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>Soru/Sayfa</span>
+              <div style={{ background: 'rgba(16, 185, 129, 0.12)', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.75rem 0.65rem' : '1rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: '#34d399', fontWeight: 800, textTransform: 'uppercase' }}>📊 SAYAÇLAR</div>
+                <div style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', fontWeight: 900, color: '#10b981', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{(goals.counterGoals || []).length} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Adet</span></span>
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', background: 'rgba(16, 185, 129, 0.2)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>Aktif</span>
                 </div>
               </div>
             </div>
 
             {/* 3. TEK HEDEF & TAKİP PANOSU */}
             <div style={{
-              background: 'var(--color-surface, white)', borderRadius: 24, padding: '1.5rem', border: '1.5px solid var(--color-border, #e2e8f0)',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1.25rem'
+              background: 'var(--color-surface, white)',
+              borderRadius: isMobile ? 16 : 24,
+              padding: isMobile ? '0.95rem 0.75rem' : '1.5rem',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: isMobile ? '0.85rem' : '1.25rem',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.85rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+              <div style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: isMobile ? '0.75rem' : '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isMobile ? '0.65rem' : '0.85rem' }}>
+                  <div style={{ width: isMobile ? 36 : 42, height: isMobile ? 36 : 42, borderRadius: 12, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1.1rem' : '1.3rem', flexShrink: 0 }}>
                     🎯
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Hedef Listesi & Canlı Takip Panosu</h3>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Görev ve sayısal hedeflerinizi canlı takip edin.</div>
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.98rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Hedef Listesi & Canlı Takip Panosu</h3>
+                    <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Görev ve sayısal hedeflerinizi canlı takip edin.</div>
                   </div>
                 </div>
 
@@ -2281,21 +2322,37 @@ export default function MyCoachingPage() {
                       handleAddUnifiedGoal(e);
                     }
                   }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'var(--color-surface-hover, #f8fafc)', padding: '1rem', borderRadius: 16, border: '1.5px solid var(--color-border-input, #cbd5e1)' }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: isMobile ? '0.65rem' : '0.85rem',
+                    background: 'var(--color-surface-hover, #f8fafc)',
+                    padding: isMobile ? '0.75rem 0.65rem' : '1rem',
+                    borderRadius: isMobile ? 12 : 16,
+                    border: '1.5px solid var(--color-border-input, #cbd5e1)',
+                    boxSizing: 'border-box'
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '0.65rem' }}>
                     {/* Periyot Seçimi */}
-                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginRight: 2 }}>Periyot:</span>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: isMobile ? 2 : 0 }} className="hide-scrollbar">
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginRight: 2, whiteSpace: 'nowrap' }}>Periyot:</span>
                       {['Günlük', 'Haftalık', 'Aylık', 'Özel'].map(t => (
                         <button
                           key={t}
                           type="button"
                           onClick={() => setNewGoalType(t)}
                           style={{
-                            padding: '0.32rem 0.65rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                            padding: isMobile ? '0.3rem 0.55rem' : '0.32rem 0.65rem',
+                            borderRadius: 8,
+                            fontWeight: 800,
+                            fontSize: isMobile ? '0.72rem' : '0.75rem',
+                            cursor: 'pointer',
                             background: newGoalType === t ? (t === 'Günlük' ? '#f59e0b' : t === 'Haftalık' ? '#7c3aed' : t === 'Aylık' ? '#2563eb' : '#059669') : 'var(--color-surface, white)',
-                            color: newGoalType === t ? 'white' : 'var(--color-text-muted, #64748b)', border: newGoalType === t ? 'none' : '1px solid var(--color-border-input, #cbd5e1)'
+                            color: newGoalType === t ? 'white' : 'var(--color-text-muted, #64748b)',
+                            border: newGoalType === t ? 'none' : '1px solid var(--color-border-input, #cbd5e1)',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}
                         >
                           {t === 'Günlük' ? '☀️ Günlük' : t === 'Haftalık' ? '⚡ Haftalık' : t === 'Aylık' ? '📅 Aylık' : '⭐ Özel'}
@@ -2303,15 +2360,22 @@ export default function MyCoachingPage() {
                       ))}
                     </div>
 
-                    {/* Hedef Tipi Seçimi */}
-                    <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface, #e2e8f0)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                    {/* Hedef Tipi Seçimi (Segmented Pill) */}
+                    <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface, #e2e8f0)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)', width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}>
                       <button
                         type="button"
                         onClick={() => setAddKind('gorev')}
                         style={{
-                          padding: '0.3rem 0.75rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', border: 'none', cursor: 'pointer',
+                          flex: isMobile ? 1 : 'none',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.3rem 0.75rem',
+                          borderRadius: 8,
+                          fontWeight: 800,
+                          fontSize: isMobile ? '0.72rem' : '0.75rem',
+                          border: 'none',
+                          cursor: 'pointer',
                           background: addKind === 'gorev' ? '#7c3aed' : 'transparent',
-                          color: addKind === 'gorev' ? 'white' : 'var(--color-text-muted, #475569)', transition: 'all 0.15s'
+                          color: addKind === 'gorev' ? 'white' : 'var(--color-text-muted, #475569)',
+                          transition: 'all 0.15s'
                         }}
                       >
                         📝 Görev Ekle
@@ -2320,9 +2384,16 @@ export default function MyCoachingPage() {
                         type="button"
                         onClick={() => setAddKind('sayisal')}
                         style={{
-                          padding: '0.3rem 0.75rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', border: 'none', cursor: 'pointer',
+                          flex: isMobile ? 1 : 'none',
+                          padding: isMobile ? '0.35rem 0.5rem' : '0.3rem 0.75rem',
+                          borderRadius: 8,
+                          fontWeight: 800,
+                          fontSize: isMobile ? '0.72rem' : '0.75rem',
+                          border: 'none',
+                          cursor: 'pointer',
                           background: addKind === 'sayisal' ? '#4f46e5' : 'transparent',
-                          color: addKind === 'sayisal' ? 'white' : 'var(--color-text-muted, #475569)', transition: 'all 0.15s'
+                          color: addKind === 'sayisal' ? 'white' : 'var(--color-text-muted, #475569)',
+                          transition: 'all 0.15s'
                         }}
                       >
                         📊 Sayısal Sayaç Ekle
@@ -2332,43 +2403,43 @@ export default function MyCoachingPage() {
 
                   {/* Dinamik İçerik Alanı */}
                   {addKind === 'gorev' ? (
-                    <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '0.55rem', alignItems: isMobile ? 'stretch' : 'center' }}>
                       {newGoalType === 'Özel' && (
                         <input
                           type="text"
                           placeholder="Kategori..."
                           value={newGoalCategory}
                           onChange={e => setNewGoalCategory(e.target.value)}
-                          style={{ width: 120, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }}
+                          style={{ width: isMobile ? '100%' : 120, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700, boxSizing: 'border-box' }}
                         />
                       )}
                       <input
                         type="text"
-                        placeholder={`${newGoalType} yapacağınız hedefi yazın (ör: Fizik 2. Ünite Testlerini Bitir)...`}
+                        placeholder={`${newGoalType} hedefinizi yazın (ör: Fizik 2. Ünite Testlerini Bitir)...`}
                         value={newGoalText}
                         onChange={e => setNewGoalText(e.target.value)}
-                        style={{ flex: 1, minWidth: 220, padding: '0.5rem 0.85rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                        style={{ flex: 1, minWidth: isMobile ? '100%' : 220, padding: '0.5rem 0.85rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700, boxSizing: 'border-box' }}
                       />
                       <button
                         type="submit"
-                        style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, padding: '0.5rem 1.25rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, padding: isMobile ? '0.55rem 1rem' : '0.5rem 1.25rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
                       >
                         <Plus size={15} /> Hedef Ekle
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', alignItems: 'end' }}>
-                      <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.55rem', alignItems: 'end' }}>
+                      <div style={{ gridColumn: isMobile ? 'span 2' : 'auto' }}>
                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Sayaç Adı</label>
-                        <input type="text" placeholder="ör: Paragraf Sorusu" value={newCounterTitle} onChange={e => setNewCounterTitle(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }} required />
+                        <input type="text" placeholder="ör: Paragraf Sorusu" value={newCounterTitle} onChange={e => setNewCounterTitle(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700, boxSizing: 'border-box' }} required />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Hedef Miktarı</label>
-                        <input type="number" min="1" placeholder="ör: 200" value={newCounterTarget} onChange={e => setNewCounterTarget(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }} required />
+                        <input type="number" min="1" placeholder="ör: 200" value={newCounterTarget} onChange={e => setNewCounterTarget(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700, boxSizing: 'border-box' }} required />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Birim</label>
-                        <select value={newCounterUnit} onChange={e => setNewCounterUnit(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }}>
+                        <select value={newCounterUnit} onChange={e => setNewCounterUnit(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700, boxSizing: 'border-box' }}>
                           <option value="Soru">Soru</option>
                           <option value="Sayfa">Sayfa</option>
                           <option value="Saat">Saat</option>
@@ -2376,7 +2447,7 @@ export default function MyCoachingPage() {
                           <option value="Adet">Adet</option>
                         </select>
                       </div>
-                      <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <button type="submit" style={{ gridColumn: isMobile ? 'span 2' : 'auto', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: isMobile ? 4 : 0 }}>
                         <Plus size={15} /> Sayaç Ekle
                       </button>
                     </div>
@@ -2385,7 +2456,7 @@ export default function MyCoachingPage() {
               </div>
 
               {/* PERİYOTLARA GÖRE LİSTE */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem' }}>
 
                 {/* ☀️ GÜNLÜK HEDEFLERİM */}
                 {(() => {
@@ -2393,15 +2464,15 @@ export default function MyCoachingPage() {
                   const dCounters = (goals.counterGoals || []).filter(c => c.period === 'Günlük');
                   const dCount = dTasks.length + dCounters.length;
                   return (
-                    <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.85rem 0.75rem' : '1.15rem', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>☀️ Günlük Hedeflerim ({dTasks.filter(g=>g.done).length + dCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{dCount})</span>
                       </div>
 
                       {dCount === 0 ? (
-                        <div style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz günlük hedef veya sayaç eklenmedi.</div>
+                        <div style={{ color: '#d97706', fontSize: '0.78rem', fontWeight: 600, textAlign: 'center', padding: '0.4rem' }}>Henüz günlük hedef veya sayaç eklenmedi.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                           {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {dCounters.map(cg => {
                             const current = cg.current || 0;
@@ -2419,59 +2490,60 @@ export default function MyCoachingPage() {
                                 key={cg.id}
                                 style={{
                                   background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
-                                  borderRadius: 16,
-                                  padding: '0.9rem 1.1rem',
+                                  borderRadius: isMobile ? 12 : 16,
+                                  padding: isMobile ? '0.75rem 0.8rem' : '0.9rem 1.1rem',
                                   border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(245, 158, 11, 0.35)',
                                   boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
-                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                  display: 'flex', flexDirection: 'column', gap: '0.55rem',
+                                  boxSizing: 'border-box'
                                 }}
                               >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                    <div style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '0.9rem' : '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
-                                    <div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: isMobile ? '0.84rem' : '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cg.title}</span>
                                         {isCompleted && (
-                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                          <span style={{ fontSize: '0.62rem', background: '#10b981', color: 'white', padding: '0.08rem 0.4rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamam</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>☀️ Günlük Hedef · {unitName}</div>
+                                      <div style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>☀️ Günlük · {unitName}</div>
                                     </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/{target}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)' }}>
+                                    <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: 6, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={12} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={12} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #fef3c7)', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 7, background: 'var(--color-border, #fef3c7)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 5, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', cursor: 'pointer' }}>
-                                        +{step} {unitName}
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: isMobile ? '0.22rem 0.5rem' : '0.18rem 0.45rem', borderRadius: 6, fontSize: isMobile ? '0.7rem' : '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', cursor: 'pointer' }}>
+                                        +{step}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Değer" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: isMobile ? 65 : 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#d97706', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2497,15 +2569,15 @@ export default function MyCoachingPage() {
                   const wCounters = (goals.counterGoals || []).filter(c => c.period === 'Haftalık');
                   const wCount = wTasks.length + wCounters.length;
                   return (
-                    <div style={{ background: 'rgba(124, 58, 237, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(124, 58, 237, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c084fc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(124, 58, 237, 0.08)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.85rem 0.75rem' : '1.15rem', border: '1px solid rgba(124, 58, 237, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#c084fc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>⚡ Haftalık Hedeflerim ({wTasks.filter(g=>g.done).length + wCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{wCount})</span>
                       </div>
 
                       {wCount === 0 ? (
-                        <div style={{ color: '#c084fc', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz haftalık hedef veya sayaç eklenmedi.</div>
+                        <div style={{ color: '#c084fc', fontSize: '0.78rem', fontWeight: 600, textAlign: 'center', padding: '0.4rem' }}>Henüz haftalık hedef veya sayaç eklenmedi.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                           {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {wCounters.map(cg => {
                             const current = cg.current || 0;
@@ -2523,59 +2595,60 @@ export default function MyCoachingPage() {
                                 key={cg.id}
                                 style={{
                                   background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
-                                  borderRadius: 16,
-                                  padding: '0.9rem 1.1rem',
+                                  borderRadius: isMobile ? 12 : 16,
+                                  padding: isMobile ? '0.75rem 0.8rem' : '0.9rem 1.1rem',
                                   border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(168, 85, 247, 0.35)',
                                   boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
-                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                  display: 'flex', flexDirection: 'column', gap: '0.55rem',
+                                  boxSizing: 'border-box'
                                 }}
                               >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                    <div style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '0.9rem' : '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
-                                    <div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: isMobile ? '0.84rem' : '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cg.title}</span>
                                         {isCompleted && (
-                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                          <span style={{ fontSize: '0.62rem', background: '#10b981', color: 'white', padding: '0.08rem 0.4rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamam</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>⚡ Haftalık Hedef · {unitName}</div>
+                                      <div style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>⚡ Haftalık · {unitName}</div>
                                     </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/{target}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(168, 85, 247, 0.4)' }}>
+                                    <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: 6, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(168, 85, 247, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={12} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={12} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #e9d5ff)', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 7, background: 'var(--color-border, #e9d5ff)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 5, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)', cursor: 'pointer' }}>
-                                        +{step} {unitName}
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: isMobile ? '0.22rem 0.5rem' : '0.18rem 0.45rem', borderRadius: 6, fontSize: isMobile ? '0.7rem' : '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)', cursor: 'pointer' }}>
+                                        +{step}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Değer" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: isMobile ? 65 : 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2601,15 +2674,15 @@ export default function MyCoachingPage() {
                   const mCounters = (goals.counterGoals || []).filter(c => c.period === 'Aylık');
                   const mCount = mTasks.length + mCounters.length;
                   return (
-                    <div style={{ background: 'rgba(59, 130, 246, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(59, 130, 246, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#60a5fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.08)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.85rem 0.75rem' : '1.15rem', border: '1px solid rgba(59, 130, 246, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#60a5fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>📅 Aylık Hedeflerim ({mTasks.filter(g=>g.done).length + mCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{mCount})</span>
                       </div>
 
                       {mCount === 0 ? (
-                        <div style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz aylık hedef veya sayaç eklenmedi.</div>
+                        <div style={{ color: '#60a5fa', fontSize: '0.78rem', fontWeight: 600, textAlign: 'center', padding: '0.4rem' }}>Henüz aylık hedef veya sayaç eklenmedi.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                           {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {mCounters.map(cg => {
                             const current = cg.current || 0;
@@ -2627,59 +2700,60 @@ export default function MyCoachingPage() {
                                 key={cg.id}
                                 style={{
                                   background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
-                                  borderRadius: 16,
-                                  padding: '0.9rem 1.1rem',
+                                  borderRadius: isMobile ? 12 : 16,
+                                  padding: isMobile ? '0.75rem 0.8rem' : '0.9rem 1.1rem',
                                   border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(59, 130, 246, 0.35)',
                                   boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
-                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                  display: 'flex', flexDirection: 'column', gap: '0.55rem',
+                                  boxSizing: 'border-box'
                                 }}
                               >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                    <div style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '0.9rem' : '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
-                                    <div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: isMobile ? '0.84rem' : '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cg.title}</span>
                                         {isCompleted && (
-                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                          <span style={{ fontSize: '0.62rem', background: '#10b981', color: 'white', padding: '0.08rem 0.4rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamam</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>📅 Aylık Hedef · {unitName}</div>
+                                      <div style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>📅 Aylık · {unitName}</div>
                                     </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/{target}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(59, 130, 246, 0.4)' }}>
+                                    <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: 6, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(59, 130, 246, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={12} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={12} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #dbeafe)', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 7, background: 'var(--color-border, #dbeafe)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 5, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', cursor: 'pointer' }}>
-                                        +{step} {unitName}
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: isMobile ? '0.22rem 0.5rem' : '0.18rem 0.45rem', borderRadius: 6, fontSize: isMobile ? '0.7rem' : '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', cursor: 'pointer' }}>
+                                        +{step}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Değer" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: isMobile ? 65 : 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2701,11 +2775,11 @@ export default function MyCoachingPage() {
 
                 {/* ⭐ ÖZEL HEDEFLERİM */}
                 {((goals.customGoals || []).length > 0 || (goals.counterGoals || []).some(c => c.period === 'Özel')) && (
-                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.85rem 0.75rem' : '1.15rem', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>⭐ Özel Kategori Hedeflerim</span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                       {(goals.customGoals || []).map(g => (
                         <CheckItem key={g.id} label={`${g.category ? `[${g.category}] ` : ''}${g.text}`} checked={g.done}
                           onChange={() => setGoals(p => ({ ...p, customGoals: p.customGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
