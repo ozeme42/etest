@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import {
@@ -751,6 +752,7 @@ export default function GoalsAndSchedulePage() {
   const { getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles, mockExams = [], getMockExamsForStudent } = useCoaching();
   const { submissions } = useEvaluation();
   const { homeworks } = useHomework();
+  const { books = [], bookTests = [] } = useTrackedBooks();
 
   // Active Tab: 'habits' (Alışkanlıklar & Rutinler) | 'visual' (Hedef Takibi) | 'academic' (Akademik & Sınav)
   const [activeTab, setActiveTab] = useState('habits');
