@@ -715,7 +715,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
                 {!item.done && onStartStudy && (
                   <button
                     type="button"
@@ -2449,6 +2449,14 @@ export default function ProgramCenter({
 }) {
   const { theme } = useTheme();
   const isDark = propIsDark || theme === 'dark';
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [programTab, setProgramTab] = useState('haftalik');
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -3457,13 +3465,15 @@ export default function ProgramCenter({
 
             {/* Mobile & Desktop Touch-Friendly Day Selector Strip */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+              display: isMobile ? 'flex' : 'grid',
+              gridTemplateColumns: isMobile ? 'none' : 'repeat(8, minmax(0, 1fr))',
               gap: 6,
               overflowX: 'auto',
-              paddingBottom: 4,
+              paddingBottom: 6,
               scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch'
+              WebkitOverflowScrolling: 'touch',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               {/* All Days Card */}
               <button
@@ -3473,19 +3483,20 @@ export default function ProgramCenter({
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0.55rem 0.35rem',
+                  padding: isMobile ? '0.45rem 0.35rem' : '0.55rem 0.35rem',
                   borderRadius: 14,
                   border: selectedDayFilter === 'all' ? '2px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
                   background: selectedDayFilter === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                   color: selectedDayFilter === 'all' ? '#ffffff' : (isDark ? '#cbd5e1' : '#334155'),
                   cursor: 'pointer',
-                  minWidth: 48,
+                  minWidth: isMobile ? 54 : 48,
+                  flex: isMobile ? '0 0 54px' : '1',
                   boxShadow: selectedDayFilter === 'all' ? '0 4px 12px rgba(99,102,241,0.35)' : '0 2px 5px rgba(0,0,0,0.02)',
                   transition: 'all 0.15s'
                 }}
               >
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.9 }}>TÜMÜ</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 900, marginTop: 1 }}>🌟</span>
+                <span style={{ fontSize: '0.66rem', fontWeight: 800, opacity: 0.9 }}>TÜMÜ</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 900, marginTop: 1 }}>🌟</span>
                 <span style={{
                   fontSize: '0.62rem',
                   fontWeight: 900,
@@ -3517,7 +3528,7 @@ export default function ProgramCenter({
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '0.55rem 0.3rem',
+                      padding: isMobile ? '0.45rem 0.3rem' : '0.55rem 0.3rem',
                       borderRadius: 14,
                       border: isSelected
                         ? `2px solid ${theme.badgeBg || '#6366f1'}`
@@ -3527,7 +3538,8 @@ export default function ProgramCenter({
                         : (isDayToday ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff')),
                       color: isSelected ? '#ffffff' : (isDayToday ? (isDark ? '#fcd34d' : '#b45309') : (isDark ? '#cbd5e1' : '#334155')),
                       cursor: 'pointer',
-                      minWidth: 46,
+                      minWidth: isMobile ? 54 : 46,
+                      flex: isMobile ? '0 0 54px' : '1',
                       position: 'relative',
                       boxShadow: isSelected
                         ? '0 4px 14px rgba(0,0,0,0.18)'
@@ -4040,22 +4052,24 @@ export default function ProgramCenter({
                                   key={item.id}
                                   style={{
                                     display: 'flex',
-                                    alignItems: 'center',
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    alignItems: isMobile ? 'stretch' : 'center',
                                     justifyContent: 'space-between',
-                                    gap: 10,
-                                    padding: '0.65rem 0.85rem',
-                                    borderRadius: '0.75rem',
+                                    gap: isMobile ? 8 : 10,
+                                    padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
+                                    borderRadius: '0.85rem',
                                     background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
                                     border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0')
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
                                     <button
                                       type="button"
                                       onClick={() => handleToggle(dayObj.day, item.id)}
                                       style={{
                                         width: 22,
                                         height: 22,
+                                        marginTop: 2,
                                         borderRadius: 6,
                                         border: item.done ? 'none' : '1.5px solid #94a3b8',
                                         background: item.done ? '#22c55e' : 'transparent',
@@ -4080,7 +4094,8 @@ export default function ProgramCenter({
                                             background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
                                             padding: '1px 6px',
                                             borderRadius: 5,
-                                            border: `1px solid ${tt?.color || '#6366f1'}33`
+                                            border: `1px solid ${tt?.color || '#6366f1'}33`,
+                                            flexShrink: 0
                                           }}>
                                             {tt?.label}
                                           </span>
@@ -4089,20 +4104,28 @@ export default function ProgramCenter({
                                           fontSize: '0.84rem',
                                           fontWeight: 800,
                                           color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                          textDecoration: item.done ? 'line-through' : 'none'
+                                          textDecoration: item.done ? 'line-through' : 'none',
+                                          wordBreak: 'break-word'
                                         }}>
                                           {item.bookName || item.subject}
                                         </span>
-                                        {item.topic && (
-                                          <span style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600 }}>
-                                            • {item.topic}
-                                          </span>
-                                        )}
                                       </div>
+                                      {item.topic && (
+                                        <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
+                                          📌 {item.topic}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                                    gap: 6,
+                                    flexWrap: 'wrap',
+                                    paddingLeft: isMobile ? 31 : 0
+                                  }}>
                                     {item.questionCount && (
                                       <span style={{ fontSize: '0.7rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700 }}>
                                         ✏️ {item.questionCount}
