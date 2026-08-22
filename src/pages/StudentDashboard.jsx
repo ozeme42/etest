@@ -2067,72 +2067,58 @@ export default function StudentDashboard() {
     return map;
   }, [fullProcessedWeekMap]);
 
-  /* ─── Hero Date & Task Stats for Top KPI Cards (Today & Weekly Program) ─── */
+  /* ─── Hero Date & Task Stats for Top KPI Cards (Program + Ödevler) ─── */
   const taskStats = useMemo(() => {
-    // 1. Öncelik: Bugünün Programı (dayProgramInfo) doluysa doğrudan bugünün görevlerini özetle
-    if (dayProgramInfo && dayProgramInfo.totalCount > 0) {
-      const totalCount = dayProgramInfo.totalCount;
-      const completedCount = dayProgramInfo.completedCount;
-      const overdueCount = (dayProgramInfo.items || []).filter(i => !i.done && i.isOverdue).length;
-      const pendingCount = Math.max(0, totalCount - completedCount);
-      const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (completedCount > 0 ? 100 : 0);
-
-      return {
-        totalCount,
-        completedCount,
-        pendingCount,
-        overdueCount,
-        completionRate
-      };
-    }
-
-    // 2. Öncelik: Haftalık Program (7 günün görevleri)
-    let weekTotal = 0;
-    let weekCompleted = 0;
-    let weekOverdue = 0;
-    const seen = new Set();
-
-    DAYS_OF_WEEK.forEach(day => {
-      const dayData = fullProcessedWeekMap[day.key];
-      if (dayData && Array.isArray(dayData.items)) {
-        dayData.items.forEach(item => {
-          const itemKey = String(item.uniqueKey || item.id || `${item.hwId}_${item.testId}_${day.key}`);
-          if (seen.has(itemKey)) return;
-          seen.add(itemKey);
-
-          weekTotal++;
-          if (item.done) {
-            weekCompleted++;
-          } else {
-            if (item.isOverdue) weekOverdue++;
-          }
-        });
-      }
-    });
-
-    if (weekTotal > 0) {
-      const completionRate = Math.round((weekCompleted / weekTotal) * 100);
-      return {
-        totalCount: weekTotal,
-        completedCount: weekCompleted,
-        pendingCount: Math.max(0, weekTotal - weekCompleted),
-        overdueCount: weekOverdue,
-        completionRate
-      };
-    }
-
-    // 3. Öncelik: Bağımsız Ödevler (tests listesi)
-    const totalCount = tests.length;
-    const completedCount = tests.filter(t => t.status === 'Sonuçlandı' || t.status === 'Tamamlandı').length;
+    let totalCount = 0;
+    let completedCount = 0;
+    let overdueCount = 0;
+    let pendingCount = 0;
+    const seenKeys = new Set();
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    let overdueCount = 0;
-    let pendingCount = 0;
+    // 1. Program Görevleri (Bugünün Programı veya Haftalık Program)
+    const programItems = [];
+    if (dayProgramInfo && Array.isArray(dayProgramInfo.items) && dayProgramInfo.items.length > 0) {
+      programItems.push(...dayProgramInfo.items);
+    } else {
+      DAYS_OF_WEEK.forEach(day => {
+        const dayData = fullProcessedWeekMap[day.key];
+        if (dayData && Array.isArray(dayData.items)) {
+          programItems.push(...dayData.items);
+        }
+      });
+    }
 
-    tests.forEach(t => {
+    programItems.forEach(item => {
+      const itemKey = String(item.uniqueKey || item.id || item.hwId || `${item.testId}_${item.dayKey || ''}`);
+      if (seenKeys.has(itemKey)) return;
+      seenKeys.add(itemKey);
+
+      totalCount++;
+      if (item.done) {
+        completedCount++;
+      } else if (item.isOverdue) {
+        overdueCount++;
+      } else {
+        pendingCount++;
+      }
+    });
+
+    // 2. Ödevler (Tüm Atanmış Ödev Testleri)
+    (tests || []).forEach(t => {
+      const hwKey = String(t.id || t.hwId || t.testId || '');
+      const hwCleanKey = hwKey.replace(/^hw_/, '');
+      // Check if already counted in program tasks
+      const isAlreadyCounted = Array.from(seenKeys).some(k => k === hwKey || k === hwCleanKey || k.includes(hwKey) || (hwCleanKey && k.includes(hwCleanKey)));
+      if (isAlreadyCounted) return;
+      seenKeys.add(hwKey);
+
+      totalCount++;
       const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı';
-      if (!isDone) {
+      if (isDone) {
+        completedCount++;
+      } else {
         const dueDateObj = parseSafeDate(t.dueDate);
         if (dueDateObj && dueDateObj < now) {
           overdueCount++;
