@@ -990,23 +990,50 @@ export function computeStudentAnalyticsData({
     if (!subDate) return;
 
     const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
-    const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
-    const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
+    let testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+    let bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || raw.bookId || testObj?.bookId)));
+
+    if (!testObj && books && Array.isArray(books)) {
+      for (const b of books) {
+        if (b.subjects && Array.isArray(b.subjects)) {
+          for (const sb of b.subjects) {
+            if (sb.tests && Array.isArray(sb.tests)) {
+              const ft = sb.tests.find(t => String(t.id) === bTestId || (toUUID(t.id) && String(toUUID(t.id)) === bTestId));
+              if (ft) { testObj = { ...ft, bookId: b.id, subjectId: sb.id }; if (!bookObj) bookObj = b; break; }
+            }
+            if (sb.topics && Array.isArray(sb.topics)) {
+              for (const tp of sb.topics) {
+                if (tp.tests && Array.isArray(tp.tests)) {
+                  const ft = tp.tests.find(t => String(t.id) === bTestId || (toUUID(t.id) && String(toUUID(t.id)) === bTestId));
+                  if (ft) { testObj = { ...ft, bookId: b.id, subjectId: sb.id, topicId: tp.id }; if (!bookObj) bookObj = b; break; }
+                }
+              }
+            }
+          }
+        }
+        if (testObj) break;
+      }
+    }
+
     const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
 
-    if (!isManualTest) {
-      if (parentHw && parentHw.bookId && !books.some(b => String(b.id) === String(parentHw.bookId) || toUUID(b.id) === toUUID(parentHw.bookId))) {
-        return;
-      }
-      if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) {
-        return;
-      }
-      const isHwSub = Boolean(s.hwId || s.homeworkId || (s.testId && !testObj));
-      if (isHwSub && !parentHw) {
-        return; // Deleted homework!
-      }
-      if (!bookObj && !testObj && !parentHw) {
-        return; // Orphaned submission
+    const isBookTestSub = Boolean(
+      s.bookId ||
+      s.bookTestId ||
+      raw.bookId ||
+      raw.bookTestId ||
+      s.sourceType === 'trackedBook' ||
+      raw.sourceType === 'trackedBook' ||
+      s.sourceType === 'bookTest' ||
+      raw.sourceType === 'bookTest' ||
+      testObj ||
+      bookObj
+    );
+
+    if (!isManualTest && !isBookTestSub) {
+      const isHwSub = Boolean(s.hwId || s.homeworkId || s.testId);
+      if (isHwSub && !parentHw && (!s.answers || s.answers.length === 0)) {
+        return; // Deleted empty homework
       }
     }
 
