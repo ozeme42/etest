@@ -2797,47 +2797,48 @@ export default function MyCoachingPage() {
 
 
         {/* ═══ ÇALIŞMALARIM ═══ */}
+        {/* ═══ ÇALIŞMALARIM (PRATİK ÇALIŞMA PANOSU) ═══ */}
         {activeTab === 'calisma' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem', animation: 'fadeIn 0.2s ease' }}>
             <Tip>
               ⏱️ <b>Pratik Çalışma Panosu</b>: Çalışmanı 2 tıkla kaydet! Hızlı süre ve ders rozetlerini kullan. Soru ve süre verilerin otomatik olarak sayaç hedeflerine de eklenir.
             </Tip>
 
-            {/* Üst İstatistik Özet Kartları */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)' }}>
-                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Çalışma</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{totalDailyHours.toFixed(1)} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Saat</span></div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Kayıtlı tüm oturumlar</div>
+            {/* Üst İstatistik Özet Kartları (2x2 on mobile) */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: isMobile ? 6 : '0.85rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: isMobile ? 12 : '0.9rem', padding: isMobile ? '0.75rem 0.65rem' : '1rem', color: 'white', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Çalışma</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '1.6rem', fontWeight: 900, marginTop: 2, lineHeight: 1.1 }}>{totalDailyHours.toFixed(1)} <span style={{ fontSize: isMobile ? '0.72rem' : '0.9rem', opacity: 0.9 }}>Saat</span></div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.7rem', opacity: 0.8, marginTop: 2 }}>Kayıtlı oturumlar</div>
               </div>
 
-              <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}>
-                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Soru</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{Math.round(totalDailyQuestions)} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Soru</span></div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Çözülen sorular</div>
+              <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: isMobile ? 12 : '0.9rem', padding: isMobile ? '0.75rem 0.65rem' : '1rem', color: 'white', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Soru</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '1.6rem', fontWeight: 900, marginTop: 2, lineHeight: 1.1 }}>{Math.round(totalDailyQuestions)} <span style={{ fontSize: isMobile ? '0.72rem' : '0.9rem', opacity: 0.9 }}>Soru</span></div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.7rem', opacity: 0.8, marginTop: 2 }}>Çözülen sorular</div>
               </div>
 
-              <div style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)' }}>
-                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Çalışma Günleri</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{dailyLogs.length} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Gün</span></div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Düzenli takip sayısı</div>
+              <div style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', borderRadius: isMobile ? 12 : '0.9rem', padding: isMobile ? '0.75rem 0.65rem' : '1rem', color: 'white', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Çalışma Günleri</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '1.6rem', fontWeight: 900, marginTop: 2, lineHeight: 1.1 }}>{dailyLogs.length} <span style={{ fontSize: isMobile ? '0.72rem' : '0.9rem', opacity: 0.9 }}>Gün</span></div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.7rem', opacity: 0.8, marginTop: 2 }}>Düzenli takip</div>
               </div>
 
-              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)' }}>
-                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Spor & Sağlık</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{dailyLogs.filter(l => l.sport).length} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Gün</span></div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Aktif yaşam takibi</div>
+              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: isMobile ? 12 : '0.9rem', padding: isMobile ? '0.75rem 0.65rem' : '1rem', color: 'white', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Spor & Sağlık</div>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '1.6rem', fontWeight: 900, marginTop: 2, lineHeight: 1.1 }}>{dailyLogs.filter(l => l.sport).length} <span style={{ fontSize: isMobile ? '0.72rem' : '0.9rem', opacity: 0.9 }}>Gün</span></div>
+                <div style={{ fontSize: isMobile ? '0.6rem' : '0.7rem', opacity: 0.8, marginTop: 2 }}>Aktif yaşam</div>
               </div>
             </div>
 
             {/* Yeni Pratik Çalışma Kayıt Kartı */}
-            <Card emoji="⚡" title="Pratik Çalışma Girişi (Tek Tıkla Ekleyin)">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+            <Card emoji="⚡" title="Pratik Çalışma Girişi (Tek Tıkla Ekleyin)" isMobile={isMobile}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '0.9rem' }}>
 
                 {/* Hızlı Çalışma Türü Seçimi */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>🎯 Çalışma Türü Seçimi:</div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.35rem' }}>🎯 Çalışma Türü Seçimi:</div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {[
                       { label: '📖 Konu Çalışması', type: 'Konu Çalışması' },
                       { label: '📚 Kitap Okuma', type: 'Kitap Okuma' },
@@ -2859,10 +2860,15 @@ export default function MyCoachingPage() {
                             }));
                           }}
                           style={{
-                            padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
+                            padding: isMobile ? '0.28rem 0.55rem' : '0.32rem 0.65rem',
+                            borderRadius: '0.45rem',
+                            fontSize: isMobile ? '0.72rem' : '0.76rem',
+                            fontWeight: 800,
                             border: isSelected ? '1.5px solid #a855f7' : '1px solid var(--color-border-input, #cbd5e1)',
                             background: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'var(--color-surface, #ffffff)',
-                            color: isSelected ? '#c084fc' : 'var(--color-text, #475569)', cursor: 'pointer', transition: 'all 0.15s'
+                            color: isSelected ? '#c084fc' : 'var(--color-text, #475569)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : ''}{act.label}
@@ -2874,8 +2880,8 @@ export default function MyCoachingPage() {
 
                 {/* Hızlı Süre Rozetleri */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>⏱️ Hızlı Süre Seçimi:</div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.35rem' }}>⏱️ Hızlı Süre Seçimi:</div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {[
                       { label: '15 dk', val: '0.25' },
                       { label: '30 dk', val: '0.5' },
@@ -2892,10 +2898,15 @@ export default function MyCoachingPage() {
                           key={preset.label}
                           onClick={() => setNewLog(p => ({ ...p, studyHours: preset.val }))}
                           style={{
-                            padding: '0.32rem 0.7rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 800,
+                            padding: isMobile ? '0.28rem 0.55rem' : '0.32rem 0.7rem',
+                            borderRadius: '0.45rem',
+                            fontSize: isMobile ? '0.72rem' : '0.78rem',
+                            fontWeight: 800,
                             border: isSelected ? '1.5px solid #a855f7' : '1px solid var(--color-border-input, #cbd5e1)',
                             background: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'var(--color-surface-hover, #f8fafc)',
-                            color: isSelected ? '#c084fc' : 'var(--color-text, #334155)', cursor: 'pointer', transition: 'all 0.15s'
+                            color: isSelected ? '#c084fc' : 'var(--color-text, #334155)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : ''}{preset.label}
@@ -2907,8 +2918,8 @@ export default function MyCoachingPage() {
 
                 {/* Hızlı Ders Seçim Rozetleri */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.35rem' }}>📚 Hızlı Ders Seçimi:</div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {SUBJECTS.map((subName, idx) => {
                       const isSelected = (newLog.revision || '').includes(subName);
                       return (
@@ -2924,10 +2935,15 @@ export default function MyCoachingPage() {
                             });
                           }}
                           style={{
-                            padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
+                            padding: isMobile ? '0.28rem 0.55rem' : '0.32rem 0.65rem',
+                            borderRadius: '0.45rem',
+                            fontSize: isMobile ? '0.72rem' : '0.76rem',
+                            fontWeight: 800,
                             border: isSelected ? '1.5px solid #3b82f6' : '1px solid var(--color-border-input, #cbd5e1)',
                             background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface, #ffffff)',
-                            color: isSelected ? '#60a5fa' : 'var(--color-text, #475569)', cursor: 'pointer', transition: 'all 0.15s'
+                            color: isSelected ? '#60a5fa' : 'var(--color-text, #475569)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : '+ '}{subName}
@@ -2938,7 +2954,7 @@ export default function MyCoachingPage() {
                 </div>
 
                 {/* Detay Kutuları Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border, #e2e8f0)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(130px, 1fr))', gap: isMobile ? '0.55rem' : '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border, #e2e8f0)' }}>
                   <div>
                     <label style={lbl}>Tarih</label>
                     <input style={inp} type="date" value={newLog.date} onChange={e => setNewLog(p => ({ ...p, date: e.target.value }))} />
@@ -2949,25 +2965,26 @@ export default function MyCoachingPage() {
                   </div>
                   <div>
                     <label style={lbl}>Soru Sayısı (Opsiyonel)</label>
-                    <input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="Soru yoksa boş bırak" />
-                  </div>
-                  <div>
-                    <label style={lbl}>Ders & Konu / Detay Notu</label>
-                    <input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Örn: Konu tekrarı / Kitap okuma..." />
+                    <input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="Soru yoksa boş" />
                   </div>
                   <div>
                     <label style={lbl}>Uyku Yatma Saati</label>
                     <input style={inp} value={newLog.sleepTime} onChange={e => setNewLog(p => ({ ...p, sleepTime: e.target.value }))} placeholder="Örn: 23:30" />
                   </div>
+                  <div style={{ gridColumn: isMobile ? 'span 2' : 'auto' }}>
+                    <label style={lbl}>Ders & Konu / Detay Notu</label>
+                    <input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Örn: Konu tekrarı / Kitap okuma..." />
+                  </div>
                 </div>
 
                 {/* Alt Aksiyon Çubuğu */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.4rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.55rem' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '0.65rem', paddingTop: '0.4rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: 6, cursor: 'pointer', fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: isMobile ? '0.45rem 0.75rem' : '0.35rem 0.75rem', borderRadius: '0.55rem', boxSizing: 'border-box' }}>
                     <input type="checkbox" checked={newLog.sport} onChange={e => setNewLog(p => ({ ...p, sport: e.target.checked }))} /> 🏃 Bugün Spor / Egzersiz Yaptım
                   </label>
 
                   <button
+                    type="button"
                     onClick={() => {
                       if (!newLog.date) return;
                       const addedHours = parseFloat(newLog.studyHours) || 0;
@@ -2988,9 +3005,19 @@ export default function MyCoachingPage() {
                       setNewLog({ date: today(), studyHours: '', questions: '', revision: '', sport: false, sleepTime: '', activityType: 'Soru Çözümü' });
                     }}
                     style={{
-                      background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: 'white', border: 'none',
-                      borderRadius: '0.65rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.85rem',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                      background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.65rem',
+                      padding: isMobile ? '0.65rem 1rem' : '0.6rem 1.4rem',
+                      fontWeight: 900,
+                      fontSize: isMobile ? '0.82rem' : '0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
                     }}
                   >
                     <Plus size={16} /> Çalışmayı Kaydet & Senkronize Et
@@ -3001,47 +3028,48 @@ export default function MyCoachingPage() {
 
             {/* Çalışma Geçmişi */}
             {dailyLogs.length > 0 && (
-              <Card emoji="📋" title="Çalışma Geçmişim & Günlük Takip">
+              <Card emoji="📋" title="Çalışma Geçmişim & Günlük Takip" isMobile={isMobile}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                   {dailyLogs.map(log => (
                     <div key={log.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
-                      padding: '0.65rem 0.9rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.75rem', fontSize: '0.82rem',
-                      border: '1px solid var(--color-border, #e2e8f0)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '0.5rem',
+                      padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.9rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.75rem', fontSize: '0.82rem',
+                      border: '1px solid var(--color-border, #e2e8f0)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', boxSizing: 'border-box'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--color-text-muted, #64748b)', background: 'var(--color-surface, #e2e8f0)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--color-text-muted, #64748b)', background: 'var(--color-surface, #e2e8f0)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                           📅 {log.date}
                         </span>
                         {log.studyHours && (
-                          <span style={{ fontWeight: 900, color: '#a855f7', background: 'rgba(168, 85, 247, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(168, 85, 247, 0.35)' }}>
+                          <span style={{ fontWeight: 900, color: '#a855f7', background: 'rgba(168, 85, 247, 0.15)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', border: '1px solid rgba(168, 85, 247, 0.35)', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                             ⏱️ {log.studyHours} Saat
                           </span>
                         )}
                         {parseFloat(log.questions) > 0 && (
-                          <span style={{ fontWeight: 900, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(59, 130, 246, 0.35)' }}>
+                          <span style={{ fontWeight: 900, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.15)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', border: '1px solid rgba(59, 130, 246, 0.35)', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                             ✏️ {log.questions} Soru
                           </span>
                         )}
                         {log.sport && (
-                          <span style={{ fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.35)', fontSize: '0.73rem' }}>
-                            🏃 Spor Yapıldı
+                          <span style={{ fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.35)', fontSize: isMobile ? '0.68rem' : '0.73rem' }}>
+                            🏃 Spor
                           </span>
                         )}
                         {log.sleepTime && (
-                          <span style={{ fontWeight: 800, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.73rem' }}>
-                            🌙 Yatış: {log.sleepTime}
+                          <span style={{ fontWeight: 800, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', fontSize: isMobile ? '0.68rem' : '0.73rem' }}>
+                            🌙 {log.sleepTime}
                           </span>
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <span style={{ color: 'var(--color-text, #334155)', fontWeight: 700, fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.65rem', borderTop: isMobile ? '1px dashed var(--color-border, #e2e8f0)' : 'none', paddingTop: isMobile ? 4 : 0 }}>
+                        <span style={{ color: 'var(--color-text, #334155)', fontWeight: 700, fontSize: isMobile ? '0.78rem' : '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {log.revision || 'Detay girilmedi'}
                         </span>
                         <button
+                          type="button"
                           onClick={() => setDailyLogs(p => p.filter(x => x.id !== log.id))}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}
                           title="Kaydı Sil"
                         >
                           <Trash2 size={14} />
