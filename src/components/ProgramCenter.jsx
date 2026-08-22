@@ -280,12 +280,12 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
 
   const isExplicitBook = item.taskType === 'kitap' || item.isBookAssignment || Boolean(item.bookId || item.bookTestId || item.testName || item.unit || item.bookName);
 
-  let rawSubject = (item.subject || '').trim();
-  let unit = (item.unit || '').trim();
-  let testName = (item.testName || '').trim();
-  let bookTitle = (item.bookName || item.bookTitle || '').trim();
-  let questionCount = (item.questionCount || '').trim();
-  let publisher = (item.publisher || '').trim();
+  let rawSubject = String(item.subject || '').trim();
+  let unit = String(item.unit || '').trim();
+  let testName = String(item.testName || '').trim();
+  let bookTitle = String(item.bookName || item.bookTitle || '').trim();
+  let questionCount = String(item.questionCount || '').trim();
+  let publisher = String(item.publisher || '').trim();
 
   // Match test in bookTests if testId / bookTestId / realTestId exists
   const tid = String(item.testId || item.bookTestId || item.realTestId || '');
