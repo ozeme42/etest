@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronDown, ChevronUp, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
   FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck, Eye, RotateCcw,
-  CheckSquare, Award, ArrowUpRight, Brain
+  CheckSquare, Award, ArrowUpRight, Brain, Headphones
 } from 'lucide-react';
 import { parse, isPast, isToday, differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -2622,6 +2622,30 @@ export default function StudentDashboard() {
 
               {/* Pill badges */}
               <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/study-room')}
+                  className="sd-btn"
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: '1.5px solid rgba(255,255,255,0.35)',
+                    borderRadius: 999,
+                    padding: isMobile ? '2px 9px' : '4px 14px',
+                    fontSize: isMobile ? '0.64rem' : '0.78rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
+                    textDecoration: 'none'
+                  }}
+                  title="Çalışma Odasını Aç"
+                >
+                  <Headphones size={isMobile ? 12 : 14} />
+                  <span>Çalışma Odası</span>
+                </button>
                 <div style={{
                   background:'rgba(255,255,255,0.12)',
                   backdropFilter:'blur(16px)',
@@ -2763,10 +2787,13 @@ export default function StudentDashboard() {
               className="sd-kpi"
               style={{
                 background: kpi.grad,
-                border: '1px solid rgba(255,255,255,0.22)',
-                borderRadius: isMobile ? 12 : 22,
-                padding: isMobile ? '0.5rem 0.1rem 0.4rem' : '1.25rem 0.75rem 1.1rem',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                border: '1.5px solid rgba(255,255,255,0.22)',
+                borderRadius: isMobile ? 12 : 20,
+                padding: isMobile ? '0.45rem 0.2rem' : '1.1rem 0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
                 textAlign: 'center',
                 boxShadow: `0 10px 30px ${kpi.glow}, 0 2px 0 rgba(255,255,255,0.15) inset`,
                 minHeight: isMobile ? 64 : 112,
@@ -2791,9 +2818,9 @@ export default function StudentDashboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
-            gap: isMobile ? '0.25rem' : '0.85rem',
-            padding: isMobile ? '0.75rem 0.35rem 0.65rem' : '0.9rem 1.25rem',
+            gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)',
+            gap: isMobile ? '0.45rem' : '0.85rem',
+            padding: isMobile ? '0.75rem 0.45rem 0.65rem' : '0.9rem 1.25rem',
             marginBottom: isMobile ? '0.9rem' : '1.35rem',
             background: 'var(--color-surface, #ffffff)',
             border: '1.5px solid var(--color-border, #e2e8f0)',
@@ -2804,6 +2831,15 @@ export default function StudentDashboard() {
           }}
         >
           {[
+            {
+              id: 'study_room',
+              label: 'Çalışma Odası',
+              icon: Headphones,
+              gradient: 'linear-gradient(135deg, #10b981, #059669)',
+              shadow: 'rgba(16, 185, 129, 0.35)',
+              badge: null,
+              onClick: () => navigate('/study-room')
+            },
             {
               id: 'homeworks',
               label: 'Ödevler',
@@ -2856,8 +2892,8 @@ export default function StudentDashboard() {
               id: 'add_test',
               label: 'Test Ekle',
               icon: Plus,
-              gradient: 'linear-gradient(135deg, #10b981, #059669)',
-              shadow: 'rgba(16, 185, 129, 0.35)',
+              gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+              shadow: 'rgba(6, 182, 212, 0.35)',
               badge: null,
               onClick: () => setIsManualTestModalOpen(true)
             },
@@ -2950,6 +2986,98 @@ export default function StudentDashboard() {
               </button>
             );
           })}
+        </div>
+
+        {/* ── ÇALIŞMA ODASI HIZLI GİRİŞ BANNERI ── */}
+        <div
+          onClick={() => navigate('/study-room')}
+          className="sd-card"
+          style={{
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(5, 150, 105, 0.25))'
+              : 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
+            border: isDark ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1.5px solid #6ee7b7',
+            borderRadius: isMobile ? 16 : 20,
+            padding: isMobile ? '0.75rem 0.9rem' : '0.95rem 1.4rem',
+            marginBottom: isMobile ? '0.9rem' : '1.35rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            cursor: 'pointer',
+            boxShadow: '0 4px 18px rgba(16, 185, 129, 0.15)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14, minWidth: 0, flex: 1 }}>
+            <div style={{
+              width: isMobile ? 38 : 48,
+              height: isMobile ? 38 : 48,
+              borderRadius: isMobile ? 12 : 14,
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+              flexShrink: 0
+            }}>
+              <Headphones size={isMobile ? 20 : 26} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: isMobile ? '0.88rem' : '1.08rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#065f46' }}>
+                  🎧 Çalışma Odası & Odaklanma
+                </span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  background: isDark ? 'rgba(16,185,129,0.3)' : '#10b981',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: 99
+                }}>
+                  CANLI
+                </span>
+              </div>
+              <p style={{
+                fontSize: isMobile ? '0.68rem' : '0.82rem',
+                color: isDark ? 'rgba(255,255,255,0.8)' : '#047857',
+                margin: '2px 0 0',
+                fontWeight: 600
+              }}>
+                Pomodoro süresi, soru/kitap sayacı ve odaklanma sesleri ile hedeflerine çalış!
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/study-room');
+            }}
+            className="sd-btn"
+            style={{
+              padding: isMobile ? '0.45rem 0.85rem' : '0.6rem 1.25rem',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, #10b981, #047857)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.76rem' : '0.88rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              boxShadow: '0 3px 12px rgba(16, 185, 129, 0.35)',
+              flexShrink: 0
+            }}
+          >
+            <span>Odaya Gir</span>
+            <ArrowRight size={isMobile ? 13 : 15} />
+          </button>
         </div>
 
         {/* ════════════════════════════════════════════
