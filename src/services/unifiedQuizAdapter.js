@@ -193,15 +193,17 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
   const testTitle = rawTest.title || rawTest.name || 'Sınav Dokümanı';
 
   // 1. Resolve raw sections
-  // 1. Resolve raw sections
   let rawSectionsList = [];
-  const hasExplicitMultiSections = Array.isArray(rawTest.sections) && rawTest.sections.length > 1;
-  const candidateSections = hasExplicitMultiSections ? rawTest.sections : null;
+  const candidateSections = (Array.isArray(rawTest.sections) && rawTest.sections.length > 1)
+    ? rawTest.sections
+    : (Array.isArray(rawTest.tests) && rawTest.tests.length > 1
+        ? rawTest.tests
+        : (Array.isArray(rawTest.items) && rawTest.items.length > 1 ? rawTest.items : null));
 
   if (candidateSections && candidateSections.length > 1) {
     rawSectionsList = candidateSections.map((item, idx) => {
       const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
-      const bankQ = allBankQuestions.find(q => String(q.id) === String(itemId) || String(q.id).replace(/^q_/, '') === String(itemId).replace(/^q_/, '')) ||
+      const bankQ = (Array.isArray(allBankQuestions) ? allBankQuestions.find(q => String(q.id) === String(itemId) || String(q.id).replace(/^q_/, '') === String(itemId).replace(/^q_/, '')) : null) ||
                     (typeof item === 'object' ? item : null);
 
       const secTitle = (typeof item === 'object' ? (item.title || item.name) : null) || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`;

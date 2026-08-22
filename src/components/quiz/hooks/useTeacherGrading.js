@@ -36,7 +36,8 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
         if (!map[sId]) map[sId] = {};
         if (map[sId][qNo] !== undefined) return; // already set from submission.teacherScores
         // Only load a score if it was explicitly set by a teacher evaluation
-        if (a.score !== undefined && a.score !== null && a.evaluatedByTeacher === true) {
+        const isGraded = a.evaluatedByTeacher === true || Boolean(a.evaluatedAt) || (typeof a.score === 'number' && a.score > 0) || a.evalStatus === 'graded' || a.evalStatus === 'evaluated' || submission?.isEvaluatedByTeacher === true || submission?.isEvaluated === true;
+        if (a.score !== undefined && a.score !== null && isGraded) {
           map[sId][qNo] = typeof a.score === 'number' ? a.score : Number(a.score);
         }
         // Do NOT map isCorrect → 10/0. That would pre-fill OE questions with wrong marks.

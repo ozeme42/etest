@@ -2363,6 +2363,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             isCorrect,
             evalStatus,
             teacherNote: teacherNotes[sec.id]?.[qNo] || existingAns.teacherNote || '',
+            evaluatedByTeacher: true,
             evaluatedAt: new Date().toISOString()
           };
         });
@@ -2382,6 +2383,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         homeworkId: hwId,
         studentId: studentId,
         answers: updatedAnswers,
+        teacherScores: teacherScores,
+        teacherNotes: teacherNotes,
+        correctCount: liveReviewStats.correct,
+        wrongCount: liveReviewStats.wrong,
+        blankCount: liveReviewStats.blank,
         score: percentage,
         scorePercentage: percentage,
         rawScore: totalPts,

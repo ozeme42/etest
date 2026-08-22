@@ -48,8 +48,9 @@ export default function CompositeHomeworkReview({
   const unifiedTest = useMemo(() => {
     return normalizeUnifiedTest(test, questions);
   }, [test, questions]);
-
-  const rawSections = unifiedTest.sections;
+  const rawSections = (unifiedTest.sections && unifiedTest.sections.length > 0)
+    ? unifiedTest.sections
+    : (Array.isArray(test?.sections) && test.sections.length > 0 ? test.sections : (test?.tests || []));
 
   const unifiedSub = useMemo(() => {
     return normalizeUnifiedSubmission(submission, unifiedTest);
@@ -138,16 +139,28 @@ export default function CompositeHomeworkReview({
         const qObj = secQs[i - 1] || {};
 
         if (isOESection) {
-          // OE path: live hook state scores first, then DB fallback
+          // Check if per-answer score exists on submission.answers
+          const rawAnsItem = Array.isArray(submission?.answers)
+            ? submission.answers.find(a =>
+                (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId) || Number(a.sectionIndex) === sIdx) &&
+                Number(a.questionNoInSection || a.questionNo) === i
+              )
+            : null;
+          const ansScore = (rawAnsItem && (rawAnsItem.evaluatedByTeacher || Boolean(rawAnsItem.evaluatedAt) || typeof rawAnsItem.score === 'number') && rawAnsItem.score !== undefined && rawAnsItem.score !== null)
+            ? rawAnsItem.score
+            : undefined;
+
+          // OE path: live hook state scores first, then DB fallback, then per-answer score
           const ts =
             teacherScores[sec.id]?.[i]   ??
             teacherScores[rawId]?.[i]     ??
             teacherScores[sIdx]?.[i]      ??
             dbSecScores[i]                ??
-            dbSecScores[String(i)];
+            dbSecScores[String(i)]        ??
+            ansScore;
 
           const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
-          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText;
           const hasText = Boolean(textVal && String(textVal).trim());
 
           if (ts !== undefined && ts !== null && ts !== 'empty') {
