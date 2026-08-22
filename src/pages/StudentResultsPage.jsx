@@ -1369,6 +1369,21 @@ a.evaluatedAt ||
       }));
   }, [subjectBreakdown, isDark]);
 
+  const handleOpenReview = (s) => {
+    if (!s) return;
+    if (s.type === 'physicalExam' || s.typeKey === 'physicalExam' || s.isPhysicalExam) {
+      navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
+      return;
+    }
+    const isBook = s.sourceType === 'bookTest' || s.typeKey === 'bookTest' || s.isBookTest || Boolean(s.bookTestId) || (s.bookId && s.testId);
+    const bTestId = s.bookTestId || s.realTestId || s.testId;
+    if (isBook && bTestId) {
+      navigate(`/book-quiz/${bTestId}?studentId=${selectedStudent?.id || ''}`);
+      return;
+    }
+    navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`);
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -1789,15 +1804,9 @@ a.evaluatedAt ||
 
                       <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
 
-                      {s.type !== 'physicalExam' ? (
-                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                          <Eye size={13} /> İncele
-                        </button>
-                      ) : (
-                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                          <Eye size={13} /> Karne
-                        </button>
-                      )}
+                      <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                        <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                      </button>
                     </div>
                   );
                 })}
@@ -2280,15 +2289,9 @@ a.evaluatedAt ||
 
                     <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
 
-                    {s.type !== 'physicalExam' ? (
-                      <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                        <Eye size={13} /> İncele
-                      </button>
-                    ) : (
-                      <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                        <Eye size={13} /> Karne
-                      </button>
-                    )}
+                    <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                      <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                    </button>
                   </div>
                 );
               })}
@@ -2536,15 +2539,9 @@ a.evaluatedAt ||
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {s.type !== 'physicalExam' ? (
-                                  <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                                    <Eye size={13} /> İncele
-                                  </button>
-                                ) : (
-                                  <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                                    <Eye size={13} /> Karne
-                                  </button>
-                                )}
+                                <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                                  <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                                </button>
                                 {!isStudentRole && (
                                   <button
                                     onClick={(e) => handleDeleteResult(s, e)}
@@ -2631,15 +2628,9 @@ a.evaluatedAt ||
                           <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {s.type !== 'physicalExam' ? (
-                            <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                              <Eye size={13} /> İncele
-                            </button>
-                          ) : (
-                            <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                              <Eye size={13} /> Karne
-                            </button>
-                          )}
+                          <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                            <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                          </button>
                           {!isStudentRole && (
                             <button
                               onClick={(e) => handleDeleteResult(s, e)}

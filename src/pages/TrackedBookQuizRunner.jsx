@@ -337,24 +337,36 @@ export default function TrackedBookQuizRunner() {
     const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
     const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
 
+    const toLetter = (val) => {
+      if (val === null || val === undefined || val === '' || val === 'empty') return '';
+      if (typeof val === 'number') return String.fromCharCode(65 + val);
+      const str = String(val).trim().toUpperCase();
+      if (/^[A-E]$/.test(str)) return str;
+      const num = Number(str);
+      if (!isNaN(num) && num >= 0 && num <= 4) return String.fromCharCode(65 + num);
+      return str;
+    };
+
     let correct = 0;
     let wrong = 0;
     let blank = 0;
     const detailed = [];
 
     for (let i = 1; i <= questionCount; i++) {
-      const userAns = targetAnswers[i] || targetAnswers[String(i)] || '';
-      // Support both array key or object key (0-indexed or 1-indexed)
-      const correctKey = Array.isArray(answerKey) 
-        ? (answerKey[i - 1] || '') 
-        : (answerKey[i] || answerKey[String(i)] || answerKey[i - 1] || '');
+      const rawUserAns = targetAnswers[i] || targetAnswers[String(i)] || '';
+      const userAns = toLetter(rawUserAns);
+
+      const rawCorrectKey = Array.isArray(answerKey) 
+        ? (answerKey[i - 1] ?? answerKey[i] ?? '') 
+        : (answerKey[i] ?? answerKey[String(i)] ?? answerKey[i - 1] ?? '');
+      const correctKey = toLetter(rawCorrectKey);
 
       let isCorrect = false;
       let isWrong = false;
 
       if (!userAns) {
         blank++;
-      } else if (correctKey && String(userAns).trim().toUpperCase() === String(correctKey).trim().toUpperCase()) {
+      } else if (correctKey && userAns === correctKey) {
         correct++;
         isCorrect = true;
       } else if (correctKey) {
@@ -423,13 +435,27 @@ export default function TrackedBookQuizRunner() {
         String(s.bookTestId || ''),
         String(s.metadata?.realTestId || ''),
         String(s.metadata?.bookTestId || ''),
-        String(s.metadata?.realId || '')
+        String(s.metadata?.realId || ''),
+        String(s.metadata?.testId || '')
       ];
       if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
         matchFields.push(...s.bookTestIds.map(String));
       }
 
-      return matchFields.some(f => f && (f === testIdStr || (testUuidStr && f === testUuidStr) || toUUID(f) === testIdStr || (testUuidStr && toUUID(f) === testUuidStr)));
+      const isIdMatch = matchFields.some(f => f && (f === testIdStr || (testUuidStr && f === testUuidStr) || toUUID(f) === testIdStr || (testUuidStr && toUUID(f) === testUuidStr)));
+      if (isIdMatch) return true;
+
+      // Match by Book & Test Name/Unit
+      const isSameBook = String(s.bookId || '') === String(resolvedBook?.id) || (s.bookTitle && resolvedBook?.title && (s.bookTitle.includes(resolvedBook.title) || resolvedBook.title.includes(s.bookTitle)));
+      if (isSameBook && resolvedTest?.name) {
+        const subTitleClean = String(s.testTitle || s.title || s.topic || s.unit || '').trim().toLowerCase();
+        const tNameClean = String(resolvedTest.name || '').trim().toLowerCase();
+        if (subTitleClean === tNameClean || subTitleClean.endsWith(`(${tNameClean})`) || subTitleClean.includes(`› ${tNameClean}`) || subTitleClean.includes(`(${tNameClean})`)) {
+          return true;
+        }
+      }
+
+      return false;
     });
 
     if (existingSub) {
@@ -440,7 +466,19 @@ export default function TrackedBookQuizRunner() {
       if (Array.isArray(existingSub.answers) && existingSub.answers.length > 0 && Object.keys(loadedAnswers).length === 0) {
         existingSub.answers.forEach((a, idx) => {
           const qNo = a.questionNo || (idx + 1);
-          loadedAnswers[qNo] = a.userAnswer || a.answer || '';
+          let val = a.userAnswerLetter || a.answerLetter || null;
+          if (!val && a.userAnswer !== undefined && a.userAnswer !== null && a.userAnswer !== '' && a.userAnswer !== 'empty') {
+            if (typeof a.userAnswer === 'number') {
+              val = String.fromCharCode(65 + a.userAnswer);
+            } else if (typeof a.userAnswer === 'string') {
+              if (/^[A-Ea-e]$/.test(a.userAnswer.trim())) {
+                val = a.userAnswer.trim().toUpperCase();
+              } else if (!isNaN(Number(a.userAnswer))) {
+                val = String.fromCharCode(65 + Number(a.userAnswer));
+              }
+            }
+          }
+          if (val) loadedAnswers[qNo] = val;
         });
       }
 
@@ -458,13 +496,17 @@ export default function TrackedBookQuizRunner() {
         setAnswers(loadedAnswers);
       }
 
+      if (existingSub.mistakeReasons && typeof existingSub.mistakeReasons === 'object') {
+        setMistakeReasons(existingSub.mistakeReasons);
+      }
+
       const calculated = calculateTestResults(loadedAnswers || answers);
       setResults(calculated);
       initializedRef.current = true;
     } else {
       initializedRef.current = true;
     }
-  }, [resolvedTest, resolvedHw, studentId, isRetake, draftKey, submissions, calculateTestResults]);
+  }, [resolvedTest, resolvedHw, resolvedBook, studentId, isRetake, draftKey, submissions, calculateTestResults]);
 
   // Timer interval
   useEffect(() => {

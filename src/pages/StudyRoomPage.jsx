@@ -5831,10 +5831,16 @@ export default function StudyRoomPage() {
                 type="button"
                 onClick={() => {
                   const subId = completedQuizResult.id;
+                  const finalTid = completedQuizResult.bookTestId || completedQuizResult.realTestId || completedQuizResult.testId;
+                  const isBook = completedQuizResult.sourceType === 'bookTest' || Boolean(completedQuizResult.bookTestId);
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
                   handleClearSelectedTask();
-                  navigate(`/review/${subId}?studentId=${currentUser?.id || ''}`);
+                  if (isBook && finalTid) {
+                    navigate(`/book-quiz/${finalTid}?studentId=${currentUser?.id || ''}`);
+                  } else {
+                    navigate(`/review/${subId}?studentId=${currentUser?.id || ''}`);
+                  }
                 }}
                 style={{
                   flex: 1,
