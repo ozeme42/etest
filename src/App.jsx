@@ -116,7 +116,12 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
   const toggleCollapse = () => {
     setIsCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem('sidebar_collapsed', JSON.stringify(next)); } catch {}
+      try { 
+        if (currentUser?.role) {
+          localStorage.setItem(`sidebar_collapsed_${currentUser.role}`, JSON.stringify(next));
+        }
+        localStorage.setItem('sidebar_collapsed', JSON.stringify(next)); 
+      } catch {}
       return next;
     });
   };
@@ -483,11 +488,31 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem('sidebar_collapsed');
-      return saved ? JSON.parse(saved) : false;
+      if (saved !== null) return JSON.parse(saved);
+      // Öğrenci için masaüstünde de varsayılan olarak gizli (collapsed) gelsin
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+    try {
+      const roleKey = `sidebar_collapsed_${currentUser.role}`;
+      const savedRolePref = localStorage.getItem(roleKey);
+      if (savedRolePref !== null) {
+        setIsSidebarCollapsed(JSON.parse(savedRolePref));
+      } else {
+        // Öğrenci için varsayılan gizli (collapsed), öğretmen/yönetici için varsayılan açık
+        if (currentUser.role === 'student') {
+          setIsSidebarCollapsed(true);
+        } else {
+          setIsSidebarCollapsed(false);
+        }
+      }
+    } catch {}
+  }, [currentUser?.role, currentUser?.id]);
 
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/quiz-review/', '/login', '/physical-exam/', '/study-room'];
   const isLandingPage = location.pathname === '/';
