@@ -1171,42 +1171,64 @@ export default function StudentDashboard() {
         raw.sourceType === 'homework'
       );
 
-      let targetTest = (bookTests || []).find(t => 
-        String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
-        (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
-      );
-      let targetBook = (books || []).find(b => 
-        String(b.id) === String(sub.bookId || raw.bookId || targetTest?.bookId) ||
-        (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || targetTest?.bookId))
-      );
+      let targetTest = null;
+      let targetBook = null;
+      let targetTopic = null;
+      let targetSubject = null;
 
-      if (!targetTest && books && Array.isArray(books)) {
+      // Find in books hierarchy
+      if (books && Array.isArray(books)) {
         for (const b of books) {
-          if (b.subjects && Array.isArray(b.subjects)) {
-            for (const s of b.subjects) {
-              if (s.tests && Array.isArray(s.tests)) {
-                const ft = s.tests.find(t => String(t.id) === testIdStr || (toUUID(t.id) && String(toUUID(t.id)) === testIdStr));
-                if (ft) {
-                  targetTest = { ...ft, bookId: b.id, subjectId: s.id };
-                  if (!targetBook) targetBook = b;
-                  break;
-                }
-              }
-              if (s.topics && Array.isArray(s.topics)) {
-                for (const tp of s.topics) {
-                  if (tp.tests && Array.isArray(tp.tests)) {
-                    const ft = tp.tests.find(t => String(t.id) === testIdStr || (toUUID(t.id) && String(toUUID(t.id)) === testIdStr));
-                    if (ft) {
-                      targetTest = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id };
-                      if (!targetBook) targetBook = b;
-                      break;
-                    }
+          if (!b.subjects || !Array.isArray(b.subjects)) continue;
+          for (const s of b.subjects) {
+            if (s.topics && Array.isArray(s.topics)) {
+              for (const tp of s.topics) {
+                if (tp.tests && Array.isArray(tp.tests)) {
+                  const ft = tp.tests.find(t => 
+                    String(t.id) === testIdStr || 
+                    (toUUID(t.id) && String(toUUID(t.id)) === testIdStr) ||
+                    String(t.id) === String(sub.bookTestId || sub.realTestId || sub.testId)
+                  );
+                  if (ft) {
+                    targetTest = ft;
+                    targetBook = b;
+                    targetTopic = tp;
+                    targetSubject = s;
+                    break;
                   }
                 }
               }
             }
+            if (s.tests && Array.isArray(s.tests) && !targetTest) {
+              const ft = s.tests.find(t => 
+                String(t.id) === testIdStr || 
+                (toUUID(t.id) && String(toUUID(t.id)) === testIdStr) ||
+                String(t.id) === String(sub.bookTestId || sub.realTestId || sub.testId)
+              );
+              if (ft) {
+                targetTest = ft;
+                targetBook = b;
+                targetSubject = s;
+                break;
+              }
+            }
+            if (targetTest) break;
           }
+          if (targetTest) break;
         }
+      }
+
+      if (!targetTest) {
+        targetTest = (bookTests || []).find(t => 
+          String(t.id) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId) ||
+          (toUUID(t.id) && String(toUUID(t.id)) === String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || sub.realTestId))
+        );
+      }
+      if (!targetBook) {
+        targetBook = (books || []).find(b => 
+          String(b.id) === String(sub.bookId || raw.bookId || targetTest?.bookId) ||
+          (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || targetTest?.bookId))
+        );
       }
 
       const targetHw = (homeworks || []).find(h => {
@@ -1227,17 +1249,55 @@ export default function StudentDashboard() {
       if (sub.id) processedSubIds.add(String(sub.id));
       if (sub.supabaseId) processedSubIds.add(String(sub.supabaseId));
 
-      const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
-      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(targetTest?.topicId || raw.topicId || sub.topicId));
-      const unitTopic = (sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || targetTest?.topicName || targetTest?.unit || targetTest?.unitName || raw.topic || raw.unit || raw.topicName || raw.unitName || '').trim();
-      
-      const bookTitle = sub.bookTitle || raw.bookTitle || targetBook?.title || targetHw?.title || '';
-      const cleanBookTitle = bookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      const rawBookTitle = sub.bookTitle || raw.bookTitle || targetBook?.title || (targetHw && isBookHomework(targetHw) ? targetHw.title : '') || '';
+      let cleanBookTitle = rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      if (cleanBookTitle.includes(' — ')) {
+        cleanBookTitle = cleanBookTitle.split(' — ')[0].trim();
+      }
+
+      const subjObj = targetSubject || (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
+      const topicObj = targetTopic || (subjObj?.topics || []).find(tp => String(tp.id) === String(targetTest?.topicId || raw.topicId || sub.topicId));
+
+      let unitTopic = topicObj?.name || targetTest?.topicName || targetTest?.unitName || targetTest?.unit || '';
+      if (!unitTopic) {
+        unitTopic = sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || raw.topic || raw.unit || raw.topicName || raw.unitName || '';
+      }
+      unitTopic = String(unitTopic || '').trim();
+
+      // Clean book contamination from unitTopic
+      if (unitTopic) {
+        unitTopic = unitTopic.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+        if (cleanBookTitle && unitTopic.toLowerCase().includes(cleanBookTitle.toLowerCase())) {
+          const regex = new RegExp(cleanBookTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          unitTopic = unitTopic.replace(regex, '').replace(/^[\s\—\-\:\/]+/, '').trim();
+        }
+        if (targetTest?.name && unitTopic.toLowerCase() === targetTest.name.toLowerCase()) {
+          unitTopic = '';
+        }
+      }
+
+      // If unitTopic is still empty, look up in targetBook
+      if (!unitTopic && targetBook?.subjects) {
+        for (const s of targetBook.subjects) {
+          for (const tp of (s.topics || [])) {
+            if ((tp.tests || []).some(t => String(t.id) === testIdStr || t.name === targetTest?.name)) {
+              unitTopic = tp.name;
+              break;
+            }
+          }
+          if (unitTopic) break;
+        }
+      }
 
       let title = targetTest?.name || sub.testTitle || raw.testTitle || sub.title || (targetHw && !isBookHomework(targetHw) ? targetHw.title : null) || targetCurTest?.title || 'Test';
       title = title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      if (cleanBookTitle && title.toLowerCase().startsWith(cleanBookTitle.toLowerCase())) {
+        const regex = new RegExp('^' + cleanBookTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        title = title.replace(regex, '').replace(/^[\s\—\-\:\/]+/, '').trim();
+        if (!title) title = targetTest?.name || sub.testTitle || raw.testTitle || 'Test';
+      }
 
-      const subject = sub.subject || raw.subject || subjObj?.name || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || cleanBookTitle || 'Genel Testler';
+      const subject = subjObj?.name || sub.subject || raw.subject || (targetHw && !isBookHomework(targetHw) ? targetHw.subject : null) || targetBook?.subject || 'Genel';
       const subTitle = cleanBookTitle && cleanBookTitle !== title && cleanBookTitle !== subject ? cleanBookTitle : null;
 
       const dateVal = sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || sub.updatedAt;
@@ -3954,7 +4014,7 @@ export default function StudentDashboard() {
                             }}>
                               {test.subject}
                             </span>
-                            {test.unitTopic && (
+                            {Boolean(test.unitTopic && test.unitTopic !== test.title && test.unitTopic !== test.subTitle && (!test.subTitle || !test.unitTopic.toLowerCase().includes(test.subTitle.toLowerCase()))) && (
                               <span style={{
                                 background: 'rgba(245, 158, 11, 0.12)',
                                 color: '#b45309',
