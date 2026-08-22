@@ -6,7 +6,7 @@ import QuizPanelLayout from '../runner/QuizPanelLayout';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
-import { ArrowLeft, Save, Clock, Award } from 'lucide-react';
+import { ArrowLeft, Save, Clock, Award, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 /**
  * SingleOpenEndedReview
@@ -135,11 +135,43 @@ export default function SingleOpenEndedReview({
     }));
   };
 
+  const stats = useMemo(() => {
+    let cCount = 0;
+    let wCount = 0;
+    let bCount = 0;
+    let pCount = 0;
+
+    const sMap = teacherScores.sec_1 || {};
+    answers.forEach((ans, idx) => {
+      const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
+      const textVal = ans.userAnswerText || ans.studentAnswerText || ans.userAnswer || textMap[qNo] || '';
+      const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
+      const sc = sMap[qNo];
+
+      if (!hasText || sc === 'empty') {
+        bCount++;
+      } else if (sc !== undefined && sc !== null && sc !== 'empty' && !isNaN(Number(sc))) {
+        const numSc = Number(sc);
+        if (numSc >= 5) cCount++;
+        else wCount++;
+      } else if (hasText) {
+        pCount++;
+        bCount++;
+      } else {
+        bCount++;
+      }
+    });
+
+    return { correctCount: cCount, wrongCount: wCount, blankCount: bCount, pendingCount: pCount };
+  }, [answers, teacherScores, textMap]);
+
+  const { correctCount, wrongCount, blankCount, pendingCount } = stats;
+
   const totalEarnedScore = useMemo(() => {
     let earned = 0;
     const sMap = teacherScores.sec_1 || {};
     Object.values(sMap).forEach(sc => {
-      if (sc !== undefined && sc !== null && sc !== 'empty') {
+      if (sc !== undefined && sc !== null && sc !== 'empty' && !isNaN(Number(sc))) {
         earned += Number(sc);
       }
     });
@@ -147,7 +179,16 @@ export default function SingleOpenEndedReview({
   }, [teacherScores]);
 
   const totalMaxScore = totalQuestions * 10;
-  const scorePercentage = totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
+  const scorePercentage = useMemo(() => {
+    const totalScored = correctCount + wrongCount + blankCount;
+    if (totalScored > 0) {
+      return Math.min(100, Math.round((correctCount / totalScored) * 100));
+    }
+    return 0;
+  }, [correctCount, wrongCount, blankCount]);
+
+  const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+  const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
 
   const handleSaveAndClose = async () => {
     if (isSaving || !submission) return;
@@ -256,41 +297,91 @@ export default function SingleOpenEndedReview({
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isTrulyEvaluated ? '#16a34a' : '#d97706' }}>
               {isTeacher
                 ? `Öğrenci: ${submission.studentName || 'Öğrenci'} • ${totalQuestions} Yazılı Soru`
-                : (isTrulyEvaluated ? `Puanlandı • %${scorePercentage} Başarı` : `${totalQuestions} Yazılı Soru • ⏳ Değerlendirmede`)}
+                : (isTrulyEvaluated ? `✍️ Açık Uçlu / Yazılı • ${totalQuestions} Soru` : `${totalQuestions} Yazılı Soru • ⏳ Değerlendirmede`)}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {isTrulyEvaluated ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          {/* Doğru Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <CheckCircle size={14} color="#16a34a" />
+            <span>{correctCount} D</span>
+          </div>
+
+          {/* Yanlış Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <XCircle size={14} color="#ef4444" />
+            <span>{wrongCount} Y</span>
+          </div>
+
+          {/* Boş Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
+            fontWeight: 800,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <AlertCircle size={14} color="#64748b" />
+            <span>{blankCount} B</span>
+          </div>
+
+          {/* Başarı & Net Pill */}
+          <div style={{
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: '#ffffff',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+            borderRadius: '0.55rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.76rem' : '0.84rem',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+          }}>
+            %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
+          </div>
+
+          {pendingCount > 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-              color: '#ffffff',
-              padding: '0.4rem 0.9rem',
-              borderRadius: '0.65rem',
-              fontWeight: 900,
-              fontSize: '0.85rem'
-            }}>
-              <Award size={16} /> %{scorePercentage} Başarı ({totalEarnedScore} / {totalMaxScore} P)
-            </div>
-          ) : (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
+              gap: 4,
+              padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+              borderRadius: '0.55rem',
               background: '#f5f3ff',
-              color: '#6b21a8',
               border: '1px solid #ddd6fe',
-              padding: '0.4rem 0.9rem',
-              borderRadius: '0.65rem',
-              fontWeight: 900,
-              fontSize: '0.85rem'
+              color: '#7c3aed',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.74rem' : '0.8rem'
             }}>
-              <Clock size={16} color="#7c3aed" />
-              <span>⏳ Değerlendirmede</span>
+              <Clock size={14} color="#7c3aed" />
+              <span>{pendingCount} Bekliyor</span>
             </div>
           )}
 

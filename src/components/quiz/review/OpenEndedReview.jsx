@@ -206,19 +206,19 @@ export default function OpenEndedReview({
         {hasTeacherGraded ? (
           numScore === 10 ? (
             <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-              ✓ DOĞRU (10P)
+              ✓ DOĞRU
             </span>
           ) : numScore === 5 ? (
             <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-              ½ YARIM (5P)
+              ½ YARIM
             </span>
           ) : teacherScore === 'empty' ? (
             <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-              ○ BOŞ (0P)
+              ○ BOŞ
             </span>
           ) : numScore === 0 ? (
             <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-              ✗ YANLIŞ (0P)
+              ✗ YANLIŞ
             </span>
           ) : (
             <span style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
@@ -229,11 +229,11 @@ export default function OpenEndedReview({
           teacherScore !== undefined && teacherScore !== null ? (
             Number(teacherScore) === 10 ? (
               <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-                ✓ DOĞRU (10P)
+                ✓ DOĞRU
               </span>
             ) : Number(teacherScore) === 5 ? (
               <span style={{ fontSize: '0.78rem', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-                ½ YARIM (5P)
+                ½ YARIM
               </span>
             ) : teacherScore === 'empty' ? (
               <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
@@ -241,7 +241,7 @@ export default function OpenEndedReview({
               </span>
             ) : (
               <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-                ✗ YANLIŞ (0P)
+                ✗ YANLIŞ
               </span>
             )
           ) : (
