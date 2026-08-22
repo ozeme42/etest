@@ -120,21 +120,17 @@ export function normalizeWeeklyProgram(raw) {
   });
 }
 
-export function checkIsTaskSolved(item, studentId, submissions = [], allHomeworks = [], studyAssignments = []) {
-  if (!item || !studentId) return false;
+export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null) {
+  if (!item) return false;
   if (item.done) return true;
 
   const studentIdStr = String(studentId || '');
   const studentUuidStr = String(toUUID(studentId) || '');
 
-  // Match student helper
   const isMatchStudent = (s) => {
-    if (!s) return false;
-    const subStudentId = String(s.studentId || s.student_id || s.user_id || '');
-    return subStudentId === studentIdStr ||
-      (studentUuidStr && subStudentId === studentUuidStr) ||
-      toUUID(subStudentId) === studentIdStr ||
-      (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+    if (!studentId) return true;
+    const sId = String(s.studentId || '');
+    return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
   };
 
   const specificTestId = item.testId || item.realTestId || item.bookTestId || null;
@@ -142,7 +138,9 @@ export function checkIsTaskSolved(item, studentId, submissions = [], allHomework
   // CASE 1: SPECIFIC TEST / QUIZ TASK (MUST match the exact test ID)
   if (specificTestId) {
     const tIdStr = String(specificTestId);
+    if (precomputedSolvedIdsSet && precomputedSolvedIdsSet.has(tIdStr)) return true;
     const tUuidStr = String(toUUID(specificTestId) || '');
+    if (precomputedSolvedIdsSet && tUuidStr && precomputedSolvedIdsSet.has(tUuidStr)) return true;
 
     // 1. Check in global submissions
     const isTestSolvedInSubs = (submissions || []).some(s => {
@@ -213,7 +211,9 @@ export function checkIsTaskSolved(item, studentId, submissions = [], allHomework
   const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace('hw_', '') : null) || item.id;
   if (generalHwId) {
     const gHwIdStr = String(generalHwId);
+    if (precomputedSolvedIdsSet && precomputedSolvedIdsSet.has(gHwIdStr)) return true;
     const gUuidStr = String(toUUID(generalHwId) || '');
+    if (precomputedSolvedIdsSet && gUuidStr && precomputedSolvedIdsSet.has(gUuidStr)) return true;
 
     const isHwSolvedInSubs = (submissions || []).some(s => {
       if (!s || !isMatchStudent(s)) return false;
@@ -2453,9 +2453,9 @@ export default function ProgramCenter({
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weeklyPrintOrientation, setWeeklyPrintOrientation] = useState('landscape');
-  const [selectedDayFilter, setSelectedDayFilter] = useState('all'); // 'all' | 'Pzt' | 'Sal' | 'Çrş' | 'Prş' | 'Cum' | 'Cts' | 'Paz'
-  const [weeklySubView, setWeeklySubView] = useState('agenda'); // default 'agenda' (Liste / Ajanda görünümü)
   const todayKey = getTodayKey();
+  const [selectedDayFilter, setSelectedDayFilter] = useState(() => getTodayKey()); // 'all' | 'Pzt' | 'Sal' | 'Çrş' | 'Prş' | 'Cum' | 'Cts' | 'Paz' (Varsayılan: Bugün)
+  const [weeklySubView, setWeeklySubView] = useState('agenda'); // default 'agenda' (Liste / Ajanda görünümü)
   const navigate = useNavigate();
 
   const handlePrevDay = useCallback(() => {
@@ -2711,6 +2711,45 @@ export default function ProgramCenter({
     }
 
     const studentId = effectiveUser.id;
+    const studentIdStr = String(studentId || '');
+    const studentUuidStr = String(toUUID(studentId) || '');
+
+    const isMatchStudent = (s) => {
+      if (!studentId) return true;
+      const sId = String(s.studentId || s.student_id || s.user_id || '');
+      return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
+    };
+
+    const solvedIdsSet = new Set();
+    (submissions || []).forEach(s => {
+      if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+      const ids = [s.id, s.testId, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
+      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
+      ids.forEach(id => {
+        if (!id) return;
+        const str = String(id);
+        solvedIdsSet.add(str);
+        const u = toUUID(str);
+        if (u) solvedIdsSet.add(String(u));
+      });
+    });
+
+    (allHomeworks || []).forEach(hw => {
+      if (hw.submissions && Array.isArray(hw.submissions)) {
+        hw.submissions.forEach(s => {
+          if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+          const ids = [s.id, s.testId, s.bookTestId, s.realTestId];
+          ids.forEach(id => {
+            if (!id) return;
+            const str = String(id);
+            solvedIdsSet.add(str);
+            const u = toUUID(str);
+            if (u) solvedIdsSet.add(String(u));
+          });
+        });
+      }
+    });
+
     const studentGrades = curData?.grades || [];
 
     const studentHomeworks = (allHomeworks || []).filter(hw => {
@@ -2750,7 +2789,7 @@ export default function ProgramCenter({
       });
       // Map manual items to dynamically reflect test/assignment completion
       manualItems = manualItems.map(item => {
-        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments));
+        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet));
         return {
           ...item,
           done: isDone
@@ -2795,7 +2834,7 @@ export default function ProgramCenter({
             const isHwDone = checkIsTaskSolved({
               hwId: hw.id,
               id: hw.id
-            }, studentId, submissions, allHomeworks, studyAssignments);
+            }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
 
             let totalQ = hw.totalQuestions;
             if (!totalQ && hw.tests && Array.isArray(hw.tests)) {
@@ -2848,7 +2887,7 @@ export default function ProgramCenter({
                 testId: testId,
                 hwId: hw.id,
                 taskType: 'kitap'
-              }, studentId, submissions, allHomeworks, studyAssignments);
+              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
 
               const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
               if (!exists) {
@@ -2893,7 +2932,7 @@ export default function ProgramCenter({
               const isTestSolved = checkIsTaskSolved({
                 testId: testId,
                 hwId: hw.id
-              }, studentId, submissions, allHomeworks, studyAssignments);
+              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
 
               const tObj = bookTests.find(b => String(b.id) === String(testId));
               const testTitle = tObj?.name || `Test ${idx + 1}`;
@@ -2919,7 +2958,7 @@ export default function ProgramCenter({
           const isHwDone = checkIsTaskSolved({
             hwId: hw.id,
             id: hw.id
-          }, studentId, submissions, allHomeworks, studyAssignments);
+          }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
 
           const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
           if (!exists) {
