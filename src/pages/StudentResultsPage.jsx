@@ -32,6 +32,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
+import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
@@ -532,6 +533,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   const [selectedStudent, setSelectedStudent] = useState(initialStudent);
   const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null });
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (activeTargetStudentId) {
@@ -1535,6 +1537,27 @@ a.evaluatedAt ||
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.38rem 0.65rem',
+                    fontWeight: 900,
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Award size={13} /> Karne Al
+                </button>
+
+                <button
                   onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
                   style={{
                     display: 'flex',
@@ -1555,66 +1578,87 @@ a.evaluatedAt ||
                   <Plus size={13} /> Test Ekle
                 </button>
               </div>
-            </div>
-          ) : (
-            /* Desktop Header */
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button
-                  onClick={() => {
-                    if (onBack) onBack();
-                    else if (window.history.length > 1) navigate(-1);
-                    else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
-                  }}
-                  style={{
-                    background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
-                    border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
-                    borderRadius: 12,
-                    padding: '0.55rem 1.1rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontWeight: 900,
-                    fontSize: '0.82rem',
-                    color: embedded ? '#ffffff' : 'var(--color-text)',
-                    boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
-                  }}
-                >
-                  <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
-                </button>
-                <div>
-                  <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Sparkles size={22} color="#6366f1" />
-                    {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
-                  </h1>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                    Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
-                  </p>
-                </div>
               </div>
+            ) : (
+              /* Desktop Header */
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button
+                    onClick={() => {
+                      if (onBack) onBack();
+                      else if (window.history.length > 1) navigate(-1);
+                      else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
+                    }}
+                    style={{
+                      background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
+                      border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
+                      borderRadius: 12,
+                      padding: '0.55rem 1.1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      color: embedded ? '#ffffff' : 'var(--color-text)',
+                      boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
+                  </button>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Sparkles size={22} color="#6366f1" />
+                      {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
+                    </h1>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                      Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
+                    </p>
+                  </div>
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '0.6rem 1.15rem',
-                    fontWeight: 900,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setIsReportModalOpen(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 14,
+                      padding: '0.6rem 1.15rem',
+                      fontWeight: 900,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(79,70,229,0.35)',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <Award size={16} /> 📄 Gelişim Karnesi İndir / Yazdır
+                  </button>
+
+                  <button
+                    onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 14,
+                      padding: '0.6rem 1.15rem',
+                      fontWeight: 900,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
+                  </button>
 
                 {/* Student Selector */}
                 {!isStudentRole ? (
@@ -3093,6 +3137,14 @@ a.evaluatedAt ||
         isOpen={manualTestModalData.isOpen}
         initialData={manualTestModalData.data}
         onClose={() => setManualTestModalData({ isOpen: false, data: null })}
+      />
+
+      {/* Gelişim & Performans Karnesi Modalı */}
+      <StudentPerformanceReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        student={selectedStudent || currentUser || {}}
+        submissions={studentSubmissions || []}
       />
     </div>
   );

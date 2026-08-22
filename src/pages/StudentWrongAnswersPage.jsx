@@ -18,6 +18,8 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
+import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
+import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 
 const getSubjectConfig = (isDark) => ({
   'Tümü': {
@@ -199,6 +201,8 @@ export default function StudentWrongAnswersPage() {
   const [viewMode, setViewMode] = useState('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
+  const [isLeitnerModalOpen, setIsLeitnerModalOpen] = useState(false);
+  const [leitnerPracticeQuestions, setLeitnerPracticeQuestions] = useState([]);
 
   // Hata Defteri Modals & States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -668,6 +672,32 @@ export default function StudentWrongAnswersPage() {
   // Tab-Specific Global Counts
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
   const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
+
+  // Spaced Repetition (Leitner) Flat Questions & Overview
+  const allFlatWrongQuestions = useMemo(() => {
+    const list = [];
+    testGroupedSubmissions.forEach(sub => {
+      (sub.wrongQuestions || []).forEach(wq => {
+        list.push({
+          id: `${sub.id}_${wq.qNum}`,
+          testId: sub.id,
+          testTitle: sub.testTitle,
+          subject: sub.subject,
+          questionNo: wq.qNum,
+          questionText: wq.questionText || `${sub.testTitle} — Soru ${wq.qNum}`,
+          options: wq.options || ['A', 'B', 'C', 'D', 'E'],
+          correctAnswer: wq.correctAnswer ?? 0,
+          imageUrl: wq.imageUrl || null
+        });
+      });
+    });
+    return list;
+  }, [testGroupedSubmissions]);
+
+  const leitnerOverview = useMemo(() => {
+    const sId = selectedStudent?.id || currentUser?.id || 'default_student';
+    return getLeitnerOverview(sId, allFlatWrongQuestions);
+  }, [selectedStudent, currentUser, allFlatWrongQuestions]);
 
   // Available Homework options for Add Modal
   const availableHomeworkOptions = useMemo(() => {
@@ -1413,6 +1443,121 @@ export default function StudentWrongAnswersPage() {
             </div>
           </div>
         )}
+
+        {/* ════════════════════════════════════════════
+            2.2 🧠 ARALIKLI TEKRAR (LEITNER 5 KUTU) SİSTEMİ
+        ════════════════════════════════════════════ */}
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
+          borderRadius: 20,
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.25rem',
+          boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
+                fontSize: '1.2rem'
+              }}>
+                🧠
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  Aralıklı Tekrar (Leitner) Telafi Kutuları
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  Yanlış yaptığınız soruları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
+                </p>
+              </div>
+            </div>
+
+            {leitnerOverview.dueTodayCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setLeitnerPracticeQuestions(leitnerOverview.dueQuestions);
+                  setIsLeitnerModalOpen(true);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '0.55rem 1.15rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
+                }}
+              >
+                <Zap size={15} /> 🎯 Bugünün Telafi Pratiğini Başlat ({leitnerOverview.dueTodayCount} Soru)
+              </button>
+            ) : (
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#10b981',
+                background: 'rgba(16,185,129,0.12)',
+                padding: '0.35rem 0.85rem',
+                borderRadius: 99,
+                border: '1px solid rgba(16,185,129,0.3)'
+              }}>
+                🎉 Bugün bekleyen telafi sorunuz yok!
+              </span>
+            )}
+          </div>
+
+          {/* 5 Box Level Strip */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gap: '0.75rem'
+          }}>
+            {LEITNER_BOX_CONFIG.map(box => {
+              const count = leitnerOverview.boxCounts[box.level] || 0;
+              return (
+                <div
+                  key={box.level}
+                  style={{
+                    background: box.bg,
+                    border: `1.5px solid ${box.border}`,
+                    borderRadius: 14,
+                    padding: '0.75rem 0.95rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: box.color, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{box.icon}</span> {box.label}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                      {box.level === 5 ? 'Kazanıldı' : `${box.intervalDays} gün aralık`}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: box.color }}>
+                    {count}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ════════════════════════════════════════════
             2.5 TÜM HATA & YANLIŞ SEBEPLERİ TEŞHİS ANALİZİ WIDGET
@@ -2693,7 +2838,16 @@ export default function StudentWrongAnswersPage() {
           </div>
         </div>
       )}
-
+      {/* Leitner Spaced Repetition Practice Modal */}
+      <LeitnerPracticeModal
+        isOpen={isLeitnerModalOpen}
+        onClose={() => setIsLeitnerModalOpen(false)}
+        questions={leitnerPracticeQuestions}
+        studentId={selectedStudent?.id || currentUser?.id}
+        onFinish={() => {
+          // Trigger re-render by clearing selection
+        }}
+      />
     </div>
   );
 }

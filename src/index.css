@@ -270,5 +270,300 @@ body {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   ✨ MODERN DESIGN SYSTEM & TOKEN UTILITIES (Apple / Linear UI)
+   ───────────────────────────────────────────────────────────── */
+
+/* --- Modern Buttons --- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  background: var(--color-primary, #6366f1);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.28);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+.btn-primary:hover {
+  background: var(--color-primary-dark, #4f46e5);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.38);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-gradient {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #ffffff;
+  border-radius: 0.85rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+.btn-gradient:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.42);
+}
+.btn-gradient:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #1e293b);
+  border: 1.5px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.btn-secondary:hover {
+  background: var(--color-surface-hover, #f8fafc);
+  border-color: var(--color-primary-light, #818cf8);
+  color: var(--color-primary, #6366f1);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  border-radius: 0.65rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover {
+  background: var(--color-surface-hover, rgba(0, 0, 0, 0.05));
+  color: var(--color-text, #0f172a);
+}
+
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+.btn-success:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.28);
+  transition: all 0.2s ease;
+}
+.btn-danger:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.38);
+}
+
+/* --- Soft Badges & Chips --- */
+.badge-soft-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-emerald {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.badge-soft-rose {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-rose {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.badge-soft-indigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-indigo {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  border-color: rgba(165, 180, 252, 0.35);
+}
+
+.badge-soft-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-amber {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.badge-soft-purple {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-purple {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.35);
+}
+
+.badge-soft-sky {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.dark .badge-soft-sky {
+  background: rgba(14, 165, 233, 0.18);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+/* --- Elevated & Glass Cards --- */
+.card-elevated {
+  background: var(--color-surface, #ffffff);
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 1.15rem;
+  box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.04);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-text);
+}
+.dark .card-elevated {
+  box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.3);
+}
+
+.card-interactive {
+  cursor: pointer;
+  user-select: none;
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light, #818cf8);
+  box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.12);
+}
+.dark .card-interactive:hover {
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.5);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(226, 232, 240, 0.8);
+  border-radius: 1.15rem;
+}
+.dark .card-glass {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(148, 163, 184, 0.15);
+}
 }
 
