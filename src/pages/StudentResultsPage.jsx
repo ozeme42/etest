@@ -863,10 +863,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
       const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
 
-      processedTestKeys.add(String(hw.id));
-      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
       if (sub.id) processedTestKeys.add(String(sub.id));
-      if (sub.testId) processedTestKeys.add(String(sub.testId));
+      if (sub.supabaseId) processedTestKeys.add(String(sub.supabaseId));
 
       results.push({
         ...sub,
@@ -1010,32 +1008,44 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         return false;
       });
 
-      const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
-      const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
+      let testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+      let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || testObj?.bookId)));
+
+      if (!testObj && books && Array.isArray(books)) {
+        for (const b of books) {
+          if (b.subjects && Array.isArray(b.subjects)) {
+            for (const s of b.subjects) {
+              if (s.tests && Array.isArray(s.tests)) {
+                const ft = s.tests.find(t => String(t.id) === bTestId || (toUUID(t.id) && String(toUUID(t.id)) === bTestId));
+                if (ft) {
+                  testObj = { ...ft, bookId: b.id, subjectId: s.id };
+                  if (!bookObj) bookObj = b;
+                  break;
+                }
+              }
+              if (s.topics && Array.isArray(s.topics)) {
+                for (const tp of s.topics) {
+                  if (tp.tests && Array.isArray(tp.tests)) {
+                    const ft = tp.tests.find(t => String(t.id) === bTestId || (toUUID(t.id) && String(toUUID(t.id)) === bTestId));
+                    if (ft) {
+                      testObj = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id };
+                      if (!bookObj) bookObj = b;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       const curInfo = allCurTestsMap.get(bTestId) || {};
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
 
-      if (!isManual) {
-        if (isHomeworkSub) {
-          if (!hwObj) {
-            return; // Deleted homework -> discard!
-          }
-          if (curData?.grades && !isHomeworkForStudent(hwObj, selectedStudent, curData.grades)) {
-            return; // Unassigned homework -> discard!
-          }
-        }
-        if ((sub.bookId || raw.bookId) && !bookObj && Array.isArray(books) && books.length > 0) {
-          return; // Deleted book -> discard!
-        }
-        if ((sub.bookTestId || raw.bookTestId) && !testObj && Array.isArray(bookTests) && bookTests.length > 0) {
-          return; // Deleted book test -> discard!
-        }
-        const hasValidSource = Boolean(
-          testObj || bookObj || hwObj || bankQ || (curInfo && curInfo.title)
-        );
-        if (!hasValidSource) {
-          return; // Ghost / deleted test -> discard!
-        }
+      // Discard only completely empty ghost records that have no answers and no completed status
+      if (!isManual && sub.sourceType !== 'study_room_optical' && (!sub.answers || sub.answers.length === 0) && !sub.correctCount && !sub.wrongCount) {
+        if (isHomeworkSub && !hwObj) return;
       }
 
       const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
