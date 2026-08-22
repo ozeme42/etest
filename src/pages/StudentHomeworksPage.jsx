@@ -962,13 +962,28 @@ export default function StudentHomeworksPage() {
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: '#059669', background: '#d1fae5', padding: '2px 7px', borderRadius: 99, border: '1px solid rgba(16,185,129,0.3)', whiteSpace: 'nowrap' }}>✓ Tamamlandı</span>
                             ) : isOverdue ? (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: '#be123c', background: '#ffe4e6', padding: '2px 7px', borderRadius: 99, border: '1px solid rgba(225,29,72,0.25)', whiteSpace: 'nowrap' }}>
-                                {rawDue ? ((() => { const d = Math.abs(Math.ceil((new Date(rawDue).getTime() - new Date().setHours(0,0,0,0)) / 86400000)); return d === 1 ? '⚠ 1 gün geçti' : `⚠ ${d} gün geçti`; })()) : '⚠ Süresi Doldu'}
+                                {rawDue ? ((() => {
+                                  const d = new Date(rawDue);
+                                  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                                  const now = new Date();
+                                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                                  const diff = Math.round((target - today) / 86400000);
+                                  const passed = Math.max(1, Math.abs(diff));
+                                  return passed === 1 ? '⚠ 1 gün geçti' : `⚠ ${passed} gün geçti`;
+                                })()) : '⚠ Süresi Doldu'}
                               </span>
                             ) : isDueToday ? (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '2px 7px', borderRadius: 99, border: '1px solid rgba(245,158,11,0.3)', whiteSpace: 'nowrap' }}>⚡ Bugün Son</span>
                             ) : (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: rowTheme.text || '#6366f1', background: rowTheme.badgeBg || 'var(--color-surface-hover)', padding: '2px 7px', borderRadius: 99, border: `1px solid ${rowTheme.border || 'var(--color-border)'}`, whiteSpace: 'nowrap' }}>
-                                {rawDue ? ((() => { const d = Math.ceil((new Date(rawDue).getTime() - new Date().setHours(0,0,0,0)) / 86400000); return d === 1 ? '⏳ Yarın son' : `⏳ ${d} gün kaldı`; })()) : '⏳ Bekliyor'}
+                                {rawDue ? ((() => {
+                                  const d = new Date(rawDue);
+                                  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                                  const now = new Date();
+                                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                                  const diff = Math.round((target - today) / 86400000);
+                                  return diff === 1 ? '⏳ Yarın son' : `⏳ ${diff} gün kaldı`;
+                                })()) : '⏳ Bekliyor'}
                               </span>
                             )}
                             {task.subject && (
