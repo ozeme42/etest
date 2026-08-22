@@ -234,24 +234,134 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
   return false;
 }
 
+/* ─── resolveBookTestInfo Helper ─── */
+export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
+  if (!item) return null;
+
+  const isExplicitBook = item.taskType === 'kitap' || item.isBookAssignment || Boolean(item.bookId || item.bookTestId || item.testName || item.unit || item.bookName);
+
+  let subject = item.subject || '';
+  let unit = item.unit || '';
+  let testName = item.testName || '';
+  let bookTitle = item.bookName || item.bookTitle || '';
+  let questionCount = item.questionCount || '';
+
+  // Match test in bookTests if testId / bookTestId / realTestId exists
+  const tid = String(item.testId || item.bookTestId || item.realTestId || '');
+  let matchedTest = null;
+  if (tid) {
+    matchedTest = (bookTests || []).find(bt => String(bt.id) === tid || toUUID(bt.id) === tid);
+  }
+
+  // Match book
+  let matchedBook = null;
+  const bid = String(item.bookId || matchedTest?.bookId || '');
+  if (bid) {
+    matchedBook = (books || []).find(b => String(b.id) === bid || toUUID(b.id) === bid);
+  } else if (bookTitle) {
+    const cleanBTitle = bookTitle.toLowerCase();
+    matchedBook = (books || []).find(b => {
+      const bTitle = (b.title || '').toLowerCase();
+      return bTitle.includes(cleanBTitle) || cleanBTitle.includes(bTitle);
+    });
+  }
+
+  if (matchedTest) {
+    if (!testName) testName = matchedTest.name || matchedTest.title || '';
+    if (!unit) unit = matchedTest.unit || matchedTest.unitName || '';
+    if (!subject || subject === 'Atanan Kitap' || subject === 'Atanmış Ödev' || subject === 'Genel') {
+      subject = matchedTest.subject || matchedTest.subjectName || '';
+    }
+    if (!questionCount && matchedTest.questionCount) {
+      questionCount = `${matchedTest.questionCount} soru`;
+    }
+  }
+
+  if (matchedBook) {
+    if (!bookTitle) bookTitle = matchedBook.title || '';
+    if (!subject || subject === 'Atanan Kitap' || subject === 'Atanmış Ödev' || subject === 'Genel') {
+      subject = matchedBook.subject || '';
+    }
+    if (!unit && matchedTest?.subjectId && Array.isArray(matchedBook.subjects)) {
+      const sObj = matchedBook.subjects.find(s => String(s.id) === String(matchedTest.subjectId));
+      if (sObj) {
+        if (!subject) subject = sObj.name || '';
+        if (matchedTest.topicId && Array.isArray(sObj.topics)) {
+          const tObj = sObj.topics.find(t => String(t.id) === String(matchedTest.topicId));
+          if (tObj && !unit) unit = tObj.name || '';
+        }
+      }
+    }
+  }
+
+  // Compound strings parsing fallback
+  if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
+    const parts = item.topic.split(' — ');
+    if (!bookTitle && !unit) {
+      bookTitle = parts[0];
+    } else if (!unit && bookTitle) {
+      unit = parts[0];
+    }
+    if (!testName) testName = parts.slice(1).join(' — ');
+  } else if (!testName && item.topic) {
+    testName = item.topic;
+  }
+
+  if (subject && typeof subject === 'string' && subject.includes(' • ')) {
+    const sParts = subject.split(' • ');
+    subject = sParts[0];
+    if (!unit) unit = sParts.slice(1).join(' • ');
+  }
+
+  const cleanBookTitle = (bookTitle || '')
+    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+    .replace(/\s*\(Tüm Kitap\)/gi, '')
+    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+    .trim();
+
+  const isBookTest = isExplicitBook || Boolean(matchedTest || matchedBook);
+
+  return {
+    isBookTest,
+    subject: subject || (isBookTest ? 'Kitap Çalışması' : ''),
+    unit: unit || '',
+    testName: testName || (isBookTest ? 'Kitap Testi' : ''),
+    bookTitle: cleanBookTitle,
+    questionCount: questionCount || ''
+  };
+};
+
 /* ─── AddItemModal ─── */
 export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topicPool, isDark = false }) {
   const [selectedDayKey, setSelectedDayKey] = useState(dayKey || getTodayKey());
   const [taskType, setTaskType] = useState(initialItem?.taskType || 'konu');
   const [subject, setSubject] = useState(initialItem?.subject || '');
+  const [unit, setUnit] = useState(initialItem?.unit || '');
+  const [testName, setTestName] = useState(initialItem?.testName || '');
   const [topic, setTopic] = useState(initialItem?.topic || '');
   const [hours, setHours] = useState(initialItem?.hours || '');
   const [questionCount, setQuestionCount] = useState(initialItem?.questionCount || '');
-  const [bookName, setBookName] = useState(initialItem?.bookName || '');
+  const [bookName, setBookName] = useState(initialItem?.bookName || initialItem?.bookTitle || '');
+  const [selectedBookId, setSelectedBookId] = useState(initialItem?.bookId || '');
+  const [selectedTestId, setSelectedTestId] = useState(initialItem?.testId || initialItem?.bookTestId || '');
   const [note, setNote] = useState(initialItem?.note || '');
   const [startTime, setStartTime] = useState(initialItem?.startTime || '');
   const [endTime, setEndTime] = useState(initialItem?.endTime || '');
+
+  const trackedBooksData = useTrackedBooks();
+  const books = trackedBooksData?.books || [];
+  const bookTests = trackedBooksData?.bookTests || [];
 
   const initialRepeatMode = initialItem?.repeatType || (initialItem?.isDaily ? 'daily' : (initialItem?.isRecurring === false ? 'none' : 'weekly'));
   const [repeatType, setRepeatType] = useState(initialRepeatMode);
   const [repeatEndDate, setRepeatEndDate] = useState(initialItem?.repeatEndDate || '');
 
   const selectedType = TASK_TYPES.find(t => t.id === taskType);
+
+  const availableBookTests = useMemo(() => {
+    if (!selectedBookId) return [];
+    return bookTests.filter(t => String(t.bookId) === String(selectedBookId));
+  }, [selectedBookId, bookTests]);
 
   const poolTopicsForSubject = useMemo(() => {
     if (!subject) return [];
@@ -263,7 +373,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
   const allSubjects = [...new Set([...poolSubjects, ...SUBJECTS])];
 
   const canAdd = (() => {
-    if (taskType === 'kitap') return bookName.trim().length > 0;
+    if (taskType === 'kitap') return bookName.trim().length > 0 || testName.trim().length > 0 || subject.trim().length > 0;
     if (taskType === 'deneme') return subject.trim().length > 0 || note.trim().length > 0;
     if (taskType === 'diger') return note.trim().length > 0;
     return subject.trim().length > 0;
@@ -279,10 +389,18 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
       id: initialItem?.id || uid(),
       taskType,
       subject: subject.trim(),
-      topic: topic.trim(),
+      unit: unit.trim(),
+      testName: testName.trim(),
+      topic: unit.trim() && testName.trim()
+        ? `${unit.trim()} — ${testName.trim()}`
+        : (unit.trim() || testName.trim() || topic.trim()),
       hours: hours.trim(),
       questionCount: questionCount.trim(),
       bookName: bookName.trim(),
+      bookTitle: bookName.trim(),
+      bookId: selectedBookId || null,
+      testId: selectedTestId || null,
+      bookTestId: selectedTestId || null,
       note: note.trim(),
       startTime,
       endTime,
@@ -347,10 +465,183 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
             {/* Book name or subject */}
             {taskType === 'kitap' ? (
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>KİTAP ADI *</label>
-                <input value={bookName} onChange={e => setBookName(e.target.value)} placeholder="Örn: TYT Matematik Soru Bankası..."
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.65rem', fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: isDark ? 'rgba(255,255,255,0.07)' : 'white', color: isDark ? '#ffffff' : '#0f172a' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {/* Kitap Seçimi */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>
+                    KİTAP SEÇİN VEYA ADINI GİRİN *
+                  </label>
+                  {books.length > 0 && (
+                    <select
+                      value={selectedBookId}
+                      onChange={e => {
+                        const bId = e.target.value;
+                        setSelectedBookId(bId);
+                        if (bId) {
+                          const bObj = books.find(b => String(b.id) === String(bId));
+                          if (bObj) {
+                            setBookName(bObj.title || '');
+                            if (bObj.subject) setSubject(bObj.subject);
+                            setSelectedTestId('');
+                            setTestName('');
+                            setUnit('');
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.8rem',
+                        border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                        borderRadius: '0.65rem',
+                        fontSize: '0.84rem',
+                        outline: 'none',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'white',
+                        color: isDark ? '#ffffff' : '#0f172a',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        marginBottom: 6
+                      }}
+                    >
+                      <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Kayıtlı Kitaplardan Seç --</option>
+                      {books.map(b => (
+                        <option key={b.id} value={b.id} style={{ background: '#0f172a', color: '#ffffff' }}>
+                          📖 {b.title} {b.subject ? `(${b.subject})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <input
+                    value={bookName}
+                    onChange={e => setBookName(e.target.value)}
+                    placeholder="Örn: 3D TYT Matematik Soru Bankası..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                      borderRadius: '0.65rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : 'white',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                </div>
+
+                {/* DERS ADI */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>
+                    DERS ADI *
+                  </label>
+                  <select
+                    value={subject}
+                    onChange={e => setSubject(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                      borderRadius: '0.65rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      background: isDark ? 'rgba(255,255,255,0.08)' : 'white',
+                      color: isDark ? '#ffffff' : '#0f172a',
+                      fontFamily: 'inherit',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Ders seçin --</option>
+                    {allSubjects.map((s, idx) => (
+                      <option key={`${s}_${idx}`} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* ÜNİTE ADI */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>
+                    ÜNİTE ADI
+                  </label>
+                  <input
+                    value={unit}
+                    onChange={e => setUnit(e.target.value)}
+                    placeholder="Örn: 1. Ünite: Mantık / Fonksiyonlar..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                      borderRadius: '0.65rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : 'white',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                </div>
+
+                {/* TEST ADI */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>
+                    TEST ADI *
+                  </label>
+                  {availableBookTests.length > 0 && (
+                    <select
+                      value={selectedTestId}
+                      onChange={e => {
+                        const tId = e.target.value;
+                        setSelectedTestId(tId);
+                        if (tId) {
+                          const tObj = availableBookTests.find(t => String(t.id) === String(tId));
+                          if (tObj) {
+                            setTestName(tObj.name || tObj.title || '');
+                            if (tObj.unit || tObj.unitName) setUnit(tObj.unit || tObj.unitName);
+                            if (tObj.subject || tObj.subjectName) setSubject(tObj.subject || tObj.subjectName);
+                            if (tObj.questionCount) setQuestionCount(String(tObj.questionCount));
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.8rem',
+                        border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                        borderRadius: '0.65rem',
+                        fontSize: '0.84rem',
+                        outline: 'none',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'white',
+                        color: isDark ? '#ffffff' : '#0f172a',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        marginBottom: 6
+                      }}
+                    >
+                      <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Kitabın Testlerinden Seç --</option>
+                      {availableBookTests.map(t => (
+                        <option key={t.id} value={t.id} style={{ background: '#0f172a', color: '#ffffff' }}>
+                          🎯 {t.name || t.title} {t.questionCount ? `(${t.questionCount} Soru)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <input
+                    value={testName}
+                    onChange={e => setTestName(e.target.value)}
+                    placeholder="Örn: Test 1, Konu Tarama Testi 2..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0',
+                      borderRadius: '0.65rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : 'white',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                </div>
               </div>
             ) : (
               <div>
@@ -393,7 +684,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
             )}
 
             {/* Question count */}
-            {taskType === 'soru' && (
+            {(taskType === 'soru' || taskType === 'kitap') && (
               <div>
                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>SORU SAYISI</label>
                 <input value={questionCount} onChange={e => setQuestionCount(e.target.value)} placeholder="Örn: 20 soru, 1 test..."
@@ -542,6 +833,10 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
 
+  const trackedBooksData = useTrackedBooks();
+  const books = trackedBooksData?.books || [];
+  const bookTests = trackedBooksData?.bookTests || [];
+
   const MAX_VISIBLE = 3;
   const shouldCollapse = items.length > MAX_VISIBLE;
   const visibleItems = (shouldCollapse && !isExpanded) ? items.slice(0, MAX_VISIBLE) : items;
@@ -625,6 +920,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
           const tt = TASK_TYPES.find(t => t.id === item.taskType);
           const accentColor = item.done ? '#22c55e' : (tt?.color || theme.accent);
           const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+          const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
           return (
             <div key={item.id}
@@ -660,44 +956,61 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                     {tt?.label}
                   </div>
                 )}
+
+                {/* Ders Başlığı & Kitap Adı */}
                 <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none', wordBreak: 'break-word', lineHeight: 1.3 }}>
-                  {item.bookName || item.subject}
+                  {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}
+                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
+                    <span style={{ fontSize: '0.7rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600, marginLeft: 5 }}>
+                      📖 {bookInfo.bookTitle}
+                    </span>
+                  )}
                 </div>
-                {item.topic && (
-                  <div style={{ fontSize: '0.72rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word', lineHeight: 1.35 }}>
-                    {(() => {
-                      if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
-                        const parts = item.topic.split(' — ');
-                        const bookOrMain = parts[0];
-                        const testOrSub = parts.slice(1).join(' — ');
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
-                            <span style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontSize: '0.68rem', wordBreak: 'break-word' }}>
-                              📖 {bookOrMain}
-                            </span>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              fontWeight: 800,
-                              fontSize: '0.7rem',
-                              color: isDark ? '#a5b4fc' : '#4338ca',
-                              background: isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff',
-                              border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                              borderRadius: '0.35rem',
-                              padding: '1px 6px',
-                              width: 'fit-content',
-                              wordBreak: 'break-word'
-                            }}>
-                              🎯 {testOrSub}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return item.topic;
-                    })()}
+
+                {/* Ünite ve Test Adı Rozetleri (Kitap Testi ise) veya Standart Konu */}
+                {bookInfo?.isBookTest ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                    {bookInfo.unit && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        fontWeight: 700,
+                        fontSize: '0.68rem',
+                        color: isDark ? '#93c5fd' : '#1d4ed8',
+                        background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                        border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                        borderRadius: '0.35rem',
+                        padding: '1px 6px'
+                      }}>
+                        📂 {bookInfo.unit}
+                      </span>
+                    )}
+                    {bookInfo.testName && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        fontWeight: 800,
+                        fontSize: '0.68rem',
+                        color: isDark ? '#c084fc' : '#6d28d9',
+                        background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                        border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                        borderRadius: '0.35rem',
+                        padding: '1px 6px'
+                      }}>
+                        🎯 {bookInfo.testName}
+                      </span>
+                    )}
                   </div>
+                ) : (
+                  item.topic && (
+                    <div style={{ fontSize: '0.72rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word', lineHeight: 1.35 }}>
+                      {item.topic}
+                    </div>
+                  )
                 )}
+
                 {(item.startTime || item.endTime) && (
                   <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe', borderRadius: '99px', padding: '1px 7px' }}>
                     <span style={{ fontSize: '0.63rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#4f46e5' }}>
@@ -705,9 +1018,13 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                     </span>
                   </div>
                 )}
-                {(item.questionCount || item.hours || item.note) && (
+                {(bookInfo?.questionCount || item.questionCount || item.hours || item.note) && (
                   <div style={{ fontSize: '0.67rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                    {item.questionCount && <span style={{ color: '#22d3ee', fontWeight: 700 }}>✏️ {item.questionCount}</span>}
+                    {(bookInfo?.questionCount || item.questionCount) && (
+                      <span style={{ color: '#22d3ee', fontWeight: 700 }}>
+                        ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
+                      </span>
+                    )}
                     {item.hours && <span><Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {item.hours}</span>}
                     {item.note && <span style={{ color: '#c084fc' }}>· {item.note}</span>}
                   </div>
@@ -1891,6 +2208,7 @@ export function MonthlyListPanel({
 
                 <div className="print-day-tasks-table">
                   {d.items.map((item, idx) => {
+                    const bookInfo = resolveBookTestInfo(item, books, bookTests);
                     return (
                       <div key={item.id || idx} className={`print-task-row ${item.done ? 'is-done' : ''}`}>
                         <div className="print-task-col-check">
@@ -1900,18 +2218,26 @@ export function MonthlyListPanel({
                         </div>
                         <div className="print-task-col-info">
                           <div className="print-task-subject">
-                            {item.subject || 'Ders Çalışması'}
+                            {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}
+                            {bookInfo?.isBookTest && bookInfo.bookTitle ? ` — 📖 ${bookInfo.bookTitle}` : ''}
                           </div>
-                          {item.topic && item.topic !== item.subject && (
-                            <div className="print-task-topic">
-                              {item.topic}
+                          {bookInfo?.isBookTest ? (
+                            <div className="print-task-topic" style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 1 }}>
+                              {bookInfo.unit && <span>📂 {bookInfo.unit}</span>}
+                              {bookInfo.testName && <span>🎯 {bookInfo.testName}</span>}
                             </div>
+                          ) : (
+                            item.topic && item.topic !== item.subject && (
+                              <div className="print-task-topic">
+                                {item.topic}
+                              </div>
+                            )
                           )}
                         </div>
                         <div className="print-task-col-details">
-                          {item.questionCount && (
+                          {(bookInfo?.questionCount || item.questionCount) && (
                             <span className="print-pill print-pill-q">
-                              ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
+                              ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
                             </span>
                           )}
                           {(item.startTime || item.time || item.saat) && (
@@ -2130,6 +2456,7 @@ export function MonthlyListPanel({
                         const tt = TASK_TYPES.find(t => t.id === item.taskType);
                         const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
                         const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
+                        const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
                         return (
                           <div
@@ -2203,7 +2530,12 @@ export function MonthlyListPanel({
                                   flexWrap: 'wrap',
                                   gap: 6
                                 }}>
-                                  <span>{item.subject || item.topic || 'Ders Çalışması'}</span>
+                                  <span>{bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}</span>
+                                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
+                                    <span style={{ fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600 }}>
+                                      📖 {bookInfo.bookTitle}
+                                    </span>
+                                  )}
                                   {isClickable && (
                                     <span style={{
                                       fontSize: '0.62rem',
@@ -2224,45 +2556,56 @@ export function MonthlyListPanel({
                               </div>
                             </div>
 
-                            {/* Middle Row: Sub-Topic / Test Details (if distinct) */}
-                            {item.topic && item.subject && item.topic !== item.subject && (
-                              <div style={{
-                                paddingLeft: 30,
-                                fontSize: '0.75rem',
-                                color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
-                                fontWeight: 600,
-                                lineHeight: 1.45,
-                                wordBreak: 'break-word',
-                                marginTop: 2
-                              }}>
-                                {(() => {
-                                  if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
-                                    const parts = item.topic.split(' — ');
-                                    const bookOrMain = parts[0];
-                                    const testOrSub = parts.slice(1).join(' — ');
-                                    return (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                        <span style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b' }}>📖 {bookOrMain}</span>
-                                        <span style={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: 3,
-                                          fontWeight: 800,
-                                          fontSize: '0.72rem',
-                                          color: isDark ? '#a5b4fc' : '#4338ca',
-                                          background: isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff',
-                                          border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                                          borderRadius: '0.35rem',
-                                          padding: '1px 6px'
-                                        }}>
-                                          🎯 {testOrSub}
-                                        </span>
-                                      </div>
-                                    );
-                                  }
-                                  return item.topic;
-                                })()}
+                            {/* Middle Row: Ünite ve Test Adı (Kitap Testi) veya Standart Konu */}
+                            {bookInfo?.isBookTest ? (
+                              <div style={{ paddingLeft: 30, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                                {bookInfo.unit && (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontWeight: 700,
+                                    fontSize: '0.72rem',
+                                    color: isDark ? '#93c5fd' : '#1d4ed8',
+                                    background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                                    border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                                    borderRadius: '0.35rem',
+                                    padding: '1px 6px'
+                                  }}>
+                                    📂 {bookInfo.unit}
+                                  </span>
+                                )}
+                                {bookInfo.testName && (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    color: isDark ? '#c084fc' : '#6d28d9',
+                                    background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                                    border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                                    borderRadius: '0.35rem',
+                                    padding: '1px 6px'
+                                  }}>
+                                    🎯 {bookInfo.testName}
+                                  </span>
+                                )}
                               </div>
+                            ) : (
+                              item.topic && item.subject && item.topic !== item.subject && (
+                                <div style={{
+                                  paddingLeft: 30,
+                                  fontSize: '0.75rem',
+                                  color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
+                                  fontWeight: 600,
+                                  lineHeight: 1.45,
+                                  wordBreak: 'break-word',
+                                  marginTop: 2
+                                }}>
+                                  {item.topic}
+                                </div>
+                              )
                             )}
 
                             {/* Bottom Row: Badges & Action Buttons */}
@@ -2294,30 +2637,34 @@ export function MonthlyListPanel({
                                     🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
                                   </span>
                                 )}
-                                {item.hours && (
+
+                                {(bookInfo?.questionCount || item.questionCount) && (
                                   <span style={{
                                     fontSize: '0.65rem',
                                     fontWeight: 800,
-                                    color: isDark ? '#a5b4fc' : '#6366f1',
-                                    background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                    color: '#0284c7',
+                                    background: isDark ? 'rgba(2,132,199,0.2)' : '#e0e7fe',
+                                    border: isDark ? '1px solid rgba(2,132,199,0.35)' : '1px solid #bae6fd',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: 99
+                                  }}>
+                                    ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
+                                  </span>
+                                )}
+
+                                {item.hours && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b',
+                                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
                                     padding: '0.15rem 0.5rem',
                                     borderRadius: 99
                                   }}>
                                     ⏱️ {item.hours} sa
                                   </span>
                                 )}
-                                {item.questionCount && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: 800,
-                                    color: '#22d3ee',
-                                    background: isDark ? 'rgba(6,182,212,0.15)' : '#ecfeff',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: 99
-                                  }}>
-                                    ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
-                                  </span>
-                                )}
+
                                 <span style={{
                                   fontSize: '0.65rem',
                                   fontWeight: 900,
@@ -2906,9 +3253,16 @@ export default function ProgramCenter({
                   id: `book_test_${hw.id}_${testId}_${dayObj.day}`,
                   hwId: hw.id,
                   testId: testId,
+                  bookTestId: testId,
+                  bookId: hw.bookId || bookObj?.id || null,
                   isAutoHomework: true,
+                  isBookAssignment: true,
                   taskType: 'kitap',
-                  subject: displayHeader,
+                  subject: subjectName,
+                  unit: topicName || tObj?.unit || tObj?.unitName || '',
+                  testName: testName,
+                  bookName: cleanBookTitle,
+                  bookTitle: cleanBookTitle,
                   topic: displaySub,
                   questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
                   time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
@@ -2953,10 +3307,17 @@ export default function ProgramCenter({
                   id: `auto_hw_${hw.id}_${testId}_${dayObj.day}`,
                   hwId: hw.id,
                   testId: testId,
+                  bookTestId: testId,
+                  bookId: hw.bookId || bookObj?.id || null,
                   isAutoHomework: true,
+                  isBookAssignment: true,
                   taskType: 'kitap',
-                  subject: hw.subject || 'Atanan Kitap',
-                  topic: `${hw.title || 'Kitap'} — ${testTitle}`,
+                  subject: tObj?.subject || bookObj?.subject || hw.subject || 'Kitap Çalışması',
+                  unit: tObj?.unit || tObj?.unitName || '',
+                  testName: testTitle,
+                  bookName: cleanBookTitle,
+                  bookTitle: cleanBookTitle,
+                  topic: `${cleanBookTitle} — ${testTitle}`,
                   questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
                   done: isTestSolved
@@ -2977,8 +3338,12 @@ export default function ProgramCenter({
               id: `auto_hw_${hw.id}_${dayObj.day}`,
               hwId: hw.id,
               isAutoHomework: true,
+              isBookAssignment: Boolean(hw.isBookAssignment),
+              bookId: hw.bookId || null,
+              bookName: cleanBookTitle || null,
+              bookTitle: cleanBookTitle || null,
               taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
-              subject: hw.subject || 'Atanan Ödev',
+              subject: hw.subject || (hw.isBookAssignment ? 'Atanan Kitap' : 'Atanan Ödev'),
               topic: hw.title || hw.name || 'Ödev Görevi',
               questionCount: hw.totalQuestions ? (String(hw.totalQuestions).includes('soru') ? hw.totalQuestions : `${hw.totalQuestions} soru`) : null,
               time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
@@ -3881,33 +4246,46 @@ export default function ProgramCenter({
                           Planlanan görev yok
                         </div>
                       ) : (
-                        dayTasks.map(item => (
-                          <div key={item.id} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
-                            <div className="print-wk-col-check">
-                              <span className={`print-wk-check-box ${item.done ? 'checked' : ''}`}>
-                                {item.done ? '✓' : ''}
-                              </span>
-                            </div>
-                            <div className="print-wk-col-info">
-                              <div className="print-wk-subject">{item.bookName || item.subject}</div>
-                              {item.topic && (
-                                <div className="print-wk-topic">{item.topic}</div>
-                              )}
-                            </div>
-                            <div className="print-wk-col-details">
-                              {item.taskType && (
-                                <span className="print-wk-pill">
-                                  {TASK_TYPES.find(t => t.id === item.taskType)?.label || item.taskType}
+                        dayTasks.map(item => {
+                          const bookInfo = resolveBookTestInfo(item, books, bookTests);
+                          return (
+                            <div key={item.id} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
+                              <div className="print-wk-col-check">
+                                <span className={`print-wk-check-box ${item.done ? 'checked' : ''}`}>
+                                  {item.done ? '✓' : ''}
                                 </span>
-                              )}
-                              {item.questionCount && (
-                                <span className="print-wk-pill print-wk-pill-q">
-                                  ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
-                                </span>
-                              )}
+                              </div>
+                              <div className="print-wk-col-info">
+                                <div className="print-wk-subject">
+                                  {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject)}
+                                  {bookInfo?.isBookTest && bookInfo.bookTitle ? ` — 📖 ${bookInfo.bookTitle}` : ''}
+                                </div>
+                                {bookInfo?.isBookTest ? (
+                                  <div className="print-wk-topic" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 1 }}>
+                                    {bookInfo.unit && <span>📂 {bookInfo.unit}</span>}
+                                    {bookInfo.testName && <span>🎯 {bookInfo.testName}</span>}
+                                  </div>
+                                ) : (
+                                  item.topic && (
+                                    <div className="print-wk-topic">{item.topic}</div>
+                                  )
+                                )}
+                              </div>
+                              <div className="print-wk-col-details">
+                                {item.taskType && (
+                                  <span className="print-wk-pill">
+                                    {TASK_TYPES.find(t => t.id === item.taskType)?.label || item.taskType}
+                                  </span>
+                                )}
+                                {(bookInfo?.questionCount || item.questionCount) && (
+                                  <span className="print-wk-pill print-wk-pill-q">
+                                    ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -4104,6 +4482,7 @@ export default function ProgramCenter({
                                       {displayedItems.map(item => {
                                         const tt = TASK_TYPES.find(t => t.id === item.taskType);
                                         const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+                                        const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
                                         return (
                                           <div
@@ -4166,38 +4545,57 @@ export default function ProgramCenter({
                                                     textDecoration: item.done ? 'line-through' : 'none',
                                                     wordBreak: 'break-word'
                                                   }}>
-                                                    {item.bookName || item.subject}
+                                                    {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject)}
                                                   </span>
+                                                  {bookInfo?.isBookTest && bookInfo.bookTitle && (
+                                                    <span style={{ fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.65)' : '#64748b', fontWeight: 600 }}>
+                                                      📖 {bookInfo.bookTitle}
+                                                    </span>
+                                                  )}
                                                 </div>
-                                                {item.topic && (
-                                                  <div style={{ fontSize: '0.74rem', color: item.done ? (isDark ? '#34d399' : '#166534') : (isDark ? 'rgba(255,255,255,0.8)' : '#475569'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
-                                                    {(() => {
-                                                      if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
-                                                        const parts = item.topic.split(' — ');
-                                                        const main = parts[0];
-                                                        const sub = parts.slice(1).join(' — ');
-                                                        return (
-                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                                                            <span>📌 {main}</span>
-                                                            <span style={{
-                                                              display: 'inline-flex',
-                                                              alignItems: 'center',
-                                                              fontWeight: 800,
-                                                              fontSize: '0.68rem',
-                                                              color: isDark ? '#a5b4fc' : '#4338ca',
-                                                              background: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff',
-                                                              border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                                                              borderRadius: 5,
-                                                              padding: '1px 5px'
-                                                            }}>
-                                                              🎯 {sub}
-                                                            </span>
-                                                          </div>
-                                                        );
-                                                      }
-                                                      return <span>📌 {item.topic}</span>;
-                                                    })()}
+
+                                                {/* Ünite ve Test Adı Rozetleri (Kitap Testi) veya Standart Konu */}
+                                                {bookInfo?.isBookTest ? (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                                                    {bookInfo.unit && (
+                                                      <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        fontWeight: 700,
+                                                        fontSize: '0.68rem',
+                                                        color: isDark ? '#93c5fd' : '#1d4ed8',
+                                                        background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                                                        border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                                                        borderRadius: 5,
+                                                        padding: '1px 5px'
+                                                      }}>
+                                                        📂 {bookInfo.unit}
+                                                      </span>
+                                                    )}
+                                                    {bookInfo.testName && (
+                                                      <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        fontWeight: 800,
+                                                        fontSize: '0.68rem',
+                                                        color: isDark ? '#c084fc' : '#6d28d9',
+                                                        background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                                                        border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                                                        borderRadius: 5,
+                                                        padding: '1px 5px'
+                                                      }}>
+                                                        🎯 {bookInfo.testName}
+                                                      </span>
+                                                    )}
                                                   </div>
+                                                ) : (
+                                                  item.topic && (
+                                                    <div style={{ fontSize: '0.74rem', color: item.done ? (isDark ? '#34d399' : '#166534') : (isDark ? 'rgba(255,255,255,0.8)' : '#475569'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
+                                                      📌 {item.topic}
+                                                    </div>
+                                                  )
                                                 )}
                                               </div>
                                             </div>
@@ -4210,9 +4608,9 @@ export default function ProgramCenter({
                                               flexWrap: 'wrap',
                                               paddingLeft: isMobile ? 31 : 0
                                             }}>
-                                              {item.questionCount && (
+                                              {(bookInfo?.questionCount || item.questionCount) && (
                                                 <span style={{ fontSize: '0.7rem', color: '#0284c7', background: isDark ? 'rgba(2,132,199,0.2)' : '#e0e7fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700, border: isDark ? '1px solid rgba(2,132,199,0.3)' : '1px solid #bae6fd' }}>
-                                                  ✏️ {item.questionCount}
+                                                  ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
                                                 </span>
                                               )}
                                               {!item.done && (
