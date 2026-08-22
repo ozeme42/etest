@@ -5465,57 +5465,59 @@ export default function StudyRoomPage() {
               </div>
             </div>
 
-            {/* Haftalık Program Sayfasına Hızlı Geçiş Banner'ı (Masaüstünde Büyütülmüş & Mobil Uyumlu) */}
-            <div style={{
-              background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(79, 70, 229, 0.22))' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-              border: '1.5px solid #818cf8',
-              borderRadius: 14,
-              padding: isMobile ? '0.65rem 0.85rem' : '0.95rem 1.35rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-              marginBottom: isMobile ? 8 : 12,
-              flexWrap: 'wrap',
-              boxShadow: '0 2px 10px rgba(99,102,241,0.12)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flex: 1, minWidth: 200 }}>
-                <span style={{ fontSize: isMobile ? '1.3rem' : '1.8rem', lineHeight: 1 }}>📅</span>
-                <div>
-                  <div style={{ fontSize: isMobile ? '0.85rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Haftalık Program Sayfasından Seç
-                  </div>
-                  <div style={{ fontSize: isMobile ? '0.7rem' : '0.84rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
-                    Tüm haftalık planını tam sayfa görüp 'Odada Başlat' yapabilirsin.
+            {/* Haftalık Program Sayfasına Hızlı Geçiş Banner'ı (Sadece Masaüstü) */}
+            {!isMobile && (
+              <div style={{
+                background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(79, 70, 229, 0.22))' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+                border: '1.5px solid #818cf8',
+                borderRadius: 14,
+                padding: '0.85rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                marginBottom: 12,
+                flexWrap: 'wrap',
+                boxShadow: '0 2px 10px rgba(99,102,241,0.12)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
+                  <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>📅</span>
+                  <div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      Haftalık Program Sayfasından Seç
+                    </div>
+                    <div style={{ fontSize: '0.84rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
+                      Tüm haftalık planını tam sayfa görüp 'Odada Başlat' yapabilirsin.
+                    </div>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHomeworkPickerModal(false);
+                    navigate('/student/program');
+                  }}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 900,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 3px 10px rgba(79,70,229,0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <span>Git</span>
+                  <ChevronRight size={16} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowHomeworkPickerModal(false);
-                  navigate('/student/program');
-                }}
-                style={{
-                  padding: isMobile ? '0.45rem 0.85rem' : '0.65rem 1.25rem',
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.78rem' : '0.9rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 3px 10px rgba(79,70,229,0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5
-                }}
-              >
-                <span>Git</span>
-                <ChevronRight size={isMobile ? 14 : 16} />
-              </button>
-            </div>
+            )}
 
             {/* Ana Kategori Sekmeleri (Tabs) */}
             <div style={{
@@ -5580,12 +5582,13 @@ export default function StudyRoomPage() {
             {/* 1. GÖRÜNÜM: HAFTALIK DERS PROGRAMI (GÜN GÜN SEÇİM & LİSTE) */}
             {hwSourceTab === 'program' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
-                {/* Gün Seçici Yatay Çubuk (Genişletilmiş & Belirginleştirilmiş) */}
+                {/* Gün Seçici Çubuk: Mobilde 4'lü Kolay Tıklanabilir 2 Satır Izgara, Masaüstünde Yatay Şerit */}
                 <div style={{
-                  display: 'flex',
-                  gap: 8,
-                  overflowX: 'auto',
-                  padding: '6px 3px 12px',
+                  display: isMobile ? 'grid' : 'flex',
+                  gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : undefined,
+                  gap: isMobile ? 6 : 8,
+                  overflowX: isMobile ? 'visible' : 'auto',
+                  padding: isMobile ? '2px 0 8px' : '6px 3px 12px',
                   borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
                   scrollbarWidth: 'thin'
                 }}>
@@ -5593,24 +5596,27 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => setSelectedProgramDay('all')}
                     style={{
-                      padding: isMobile ? '0.75rem 1.15rem' : '0.8rem 1.35rem',
-                      borderRadius: 14,
+                      padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 1.35rem',
+                      borderRadius: isMobile ? 12 : 14,
                       border: `2px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
-                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.25)' : '#eff6ff') : 'transparent',
+                      background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.25)' : '#eff6ff') : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
                       color: selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.92rem' : '1rem',
+                      fontSize: isMobile ? '0.78rem' : '1rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       display: 'flex',
+                      flexDirection: isMobile ? 'column' : 'row',
                       alignItems: 'center',
-                      gap: 7,
+                      justifyContent: 'center',
+                      minHeight: isMobile ? 54 : 44,
+                      gap: isMobile ? 3 : 7,
                       boxShadow: selectedProgramDay === 'all' ? '0 4px 14px rgba(59,130,246,0.3)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span style={{ fontSize: '1.15rem' }}>🌟</span>
-                    <span>Tüm Hafta</span>
+                    <span style={{ fontSize: isMobile ? '1.1rem' : '1.15rem' }}>🌟</span>
+                    <span>{isMobile ? 'Tümü' : 'Tüm Hafta'}</span>
                   </button>
 
                   {WEEK_DAYS_CONFIG.map(dayCfg => {
@@ -5627,22 +5633,25 @@ export default function StudyRoomPage() {
                         type="button"
                         onClick={() => setSelectedProgramDay(dayCfg.key)}
                         style={{
-                          padding: isMobile ? '0.75rem 1.15rem' : '0.8rem 1.35rem',
-                          borderRadius: 14,
+                          padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 1.35rem',
+                          borderRadius: isMobile ? 12 : 14,
                           border: `2px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
                           background: isSelected
                             ? (isDark ? 'rgba(59,130,246,0.25)' : dayCfg.bg)
                             : isToday
                               ? (isDark ? 'rgba(245,158,11,0.2)' : '#fffbeb')
-                              : 'transparent',
+                              : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
                           color: isSelected ? dayCfg.color : 'var(--color-text)',
                           fontWeight: 900,
-                          fontSize: isMobile ? '0.92rem' : '1rem',
+                          fontSize: isMobile ? '0.78rem' : '1rem',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           display: 'flex',
+                          flexDirection: isMobile ? 'column' : 'row',
                           alignItems: 'center',
-                          gap: 7,
+                          justifyContent: 'center',
+                          minHeight: isMobile ? 54 : 44,
+                          gap: isMobile ? 3 : 7,
                           boxShadow: isSelected
                             ? '0 4px 14px rgba(59,130,246,0.3)'
                             : isToday
@@ -5651,21 +5660,28 @@ export default function StudyRoomPage() {
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <span style={{ fontSize: '1.15rem' }}>{dayCfg.icon}</span>
-                        <span>{dayCfg.long}</span>
-                        {displayCount > 0 && (
-                          <span style={{
-                            fontSize: isMobile ? '0.76rem' : '0.82rem',
-                            fontWeight: 900,
-                            background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
-                            color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
-                            padding: '3px 9px',
-                            borderRadius: 99
-                          }}>
-                            {displayCount}
-                          </span>
-                        )}
-                        {isToday && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span style={{ fontSize: isMobile ? '1.05rem' : '1.15rem' }}>{dayCfg.icon}</span>
+                          {isMobile && isToday && (
+                            <span style={{ width: 6, height: 6, borderRadius: 99, background: '#f59e0b', display: 'inline-block' }} />
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>{isMobile ? dayCfg.short : dayCfg.long}</span>
+                          {displayCount > 0 && (
+                            <span style={{
+                              fontSize: isMobile ? '0.66rem' : '0.82rem',
+                              fontWeight: 900,
+                              background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
+                              color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
+                              padding: isMobile ? '1px 5px' : '3px 9px',
+                              borderRadius: 99
+                            }}>
+                              {displayCount}
+                            </span>
+                          )}
+                        </div>
+                        {!isMobile && isToday && (
                           <span style={{
                             fontSize: '0.7rem',
                             fontWeight: 900,
