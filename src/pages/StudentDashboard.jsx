@@ -2953,218 +2953,214 @@ export default function StudentDashboard() {
         </div>
 
         {/* ════════════════════════════════════════════
-            2. HAFTALIK DERS PROGRAMI ŞERİDİ (7-DAY NAVIGATOR)
-        ════════════════════════════════════════════ */}
-        <div className="sd-card" style={{
-          padding: isMobile ? '0.75rem 0.65rem' : '1.1rem 1.4rem',
-          marginBottom: '1.25rem',
-          borderRadius: 16,
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Calendar size={15} color="#6366f1" />
-              </div>
-              <div>
-                <span style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                  Haftalık Çalışma & Görev Takvimi
-                </span>
-                {!isMobile && (
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
-                    (Günü seçerek o günkü görevleri gör)
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {activeDayKey !== todayDayKey && (
-                <button
-                  type="button"
-                  onClick={() => setActiveDayKey(todayDayKey)}
-                  style={{
-                    background: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7',
-                    border: '1px solid #f59e0b',
-                    color: '#b45309',
-                    borderRadius: 8,
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  ● Bugün
-                </button>
-              )}
-              <button
-                onClick={() => navigate('/my-program')}
-                className="sd-btn"
-                style={{
-                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                  border: 'none',
-                  color: '#ffffff',
-                  borderRadius: 8,
-                  padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.9rem',
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
-                }}
-              >
-                <CalendarDays size={12} /> {isMobile ? 'Program' : 'Programı Düzenle'} <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* 7-Day Week Buttons Strip */}
-          <div
-            className="sd-hide-scrollbar"
-            style={{
-              display: isMobile ? 'flex' : 'grid',
-              gridTemplateColumns: isMobile ? 'none' : 'repeat(7, 1fr)',
-              gap: isMobile ? 6 : 8,
-              width: '100%',
-              boxSizing: 'border-box',
-              overflowX: isMobile ? 'auto' : 'visible',
-              paddingBottom: isMobile ? 2 : 0,
-              WebkitOverflowScrolling: 'touch'
-            }}
-          >
-            {DAYS_OF_WEEK.map(day => {
-              const isSelected = activeDayKey === day.key;
-              const isCurrentToday = todayDayKey === day.key;
-              const taskCount = weekTasksCountMap[day.key] || 0;
-              const dayDate = weekInfo.dayDateMap[day.key];
-              const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';
-
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  onClick={() => setActiveDayKey(day.key)}
-                  style={{
-                    background: isSelected
-                      ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
-                      : isCurrentToday
-                      ? (isDark ? 'rgba(245,158,11,0.16)' : '#fffbeb')
-                      : 'var(--color-surface)',
-                    border: isSelected
-                      ? '2px solid #6366f1'
-                      : isCurrentToday
-                      ? '2px solid #f59e0b'
-                      : '1px solid var(--color-border)',
-                    borderRadius: 12,
-                    padding: isMobile ? '0.45rem 0.35rem' : '0.65rem 0.5rem',
-                    color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 3,
-                    boxShadow: isSelected
-                      ? '0 6px 20px rgba(99, 102, 241, 0.35)'
-                      : isCurrentToday
-                      ? '0 2px 8px rgba(245,158,11,0.18)'
-                      : 'none',
-                    transition: 'all 0.15s ease',
-                    minWidth: isMobile ? 54 : 0,
-                    flex: isMobile ? '0 0 54px' : '1',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', fontWeight: 900 }}>
-                    {day.short}
-                  </span>
-
-                  <span style={{
-                    fontSize: isMobile ? '0.65rem' : '0.72rem',
-                    fontWeight: 800,
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted, #64748b)',
-                    background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
-                    padding: '1px 5px',
-                    borderRadius: 4,
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.1
-                  }}>
-                    {isMobile ? (dateNumber || dayDate?.dateLabel || '') : (dayDate?.dateLabel || '')}
-                  </span>
-
-                  {isCurrentToday ? (
-                    <span style={{
-                      fontSize: '0.54rem',
-                      fontWeight: 900,
-                      color: isSelected ? '#ffffff' : '#d97706',
-                      background: isSelected ? 'rgba(0,0,0,0.25)' : (isDark ? 'rgba(245,158,11,0.3)' : '#fef3c7'),
-                      padding: '1px 4px',
-                      borderRadius: 4,
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1.1
-                    }}>
-                      ● Bugün
-                    </span>
-                  ) : taskCount > 0 ? (
-                    <span style={{
-                      fontSize: '0.56rem',
-                      fontWeight: 800,
-                      color: isSelected ? '#ffffff' : '#6366f1',
-                      background: isSelected ? 'rgba(255,255,255,0.2)' : (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff'),
-                      padding: '1px 4px',
-                      borderRadius: 4,
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1.1
-                    }}>
-                      {taskCount} g
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '0.56rem', opacity: 0.4 }}>
-                      -
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ════════════════════════════════════════════
-            4. ANA GRID (SOL: GÜNÜN GÖREVLERİ, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
+            4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
         <div className="sd-grid-layout">
 
-          {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
+          {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
-            {/* 🎯 BÖLÜM 1: EYLEM MERKEZİ (GÜNÜN GÖREVLERİ) */}
+            {/* 🎯 BİRLEŞİK TAKVİM & GÜNÜN GÖREVLERİ KARTI */}
             <div
               className="sd-card"
               style={{
-                padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                borderRadius: 16,
+                padding: isMobile ? '0.85rem 0.75rem' : '1.35rem 1.6rem',
+                borderRadius: 18,
                 background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)'
+                border: '1.5px solid var(--color-border)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
               }}
             >
+              {/* ── ÜST KISIM: HAFTALIK ÇALIŞMA & GÖREV TAKVİMİ ── */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Calendar size={15} color="#6366f1" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      Haftalık Çalışma & Görev Takvimi
+                    </span>
+                    {!isMobile && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
+                        (Günü seçerek o günkü görevleri gör)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {activeDayKey !== todayDayKey && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDayKey(todayDayKey)}
+                      style={{
+                        background: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7',
+                        border: '1px solid #f59e0b',
+                        color: '#b45309',
+                        borderRadius: 8,
+                        padding: '0.25rem 0.55rem',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ● Bugün
+                    </button>
+                  )}
+                  <button
+                    onClick={() => navigate('/my-program')}
+                    className="sd-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                      border: 'none',
+                      color: '#ffffff',
+                      borderRadius: 8,
+                      padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.9rem',
+                      fontSize: isMobile ? '0.7rem' : '0.75rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
+                    }}
+                  >
+                    <CalendarDays size={12} /> {isMobile ? 'Program' : 'Programı Düzenle'} <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 7-Day Week Buttons Strip */}
+              <div
+                className="sd-hide-scrollbar"
+                style={{
+                  display: isMobile ? 'flex' : 'grid',
+                  gridTemplateColumns: isMobile ? 'none' : 'repeat(7, 1fr)',
+                  gap: isMobile ? 6 : 8,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  overflowX: isMobile ? 'auto' : 'visible',
+                  paddingBottom: isMobile ? 2 : 0,
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
+                {DAYS_OF_WEEK.map(day => {
+                  const isSelected = activeDayKey === day.key;
+                  const isCurrentToday = todayDayKey === day.key;
+                  const taskCount = weekTasksCountMap[day.key] || 0;
+                  const dayDate = weekInfo.dayDateMap[day.key];
+                  const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';
+
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => setActiveDayKey(day.key)}
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                          : isCurrentToday
+                          ? (isDark ? 'rgba(245,158,11,0.16)' : '#fffbeb')
+                          : 'var(--color-surface)',
+                        border: isSelected
+                          ? '2px solid #6366f1'
+                          : isCurrentToday
+                          ? '2px solid #f59e0b'
+                          : '1px solid var(--color-border)',
+                        borderRadius: 12,
+                        padding: isMobile ? '0.45rem 0.35rem' : '0.65rem 0.5rem',
+                        color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 3,
+                        boxShadow: isSelected
+                          ? '0 6px 20px rgba(99, 102, 241, 0.35)'
+                          : isCurrentToday
+                          ? '0 2px 8px rgba(245,158,11,0.18)'
+                          : 'none',
+                        transition: 'all 0.15s ease',
+                        minWidth: isMobile ? 54 : 0,
+                        flex: isMobile ? '0 0 54px' : '1',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', fontWeight: 900 }}>
+                        {day.short}
+                      </span>
+
+                      <span style={{
+                        fontSize: isMobile ? '0.65rem' : '0.72rem',
+                        fontWeight: 800,
+                        color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted, #64748b)',
+                        background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.1
+                      }}>
+                        {isMobile ? (dateNumber || dayDate?.dateLabel || '') : (dayDate?.dateLabel || '')}
+                      </span>
+
+                      {isCurrentToday ? (
+                        <span style={{
+                          fontSize: '0.54rem',
+                          fontWeight: 900,
+                          color: isSelected ? '#ffffff' : '#d97706',
+                          background: isSelected ? 'rgba(0,0,0,0.25)' : (isDark ? 'rgba(245,158,11,0.3)' : '#fef3c7'),
+                          padding: '1px 4px',
+                          borderRadius: 4,
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.1
+                        }}>
+                          ● Bugün
+                        </span>
+                      ) : taskCount > 0 ? (
+                        <span style={{
+                          fontSize: '0.56rem',
+                          fontWeight: 800,
+                          color: isSelected ? '#ffffff' : '#6366f1',
+                          background: isSelected ? 'rgba(255,255,255,0.2)' : (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff'),
+                          padding: '1px 4px',
+                          borderRadius: 4,
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.1
+                        }}>
+                          {taskCount} g
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.56rem', opacity: 0.4 }}>
+                          -
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── BİRLEŞİK AYIRICI ÇİZGİ ── */}
+              <div style={{
+                height: 1,
+                background: 'var(--color-border)',
+                margin: isMobile ? '0.85rem 0' : '1.1rem 0'
+              }} />
+
+              {/* ── ALT KISIM: SEÇİLEN GÜNÜN GÖREVLERİ (BUGÜN NE YAPACAĞIM?) ── */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(99,102,241,0.35)' }}>
-                      <CheckSquare size={16} color="#ffffff" />
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(99,102,241,0.35)' }}>
+                      <CheckSquare size={15} color="#ffffff" />
                     </div>
                     <div>
-                      <span style={{ fontSize: isMobile ? '0.95rem' : '1.02rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                      <span style={{ fontSize: isMobile ? '0.92rem' : '1.02rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                         {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
                       </span>
                       {dayProgramInfo.fullDateLabel && (
-                        <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, marginTop: 1 }}>
+                        <div style={{ fontSize: '0.68rem', color: '#6366f1', fontWeight: 700, marginTop: 1 }}>
                           📌 {dayProgramInfo.fullDateLabel}
                         </div>
                       )}
