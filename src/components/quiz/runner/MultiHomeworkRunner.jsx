@@ -2116,18 +2116,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           if (!map[sId]) map[sId] = {};
 
           const qObj = targetSec.resolvedQuestions?.[qNo - 1];
-          const rawUserAns = unwrapUserAnswer(a);
-          const hasUserAns = rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '' && rawUserAns !== 'B' && rawUserAns !== 'empty';
-          const hasUserText = Boolean(a.userAnswerText || a.user_answer_text || a.textAns);
           const isItemOE = isQuestionOE(qObj, targetSec, test, a);
 
           if (isItemOE) {
+            // OE: only load score if teacher explicitly graded this answer
             const hasTeacherGrade = Boolean(
               a.evaluatedByTeacher === true ||
               (a.evaluatedAt && a.evaluatedByTeacher !== false) ||
-              a.teacherNote ||
-              a.teacher_note ||
-              a.feedback ||
+              a.teacherNote || a.teacher_note || a.feedback ||
               (a.evalStatus === 'graded' && (a.evaluatedByTeacher === true || a.evaluatedAt)) ||
               (a.evalStatus === 'evaluated' && (a.evaluatedByTeacher === true || a.evaluatedAt)) ||
               userAnswers?.isEvaluatedByTeacher === true ||
@@ -2135,24 +2131,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             );
             if (hasTeacherGrade && a.score !== undefined && a.score !== null && a.score !== '') {
               map[sId][qNo] = typeof a.score === 'number' ? Number(a.score) : (typeof a.earnedScore === 'number' ? Number(a.earnedScore) : 10);
-            } else {
-              // Open-ended question awaiting teacher grading: MUST be undefined!
             }
-          } else if (a.evalStatus === 'empty' || a.eval_status === 'empty' || a.score === 'empty') {
-            map[sId][qNo] = 'empty';
-          } else if (a.score !== undefined && a.score !== null && a.score !== '') {
-            map[sId][qNo] = Number(a.score);
-          } else if (a.isCorrect === true || a.is_correct === true) {
-            map[sId][qNo] = 10;
-          } else if (a.isCorrect === false || a.is_correct === false) {
-            map[sId][qNo] = 0;
-          } else if (!hasUserAns && !hasUserText) {
-            map[sId][qNo] = 'empty';
-          } else if (hasUserAns) {
-            map[sId][qNo] = 0;
-          } else {
-            map[sId][qNo] = 'empty';
+            // else: not yet graded → undefined → shows as pending
           }
+          // MC: leave undefined — liveReviewStats computes via checkIsAnswerCorrect live
         });
       }
     }
