@@ -2403,6 +2403,15 @@ export default function StudentDashboard() {
     <div className="student-dashboard-page">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        .student-dashboard-page {
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
+          box-sizing: border-box;
+        }
+        .student-dashboard-page * {
+          box-sizing: border-box;
+        }
         @keyframes pulseGlow {
           0%, 100% { transform: scale(1); opacity: 0.9; }
           50% { transform: scale(1.04); opacity: 1; }
@@ -2426,16 +2435,16 @@ export default function StudentDashboard() {
         .sd-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .sd-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
         .sd-btn:active { transform: translateY(0); }
-        .sd-card { transition: all 0.25s ease; }
+        .sd-card { transition: all 0.25s ease; box-sizing: border-box; max-width: 100%; }
         .sd-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.15) !important; border-color: #818cf8 !important; }
-        .sd-kpi { transition: all 0.22s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; }
+        .sd-kpi { transition: all 0.22s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; box-sizing: border-box; min-width: 0; }
         .sd-kpi::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%); border-radius: inherit; pointer-events: none; }
         .sd-kpi:hover { transform: translateY(-6px) scale(1.04); box-shadow: 0 18px 48px rgba(0,0,0,0.45) !important; }
         .sd-success { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
         .sd-success:hover { transform: scale(1.1) rotate(3deg); }
         .sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
         .sd-avatar-ring { animation: ringRotate 8s linear infinite; }
-        .sd-grid-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; align-items: start; }
+        .sd-grid-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; align-items: start; width: 100%; max-width: 100%; box-sizing: border-box; }
         @media (max-width: 1024px) { .sd-grid-layout { grid-template-columns: 1fr; gap: 1.25rem; } }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 99px; } ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 99px; }
       `}</style>
@@ -2446,6 +2455,9 @@ export default function StudentDashboard() {
       <div style={{
         background: 'linear-gradient(125deg, #1e1065 0%, #2d1b8e 15%, #4338ca 38%, #6d28d9 58%, #9333ea 78%, #c026d3 100%)',
         position: 'relative',
+        overflow: 'hidden',
+        width: '100%',
+        boxSizing: 'border-box',
         paddingBottom: isMobile ? '2.8rem' : '3.8rem'
       }}>
         {/* Mesh texture */}
@@ -2467,16 +2479,18 @@ export default function StudentDashboard() {
         <div style={{
           maxWidth: 1280,
           margin: '0 auto',
-          padding: isMobile ? '1.25rem 1rem 0.9rem' : '1.8rem 2.5rem 1.1rem',
+          padding: isMobile ? '1.1rem 0.85rem 0.85rem' : '1.8rem 2.5rem 1.1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '1.5rem',
+          gap: isMobile ? '0.75rem' : '1.5rem',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           {/* SOL: Avatar + İsim + Rozetler */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '1rem' : '1.6rem', minWidth: 0, flex: 1 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.6rem', minWidth: 0, flex: 1 }}>
 
             {/* Avatar with ring */}
             <div style={{ position:'relative', flexShrink:0 }}>
@@ -2490,12 +2504,12 @@ export default function StudentDashboard() {
                 <div style={{ inset:0, borderRadius:'50%', background:'rgba(30,16,101,0.7)', position:'absolute' }} />
               </div>
               <div style={{
-                width: isMobile ? 66 : 88,
-                height: isMobile ? 66 : 88,
+                width: isMobile ? 60 : 88,
+                height: isMobile ? 60 : 88,
                 borderRadius:'50%',
                 background: `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize: isMobile ? '1.75rem' : '2.45rem',
+                fontSize: isMobile ? '1.55rem' : '2.45rem',
                 fontWeight: 900,
                 color:'#ffffff',
                 position:'relative',
@@ -2506,11 +2520,11 @@ export default function StudentDashboard() {
               </div>
               <div className="sd-online" style={{
                 position:'absolute', bottom:3, right:3, zIndex:2,
-                width: isMobile ? 16 : 20,
-                height: isMobile ? 16 : 20,
+                width: isMobile ? 15 : 20,
+                height: isMobile ? 15 : 20,
                 borderRadius:'50%',
                 background:'linear-gradient(135deg, #4ade80, #22c55e)',
-                border: `${isMobile ? 2.5 : 3}px solid rgba(30,16,101,0.9)`,
+                border: `${isMobile ? 2 : 3}px solid rgba(30,16,101,0.9)`,
                 boxShadow:'0 2px 8px rgba(34,197,94,0.6)'
               }} />
             </div>
@@ -2518,12 +2532,12 @@ export default function StudentDashboard() {
             {/* İsim + Rozetler */}
             <div style={{ minWidth:0, flex:1 }}>
               <div style={{
-                fontSize: isMobile ? '0.65rem' : '0.75rem',
+                fontSize: isMobile ? '0.62rem' : '0.75rem',
                 fontWeight: 800,
                 color:'rgba(196,181,253,0.95)',
                 textTransform:'uppercase',
                 letterSpacing:'0.14em',
-                marginBottom: 3,
+                marginBottom: 2,
                 display:'flex', alignItems:'center', gap:5
               }}>
                 <span style={{ opacity:0.85 }}>HOŞ GELDİN</span>
@@ -2531,11 +2545,11 @@ export default function StudentDashboard() {
               </div>
 
               <h1 style={{
-                fontSize: isMobile ? '1.55rem' : '2.6rem',
+                fontSize: isMobile ? '1.35rem' : '2.6rem',
                 fontWeight: 900,
                 color:'#ffffff',
-                margin:'0 0 10px 0',
-                lineHeight:1.05,
+                margin:'0 0 6px 0',
+                lineHeight:1.1,
                 letterSpacing:'-0.03em',
                 textShadow:'0 4px 24px rgba(0,0,0,0.35)',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
@@ -2544,16 +2558,16 @@ export default function StudentDashboard() {
               </h1>
 
               {/* Pill badges */}
-              <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
                 <div style={{
                   background:'rgba(255,255,255,0.12)',
                   backdropFilter:'blur(16px)',
                   border:'1px solid rgba(255,255,255,0.25)',
                   borderRadius:999,
-                  padding: isMobile ? '4px 11px' : '5px 15px',
-                  fontSize: isMobile ? '0.68rem' : '0.78rem',
+                  padding: isMobile ? '3px 8px' : '5px 15px',
+                  fontSize: isMobile ? '0.62rem' : '0.78rem',
                   fontWeight:700, color:'rgba(255,255,255,0.95)',
-                  display:'inline-flex', alignItems:'center', gap:5,
+                  display:'inline-flex', alignItems:'center', gap:4,
                   boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
                 }}>
                   <span>🗓</span><span>{heroDateStr}</span>
@@ -2563,11 +2577,11 @@ export default function StudentDashboard() {
                   backdropFilter:'blur(16px)',
                   border: hasCoach ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.2)',
                   borderRadius:999,
-                  padding: isMobile ? '4px 11px' : '5px 15px',
-                  fontSize: isMobile ? '0.68rem' : '0.78rem',
+                  padding: isMobile ? '3px 8px' : '5px 15px',
+                  fontSize: isMobile ? '0.62rem' : '0.78rem',
                   fontWeight:800,
                   color: hasCoach ? '#86efac' : 'rgba(255,255,255,0.9)',
-                  display:'inline-flex', alignItems:'center', gap:5,
+                  display:'inline-flex', alignItems:'center', gap:4,
                   boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
                 }}>
                   <span>🎓</span><span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
@@ -2583,12 +2597,12 @@ export default function StudentDashboard() {
             style={{ flexShrink:0 }}
           >
             <div style={{
-              width: isMobile ? 84 : 116,
-              height: isMobile ? 84 : 116,
+              width: isMobile ? 74 : 116,
+              height: isMobile ? 74 : 116,
               position:'relative',
               display:'flex', alignItems:'center', justifyContent:'center'
             }}>
-              <svg width={isMobile ? 84 : 116} height={isMobile ? 84 : 116} style={{ position:'absolute', inset:0 }}>
+              <svg width={isMobile ? 74 : 116} height={isMobile ? 74 : 116} style={{ position:'absolute', inset:0 }}>
                 <defs>
                   <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#c084fc" />
@@ -2597,28 +2611,28 @@ export default function StudentDashboard() {
                   </linearGradient>
                 </defs>
                 <circle
-                  cx={isMobile ? 42 : 58} cy={isMobile ? 42 : 58}
-                  r={isMobile ? 36 : 50}
+                  cx={isMobile ? 37 : 58} cy={isMobile ? 37 : 58}
+                  r={isMobile ? 31 : 50}
                   fill="none"
                   stroke="rgba(255,255,255,0.12)"
-                  strokeWidth={isMobile ? 5 : 6}
+                  strokeWidth={isMobile ? 4.5 : 6}
                 />
                 <circle
-                  cx={isMobile ? 42 : 58} cy={isMobile ? 42 : 58}
-                  r={isMobile ? 36 : 50}
+                  cx={isMobile ? 37 : 58} cy={isMobile ? 37 : 58}
+                  r={isMobile ? 31 : 50}
                   fill="none"
                   stroke="url(#ringGrad)"
-                  strokeWidth={isMobile ? 5 : 6}
+                  strokeWidth={isMobile ? 4.5 : 6}
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 36 : 50)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 36 : 50) * (1 - overallSuccessRate / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 42 : 58} ${isMobile ? 42 : 58})`}
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 31 : 50)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 31 : 50) * (1 - overallSuccessRate / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 37 : 58} ${isMobile ? 37 : 58})`}
                   style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
                 />
               </svg>
               <div style={{
-                width: isMobile ? 64 : 90,
-                height: isMobile ? 64 : 90,
+                width: isMobile ? 56 : 90,
+                height: isMobile ? 56 : 90,
                 borderRadius:'50%',
                 background:'rgba(255,255,255,0.1)',
                 backdropFilter:'blur(12px)',
@@ -2626,10 +2640,10 @@ export default function StudentDashboard() {
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                 boxShadow:'0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
               }}>
-                <div style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
+                <div style={{ fontSize: isMobile ? '1.05rem' : '1.75rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
                   %{overallSuccessRate}
                 </div>
-                <div style={{ fontSize: isMobile ? '0.5rem' : '0.62rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.12em', marginTop:3, textTransform:'uppercase' }}>
+                <div style={{ fontSize: isMobile ? '0.45rem' : '0.62rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.1em', marginTop:2, textTransform:'uppercase' }}>
                   BAŞARI
                 </div>
               </div>
@@ -2639,7 +2653,7 @@ export default function StudentDashboard() {
 
         {/* Teacher Selector */}
         {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth:1280, margin:'0 auto', padding: isMobile ? '0 1rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:10, position:'relative', zIndex:1 }}>
+          <div style={{ maxWidth:1280, margin:'0 auto', padding: isMobile ? '0 0.85rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:10, position:'relative', zIndex:1, width:'100%', boxSizing:'border-box' }}>
             <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.12)' }} />
             <span style={{ fontSize:'0.75rem', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>👁️ Öğrenci İncele:</span>
             <select
@@ -2661,15 +2675,19 @@ export default function StudentDashboard() {
       <div style={{
         maxWidth: 1280,
         margin: '0 auto',
-        padding: isMobile ? '0 0.85rem' : '0 2.5rem',
-        marginTop: isMobile ? '-36px' : '-52px',
+        padding: isMobile ? '0 0.65rem' : '0 2.5rem',
+        marginTop: isMobile ? '-32px' : '-52px',
         position: 'relative',
-        zIndex: 10
+        zIndex: 10,
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: isMobile ? '0.4rem' : '0.75rem'
+          gridTemplateColumns: isMobile ? 'repeat(5, minmax(0, 1fr))' : 'repeat(5, 1fr)',
+          gap: isMobile ? '0.25rem' : '0.75rem',
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           {[
             { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.55)',   route:'/student/homeworks' },
@@ -2685,17 +2703,19 @@ export default function StudentDashboard() {
               style={{
                 background: kpi.grad,
                 border: '1px solid rgba(255,255,255,0.22)',
-                borderRadius: isMobile ? 16 : 22,
-                padding: isMobile ? '0.7rem 0.25rem 0.6rem' : '1.15rem 0.5rem 1rem',
+                borderRadius: isMobile ? 13 : 22,
+                padding: isMobile ? '0.55rem 0.1rem 0.45rem' : '1.15rem 0.5rem 1rem',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 textAlign: 'center',
                 boxShadow: `0 12px 36px ${kpi.glow}, 0 2px 0 rgba(255,255,255,0.15) inset`,
-                minHeight: isMobile ? 76 : 108
+                minHeight: isMobile ? 66 : 108,
+                minWidth: 0,
+                overflow: 'hidden'
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 4 }}>{kpi.emoji}</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '2.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
-              <div style={{ fontSize: isMobile ? '0.5rem' : '0.66rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: '0.1em', marginTop: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{kpi.label}</div>
+              <div style={{ fontSize: isMobile ? '0.95rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '1.1rem' : '2.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
+              <div style={{ fontSize: isMobile ? '0.42rem' : '0.66rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: isMobile ? '0.01em' : '0.1em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{kpi.label}</div>
             </div>
           ))}
         </div>
@@ -2704,13 +2724,13 @@ export default function StudentDashboard() {
       {/* ════════════════════════════════════════════
           ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
       ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.85rem 3rem' : '1.5rem 2.5rem 4rem' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '0.85rem 0.65rem 3rem' : '1.5rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
 
         {/* ════════════════════════════════════════════
             2. HAFTALIK DERS PROGRAMI ŞERİDİ (7-DAY NAVIGATOR)
         ════════════════════════════════════════════ */}
         <div className="sd-card" style={{
-          padding: isMobile ? '0.85rem 0.75rem' : '1.1rem 1.4rem',
+          padding: isMobile ? '0.75rem 0.55rem' : '1.1rem 1.4rem',
           marginBottom: '1.5rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -2751,7 +2771,7 @@ export default function StudentDashboard() {
           </div>
 
           {/* 7-Day Week Buttons Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isMobile ? 4 : 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, 1fr)', gap: isMobile ? 3 : 8, width: '100%', boxSizing: 'border-box' }}>
             {DAYS_OF_WEEK.map(day => {
               const isSelected = activeDayKey === day.key;
               const isCurrentToday = todayDayKey === day.key;
@@ -2774,44 +2794,50 @@ export default function StudentDashboard() {
                       : isCurrentToday
                       ? '1.5px solid #6366f1'
                       : '1px solid var(--color-border)',
-                    borderRadius: 14,
-                    padding: isMobile ? '0.5rem 0.15rem' : '0.7rem 0.5rem',
+                    borderRadius: 12,
+                    padding: isMobile ? '0.45rem 0.1rem' : '0.7rem 0.5rem',
                     color: isSelected ? '#ffffff' : isCurrentToday ? '#818cf8' : 'var(--color-text)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 3,
+                    gap: 2,
                     boxShadow: isSelected ? '0 6px 20px rgba(99, 102, 241, 0.35)' : 'none',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    minWidth: 0,
+                    overflow: 'hidden'
                   }}
                 >
-                  <span style={{ fontSize: isMobile ? '0.7rem' : '0.85rem', fontWeight: 900 }}>
+                  <span style={{ fontSize: isMobile ? '0.65rem' : '0.85rem', fontWeight: 900 }}>
                     {day.short}
                   </span>
 
                   <span style={{
-                    fontSize: isMobile ? '0.58rem' : '0.72rem',
+                    fontSize: isMobile ? '0.52rem' : '0.72rem',
                     fontWeight: 800,
                     color: isSelected ? '#ffffff' : isCurrentToday ? '#6366f1' : 'var(--color-text-muted, #64748b)',
                     background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
-                    padding: isMobile ? '1px 3px' : '2px 6px',
-                    borderRadius: 6
+                    padding: isMobile ? '1px 2px' : '2px 6px',
+                    borderRadius: 4,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%'
                   }}>
                     {dayDate?.dateLabel || ''}
                   </span>
 
                   {isCurrentToday ? (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 900, color: isSelected ? '#fde047' : '#d97706' }}>
+                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', fontWeight: 900, color: isSelected ? '#fde047' : '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       ● Bugün
                     </span>
                   ) : taskCount > 0 ? (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#6366f1' }}>
-                      {taskCount} görev
+                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#6366f1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {taskCount} g
                     </span>
                   ) : (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', opacity: 0.4 }}>
+                    <span style={{ fontSize: isMobile ? '0.46rem' : '0.62rem', opacity: 0.4 }}>
                       -
                     </span>
                   )}
@@ -3771,7 +3797,7 @@ export default function StudentDashboard() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <div style={{ minWidth: 180, flex: 1 }}>
+                        <div style={{ minWidth: isMobile ? 0 : 180, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                             <span style={{
                               background: 'rgba(99, 102, 241, 0.12)',
