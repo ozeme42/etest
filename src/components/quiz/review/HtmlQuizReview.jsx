@@ -330,6 +330,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     return 0;
   }, [correctCount, wrongCount, blankCount]);
 
+  const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+  const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
+
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
     setIsSaving(true);
