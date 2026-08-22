@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, ArrowRight, Search } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -2466,6 +2466,7 @@ export default function ProgramCenter({
   const [weeklySubView, setWeeklySubView] = useState('agenda'); // default 'agenda' (Liste / Ajanda görünümü)
   const [collapsedAgendaDays, setCollapsedAgendaDays] = useState({});
   const [expandedDayTasks, setExpandedDayTasks] = useState({});
+  const [daySearchQueries, setDaySearchQueries] = useState({});
   const navigate = useNavigate();
 
   const handlePrevDay = useCallback(() => {
@@ -3168,73 +3169,107 @@ export default function ProgramCenter({
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
       {/* Tabs Header Container */}
-      <div className="no-print" style={{ marginBottom: '1.25rem' }}>
-        {/* Scrollable Tabs */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          borderBottom: isDark ? '2px solid rgba(255,255,255,0.12)' : '2px solid #e8ecf0',
-          gap: '0.25rem',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch',
-          paddingBottom: 2
-        }}>
-          {[
-            { id: 'haftalik', label: '📅 Haftalık Program' },
-            { id: 'aylik', label: '📆 Aylık Görünüm' },
-            { id: 'konular', label: '📚 Konu Havuzu' },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setProgramTab(tab.id)}
-              style={{
-                padding: '0.65rem 0.85rem',
-                border: 'none',
-                borderBottom: programTab === tab.id ? (isDark ? '3px solid #818cf8' : '3px solid #6366f1') : '3px solid transparent',
-                background: 'transparent',
-                fontWeight: programTab === tab.id ? 800 : 600,
-                fontSize: '0.82rem',
-                color: programTab === tab.id ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s',
-                fontFamily: 'inherit',
-                marginBottom: -2,
-                flexShrink: 0
-              }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="no-print" style={{ marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
+        {/* iOS-Style Segmented Tabs on Mobile / Clean Underline Tabs on Desktop */}
+        {isMobile ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+            padding: 3,
+            borderRadius: 12,
+            gap: 3,
+            marginBottom: '0.65rem'
+          }}>
+            {[
+              { id: 'haftalik', label: '📅 Haftalık' },
+              { id: 'aylik', label: '📆 Aylık' },
+              { id: 'konular', label: '📚 Konular' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setProgramTab(tab.id)}
+                style={{
+                  padding: '0.45rem 0.2rem',
+                  border: 'none',
+                  borderRadius: 9,
+                  background: programTab === tab.id ? (isDark ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#ffffff') : 'transparent',
+                  fontWeight: programTab === tab.id ? 900 : 700,
+                  fontSize: '0.76rem',
+                  color: programTab === tab.id ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxShadow: programTab === tab.id ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            borderBottom: isDark ? '2px solid rgba(255,255,255,0.12)' : '2px solid #e8ecf0',
+            gap: '0.25rem',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            paddingBottom: 2
+          }}>
+            {[
+              { id: 'haftalik', label: '📅 Haftalık Program' },
+              { id: 'aylik', label: '📆 Aylık Görünüm' },
+              { id: 'konular', label: '📚 Konu Havuzu' },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setProgramTab(tab.id)}
+                style={{
+                  padding: '0.65rem 0.85rem',
+                  border: 'none',
+                  borderBottom: programTab === tab.id ? (isDark ? '3px solid #818cf8' : '3px solid #6366f1') : '3px solid transparent',
+                  background: 'transparent',
+                  fontWeight: programTab === tab.id ? 800 : 600,
+                  fontSize: '0.82rem',
+                  color: programTab === tab.id ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                  fontFamily: 'inherit',
+                  marginBottom: -2,
+                  flexShrink: 0
+                }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Progress Bar & Badge (Underneath the Tabs) */}
+        {/* Unified Slim Progress Bar */}
         {totalItems > 0 && (
           <div style={{
-            marginTop: '0.65rem',
+            padding: '0.4rem 0.75rem',
+            background: isDark ? 'rgba(15, 23, 42, 0.75)' : '#ffffff',
+            borderRadius: '0.75rem',
+            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 8,
-            padding: '0.45rem 0.85rem',
-            background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
-            borderRadius: '0.75rem',
-            border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e2e8f0',
-            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.02)',
-            backdropFilter: isDark ? 'blur(20px)' : 'none',
-            flexWrap: 'wrap'
+            boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.25)' : '0 2px 6px rgba(0,0,0,0.02)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.7)' : '#475569' }}>Haftalık İlerleme:</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#a5b4fc' : '#6366f1' }}>{doneItems}/{totalItems} Tamamlandı</span>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 140, maxWidth: 220, marginLeft: 'auto' }}>
-              <div style={{ flex: 1, height: 6, background: isDark ? 'rgba(255,255,255,0.1)' : '#e8ecf0', borderRadius: 99, overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #6366f1, #a855f7)', transition: 'width 0.3s' }} />
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: pct === 100 ? '#4ade80' : (isDark ? '#a5b4fc' : '#6366f1'), minWidth: 32, textAlign: 'right' }}>
-                %{pct}
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.7)' : '#475569' }}>
+                Haftalık:
               </span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: isDark ? '#a5b4fc' : '#6366f1' }}>
+                {doneItems}/{totalItems} ({pct}%)
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 100, maxWidth: 200, marginLeft: 'auto' }}>
+              <div style={{ flex: 1, height: 6, background: isDark ? 'rgba(255,255,255,0.1)' : '#e8ecf0', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #6366f1, #a855f7)', transition: 'width 0.3s' }} />
+              </div>
             </div>
           </div>
         )}
@@ -3243,229 +3278,161 @@ export default function ProgramCenter({
       {/* Weekly Program */}
       {programTab === 'haftalik' && (
         <div>
-          {/* Week Navigation & Month Banner */}
+          {/* Week Navigation & Controls Bar (Unified Single Row) */}
           <div className="no-print" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
             border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
-            borderRadius: '1rem',
-            padding: '0.75rem 1.1rem',
-            marginBottom: '1.25rem',
-            boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 2px 10px rgba(0,0,0,0.03)',
-            backdropFilter: isDark ? 'blur(20px)' : 'none',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
+            borderRadius: '0.95rem',
+            padding: isMobile ? '0.45rem 0.65rem' : '0.65rem 1rem',
+            marginBottom: '0.75rem',
+            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.03)',
+            gap: 6
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Left: Week Navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button
                 onClick={() => setWeekOffset(w => w - 1)}
                 style={{
-                  padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
-                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                  color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                  padding: isMobile ? '0.35rem 0.5rem' : '0.42rem 0.75rem',
+                  borderRadius: '0.6rem',
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                  border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                  color: isDark ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.76rem'
                 }}
                 title="Önceki Hafta"
               >
-                <ChevronLeft size={16} /> Önceki Hafta
+                <ChevronLeft size={16} />
+                {!isMobile && <span style={{ marginLeft: 3 }}>Önceki</span>}
+              </button>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: isMobile ? 110 : 150, padding: '0 4px' }}>
+                <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.1 }}>
+                  {weekInfo.monthTitle}
+                </span>
+                <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 700 }}>
+                  {weekInfo.rangeStr}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setWeekOffset(w => w + 1)}
+                style={{
+                  padding: isMobile ? '0.35rem 0.5rem' : '0.42rem 0.75rem',
+                  borderRadius: '0.6rem',
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                  border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                  color: isDark ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.76rem'
+                }}
+                title="Sonraki Hafta"
+              >
+                {!isMobile && <span style={{ marginRight: 3 }}>Sonraki</span>}
+                <ChevronRight size={16} />
               </button>
 
               {weekOffset !== 0 && (
                 <button
                   onClick={() => setWeekOffset(0)}
                   style={{
-                    padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                    padding: isMobile ? '0.35rem 0.55rem' : '0.42rem 0.75rem',
+                    borderRadius: '0.6rem',
                     background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                    color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
-                    cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 900,
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(79,70,229,0.3)'
                   }}
                 >
-                  📍 Bu Hafta (Bugün)
+                  📍 Bugün
                 </button>
               )}
-
-              <button
-                onClick={() => setWeekOffset(w => w + 1)}
-                style={{
-                  padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
-                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                  color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-                }}
-                title="Sonraki Hafta"
-              >
-                Sonraki Hafta <ChevronRight size={16} />
-              </button>
-              {/* Dual Print Buttons: Yatay & Dikey */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
-                <button
-                  onClick={() => handleWeeklyPrint('landscape')}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: 99,
-                    background: 'linear-gradient(135deg, #059669, #10b981)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: 900,
-                    fontSize: '0.74rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
-                  }}
-                  title="A4 Yatay (Landscape) olarak yazdır / PDF kaydet"
-                >
-                  <Printer size={13} /> 📄 Yatay Yazdır
-                </button>
-                <button
-                  onClick={() => handleWeeklyPrint('portrait')}
-                  style={{
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: 99,
-                    background: 'transparent',
-                    border: 'none',
-                    color: isDark ? '#ffffff' : '#334155',
-                    fontWeight: 800,
-                    fontSize: '0.74rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3
-                  }}
-                  title="A4 Dikey (Portrait) olarak yazdır / PDF kaydet"
-                >
-                  📄 Dikey
-                </button>
-              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Calendar size={20} color="#818cf8" />
-                <span style={{ fontSize: '1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
-                  {weekInfo.monthTitle}
-                </span>
-              </div>
-              <span style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b', fontWeight: 700, background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0' }}>
-                📅 {weekInfo.rangeStr}
-              </span>
-            </div>
-          </div>
-
-          {/* Day Selector Strip & View Toggle */}
-          <div className="no-print" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            marginBottom: '1.2rem'
-          }}>
-            {/* Top Toolbar: Left (Today quick button + Reset All) - Right (View Mode Switcher) */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {weekOffset === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDayFilter(todayKey)}
-                    style={{
-                      padding: '0.4rem 0.85rem',
-                      borderRadius: 10,
-                      border: selectedDayFilter === todayKey ? '2px solid #f59e0b' : (isDark ? '1px solid rgba(245,158,11,0.4)' : '1.5px solid #fde68a'),
-                      background: selectedDayFilter === todayKey ? 'linear-gradient(135deg, #f59e0b, #d97706)' : (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb'),
-                      color: selectedDayFilter === todayKey ? '#ffffff' : (isDark ? '#fcd34d' : '#b45309'),
-                      fontWeight: 900,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      boxShadow: selectedDayFilter === todayKey ? '0 3px 10px rgba(245,158,11,0.35)' : 'none',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    <span>⚡ Bugün ({processedWeeklyProgram.find(d => d.day === todayKey)?.items?.length || 0})</span>
-                  </button>
-                )}
-
-                {selectedDayFilter !== 'all' && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDayFilter('all')}
-                    style={{
-                      padding: '0.4rem 0.85rem',
-                      borderRadius: 10,
-                      border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
-                      background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                      color: isDark ? '#ffffff' : '#334155',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    <span>🌟 Tüm Haftayı Gör</span>
-                  </button>
-                )}
-              </div>
-
-              {/* View Mode Toggle: Agenda List vs Cards */}
+            {/* Right: View Mode Toggle & Print */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-                padding: 3,
-                borderRadius: 12,
-                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                marginLeft: 'auto'
+                padding: 2,
+                borderRadius: 8,
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'
               }}>
                 <button
                   onClick={() => setWeeklySubView('agenda')}
                   style={{
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: 9,
+                    padding: isMobile ? '0.3rem 0.55rem' : '0.35rem 0.75rem',
+                    borderRadius: 6,
                     border: 'none',
                     background: weeklySubView === 'agenda' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
                     color: weeklySubView === 'agenda' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
                     fontWeight: weeklySubView === 'agenda' ? 900 : 700,
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
                     cursor: 'pointer',
-                    boxShadow: weeklySubView === 'agenda' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s'
+                    boxShadow: weeklySubView === 'agenda' ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'
                   }}
+                  title="Liste Görünümü"
                 >
-                  📋 Liste (Ajanda)
+                  📋 {isMobile ? '' : 'Liste'}
                 </button>
                 <button
                   onClick={() => setWeeklySubView('cards')}
                   style={{
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: 9,
+                    padding: isMobile ? '0.3rem 0.55rem' : '0.35rem 0.75rem',
+                    borderRadius: 6,
                     border: 'none',
                     background: weeklySubView === 'cards' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
                     color: weeklySubView === 'cards' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
                     fontWeight: weeklySubView === 'cards' ? 900 : 700,
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
                     cursor: 'pointer',
-                    boxShadow: weeklySubView === 'cards' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s'
+                    boxShadow: weeklySubView === 'cards' ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'
                   }}
+                  title="Kartlar Görünümü"
                 >
-                  🗂️ Kartlar
+                  🗂️ {isMobile ? '' : 'Kartlar'}
                 </button>
               </div>
-            </div>
 
-            {/* Mobile & Desktop Touch-Friendly Day Selector Strip */}
+              {/* Print Button */}
+              <button
+                onClick={() => handleWeeklyPrint('landscape')}
+                style={{
+                  padding: isMobile ? '0.32rem 0.55rem' : '0.38rem 0.75rem',
+                  borderRadius: 8,
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                  border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                  color: isDark ? '#ffffff' : '#334155',
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+                title="Yazdır / PDF Olarak Kaydet"
+              >
+                <Printer size={13} /> {!isMobile && 'Yazdır'}
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Day Selector Strip */}
+          <div className="no-print" style={{ marginBottom: '1rem' }}>
             <div style={{
               display: isMobile ? 'flex' : 'grid',
               gridTemplateColumns: isMobile ? 'none' : 'repeat(8, minmax(0, 1fr))',
@@ -3592,8 +3559,8 @@ export default function ProgramCenter({
               })}
             </div>
 
-            {/* Single Day Active Navigation Header (Appears when 1 day is selected) */}
-            {selectedDayFilter !== 'all' && (
+            {/* Single Day Active Header for Desktop only (On mobile it is neatly integrated into the list) */}
+            {!isMobile && selectedDayFilter !== 'all' && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -3602,7 +3569,7 @@ export default function ProgramCenter({
                 background: isDark ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))' : '#f8fafc',
                 border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0',
                 borderRadius: '0.9rem',
-                marginTop: 2
+                marginTop: 6
               }}>
                 <button
                   type="button"
@@ -4064,195 +4031,290 @@ export default function ProgramCenter({
                               </div>
                             ) : (
                               <>
-                                {visibleItems.map(item => {
-                                  const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                                  const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+                                {/* Quick Search Bar when a day has many tasks (e.g. > 6) */}
+                                {items.length > 6 && (
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    padding: '0.35rem 0.65rem',
+                                    background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                                    border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+                                    borderRadius: '0.65rem',
+                                    marginBottom: 4
+                                  }}>
+                                    <Search size={13} color={isDark ? '#94a3b8' : '#64748b'} />
+                                    <input
+                                      type="text"
+                                      value={daySearchQueries[dayObj.day] || ''}
+                                      onChange={(e) => setDaySearchQueries(prev => ({ ...prev, [dayObj.day]: e.target.value }))}
+                                      placeholder={`Görevlerde veya testlerde ara... (${items.length} görev)`}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        fontSize: '0.74rem',
+                                        color: isDark ? '#ffffff' : '#0f172a',
+                                        outline: 'none',
+                                        width: '100%',
+                                        fontFamily: 'inherit'
+                                      }}
+                                    />
+                                    {daySearchQueries[dayObj.day] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setDaySearchQueries(prev => ({ ...prev, [dayObj.day]: '' }))}
+                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+                                      >
+                                        <X size={13} />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+
+                                {(() => {
+                                  const q = (daySearchQueries[dayObj.day] || '').trim().toLowerCase();
+                                  const searchedItems = q
+                                    ? items.filter(it =>
+                                        (it.bookName || '').toLowerCase().includes(q) ||
+                                        (it.subject || '').toLowerCase().includes(q) ||
+                                        (it.topic || '').toLowerCase().includes(q) ||
+                                        (it.note || '').toLowerCase().includes(q)
+                                      )
+                                    : items;
+
+                                  const isShowAllTasks = !!expandedDayTasks[dayObj.day] || !isMobile || q.length > 0;
+                                  const MAX_AGENDA_ITEMS = 6;
+                                  const shouldShowMoreBtn = isMobile && searchedItems.length > MAX_AGENDA_ITEMS && q.length === 0;
+                                  const displayedItems = (shouldShowMoreBtn && !isShowAllTasks) ? searchedItems.slice(0, MAX_AGENDA_ITEMS) : searchedItems;
+
+                                  if (searchedItems.length === 0) {
+                                    return (
+                                      <div style={{ textAlign: 'center', padding: '1rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontSize: '0.78rem' }}>
+                                        "{q}" aramasına uygun görev bulunamadı.
+                                      </div>
+                                    );
+                                  }
 
                                   return (
-                                    <div
-                                      key={item.id}
-                                      style={{
-                                        display: 'flex',
-                                        flexDirection: isMobile ? 'column' : 'row',
-                                        alignItems: isMobile ? 'stretch' : 'center',
-                                        justifyContent: 'space-between',
-                                        gap: isMobile ? 8 : 10,
-                                        padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
-                                        borderRadius: '0.85rem',
-                                        background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
-                                        border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0')
-                                      }}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
+                                    <>
+                                      {displayedItems.map(item => {
+                                        const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                                        const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+
+                                        return (
+                                          <div
+                                            key={item.id}
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: isMobile ? 'column' : 'row',
+                                              alignItems: isMobile ? 'stretch' : 'center',
+                                              justifyContent: 'space-between',
+                                              gap: isMobile ? 8 : 10,
+                                              padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
+                                              borderRadius: '0.85rem',
+                                              background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                              border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0'),
+                                              boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.02)'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggle(dayObj.day, item.id)}
+                                                style={{
+                                                  width: 22,
+                                                  height: 22,
+                                                  marginTop: 2,
+                                                  borderRadius: 7,
+                                                  border: item.done ? 'none' : '1.5px solid #94a3b8',
+                                                  background: item.done ? '#22c55e' : 'transparent',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  cursor: 'pointer',
+                                                  padding: 0,
+                                                  flexShrink: 0
+                                                }}
+                                              >
+                                                {item.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                                              </button>
+
+                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                                  {item.taskType && (
+                                                    <span style={{
+                                                      fontSize: '0.62rem',
+                                                      fontWeight: 800,
+                                                      color: tt?.color || '#6366f1',
+                                                      background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
+                                                      padding: '1px 6px',
+                                                      borderRadius: 5,
+                                                      border: `1px solid ${tt?.color || '#6366f1'}33`,
+                                                      flexShrink: 0
+                                                    }}>
+                                                      {tt?.label}
+                                                    </span>
+                                                  )}
+                                                  <span style={{
+                                                    fontSize: '0.84rem',
+                                                    fontWeight: 800,
+                                                    color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                                    textDecoration: item.done ? 'line-through' : 'none',
+                                                    wordBreak: 'break-word'
+                                                  }}>
+                                                    {item.bookName || item.subject}
+                                                  </span>
+                                                </div>
+                                                {item.topic && (
+                                                  <div style={{ fontSize: '0.74rem', color: item.done ? (isDark ? '#34d399' : '#166534') : (isDark ? 'rgba(255,255,255,0.8)' : '#475569'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
+                                                    {(() => {
+                                                      if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
+                                                        const parts = item.topic.split(' — ');
+                                                        const main = parts[0];
+                                                        const sub = parts.slice(1).join(' — ');
+                                                        return (
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                                                            <span>📌 {main}</span>
+                                                            <span style={{
+                                                              display: 'inline-flex',
+                                                              alignItems: 'center',
+                                                              fontWeight: 800,
+                                                              fontSize: '0.68rem',
+                                                              color: isDark ? '#a5b4fc' : '#4338ca',
+                                                              background: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff',
+                                                              border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                                              borderRadius: 5,
+                                                              padding: '1px 5px'
+                                                            }}>
+                                                              🎯 {sub}
+                                                            </span>
+                                                          </div>
+                                                        );
+                                                      }
+                                                      return <span>📌 {item.topic}</span>;
+                                                    })()}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            <div style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                                              gap: 6,
+                                              flexWrap: 'wrap',
+                                              paddingLeft: isMobile ? 31 : 0
+                                            }}>
+                                              {item.questionCount && (
+                                                <span style={{ fontSize: '0.7rem', color: '#0284c7', background: isDark ? 'rgba(2,132,199,0.2)' : '#e0e7fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700, border: isDark ? '1px solid rgba(2,132,199,0.3)' : '1px solid #bae6fd' }}>
+                                                  ✏️ {item.questionCount}
+                                                </span>
+                                              )}
+                                              {!item.done && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleStartInStudyRoom(item)}
+                                                  style={{
+                                                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    borderRadius: 8,
+                                                    padding: '0.35rem 0.65rem',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 900,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 3,
+                                                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
+                                                  }}
+                                                  title="Bu görevi Çalışma Odası'na aktar ve hazırla"
+                                                >
+                                                  <Play size={11} fill="#ffffff" /> Odada Çalış
+                                                </button>
+                                              )}
+                                              {isQuizTask && !item.done && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleOpenTaskResult(item)}
+                                                  style={{
+                                                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    borderRadius: 8,
+                                                    padding: '0.35rem 0.65rem',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 900,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 3,
+                                                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
+                                                  }}
+                                                >
+                                                  <PlayCircle size={13} /> Çöz
+                                                </button>
+                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() => handleDelete(dayObj.day, item.id)}
+                                                style={{
+                                                  background: 'transparent',
+                                                  border: 'none',
+                                                  color: '#94a3b8',
+                                                  cursor: 'pointer',
+                                                  padding: 4
+                                                }}
+                                                title="Görevi Sil"
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+
+                                      {shouldShowMoreBtn && (
                                         <button
                                           type="button"
-                                          onClick={() => handleToggle(dayObj.day, item.id)}
+                                          onClick={() => setExpandedDayTasks(prev => ({ ...prev, [dayObj.day]: !prev[dayObj.day] }))}
                                           style={{
-                                            width: 22,
-                                            height: 22,
-                                            marginTop: 2,
-                                            borderRadius: 6,
-                                            border: item.done ? 'none' : '1.5px solid #94a3b8',
-                                            background: item.done ? '#22c55e' : 'transparent',
+                                            width: '100%',
+                                            padding: '0.55rem 0.85rem',
+                                            borderRadius: '0.75rem',
+                                            background: isDark
+                                              ? (isShowAllTasks ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))')
+                                              : (isShowAllTasks ? '#f1f5f9' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)'),
+                                            border: isDark
+                                              ? '1px solid rgba(255,255,255,0.12)'
+                                              : (isShowAllTasks ? '1px solid #cbd5e1' : '1.5px dashed #a5b4fc'),
+                                            color: isDark ? '#a5b4fc' : '#4f46e5',
+                                            fontWeight: 900,
+                                            fontSize: '0.74rem',
+                                            cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            padding: 0,
-                                            flexShrink: 0
+                                            gap: 6,
+                                            marginTop: 4,
+                                            transition: 'all 0.2s ease'
                                           }}
                                         >
-                                          {item.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
-                                        </button>
-
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                            {item.taskType && (
-                                              <span style={{
-                                                fontSize: '0.62rem',
-                                                fontWeight: 800,
-                                                color: tt?.color || '#6366f1',
-                                                background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
-                                                padding: '1px 6px',
-                                                borderRadius: 5,
-                                                border: `1px solid ${tt?.color || '#6366f1'}33`,
-                                                flexShrink: 0
-                                              }}>
-                                                {tt?.label}
-                                              </span>
-                                            )}
-                                            <span style={{
-                                              fontSize: '0.84rem',
-                                              fontWeight: 800,
-                                              color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                              textDecoration: item.done ? 'line-through' : 'none',
-                                              wordBreak: 'break-word'
-                                            }}>
-                                              {item.bookName || item.subject}
-                                            </span>
-                                          </div>
-                                          {item.topic && (
-                                            <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>
-                                              📌 {item.topic}
-                                            </div>
+                                          {isShowAllTasks ? (
+                                            <>
+                                              <ChevronUp size={14} /> ▲ Daha Az Göster (Kapat)
+                                            </>
+                                          ) : (
+                                            <>
+                                              <ChevronDown size={14} /> ▼ Diğer {searchedItems.length - MAX_AGENDA_ITEMS} Görevi Göster (Aç)
+                                            </>
                                           )}
-                                        </div>
-                                      </div>
-
-                                      <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                                        gap: 6,
-                                        flexWrap: 'wrap',
-                                        paddingLeft: isMobile ? 31 : 0
-                                      }}>
-                                        {item.questionCount && (
-                                          <span style={{ fontSize: '0.7rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700 }}>
-                                            ✏️ {item.questionCount}
-                                          </span>
-                                        )}
-                                        {!item.done && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleStartInStudyRoom(item)}
-                                            style={{
-                                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                              color: '#ffffff',
-                                              border: 'none',
-                                              borderRadius: 8,
-                                              padding: '0.35rem 0.65rem',
-                                              fontSize: '0.72rem',
-                                              fontWeight: 900,
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 3,
-                                              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
-                                            }}
-                                            title="Bu görevi Çalışma Odası'na aktar ve hazırla"
-                                          >
-                                            <Play size={11} fill="#ffffff" /> Odada Çalış
-                                          </button>
-                                        )}
-                                        {isQuizTask && !item.done && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleOpenTaskResult(item)}
-                                            style={{
-                                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                                              color: '#ffffff',
-                                              border: 'none',
-                                              borderRadius: 8,
-                                              padding: '0.35rem 0.65rem',
-                                              fontSize: '0.72rem',
-                                              fontWeight: 900,
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 3,
-                                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
-                                            }}
-                                          >
-                                            <PlayCircle size={13} /> Çöz
-                                          </button>
-                                        )}
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDelete(dayObj.day, item.id)}
-                                          style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: '#94a3b8',
-                                            cursor: 'pointer',
-                                            padding: 4
-                                          }}
-                                          title="Görevi Sil"
-                                        >
-                                          <Trash2 size={14} />
                                         </button>
-                                      </div>
-                                    </div>
+                                      )}
+                                    </>
                                   );
-                                })}
-
-                                {shouldShowMoreBtn && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpandedDayTasks(prev => ({ ...prev, [dayObj.day]: !prev[dayObj.day] }))}
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem 0.85rem',
-                                      borderRadius: '0.75rem',
-                                      background: isDark
-                                        ? (isShowAllTasks ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))')
-                                        : (isShowAllTasks ? '#f1f5f9' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)'),
-                                      border: isDark
-                                        ? '1px solid rgba(255,255,255,0.12)'
-                                        : (isShowAllTasks ? '1px solid #cbd5e1' : '1.5px dashed #a5b4fc'),
-                                      color: isDark ? '#a5b4fc' : '#4f46e5',
-                                      fontWeight: 900,
-                                      fontSize: '0.74rem',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      gap: 6,
-                                      marginTop: 4,
-                                      transition: 'all 0.2s ease'
-                                    }}
-                                  >
-                                    {isShowAllTasks ? (
-                                      <>
-                                        <ChevronUp size={14} /> ▲ Daha Az Göster (Kapat)
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown size={14} /> ▼ Diğer {items.length - MAX_AGENDA_ITEMS} Görevi Göster (Aç)
-                                      </>
-                                    )}
-                                  </button>
-                                )}
+                                })()}
                               </>
                             )}
                           </div>

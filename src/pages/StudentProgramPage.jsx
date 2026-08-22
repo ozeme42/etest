@@ -109,182 +109,241 @@ export default function StudentProgramPage() {
       `}</style>
 
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
-        {/* Top Action Bar */}
-        <div className="no-print" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '0.85rem',
-          gap: '0.65rem',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => navigate('/student')}
-              style={{
-                background: 'var(--color-surface, #ffffff)',
-                border: '1.5px solid var(--color-border, #cbd5e1)',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 0.95rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontWeight: 800,
-                fontSize: isMobile ? '0.76rem' : '0.82rem',
-                color: 'var(--color-text, #1e293b)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                transition: 'all 0.15s'
-              }}
-            >
-              <ArrowLeft size={15} /> Öğrenci Paneli
-            </button>
-
-            <button
-              onClick={() => navigate('/study-room')}
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                border: 'none',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 0.95rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.76rem' : '0.82rem',
-                color: '#ffffff',
-                boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
-                transition: 'all 0.15s'
-              }}
-            >
-              <Play size={14} fill="#ffffff" /> ⏱️ Çalışma Odası
-            </button>
-          </div>
-
-          <div style={{
-            display: 'inline-flex',
+        {/* Mobile Header: Sleek App Bar */}
+        {isMobile ? (
+          <div className="no-print" style={{
+            display: 'flex',
             alignItems: 'center',
-            gap: 5,
-            background: isDark ? 'rgba(99, 102, 241, 0.15)' : '#e0e7ff',
-            border: isDark ? '1px solid rgba(165, 180, 252, 0.35)' : '1px solid #c7d2fe',
-            padding: '0.3rem 0.75rem',
-            borderRadius: '99px',
-            fontSize: isMobile ? '0.72rem' : '0.76rem',
-            fontWeight: 800,
-            color: isDark ? '#818cf8' : '#4338ca'
+            justifyContent: 'space-between',
+            marginBottom: '0.65rem',
+            padding: '0.2rem 0'
           }}>
-            <Calendar size={13} color={isDark ? '#818cf8' : '#4f46e5'} />
-            <span>{weekRange}</span>
-          </div>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <button
+                onClick={() => navigate('/student')}
+                style={{
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                  border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0',
+                  borderRadius: '0.65rem',
+                  padding: '0.4rem 0.6rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: isDark ? '#ffffff' : '#334155'
+                }}
+                title="Geri Dön"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Ders Programım 📅
+                </div>
+                <div style={{ fontSize: '0.68rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', fontWeight: 600 }}>
+                  {weekRange}
+                </div>
+              </div>
+            </div>
 
-        {/* Hero Card with Profile & KPI Stats */}
-        <div className="prog-hero-card prog-anim no-print" style={{
-          background: 'var(--color-surface, #ffffff)',
-          border: '1.5px solid var(--color-border, #e2e8f0)',
-          borderRadius: isMobile ? '1rem' : '1.25rem',
-          padding: isMobile ? '0.85rem 1rem' : '1.15rem 1.4rem',
-          marginBottom: '1rem',
-          boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.35)' : '0 4px 20px rgba(100, 116, 139, 0.07)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: isMobile ? '0.75rem' : '1.25rem',
-          flexWrap: 'wrap',
-          boxSizing: 'border-box'
-        }}>
-          {/* Left: Avatar & Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
-            <div style={{
-              width: isMobile ? 40 : 48,
-              height: isMobile ? 40 : 48,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => navigate('/study-room')}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  border: 'none',
+                  borderRadius: '0.65rem',
+                  padding: '0.4rem 0.65rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 900,
+                  fontSize: '0.72rem',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(245,158,11,0.35)'
+                }}
+              >
+                <Play size={12} fill="#ffffff" /> Odada Çalış
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Desktop Header & Rich Hero Card */
+          <>
+            <div className="no-print" style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: isMobile ? '1rem' : '1.2rem',
-              color: 'white',
-              border: isDark ? '2.5px solid rgba(255,255,255,0.2)' : '2.5px solid #ffffff',
-              boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
-              flexShrink: 0
+              justifyContent: 'space-between',
+              marginBottom: '0.85rem',
+              gap: '0.65rem',
+              flexWrap: 'wrap'
             }}>
-              {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <h1 style={{
-                margin: 0,
-                fontWeight: 900,
-                fontSize: isMobile ? '1.05rem' : '1.25rem',
-                color: 'var(--color-text, #0f172a)',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => navigate('/student')}
+                  style={{
+                    background: 'var(--color-surface, #ffffff)',
+                    border: '1.5px solid var(--color-border, #cbd5e1)',
+                    borderRadius: '0.75rem',
+                    padding: '0.5rem 0.95rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    color: 'var(--color-text, #1e293b)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <ArrowLeft size={15} /> Öğrenci Paneli
+                </button>
+
+                <button
+                  onClick={() => navigate('/study-room')}
+                  style={{
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    border: 'none',
+                    borderRadius: '0.75rem',
+                    padding: '0.5rem 0.95rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    color: '#ffffff',
+                    boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <Play size={14} fill="#ffffff" /> ⏱️ Çalışma Odası
+                </button>
+              </div>
+
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                background: isDark ? 'rgba(99, 102, 241, 0.15)' : '#e0e7ff',
+                border: isDark ? '1px solid rgba(165, 180, 252, 0.35)' : '1px solid #c7d2fe',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '99px',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                color: isDark ? '#818cf8' : '#4338ca'
               }}>
-                Haftalık Ders Programım 📅
-              </h1>
-              <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Merhaba <strong>{currentUser.name?.split(' ')[0]}</strong> 👋 · Kişisel Çalışma Takvimi
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Modern Responsive KPI Grid */}
-          <div className="prog-kpis" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: isMobile ? '0.5rem' : '0.75rem',
-            width: isMobile ? '100%' : 'auto',
-            minWidth: isMobile ? '100%' : 220
-          }}>
-            <div style={{
-              background: 'var(--color-surface-hover, #f8fafc)',
-              border: '1.5px solid var(--color-border, #e2e8f0)',
-              borderRadius: isMobile ? '0.85rem' : '1rem',
-              padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 0.95rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              minWidth: 0
-            }}>
-              <div style={{ fontWeight: 900, fontSize: isMobile ? '1.1rem' : '1.25rem', color: isDark ? '#818cf8' : '#4f46e5', lineHeight: 1 }}>
-                %{weekPct}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.66rem' : '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 3, whiteSpace: 'nowrap' }}>
-                Haftalık İlerleme
-              </div>
-              <div style={{ fontSize: isMobile ? '0.58rem' : '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap' }}>
-                {doneItems} / {totalItems} Görev
+                <Calendar size={13} color={isDark ? '#818cf8' : '#4f46e5'} />
+                <span>{weekRange}</span>
               </div>
             </div>
 
-            <div style={{
-              background: 'var(--color-surface-hover, #f8fafc)',
+            {/* Hero Card with Profile & KPI Stats */}
+            <div className="prog-hero-card prog-anim no-print" style={{
+              background: 'var(--color-surface, #ffffff)',
               border: '1.5px solid var(--color-border, #e2e8f0)',
-              borderRadius: isMobile ? '0.85rem' : '1rem',
-              padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 0.95rem',
-              textAlign: 'center',
+              borderRadius: '1.25rem',
+              padding: '1.15rem 1.4rem',
+              marginBottom: '1rem',
+              boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.35)' : '0 4px 20px rgba(100, 116, 139, 0.07)',
               display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              minWidth: 0
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1.25rem',
+              flexWrap: 'wrap',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ fontWeight: 900, fontSize: isMobile ? '1.1rem' : '1.25rem', color: isDark ? '#34d399' : '#16a34a', lineHeight: 1 }}>
-                {doneTopics}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '1.2rem',
+                  color: 'white',
+                  border: isDark ? '2.5px solid rgba(255,255,255,0.2)' : '2.5px solid #ffffff',
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                  flexShrink: 0
+                }}>
+                  {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h1 style={{
+                    margin: 0,
+                    fontWeight: 900,
+                    fontSize: '1.25rem',
+                    color: 'var(--color-text, #0f172a)',
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    Haftalık Ders Programım 📅
+                  </h1>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Merhaba <strong>{currentUser.name?.split(' ')[0]}</strong> 👋 · Kişisel Çalışma Takvimi
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: isMobile ? '0.66rem' : '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 3, whiteSpace: 'nowrap' }}>
-                Konu İlerleme
-              </div>
-              <div style={{ fontSize: isMobile ? '0.58rem' : '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap' }}>
-                {totalTopics} Toplam Konu
+
+              <div className="prog-kpis" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '0.75rem',
+                minWidth: 220
+              }}>
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: '1rem',
+                  padding: '0.65rem 0.95rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  minWidth: 0
+                }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.25rem', color: isDark ? '#818cf8' : '#4f46e5', lineHeight: 1 }}>
+                    %{weekPct}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 3, whiteSpace: 'nowrap' }}>
+                    Haftalık İlerleme
+                  </div>
+                  <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap' }}>
+                    {doneItems} / {totalItems} Görev
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: '1rem',
+                  padding: '0.65rem 0.95rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  minWidth: 0
+                }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.25rem', color: isDark ? '#34d399' : '#16a34a', lineHeight: 1 }}>
+                    {doneTopics}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 3, whiteSpace: 'nowrap' }}>
+                    Konu İlerleme
+                  </div>
+                  <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap' }}>
+                    {totalTopics} Toplam Konu
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Content */}
         <div style={{ width: '100%', boxSizing: 'border-box' }}>
