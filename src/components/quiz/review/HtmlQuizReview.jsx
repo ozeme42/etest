@@ -705,17 +705,50 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE ? (
-                      hasGradedScore ? (
+                      (teacherSc === 'empty' || (!isText && (!hasGradedScore || teacherSc === 'empty' || (Number(teacherSc) === 0 && ansObj.isCorrect === null)))) ? (
                         <span style={{
-                          color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
-                          background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
+                          color: '#475569',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
                           padding: '0.2rem 0.6rem',
                           borderRadius: '0.4rem',
                           fontWeight: 900,
-                          fontSize: '0.82rem'
+                          fontSize: '0.8rem'
                         }}>
-                          {teacherSc} / 10 Puan
+                          ○ BOŞ
                         </span>
+                      ) : hasGradedScore || typeof teacherSc === 'number' ? (
+                        Number(teacherSc) >= 5 ? (
+                          <span style={{
+                            color: '#15803d',
+                            background: '#dcfce7',
+                            border: '1px solid #86efac',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '0.4rem',
+                            fontWeight: 900,
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <CheckCircle size={14} color="#16a34a" /> DOĞRU
+                          </span>
+                        ) : (
+                          <span style={{
+                            color: '#b91c1c',
+                            background: '#fee2e2',
+                            border: '1px solid #fca5a5',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '0.4rem',
+                            fontWeight: 900,
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <XCircle size={14} color="#ef4444" /> YANLIŞ
+                          </span>
+                        )
                       ) : isText ? (
                         <span style={{
                           color: '#7c3aed',
@@ -730,31 +763,31 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                         </span>
                       ) : (
                         <span style={{
-                          color: '#64748b',
-                          background: '#f8fafc',
+                          color: '#475569',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
                           padding: '0.2rem 0.6rem',
                           borderRadius: '0.4rem',
-                          border: '1px solid #e2e8f0',
-                          fontWeight: 800,
+                          fontWeight: 900,
                           fontSize: '0.8rem'
                         }}>
-                          ○ Yanıtlanmadı / Boş
+                          ○ BOŞ
                         </span>
-                      )
-                    ) : hasAnswer ? (
-                      isCorrect === true ? (
-                        <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <CheckCircle size={15} /> DOĞRU
-                        </span>
-                      ) : isCorrect === false ? (
-                        <span style={{ color: '#b91c1c', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <XCircle size={15} /> YANLIŞ
-                        </span>
-                      ) : (
-                        <span style={{ color: '#64748b', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                       )
                     ) : (
-                      <span style={{ color: '#64748b', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
+                      isCorrect === true ? (
+                        <span style={{ color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <CheckCircle size={14} color="#16a34a" /> DOĞRU
+                        </span>
+                      ) : isCorrect === false ? (
+                        <span style={{ color: '#b91c1c', background: '#fee2e2', border: '1px solid #fca5a5', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <XCircle size={14} color="#ef4444" /> YANLIŞ
+                        </span>
+                      ) : (
+                        <span style={{ color: '#475569', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem' }}>
+                          ○ BOŞ
+                        </span>
+                      )
                     )}
                   </div>
 

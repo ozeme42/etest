@@ -684,17 +684,50 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               Soru {currentQNo} İncelemesi
             </h3>
             {isItemOE ? (
-              hasGradedScore ? (
+              (teacherSc === 'empty' || (!isText && (!hasGradedScore || teacherSc === 'empty' || (Number(teacherSc) === 0 && ansObj.isCorrect === null)))) ? (
                 <span style={{
-                  color: Number(teacherSc) === 10 ? '#15803d' : Number(teacherSc) >= 5 ? '#d97706' : '#b91c1c',
-                  background: Number(teacherSc) === 10 ? '#dcfce7' : Number(teacherSc) >= 5 ? '#fef3c7' : '#fee2e2',
+                  color: '#475569',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
                   padding: '0.25rem 0.75rem',
                   borderRadius: '0.45rem',
                   fontWeight: 900,
                   fontSize: '0.85rem'
                 }}>
-                  {teacherSc} / 10 Puan
+                  ○ BOŞ
                 </span>
+              ) : hasGradedScore || typeof teacherSc === 'number' ? (
+                Number(teacherSc) >= 5 ? (
+                  <span style={{
+                    color: '#15803d',
+                    background: '#dcfce7',
+                    border: '1px solid #86efac',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '0.45rem',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}>
+                    <CheckCircle size={16} color="#16a34a" /> DOĞRU
+                  </span>
+                ) : (
+                  <span style={{
+                    color: '#b91c1c',
+                    background: '#fee2e2',
+                    border: '1px solid #fca5a5',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '0.45rem',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}>
+                    <XCircle size={16} color="#ef4444" /> YANLIŞ
+                  </span>
+                )
               ) : isText ? (
                 <span style={{
                   color: '#7c3aed',
@@ -709,35 +742,31 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 </span>
               ) : (
                 <span style={{
-                  color: '#64748b',
-                  background: '#f8fafc',
+                  color: '#475569',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
                   padding: '0.25rem 0.75rem',
                   borderRadius: '0.45rem',
-                  border: '1px solid #e2e8f0',
-                  fontWeight: 800,
-                  fontSize: '0.82rem'
+                  fontWeight: 900,
+                  fontSize: '0.85rem'
                 }}>
-                  ○ Yanıtlanmadı / Boş
-                </span>
-              )
-            ) : hasAnswer ? (
-              isCurrentCorrect === true ? (
-                <span style={{ color: '#15803d', background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <CheckCircle size={16} /> DOĞRU (10P)
-                </span>
-              ) : isCurrentCorrect === false ? (
-                <span style={{ color: '#b91c1c', background: '#fee2e2', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #fca5a5', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <XCircle size={16} /> YANLIŞ (0P)
-                </span>
-              ) : (
-                <span style={{ color: '#64748b', background: '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.85rem' }}>
-                  ○ BOŞ (0P)
+                  ○ BOŞ
                 </span>
               )
             ) : (
-              <span style={{ color: '#64748b', background: '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.85rem' }}>
-                ○ BOŞ (0P)
-              </span>
+              isCurrentCorrect === true ? (
+                <span style={{ color: '#15803d', background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #86efac', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <CheckCircle size={16} /> DOĞRU
+                </span>
+              ) : isCurrentCorrect === false ? (
+                <span style={{ color: '#b91c1c', background: '#fee2e2', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #fca5a5', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <XCircle size={16} /> YANLIŞ
+                </span>
+              ) : (
+                <span style={{ color: '#475569', background: '#f1f5f9', padding: '0.25rem 0.75rem', borderRadius: '0.45rem', border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.85rem' }}>
+                  ○ BOŞ
+                </span>
+              )
             )}
           </div>
 

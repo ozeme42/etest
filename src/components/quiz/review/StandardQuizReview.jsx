@@ -454,9 +454,29 @@ export default function StandardQuizReview({ submission, test, questions = [], o
             <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#6366f1' }}>
               Soru {currentQNo}
             </h3>
-            <span style={{ fontWeight: 900, fontSize: '0.9rem', color: currentScore === 10 ? '#10b981' : (currentScore >= 5 ? '#f59e0b' : '#8b5cf6') }}>
-              Verilen Not: {currentScore} / 10 Puan
-            </span>
+            {currentScore === 'empty' || (!textAns && (currentScore === undefined || currentScore === null || currentScore === 'empty' || Number(currentScore) === 0)) ? (
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569' }}>
+                ○ BOŞ
+              </span>
+            ) : currentScore !== undefined && currentScore !== null && currentScore !== 'empty' && !isNaN(Number(currentScore)) ? (
+              Number(currentScore) >= 5 ? (
+                <span style={{ fontWeight: 900, fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', background: '#dcfce7', border: '1px solid #86efac', color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <CheckCircle size={14} color="#16a34a" /> DOĞRU
+                </span>
+              ) : (
+                <span style={{ fontWeight: 900, fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <XCircle size={14} color="#ef4444" /> YANLIŞ
+                </span>
+              )
+            ) : textAns ? (
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed' }}>
+                ⏳ Değerlendirme Bekliyor
+              </span>
+            ) : (
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569' }}>
+                ○ BOŞ
+              </span>
+            )}
           </div>
 
           {imageUrls.length > 0 && (
