@@ -203,7 +203,7 @@
   flex-wrap: wrap;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar & Utilities */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -219,34 +219,49 @@
   border-radius: 4px;
 }
 
+.sd-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.sd-hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* ═══════════════════════════════════════════════════
    MOBILE RESPONSIVENESS (< 768px)
    ═══════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .study-plans-page-container,
   .study-plan-container {
-    padding: 0.75rem 0.5rem 5.5rem 0.5rem !important;
-    gap: 0.85rem;
+    padding: 0.65rem 0.55rem calc(85px + env(safe-area-inset-bottom)) 0.55rem !important;
+    gap: 0.75rem;
+  }
+
+  .study-glass-card {
+    border-radius: 1.15rem;
+    padding: 0.85rem;
   }
 
   /* Header */
   .study-header-card {
-    padding: 1rem !important;
-    border-radius: 1.15rem !important;
+    padding: 0.85rem !important;
+    border-radius: 1.25rem !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 0.75rem !important;
+    gap: 0.65rem !important;
   }
 
   .study-header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.65rem;
+    flex-direction: row;
+    align-items: center;
+    justifyContent: space-between;
+    gap: 0.5rem;
     width: 100%;
   }
 
   .study-header-left h1 {
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
   }
 
   .study-header-actions {
@@ -256,55 +271,59 @@
   .study-btn-add-main {
     width: 100% !important;
     justify-content: center;
-    padding: 0.65rem 1rem !important;
-    font-size: 0.85rem !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 0.75rem !important;
   }
 
   /* 4 KPI Hero Cards: STRICT 2x2 GRID ON ALL MOBILE PHONES */
   .study-kpi-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.55rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
     width: 100% !important;
   }
 
   .study-kpi-card {
     padding: 0.65rem 0.75rem !important;
-    border-radius: 0.95rem !important;
-    gap: 0.6rem !important;
+    border-radius: 1rem !important;
+    gap: 0.5rem !important;
     min-width: 0 !important;
   }
 
   .study-kpi-icon {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 0.65rem !important;
     flex-shrink: 0 !important;
   }
 
   .study-kpi-icon svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 17px !important;
+    height: 17px !important;
   }
 
   .study-kpi-val {
-    font-size: 1.2rem !important;
+    font-size: 1.15rem !important;
     line-height: 1.1 !important;
   }
 
   .study-kpi-lbl {
-    font-size: 0.62rem !important;
+    font-size: 0.6rem !important;
     line-height: 1.2 !important;
     margin-top: 0.1rem !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   /* Search & Presets Bar */
   .study-search-presets-bar {
-    padding: 0.85rem !important;
-    border-radius: 1rem !important;
+    padding: 0.75rem !important;
+    border-radius: 1.15rem !important;
     flex-direction: column;
     align-items: stretch;
+    gap: 0.65rem;
   }
 
   .study-search-presets-bar > div:first-child {
@@ -315,34 +334,42 @@
   .study-presets-container {
     display: flex;
     overflow-x: auto;
-    padding-bottom: 0.35rem;
-    gap: 0.4rem;
+    padding-bottom: 0.2rem;
+    gap: 0.35rem;
+    -webkit-overflow-scrolling: touch;
   }
 
   .study-presets-container button {
     white-space: nowrap;
-    padding: 0.45rem 0.75rem !important;
-    font-size: 0.74rem !important;
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.72rem !important;
+    border-radius: 0.65rem !important;
+    flex-shrink: 0;
   }
 
   /* Roadmaps Grid */
   .study-roadmaps-grid {
     grid-template-columns: 1fr !important;
-    gap: 0.85rem !important;
+    gap: 0.75rem !important;
   }
 
   .roadmap-card {
-    padding: 1.1rem !important;
+    padding: 0.85rem !important;
     border-radius: 1.15rem !important;
   }
 
   .roadmap-card-actions {
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid !important;
+    grid-template-columns: 1fr 1.2fr !important;
+    gap: 0.4rem !important;
+    padding-top: 0.75rem !important;
   }
 
   .roadmap-card-actions button {
     width: 100% !important;
+    padding: 0.55rem 0.5rem !important;
+    font-size: 0.76rem !important;
   }
 }
+
 

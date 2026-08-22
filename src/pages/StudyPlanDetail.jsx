@@ -8,6 +8,7 @@ import {
   Link as LinkIcon, Calendar, FileJson, X, ListPlus, Sparkles, Hash,
   Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check, Lock
 } from 'lucide-react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import './StudyPlan.css';
 
 export default function StudyPlanDetail() {
@@ -47,6 +48,9 @@ export default function StudyPlanDetail() {
     }
     return true; // students see plans assigned to them
   }, [plan, currentUser, isTeacher, isAdmin]);
+
+  // Responsive
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Expanded Units State (default closed/collapsed for clarity, or user toggle)
   const [expandedUnits, setExpandedUnits] = useState([]);
@@ -481,88 +485,93 @@ export default function StudyPlanDetail() {
       )}
 
       {/* ── TOP HERO HEADER ── */}
-      <div className="study-glass-card" style={{ padding: '1.5rem 1.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+      <div className="study-glass-card" style={{ padding: isMobile ? '0.85rem' : '1.5rem 1.75rem', marginBottom: isMobile ? '0.85rem' : '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isMobile ? '0.75rem' : '1.25rem' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem', width: isMobile ? '100%' : 'auto' }}>
           <button 
             onClick={() => navigate('/study-plans')}
             style={{
-              padding: '0.7rem',
-              borderRadius: '1rem',
+              padding: isMobile ? '0.5rem' : '0.7rem',
+              borderRadius: isMobile ? '0.75rem' : '1rem',
               background: 'var(--color-surface-hover, #f1f5f9)',
               border: '1.5px solid var(--color-border, #cbd5e1)',
               color: 'var(--color-text, #0f172a)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
             title="Yol Haritalarına Dön"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={isMobile ? 18 : 20} />
           </button>
           
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', letterSpacing: '-0.02em' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? '1.15rem' : '1.75rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
                 {plan.title}
               </h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(165,180,252,0.3)' }}>
-                {subjects.length} Ünite • {totalTopicsCount} Konu Adımı
+              <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: '1rem', border: '1px solid rgba(165,180,252,0.3)' }}>
+                {subjects.length} Ünite • {totalTopicsCount} Konu
               </span>
               {assignedCount > 0 && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(236,72,153,0.12)', color: '#ec4899', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(244,114,182,0.3)' }}>
-                  👥 {assignedCount} Öğrenciye Atandı
+                <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', fontWeight: 900, background: 'rgba(236,72,153,0.12)', color: '#ec4899', padding: '0.15rem 0.55rem', borderRadius: '1rem', border: '1px solid rgba(244,114,182,0.3)' }}>
+                  👥 {assignedCount} Öğrenci
                 </span>
               )}
             </div>
-            <p style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem', fontWeight: 600 }}>
-              {plan.description || 'Yol haritasındaki üniteleri, konuları, hedef tarihleri ve ders kaynaklarını düzenleyin.'}
-            </p>
+            {!isMobile && (
+              <p style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem', fontWeight: 600 }}>
+                {plan.description || 'Yol haritasındaki üniteleri, konuları, hedef tarihleri ve ders kaynaklarını düzenleyin.'}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? (subjects.length > 0 ? '1fr 1fr' : '1fr') : 'auto', width: isMobile ? '100%' : 'auto', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
           {subjects.length > 0 && (
             <button
               onClick={() => handleAutoNumberDays()}
               style={{
-                padding: '0.65rem 1.15rem',
+                padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 1.15rem',
                 borderRadius: '0.75rem',
                 background: 'rgba(168, 85, 247, 0.12)',
                 border: '1.5px solid rgba(192, 132, 252, 0.4)',
                 color: '#a855f7',
                 fontWeight: 800,
-                fontSize: '0.84rem',
+                fontSize: isMobile ? '0.74rem' : '0.84rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                justifyContent: 'center',
+                gap: '0.35rem',
                 cursor: 'pointer'
               }}
               title="Tüm konulara sırayla Gün 1, Gün 2, Gün 3... atar"
             >
-              <Sparkles size={16} style={{ color: '#fbbf24' }} /> Günleri Otomatik Sırala (1..N)
+              <Sparkles size={14} style={{ color: '#fbbf24' }} /> {isMobile ? 'Gün Sırala' : 'Günleri Otomatik Sırala (1..N)'}
             </button>
           )}
 
           <button
             onClick={() => setJsonModal(true)}
             style={{
-              padding: '0.65rem 1.15rem',
+              padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 1.15rem',
               borderRadius: '0.75rem',
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1.5px solid rgba(56, 189, 248, 0.35)',
               color: '#0284c7',
               fontWeight: 800,
-              fontSize: '0.84rem',
+              fontSize: isMobile ? '0.74rem' : '0.84rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              justifyContent: 'center',
+              gap: '0.35rem',
               cursor: 'pointer'
             }}
           >
-            <ListPlus size={16} /> Toplu Ünite &amp; Konu Ekle
+            <ListPlus size={14} /> {isMobile ? 'Toplu Ekle' : 'Toplu Ünite & Konu Ekle'}
           </button>
 
           <button
@@ -574,67 +583,70 @@ export default function StudyPlanDetail() {
               setAssignModal(true);
             }}
             style={{
-              padding: '0.65rem 1.25rem',
+              gridColumn: isMobile ? 'span 2' : 'auto',
+              padding: isMobile ? '0.55rem 0.85rem' : '0.65rem 1.25rem',
               borderRadius: '0.75rem',
               background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
               border: 'none',
               color: '#ffffff',
               fontWeight: 900,
-              fontSize: '0.84rem',
+              fontSize: isMobile ? '0.78rem' : '0.84rem',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '0.4rem',
               cursor: 'pointer',
               boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
             }}
           >
-            <Users size={16} /> Öğrenciye Ata
+            <Users size={15} /> Öğrenciye Ata
           </button>
         </div>
 
       </div>
 
       {/* ── UNITS & TOPICS SECTION ── */}
-      <div className="study-glass-card" style={{ padding: '1.75rem' }}>
+      <div className="study-glass-card" style={{ padding: isMobile ? '0.85rem' : '1.75rem' }}>
         
         {/* Section Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={19} style={{ color: '#6366f1' }} /> Üniteler ve Konu Takip Adımları
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', paddingBottom: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.15rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Layers size={isMobile ? 17 : 19} style={{ color: '#6366f1' }} /> Üniteler ve Konular
             </h2>
-            <span style={{ fontSize: '0.78rem', color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '0.15rem 0.55rem', borderRadius: '0.5rem', fontWeight: 800 }}>
-              {subjects.length} Ünite
+            <span style={{ fontSize: '0.72rem', color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 800 }}>
+              {subjects.length}
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.45rem' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
             {subjects.length > 0 && (
               <>
                 <button
                   type="button"
                   onClick={handleExpandAll}
-                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
+                  style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', padding: '0.35rem 0.6rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
                 >
-                  📂 Tümünü Aç
+                  📂 Aç
                 </button>
                 <button
                   type="button"
                   onClick={handleCollapseAll}
-                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
+                  style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', padding: '0.35rem 0.6rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
                 >
-                  📁 Tümünü Kapat
+                  📁 Kapat
                 </button>
               </>
             )}
             <button
               onClick={() => openUnitModal()}
-              style={{ fontSize: '0.82rem', padding: '0.4rem 0.95rem', fontWeight: 900, borderRadius: '0.55rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
+              style={{ flex: isMobile ? 1 : 'none', fontSize: isMobile ? '0.76rem' : '0.82rem', padding: '0.4rem 0.85rem', fontWeight: 900, borderRadius: '0.55rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
             >
               <Plus size={15} /> Yeni Ünite Ekle
             </button>
           </div>
         </div>
+
 
         {/* Units List */}
         {subjects.length === 0 ? (
