@@ -5196,15 +5196,15 @@ export default function StudyRoomPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: isMobile ? '0.5rem' : '1rem'
+          padding: isMobile ? '0.4rem' : '1.25rem'
         }}>
           <div style={{
             background: 'var(--color-surface, #ffffff)',
             borderRadius: isMobile ? 18 : 24,
-            padding: isMobile ? '1.1rem 0.9rem' : '1.75rem 1.6rem',
-            maxWidth: 720,
-            width: '100%',
-            maxHeight: '92vh',
+            padding: isMobile ? '1rem 0.85rem' : '1.75rem 2rem',
+            maxWidth: isMobile ? '100%' : 980,
+            width: isMobile ? '100%' : 'min(980px, 94vw)',
+            maxHeight: isMobile ? '96vh' : '90vh',
             display: 'flex',
             flexDirection: 'column',
             border: '2px solid #3b82f6',
@@ -5214,54 +5214,54 @@ export default function StudyRoomPage() {
             overflow: 'hidden'
           }}>
             {/* Modal Başlığı */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? 8 : 12, gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? 8 : 14, gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
                 <div style={{
-                  width: isMobile ? 32 : 40,
-                  height: isMobile ? 32 : 40,
-                  borderRadius: 10,
+                  width: isMobile ? 36 : 48,
+                  height: isMobile ? 36 : 48,
+                  borderRadius: 12,
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
+                  boxShadow: '0 4px 14px rgba(59,130,246,0.4)',
                   flexShrink: 0
                 }}>
-                  <BookMarked size={isMobile ? 16 : 20} />
+                  <BookMarked size={isMobile ? 18 : 24} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>
+                  <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, margin: 0, color: 'var(--color-text)', letterSpacing: '-0.01em' }}>
                     Çalışma Görevi / Test Seç
                   </h2>
-                  <p style={{ fontSize: isMobile ? '0.68rem' : '0.76rem', color: 'var(--color-text-muted)', margin: '1px 0 0', fontWeight: 600 }}>
+                  <p style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', color: 'var(--color-text-muted)', margin: '2px 0 0', fontWeight: 600 }}>
                     Haftalık program veya ödevlerinden görev başlat
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, flexShrink: 0 }}>
                 {/* Bitenleri / Çözülenleri Gizle/Göster Butonu */}
                 <button
                   type="button"
                   onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
                   title={hideCompletedTasks ? 'Çözülenleri Göster' : 'Çözülenleri Gizle'}
                   style={{
-                    padding: isMobile ? '0.3rem 0.55rem' : '0.4rem 0.75rem',
-                    borderRadius: 8,
+                    padding: isMobile ? '0.35rem 0.6rem' : '0.5rem 0.95rem',
+                    borderRadius: 10,
                     border: `1.5px solid ${hideCompletedTasks ? '#10b981' : 'var(--color-border, #e2e8f0)'}`,
-                    background: hideCompletedTasks ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'transparent',
+                    background: hideCompletedTasks ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : 'transparent',
                     color: hideCompletedTasks ? '#10b981' : 'var(--color-text-muted)',
                     fontWeight: 800,
-                    fontSize: isMobile ? '0.66rem' : '0.74rem',
+                    fontSize: isMobile ? '0.72rem' : '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: 5,
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  {hideCompletedTasks ? <EyeOff size={12} color="#10b981" /> : <Eye size={12} />}
+                  {hideCompletedTasks ? <EyeOff size={isMobile ? 13 : 15} color="#10b981" /> : <Eye size={isMobile ? 13 : 15} />}
                   <span>{hideCompletedTasks ? 'Bitenler Gizli' : 'Bitenleri Göster'}</span>
                 </button>
 
@@ -5271,9 +5271,9 @@ export default function StudyRoomPage() {
                   style={{
                     background: 'var(--color-surface-hover, #f1f5f9)',
                     border: 'none',
-                    borderRadius: 8,
-                    width: 28,
-                    height: 28,
+                    borderRadius: 10,
+                    width: isMobile ? 32 : 38,
+                    height: isMobile ? 32 : 38,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -5281,29 +5281,34 @@ export default function StudyRoomPage() {
                     color: 'var(--color-text)'
                   }}
                 >
-                  <X size={16} />
+                  <X size={isMobile ? 18 : 22} />
                 </button>
               </div>
             </div>
 
-            {/* Haftalık Program Sayfasına Hızlı Geçiş Banner'ı */}
+            {/* Haftalık Program Sayfasına Hızlı Geçiş Banner'ı (Masaüstünde Büyütülmüş & Mobil Uyumlu) */}
             <div style={{
-              background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(79, 70, 229, 0.18))' : 'linear-gradient(135deg, #eff6ff, #e0e7ff)',
+              background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(79, 70, 229, 0.22))' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
               border: '1.5px solid #818cf8',
-              borderRadius: 12,
-              padding: isMobile ? '0.5rem 0.75rem' : '0.6rem 0.85rem',
+              borderRadius: 14,
+              padding: isMobile ? '0.65rem 0.85rem' : '0.95rem 1.35rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 6,
-              marginBottom: 8,
-              flexWrap: 'wrap'
+              gap: 10,
+              marginBottom: isMobile ? 8 : 12,
+              flexWrap: 'wrap',
+              boxShadow: '0 2px 10px rgba(99,102,241,0.12)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '1rem' }}>📅</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flex: 1, minWidth: 200 }}>
+                <span style={{ fontSize: isMobile ? '1.3rem' : '1.8rem', lineHeight: 1 }}>📅</span>
                 <div>
-                  <div style={{ fontSize: isMobile ? '0.74rem' : '0.8rem', fontWeight: 900, color: 'var(--color-text)' }}>Haftalık Program Sayfasından Seç</div>
-                  <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm haftalık planını tam sayfa görüp 'Odada Başlat' yapabilirsin.</div>
+                  <div style={{ fontSize: isMobile ? '0.85rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    Haftalık Program Sayfasından Seç
+                  </div>
+                  <div style={{ fontSize: isMobile ? '0.7rem' : '0.84rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
+                    Tüm haftalık planını tam sayfa görüp 'Odada Başlat' yapabilirsin.
+                  </div>
                 </div>
               </div>
               <button
@@ -5313,23 +5318,23 @@ export default function StudyRoomPage() {
                   navigate('/student/program');
                 }}
                 style={{
-                  padding: '0.35rem 0.65rem',
-                  borderRadius: 8,
+                  padding: isMobile ? '0.45rem 0.85rem' : '0.65rem 1.25rem',
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: isMobile ? '0.68rem' : '0.74rem',
+                  fontSize: isMobile ? '0.78rem' : '0.9rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
+                  boxShadow: '0 3px 10px rgba(79,70,229,0.35)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 3
+                  gap: 5
                 }}
               >
                 <span>Git</span>
-                <ChevronRight size={12} />
+                <ChevronRight size={isMobile ? 14 : 16} />
               </button>
             </div>
 
@@ -5339,9 +5344,9 @@ export default function StudyRoomPage() {
               gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
               gap: 6,
               background: 'var(--color-surface-hover, #f1f5f9)',
-              padding: 4,
+              padding: isMobile ? 4 : 6,
               borderRadius: 14,
-              marginBottom: 10
+              marginBottom: isMobile ? 8 : 12
             }}>
               {[
                 { id: 'program', label: '📅 Program', count: allAssignedTasks.filter(t => (t.sourceType === 'program' || t.sourceType === 'roadmap' || t.dayKey) && (!hideCompletedTasks || !t.isCompleted)).length },
@@ -5356,13 +5361,13 @@ export default function StudyRoomPage() {
                     type="button"
                     onClick={() => setHwSourceTab(tab.id)}
                     style={{
-                      padding: isMobile ? '0.55rem 0.5rem' : '0.65rem 0.75rem',
+                      padding: isMobile ? '0.6rem 0.5rem' : '0.75rem 0.85rem',
                       borderRadius: 10,
                       border: 'none',
                       background: isTabActive ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
                       color: isTabActive ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.8rem' : '0.86rem',
+                      fontSize: isMobile ? '0.82rem' : '0.94rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -5375,11 +5380,11 @@ export default function StudyRoomPage() {
                   >
                     <span>{tab.label}</span>
                     <span style={{
-                      fontSize: isMobile ? '0.68rem' : '0.72rem',
+                      fontSize: isMobile ? '0.7rem' : '0.78rem',
                       fontWeight: 900,
                       background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
                       color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
-                      padding: '2px 7px',
+                      padding: isMobile ? '2px 6px' : '2px 8px',
                       borderRadius: 99
                     }}>
                       {tab.count}
@@ -5497,7 +5502,7 @@ export default function StudyRoomPage() {
                 </div>
 
                 {/* Günlerin Görev Listesi */}
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4, maxHeight: 380 }}>
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 6, maxHeight: isMobile ? 'calc(94vh - 300px)' : '56vh' }}>
                   {weeklyProgramGrouped
                     .filter(dayGroup => selectedProgramDay === 'all' || selectedProgramDay === dayGroup.key)
                     .map(dayGroup => {
@@ -5824,7 +5829,7 @@ export default function StudyRoomPage() {
                 </div>
 
                 {/* Kitaplar ve Testleri */}
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4, maxHeight: 380 }}>
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 6, maxHeight: isMobile ? 'calc(94vh - 270px)' : '56vh' }}>
                   {bookGroupedTests.length === 0 ? (
                     <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16 }}>
                       <div style={{ fontSize: '2rem', marginBottom: 6 }}>📚</div>
@@ -6025,7 +6030,7 @@ export default function StudyRoomPage() {
                 </div>
 
                 {/* Görev Listesi */}
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4, maxHeight: 380 }}>
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 6, maxHeight: isMobile ? 'calc(94vh - 270px)' : '56vh' }}>
                   {filteredTasksList.length === 0 ? (
                     <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16 }}>
                       <div style={{ fontSize: '2rem', marginBottom: 6 }}>📭</div>
