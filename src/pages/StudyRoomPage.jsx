@@ -9,7 +9,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { toUUID } from '../services/supabaseService';
-import { checkIsTaskSolved } from '../components/ProgramCenter';
+import { checkIsTaskSolved, resolveBookTestInfo } from '../components/ProgramCenter';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
   Sparkles, Flame, CheckCircle2, Clock, Music, Headphones, BookOpen,
@@ -5566,8 +5566,9 @@ export default function StudyRoomPage() {
                               {visibleTasks.map(task => {
                                 const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
                                 const isRoadmap = task.sourceType === 'roadmap';
-                                const isBook = task.sourceType === 'bookTest';
+                                const isBook = task.sourceType === 'bookTest' || task.isBookAssignment;
                                 const isHw = task.sourceType === 'homework';
+                                const bookInfo = resolveBookTestInfo(task, books, bookTests);
 
                                 return (
                                   <div
@@ -5587,28 +5588,49 @@ export default function StudyRoomPage() {
                                     }}
                                   >
                                     <div style={{ flex: 1, minWidth: 180 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+                                      {/* Üst Rozet Satırı */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                                         <span style={{
                                           fontSize: '0.68rem',
                                           fontWeight: 900,
-                                          background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : isBook ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                          color: isRoadmap ? '#8b5cf6' : isBook ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
+                                          background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : (bookInfo?.isBookTest || isBook) ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                          color: isRoadmap ? '#8b5cf6' : (bookInfo?.isBookTest || isBook) ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
                                           padding: '0.1rem 0.45rem',
                                           borderRadius: 6
                                         }}>
-                                          {task.sourceLabel || (isRoadmap ? '🗺️ Yol Haritası' : '📅 Ders Programı')}
+                                          {task.sourceLabel || (isRoadmap ? '🗺️ Yol Haritası' : (bookInfo?.isBookTest || isBook) ? '📚 Kitap Testi' : '📅 Ders Programı')}
                                         </span>
 
+                                        {/* DERS ADI */}
                                         <span style={{
-                                          fontSize: '0.68rem',
-                                          fontWeight: 800,
+                                          fontSize: '0.74rem',
+                                          fontWeight: 900,
                                           background: 'var(--color-surface-hover, #f1f5f9)',
                                           color: 'var(--color-text)',
-                                          padding: '0.1rem 0.45rem',
-                                          borderRadius: 6
+                                          padding: '0.1rem 0.5rem',
+                                          borderRadius: 6,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3
                                         }}>
-                                          {task.subject || 'Genel'}
+                                          <span>📚</span>
+                                          <span>{bookInfo?.isBookTest ? bookInfo.subject : (task.subject || 'Genel Ders')}</span>
                                         </span>
+
+                                        {/* YAYINEVİ ROZETİ */}
+                                        {bookInfo?.isBookTest && bookInfo.publisher && (
+                                          <span style={{
+                                            fontSize: '0.64rem',
+                                            fontWeight: 700,
+                                            color: isDark ? '#c7d2fe' : '#4f46e5',
+                                            background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                                            border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                            borderRadius: 5,
+                                            padding: '1px 5px'
+                                          }}>
+                                            🏢 {bookInfo.publisher}
+                                          </span>
+                                        )}
 
                                         {task.isCompleted ? (
                                           <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
@@ -5621,14 +5643,58 @@ export default function StudyRoomPage() {
                                         )}
                                       </div>
 
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                                        {task.title}
-                                      </div>
+                                      {/* Başlık / Kitap & Test Detayı */}
+                                      {bookInfo?.isBookTest ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                          {bookInfo.bookTitle && (
+                                            <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                                              📖 {bookInfo.bookTitle}
+                                            </div>
+                                          )}
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 1 }}>
+                                            {bookInfo.unit && (
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                fontWeight: 700,
+                                                fontSize: '0.68rem',
+                                                color: isDark ? '#93c5fd' : '#1d4ed8',
+                                                background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                                                border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                                                borderRadius: '0.35rem',
+                                                padding: '1px 6px'
+                                              }}>
+                                                📂 {bookInfo.unit}
+                                              </span>
+                                            )}
+                                            {bookInfo.testName && (
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                fontWeight: 800,
+                                                fontSize: '0.68rem',
+                                                color: isDark ? '#c084fc' : '#6d28d9',
+                                                background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                                                border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                                                borderRadius: '0.35rem',
+                                                padding: '1px 6px'
+                                              }}>
+                                                🎯 {bookInfo.testName}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                                          {task.title}
+                                        </div>
+                                      )}
 
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
-                                        {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
-                                        {task.bookTitle ? ` • ${task.bookTitle}` : ''}
-                                        {task.topic ? ` • ${task.topic}` : ''}
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                                        ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                                        {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
                                       </div>
                                     </div>
 
@@ -5654,28 +5720,26 @@ export default function StudyRoomPage() {
                                         <Target size={13} /> Görevi Seç
                                       </button>
 
-                                      {(task.realTestId || task.bookTestId) && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleLaunchTaskQuiz(task)}
-                                          style={{
-                                            padding: '0.45rem 0.85rem',
-                                            borderRadius: 10,
-                                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                                            color: '#ffffff',
-                                            border: 'none',
-                                            fontWeight: 900,
-                                            fontSize: '0.76rem',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 5,
-                                            boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
-                                          }}
-                                        >
-                                          <PlayCircle size={13} /> Hemen Çöz
-                                        </button>
-                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleLaunchTaskQuiz(task)}
+                                        style={{
+                                          padding: '0.45rem 0.85rem',
+                                          borderRadius: 10,
+                                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          fontWeight: 900,
+                                          fontSize: '0.76rem',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 5,
+                                          boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                                        }}
+                                      >
+                                        <PlayCircle size={13} /> Hemen Çöz
+                                      </button>
                                     </div>
                                   </div>
                                 );
@@ -5785,6 +5849,8 @@ export default function StudyRoomPage() {
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
                             {matchingTests.map(test => {
                               const isSelected = selectedTask?.id === test.id || selectedTask?.dedupeKey === test.dedupeKey;
+                              const bookInfo = resolveBookTestInfo(test, books, bookTests);
+
                               return (
                                 <div
                                   key={test.id}
@@ -5800,21 +5866,34 @@ export default function StudyRoomPage() {
                                   }}
                                 >
                                   <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                                      <span style={{ fontSize: '0.66rem', fontWeight: 900, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.1rem 0.4rem', borderRadius: 6 }}>
-                                        {test.subject || bg.subject || 'Genel'}
-                                      </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 4, flexWrap: 'wrap' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.1rem 0.45rem', borderRadius: 6 }}>
+                                          📚 {bookInfo?.subject || test.subject || bg.subject || 'Ders'}
+                                        </span>
+                                        {bookInfo?.publisher && (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: isDark ? '#c7d2fe' : '#4f46e5', background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff', padding: '0.1rem 0.4rem', borderRadius: 5 }}>
+                                            🏢 {bookInfo.publisher}
+                                          </span>
+                                        )}
+                                      </div>
                                       {test.isCompleted ? (
                                         <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#10b981' }}>✓ Çözüldü</span>
                                       ) : (
                                         <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#d97706' }}>⏳ Bekliyor</span>
                                       )}
                                     </div>
+
+                                    {bookInfo?.unit && (
+                                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#3b82f6', marginBottom: 2 }}>
+                                        📂 {bookInfo.unit}
+                                      </div>
+                                    )}
                                     <div style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                                      {test.testName || test.title}
+                                      🎯 {bookInfo?.testName || test.testName || test.title}
                                     </div>
                                     <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                      {test.questionCount} Soru • Yaklaşık {Math.round(test.questionCount * minutesPerQuestion)} dk
+                                      ✏️ {test.questionCount} Soru • Yaklaşık {Math.round(test.questionCount * minutesPerQuestion)} dk
                                     </div>
                                   </div>
 
@@ -5937,8 +6016,9 @@ export default function StudyRoomPage() {
                     filteredTasksList.map(task => {
                       const isSelected = selectedTask?.id === task.id || selectedTask?.dedupeKey === task.dedupeKey;
                       const isRoadmap = task.sourceType === 'roadmap';
-                      const isBook = task.sourceType === 'bookTest';
+                      const isBook = task.sourceType === 'bookTest' || task.isBookAssignment;
                       const isHw = task.sourceType === 'homework';
+                      const bookInfo = resolveBookTestInfo(task, books, bookTests);
 
                       return (
                         <div
@@ -5956,21 +6036,28 @@ export default function StudyRoomPage() {
                           }}
                         >
                           <div style={{ flex: 1, minWidth: 200 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                               <span style={{
                                 fontSize: '0.68rem',
                                 fontWeight: 900,
-                                background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : isBook ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                color: isRoadmap ? '#8b5cf6' : isBook ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
+                                background: isRoadmap ? 'rgba(139, 92, 246, 0.15)' : (bookInfo?.isBookTest || isBook) ? 'rgba(59, 130, 246, 0.15)' : isHw ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isRoadmap ? '#8b5cf6' : (bookInfo?.isBookTest || isBook) ? '#3b82f6' : isHw ? '#0891b2' : '#10b981',
                                 padding: '0.12rem 0.5rem',
                                 borderRadius: 6
                               }}>
-                                {task.sourceLabel}
+                                {task.sourceLabel || (isRoadmap ? '🗺️ Yol Haritası' : (bookInfo?.isBookTest || isBook) ? '📚 Kitap Testi' : '📅 Ders Programı')}
                               </span>
 
-                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text)', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
-                                {task.subject || 'Genel'}
+                              <span style={{ fontSize: '0.74rem', fontWeight: 900, background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text)', padding: '0.12rem 0.5rem', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                <span>📚</span>
+                                <span>{bookInfo?.isBookTest ? bookInfo.subject : (task.subject || 'Genel Ders')}</span>
                               </span>
+
+                              {bookInfo?.isBookTest && bookInfo.publisher && (
+                                <span style={{ fontSize: '0.64rem', fontWeight: 700, color: isDark ? '#c7d2fe' : '#4f46e5', background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff', padding: '0.12rem 0.45rem', borderRadius: 5 }}>
+                                  🏢 {bookInfo.publisher}
+                                </span>
+                              )}
 
                               {task.isCompleted ? (
                                 <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: '#dcfce7', padding: '0.12rem 0.45rem', borderRadius: 6 }}>
@@ -5989,13 +6076,57 @@ export default function StudyRoomPage() {
                               )}
                             </div>
 
-                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                              {task.title}
-                            </div>
+                            {bookInfo?.isBookTest ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {bookInfo.bookTitle && (
+                                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                                    📖 {bookInfo.bookTitle}
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 1 }}>
+                                  {bookInfo.unit && (
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 2,
+                                      fontWeight: 700,
+                                      fontSize: '0.68rem',
+                                      color: isDark ? '#93c5fd' : '#1d4ed8',
+                                      background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
+                                      border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
+                                      borderRadius: '0.35rem',
+                                      padding: '1px 6px'
+                                    }}>
+                                      📂 {bookInfo.unit}
+                                    </span>
+                                  )}
+                                  {bookInfo.testName && (
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 2,
+                                      fontWeight: 800,
+                                      fontSize: '0.68rem',
+                                      color: isDark ? '#c084fc' : '#6d28d9',
+                                      background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
+                                      border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
+                                      borderRadius: '0.35rem',
+                                      padding: '1px 6px'
+                                    }}>
+                                      🎯 {bookInfo.testName}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                                {task.title}
+                              </div>
+                            )}
 
                             <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                              {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
-                              {task.unit ? ` • ${task.unit}` : ''}
+                              ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                              {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
                             </div>
                           </div>
 
@@ -6021,28 +6152,26 @@ export default function StudyRoomPage() {
                               <Target size={13} /> Görevi Seç
                             </button>
 
-                            {(task.realTestId || task.bookTestId) && (
-                              <button
-                                type="button"
-                                onClick={() => handleLaunchTaskQuiz(task)}
-                                style={{
-                                  padding: '0.5rem 0.9rem',
-                                  borderRadius: 10,
-                                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  fontWeight: 900,
-                                  fontSize: '0.78rem',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
-                                }}
-                              >
-                                <PlayCircle size={14} /> Hemen Çöz
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleLaunchTaskQuiz(task)}
+                              style={{
+                                padding: '0.5rem 0.9rem',
+                                borderRadius: 10,
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                              }}
+                            >
+                              <PlayCircle size={14} /> Hemen Çöz
+                            </button>
                           </div>
                         </div>
                       );
