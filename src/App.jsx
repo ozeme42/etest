@@ -206,15 +206,15 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        <div style={{ padding: '0.55rem 0.8rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-bg)' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.45rem 0.65rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '1.9rem', height: '1.9rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
               <button 
                 onClick={async () => { 
@@ -224,26 +224,26 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 }}
                 title="Oturumu Kapat"
                 style={{ 
-                  width: '2rem', height: '2rem', borderRadius: '50%', 
+                  width: '1.8rem', height: '1.8rem', borderRadius: '50%', 
                   background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca', 
                   color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                 }}
                 className="hover:scale-105 active:scale-95"
               >
-                <LogOut size={15} />
+                <LogOut size={13} />
               </button>
             </div>
           ) : (
             <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', padding: '0.65rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
-                <LogIn size={16} /> Giriş Yap / Kayıt Ol
+              <button style={{ width: '100%', padding: '0.5rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                <LogIn size={15} /> Giriş Yap / Kayıt Ol
               </button>
             </Link>
           )}
 
           {/* Quick Search & Theme Switch Row */}
-          <div style={{ marginTop: '0.65rem', display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+          <div style={{ marginTop: '0.45rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
             <button
               onClick={() => {
                 window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
@@ -252,12 +252,12 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.5rem 0.65rem',
-                borderRadius: '0.75rem',
+                padding: '0.4rem 0.55rem',
+                borderRadius: '0.65rem',
                 background: 'var(--color-surface)',
                 border: '1.5px solid var(--color-border-input)',
                 color: 'var(--color-text-secondary)',
-                fontSize: '0.76rem',
+                fontSize: '0.74rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 flex: 1,
@@ -265,10 +265,10 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
               }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Search size={14} color="#6366f1" /> Arama
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Search size={13} color="#6366f1" /> Arama
               </span>
-              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '4px', padding: '1px 4px', fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
+              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '4px', padding: '1px 4px', fontSize: '0.6rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
             </button>
 
             {/* Theme Toggle Button */}
@@ -278,13 +278,13 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.35rem',
-                padding: '0.5rem 0.65rem',
-                borderRadius: '0.75rem',
+                gap: '0.3rem',
+                padding: '0.4rem 0.55rem',
+                borderRadius: '0.65rem',
                 background: isDark ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : 'linear-gradient(135deg, #fef3c7, #fef08a)',
                 border: isDark ? '1.5px solid #4338ca' : '1.5px solid #fde047',
                 color: isDark ? '#c7d2fe' : '#b45309',
-                fontSize: '0.76rem',
+                fontSize: '0.74rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 flexShrink: 0,
@@ -292,7 +292,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
               }}
               title={isDark ? 'Açık Temaya Geç (Light)' : 'Koyu Temaya Geç (Dark)'}
             >
-              {isDark ? <Sun size={15} color="#fbbf24" /> : <Moon size={15} color="#6366f1" />}
+              {isDark ? <Sun size={14} color="#fbbf24" /> : <Moon size={14} color="#6366f1" />}
               <span>{isDark ? 'Açık' : 'Koyu'}</span>
             </button>
           </div>
