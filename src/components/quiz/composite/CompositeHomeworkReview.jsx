@@ -90,45 +90,69 @@ export default function CompositeHomeworkReview({
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
-  // 4. Overall stats — mirrors OpticalBubblePanel.reviewStats exactly, per section.
-  //    Uses sectionAnswersMap[sIdx] (numeric index, always reliable) + sec.correctAnswers.
-  //    Never reads submission.answers[i].isCorrect (may be stale/wrong from DB).
+  // 4. Overall stats — computed directly from raw submission data.
+  //    MC sections: userAnswer vs correctAnswer per question.
+  //    OE sections: teacherScores from DB (submission.teacherScores).
   const overallStats = useMemo(() => {
     let totalQuestions = 0;
-    let correctCount = 0;
-    let wrongCount = 0;
-    let blankCount = 0;
-    let pendingCount = 0;
+    let correctCount   = 0;
+    let wrongCount     = 0;
+    let blankCount     = 0;
+    let pendingCount   = 0;
 
-    const normalizeOpt = (v) => {
-      if (v === null || v === undefined || v === '' || v === 'empty') return null;
-      if (typeof v === 'number') return v;
-      const s = String(v).trim().toUpperCase();
-      const map = { A: 0, B: 1, C: 2, D: 3, E: 4 };
-      if (map[s] !== undefined) return map[s];
-      const n = Number(s);
-      return isNaN(n) ? null : n;
-    };
+    // DB teacher scores: { [secId]: { [qNo]: score } }
+    // These are ONLY set by real teacher evaluation — not from isCorrect flags.
+    const dbTS = submission?.teacherScores || {};
+
+    // Pre-build a map: sectionId → set of question numbers that have teacher scores
+    // If any question in a section has a DB teacher score → that whole section is OE
+    const oeSectionIds = new Set(Object.keys(dbTS).filter(k => {
+      const v = dbTS[k];
+      return v && typeof v === 'object' && Object.keys(v).length > 0;
+    }));
+
+    // Also collect numeric sIdx for sections with teacher scores (for index-based keys)
+    const oeByIdx = new Set();
+    rawSections.forEach((sec, sIdx) => {
+      const rawId = sec.raw?.id || sec.raw?.questionId || sec.id;
+      if (oeSectionIds.has(sec.id) || oeSectionIds.has(rawId) || oeSectionIds.has(String(sIdx))) {
+        oeByIdx.add(sIdx);
+      }
+    });
 
     rawSections.forEach((sec, sIdx) => {
-      const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? { answers: {}, openEndedText: {}, teacherScores: {} };
+      const secQs  = sec.questions || sec.resolvedQuestions || [];
+      const count  = sec.qCount || secQs.length || 1;
+      const rawId  = sec.raw?.id || sec.raw?.questionId || sec.id;
 
-      const secQs = sec.questions || sec.resolvedQuestions || [];
-      const count = sec.qCount || secQs.length || 1;
-      const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
+      // Is this section open-ended?
+      const isOESection =
+        sec.type === 'open_ended' ||
+        isSectionOpenEnded(sec, test) ||
+        oeSectionIds.has(sec.id) ||
+        oeSectionIds.has(rawId) ||
+        oeByIdx.has(sIdx);
+
+      // DB teacher scores for this section
+      const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
         const qObj = secQs[i - 1] || {};
-        const isQOE = isSecOE ||
-          qObj.type === 'open_ended' || qObj.type === 'acik_uclu' || qObj.type === 'yazili' ||
-          Boolean(sa.openEndedText?.[i] && String(sa.openEndedText[i]).trim()) ||
-          Boolean(sa.openEndedText?.[String(i)] && String(sa.openEndedText[String(i)]).trim());
 
-        if (isQOE) {
+        if (isOESection) {
+          // OE path: use teacher scores (live hook state first, then DB)
+          const ts =
+            teacherScores[sec.id]?.[i]   ??
+            teacherScores[rawId]?.[i]     ??
+            teacherScores[sIdx]?.[i]      ??
+            dbSecScores[i]                ??
+            dbSecScores[String(i)];
+
+          const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
           const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
-          const ts = teacherScores[sec.id]?.[i] ?? teacherScores[sIdx]?.[i] ?? sa.teacherScores?.[i] ?? sa.teacherScores?.[String(i)];
-          const hasText = textVal && String(textVal).trim() !== '';
+          const hasText = Boolean(textVal && String(textVal).trim());
+
           if (ts !== undefined && ts !== null && ts !== 'empty') {
             if (Number(ts) > 0) correctCount++; else wrongCount++;
           } else if (!hasText) {
@@ -137,7 +161,20 @@ export default function CompositeHomeworkReview({
             pendingCount++;
           }
         } else {
+          // MC path: get answer from sectionAnswersMap, compare to correct answer
+          const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
           const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
+
+          const normalizeOpt = (v) => {
+            if (v === null || v === undefined || v === '' || v === 'empty') return null;
+            if (typeof v === 'number') return v;
+            const s = String(v).trim().toUpperCase();
+            const m = { A: 0, B: 1, C: 2, D: 3, E: 4 };
+            if (m[s] !== undefined) return m[s];
+            const n = Number(s);
+            return isNaN(n) ? null : n;
+          };
+
           const u = normalizeOpt(rawAnsVal);
           if (u === null) {
             blankCount++;
@@ -156,11 +193,11 @@ export default function CompositeHomeworkReview({
     const scorePct = (correctCount + wrongCount + blankCount) > 0
       ? Math.round((correctCount / (correctCount + wrongCount + blankCount)) * 100)
       : 0;
-    const rawNet = Math.max(0, correctCount - wrongCount * 0.25);
+    const rawNet   = Math.max(0, correctCount - wrongCount * 0.25);
     const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
 
     return { total: totalQuestions, correct: correctCount, wrong: wrongCount, blank: blankCount, pending: pendingCount, scorePct, netScore };
-  }, [rawSections, sectionAnswersMap, teacherScores, test]);
+  }, [submission, rawSections, sectionAnswersMap, teacherScores, test]);
 
   const handleSaveAndClose = async () => {
     await saveGrading();
@@ -484,7 +521,8 @@ export default function CompositeHomeworkReview({
                   const qNo = idx + 1;
                   const uAns = currentSecAnswers.answers[qNo] ?? currentSecAnswers.answers[String(qNo)];
                   const cAns = q.correctAnswer;
-                  const isCorrect = uAns !== null && uAns !== undefined ? checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo) : null;
+                  const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                  const isCorrect = isBlank ? null : checkIsAnswerCorrect(uAns, q.raw || q, activeSec.raw || activeSec, qNo);
 
                   return (
                     <MultipleChoiceReview

@@ -31,12 +31,34 @@ export default function SingleMultipleChoiceReview({
   }
 
   const totalQuestions = questions.length || answers.length || 1;
-  const correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === true).length : 0);
-  const wrongCount = submission.wrongCount ?? (Array.isArray(answers) ? answers.filter(a => a && a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty').length : 0);
-  const blankCount = submission.blankCount ?? Math.max(0, totalQuestions - correctCount - wrongCount);
-  const score = submission.score ?? (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
-  const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
-  const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
+
+  // Recompute stats live from userAnswer vs correctAnswer (never trust stale DB isCorrect)
+  let correctCount = 0;
+  let wrongCount = 0;
+  if (Array.isArray(questions) && questions.length > 0) {
+    questions.forEach((q, idx) => {
+      const ansObj = answers[idx] || {};
+      const qNo = idx + 1;
+      const uAns = answersMap[qNo];
+      if (uAns === null || uAns === undefined || uAns === '' || uAns === 'empty') return; // blank — skip
+      const cAns = ansObj.correctAnswer ?? q.correctAnswer;
+      if (cAns !== undefined && cAns !== null) {
+        if (uAns === cAns) correctCount++; else wrongCount++;
+      } else {
+        // No answer key available — fall back to stored isCorrect
+        if (ansObj.isCorrect === true) correctCount++;
+        else if (ansObj.isCorrect === false) wrongCount++;
+      }
+    });
+  } else {
+    // No questions list — fall back to DB counts
+    correctCount = submission.correctCount ?? (Array.isArray(answers) ? answers.filter(a => a?.isCorrect === true).length : 0);
+    wrongCount   = submission.wrongCount   ?? (Array.isArray(answers) ? answers.filter(a => a?.isCorrect === false && a?.userAnswer != null && a?.userAnswer !== '' && a?.userAnswer !== 'empty').length : 0);
+  }
+  const blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
+  const score      = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const rawNet     = Math.max(0, correctCount - wrongCount * 0.25);
+  const netScore   = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
@@ -188,7 +210,12 @@ export default function SingleMultipleChoiceReview({
                 const ansObj = answers[idx] || {};
                 const uAns = answersMap[qNo];
                 const cAns = ansObj.correctAnswer ?? q.correctAnswer;
-                const isCorrect = ansObj.isCorrect ?? (uAns !== null && uAns !== undefined ? uAns === cAns : null);
+                const isBlank = uAns === null || uAns === undefined || uAns === '' || uAns === 'empty';
+                const isCorrect = isBlank
+                  ? null  // never mark blank as wrong
+                  : (cAns !== undefined && cAns !== null
+                      ? uAns === cAns
+                      : (ansObj.isCorrect ?? null));  // fallback to DB only if no answer key
 
                 return (
                   <MultipleChoiceReview
