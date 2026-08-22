@@ -1068,6 +1068,8 @@ export default function StudyRoomPage() {
   const handleSelectTask = (task, startImmediately = false) => {
     if (!task) return;
     setSelectedTask(task);
+    setOpticalInputMode('optical');
+    localStorage.setItem('study_optical_mode', 'optical');
     setShowHomeworkPickerModal(false);
 
     // Dersi otomatik eşle
@@ -1121,6 +1123,10 @@ export default function StudyRoomPage() {
 
   const handleClearSelectedTask = () => {
     setSelectedTask(null);
+    setOpticalAnswers({});
+    localStorage.removeItem('study_optical_answers');
+    setOpticalInputMode('counter');
+    localStorage.setItem('study_optical_mode', 'counter');
   };
 
   const handleLaunchTaskQuiz = (task) => {
@@ -3105,299 +3111,391 @@ export default function StudyRoomPage() {
                 </div>
               </div>
 
-              {/* MOD SEÇİCİ: OPTİK FORM vs HIZLI SAYAÇ */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 6,
-                background: themeObj.cardBg,
-                padding: 3,
-                borderRadius: 14,
-                border: `1.5px solid ${themeObj.border}`
-              }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpticalInputMode('optical');
-                    localStorage.setItem('study_optical_mode', 'optical');
-                  }}
-                  style={{
-                    padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: opticalInputMode === 'optical'
-                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
-                      : 'transparent',
-                    color: opticalInputMode === 'optical' ? '#ffffff' : themeObj.subText,
-                    fontWeight: 900,
-                    fontSize: isMobile ? '0.74rem' : '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                    boxShadow: opticalInputMode === 'optical' ? `0 3px 12px ${themeObj.accent}40` : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <BookMarked size={isMobile ? 13 : 15} />
-                  <span>Optik Form</span>
-                  {Object.keys(opticalAnswers).length > 0 && (
-                    <span style={{
-                      background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.25)' : themeObj.accent,
-                      color: '#ffffff',
-                      fontSize: '0.64rem',
-                      padding: '1px 5px',
-                      borderRadius: 99,
-                      fontWeight: 900
-                    }}>
-                      {Object.keys(opticalAnswers).length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpticalInputMode('counter');
-                    localStorage.setItem('study_optical_mode', 'counter');
-                  }}
-                  style={{
-                    padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: opticalInputMode === 'counter'
-                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
-                      : 'transparent',
-                    color: opticalInputMode === 'counter' ? '#ffffff' : themeObj.subText,
-                    fontWeight: 900,
-                    fontSize: isMobile ? '0.74rem' : '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                    boxShadow: opticalInputMode === 'counter' ? `0 3px 12px ${themeObj.accent}40` : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <Target size={isMobile ? 13 : 15} />
-                  <span>Hızlı Sayaç (+1)</span>
-                </button>
-              </div>
-
-              {/* OPTİK FORM GÖRÜNÜMÜ */}
-              {opticalInputMode === 'optical' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10 }}>
-                  {/* Optik Araç Çubuğu */}
+              {/* MOD SEÇİCİ & OPTİK FORM (SADECE TEST / ÖDEV SEÇİLDİĞİNDE GÖRÜNÜR) */}
+              {selectedTask ? (
+                <>
+                  {/* MOD SEÇİCİ: OPTİK FORM vs HIZLI SAYAÇ */}
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
                     gap: 6,
-                    padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.6rem',
                     background: themeObj.cardBg,
-                    borderRadius: 12,
-                    border: `1px solid ${themeObj.border}`
+                    padding: 3,
+                    borderRadius: 14,
+                    border: `1.5px solid ${themeObj.border}`
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{
-                        fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpticalInputMode('optical');
+                        localStorage.setItem('study_optical_mode', 'optical');
+                      }}
+                      style={{
+                        padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
+                        borderRadius: 10,
+                        border: 'none',
+                        background: opticalInputMode === 'optical'
+                          ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
+                          : 'transparent',
+                        color: opticalInputMode === 'optical' ? '#ffffff' : themeObj.subText,
                         fontWeight: 900,
-                        color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : themeObj.accent,
-                        background: themeObj.innerBg,
-                        padding: '2px 7px',
-                        borderRadius: 8,
+                        fontSize: isMobile ? '0.74rem' : '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5,
+                        boxShadow: opticalInputMode === 'optical' ? `0 3px 12px ${themeObj.accent}40` : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <BookMarked size={isMobile ? 13 : 15} />
+                      <span>Optik Form</span>
+                      {Object.keys(opticalAnswers).length > 0 && (
+                        <span style={{
+                          background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.25)' : themeObj.accent,
+                          color: '#ffffff',
+                          fontSize: '0.64rem',
+                          padding: '1px 5px',
+                          borderRadius: 99,
+                          fontWeight: 900
+                        }}>
+                          {Object.keys(opticalAnswers).length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpticalInputMode('counter');
+                        localStorage.setItem('study_optical_mode', 'counter');
+                      }}
+                      style={{
+                        padding: isMobile ? '0.45rem 0.5rem' : '0.5rem 0.75rem',
+                        borderRadius: 10,
+                        border: 'none',
+                        background: opticalInputMode === 'counter'
+                          ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
+                          : 'transparent',
+                        color: opticalInputMode === 'counter' ? '#ffffff' : themeObj.subText,
+                        fontWeight: 900,
+                        fontSize: isMobile ? '0.74rem' : '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5,
+                        boxShadow: opticalInputMode === 'counter' ? `0 3px 12px ${themeObj.accent}40` : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <Target size={isMobile ? 13 : 15} />
+                      <span>Hızlı Sayaç (+1)</span>
+                    </button>
+                  </div>
+
+                  {/* OPTİK FORM GÖRÜNÜMÜ */}
+                  {opticalInputMode === 'optical' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10 }}>
+                      {/* Optik Araç Çubuğu */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                        padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.6rem',
+                        background: themeObj.cardBg,
+                        borderRadius: 12,
                         border: `1px solid ${themeObj.border}`
                       }}>
-                        {Object.keys(opticalAnswers).length} / {targetGoalCount} Kodlandı
-                      </span>
-                    </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            fontSize: isMobile ? '0.68rem' : '0.74rem',
+                            fontWeight: 900,
+                            color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : themeObj.accent,
+                            background: themeObj.innerBg,
+                            padding: '2px 7px',
+                            borderRadius: 8,
+                            border: `1px solid ${themeObj.border}`
+                          }}>
+                            {Object.keys(opticalAnswers).length} / {targetGoalCount} Kodlandı
+                          </span>
+                        </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {/* 4 / 5 Şık Seçici */}
-                      <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {/* 4 / 5 Şık Seçici */}
+                          <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpticalOptionCount(4);
+                                localStorage.setItem('study_optical_opt_count', '4');
+                              }}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: opticalOptionCount === 4 ? themeObj.accent : 'transparent',
+                                color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
+                                fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              A-D (4)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpticalOptionCount(5);
+                                localStorage.setItem('study_optical_opt_count', '5');
+                              }}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: opticalOptionCount === 5 ? themeObj.accent : 'transparent',
+                                color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
+                                fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              A-E (5)
+                            </button>
+                          </div>
+
+                          {Object.keys(opticalAnswers).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearOpticalAnswers}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: 6,
+                                border: `1px solid ${themeObj.border}`,
+                                background: themeObj.buttonBg,
+                                color: '#ef4444',
+                                fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                              title="Tüm optik kodlamayı temizle"
+                            >
+                              Temizle
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Optik Sorular Grid Listesi */}
+                      <div style={{
+                        maxHeight: isFullscreenView ? '600px' : isMobile ? '360px' : '500px',
+                        overflowY: 'auto',
+                        padding: isMobile ? '0.45rem' : '0.65rem',
+                        background: themeObj.cardBg,
+                        borderRadius: 14,
+                        border: `1.5px solid ${themeObj.border}`,
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))'),
+                        gap: isMobile ? 6 : 8,
+                        alignItems: 'start'
+                      }} className="custom-scrollbar">
+                        {Array.from({ length: targetGoalCount }).map((_, idx) => {
+                          const qNo = idx + 1;
+                          const userAns = opticalAnswers[qNo] || null;
+                          const opts = opticalOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
+                          return (
+                            <div
+                              key={qNo}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: isMobile ? '0.3rem 0.4rem' : '0.35rem 0.6rem',
+                                borderRadius: 10,
+                                background: userAns ? (themeObj.opticalSelectedBg || 'rgba(99, 102, 241, 0.15)') : themeObj.innerBg,
+                                border: `1px solid ${userAns ? (themeObj.opticalSelectedBorder || themeObj.accent) : themeObj.border}`,
+                                transition: 'all 0.15s',
+                                minWidth: 0
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 2, width: isMobile ? 24 : 36, flexShrink: 0 }}>
+                                <span style={{
+                                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                                  fontWeight: 900,
+                                  color: userAns ? themeObj.accent : themeObj.text
+                                }}>
+                                  {qNo}.
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 3 : 5 }}>
+                                {opts.map(opt => {
+                                  const isSelected = userAns === opt;
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      onClick={() => handleSelectOpticalOption(qNo, opt)}
+                                      style={{
+                                        width: isMobile ? 25 : 30,
+                                        height: isMobile ? 25 : 30,
+                                        borderRadius: '50%',
+                                        border: isSelected ? `1.5px solid ${themeObj.accent}` : `1.5px solid ${themeObj.border}`,
+                                        background: isSelected
+                                          ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
+                                          : themeObj.buttonBg,
+                                        color: isSelected ? '#ffffff' : themeObj.text,
+                                        fontWeight: 900,
+                                        fontSize: isMobile ? '0.72rem' : '0.8rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: isSelected ? `0 2px 10px ${themeObj.accent}55` : 'none',
+                                        transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                                        transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {opt}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Optiği Kaydet & Sınavı Tamamla Butonu */}
+                      <button
+                        type="button"
+                        onClick={handleFinishOpticalQuiz}
+                        disabled={isSubmittingOptical || Object.keys(opticalAnswers).length === 0}
+                        className="sr-action-btn-main"
+                        style={{
+                          width: '100%',
+                          padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
+                          borderRadius: 14,
+                          background: Object.keys(opticalAnswers).length > 0
+                            ? 'linear-gradient(135deg, #10b981, #059669)'
+                            : themeObj.buttonBg,
+                          color: Object.keys(opticalAnswers).length > 0 ? '#ffffff' : themeObj.subText,
+                          border: 'none',
+                          fontWeight: 900,
+                          fontSize: isMobile ? '0.82rem' : '0.92rem',
+                          cursor: Object.keys(opticalAnswers).length > 0 ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          boxShadow: Object.keys(opticalAnswers).length > 0 ? '0 6px 20px rgba(16, 185, 129, 0.35)' : 'none',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <CheckCircle2 size={isMobile ? 16 : 18} />
+                        <span>
+                          {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Bitir (${Object.keys(opticalAnswers).length} Soru) 🎯`}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* HIZLI SAYAÇ GÖRÜNÜMÜ (+1 / -1) */
+                    <>
+                      {/* Soru Çözdüm Butonu (+1 / -1) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 10 }}>
                         <button
-                          type="button"
-                          onClick={() => {
-                            setOpticalOptionCount(4);
-                            localStorage.setItem('study_optical_opt_count', '4');
-                          }}
+                          onClick={() => handleIncrementProgress(-1)}
                           style={{
-                            padding: '2px 6px',
-                            borderRadius: 6,
-                            border: 'none',
-                            background: opticalOptionCount === 4 ? themeObj.accent : 'transparent',
-                            color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
-                            fontSize: isMobile ? '0.64rem' : '0.68rem',
+                            padding: isFullscreenView ? '1.1rem 1.4rem' : isMobile ? '0.75rem 1rem' : '0.95rem 1.15rem',
+                            borderRadius: isMobile ? 14 : 16,
+                            background: themeObj.buttonBg,
+                            border: `1.5px solid ${themeObj.border}`,
+                            color: themeObj.text,
                             fontWeight: 900,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s'
+                            fontSize: isMobile ? '0.95rem' : '1.05rem',
+                            cursor: 'pointer'
                           }}
+                          title="1 Soru Geri Al"
                         >
-                          A-D (4)
+                          -1
                         </button>
+
                         <button
-                          type="button"
-                          onClick={() => {
-                            setOpticalOptionCount(5);
-                            localStorage.setItem('study_optical_opt_count', '5');
-                          }}
+                          onClick={() => handleIncrementProgress(1)}
+                          className="sr-action-btn-main"
                           style={{
-                            padding: '2px 6px',
-                            borderRadius: 6,
+                            padding: isFullscreenView ? '1.1rem 1.6rem' : isMobile ? '0.75rem 1.1rem' : '0.95rem 1.3rem',
+                            borderRadius: isMobile ? 14 : 16,
+                            background: themeObj.accentGradient || 'linear-gradient(135deg, #f59e0b, #d97706)',
                             border: 'none',
-                            background: opticalOptionCount === 5 ? themeObj.accent : 'transparent',
-                            color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
-                            fontSize: isMobile ? '0.64rem' : '0.68rem',
+                            color: 'white',
                             fontWeight: 900,
+                            fontSize: isFullscreenView ? '1.15rem' : isMobile ? '0.92rem' : '1.02rem',
                             cursor: 'pointer',
-                            transition: 'all 0.15s'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: `0 6px 20px ${themeObj.accent}44`
                           }}
                         >
-                          A-E (5)
+                          <Plus size={isMobile ? 18 : 22} strokeWidth={3} />
+                          <span>+1 Soru Çözdüm 🎯</span>
                         </button>
                       </div>
 
-                      {Object.keys(opticalAnswers).length > 0 && (
+                      {/* İlerleme Çubuğu */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ height: 8, borderRadius: 99, background: themeObj.cardBg, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${Math.min(100, targetProgressPct)}%`,
+                            background: 'linear-gradient(90deg, #f59e0b, #10b981)',
+                            borderRadius: 99,
+                            transition: 'width 0.3s ease'
+                          }} />
+                        </div>
+                      </div>
+
+                      {/* Testi Bitir & Molaya Geç */}
+                      {currentProgressCount > 0 && (
                         <button
-                          type="button"
-                          onClick={handleClearOpticalAnswers}
+                          onClick={() => setShowConfirmFinish(true)}
+                          className="sr-action-btn-main"
                           style={{
-                            padding: '2px 6px',
-                            borderRadius: 6,
-                            border: `1px solid ${themeObj.border}`,
-                            background: themeObj.buttonBg,
-                            color: '#ef4444',
-                            fontSize: isMobile ? '0.64rem' : '0.68rem',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                          title="Tüm optik kodlamayı temizle"
-                        >
-                          Temizle
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Optik Sorular Grid Listesi */}
-                  <div style={{
-                    maxHeight: isFullscreenView ? '600px' : isMobile ? '360px' : '500px',
-                    overflowY: 'auto',
-                    padding: isMobile ? '0.45rem' : '0.65rem',
-                    background: themeObj.cardBg,
-                    borderRadius: 14,
-                    border: `1.5px solid ${themeObj.border}`,
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))'),
-                    gap: isMobile ? 6 : 8,
-                    alignItems: 'start'
-                  }} className="custom-scrollbar">
-                    {Array.from({ length: targetGoalCount }).map((_, idx) => {
-                      const qNo = idx + 1;
-                      const userAns = opticalAnswers[qNo] || null;
-                      const opts = opticalOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
-
-                      return (
-                        <div
-                          key={qNo}
-                          style={{
+                            width: '100%',
+                            padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
+                            borderRadius: 14,
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: 'white',
+                            border: 'none',
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.84rem' : '0.94rem',
+                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: isMobile ? '0.3rem 0.4rem' : '0.35rem 0.6rem',
-                            borderRadius: 10,
-                            background: userAns ? (themeObj.opticalSelectedBg || 'rgba(99, 102, 241, 0.15)') : themeObj.innerBg,
-                            border: `1px solid ${userAns ? (themeObj.opticalSelectedBorder || themeObj.accent) : themeObj.border}`,
-                            transition: 'all 0.15s',
-                            minWidth: 0
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 6px 20px rgba(16,185,129,0.35)',
+                            transition: 'all 0.2s ease'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 2, width: isMobile ? 24 : 36, flexShrink: 0 }}>
-                            <span style={{
-                              fontSize: isMobile ? '0.72rem' : '0.78rem',
-                              fontWeight: 900,
-                              color: userAns ? themeObj.accent : themeObj.text
-                            }}>
-                              {qNo}.
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 3 : 5 }}>
-                            {opts.map(opt => {
-                              const isSelected = userAns === opt;
-                              return (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => handleSelectOpticalOption(qNo, opt)}
-                                  style={{
-                                    width: isMobile ? 25 : 30,
-                                    height: isMobile ? 25 : 30,
-                                    borderRadius: '50%',
-                                    border: isSelected ? `1.5px solid ${themeObj.accent}` : `1.5px solid ${themeObj.border}`,
-                                    background: isSelected
-                                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
-                                      : themeObj.buttonBg,
-                                    color: isSelected ? '#ffffff' : themeObj.text,
-                                    fontWeight: 900,
-                                    fontSize: isMobile ? '0.72rem' : '0.8rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    boxShadow: isSelected ? `0 2px 10px ${themeObj.accent}55` : 'none',
-                                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Optiği Kaydet & Sınavı Tamamla Butonu */}
-                  <button
-                    type="button"
-                    onClick={handleFinishOpticalQuiz}
-                    disabled={isSubmittingOptical || Object.keys(opticalAnswers).length === 0}
-                    className="sr-action-btn-main"
-                    style={{
-                      width: '100%',
-                      padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
-                      borderRadius: 14,
-                      background: Object.keys(opticalAnswers).length > 0
-                        ? 'linear-gradient(135deg, #10b981, #059669)'
-                        : themeObj.buttonBg,
-                      color: Object.keys(opticalAnswers).length > 0 ? '#ffffff' : themeObj.subText,
-                      border: 'none',
-                      fontWeight: 900,
-                      fontSize: isMobile ? '0.82rem' : '0.92rem',
-                      cursor: Object.keys(opticalAnswers).length > 0 ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: Object.keys(opticalAnswers).length > 0 ? '0 6px 20px rgba(16, 185, 129, 0.35)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <CheckCircle2 size={isMobile ? 16 : 18} />
-                    <span>
-                      {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Bitir (${Object.keys(opticalAnswers).length} Soru) 🎯`}
-                    </span>
-                  </button>
-                </div>
+                          <CheckCircle2 size={isMobile ? 16 : 18} />
+                          <span>Testi Bitir & Molaya Geç ({currentProgressCount} Soru Kaydet)</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
               ) : (
-                /* HIZLI SAYAÇ GÖRÜNÜMÜ (+1 / -1) */
+                /* TEST / ÖDEV SEÇİLMEDİĞİNDE: OPTİK GİZLENİR, SADECE HIZLI SAYAÇ VE TEST SEÇME BUTONU GELİR */
                 <>
                   {/* Soru Çözdüm Butonu (+1 / -1) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 10 }}>
@@ -3454,6 +3552,31 @@ export default function StudyRoomPage() {
                       }} />
                     </div>
                   </div>
+
+                  {/* Test / Ödev Seçme Aksiyon Butonu */}
+                  <button
+                    type="button"
+                    onClick={() => setShowHomeworkPickerModal(true)}
+                    style={{
+                      width: '100%',
+                      padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1rem',
+                      borderRadius: 12,
+                      background: themeObj.innerBg,
+                      border: `1.5px dashed ${themeObj.border}`,
+                      color: themeObj.accent,
+                      fontWeight: 800,
+                      fontSize: isMobile ? '0.76rem' : '0.84rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <BookMarked size={16} />
+                    <span>Ödev / Test Seç (Optik Formu Başlat)</span>
+                  </button>
 
                   {/* Testi Bitir & Molaya Geç */}
                   {currentProgressCount > 0 && (
