@@ -373,12 +373,12 @@ function StatusTag({ accuracy, isDark = false }) {
 }
 
 const TAB_DEFS = [
-  { key: 'overview',  label: '🏠 Genel Bakış',             icon: Home },
-  { key: 'periodic',  label: '📊 Günlük / Aylık Soru Analizi', icon: BarChart3 },
-  { key: 'subjects',  label: '📚 Ders & Konu',              icon: BookOpen },
-  { key: 'bytype',    label: '📝 Ödev & Deneme',            icon: FileText },
-  { key: 'trend',     label: '📈 Zaman Trendi',             icon: TrendingUp },
-  { key: 'all',       label: '📋 Tüm Sonuçlar',            icon: Table },
+  { key: 'overview',  label: '🏠 Genel Bakış',                 shortLabel: '🏠 Genel',        icon: Home },
+  { key: 'periodic',  label: '📊 Günlük / Aylık Soru Analizi', shortLabel: '📊 Soru Analizi', icon: BarChart3 },
+  { key: 'subjects',  label: '📚 Ders & Konu',                  shortLabel: '📚 Dersler',       icon: BookOpen },
+  { key: 'bytype',    label: '📝 Ödev & Deneme',                shortLabel: '📝 Ödev/Deneme',  icon: FileText },
+  { key: 'trend',     label: '📈 Zaman Trendi',                 shortLabel: '📈 Trend',        icon: TrendingUp },
+  { key: 'all',       label: '📋 Tüm Sonuçlar',                shortLabel: '📋 Tüm Liste',     icon: Table },
 ];
 
 /* ── Custom Tooltips ─────────────────────────────────────────── */
@@ -565,7 +565,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [typeFilter, setTypeFilter]   = useState('all');
-  const [viewMode, setViewMode]       = useState('table');
+  const [viewMode, setViewMode]       = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 768 ? 'cards' : 'table'));
   const [trendSubject, setTrendSubject] = useState('all');
   const [byTypeTab, setByTypeTab]       = useState('homework');
   const [expandedSubject, setExpandedSubject] = useState(null);
@@ -1388,7 +1388,7 @@ a.evaluatedAt ||
     <div style={{
       minHeight: '100vh',
       background: 'var(--color-bg)',
-      padding: '1.25rem 1.25rem',
+      padding: isMobile ? '0.75rem 0.75rem calc(65px + env(safe-area-inset-bottom) + 20px) 0.75rem' : '1.25rem 1.25rem',
       fontFamily: "'Inter', system-ui, sans-serif",
       color: 'var(--color-text)',
       boxSizing: 'border-box'
@@ -1402,7 +1402,7 @@ a.evaluatedAt ||
           .sr-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
           .sr-chart-grid { grid-template-columns: 1fr !important; }
           .sr-tabs-container { overflow-x: auto !important; flex-wrap: nowrap !important; justify-content: flex-start !important; -webkit-overflow-scrolling: touch; padding: 4px !important; }
-          .sr-tab-btn { flex-shrink: 0 !important; font-size: 0.72rem !important; padding: 0.45rem 0.75rem !important; }
+          .sr-tab-btn { flex-shrink: 0 !important; font-size: 0.74rem !important; padding: 0.45rem 0.75rem !important; }
           .sr-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
           .sr-subject-header-btn { flex-direction: column !important; align-items: flex-start !important; }
           .sr-subject-header-right { width: 100% !important; justify-content: space-between !important; margin-top: 6px !important; }
@@ -1414,139 +1414,285 @@ a.evaluatedAt ||
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         {/* ── HEADER ── */}
-        <div className="sr-header-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => {
-                if (onBack) onBack();
-                else if (window.history.length > 1) navigate(-1);
-                else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
-              }}
-              style={{
-                background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
-                border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
-                borderRadius: 12,
-                padding: '0.55rem 1.1rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                color: embedded ? '#ffffff' : 'var(--color-text)',
-                boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
-              }}
-            >
-              <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
-            </button>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={22} color="#6366f1" />
-                {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
-              </h1>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 14,
-                padding: '0.6rem 1.15rem',
-                fontWeight: 900,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
-                transition: 'all 0.15s'
-              }}
-            >
-              <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
-            </button>
-
-            {/* Student Selector */}
-            {!isStudentRole ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
-                  <GraduationCap size={15} color="#6366f1" /> Öğrenci:
-                </span>
-                <select
-                  value={selectedStudent?.id || ''}
-                  onChange={e => {
-                    const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                    if (s) {
-                      setSelectedStudent(s);
-                      if (!propStudentId) setSearchParams({ studentId: s.id });
-                    }
+        <div className="sr-header-wrap" style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: isMobile ? 8 : 14,
+          marginBottom: isMobile ? 12 : 20
+        }}>
+          {isMobile ? (
+            /* Sleek Native Mobile Header Bar */
+            <div style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: '1rem',
+              padding: '0.55rem 0.85rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <button
+                  onClick={() => {
+                    if (onBack) onBack();
+                    else if (window.history.length > 1) navigate(-1);
+                    else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
                   }}
                   style={{
-                    padding: '0.45rem 1.8rem 0.45rem 0.75rem',
-                    borderRadius: 10,
-                    border: '1.5px solid var(--color-border)',
                     background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 9,
+                    width: 34,
+                    height: 34,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     color: 'var(--color-text)',
-                    fontWeight: 800,
-                    fontSize: '0.82rem',
-                    outline: 'none',
-                    cursor: 'pointer'
+                    padding: 0,
+                    flexShrink: 0
+                  }}
+                  title="Geri"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Sparkles size={14} color="#6366f1" />
+                    {selectedStudent ? selectedStudent.name : 'Gelişim & Karne'}
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
+                    {overallStats.total} Sınav / Test · %{overallStats.avgScore} Başarı
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <button
+                  onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.38rem 0.65rem',
+                    fontWeight: 900,
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  {studentMembers.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  <Plus size={13} /> Test Ekle
+                </button>
               </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
-                  <GraduationCap size={18} />
-                </div>
+            </div>
+          ) : (
+            /* Desktop Header */
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={() => {
+                    if (onBack) onBack();
+                    else if (window.history.length > 1) navigate(-1);
+                    else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
+                  }}
+                  style={{
+                    background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
+                    border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
+                    borderRadius: 12,
+                    padding: '0.55rem 1.1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    color: embedded ? '#ffffff' : 'var(--color-text)',
+                    boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
+                </button>
                 <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
-                  <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
+                  <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={22} color="#6366f1" />
+                    {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
+                  </h1>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                    Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setManualTestModalData({ isOpen: true, data: { studentId: selectedStudent?.id } })}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '0.6rem 1.15rem',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
+                </button>
+
+                {/* Student Selector */}
+                {!isStudentRole ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+                      <GraduationCap size={15} color="#6366f1" /> Öğrenci:
+                    </span>
+                    <select
+                      value={selectedStudent?.id || ''}
+                      onChange={e => {
+                        const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                        if (s) {
+                          setSelectedStudent(s);
+                          if (!propStudentId) setSearchParams({ studentId: s.id });
+                        }
+                      }}
+                      style={{
+                        padding: '0.45rem 1.8rem 0.45rem 0.75rem',
+                        borderRadius: 10,
+                        border: '1.5px solid var(--color-border)',
+                        background: 'var(--color-surface-hover)',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {studentMembers.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
+                      <GraduationCap size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* ── TABS ── */}
-        <div className="sr-tabs-container" style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 18, border: '1.5px solid var(--color-border)', marginBottom: 22, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+        {/* Mobile Student Selector (Teachers / Admins) */}
+        {!isStudentRole && isMobile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            background: 'var(--color-surface)',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '0.85rem',
+            border: '1.5px solid var(--color-border)',
+            marginBottom: 10,
+            boxSizing: 'border-box'
+          }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <GraduationCap size={14} color="#6366f1" /> Öğrenci:
+            </span>
+            <select
+              value={selectedStudent?.id || ''}
+              onChange={e => {
+                const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                if (s) {
+                  setSelectedStudent(s);
+                  if (!propStudentId) setSearchParams({ studentId: s.id });
+                }
+              }}
+              style={{
+                padding: '0.35rem 1rem 0.35rem 0.6rem',
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text)',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                outline: 'none',
+                cursor: 'pointer',
+                maxWidth: '65%'
+              }}
+            >
+              {studentMembers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.className ? `(${s.className})` : s.grade ? `(${s.grade})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* ── TABS BAR ── */}
+        <div className="sr-tabs-container" style={{
+          display: 'flex',
+          gap: 4,
+          background: 'var(--color-surface)',
+          padding: 4,
+          borderRadius: 14,
+          border: '1.5px solid var(--color-border)',
+          marginBottom: isMobile ? 14 : 22,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+        }}>
           {TAB_DEFS.map(t => (
             <button
               key={t.key}
               className="sr-tab-btn"
               onClick={() => setActiveTab(t.key)}
               style={{
-                flex: '1 1 auto',
-                padding: '0.6rem 1rem',
-                borderRadius: 12,
+                flex: isMobile ? '0 0 auto' : '1 1 auto',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.6rem 1rem',
+                borderRadius: 10,
                 border: 'none',
-                fontWeight: 800,
-                fontSize: '0.8rem',
+                fontWeight: activeTab === t.key ? 900 : 700,
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 5,
                 transition: 'all 0.15s',
                 background: activeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
                 color: activeTab === t.key ? 'white' : 'var(--color-text-muted)',
-                boxShadow: activeTab === t.key ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
+                boxShadow: activeTab === t.key ? '0 3px 10px rgba(99,102,241,0.25)' : 'none',
                 whiteSpace: 'nowrap'
               }}
             >
-              {t.label}
+              {isMobile ? (t.shortLabel || t.label) : t.label}
             </button>
           ))}
         </div>
@@ -1564,39 +1710,74 @@ a.evaluatedAt ||
 
         {/* ── TAB: OVERVIEW ── */}
         {activeTab === 'overview' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 20 }}>
             {/* KPI Grid */}
-            <div className="sr-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div className="sr-kpi-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: isMobile ? 8 : 12
+            }}>
               {[
                 { label: 'Toplam Sınav / Test', val: overallStats.total, icon: '📋', bg: isDark ? 'rgba(37,99,235,0.18)' : '#eff6ff', border: isDark ? 'rgba(37,99,235,0.35)' : '#bfdbfe', iconBg: isDark ? 'rgba(37,99,235,0.25)' : '#dbeafe' },
                 { label: 'Genel Başarı Oranı', val: `%${overallStats.avgScore}`, icon: '🎯', bg: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0', iconBg: isDark ? 'rgba(16,185,129,0.25)' : '#dcfce7' },
                 { label: 'Toplam Çözülen Soru', val: overallStats.totalQ, icon: '⚡', bg: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb', border: isDark ? 'rgba(245,158,11,0.35)' : '#fde68a', iconBg: isDark ? 'rgba(245,158,11,0.25)' : '#fef3c7' },
                 { label: 'Kritik Ders Sayısı', val: overallStats.weakSubjects, icon: '⚠️', bg: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', border: isDark ? 'rgba(239,68,68,0.35)' : '#fecaca', iconBg: isDark ? 'rgba(239,68,68,0.25)' : '#fee2e2' },
               ].map((k, i) => (
-                <div key={i} style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '1.1rem 1.25rem', border: `1.5px solid ${k.border}`, boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 14, background: k.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.35rem', flexShrink: 0 }}>{k.icon}</div>
+                <div key={i} style={{
+                  background: 'var(--color-surface)',
+                  borderRadius: isMobile ? 14 : 20,
+                  padding: isMobile ? '0.75rem 0.85rem' : '1.1rem 1.25rem',
+                  border: `1.5px solid ${k.border}`,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: isMobile ? 10 : 14,
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: isMobile ? 36 : 44,
+                    height: isMobile ? 36 : 44,
+                    borderRadius: isMobile ? 10 : 14,
+                    background: k.iconBg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: isMobile ? '1.1rem' : '1.35rem',
+                    flexShrink: 0
+                  }}>
+                    {k.icon}
+                  </div>
                   <div>
-                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{k.val}</div>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3 }}>{k.label}</div>
+                    <div style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>
+                      {k.val}
+                    </div>
+                    <div style={{ fontSize: isMobile ? '0.64rem' : '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      {k.label}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Charts Row: Radar/Bar & Pie */}
-            <div className="sr-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: 16 }}>
+            <div className="sr-chart-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1.8fr 1.2fr',
+              gap: isMobile ? 12 : 16
+            }}>
               {/* Performance Radar/Bar */}
-              <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.35rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.35rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Target size={18} color="#6366f1" /> Ders Yetkinlik Grafiği
                   </h3>
-                  <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 2, borderRadius: 8, border: '1px solid var(--color-border)' }}>
                     <button
                       onClick={() => setPerfViewMode('radar')}
                       style={{
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: 7,
+                        padding: isMobile ? '0.25rem 0.55rem' : '0.3rem 0.65rem',
+                        borderRadius: 6,
                         border: 'none',
                         fontSize: '0.72rem',
                         fontWeight: 800,
@@ -1610,8 +1791,8 @@ a.evaluatedAt ||
                     <button
                       onClick={() => setPerfViewMode('bars')}
                       style={{
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: 7,
+                        padding: isMobile ? '0.25rem 0.55rem' : '0.3rem 0.65rem',
+                        borderRadius: 6,
                         border: 'none',
                         fontSize: '0.72rem',
                         fontWeight: 800,
@@ -1626,11 +1807,11 @@ a.evaluatedAt ||
                 </div>
 
                 {perfViewMode === 'radar' ? (
-                  <div style={{ width: '100%', height: 260 }}>
+                  <div style={{ width: '100%', height: isMobile ? 220 : 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData}>
                         <PolarGrid stroke="var(--color-border)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: 11, fontWeight: 800 }} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9 : 11, fontWeight: 800 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
                         <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} strokeWidth={2.5} />
                         <Tooltip content={<CustomSubjectTooltip />} />
@@ -1638,11 +1819,11 @@ a.evaluatedAt ||
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div style={{ width: '100%', height: 260 }}>
+                  <div style={{ width: '100%', height: isMobile ? 220 : 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={radarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
                         <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `%${v}`} />
                         <Tooltip content={<CustomSubjectTooltip />} />
                         <Bar dataKey="value" name="Başarı" radius={[8, 8, 0, 0]}>
@@ -1656,7 +1837,7 @@ a.evaluatedAt ||
                 )}
 
                 {/* Subject Breakdown Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1.5px solid var(--color-border)', paddingTop: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(135px, 1fr))', gap: 6, marginTop: 12, borderTop: '1.5px solid var(--color-border)', paddingTop: 12 }}>
                   {radarData.map((d, i) => {
                     const hasTests = d.count > 0;
                     const SubIcon = d.theme?.icon || BookOpen;
@@ -1669,25 +1850,25 @@ a.evaluatedAt ||
                         key={i}
                         style={{
                           background: 'var(--color-surface-hover)',
-                          borderRadius: 14,
-                          padding: '0.65rem 0.75rem',
+                          borderRadius: 12,
+                          padding: '0.55rem 0.65rem',
                           border: `1.5px solid ${hasTests ? d.theme?.border : 'var(--color-border)'}`,
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 6
+                          gap: 4
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <SubIcon size={12} color={color} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                            <div style={{ width: 20, height: 20, borderRadius: 5, background: d.theme?.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <SubIcon size={11} color={color} />
                             </div>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {d.fullSubject}
                             </span>
                           </div>
                           <span style={{
-                            fontSize: '0.74rem',
+                            fontSize: '0.72rem',
                             fontWeight: 900,
                             color: hasTests ? (isGood ? '#10b981' : isMid ? '#f59e0b' : '#ef4444') : 'var(--color-text-muted)',
                             flexShrink: 0
@@ -1697,19 +1878,19 @@ a.evaluatedAt ||
                         </div>
 
                         {/* Progress bar */}
-                        <div style={{ width: '100%', height: 5, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: 4, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
                               width: `${hasTests ? d.value : 0}%`,
-                              background: hasTests ? (isGood ? 'linear-gradient(90deg, #10b981, #34d399)' : isMid ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #ef4444, #f87171)') : 'transparent',
+                              background: hasTests ? (isGood ? '#10b981' : isMid ? '#f59e0b' : '#ef4444') : 'transparent',
                               borderRadius: 99,
                               transition: 'width 0.6s ease'
                             }}
                           />
                         </div>
 
-                        <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                           {hasTests ? `${d.count} Test · ${d.totalQ} Soru` : 'Henüz test yok'}
                         </div>
                       </div>
@@ -1719,40 +1900,40 @@ a.evaluatedAt ||
               </div>
 
               {/* Pie + Legend */}
-              <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+                <h3 style={{ margin: '0 0 0.75rem', fontSize: isMobile ? '0.92rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   📊 Ödev Türü Dağılımı
                 </h3>
                 {typeBreakdown.length > 0 ? (
                   <>
-                    <div style={{ width: '100%', height: 180 }}>
+                    <div style={{ width: '100%', height: isMobile ? 150 : 180 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={typeBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={78} dataKey="value" paddingAngle={4}>
+                          <Pie data={typeBreakdown} cx="50%" cy="50%" innerRadius={isMobile ? 38 : 50} outerRadius={isMobile ? 62 : 78} dataKey="value" paddingAngle={4}>
                             {typeBreakdown.map((e, i) => <Cell key={i} fill={e.fill} stroke="var(--color-surface)" strokeWidth={2} />)}
                           </Pie>
                           <Tooltip content={<ChartTooltip />} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                       {typeBreakdown.map((e, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '4px 10px', borderRadius: 8, border: '1px solid var(--color-border)' }}>
-                          <span style={{ width: 10, height: 10, borderRadius: 3, background: e.fill, flexShrink: 0 }} />
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.74rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '3px 8px', borderRadius: 6, border: '1px solid var(--color-border)' }}>
+                          <span style={{ width: 8, height: 8, borderRadius: 2, background: e.fill, flexShrink: 0 }} />
                           <span style={{ color: 'var(--color-text-muted)' }}>{e.name}: <b style={{ color: 'var(--color-text)' }}>{e.value}</b></span>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Henüz veri yok</div>
+                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem 0', fontWeight: 700 }}>Henüz veri yok</div>
                 )}
               </div>
             </div>
 
             {/* Recent 5 Tests */}
-            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <h3 style={{ margin: '0 0 1rem', fontSize: isMobile ? '0.92rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 🕒 Son 5 Sınav / Ödev
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1760,53 +1941,81 @@ a.evaluatedAt ||
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1.1rem', borderRadius: 14, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <SubIcon size={18} color={th.color} />
+                    <div
+                      key={i}
+                      className="sr-card-hover"
+                      style={{
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        alignItems: isMobile ? 'stretch' : 'center',
+                        gap: isMobile ? 8 : 12,
+                        padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
+                        borderRadius: 14,
+                        background: 'var(--color-surface-hover)',
+                        border: '1px solid var(--color-border)',
+                        boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                          <SubIcon size={17} color={th.color} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                            <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 5, padding: '1px 5px', fontSize: '0.64rem', fontWeight: 900 }}>
+                              {typeConfig[s.typeKey]?.label}
+                            </span>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                            {s.bookTitle ? (
+                              <>
+                                <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                                <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
+                                <span>{s.subjectName || s.subjectKey}</span>
+                                {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                                <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
+                              </>
+                            ) : (
+                              s.testTitle
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
-                          {s.bookTitle ? (
-                            <>
-                              <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
-                              <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
-                              <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
-                            </>
+
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: isMobile ? 'space-between' : 'flex-end',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                        borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
+                        paddingTop: isMobile ? 6 : 0
+                      }}>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                          {s.isPendingEval ? (
+                            <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              ⏳ Değerlendirmede
+                            </span>
                           ) : (
-                            s.testTitle
+                            <>
+                              <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                              <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                              <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                            </>
                           )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
-                          </span>
-                          <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.1rem 0.45rem', fontSize: '0.68rem', fontWeight: 900 }}>
-                            {typeConfig[s.typeKey]?.label}
-                          </span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+
+                          <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                            <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                          </button>
                         </div>
                       </div>
-
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        {s.isPendingEval ? (
-                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            ⏳ Değerlendirmede
-                          </span>
-                        ) : (
-                          <>
-                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                            <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
-                          </>
-                        )}
-                      </div>
-
-                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
-
-                      <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                        <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
-                      </button>
                     </div>
                   );
                 })}
@@ -1891,81 +2100,90 @@ a.evaluatedAt ||
 
         {/* ── TAB: SUBJECTS & TOPICS ── */}
         {activeTab === 'subjects' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
             {/* Chart Container */}
-            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 12, flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
-                    <BookOpen size={20} />
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.3)', flexShrink: 0 }}>
+                    <BookOpen size={18} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>Ders Başarı Analizi</h3>
-                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm derslerdeki soru ve test başarı grafiği</p>
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>Ders Başarı Analizi</h3>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm derslerdeki soru ve test başarı grafiği</p>
                   </div>
                 </div>
 
                 {/* Chart Toggle Buttons */}
-                <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface-hover)', padding: 4, borderRadius: 14, border: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', gap: 3, background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)', width: isMobile ? '100%' : 'auto' }}>
                   <button
                     onClick={() => setSubjChartType('bar')}
                     style={{
+                      flex: isMobile ? 1 : 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 5,
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: 10,
+                      justifyContent: 'center',
+                      gap: 4,
+                      padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.85rem',
+                      borderRadius: 8,
                       border: 'none',
-                      fontSize: '0.75rem',
+                      fontSize: isMobile ? '0.7rem' : '0.75rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'bar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
                       color: subjChartType === 'bar' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'bar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <BarChart3 size={14} /> Başarı Dağılımı
+                    <BarChart3 size={13} /> {isMobile ? 'Sütun' : 'Başarı Dağılımı'}
                   </button>
                   <button
                     onClick={() => setSubjChartType('radar')}
                     style={{
+                      flex: isMobile ? 1 : 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 5,
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: 10,
+                      justifyContent: 'center',
+                      gap: 4,
+                      padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.85rem',
+                      borderRadius: 8,
                       border: 'none',
-                      fontSize: '0.75rem',
+                      fontSize: isMobile ? '0.7rem' : '0.75rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
                       color: subjChartType === 'radar' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'radar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <Target size={14} /> Yetkinlik Radarı
+                    <Target size={13} /> {isMobile ? 'Radar' : 'Yetkinlik Radarı'}
                   </button>
                   <button
                     onClick={() => setSubjChartType('pie')}
                     style={{
+                      flex: isMobile ? 1 : 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 5,
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: 10,
+                      justifyContent: 'center',
+                      gap: 4,
+                      padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.85rem',
+                      borderRadius: 8,
                       border: 'none',
-                      fontSize: '0.75rem',
+                      fontSize: isMobile ? '0.7rem' : '0.75rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'pie' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
                       color: subjChartType === 'pie' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'pie' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <PieIcon size={14} /> Soru Payı
+                    <PieIcon size={13} /> {isMobile ? 'Pay' : 'Soru Payı'}
                   </button>
                 </div>
               </div>
@@ -1976,20 +2194,20 @@ a.evaluatedAt ||
                   Henüz çözülmüş test verisi bulunmuyor
                 </div>
               ) : (
-                <div style={{ height: isMobile ? 260 : 310, width: '100%', position: 'relative' }}>
+                <div style={{ height: isMobile ? 230 : 310, width: '100%', position: 'relative' }}>
                   {subjChartType === 'bar' && (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={subjectBarData} margin={{ top: 10, right: 15, left: -20, bottom: 20 }}>
+                      <BarChart data={subjectBarData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                         <XAxis
                           dataKey="name"
-                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
+                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 12, fontWeight: 700 }}
                           axisLine={{ stroke: 'var(--color-border)' }}
                           tickLine={false}
                         />
                         <YAxis
                           domain={[0, 100]}
-                          tick={{ fill: 'var(--color-text-muted)', fontSize: 11, fontWeight: 700 }}
+                          tick={{ fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700 }}
                           tickFormatter={v => `%${v}`}
                           axisLine={{ stroke: 'var(--color-border)' }}
                           tickLine={false}
@@ -2013,7 +2231,7 @@ a.evaluatedAt ||
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData} outerRadius={isMobile ? '65%' : '75%'}>
                         <PolarGrid stroke="var(--color-border)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9 : 12, fontWeight: 800 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
                         <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
                         <Tooltip content={<CustomSubjectTooltip />} />
@@ -2030,8 +2248,8 @@ a.evaluatedAt ||
                           nameKey="name"
                           cx="50%"
                           cy="44%"
-                          innerRadius={isMobile ? 45 : 60}
-                          outerRadius={isMobile ? 80 : 105}
+                          innerRadius={isMobile ? 38 : 60}
+                          outerRadius={isMobile ? 68 : 105}
                           paddingAngle={4}
                         >
                           {subjectPieData.map((entry, index) => (
@@ -2043,9 +2261,9 @@ a.evaluatedAt ||
                           formatter={(value) => (
                             <span style={{
                               color: 'var(--color-text)',
-                              fontSize: '0.76rem',
+                              fontSize: isMobile ? '0.7rem' : '0.76rem',
                               fontWeight: 800,
-                              padding: '0.2rem 0.55rem',
+                              padding: '0.15rem 0.45rem',
                               borderRadius: 6,
                               background: 'var(--color-surface-hover)',
                               border: '1px solid var(--color-border)',
@@ -2058,11 +2276,11 @@ a.evaluatedAt ||
                           align="center"
                           verticalAlign="bottom"
                           wrapperStyle={{
-                            paddingTop: 12,
+                            paddingTop: 8,
                             display: 'flex',
                             justifyContent: 'center',
                             flexWrap: 'wrap',
-                            gap: '8px 12px'
+                            gap: '6px 8px'
                           }}
                         />
                       </PieChart>
@@ -2073,24 +2291,25 @@ a.evaluatedAt ||
             </div>
 
             {/* Subject Filter Pills */}
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, alignItems: 'center', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               <button
                 onClick={() => setSelectedSubjFilter('all')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  padding: '0.5rem 1rem',
-                  borderRadius: 12,
+                  gap: 5,
+                  padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                  borderRadius: 10,
                   border: selectedSubjFilter === 'all' ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
                   background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
                   color: selectedSubjFilter === 'all' ? '#ffffff' : 'var(--color-text-muted)',
                   fontWeight: 800,
-                  fontSize: '0.8rem',
+                  fontSize: isMobile ? '0.74rem' : '0.8rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   boxShadow: selectedSubjFilter === 'all' ? '0 4px 14px rgba(99, 102, 241, 0.25)' : 'none',
-                  transition: 'all 0.15s'
+                  transition: 'all 0.15s',
+                  flexShrink: 0
                 }}
               >
                 <span>🌐 Tüm Dersler ({subjectBreakdown.length})</span>
@@ -2107,26 +2326,27 @@ a.evaluatedAt ||
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '0.5rem 1rem',
-                      borderRadius: 12,
+                      gap: 5,
+                      padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                      borderRadius: 10,
                       border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid var(--color-border)',
                       background: isSelected ? th.bg : 'var(--color-surface)',
                       color: isSelected ? th.color : 'var(--color-text-muted)',
                       fontWeight: 800,
-                      fontSize: '0.8rem',
+                      fontSize: isMobile ? '0.74rem' : '0.8rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       boxShadow: isSelected ? `0 4px 14px ${th.color}25` : 'none',
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      flexShrink: 0
                     }}
                   >
-                    <SubIcon size={15} color={isSelected ? th.color : 'var(--color-text-muted)'} />
+                    <SubIcon size={14} color={isSelected ? th.color : 'var(--color-text-muted)'} />
                     <span>{sb.subj}</span>
                     <span style={{
-                      fontSize: '0.7rem',
-                      padding: '1px 6px',
-                      borderRadius: 6,
+                      fontSize: '0.68rem',
+                      padding: '1px 5px',
+                      borderRadius: 5,
                       background: isSelected ? th.color : 'var(--color-surface-hover)',
                       color: isSelected ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900
@@ -2139,7 +2359,7 @@ a.evaluatedAt ||
             </div>
 
             {/* Accordion list of subjects & topics */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {subjectBreakdown
                 .filter(sb => selectedSubjFilter === 'all' || sb.subj === selectedSubjFilter)
                 .map(({ subj, tests, avgScore, topicArray, totalQ, totalCorrect, totalWrong, totalBlank }) => {
@@ -2147,48 +2367,64 @@ a.evaluatedAt ||
                   const SubIcon = th.icon;
                   const isExpanded = expandedSubject === subj || selectedSubjFilter === subj;
                   return (
-                    <div key={subj} style={{ background: 'var(--color-surface)', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : 'var(--color-border)'}`, boxShadow: isExpanded ? '0 8px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    <div key={subj} style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 14 : 20, border: `1.5px solid ${isExpanded ? th.border : 'var(--color-border)'}`, boxShadow: isExpanded ? '0 8px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                       {/* Subject Header */}
-                      <button className="sr-subject-header-btn" onClick={() => setExpandedSubject(isExpanded && selectedSubjFilter === 'all' ? null : subj)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', background: isExpanded ? th.bg : 'transparent', border: 'none', cursor: 'pointer', gap: 12, flexWrap: 'wrap', transition: 'background 0.25s' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 46, height: 46, borderRadius: 14, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <SubIcon size={22} color={th.color} />
+                      <button
+                        className="sr-subject-header-btn"
+                        onClick={() => setExpandedSubject(isExpanded && selectedSubjFilter === 'all' ? null : subj)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: isMobile ? '0.85rem 1rem' : '1.1rem 1.4rem',
+                          background: isExpanded ? th.bg : 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          gap: 10,
+                          flexWrap: 'wrap',
+                          transition: 'background 0.25s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: isMobile ? 38 : 46, height: isMobile ? 38 : 46, borderRadius: isMobile ? 10 : 14, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <SubIcon size={isMobile ? 18 : 22} color={th.color} />
                           </div>
                           <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)' }}>{subj}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            <div style={{ fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text)' }}>{subj}</div>
+                            <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                               {tests.length} test · {totalQ} soru (<span style={{ color: '#10b981' }}>{totalCorrect} D</span> · <span style={{ color: '#ef4444' }}>{totalWrong} Y</span> · <span style={{ color: 'var(--color-text-muted)' }}>{totalBlank} B</span>)
                             </div>
                           </div>
                         </div>
-                        <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <ScoreBadge score={avgScore} size="md" isDark={isDark} />
+                        <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <ScoreBadge score={avgScore} size="sm" isDark={isDark} />
                           <StatusTag accuracy={avgScore} isDark={isDark} />
-                          <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                          <ChevronRight size={16} color="var(--color-text-muted)" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                         </div>
                       </button>
 
                       {/* Expanded: Topic horizontal bars */}
                       {isExpanded && topicArray.length > 0 && (
-                        <div style={{ padding: '1.25rem 1.4rem', background: 'var(--color-surface-hover)', borderTop: '1.5px solid var(--color-border)' }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+                        <div style={{ padding: isMobile ? '0.85rem 1rem' : '1.25rem 1.4rem', background: 'var(--color-surface-hover)', borderTop: '1.5px solid var(--color-border)' }}>
+                          <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
                             🎯 Konu / Test Bazlı Doğruluk Analizi
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {topicArray.map((top, idx) => (
-                              <div key={idx} style={{ background: 'var(--color-surface)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid var(--color-border)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>{top.name}</span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              <div key={idx} style={{ background: 'var(--color-surface)', borderRadius: 10, padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem', border: '1px solid var(--color-border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap', gap: 4 }}>
+                                  <span style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: 800, color: 'var(--color-text)', maxWidth: isMobile ? '100%' : '70%' }}>{top.name}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                                       {top.correctQ} D / {top.wrongQ} Y / {top.blankQ} B ({top.totalQ} Soru)
                                     </span>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444' }}>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 900, color: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444' }}>
                                       %{top.accuracy}
                                     </span>
                                   </div>
                                 </div>
-                                <div style={{ background: 'var(--color-border)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                                <div style={{ background: 'var(--color-border)', borderRadius: 99, height: 5, overflow: 'hidden' }}>
                                   <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
                                 </div>
                               </div>
@@ -2205,98 +2441,139 @@ a.evaluatedAt ||
 
         {/* ── TAB: BY TYPE ── */}
         {activeTab === 'bytype' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
             {/* Sub-tabs */}
-            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'flex',
+              gap: 4,
+              background: 'var(--color-surface)',
+              padding: 4,
+              borderRadius: 12,
+              border: '1.5px solid var(--color-border)',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}>
               {[
                 { key: 'homework',     label: '📝 Ödevler',            count: byTypeSubs.homework.length },
-                { key: 'book',         label: '📚 Kitap Testleri',     count: byTypeSubs.book.length },
+                { key: 'book',         label: '📚 Kitap',              count: byTypeSubs.book.length },
                 { key: 'physicalExam', label: '📋 Denemeler',          count: byTypeSubs.physicalExam.length },
-                { key: 'individual',   label: '⚡ Bireysel Çözümler',  count: byTypeSubs.individual.length },
+                { key: 'individual',   label: '⚡ Bireysel',           count: byTypeSubs.individual.length },
               ].map(bt => (
                 <button
                   key={bt.key}
                   onClick={() => setByTypeTab(bt.key)}
                   style={{
-                    padding: '0.5rem 1.1rem',
-                    borderRadius: 10,
+                    flex: isMobile ? '0 0 auto' : 1,
+                    padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.1rem',
+                    borderRadius: 8,
                     border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.82rem',
+                    fontWeight: byTypeTab === bt.key ? 900 : 700,
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    justifyContent: 'center',
+                    gap: 5,
                     background: byTypeTab === bt.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
                     color: byTypeTab === bt.key ? 'white' : 'var(--color-text-muted)',
                     boxShadow: byTypeTab === bt.key ? '0 4px 14px rgba(99,102,241,0.25)' : 'none',
-                    transition: 'all 0.15s'
+                    transition: 'all 0.15s',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  {bt.label} <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({bt.count})</span>
+                  {bt.label} <span style={{ opacity: 0.85, fontSize: '0.68rem' }}>({bt.count})</span>
                 </button>
               ))}
             </div>
 
             {/* List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(byTypeSubs[byTypeTab] || []).map((s, i) => {
                 const th = theme(s.subjectKey);
                 const SubIcon = th.icon;
                 return (
-                  <div key={i} className="sr-card-hover" style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 12, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <SubIcon size={20} color={th.color} />
+                  <div
+                    key={i}
+                    className="sr-card-hover"
+                    style={{
+                      background: 'var(--color-surface)',
+                      borderRadius: 14,
+                      padding: isMobile ? '0.75rem 0.85rem' : '1rem 1.25rem',
+                      border: '1.5px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      alignItems: isMobile ? 'stretch' : 'center',
+                      gap: isMobile ? 8 : 12,
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <SubIcon size={18} color={th.color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                          {s.bookTitle ? (
+                            <>
+                              <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
+                              <span>{s.subjectName || s.subjectKey}</span>
+                              {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                              <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
+                            </>
+                          ) : (
+                            s.testTitle
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                          </span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>•</span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            {s.totalQuestions} Soru
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
-                        {s.bookTitle ? (
-                          <>
-                            <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
-                            <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
-                            <span>{s.subjectName || s.subjectKey}</span>
-                            {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
-                            <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
-                          </>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isMobile ? 'space-between' : 'flex-end',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
+                      paddingTop: isMobile ? 6 : 0
+                    }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        {s.isPendingEval ? (
+                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            ⏳ Değerlendirmede
+                          </span>
                         ) : (
-                          s.testTitle
+                          <>
+                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                            <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                          </>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                          {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>•</span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                          {s.totalQuestions} Soru
-                        </span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+
+                        <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                          <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                        </button>
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      {s.isPendingEval ? (
-                        <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          ⏳ Değerlendirmede
-                        </span>
-                      ) : (
-                        <>
-                          <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                          <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                          <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
-                        </>
-                      )}
-                    </div>
-
-                    <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
-
-                    <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                      <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
-                    </button>
                   </div>
                 );
               })}
               {(byTypeSubs[byTypeTab] || []).length === 0 && (
-                <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
+                <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
                   Bu kategoride henüz sonuç bulunamadı
                 </div>
               )}
@@ -2307,20 +2584,20 @@ a.evaluatedAt ||
         {/* ── TAB: TREND ── */}
         {activeTab === 'trend' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <TrendingUp size={18} color="#6366f1" /> Zaman İçinde Başarı Değişimi
                 </h3>
-                <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                   Son {trendData.length} Test & Deneme
                 </span>
               </div>
 
               {trendData.length > 0 ? (
-                <div style={{ width: '100%', height: 280 }}>
+                <div style={{ width: '100%', height: isMobile ? 220 : 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <defs>
                         <linearGradient id="scoreTrendGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -2328,16 +2605,16 @@ a.evaluatedAt ||
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                       <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `%${v}`} />
                       <Tooltip content={<ChartTooltip />} />
                       <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Hedef %70', fill: '#10b981', fontSize: 10, position: 'right' }} />
-                      <Area type="monotone" dataKey="Başarı %" stroke="#6366f1" strokeWidth={3} fill="url(#scoreTrendGrad)" dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 7, fill: '#4f46e5', stroke: 'var(--color-surface)', strokeWidth: 2 }} />
+                      <Area type="monotone" dataKey="Başarı %" stroke="#6366f1" strokeWidth={3} fill="url(#scoreTrendGrad)" dot={{ r: 3, fill: '#6366f1' }} activeDot={{ r: 6, fill: '#4f46e5', stroke: 'var(--color-surface)', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Trend analizi için yeterli veri yok.</div>
+                <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2.5rem 0', fontWeight: 700 }}>Trend analizi için yeterli veri yok.</div>
               )}
             </div>
           </div>
@@ -2345,10 +2622,19 @@ a.evaluatedAt ||
 
         {/* ── TAB: ALL RESULTS ── */}
         {activeTab === 'all' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 16 }}>
             {/* Filter Bar */}
-            <div className="sr-filter-bar" style={{ display: 'flex', gap: 10, background: 'var(--color-surface)', padding: 10, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ position: 'relative', flex: '1 1 200px' }}>
+            <div className="sr-filter-bar" style={{
+              display: 'flex',
+              gap: 8,
+              background: 'var(--color-surface)',
+              padding: isMobile ? 8 : 10,
+              borderRadius: 14,
+              border: '1.5px solid var(--color-border)',
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}>
+              <div style={{ position: 'relative', flex: isMobile ? '1 1 100%' : '1 1 200px' }}>
                 <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input
                   value={searchQuery}
@@ -2360,9 +2646,9 @@ a.evaluatedAt ||
                     paddingRight: 10,
                     paddingTop: 8,
                     paddingBottom: 8,
-                    borderRadius: 10,
+                    borderRadius: 9,
                     border: '1.5px solid var(--color-border-input)',
-                    fontSize: '0.82rem',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     background: 'var(--color-surface-hover)',
                     color: 'var(--color-text)',
@@ -2372,113 +2658,170 @@ a.evaluatedAt ||
                 />
               </div>
 
-              <select
-                value={subjectFilter}
-                onChange={e => setSubjectFilter(e.target.value)}
-                style={{
-                  padding: '0.5rem 0.8rem',
-                  borderRadius: 10,
-                  border: '1.5px solid var(--color-border-input)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="all">Tüm Dersler</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              {isMobile ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
+                  <select
+                    value={subjectFilter}
+                    onChange={e => setSubjectFilter(e.target.value)}
+                    style={{
+                      padding: '0.45rem 0.6rem',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--color-border-input)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    <option value="all">Tüm Dersler</option>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
 
-              <select
-                value={typeFilter}
-                onChange={e => setTypeFilter(e.target.value)}
-                style={{
-                  padding: '0.5rem 0.8rem',
-                  borderRadius: 10,
-                  border: '1.5px solid var(--color-border-input)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="all">Tüm Türler</option>
-                <option value="homework">Ödevler</option>
-                <option value="book">Kitap Testleri</option>
-                <option value="physicalExam">Denemeler</option>
-                <option value="individual">Bireysel</option>
-              </select>
+                  <select
+                    value={typeFilter}
+                    onChange={e => setTypeFilter(e.target.value)}
+                    style={{
+                      padding: '0.45rem 0.6rem',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--color-border-input)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    <option value="all">Tüm Türler</option>
+                    <option value="homework">Ödevler</option>
+                    <option value="book">Kitap Testleri</option>
+                    <option value="physicalExam">Denemeler</option>
+                    <option value="individual">Bireysel</option>
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={subjectFilter}
+                    onChange={e => setSubjectFilter(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.8rem',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--color-border-input)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Tüm Dersler</option>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
 
-              <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
-                <button
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 7,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: viewMode === 'table' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                    color: viewMode === 'table' ? 'white' : 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <List size={14} />
-                </button>
-                <button
-                  onClick={() => setViewMode('cards')}
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 7,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: viewMode === 'cards' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                    color: viewMode === 'cards' ? 'white' : 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <LayoutGrid size={14} />
-                </button>
-              </div>
-
-              {!isStudentRole && studentSubmissions.length > 0 && (
-                <button
-                  onClick={handleClearAllResults}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '0.45rem 0.8rem',
-                    borderRadius: 10,
-                    border: '1.5px solid #fca5a5',
-                    background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
-                    color: '#dc2626',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                  title="Öğrencinin tüm sınav sonuçlarını ve geçmişini sıfırla"
-                >
-                  <Trash2 size={13} /> Tüm Geçmişi Sıfırla
-                </button>
+                  <select
+                    value={typeFilter}
+                    onChange={e => setTypeFilter(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.8rem',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--color-border-input)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Tüm Türler</option>
+                    <option value="homework">Ödevler</option>
+                    <option value="book">Kitap Testleri</option>
+                    <option value="physicalExam">Denemeler</option>
+                    <option value="individual">Bireysel</option>
+                  </select>
+                </>
               )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: isMobile ? '100%' : 'auto', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 3, background: 'var(--color-surface-hover)', padding: 3, borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    style={{
+                      padding: '0.35rem 0.6rem',
+                      borderRadius: 6,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: viewMode === 'table' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: viewMode === 'table' ? 'white' : 'var(--color-text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: '0.74rem',
+                      fontWeight: 800
+                    }}
+                  >
+                    <List size={14} /> {isMobile ? 'Tablo' : ''}
+                  </button>
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    style={{
+                      padding: '0.35rem 0.6rem',
+                      borderRadius: 6,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: viewMode === 'cards' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: viewMode === 'cards' ? 'white' : 'var(--color-text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: '0.74rem',
+                      fontWeight: 800
+                    }}
+                  >
+                    <LayoutGrid size={14} /> {isMobile ? 'Kartlar' : ''}
+                  </button>
+                </div>
+
+                {!isStudentRole && studentSubmissions.length > 0 && (
+                  <button
+                    onClick={handleClearAllResults}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '0.4rem 0.65rem',
+                      borderRadius: 8,
+                      border: '1.5px solid #fca5a5',
+                      background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                      color: '#dc2626',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    title="Öğrencinin tüm sınav sonuçlarını ve geçmişini sıfırla"
+                  >
+                    <Trash2 size={12} /> Sıfırla
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* TABLE VIEW */}
             {viewMode === 'table' && (
-              <div style={{ background: 'var(--color-surface)', borderRadius: 18, border: '1.5px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700, fontSize: '0.82rem' }}>
+              <div style={{ background: 'var(--color-surface)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600, fontSize: '0.8rem' }}>
                     <thead>
                       <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)' }}>
                         {['TEST ADI', 'TÜR', 'TARİH', 'SORU', 'D / Y / B', 'BAŞARI', 'İŞLEM'].map(h => (
-                          <th key={h} style={{ padding: '0.85rem 1rem', fontWeight: 900, fontSize: '0.7rem', color: 'var(--color-text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} style={{ padding: '0.75rem 0.85rem', fontWeight: 900, fontSize: '0.68rem', color: 'var(--color-text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -2488,12 +2831,12 @@ a.evaluatedAt ||
                         const SubIcon = th.icon;
                         return (
                           <tr key={s.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)' }}>
-                            <td style={{ padding: '0.8rem 1rem' }}>
+                            <td style={{ padding: '0.75rem 0.85rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <div style={{ width: 28, height: 28, borderRadius: 8, background: th.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                   <SubIcon size={14} color={th.color} />
                                 </div>
-                                <div style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>
                                     {s.bookTitle ? (
                                       <>
@@ -2510,37 +2853,37 @@ a.evaluatedAt ||
                                 </div>
                               </div>
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                            <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
+                              <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>
                                 {typeConfig[s.typeKey]?.label}
                               </span>
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.75rem 0.85rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>
                               {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                            <td style={{ padding: '0.75rem 0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>
                               {s.totalQuestions}
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
                               {s.isPendingEval ? (
-                                <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.72rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                   ⏳ Değerlendirmede
                                 </span>
                               ) : (
                                 <div style={{ display: 'flex', gap: 4 }}>
-                                  <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
-                                  <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
-                                  <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>—{s.blankCount}</span>
+                                  <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 5, padding: '0.12rem 0.4rem', fontSize: '0.7rem', fontWeight: 900 }}>✓{s.correctCount}</span>
+                                  <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 5, padding: '0.12rem 0.4rem', fontSize: '0.7rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
+                                  <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 5, padding: '0.12rem 0.4rem', fontSize: '0.7rem', fontWeight: 900 }}>—{s.blankCount}</span>
                                 </div>
                               )}
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
                               <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                                  <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                                <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.35rem 0.75rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                                  <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
                                 </button>
                                 {!isStudentRole && (
                                   <button
@@ -2550,8 +2893,8 @@ a.evaluatedAt ||
                                       background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
                                       color: '#ef4444',
                                       border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
-                                      borderRadius: 9,
-                                      padding: '0.38rem 0.55rem',
+                                      borderRadius: 8,
+                                      padding: '0.35rem 0.5rem',
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
@@ -2559,7 +2902,7 @@ a.evaluatedAt ||
                                       transition: 'all 0.15s'
                                     }}
                                   >
-                                    <Trash2 size={13} />
+                                    <Trash2 size={12} />
                                   </button>
                                 )}
                               </div>
@@ -2581,22 +2924,37 @@ a.evaluatedAt ||
 
             {/* CARDS VIEW */}
             {viewMode === 'cards' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(270px, 1fr))', gap: isMobile ? 8 : 12 }}>
                 {filteredSubs.map((s, i) => {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ background: 'var(--color-surface)', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ height: 4, background: th.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.2rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                          <SubIcon size={13} /> {s.subjectKey}
+                    <div
+                      key={i}
+                      className="sr-card-hover"
+                      style={{
+                        background: 'var(--color-surface)',
+                        borderRadius: 14,
+                        border: `1.5px solid ${th.border}`,
+                        padding: isMobile ? '0.85rem' : '1.15rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{ height: 3, background: th.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>
+                          <SubIcon size={12} /> {s.subjectKey}
                         </span>
-                        <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 8, padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                        <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.68rem', fontWeight: 900 }}>
                           {typeConfig[s.typeKey]?.label}
                         </span>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
                         {s.bookTitle ? (
                           <>
                             <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
@@ -2609,27 +2967,27 @@ a.evaluatedAt ||
                           s.testTitle
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                         {s.isPendingEval ? (
-                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 7, padding: '0.18rem 0.6rem', fontSize: '0.72rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                             ⏳ Değerlendirmede
                           </span>
                         ) : (
                           <>
-                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                            <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                            <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>— {s.blankCount}</span>
                           </>
                         )}
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 6 }}>
                         <div>
-                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} />
-                          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
+                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+                          <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                            <Eye size={13} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.35rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                            <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
                           </button>
                           {!isStudentRole && (
                             <button
@@ -2639,8 +2997,8 @@ a.evaluatedAt ||
                                 background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
                                 color: '#ef4444',
                                 border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
-                                borderRadius: 10,
-                                padding: '0.4rem 0.6rem',
+                                borderRadius: 8,
+                                padding: '0.35rem 0.5rem',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -2648,7 +3006,7 @@ a.evaluatedAt ||
                                 transition: 'all 0.15s'
                               }}
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={12} />
                             </button>
                           )}
                         </div>
@@ -2657,7 +3015,7 @@ a.evaluatedAt ||
                   );
                 })}
                 {filteredSubs.length === 0 && (
-                  <div style={{ gridColumn: '1/-1', background: 'var(--color-surface)', borderRadius: 18, padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
+                  <div style={{ gridColumn: '1/-1', background: 'var(--color-surface)', borderRadius: 16, padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
                     Sonuç bulunamadı
                   </div>
                 )}
