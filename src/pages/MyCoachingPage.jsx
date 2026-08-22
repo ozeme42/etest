@@ -3118,7 +3118,7 @@ export default function MyCoachingPage() {
             const currentQ = filteredQuotes[quoteIdx % filteredQuotes.length] || MOTIVATION_QUOTES[0];
 
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem', animation: 'fadeIn 0.2s ease' }}>
                 <Tip>
                   🚀 <b>Motivasyon & Zafer Merkezi</b>: Canlı seviyeni takip et, günün zafer görevini tamamla ve ilham verici stratejilerle zihnini zirveye taşı!
                 </Tip>
@@ -3126,54 +3126,65 @@ export default function MyCoachingPage() {
                 {/* 1. SEVİYE & SERİ HEADER PANOSU */}
                 <div style={{
                   background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311b92 100%)',
-                  borderRadius: 24, padding: '1.5rem 1.75rem', color: 'white',
-                  boxShadow: '0 12px 35px rgba(15, 23, 42, 0.25)', position: 'relative', overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.1)'
+                  borderRadius: isMobile ? 16 : 24,
+                  padding: isMobile ? '1rem 0.85rem' : '1.5rem 1.75rem',
+                  color: 'white',
+                  boxShadow: '0 12px 35px rgba(15, 23, 42, 0.25)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  boxSizing: 'border-box'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 10 : 12, marginBottom: isMobile ? '0.85rem' : '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12 }}>
                       <div style={{
-                        width: 52, height: 52, borderRadius: 16,
+                        width: isMobile ? 42 : 52,
+                        height: isMobile ? 42 : 52,
+                        borderRadius: isMobile ? 12 : 16,
                         background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.6rem', boxShadow: '0 6px 20px rgba(99, 102, 241, 0.4)',
-                        border: '2px solid rgba(255,255,255,0.3)'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: isMobile ? '1.3rem' : '1.6rem',
+                        boxShadow: '0 6px 20px rgba(99, 102, 241, 0.4)',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        flexShrink: 0
                       }}>
                         🏆
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900 }}>
                             Level {level}: {levelTitle}
                           </span>
-                          <span style={{ fontSize: '0.7rem', background: '#f59e0b', color: '#78350f', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900 }}>
+                          <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', background: '#f59e0b', color: '#78350f', padding: '0.12rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>
                             {xp} XP
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 700, marginTop: 2 }}>
-                          Sonraki Seviyeye: <b style={{ color: '#a7f3d0' }}>{Math.max(0, nextThreshold - xp)} XP</b> Kaldı · {totalCompletedGoals} Hedef Tamamlandı
+                        <div style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#cbd5e1', fontWeight: 700, marginTop: 2 }}>
+                          Sonraki Seviyeye: <b style={{ color: '#a7f3d0' }}>{Math.max(0, nextThreshold - xp)} XP</b> · {totalCompletedGoals} Hedef Bitti
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '0.5rem 0.9rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🔥 Kesintisiz Seri</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f59e0b', marginTop: 1 }}>7 Gün Seride</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.9rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🔥 Seri</div>
+                        <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#f59e0b', marginTop: 1 }}>7 Gün</div>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '0.5rem 0.9rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🎯 Çözülen Soru</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#38bdf8', marginTop: 1 }}>{totalSolved} Soru</div>
+                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: isMobile ? '0.35rem 0.5rem' : '0.5rem 0.9rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🎯 Soru</div>
+                        <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#38bdf8', marginTop: 1 }}>{totalSolved}</div>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
                       <span>Seviye İlerlemesi (%{levelProgressPct})</span>
                       <span>{xp} / {nextThreshold} XP</span>
                     </div>
-                    <div style={{ width: '100%', height: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{
                         width: `${levelProgressPct}%`, height: '100%',
                         background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)',
@@ -3186,17 +3197,23 @@ export default function MyCoachingPage() {
                 {/* 2. DİNAMİK CANLI KOÇ DEĞERLENDİRMESİ */}
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)',
-                  borderRadius: 20, padding: '1.25rem 1.5rem', border: '1.5px solid rgba(16, 185, 129, 0.35)',
-                  boxShadow: '0 4px 20px rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', gap: 14
+                  borderRadius: isMobile ? 14 : 20,
+                  padding: isMobile ? '0.85rem 0.75rem' : '1.25rem 1.5rem',
+                  border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                  boxShadow: '0 4px 20px rgba(16,185,129,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: isMobile ? 10 : 14,
+                  boxSizing: 'border-box'
                 }}>
-                  <div style={{ width: 46, height: 46, borderRadius: 14, background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
+                  <div style={{ width: isMobile ? 36 : 46, height: isMobile ? 36 : 46, borderRadius: 12, background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1.15rem' : '1.4rem', flexShrink: 0 }}>
                     💡
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Akıllı Koç Değerlendirmesi & Canlı Tavsiye
                     </div>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text, #064e3b)', marginTop: 2, lineHeight: 1.4 }}>
+                    <div style={{ fontSize: isMobile ? '0.82rem' : '0.92rem', fontWeight: 800, color: 'var(--color-text, #064e3b)', marginTop: 2, lineHeight: 1.35 }}>
                       {totalCompletedGoals > 3
                         ? "🚀 Muazzam bir ivme yakaladın! Hedeflerini tek tek tamamlıyorsun. Bu disiplin seni istediğin liseye/üniversiteye taşıyacak!"
                         : totalSolved > 50
@@ -3209,17 +3226,23 @@ export default function MyCoachingPage() {
                 {/* 3. GÜNÜN MİNİ ZAFER MÜCADELESİ */}
                 <div style={{
                   background: dailyQuestDone ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                  borderRadius: 20, padding: '1.25rem 1.5rem',
+                  borderRadius: isMobile ? 14 : 20,
+                  padding: isMobile ? '0.85rem 0.75rem' : '1.25rem 1.5rem',
                   border: dailyQuestDone ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid rgba(245, 158, 11, 0.35)',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  justifyContent: 'space-between',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                  gap: isMobile ? 10 : 12,
+                  boxSizing: 'border-box'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ fontSize: '1.8rem' }}>{dailyQuestDone ? '🎉' : '🎯'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12 }}>
+                    <div style={{ fontSize: isMobile ? '1.4rem' : '1.8rem', flexShrink: 0 }}>{dailyQuestDone ? '🎉' : '🎯'}</div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>
                         Günün Mini Zafer Görevi
                       </div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', marginTop: 2 }}>
+                      <div style={{ fontSize: isMobile ? '0.86rem' : '0.95rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', marginTop: 1, lineHeight: 1.3 }}>
                         {dailyQuestDone ? "Harika! Bugünün Zafer Görevini Tamamladın (+50 XP Kazandın!)" : "Bugün 1 Konu Tekrarı Yap veya En Az 30 Soru Çöz!"}
                       </div>
                     </div>
@@ -3234,10 +3257,18 @@ export default function MyCoachingPage() {
                     }}
                     style={{
                       background: dailyQuestDone ? '#10b981' : '#f59e0b',
-                      color: 'white', border: 'none', borderRadius: 12,
-                      padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem',
-                      cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      display: 'flex', alignItems: 'center', gap: 6
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: isMobile ? '0.55rem 1rem' : '0.65rem 1.25rem',
+                      fontWeight: 900,
+                      fontSize: isMobile ? '0.8rem' : '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
                     }}
                   >
                     {dailyQuestDone ? '✓ Görev Tamamlandı (+50 XP)' : '🚀 Görevi Tamamladım (+50 XP)'}
@@ -3246,26 +3277,39 @@ export default function MyCoachingPage() {
 
                 {/* 4. İLHAM KÜTÜPHANESİ & KATEGORİK SÖZ KARTI */}
                 <div style={{
-                  background: 'var(--color-surface, #ffffff)', borderRadius: 24, padding: '1.5rem', border: '1px solid var(--color-border, #e2e8f0)',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1.1rem'
+                  background: 'var(--color-surface, #ffffff)',
+                  borderRadius: isMobile ? 16 : 24,
+                  padding: isMobile ? '0.95rem 0.75rem' : '1.5rem',
+                  border: '1px solid var(--color-border, #e2e8f0)',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: isMobile ? '0.75rem' : '1.1rem',
+                  boxSizing: 'border-box'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sparkles size={22} color="#7c3aed" />
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Günün İlham Verici Sözü & Kütüphanesi</h3>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Sparkles size={isMobile ? 18 : 22} color="#7c3aed" />
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Günün İlham Verici Sözü</h3>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 3, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: isMobile ? 2 : 0 }} className="hide-scrollbar">
                       {['Tümü', 'Disiplin', 'Eylem', 'Zafer', 'Odak', 'İnanç', 'Özgüven'].map(cat => (
                         <button
                           key={cat}
                           type="button"
                           onClick={() => { setSelectedQuoteCategory(cat); setQuoteIdx(0); }}
                           style={{
-                            padding: '0.28rem 0.65rem', borderRadius: 8, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                            padding: isMobile ? '0.24rem 0.5rem' : '0.28rem 0.65rem',
+                            borderRadius: 6,
+                            fontSize: isMobile ? '0.68rem' : '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
                             background: selectedQuoteCategory === cat ? '#7c3aed' : 'var(--color-surface-hover, #f1f5f9)',
                             color: selectedQuoteCategory === cat ? 'white' : 'var(--color-text-muted, #475569)',
-                            border: selectedQuoteCategory === cat ? 'none' : '1px solid var(--color-border-input, #cbd5e1)'
+                            border: selectedQuoteCategory === cat ? 'none' : '1px solid var(--color-border-input, #cbd5e1)',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}
                         >
                           {cat}
@@ -3276,11 +3320,16 @@ export default function MyCoachingPage() {
 
                   <div style={{
                     background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%)',
-                    borderRadius: 20, padding: '1.5rem 1.75rem', color: 'white',
-                    boxShadow: '0 8px 25px rgba(124, 58, 237, 0.25)', position: 'relative', overflow: 'hidden'
+                    borderRadius: isMobile ? 14 : 20,
+                    padding: isMobile ? '1rem 0.85rem' : '1.5rem 1.75rem',
+                    color: 'white',
+                    boxShadow: '0 8px 25px rgba(124, 58, 237, 0.25)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxSizing: 'border-box'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.7rem', borderRadius: 99, backdropFilter: 'blur(4px)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '0.65rem' : '0.85rem' }}>
+                      <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', padding: '0.15rem 0.55rem', borderRadius: 99, backdropFilter: 'blur(4px)' }}>
                         🏷️ {currentQ.category}
                       </span>
 
@@ -3288,64 +3337,73 @@ export default function MyCoachingPage() {
                         type="button"
                         onClick={() => setQuoteIdx((quoteIdx + 1) % filteredQuotes.length)}
                         style={{
-                          background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                          borderRadius: 10, padding: '0.35rem 0.85rem', color: 'white',
-                          fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(6px)'
+                          background: 'rgba(255,255,255,0.2)',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                          borderRadius: 8,
+                          padding: isMobile ? '0.28rem 0.65rem' : '0.35rem 0.85rem',
+                          color: 'white',
+                          fontWeight: 800,
+                          fontSize: isMobile ? '0.72rem' : '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          backdropFilter: 'blur(6px)'
                         }}
                       >
-                        🎲 Sonraki Söz ({quoteIdx + 1}/{filteredQuotes.length})
+                        🎲 Sonraki ({quoteIdx + 1}/{filteredQuotes.length})
                       </button>
                     </div>
 
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.5, fontStyle: 'italic', marginBottom: '0.85rem' }}>
+                    <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, lineHeight: 1.4, fontStyle: 'italic', marginBottom: isMobile ? '0.65rem' : '0.85rem' }}>
                       "{currentQ.quote}"
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.9rem', fontWeight: 800, opacity: 0.9 }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, opacity: 0.9 }}>
                       — {currentQ.author}
                     </div>
                   </div>
                 </div>
 
                 {/* 5. KOÇTAN STRATEJİK TAVSİYELER */}
-                <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.3rem' }}>🧠</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>1. Aktif Hatırlama (Active Recall)</span>
+                <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Stratejileri" isMobile={isMobile}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: isMobile ? '0.75rem' : '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🧠</span>
+                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #1e293b)' }}>1. Aktif Hatırlama (Active Recall)</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.5, fontWeight: 600 }}>
                         Sadece altını çizerek okuma! Bir konuyu okuduktan sonra kitabı kapatıp kendi cümlelerinle bir kâğıda yaz veya anlat.
                       </div>
                     </div>
 
-                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.3rem' }}>⏱️</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>2. Pomodoro & Odaklanma</span>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: isMobile ? '0.75rem' : '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>⏱️</span>
+                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #1e293b)' }}>2. Pomodoro & Odaklanma</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.5, fontWeight: 600 }}>
                         25 dakika kesintisiz odaklan + 5 dakika mola. 4 blok sonrası 20 dakikalık uzun mola ver. Zihnin asla yorulmaz!
                       </div>
                     </div>
 
-                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.3rem' }}>✍️</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>3. Yanlış Defteri (Fener Defteri)</span>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: isMobile ? '0.75rem' : '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>✍️</span>
+                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #1e293b)' }}>3. Yanlış Defteri (Fener Defteri)</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.5, fontWeight: 600 }}>
                         Sınavı kazandıran doğru yaptıkların değil, yanlışlarından öğrendiklerindir. Yanlış sorularını bir not defterinde biriktir!
                       </div>
                     </div>
 
-                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.3rem' }}>📱</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>4. Dijital Detoks & Sessiz Alan</span>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: isMobile ? '0.75rem' : '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>📱</span>
+                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #1e293b)' }}>4. Dijital Detoks & Sessiz Alan</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.5, fontWeight: 600 }}>
                         Çalışırken telefonunu başka bir odaya koy veya sessize al. Bildirimler olmadan odaklanma kaliten 2 katına çıkar!
                       </div>
                     </div>
@@ -3353,37 +3411,37 @@ export default function MyCoachingPage() {
                 </Card>
 
                 {/* 6. KİŞİSEL MOTİVASYON VE ZAFER DEFTERİ */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                  <Card emoji="⭐" title="Benim Haftalık Mottom">
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
+                  <Card emoji="⭐" title="Benim Haftalık Mottom" isMobile={isMobile}>
                     <textarea
-                      style={{ ...ta, background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #92400e)' }}
+                      style={{ ...ta, background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.35)', minHeight: isMobile ? 60 : 75, fontWeight: 700, color: 'var(--color-text, #92400e)', fontSize: isMobile ? '0.82rem' : '0.9rem' }}
                       value={motivation.weekQuote}
                       onChange={e => setMotivation(p => ({ ...p, weekQuote: e.target.value }))}
                       placeholder="Bu hafta seni ayağa kaldıracak kişisel cümleni yaz..."
                     />
                   </Card>
 
-                  <Card emoji="🏆" title="Bu Hafta Başardıklarım & Zaferlerim">
+                  <Card emoji="🏆" title="Bu Hafta Başardıklarım & Zaferlerim" isMobile={isMobile}>
                     <textarea
-                      style={{ ...ta, background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #166534)' }}
+                      style={{ ...ta, background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.35)', minHeight: isMobile ? 60 : 75, fontWeight: 700, color: 'var(--color-text, #166534)', fontSize: isMobile ? '0.82rem' : '0.9rem' }}
                       value={motivation.achievements}
                       onChange={e => setMotivation(p => ({ ...p, achievements: e.target.value }))}
                       placeholder="Çözdüğün zor sorular, tamamladığın konular... Her başarını buraya yaz ve kendini kutla! 🎉"
                     />
                   </Card>
 
-                  <Card emoji="💌" title="Sınav Günü Kendime Not">
+                  <Card emoji="💌" title="Sınav Günü Kendime Not" isMobile={isMobile}>
                     <textarea
-                      style={{ ...ta, background: 'rgba(99, 102, 241, 0.08)', borderColor: 'rgba(99, 102, 241, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #3730a3)' }}
+                      style={{ ...ta, background: 'rgba(99, 102, 241, 0.08)', borderColor: 'rgba(99, 102, 241, 0.35)', minHeight: isMobile ? 60 : 75, fontWeight: 700, color: 'var(--color-text, #3730a3)', fontSize: isMobile ? '0.82rem' : '0.9rem' }}
                       value={motivation.selfNote}
                       onChange={e => setMotivation(p => ({ ...p, selfNote: e.target.value }))}
                       placeholder="Sınav günü masaya oturduğunda zihninde ne olmalı? Kendine güven mesajını yaz..."
                     />
                   </Card>
 
-                  <Card emoji="🎁" title="Hedef Ödül Sistemim">
+                  <Card emoji="🎁" title="Hedef Ödül Sistemim" isMobile={isMobile}>
                     <textarea
-                      style={{ ...ta, background: 'rgba(236, 72, 153, 0.08)', borderColor: 'rgba(236, 72, 153, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #831843)' }}
+                      style={{ ...ta, background: 'rgba(236, 72, 153, 0.08)', borderColor: 'rgba(236, 72, 153, 0.35)', minHeight: isMobile ? 60 : 75, fontWeight: 700, color: 'var(--color-text, #831843)', fontSize: isMobile ? '0.82rem' : '0.9rem' }}
                       value={motivation.rewardSystem}
                       onChange={e => setMotivation(p => ({ ...p, rewardSystem: e.target.value }))}
                       placeholder="Hedeflerimi tamamlarsam kendime hediyem: Örn: 500 Soru = Sinema Bileti 🎬"
@@ -3394,11 +3452,23 @@ export default function MyCoachingPage() {
                 {/* Kaydet Butonu */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
+                    type="button"
                     onClick={handleSave}
                     style={{
-                      padding: '0.65rem 1.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                      color: 'white', border: 'none', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
-                      boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                      width: isMobile ? '100%' : 'auto',
+                      justifyContent: 'center',
+                      padding: isMobile ? '0.65rem 1.2rem' : '0.65rem 1.8rem',
+                      borderRadius: '0.75rem',
+                      background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: isMobile ? '0.84rem' : '0.9rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
                     }}
                   >
                     <Save size={18} /> Motivasyon Notlarımı Kaydet
