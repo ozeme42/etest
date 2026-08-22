@@ -25,6 +25,7 @@ import { getTurkeyToday, getTurkeyYMD } from '../utils/dateHelpers';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -99,25 +100,51 @@ const ta = { ...inp, minHeight: 72, resize: 'vertical', lineHeight: 1.6 };
 const lbl = { fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' };
 
 /* ─── Small components ─── */
-function TabBtn({ id, active, label, onClick }) {
+function TabBtn({ id, active, label, onClick, isMobile }) {
   return (
-    <button onClick={() => onClick(id)} style={{
-      padding: '0.55rem 0.9rem', border: active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent',
-      borderBottom: active ? '2px solid var(--color-surface, white)' : '2px solid transparent',
-      borderRadius: '0.7rem 0.7rem 0 0', background: active ? 'var(--color-surface, white)' : 'transparent',
-      color: active ? 'var(--color-primary, #7c3aed)' : 'var(--color-text-muted, #64748b)', fontWeight: active ? 900 : 600,
-      fontSize: '0.74rem', cursor: 'pointer', whiteSpace: 'nowrap',
-      marginBottom: active ? -2 : 0, transition: 'all 0.15s'
-    }}>{label}</button>
+    <button
+      type="button"
+      onClick={() => onClick(id)}
+      style={{
+        padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 0.9rem',
+        borderRadius: isMobile ? '0.75rem' : '0.7rem 0.7rem 0 0',
+        border: isMobile
+          ? (active ? '1.5px solid #818cf8' : '1.5px solid var(--color-border, #e2e8f0)')
+          : (active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent'),
+        borderBottom: !isMobile && active ? '2px solid var(--color-surface, white)' : undefined,
+        background: active
+          ? (isMobile ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'var(--color-surface, white)')
+          : (isMobile ? 'var(--color-surface-hover, #f8fafc)' : 'transparent'),
+        color: active ? (isMobile ? '#ffffff' : 'var(--color-primary, #7c3aed)') : 'var(--color-text-muted, #64748b)',
+        fontWeight: active ? 900 : 700,
+        fontSize: isMobile ? '0.74rem' : '0.74rem',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        marginBottom: !isMobile && active ? -2 : 0,
+        transition: 'all 0.15s ease',
+        flexShrink: 0,
+        boxShadow: isMobile && active ? '0 3px 10px rgba(124, 58, 237, 0.35)' : 'none'
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
-function Card({ emoji, title, children, color = '#7c3aed' }) {
+function Card({ emoji, title, children, color = '#7c3aed', isMobile }) {
   return (
-    <div style={{ background: 'var(--color-surface, white)', borderRadius: '1.25rem', border: '2px solid var(--color-border, #f1f5f9)', padding: '1.35rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: '1rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.1rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-border, #f8fafc)' }}>
-        <span style={{ fontSize: '1.1rem' }}>{emoji}</span>
-        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)' }}>{title}</span>
+    <div style={{
+      background: 'var(--color-surface, white)',
+      borderRadius: isMobile ? '1rem' : '1.25rem',
+      border: '1.5px solid var(--color-border, #f1f5f9)',
+      padding: isMobile ? '1rem 0.85rem' : '1.35rem',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+      marginBottom: '1rem',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.9rem', paddingBottom: '0.65rem', borderBottom: '1.5px solid var(--color-border, #f8fafc)' }}>
+        <span style={{ fontSize: isMobile ? '1rem' : '1.1rem' }}>{emoji}</span>
+        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #0f172a)' }}>{title}</span>
       </div>
       {children}
     </div>
@@ -172,6 +199,8 @@ export default function MyCoachingPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isSmallMobile = useMediaQuery('(max-width: 480px)');
   const {
     getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles,
     isStudentCoached, getMockExamsForStudent, addMockExam, deleteMockExam
@@ -1184,22 +1213,113 @@ export default function MyCoachingPage() {
   const displayExamName = isStandardExam ? goals.examGoalType : (goals.customExamName || goals.examGoalType || 'Özel Sınav');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', padding: 'clamp(0.75rem,3vw,1.75rem)', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text)',
+      padding: isMobile ? '0.65rem 0.5rem calc(80px + env(safe-area-inset-bottom)) 0.5rem' : 'clamp(0.75rem,3vw,1.75rem)',
+      fontFamily: 'system-ui,-apple-system,sans-serif',
+      boxSizing: 'border-box'
+    }}>
 
-      {/* ── HEADER ── */}
-      <div style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9,#5b21b6)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '1.25rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 8px 32px rgba(124,58,237,0.3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 900, backdropFilter: 'blur(8px)', border: '2px solid rgba(255,255,255,0.3)' }}>
-            {currentUser.name?.charAt(0)?.toUpperCase() || '👤'}
+      {/* ── NATIVE MOBILE APP / DESKTOP HEADER ── */}
+      <div style={{
+        background: 'linear-gradient(135deg,#7c3aed,#6d28d9,#5b21b6)',
+        borderRadius: isMobile ? '1rem' : '1.25rem',
+        padding: isMobile ? '0.9rem 0.85rem' : '1.25rem 1.5rem',
+        marginBottom: isMobile ? '0.75rem' : '1.25rem',
+        color: 'white',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        justifyContent: 'space-between',
+        gap: isMobile ? '0.75rem' : '1rem',
+        boxShadow: '0 8px 32px rgba(124,58,237,0.3)',
+        boxSizing: 'border-box'
+      }}>
+        {/* Top Student Title & Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: isMobile ? 42 : 50,
+              height: isMobile ? 42 : 50,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? '1.15rem' : '1.4rem',
+              fontWeight: 900,
+              backdropFilter: 'blur(8px)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              flexShrink: 0
+            }}>
+              {currentUser.name?.charAt(0)?.toUpperCase() || '👤'}
+            </div>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: isMobile ? '0.98rem' : '1.1rem', letterSpacing: '-0.01em' }}>
+                Merhaba, {currentUser.name?.split(' ')[0]} 👋
+              </div>
+              <div style={{ fontSize: isMobile ? '0.7rem' : '0.77rem', opacity: 0.85, fontWeight: 700 }}>
+                📂 Koçluk & Gelişim Takip Dosyam
+              </div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.01em' }}>Merhaba, {currentUser.name?.split(' ')[0]} 👋</div>
-            <div style={{ fontSize: '0.77rem', opacity: 0.8, fontWeight: 700 }}>📂 Kişisel Koçluk & Gelişim Takip Dosyam</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button 
+              onClick={() => setShowReportModal(true)} 
+              title="Veli Karnesi (PDF)"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.22)', 
+                border: '1.5px solid rgba(255,255,255,0.35)', 
+                borderRadius: '0.75rem', 
+                padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 1.1rem', 
+                color: 'white', 
+                fontWeight: 900, 
+                fontSize: isMobile ? '0.74rem' : '0.83rem', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 5, 
+                backdropFilter: 'blur(8px)', 
+                boxShadow: '0 4px 14px rgba(79,70,229,0.35)', 
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <FileText size={isMobile ? 14 : 16} /> <span>{isMobile ? 'Karne' : 'Veli Karnesi (PDF)'}</span>
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.22)',
+                border: '1.5px solid rgba(255,255,255,0.35)',
+                borderRadius: '0.75rem',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1.1rem',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.83rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {saved ? <><CheckCircle2 size={isMobile ? 14 : 16} /> {isMobile ? 'Kaydedildi' : 'Kaydedildi!'}</> : <><Save size={isMobile ? 14 : 16} /> {isMobile ? 'Kaydet' : 'Kaydet'}</>}
+            </button>
           </div>
         </div>
 
-        {/* Mini istatistikler */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {/* 6 Micro KPI Stats Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(6, minmax(70px, 1fr))',
+          gap: isMobile ? 6 : 8
+        }}>
           {(() => {
             const baseSubs = (mySubmissions || []);
 
@@ -1267,50 +1387,55 @@ export default function MyCoachingPage() {
               { label: 'Çalışma (s)', value: totalDailyHours.toFixed(1), icon: '⏱️' },
               { label: 'Konu Bitti', value: completedTopics, icon: '✅' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.75rem', padding: '0.5rem 0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.2)', minWidth: 70, flex: '1 1 auto' }}>
-                <div style={{ fontSize: '1.05rem', marginBottom: 2 }}>{s.icon}</div>
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: '0.62rem', opacity: 0.8, fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+              <div key={s.label} style={{
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '0.65rem',
+                padding: isMobile ? '0.4rem 0.25rem' : '0.5rem 0.85rem',
+                textAlign: 'center',
+                border: '1px solid rgba(255,255,255,0.2)',
+                minWidth: 0
+              }}>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', marginBottom: 1 }}>{s.icon}</div>
+                <div style={{ fontWeight: 900, fontSize: isMobile ? '0.85rem' : '0.95rem', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: isMobile ? '0.56rem' : '0.62rem', opacity: 0.85, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
               </div>
             ));
           })()}
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setShowReportModal(true)} 
-            style={{ 
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(79, 70, 229, 0.95))', 
-              border: '1.5px solid rgba(255,255,255,0.3)', 
-              borderRadius: '0.85rem', 
-              padding: '0.55rem 1.1rem', 
-              color: 'white', 
-              fontWeight: 900, 
-              fontSize: '0.83rem', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 6, 
-              backdropFilter: 'blur(8px)', 
-              boxShadow: '0 4px 14px rgba(79,70,229,0.35)', 
-              transition: 'all 0.2s' 
-            }}
-          >
-            <FileText size={16} /> Veli Karnesi (PDF)
-          </button>
-          <button onClick={handleSave} style={{ background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '0.85rem', padding: '0.55rem 1.1rem', color: 'white', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}>
-            {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
-          </button>
-        </div>
       </div>
 
-      {/* ── TAB BAR ── */}
-      <div style={{ background: 'var(--color-surface)', borderRadius: '1rem 1rem 0 0', border: '2px solid var(--color-border)', borderBottom: 'none', display: 'flex', overflowX: 'auto', padding: '0.4rem 0.4rem 0', gap: 3, boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' }}>
-        {TABS.map(t => <TabBtn key={t.id} id={t.id} active={activeTab === t.id} label={t.label} onClick={setActiveTab} />)}
+      {/* ── TAB BAR (Segmented Swipe Pill on Mobile) ── */}
+      <div style={{
+        background: 'var(--color-surface)',
+        borderRadius: isMobile ? '1rem' : '1rem 1rem 0 0',
+        border: '1.5px solid var(--color-border)',
+        borderBottom: isMobile ? '1.5px solid var(--color-border)' : 'none',
+        display: 'flex',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        padding: isMobile ? '0.45rem 0.4rem' : '0.4rem 0.4rem 0',
+        gap: isMobile ? 5 : 3,
+        marginBottom: isMobile ? '0.75rem' : 0,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+      }}>
+        {TABS.map(t => <TabBtn key={t.id} id={t.id} active={activeTab === t.id} label={t.label} onClick={setActiveTab} isMobile={isMobile} />)}
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid var(--color-border)', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+      <div style={{
+        background: 'var(--color-surface)',
+        color: 'var(--color-text)',
+        borderRadius: isMobile ? '1rem' : '0 0 1.25rem 1.25rem',
+        border: '1.5px solid var(--color-border)',
+        borderTop: isMobile ? '1.5px solid var(--color-border)' : 'none',
+        padding: isMobile ? '0.85rem 0.65rem' : '1.5rem',
+        minHeight: 480,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
+        boxSizing: 'border-box'
+      }}>
 
         {/* ═══ PERİYODİK SORU & BAŞARI ANALİZİ ═══ */}
         {activeTab === 'soruanaliz' && (
@@ -4208,8 +4333,8 @@ export default function MyCoachingPage() {
 
         {/* ─── MODAL: Manuel Deneme Girişi ─── */}
         {showMockModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.2s ease' }}>
-            <div style={{ background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', padding: '1.5rem', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '0.5rem' : '1rem', animation: 'fadeIn 0.2s ease' }}>
+            <div style={{ background: 'var(--color-surface, #ffffff)', borderRadius: isMobile ? '1.1rem' : '1.25rem', padding: isMobile ? '1.1rem 0.9rem' : '1.5rem', width: '100%', maxWidth: 580, maxHeight: '92vh', overflowY: 'auto', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
               
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1.5px solid var(--color-border, #f1f5f9)', paddingBottom: '0.85rem' }}>
@@ -4218,8 +4343,8 @@ export default function MyCoachingPage() {
                     📝
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Fiziki Deneme Sınavı Ekle</h3>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Ders bazlı doğru ve yanlışlarını gir, netin otomatik hesaplansın</div>
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Fiziki Deneme Sınavı Ekle</h3>
+                    <div style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Ders bazlı doğru ve yanlışlarını gir, netin hesaplansın</div>
                   </div>
                 </div>
                 <button type="button" onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--color-text-muted, #64748b)' }}>
@@ -4229,7 +4354,7 @@ export default function MyCoachingPage() {
 
               <form onSubmit={handleCreateManualMock}>
                 {/* Title & Date */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', display: 'block', marginBottom: 4 }}>DENEME ADI / YAYIN *</label>
                     <input style={inp} value={newManualMock.title} onChange={e => setNewManualMock(p => ({ ...p, title: e.target.value }))} placeholder="Örn: Özdebir Türkiye Geneli LGS-3" required />
@@ -4241,16 +4366,16 @@ export default function MyCoachingPage() {
                 </div>
 
                 {/* Subject Table / Grid */}
-                <div style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', overflow: 'hidden', marginBottom: '0.85rem' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <div style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', overflowX: 'auto', marginBottom: '0.85rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 320 }}>
                     <thead>
                       <tr style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
                         <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Ders</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#10b981', width: 70 }}>D</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#ef4444', width: 70 }}>Y</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#f59e0b', width: 70 }}>B</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#a855f7', width: 85 }}>Net</th>
-                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', width: 36 }}></th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#10b981', width: 60 }}>D</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#ef4444', width: 60 }}>Y</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#f59e0b', width: 60 }}>B</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#a855f7', width: 75 }}>Net</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', width: 32 }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -4292,12 +4417,12 @@ export default function MyCoachingPage() {
                 </div>
 
                 {/* Ders Ekle Satırı */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', alignItems: 'center', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1.5px dashed rgba(99, 102, 241, 0.4)', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#818cf8', whiteSpace: 'nowrap' }}>➕ Ders Ekle:</span>
+                <div style={{ display: 'flex', gap: 6, marginBottom: '1.25rem', alignItems: 'center', flexWrap: 'wrap', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1.5px dashed rgba(99, 102, 241, 0.4)', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#818cf8', whiteSpace: 'nowrap' }}>➕ Ders Ekle:</span>
                   <select
                     value={newSubjectName}
                     onChange={e => setNewSubjectName(e.target.value)}
-                    style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                    style={{ ...inp, flex: '1 1 140px', minWidth: 120, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
                   >
                     <option value="">— Ders seç veya yaz —</option>
                     {['Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce','Din Kültürü','Yabancı Dil','Tarih','Coğrafya','Fizik','Kimya','Biyoloji','Edebiyat','Geometri','TYT Türkçe','TYT Matematik','TYT Fen','TYT Sosyal']
@@ -4310,8 +4435,8 @@ export default function MyCoachingPage() {
                     value={newSubjectName}
                     onChange={e => setNewSubjectName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubjectToMock())}
-                    placeholder="veya özel ders adı yaz"
-                    style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                    placeholder="veya özel ders adı"
+                    style={{ ...inp, flex: '1 1 120px', minWidth: 100, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
                   />
                   <button
                     type="button"
@@ -4326,12 +4451,12 @@ export default function MyCoachingPage() {
                 {/* Summary Bar */}
                 <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1.5px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.85rem', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 8 }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #4c1d95)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <span>✅ {totalMockD} Doğru</span>
-                    <span>❌ {totalMockY} Yanlış</span>
-                    <span>⭕ {totalMockB} Boş</span>
+                    <span>✅ {totalMockD} D</span>
+                    <span>❌ {totalMockY} Y</span>
+                    <span>⭕ {totalMockB} B</span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#a855f7' }}>
-                    Toplam Net: <span style={{ fontSize: '1.2rem', color: '#a855f7' }}>{totalMockNet.toFixed(2)}</span>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#a855f7' }}>
+                    Toplam Net: <span style={{ fontSize: '1.15rem', color: '#a855f7' }}>{totalMockNet.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -4355,18 +4480,18 @@ export default function MyCoachingPage() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: isMobile ? '0.5rem' : '1rem'
         }}>
           <div style={{
-            background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
-            padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', border: '1px solid var(--color-border, #e2e8f0)',
-            display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto'
+            background: 'var(--color-surface, #ffffff)', borderRadius: isMobile ? '1.1rem' : '1.25rem', width: '100%', maxWidth: 540,
+            padding: isMobile ? '1.1rem 0.9rem' : '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', border: '1px solid var(--color-border, #e2e8f0)',
+            display: 'flex', flexDirection: 'column', gap: isMobile ? '0.9rem' : '1.25rem', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box'
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>📅 Aylık Takvim & Geçmiş</div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text, #1e293b)', margin: '2px 0 0 0' }}>
+                <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text, #1e293b)', margin: '2px 0 0 0' }}>
                   {selectedMonthlyHabit.label}
                 </h2>
               </div>

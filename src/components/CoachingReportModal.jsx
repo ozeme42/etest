@@ -3,6 +3,7 @@ import {
   X, Printer, Share2, Award, Target, CheckCircle2, 
   BookOpen, FileText, Sparkles
 } from 'lucide-react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function CoachingReportModal({
   isOpen,
@@ -20,6 +21,7 @@ export default function CoachingReportModal({
   homeworkSubmissions = []
 }) {
   const reportRef = useRef(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   if (!isOpen) return null;
 
@@ -188,7 +190,7 @@ export default function CoachingReportModal({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '1rem'
+      padding: isMobile ? '0.5rem' : '1rem'
     }} onClick={onClose}>
       
       {/* Dynamic Print CSS Fallback */}
@@ -230,89 +232,92 @@ export default function CoachingReportModal({
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
           border: '1.5px solid var(--color-border, #e2e8f0)',
-          borderRadius: '1.5rem',
+          borderRadius: isMobile ? '1.1rem' : '1.5rem',
           maxWidth: '880px',
           width: '100%',
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          boxSizing: 'border-box'
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Top Header (Actions) */}
         <div className="no-print" style={{
-          padding: '1rem 1.5rem',
+          padding: isMobile ? '0.75rem 0.85rem' : '1rem 1.5rem',
           background: 'var(--color-surface, #ffffff)',
           borderBottom: '1px solid var(--color-border, #e2e8f0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '0.75rem'
+          gap: '0.6rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileText size={20} color="#6366f1" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: isMobile ? 32 : 38, height: isMobile ? 32 : 38, borderRadius: 8, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FileText size={isMobile ? 16 : 20} color="#6366f1" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                 Haftalık Koçluk & Veli Karnesi
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                 Öğrencinin çözdüğü tüm test ve denemelerin resmi karne dökümü
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <button
               onClick={handleShareWhatsApp}
               style={{
-                padding: '0.5rem 1rem',
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
                 borderRadius: '0.65rem',
                 background: '#25D366',
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: isMobile ? '0.74rem' : '0.82rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)'
+                gap: 5,
+                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Share2 size={15} /> WhatsApp'ta Paylaş
+              <Share2 size={14} /> WhatsApp
             </button>
             <button
               onClick={handlePrint}
               style={{
-                padding: '0.5rem 1.15rem',
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.15rem',
                 borderRadius: '0.65rem',
                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                 border: 'none',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: isMobile ? '0.74rem' : '0.82rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)'
+                gap: 5,
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Printer size={15} /> Yazdır / PDF İndir
+              <Printer size={14} /> {isMobile ? 'Yazdır' : 'Yazdır / PDF İndir'}
             </button>
             <button
               onClick={onClose}
               style={{
-                background: '#f8fafc',
+                background: 'var(--color-surface-hover, #f8fafc)',
                 border: '1.5px solid #cbd5e1',
                 borderRadius: '50%',
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -320,23 +325,24 @@ export default function CoachingReportModal({
                 color: '#475569'
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
         {/* Printable Document Body */}
-        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#f1f5f9' }}>
+        <div style={{ padding: isMobile ? '0.6rem' : '1.25rem', overflowY: 'auto', flex: 1, background: '#f1f5f9', boxSizing: 'border-box' }}>
           <div 
             id="printable-coaching-report"
             ref={reportRef}
             style={{
               background: '#ffffff',
               color: '#0f172a',
-              borderRadius: '1rem',
-              padding: '1.75rem',
+              borderRadius: isMobile ? '0.75rem' : '1rem',
+              padding: isMobile ? '0.9rem 0.75rem' : '1.75rem',
               boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-              fontFamily: "'Inter', system-ui, sans-serif"
+              fontFamily: "'Inter', system-ui, sans-serif",
+              boxSizing: 'border-box'
             }}
           >
             {/* Document Header */}
