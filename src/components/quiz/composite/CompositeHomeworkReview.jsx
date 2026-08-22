@@ -95,6 +95,19 @@ export default function CompositeHomeworkReview({
   //    MC sections: userAnswer vs correctAnswer per question.
   //    OE sections: teacherScores (live hook state OR DB).
   const overallStats = useMemo(() => {
+    // If submission is already evaluated and stored direct counts, and no live hook edits:
+    const hasLiveEdits = Object.values(teacherScores).some(sec => sec && Object.values(sec).some(v => v !== undefined && v !== null));
+    if (!hasLiveEdits && submission?.isEvaluatedByTeacher && submission?.correctCount !== undefined && submission?.wrongCount !== undefined) {
+      const correct = Number(submission.correctCount || 0);
+      const wrong = Number(submission.wrongCount || 0);
+      const blank = Number(submission.blankCount || 0);
+      const total = Number(submission.totalQuestions || (correct + wrong + blank) || 27);
+      const scorePct = submission.scorePercentage ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
+      const rawNet = Math.max(0, correct - wrong * 0.25);
+      const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
+      return { total, correct, wrong, blank, pending: 0, scorePct, netScore };
+    }
+
     let totalQuestions = 0;
     let correctCount   = 0;
     let wrongCount     = 0;
@@ -103,23 +116,33 @@ export default function CompositeHomeworkReview({
 
     const dbTS = submission?.teacherScores || {};
 
+    const secOffsets = [];
+    let acc = 0;
+    rawSections.forEach(s => {
+      secOffsets.push(acc);
+      acc += (s.qCount || s.questions?.length || s.resolvedQuestions?.length || 1);
+    });
+
     rawSections.forEach((sec, sIdx) => {
       const secQs  = sec.questions || sec.resolvedQuestions || [];
       const count  = sec.qCount || secQs.length || 1;
       const rawId  = sec.raw?.id || sec.raw?.questionId || sec.id;
       const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
+      const secStart = secOffsets[sIdx] || 0;
 
       const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
+        const globalQNo = secStart + i;
         const qObj = secQs[i - 1] || {};
         const isQOE = isSecOE || isQuestionOpenEnded(qObj, sec, test);
 
         const rawAnsItem = Array.isArray(submission?.answers)
           ? submission.answers.find(a =>
-              (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId) || Number(a.sectionIndex) === sIdx) &&
-              Number(a.questionNoInSection || a.questionNo) === i
+              (a.sectionId && (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId)) && Number(a.questionNoInSection) === i) ||
+              Number(a.questionNo) === globalQNo ||
+              (sIdx === 0 && Number(a.questionNo) === i)
             )
           : null;
 
@@ -134,17 +157,13 @@ export default function CompositeHomeworkReview({
           if (hasExplicitTeacherScore) {
             if (Number(directTeacherSc) >= 5) correctCount++;
             else wrongCount++;
+          } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null) {
+            if (Number(rawAnsItem.score) >= 5) correctCount++;
+            else if (Number(rawAnsItem.score) > 0 || hasText) wrongCount++;
+            else blankCount++;
           } else if (hasText) {
-            // Student wrote text: check if answer has a positive score from DB
-            if (rawAnsItem && typeof rawAnsItem.score === 'number' && rawAnsItem.score >= 5) {
-              correctCount++;
-            } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evalStatus === 'wrong')) {
-              wrongCount++;
-            } else {
-              pendingCount++;
-            }
+            pendingCount++;
           } else {
-            // Student never answered this open-ended question -> BLANK!
             blankCount++;
           }
         } else {
@@ -163,18 +182,20 @@ export default function CompositeHomeworkReview({
           };
 
           const u = normalizeOpt(rawAnsVal);
-          if (u === null) {
+          if (u === null && (!rawAnsItem || (rawAnsItem.userAnswer === null && !rawAnsItem.answer))) {
             blankCount++;
-          } else {
+          } else if (rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
+            if (rawAnsItem.isCorrect) correctCount++;
+            else wrongCount++;
+          } else if (u !== null) {
             let isCorr = null;
             if (qObj && Object.keys(qObj).length > 0) {
               isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
-            if (isCorr === null && rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
-              isCorr = rawAnsItem.isCorrect;
-            }
             if (isCorr === false) wrongCount++;
             else correctCount++;
+          } else {
+            blankCount++;
           }
         }
       }
