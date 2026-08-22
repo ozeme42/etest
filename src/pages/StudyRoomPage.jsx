@@ -421,7 +421,7 @@ export default function StudyRoomPage() {
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
   const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
-  const { submissions = [] } = useEvaluation() || {};
+  const { submissions = [], addSubmission, updateSubmission } = useEvaluation() || {};
   const { getCoachingProfileForStudent } = useCoaching() || {};
 
   const coachingProfile = useMemo(() => {
@@ -1151,6 +1151,175 @@ export default function StudyRoomPage() {
     const saved = localStorage.getItem(`study_progress_${todayKey}`);
     return saved ? Number(saved) : 0;
   });
+
+  // ── 📋 ENTEGRE OPTİK FORM STATE & YÖNETİMİ ──
+  const [opticalInputMode, setOpticalInputMode] = useState(() => localStorage.getItem('study_optical_mode') || 'optical');
+  const [opticalAnswers, setOpticalAnswers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('study_optical_answers');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const [opticalOptionCount, setOpticalOptionCount] = useState(() => {
+    const saved = localStorage.getItem('study_optical_opt_count');
+    return saved ? Number(saved) : 4;
+  });
+  const [completedQuizResult, setCompletedQuizResult] = useState(null);
+  const [isSubmittingOptical, setIsSubmittingOptical] = useState(false);
+
+  const matchedTestObj = useMemo(() => {
+    if (!selectedTask) return null;
+    const testId = selectedTask.bookTestId || selectedTask.realTestId || selectedTask.testId || selectedTask.id;
+    if (!testId) return null;
+
+    const foundBookTest = (bookTests || []).find(bt => String(bt.id) === String(testId) || String(bt.realTestId) === String(testId) || (selectedTask.bookTestId && String(bt.id) === String(selectedTask.bookTestId)));
+    if (foundBookTest) return foundBookTest;
+
+    const foundHw = (homeworks || []).find(hw => String(hw.id) === String(testId) || String(hw.id) === String(selectedTask.hwId));
+    if (foundHw) return foundHw;
+
+    return null;
+  }, [selectedTask, bookTests, homeworks]);
+
+  const resolvedAnswerKey = useMemo(() => {
+    const src = matchedTestObj || selectedTask;
+    if (!src) return null;
+    let key = src.answerKey || src.correctAnswers || src.test?.answerKey;
+    if (typeof key === 'string') {
+      const clean = key.replace(/[^A-Ea-e]/g, '').toUpperCase();
+      return clean.length > 0 ? clean.split('') : null;
+    }
+    if (Array.isArray(key) && key.length > 0) {
+      return key.map(k => typeof k === 'number' ? String.fromCharCode(65 + k) : String(k).toUpperCase());
+    }
+    return null;
+  }, [matchedTestObj, selectedTask]);
+
+  // Optik Cevap Seçme / Kaldırma
+  const handleSelectOpticalOption = (qNo, optLetter) => {
+    setOpticalAnswers(prev => {
+      const next = { ...prev };
+      if (next[qNo] === optLetter) {
+        delete next[qNo];
+      } else {
+        next[qNo] = optLetter;
+      }
+      try {
+        localStorage.setItem('study_optical_answers', JSON.stringify(next));
+      } catch (e) {}
+
+      // Otomatik çözülen soru sayısını güncelle
+      const answeredCount = Object.keys(next).length;
+      setCurrentProgressCount(answeredCount);
+      const todayKey = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`study_progress_${todayKey}`, String(answeredCount));
+
+      // Otomatik sayaç başlat (eğer duruyorsa)
+      if (!isRunning && sessionElapsedSeconds === 0) {
+        setIsRunning(true);
+      }
+
+      return next;
+    });
+  };
+
+  const handleClearOpticalAnswers = () => {
+    setOpticalAnswers({});
+    localStorage.removeItem('study_optical_answers');
+    setCurrentProgressCount(0);
+    const todayKey = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`study_progress_${todayKey}`, '0');
+  };
+
+  const handleFinishOpticalQuiz = async () => {
+    if (isSubmittingOptical) return;
+    setIsSubmittingOptical(true);
+
+    const totalQ = Math.max(1, targetGoalCount || 1);
+    const answersList = [];
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+
+    for (let i = 1; i <= totalQ; i++) {
+      const userLetter = opticalAnswers[i] || null;
+      const correctLetter = resolvedAnswerKey ? (resolvedAnswerKey[i - 1] || null) : null;
+      let isCorrect = null;
+
+      if (!userLetter) {
+        blankCount++;
+      } else if (correctLetter) {
+        isCorrect = userLetter.toUpperCase() === correctLetter.toUpperCase();
+        if (isCorrect) correctCount++;
+        else wrongCount++;
+      } else {
+        correctCount++;
+      }
+
+      answersList.push({
+        questionNo: i,
+        userAnswer: userLetter ? (userLetter.charCodeAt(0) - 65) : null,
+        userAnswerLetter: userLetter,
+        correctAnswer: correctLetter ? (correctLetter.charCodeAt(0) - 65) : null,
+        correctAnswerLetter: correctLetter,
+        isCorrect
+      });
+    }
+
+    const netScore = Math.max(0, correctCount - (wrongCount * 0.25));
+    const scorePct = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+
+    const submissionId = `sub_study_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const subPayload = {
+      id: submissionId,
+      studentId: currentUser?.id || 'guest',
+      studentName: currentUser?.name || 'Öğrenci',
+      testId: selectedTask?.bookTestId || selectedTask?.realTestId || selectedTask?.testId || selectedTask?.id || submissionId,
+      testTitle: selectedTask?.title || `${selectedSubject} Optik Sınavı`,
+      subject: selectedSubject,
+      unit: selectedTask?.unit || '',
+      topic: selectedTask?.topic || '',
+      sourceType: selectedTask?.sourceType || 'study_room_optical',
+      hwId: selectedTask?.hwId || null,
+      bookTestId: selectedTask?.bookTestId || null,
+      roadmapAssignmentId: selectedTask?.roadmapAssignmentId || null,
+      answers: answersList,
+      correctCount,
+      wrongCount,
+      blankCount,
+      totalQuestions: totalQ,
+      netScore: Number.isInteger(netScore) ? netScore : Number(netScore.toFixed(2)),
+      score: scorePct,
+      durationSeconds: sessionElapsedSeconds,
+      completedAt: new Date().toISOString(),
+      status: 'completed',
+      submittedAt: new Date().toISOString()
+    };
+
+    if (typeof addSubmission === 'function') {
+      try {
+        await addSubmission(subPayload);
+      } catch (e) {
+        console.warn('Error saving study optical submission:', e);
+      }
+    }
+
+    // Save subject stats
+    recordSubjectStudy(selectedSubject, Object.keys(opticalAnswers).length, sessionElapsedSeconds);
+
+    // Stop timer
+    setIsRunning(false);
+    try { ambientAudio.playChime(); } catch (e) {}
+
+    // Show result state
+    setCompletedQuizResult({
+      ...subPayload,
+      hasAnswerKey: Boolean(resolvedAnswerKey)
+    });
+    setIsSubmittingOptical(false);
+  };
 
   // 🎯 Yeni Hedef Belirleme & Çözülen Sayısını Otomatik Sıfırlama
   const handleSetNewTargetGoal = (newGoalCount, resetProgress = true) => {
@@ -2574,87 +2743,376 @@ export default function StudyRoomPage() {
                 </div>
               </div>
 
-              {/* Soru Çözdüm Butonu (+1 / -1) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 10 }}>
+              {/* MOD SEÇİCİ: OPTİK FORM vs HIZLI SAYAÇ */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 6,
+                background: themeObj.cardBg,
+                padding: 4,
+                borderRadius: 14,
+                border: `1.5px solid ${themeObj.border}`
+              }}>
                 <button
-                  onClick={() => handleIncrementProgress(-1)}
-                  style={{
-                    padding: isFullscreenView ? '1.1rem 1.4rem' : '0.95rem 1.15rem',
-                    borderRadius: 16,
-                    background: themeObj.buttonBg,
-                    border: `1.5px solid ${themeObj.border}`,
-                    color: themeObj.text,
-                    fontWeight: 900,
-                    fontSize: '1.05rem',
-                    cursor: 'pointer'
+                  type="button"
+                  onClick={() => {
+                    setOpticalInputMode('optical');
+                    localStorage.setItem('study_optical_mode', 'optical');
                   }}
-                  title="1 Soru Geri Al"
-                >
-                  -1
-                </button>
-
-                <button
-                  onClick={() => handleIncrementProgress(1)}
-                  className="sr-action-btn-main"
                   style={{
-                    padding: isFullscreenView ? '1.1rem 1.6rem' : '0.95rem 1.3rem',
-                    borderRadius: 16,
-                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 10,
                     border: 'none',
-                    color: 'white',
+                    background: opticalInputMode === 'optical'
+                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                      : 'transparent',
+                    color: opticalInputMode === 'optical' ? '#ffffff' : themeObj.subText,
                     fontWeight: 900,
-                    fontSize: isFullscreenView ? '1.15rem' : '1.02rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: '0 6px 20px rgba(245,158,11,0.35)'
+                    gap: 6,
+                    transition: 'all 0.15s'
                   }}
                 >
-                  <Plus size={22} strokeWidth={3} />
-                  <span>+1 Soru Çözdüm 🎯</span>
+                  <BookMarked size={15} />
+                  <span>Optik Form</span>
+                  {Object.keys(opticalAnswers).length > 0 && (
+                    <span style={{
+                      background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.3)' : '#f59e0b',
+                      color: '#ffffff',
+                      fontSize: '0.68rem',
+                      padding: '1px 6px',
+                      borderRadius: 99,
+                      fontWeight: 900
+                    }}>
+                      {Object.keys(opticalAnswers).length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpticalInputMode('counter');
+                    localStorage.setItem('study_optical_mode', 'counter');
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: opticalInputMode === 'counter'
+                      ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                      : 'transparent',
+                    color: opticalInputMode === 'counter' ? '#ffffff' : themeObj.subText,
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <Target size={15} />
+                  <span>Hızlı Sayaç (+1)</span>
                 </button>
               </div>
 
-              {/* İlerleme Çubuğu */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ height: 8, borderRadius: 99, background: themeObj.cardBg, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
+              {/* OPTİK FORM GÖRÜNÜMÜ */}
+              {opticalInputMode === 'optical' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Optik Araç Çubuğu */}
                   <div style={{
-                    height: '100%',
-                    width: `${Math.min(100, targetProgressPct)}%`,
-                    background: 'linear-gradient(90deg, #f59e0b, #10b981)',
-                    borderRadius: 99,
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-              </div>
-
-              {/* Testi Bitir & Molaya Geç */}
-              {currentProgressCount > 0 && (
-                <button
-                  onClick={() => setShowConfirmFinish(true)}
-                  className="sr-action-btn-main"
-                  style={{
-                    width: '100%',
-                    padding: '0.85rem 1.1rem',
-                    borderRadius: 14,
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: 'white',
-                    border: 'none',
-                    fontWeight: 900,
-                    fontSize: '0.92rem',
-                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)'
-                  }}
-                >
-                  <Zap size={18} fill="white" />
-                  <span>Testi Bitir & Molaya Geç ({currentProgressCount} Soru) 🏖️</span>
-                </button>
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                    padding: '0.4rem 0.6rem',
+                    background: themeObj.cardBg,
+                    borderRadius: 12,
+                    border: `1px solid ${themeObj.border}`
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 900,
+                        color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : '#f59e0b',
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        border: `1px solid ${themeObj.border}`
+                      }}>
+                        {Object.keys(opticalAnswers).length} / {targetGoalCount} Kodlandı
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {/* 4 / 5 Şık Seçici */}
+                      <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpticalOptionCount(4);
+                            localStorage.setItem('study_optical_opt_count', '4');
+                          }}
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: opticalOptionCount === 4 ? '#6366f1' : 'transparent',
+                            color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
+                            fontSize: '0.68rem',
+                            fontWeight: 900,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          A-D (4)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpticalOptionCount(5);
+                            localStorage.setItem('study_optical_opt_count', '5');
+                          }}
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: opticalOptionCount === 5 ? '#6366f1' : 'transparent',
+                            color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
+                            fontSize: '0.68rem',
+                            fontWeight: 900,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          A-E (5)
+                        </button>
+                      </div>
+
+                      {Object.keys(opticalAnswers).length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearOpticalAnswers}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: 8,
+                            border: `1px solid ${themeObj.border}`,
+                            background: 'transparent',
+                            color: '#ef4444',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                          title="Tüm optik kodlamayı temizle"
+                        >
+                          Temizle
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Optik Sorular Grid Listesi */}
+                  <div style={{
+                    maxHeight: isFullscreenView ? '360px' : '250px',
+                    overflowY: 'auto',
+                    padding: '0.5rem',
+                    background: themeObj.cardBg,
+                    borderRadius: 14,
+                    border: `1.5px solid ${themeObj.border}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6
+                  }} className="custom-scrollbar">
+                    {Array.from({ length: targetGoalCount }).map((_, idx) => {
+                      const qNo = idx + 1;
+                      const userAns = opticalAnswers[qNo] || null;
+                      const opts = opticalOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
+                      return (
+                        <div
+                          key={qNo}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: 10,
+                            background: userAns ? (isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'),
+                            border: `1px solid ${userAns ? (isDark ? 'rgba(245,158,11,0.3)' : '#fde68a') : themeObj.border}`,
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 44 }}>
+                            <span style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 900,
+                              color: userAns ? '#f59e0b' : themeObj.text
+                            }}>
+                              {qNo}.
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {opts.map(opt => {
+                              const isSelected = userAns === opt;
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => handleSelectOpticalOption(qNo, opt)}
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    border: isSelected ? 'none' : `1.5px solid ${themeObj.border}`,
+                                    background: isSelected
+                                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                                      : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                                    color: isSelected ? '#ffffff' : themeObj.text,
+                                    fontWeight: 900,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: isSelected ? '0 2px 8px rgba(245,158,11,0.4)' : 'none',
+                                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Optiği Kaydet & Sınavı Tamamla Butonu */}
+                  <button
+                    type="button"
+                    onClick={handleFinishOpticalQuiz}
+                    disabled={isSubmittingOptical || Object.keys(opticalAnswers).length === 0}
+                    className="sr-action-btn-main"
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem 1.1rem',
+                      borderRadius: 14,
+                      background: Object.keys(opticalAnswers).length > 0
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : themeObj.buttonBg,
+                      color: Object.keys(opticalAnswers).length > 0 ? '#ffffff' : themeObj.subText,
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: '0.92rem',
+                      cursor: Object.keys(opticalAnswers).length > 0 ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: Object.keys(opticalAnswers).length > 0 ? '0 6px 20px rgba(16, 185, 129, 0.35)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <CheckCircle2 size={18} />
+                    <span>
+                      {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Sınavı Tamamla (${Object.keys(opticalAnswers).length} Soru) 🎯`}
+                    </span>
+                  </button>
+                </div>
+              ) : (
+                /* HIZLI SAYAÇ GÖRÜNÜMÜ (+1 / -1) */
+                <>
+                  {/* Soru Çözdüm Butonu (+1 / -1) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 10 }}>
+                    <button
+                      onClick={() => handleIncrementProgress(-1)}
+                      style={{
+                        padding: isFullscreenView ? '1.1rem 1.4rem' : '0.95rem 1.15rem',
+                        borderRadius: 16,
+                        background: themeObj.buttonBg,
+                        border: `1.5px solid ${themeObj.border}`,
+                        color: themeObj.text,
+                        fontWeight: 900,
+                        fontSize: '1.05rem',
+                        cursor: 'pointer'
+                      }}
+                      title="1 Soru Geri Al"
+                    >
+                      -1
+                    </button>
+
+                    <button
+                      onClick={() => handleIncrementProgress(1)}
+                      className="sr-action-btn-main"
+                      style={{
+                        padding: isFullscreenView ? '1.1rem 1.6rem' : '0.95rem 1.3rem',
+                        borderRadius: 16,
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        border: 'none',
+                        color: 'white',
+                        fontWeight: 900,
+                        fontSize: isFullscreenView ? '1.15rem' : '1.02rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 6px 20px rgba(245,158,11,0.35)'
+                      }}
+                    >
+                      <Plus size={22} strokeWidth={3} />
+                      <span>+1 Soru Çözdüm 🎯</span>
+                    </button>
+                  </div>
+
+                  {/* İlerleme Çubuğu */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ height: 8, borderRadius: 99, background: themeObj.cardBg, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, targetProgressPct)}%`,
+                        background: 'linear-gradient(90deg, #f59e0b, #10b981)',
+                        borderRadius: 99,
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Testi Bitir & Molaya Geç */}
+                  {currentProgressCount > 0 && (
+                    <button
+                      onClick={() => setShowConfirmFinish(true)}
+                      className="sr-action-btn-main"
+                      style={{
+                        width: '100%',
+                        padding: '0.85rem 1.1rem',
+                        borderRadius: 14,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: 'white',
+                        border: 'none',
+                        fontWeight: 900,
+                        fontSize: '0.92rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)'
+                      }}
+                    >
+                      <Zap size={18} fill="white" />
+                      <span>Testi Bitir & Molaya Geç ({currentProgressCount} Soru) 🏖️</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -5089,6 +5547,243 @@ export default function StudyRoomPage() {
                   border: '1.5px solid var(--color-border)',
                   fontWeight: 800,
                   fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. OPTİK SINAV TAMAMLANDI & DEĞERLENDİRME MODALI */}
+      {completedQuizResult && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: themeObj.cardBg,
+            borderRadius: 24,
+            width: '100%',
+            maxWidth: 580,
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '1.75rem',
+            border: `2px solid ${themeObj.border}`,
+            boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 4 }}>🏆</div>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: themeObj.text }}>
+                Tebrikler! Sınavınız Kaydedildi
+              </h2>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: themeObj.subText, marginTop: 4 }}>
+                {completedQuizResult.testTitle}
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '2px 8px', borderRadius: 6 }}>
+                  {completedQuizResult.subject}
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: themeObj.subText }}>
+                  ⏱️ Süre: {formatSecToMinSec(completedQuizResult.durationSeconds)}
+                </span>
+              </div>
+            </div>
+
+            {/* Stats Cards */}
+            {completedQuizResult.hasAnswerKey ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 8,
+                background: themeObj.innerBg,
+                padding: '0.85rem',
+                borderRadius: 16,
+                border: `1.5px solid ${themeObj.border}`,
+                textAlign: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{completedQuizResult.correctCount}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Doğru</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>{completedQuizResult.wrongCount}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Yanlış</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#64748b' }}>{completedQuizResult.blankCount}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Boş</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b' }}>{completedQuizResult.netScore}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: themeObj.subText }}>Net (%{completedQuizResult.score})</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1.5px solid #10b981',
+                padding: '1rem',
+                borderRadius: 16,
+                textAlign: 'center',
+                color: '#10b981',
+                fontWeight: 800,
+                fontSize: '0.9rem'
+              }}>
+                ✅ Toplam <strong>{completedQuizResult.totalQuestions} Soru</strong> optik kodlaması başarıyla kaydedildi ve çalışma istatistiklerinize eklendi!
+              </div>
+            )}
+
+            {/* Soru Soru Cevap Analizi */}
+            {completedQuizResult.answers && completedQuizResult.answers.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: themeObj.subText }}>
+                  📋 Kodlanan Cevaplar:
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))',
+                  gap: 6,
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  padding: '0.5rem',
+                  background: themeObj.innerBg,
+                  borderRadius: 12,
+                  border: `1px solid ${themeObj.border}`
+                }} className="custom-scrollbar">
+                  {completedQuizResult.answers.map(ans => {
+                    const hasKey = completedQuizResult.hasAnswerKey;
+                    let badgeBg = isDark ? 'rgba(255,255,255,0.06)' : '#ffffff';
+                    let badgeBorder = themeObj.border;
+                    let badgeText = themeObj.text;
+
+                    if (hasKey) {
+                      if (!ans.userAnswerLetter) {
+                        badgeBg = isDark ? 'rgba(148, 163, 184, 0.1)' : '#f1f5f9';
+                        badgeText = '#64748b';
+                      } else if (ans.isCorrect) {
+                        badgeBg = 'rgba(16, 185, 129, 0.15)';
+                        badgeBorder = '#10b981';
+                        badgeText = '#10b981';
+                      } else {
+                        badgeBg = 'rgba(239, 68, 68, 0.15)';
+                        badgeBorder = '#ef4444';
+                        badgeText = '#ef4444';
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={ans.questionNo}
+                        style={{
+                          padding: '0.35rem 0.2rem',
+                          borderRadius: 8,
+                          border: `1px solid ${badgeBorder}`,
+                          background: badgeBg,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: themeObj.subText }}>
+                          Soru {ans.questionNo}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: badgeText, marginTop: 2 }}>
+                          {ans.userAnswerLetter || '—'}
+                          {hasKey && ans.correctAnswerLetter && !ans.isCorrect && ans.userAnswerLetter && (
+                            <span style={{ fontSize: '0.65rem', color: '#10b981', marginLeft: 3 }}>
+                              ({ans.correctAnswerLetter})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setCompletedQuizResult(null);
+                  handleClearOpticalAnswers();
+                  handleClearSelectedTask();
+                  navigate('/student-results');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(59,130,246,0.3)'
+                }}
+              >
+                <BarChart2 size={16} /> Sonuçlarıma Git
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCompletedQuizResult(null);
+                  handleClearOpticalAnswers();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.3)'
+                }}
+              >
+                <RotateCcw size={16} /> Yeni Çalışma Başlat
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCompletedQuizResult(null)}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: 12,
+                  background: 'transparent',
+                  color: themeObj.subText,
+                  border: `1.5px solid ${themeObj.border}`,
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
                   cursor: 'pointer'
                 }}
               >
