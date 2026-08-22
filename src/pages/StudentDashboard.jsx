@@ -3002,7 +3002,7 @@ export default function StudentDashboard() {
             <div
               className="sd-card"
               style={{
-                padding: isMobile ? '0.85rem 0.75rem' : '1.35rem 1.6rem',
+                padding: isMobile ? '0.75rem 0.5rem' : '1.35rem 1.6rem',
                 borderRadius: 18,
                 background: 'var(--color-surface)',
                 border: '1.5px solid var(--color-border)',
@@ -3071,16 +3071,14 @@ export default function StudentDashboard() {
 
               {/* 7-Day Week Buttons Strip */}
               <div
-                className="sd-hide-scrollbar"
                 style={{
-                  display: isMobile ? 'flex' : 'grid',
-                  gridTemplateColumns: isMobile ? 'none' : 'repeat(7, 1fr)',
-                  gap: isMobile ? 6 : 8,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  gap: isMobile ? 3 : 8,
                   width: '100%',
                   boxSizing: 'border-box',
-                  overflowX: isMobile ? 'auto' : 'visible',
-                  paddingBottom: isMobile ? 2 : 0,
-                  WebkitOverflowScrolling: 'touch'
+                  overflowX: 'visible',
+                  paddingBottom: 0
                 }}
               >
                 {DAYS_OF_WEEK.map(day => {
@@ -3106,36 +3104,36 @@ export default function StudentDashboard() {
                           : isCurrentToday
                           ? '2px solid #f59e0b'
                           : '1px solid var(--color-border)',
-                        borderRadius: 12,
-                        padding: isMobile ? '0.45rem 0.35rem' : '0.65rem 0.5rem',
+                        borderRadius: isMobile ? 9 : 12,
+                        padding: isMobile ? '0.35rem 0.15rem' : '0.65rem 0.5rem',
                         color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 3,
+                        gap: isMobile ? 2 : 3,
                         boxShadow: isSelected
                           ? '0 6px 20px rgba(99, 102, 241, 0.35)'
                           : isCurrentToday
                           ? '0 2px 8px rgba(245,158,11,0.18)'
                           : 'none',
                         transition: 'all 0.15s ease',
-                        minWidth: isMobile ? 54 : 0,
-                        flex: isMobile ? '0 0 54px' : '1',
+                        minWidth: 0,
+                        width: '100%',
                         boxSizing: 'border-box'
                       }}
                     >
-                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', fontWeight: 900 }}>
+                      <span style={{ fontSize: isMobile ? '0.68rem' : '0.85rem', fontWeight: 900, lineHeight: 1 }}>
                         {day.short}
                       </span>
 
                       <span style={{
-                        fontSize: isMobile ? '0.65rem' : '0.72rem',
+                        fontSize: isMobile ? '0.64rem' : '0.72rem',
                         fontWeight: 800,
                         color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted, #64748b)',
                         background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
-                        padding: '1px 5px',
+                        padding: isMobile ? '1px 3px' : '1px 5px',
                         borderRadius: 4,
                         whiteSpace: 'nowrap',
                         lineHeight: 1.1
@@ -3145,24 +3143,24 @@ export default function StudentDashboard() {
 
                       {isCurrentToday ? (
                         <span style={{
-                          fontSize: '0.54rem',
+                          fontSize: isMobile ? '0.50rem' : '0.54rem',
                           fontWeight: 900,
                           color: isSelected ? '#ffffff' : '#d97706',
                           background: isSelected ? 'rgba(0,0,0,0.25)' : (isDark ? 'rgba(245,158,11,0.3)' : '#fef3c7'),
-                          padding: '1px 4px',
+                          padding: isMobile ? '1px 2px' : '1px 4px',
                           borderRadius: 4,
                           whiteSpace: 'nowrap',
                           lineHeight: 1.1
                         }}>
-                          ● Bugün
+                          {isMobile ? 'Bugün' : '● Bugün'}
                         </span>
                       ) : taskCount > 0 ? (
                         <span style={{
-                          fontSize: '0.56rem',
+                          fontSize: isMobile ? '0.52rem' : '0.56rem',
                           fontWeight: 800,
                           color: isSelected ? '#ffffff' : '#6366f1',
                           background: isSelected ? 'rgba(255,255,255,0.2)' : (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff'),
-                          padding: '1px 4px',
+                          padding: isMobile ? '1px 2px' : '1px 4px',
                           borderRadius: 4,
                           whiteSpace: 'nowrap',
                           lineHeight: 1.1
@@ -3170,7 +3168,7 @@ export default function StudentDashboard() {
                           {taskCount} g
                         </span>
                       ) : (
-                        <span style={{ fontSize: '0.56rem', opacity: 0.4 }}>
+                        <span style={{ fontSize: isMobile ? '0.52rem' : '0.56rem', opacity: 0.4 }}>
                           -
                         </span>
                       )}
