@@ -619,14 +619,15 @@ export default function StudyRoomPage() {
         const isSolved = checkIsTaskSolved({ testId: bt.id, bookTestId: bt.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
         const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
 
-        // Bu test için belirlenmiş bir gün veya teslim tarihi var mı?
+        // Bu test için belirlenmiş bir gün veya teslim tarihi var mı? (Sadece bu test özelinde gün atanmışsa)
         let testDayKey = null;
         let testDueDate = null;
         matchingHwsForBook.forEach(hw => {
           if (hw.testDueDates && hw.testDueDates[bt.id]) {
             testDueDate = hw.testDueDates[bt.id];
             testDayKey = resolveDayKey(testDueDate);
-          } else if (!testDayKey && hw.dueDate) {
+          } else if (Array.isArray(hw.tests) && hw.tests.some(tId => String(tId) === String(bt.id)) && hw.dueDate) {
+            testDueDate = hw.dueDate;
             testDayKey = resolveDayKey(hw.dueDate);
           }
         });
