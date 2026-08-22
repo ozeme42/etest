@@ -1052,9 +1052,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
         : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
 
+      const isSingleTestSubmission = Boolean(
+        sub.sourceType === 'study_room_optical' ||
+        sub.sourceType === 'bookTest' ||
+        sub.bookTestId ||
+        testObj ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && (!sub.sections || Object.keys(sub.sections || {}).length <= 1))
+      );
+
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank + pending;
-      const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || bankQ?.questionCount || 0;
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || (isSingleTestSubmission ? (testObj?.questionCount || ansCount) : (hwObj?.totalQuestions || testObj?.questionCount || bankQ?.questionCount || 0));
       let total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       const isOpenEnded = Boolean(
@@ -1065,6 +1073,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       );
       const isEvaluated = isEval(sub, isOpenEnded);
       const isPendingEval = isOpenEnded && !isEvaluated;
+
+      if (isSingleTestSubmission && total >= (correct + wrong)) {
+        blank = Math.max(0, total - (correct + wrong));
+      }
 
       let scorePct = 0;
       if (total > 0 && typeof correct === 'number' && (correct > 0 || wrong > 0 || blank > 0)) {
@@ -1083,14 +1095,16 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         ? Number(((correct || 0) - ((wrong || 0) / 4)).toFixed(2))
         : (sub.totalNet !== undefined && sub.totalNet !== null ? Number(sub.totalNet) : 0);
 
-      const unifiedStats = computeUnifiedSubmissionStats(sub, hwObj || testObj, allBankQuestions || []);
-      if (unifiedStats) {
-        correct = unifiedStats.correct;
-        wrong = unifiedStats.wrong;
-        blank = unifiedStats.blank;
-        total = unifiedStats.total;
-        scorePct = unifiedStats.scorePct;
-        calcNet = unifiedStats.netScore;
+      if (!isSingleTestSubmission) {
+        const unifiedStats = computeUnifiedSubmissionStats(sub, hwObj || testObj, allBankQuestions || []);
+        if (unifiedStats) {
+          correct = unifiedStats.correct;
+          wrong = unifiedStats.wrong;
+          blank = unifiedStats.blank;
+          total = unifiedStats.total;
+          scorePct = unifiedStats.scorePct;
+          calcNet = unifiedStats.netScore;
+        }
       }
 
       const isPendingApproval = isManual && (sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected'));

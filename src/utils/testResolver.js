@@ -830,15 +830,27 @@ export function computeStudentAnalyticsData({
       }
     }
     
-    const unifiedStats = computeUnifiedSubmissionStats(s, parentHw || testObj, []);
-    if (unifiedStats) {
-      correct = unifiedStats.correct;
-      wrong = unifiedStats.wrong;
-      empty = unifiedStats.blank;
+    const isSingleTestSub = Boolean(
+      s.sourceType === 'study_room_optical' ||
+      s.sourceType === 'bookTest' ||
+      s.bookTestId ||
+      testObj ||
+      (Array.isArray(s.answers) && s.answers.length > 0 && (!s.sections || Object.keys(s.sections || {}).length <= 1))
+    );
+
+    if (!isSingleTestSub) {
+      const unifiedStats = computeUnifiedSubmissionStats(s, parentHw || testObj, []);
+      if (unifiedStats) {
+        correct = unifiedStats.correct;
+        wrong = unifiedStats.wrong;
+        empty = unifiedStats.blank;
+      }
     }
 
     // Total questions
-    const totalQ = parentHw?.totalQuestions || parentHw?.questionCount || testObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10;
+    const totalQ = isSingleTestSub
+      ? (s.totalQuestions || testObj?.questionCount || (Array.isArray(s.answers) ? s.answers.length : 0) || (correct + wrong + empty) || 10)
+      : (parentHw?.totalQuestions || parentHw?.questionCount || testObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10);
 
     // Deduce D/Y/B if score was stored as 0-100 percentage or points without D/Y/B
     if (!correct && !wrong && s.score !== undefined && s.score !== null) {
@@ -944,11 +956,8 @@ export function computeStudentAnalyticsData({
     const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
     if (!sDate) return;
 
-    processedKeys.add(String(hw.id));
-    if (toUUID(hw.id)) processedKeys.add(String(toUUID(hw.id)));
     if (sub.id) processedKeys.add(String(sub.id));
-    if (sub.testId) processedKeys.add(String(sub.testId));
-    if (sub.hwId) processedKeys.add(String(sub.hwId));
+    if (sub.supabaseId) processedKeys.add(String(sub.supabaseId));
 
     hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate));
   });
@@ -966,12 +975,9 @@ export function computeStudentAnalyticsData({
     const raw = s.raw_data || {};
     if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
-    // Skip if already processed in Step 1 (Homeworks)
+    // Skip only if the EXACT submission was already processed
     if (s.id && processedKeys.has(String(s.id))) return;
     if (s.supabaseId && processedKeys.has(String(s.supabaseId))) return;
-    if (s.hwId && processedKeys.has(String(s.hwId))) return;
-    if (s.homeworkId && processedKeys.has(String(s.homeworkId))) return;
-    if (s.testId && processedKeys.has(String(s.testId))) return;
 
     // Only approved manual tests count towards system analytics and statistics
     const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || raw.isManual === true || raw.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
@@ -1005,7 +1011,7 @@ export function computeStudentAnalyticsData({
     }
 
     if (s.id) processedKeys.add(String(s.id));
-    if (bTestId) processedKeys.add(bTestId);
+    if (s.supabaseId) processedKeys.add(String(s.supabaseId));
 
     onlineEval.push(normalizeSub(s, parentHw, 'online', subDate, testObj, bookObj));
   });
