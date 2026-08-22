@@ -297,17 +297,14 @@ export default function StudentProgramPage() {
           />
         </div>
 
-        {/* Floating Save Button - Positioned safely above MobileBottomNav on mobile */}
+        {/* Floating Save Button - Compact & Practical on Mobile */}
         <div
           className="no-print"
           style={{
             position: 'fixed',
-            bottom: isMobile ? 'calc(62px + env(safe-area-inset-bottom) + 10px)' : '1.5rem',
-            right: isMobile ? '1rem' : '1.5rem',
-            left: isMobile ? '1rem' : 'auto',
+            bottom: isMobile ? 'calc(62px + env(safe-area-inset-bottom) + 12px)' : '1.5rem',
+            right: isMobile ? '0.85rem' : '1.5rem',
             zIndex: 60,
-            display: 'flex',
-            justifyContent: 'center',
             pointerEvents: 'none'
           }}
         >
@@ -315,25 +312,35 @@ export default function StudentProgramPage() {
             onClick={handleSave}
             style={{
               pointerEvents: 'auto',
-              width: isMobile ? '100%' : 'auto',
-              maxWidth: isMobile ? 420 : 'none',
-              padding: isMobile ? '0.75rem 1.25rem' : '0.85rem 1.6rem',
+              padding: isMobile ? '0.45rem 0.85rem' : '0.85rem 1.6rem',
               background: saved ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
               color: 'white',
               border: 'none',
-              borderRadius: '1rem',
+              borderRadius: isMobile ? '99px' : '1rem',
               fontWeight: 900,
-              fontSize: isMobile ? '0.86rem' : '0.92rem',
+              fontSize: isMobile ? '0.78rem' : '0.92rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.55rem',
-              boxShadow: saved ? '0 8px 28px rgba(16,185,129,0.4)' : '0 8px 28px rgba(79,70,229,0.4)',
-              transition: 'all 0.25s'
+              gap: isMobile ? '0.35rem' : '0.55rem',
+              boxShadow: saved ? '0 4px 16px rgba(16,185,129,0.45)' : '0 4px 18px rgba(79,70,229,0.45)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              border: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.4)',
+              transform: 'scale(1)'
             }}
           >
-            {saved ? <><CheckCircle2 size={18} /> Kaydedildi!</> : <><Save size={18} /> Değişiklikleri Kaydet</>}
+            {saved ? (
+              <>
+                <CheckCircle2 size={isMobile ? 15 : 18} />
+                <span>Kaydedildi!</span>
+              </>
+            ) : (
+              <>
+                <Save size={isMobile ? 15 : 18} />
+                <span>{isMobile ? 'Kaydet' : 'Değişiklikleri Kaydet'}</span>
+              </>
+            )}
           </button>
         </div>
       </div>
