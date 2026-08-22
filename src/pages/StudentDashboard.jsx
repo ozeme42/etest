@@ -2853,7 +2853,7 @@ export default function StudentDashboard() {
         <div className="sd-grid-layout">
 
           {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
             {/* 🎯 BÖLÜM 1: EYLEM MERKEZİ (GÜNÜN GÖREVLERİ) */}
             <div
@@ -3971,7 +3971,7 @@ export default function StudentDashboard() {
           </div>
 
           {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
             {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
             <div>

@@ -367,10 +367,15 @@ export default function PeriodicQuestionAnalytics({
       background: 'var(--color-surface)',
       borderRadius: isMobile ? '1rem' : '1.25rem',
       border: '1.5px solid var(--color-border)',
-      padding: isMobile ? '0.85rem' : '1.35rem',
+      padding: isMobile ? '0.85rem 0.75rem' : '1.35rem',
       boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
       fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
-      color: 'var(--color-text)'
+      color: 'var(--color-text)',
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: 0,
+      boxSizing: 'border-box',
+      overflow: 'hidden'
     }}>
 
       {/* ── ÜST BAŞLIK VE KONTROLLER (APP HEADER) ── */}
