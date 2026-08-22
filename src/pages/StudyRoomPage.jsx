@@ -16,7 +16,8 @@ import {
   Zap, Settings2, Bell, Award, ListTodo, Edit3, Shield, TreePine, Sprout,
   Trophy, BookmarkCheck, ChevronRight, X, Gift, Compass, Expand, Shrink,
   Gauge, Activity, TrendingUp, HelpCircle, History, BookMarked, PlayCircle,
-  Layers, ExternalLink, FileText, Search, Filter, Calendar, Eye, EyeOff, MapPin
+  Layers, ExternalLink, FileText, Search, Filter, Calendar, Eye, EyeOff, MapPin,
+  AlertCircle
 } from 'lucide-react';
 
 // ─── AMBIENT SYNTHESIZER (Web Audio API) ───────────────────────────────────────
@@ -2238,6 +2239,92 @@ export default function StudyRoomPage() {
     ? Math.round(currentElapsedSec / currentProgressCount)
     : 0;
 
+  // ── ⏱️ CANLI PLAN & HIZ TAKİBİ HESAPLAMALARI (PACING & GOAL DYNAMICS) ──
+  const livePacingData = useMemo(() => {
+    if (activeStudyMode !== 'question') return null;
+
+    const targetSecPerQ = Math.round(minutesPerQuestion * 60);
+    const totalBudgetSec = targetGoalCount * targetSecPerQ;
+    const remainingQuestions = Math.max(0, targetGoalCount - currentProgressCount);
+    const remainingSeconds = activeStudyMode === 'stopwatch' 
+      ? Math.max(0, totalBudgetSec - stopwatchSeconds) 
+      : Math.max(0, timeLeft);
+
+    // Kalan her soruya kaç saniye düşüyor?
+    const remainingSecPerQ = (remainingQuestions > 0 && remainingSeconds > 0)
+      ? Math.round(remainingSeconds / remainingQuestions)
+      : 0;
+
+    // Şu ana kadar çözülen soru için hedeflenen ideal geçen süre:
+    const expectedElapsedSec = currentProgressCount * targetSecPerQ;
+    const deltaSec = expectedElapsedSec - currentElapsedSec; // Pozitif: İleride (önde), Negatif: Geride
+
+    let status = 'on_track';
+    let label = '⚡ Tam Hedef Hızındasın';
+    let statusText = 'Zaman ve soru çözme temponuz hedefle mükemmel dengede.';
+    let color = '#3b82f6';
+    let bg = isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff';
+    let border = isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe';
+    let glow = 'rgba(59, 130, 246, 0.15)';
+    let icon = <Zap size={15} color="#3b82f6" />;
+
+    if (currentProgressCount === 0 && currentElapsedSec <= 10) {
+      status = 'ready';
+      label = `🎯 Hedef Hız: Soru Başı ${formatSecToMinSec(targetSecPerQ)}`;
+      statusText = `Toplam ${targetGoalCount} soru için ${calculatedQuestionBudgetMinutes} dakika planlandı.`;
+      color = '#6366f1';
+      bg = isDark ? 'rgba(99, 102, 241, 0.15)' : '#eef2ff';
+      border = isDark ? 'rgba(99, 102, 241, 0.35)' : '#c7d2fe';
+      glow = 'rgba(99, 102, 241, 0.12)';
+      icon = <Target size={15} color="#6366f1" />;
+    } else if (currentProgressCount >= targetGoalCount) {
+      status = 'completed';
+      label = '🎉 Hedef Soru Tamamlandı!';
+      statusText = deltaSec >= 0 ? `${formatSecToMinSec(deltaSec)} süre artırdınız, tebrikler!` : 'Tüm soruları tamamladınız.';
+      color = '#10b981';
+      bg = isDark ? 'rgba(16, 185, 129, 0.16)' : '#f0fdf4';
+      border = isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0';
+      glow = 'rgba(16, 185, 129, 0.2)';
+      icon = <Trophy size={15} color="#10b981" />;
+    } else if (deltaSec >= 20) {
+      status = 'ahead';
+      label = `🚀 ${formatSecToMinSec(Math.abs(deltaSec))} Öndesin (Harika Hız!)`;
+      statusText = `Plana göre ${formatSecToMinSec(Math.abs(deltaSec))} daha hızlısınız.`;
+      color = '#10b981';
+      bg = isDark ? 'rgba(16, 185, 129, 0.16)' : '#f0fdf4';
+      border = isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0';
+      glow = 'rgba(16, 185, 129, 0.2)';
+      icon = <Sparkles size={15} color="#10b981" />;
+    } else if (deltaSec <= -20) {
+      status = 'behind';
+      label = `⚠️ ${formatSecToMinSec(Math.abs(deltaSec))} Geridesin (Hızlanmalısın)`;
+      statusText = `Kalan sorular için soru başı ${formatSecToMinSec(remainingSecPerQ)} vaktiniz var.`;
+      color = '#f59e0b';
+      bg = isDark ? 'rgba(245, 158, 11, 0.16)' : '#fffbeb';
+      border = isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a';
+      glow = 'rgba(245, 158, 11, 0.2)';
+      icon = <AlertCircle size={15} color="#f59e0b" />;
+    }
+
+    return {
+      targetSecPerQ,
+      totalBudgetSec,
+      remainingQuestions,
+      remainingSeconds,
+      remainingSecPerQ,
+      expectedElapsedSec,
+      deltaSec,
+      status,
+      label,
+      statusText,
+      color,
+      bg,
+      border,
+      glow,
+      icon
+    };
+  }, [activeStudyMode, minutesPerQuestion, targetGoalCount, currentProgressCount, currentElapsedSec, timeLeft, stopwatchSeconds, isDark, calculatedQuestionBudgetMinutes]);
+
   // ── 📊 DERS BAZLI HIZ İSTATİSTİKLERİ ÖZETİ & HESAPLAMALARI ──
   const trackedSubjectsList = useMemo(() => {
     return STUDY_SUBJECTS.map(subj => {
@@ -2591,21 +2678,23 @@ export default function StudyRoomPage() {
                     <span style={{ fontSize: '0.74rem', opacity: 0.8 }}>({targetProgressPct}%)</span>
                   </div>
 
-                  {activeStudyMode === 'question' && currentProgressCount > 0 && (
+                  {activeStudyMode === 'question' && livePacingData && (
                     <div style={{
                       fontSize: '0.72rem',
                       fontWeight: 800,
-                      color: liveSessionSecPerQ <= minutesPerQuestion * 60 ? '#10b981' : '#f59e0b',
+                      color: livePacingData.color,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
-                      background: isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.1)',
+                      background: livePacingData.bg,
+                      border: `1px solid ${livePacingData.border}`,
                       padding: '2px 8px',
                       borderRadius: 99,
-                      marginTop: 2
+                      marginTop: 2,
+                      boxShadow: `0 2px 8px ${livePacingData.glow}`
                     }}>
-                      <Gauge size={12} />
-                      <span>{formatSecToMinSec(liveSessionSecPerQ)} / soru</span>
+                      {livePacingData.icon}
+                      <span>{livePacingData.label}</span>
                     </div>
                   )}
                 </div>
@@ -2859,6 +2948,112 @@ export default function StudyRoomPage() {
                   </span>
                 </div>
               </div>
+
+              {/* ⏱️ CANLI PLAN & HIZ KONTROL PANELİ (PACING DASHBOARD) */}
+              {livePacingData && (
+                <div style={{
+                  background: themeObj.cardBg,
+                  borderRadius: 16,
+                  padding: '0.85rem 1rem',
+                  border: `1.5px solid ${livePacingData.border}`,
+                  boxShadow: `0 4px 16px ${livePacingData.glow}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  transition: 'all 0.3s ease'
+                }}>
+                  {/* Başlık ve Durum */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      background: livePacingData.bg,
+                      color: livePacingData.color,
+                      border: `1px solid ${livePacingData.border}`,
+                      borderRadius: 99,
+                      padding: '0.2rem 0.65rem',
+                      fontSize: '0.74rem',
+                      fontWeight: 900
+                    }}>
+                      {livePacingData.icon}
+                      <span>{livePacingData.label}</span>
+                    </div>
+
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText }}>
+                      🎯 Hedef: <strong style={{ color: themeObj.text }}>{formatSecToMinSec(livePacingData.targetSecPerQ)}/soru</strong>
+                    </span>
+                  </div>
+
+                  {/* 3'lü Hız ve Süre Göstergesi */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 6,
+                    background: themeObj.innerBg,
+                    padding: '0.5rem 0.65rem',
+                    borderRadius: 12,
+                    border: `1px solid ${themeObj.border}`
+                  }}>
+                    {/* 1. Kalan Her Soru Başına Süre */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORUYA</div>
+                      <div style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 900,
+                        color: livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ 
+                          ? '#10b981' 
+                          : livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ * 0.75 
+                            ? '#f59e0b' 
+                            : '#ef4444',
+                        marginTop: 2
+                      }}>
+                        {livePacingData.remainingQuestions > 0 
+                          ? (livePacingData.remainingSeconds > 0 ? `${formatSecToMinSec(livePacingData.remainingSecPerQ)}` : '0 sn') 
+                          : 'Bitti'}
+                      </div>
+                    </div>
+
+                    {/* 2. Şu Anki Gerçekleşen Hız */}
+                    <div style={{ textAlign: 'center', borderLeft: `1px solid ${themeObj.border}`, borderRight: `1px solid ${themeObj.border}` }}>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>ŞU ANKİ HIZIN</div>
+                      <div style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 900,
+                        color: liveSessionSecPerQ <= livePacingData.targetSecPerQ ? '#10b981' : '#f59e0b',
+                        marginTop: 2
+                      }}>
+                        {currentProgressCount > 0 ? `${formatSecToMinSec(liveSessionSecPerQ)}` : '—'}
+                      </div>
+                    </div>
+
+                    {/* 3. Kalan Soru */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORU</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: themeObj.text, marginTop: 2 }}>
+                        {livePacingData.remainingQuestions} / {targetGoalCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Canlı İlerleme Çubuğu */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText }}>
+                      <span>Soru: %{targetProgressPct} ({currentProgressCount}/{targetGoalCount})</span>
+                      <span>Süre: {formatTime(currentElapsedSec)} / {formatTime(livePacingData.totalBudgetSec)}</span>
+                    </div>
+                    <div style={{ height: 6, background: themeObj.innerBg, borderRadius: 99, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, targetProgressPct)}%`,
+                        background: livePacingData.color,
+                        borderRadius: 99,
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* MOD SEÇİCİ: OPTİK FORM vs HIZLI SAYAÇ */}
               <div style={{
