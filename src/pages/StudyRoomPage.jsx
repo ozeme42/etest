@@ -2787,6 +2787,115 @@ export default function StudyRoomPage() {
               <Settings2 size={isFullscreenView ? 20 : 17} />
             </button>
           </div>
+
+          {/* ⏱️ CANLI PLAN & HIZ KONTROL PANELİ (SAYACIN ALTINDA) */}
+          {activeStudyMode === 'question' && livePacingData && (
+            <div style={{
+              width: '100%',
+              marginTop: 14,
+              background: themeObj.cardBg,
+              borderRadius: 18,
+              padding: '0.85rem 1rem',
+              border: `1.5px solid ${livePacingData.border}`,
+              boxShadow: `0 4px 16px ${livePacingData.glow}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              transition: 'all 0.3s ease',
+              boxSizing: 'border-box'
+            }}>
+              {/* Başlık ve Durum */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  background: livePacingData.bg,
+                  color: livePacingData.color,
+                  border: `1px solid ${livePacingData.border}`,
+                  borderRadius: 99,
+                  padding: '0.2rem 0.65rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 900
+                }}>
+                  {livePacingData.icon}
+                  <span>{livePacingData.label}</span>
+                </div>
+
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText }}>
+                  🎯 Hedef: <strong style={{ color: themeObj.text }}>{formatSecToMinSec(livePacingData.targetSecPerQ)}/soru</strong>
+                </span>
+              </div>
+
+              {/* 3'lü Hız ve Süre Göstergesi */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 6,
+                background: themeObj.innerBg,
+                padding: '0.5rem 0.65rem',
+                borderRadius: 12,
+                border: `1px solid ${themeObj.border}`
+              }}>
+                {/* 1. Kalan Her Soru Başına Süre */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORUYA</div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 900,
+                    color: livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ 
+                      ? '#10b981' 
+                      : livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ * 0.75 
+                        ? '#f59e0b' 
+                        : '#ef4444',
+                    marginTop: 2
+                  }}>
+                    {livePacingData.remainingQuestions > 0 
+                      ? (livePacingData.remainingSeconds > 0 ? `${formatSecToMinSec(livePacingData.remainingSecPerQ)}` : '0 sn') 
+                      : 'Bitti'}
+                  </div>
+                </div>
+
+                {/* 2. Şu Anki Gerçekleşen Hız */}
+                <div style={{ textAlign: 'center', borderLeft: `1px solid ${themeObj.border}`, borderRight: `1px solid ${themeObj.border}` }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>ŞU ANKİ HIZIN</div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 900,
+                    color: liveSessionSecPerQ <= livePacingData.targetSecPerQ ? '#10b981' : '#f59e0b',
+                    marginTop: 2
+                  }}>
+                    {currentProgressCount > 0 ? `${formatSecToMinSec(liveSessionSecPerQ)}` : '—'}
+                  </div>
+                </div>
+
+                {/* 3. Kalan Soru */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORU</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: themeObj.text, marginTop: 2 }}>
+                    {livePacingData.remainingQuestions} / {targetGoalCount}
+                  </div>
+                </div>
+              </div>
+
+              {/* Canlı İlerleme Çubuğu */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText }}>
+                  <span>Soru: %{targetProgressPct} ({currentProgressCount}/{targetGoalCount})</span>
+                  <span>Süre: {formatTime(currentElapsedSec)} / {formatTime(livePacingData.totalBudgetSec)}</span>
+                </div>
+                <div style={{ height: 6, background: themeObj.innerBg, borderRadius: 99, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${Math.min(100, targetProgressPct)}%`,
+                    background: livePacingData.color,
+                    borderRadius: 99,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── SAĞ BÖLÜM: DERS SEÇİMİ, HEDEF VE SORU ÇÖZME BUTONU ── */}
@@ -2948,112 +3057,6 @@ export default function StudyRoomPage() {
                   </span>
                 </div>
               </div>
-
-              {/* ⏱️ CANLI PLAN & HIZ KONTROL PANELİ (PACING DASHBOARD) */}
-              {livePacingData && (
-                <div style={{
-                  background: themeObj.cardBg,
-                  borderRadius: 16,
-                  padding: '0.85rem 1rem',
-                  border: `1.5px solid ${livePacingData.border}`,
-                  boxShadow: `0 4px 16px ${livePacingData.glow}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  transition: 'all 0.3s ease'
-                }}>
-                  {/* Başlık ve Durum */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      background: livePacingData.bg,
-                      color: livePacingData.color,
-                      border: `1px solid ${livePacingData.border}`,
-                      borderRadius: 99,
-                      padding: '0.2rem 0.65rem',
-                      fontSize: '0.74rem',
-                      fontWeight: 900
-                    }}>
-                      {livePacingData.icon}
-                      <span>{livePacingData.label}</span>
-                    </div>
-
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeObj.subText }}>
-                      🎯 Hedef: <strong style={{ color: themeObj.text }}>{formatSecToMinSec(livePacingData.targetSecPerQ)}/soru</strong>
-                    </span>
-                  </div>
-
-                  {/* 3'lü Hız ve Süre Göstergesi */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 6,
-                    background: themeObj.innerBg,
-                    padding: '0.5rem 0.65rem',
-                    borderRadius: 12,
-                    border: `1px solid ${themeObj.border}`
-                  }}>
-                    {/* 1. Kalan Her Soru Başına Süre */}
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORUYA</div>
-                      <div style={{
-                        fontSize: '0.95rem',
-                        fontWeight: 900,
-                        color: livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ 
-                          ? '#10b981' 
-                          : livePacingData.remainingSecPerQ >= livePacingData.targetSecPerQ * 0.75 
-                            ? '#f59e0b' 
-                            : '#ef4444',
-                        marginTop: 2
-                      }}>
-                        {livePacingData.remainingQuestions > 0 
-                          ? (livePacingData.remainingSeconds > 0 ? `${formatSecToMinSec(livePacingData.remainingSecPerQ)}` : '0 sn') 
-                          : 'Bitti'}
-                      </div>
-                    </div>
-
-                    {/* 2. Şu Anki Gerçekleşen Hız */}
-                    <div style={{ textAlign: 'center', borderLeft: `1px solid ${themeObj.border}`, borderRight: `1px solid ${themeObj.border}` }}>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>ŞU ANKİ HIZIN</div>
-                      <div style={{
-                        fontSize: '0.95rem',
-                        fontWeight: 900,
-                        color: liveSessionSecPerQ <= livePacingData.targetSecPerQ ? '#10b981' : '#f59e0b',
-                        marginTop: 2
-                      }}>
-                        {currentProgressCount > 0 ? `${formatSecToMinSec(liveSessionSecPerQ)}` : '—'}
-                      </div>
-                    </div>
-
-                    {/* 3. Kalan Soru */}
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: themeObj.subText, letterSpacing: '0.02em' }}>KALAN SORU</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: themeObj.text, marginTop: 2 }}>
-                        {livePacingData.remainingQuestions} / {targetGoalCount}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Canlı İlerleme Çubuğu */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', fontWeight: 800, color: themeObj.subText }}>
-                      <span>Soru: %{targetProgressPct} ({currentProgressCount}/{targetGoalCount})</span>
-                      <span>Süre: {formatTime(currentElapsedSec)} / {formatTime(livePacingData.totalBudgetSec)}</span>
-                    </div>
-                    <div style={{ height: 6, background: themeObj.innerBg, borderRadius: 99, overflow: 'hidden', border: `1px solid ${themeObj.border}` }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${Math.min(100, targetProgressPct)}%`,
-                        background: livePacingData.color,
-                        borderRadius: 99,
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* MOD SEÇİCİ: OPTİK FORM vs HIZLI SAYAÇ */}
               <div style={{
