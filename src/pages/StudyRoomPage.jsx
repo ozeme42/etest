@@ -2440,7 +2440,7 @@ export default function StudyRoomPage() {
               <BookMarked size={18} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev'}
                 </span>
@@ -2449,9 +2449,19 @@ export default function StudyRoomPage() {
                     {selectedTask.subject}
                   </span>
                 )}
+                {(selectedTask.unit || selectedTask.topic) && (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(16,185,129,0.18)', color: '#059669', padding: '0.05rem 0.45rem', borderRadius: 6 }}>
+                    {[selectedTask.unit, selectedTask.topic].filter(Boolean).join(' › ')}
+                  </span>
+                )}
+                {selectedTask.bookTitle && selectedTask.bookTitle !== selectedTask.title && (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)', background: 'var(--color-surface)', padding: '0.05rem 0.4rem', borderRadius: 6, border: '1px solid var(--color-border)' }}>
+                    📖 {selectedTask.bookTitle}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '0.9rem', fontWeight: 900, color: themeObj.text, lineHeight: 1.3 }}>
-                {selectedTask.title}
+                {selectedTask.title || selectedTask.testName || selectedTask.topic || 'Test'}
               </div>
             </div>
           </div>

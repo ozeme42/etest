@@ -2563,20 +2563,85 @@ export default function ProgramCenter({
       qCount = item.questionCount;
     }
 
+    const itemText = String(item.text || item.topic || item.note || item.unit || '').trim();
+    const itemBookName = String(item.bookName || item.title || '').trim();
+    const itemSubject = String(item.subject || '').trim();
+
+    // 1. Find book in tracked books (match by bookName or title or subject)
+    let matchedBook = (books || []).find(b => {
+      if (!b) return false;
+      const bTitle = (b.title || '').toLowerCase();
+      if (item.bookId && String(b.id) === String(item.bookId)) return true;
+      if (itemBookName && (bTitle.includes(itemBookName.toLowerCase()) || itemBookName.toLowerCase().includes(bTitle))) return true;
+      if (itemSubject && bTitle.includes(itemSubject.toLowerCase())) return true;
+      return false;
+    });
+
+    // 2. Find matching test in bookTests
+    let matchedTest = null;
+    if (item.testId || item.bookTestId || item.realTestId) {
+      const searchTid = String(item.testId || item.bookTestId || item.realTestId);
+      matchedTest = (bookTests || []).find(t => String(t.id) === searchTid || toUUID(t.id) === searchTid);
+    }
+
+    if (!matchedTest && matchedBook) {
+      const bookTestsList = (bookTests || []).filter(t => String(t.bookId) === String(matchedBook.id));
+      if (bookTestsList.length > 0) {
+        // Try matching test name or unit with itemText / topic / unit / note
+        const searchTerms = [itemText, item.topic, item.unit, item.note].filter(Boolean).map(s => String(s).toLowerCase());
+        for (const term of searchTerms) {
+          const found = bookTestsList.find(t => {
+            const tName = (t.name || t.title || '').toLowerCase();
+            const tUnit = (t.unit || t.unitName || '').toLowerCase();
+            const tTopic = (t.topic || t.topicName || '').toLowerCase();
+            return tName.includes(term) || term.includes(tName) || tUnit.includes(term) || term.includes(tUnit) || tTopic.includes(term) || term.includes(tTopic);
+          });
+          if (found) {
+            matchedTest = found;
+            break;
+          }
+        }
+
+        // If still not matched, find first unsolved test for this student in this book
+        if (!matchedTest) {
+          const unsolvedTest = bookTestsList.find(t => {
+            return !checkIsTaskSolved({ testId: t.id, bookTestId: t.id, taskType: 'kitap' }, effectiveStudentId, submissions, allHomeworks, studyAssignments);
+          });
+          matchedTest = unsolvedTest || bookTestsList[0];
+        }
+      }
+    }
+
+    const finalSubject = matchedTest?.subject || matchedBook?.subject || item.subject || 'Genel';
+    const finalUnit = matchedTest?.unit || matchedTest?.unitName || item.unit || '';
+    const finalTopic = matchedTest?.topic || matchedTest?.topicName || item.topic || item.text || '';
+    const finalBookTitle = matchedBook?.title || item.bookName || null;
+    const finalTestName = matchedTest?.name || matchedTest?.title || (finalUnit ? `${finalUnit} Testi` : (item.taskType === 'kitap' ? `${finalBookTitle} Testi` : 'Ders Çalışması'));
+    
+    if (matchedTest && matchedTest.questionCount) {
+      qCount = Number(matchedTest.questionCount) || qCount;
+    } else if (matchedTest?.answerKey) {
+      qCount = typeof matchedTest.answerKey === 'object' ? Object.keys(matchedTest.answerKey).length : qCount;
+    }
+
     const taskPayload = {
       id: item.id,
-      title: item.bookName || item.subject || item.text || item.topic || 'Ders Çalışması',
-      subject: item.subject || item.bookName || item.title || '',
-      unit: item.unit || '',
-      topic: item.topic || item.text || '',
+      title: finalBookTitle ? `${finalBookTitle} — ${finalTestName}` : (finalUnit ? `${finalSubject} • ${finalUnit}` : `${finalSubject} Çalışması`),
+      subject: finalSubject,
+      unit: finalUnit,
+      topic: finalTopic,
       text: item.text || '',
+      bookTitle: finalBookTitle,
+      testName: finalTestName,
+      bookId: matchedBook?.id || null,
       questionCount: qCount,
-      testId: item.testId || item.realTestId || item.bookTestId || null,
-      bookTestId: item.bookTestId || item.testId || null,
+      testId: matchedTest?.id || item.testId || item.realTestId || item.bookTestId || null,
+      bookTestId: matchedTest?.id || item.bookTestId || item.testId || null,
+      realTestId: matchedTest?.id || item.realTestId || item.testId || null,
       hwId: item.hwId || null,
       roadmapAssignmentId: item.roadmapAssignmentId || null,
-      sourceType: item.roadmapAssignmentId ? 'roadmap' : (item.testId || item.bookTestId) ? 'bookTest' : item.hwId ? 'homework' : 'program',
-      sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (item.testId || item.bookTestId) ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı',
+      sourceType: item.roadmapAssignmentId ? 'roadmap' : (matchedTest || item.taskType === 'kitap') ? 'bookTest' : item.hwId ? 'homework' : 'program',
+      sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (matchedTest || item.taskType === 'kitap') ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı',
       autoStart: true
     };
 
@@ -2585,7 +2650,7 @@ export default function ProgramCenter({
     } catch(e) {}
 
     navigate('/study-room', { state: { autoStartTask: taskPayload, autoStart: true } });
-  }, [navigate]);
+  }, [navigate, books, bookTests, effectiveStudentId, submissions, allHomeworks, studyAssignments]);
 
   const weekInfo = useMemo(() => {
     const MONTHS_TR = [
