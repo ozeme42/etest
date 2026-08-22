@@ -294,6 +294,9 @@ const getThemeList = (isDark) => [
     buttonBg: 'var(--color-surface-hover)',
     border: 'var(--color-border)',
     accent: '#6366f1',
+    accentGradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+    opticalSelectedBg: isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(99, 102, 241, 0.1)',
+    opticalSelectedBorder: isDark ? 'rgba(129, 140, 248, 0.45)' : 'rgba(99, 102, 241, 0.35)',
     text: 'var(--color-text)',
     subText: 'var(--color-text-muted)',
     isDark: isDark
@@ -307,6 +310,9 @@ const getThemeList = (isDark) => [
     buttonBg: 'rgba(255, 255, 255, 0.12)',
     border: 'rgba(99, 102, 241, 0.35)',
     accent: '#818cf8',
+    accentGradient: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
+    opticalSelectedBg: 'rgba(129, 140, 248, 0.22)',
+    opticalSelectedBorder: 'rgba(129, 140, 248, 0.5)',
     text: '#ffffff',
     subText: '#c7d2fe',
     isDark: true
@@ -320,6 +326,9 @@ const getThemeList = (isDark) => [
     buttonBg: 'rgba(255, 255, 255, 0.1)',
     border: 'rgba(148, 163, 184, 0.25)',
     accent: '#38bdf8',
+    accentGradient: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+    opticalSelectedBg: 'rgba(56, 189, 248, 0.22)',
+    opticalSelectedBorder: 'rgba(56, 189, 248, 0.5)',
     text: '#f8fafc',
     subText: '#94a3b8',
     isDark: true
@@ -333,6 +342,9 @@ const getThemeList = (isDark) => [
     buttonBg: 'rgba(255, 255, 255, 0.12)',
     border: 'rgba(52, 211, 153, 0.35)',
     accent: '#34d399',
+    accentGradient: 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
+    opticalSelectedBg: 'rgba(52, 211, 153, 0.22)',
+    opticalSelectedBorder: 'rgba(52, 211, 153, 0.5)',
     text: '#ffffff',
     subText: '#a7f3d0',
     isDark: true
@@ -346,6 +358,9 @@ const getThemeList = (isDark) => [
     buttonBg: 'rgba(255, 255, 255, 0.12)',
     border: 'rgba(244, 114, 182, 0.35)',
     accent: '#fb7185',
+    accentGradient: 'linear-gradient(135deg, #fb7185 0%, #e11d48 100%)',
+    opticalSelectedBg: 'rgba(251, 113, 133, 0.22)',
+    opticalSelectedBorder: 'rgba(251, 113, 133, 0.5)',
     text: '#ffffff',
     subText: '#fbcfe8',
     isDark: true
@@ -3111,7 +3126,7 @@ export default function StudyRoomPage() {
                     borderRadius: 10,
                     border: 'none',
                     background: opticalInputMode === 'optical'
-                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
                       : 'transparent',
                     color: opticalInputMode === 'optical' ? '#ffffff' : themeObj.subText,
                     fontWeight: 900,
@@ -3121,6 +3136,7 @@ export default function StudyRoomPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 5,
+                    boxShadow: opticalInputMode === 'optical' ? `0 3px 12px ${themeObj.accent}40` : 'none',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -3128,7 +3144,7 @@ export default function StudyRoomPage() {
                   <span>Optik Form</span>
                   {Object.keys(opticalAnswers).length > 0 && (
                     <span style={{
-                      background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.3)' : '#f59e0b',
+                      background: opticalInputMode === 'optical' ? 'rgba(255,255,255,0.25)' : themeObj.accent,
                       color: '#ffffff',
                       fontSize: '0.64rem',
                       padding: '1px 5px',
@@ -3151,7 +3167,7 @@ export default function StudyRoomPage() {
                     borderRadius: 10,
                     border: 'none',
                     background: opticalInputMode === 'counter'
-                      ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
                       : 'transparent',
                     color: opticalInputMode === 'counter' ? '#ffffff' : themeObj.subText,
                     fontWeight: 900,
@@ -3161,6 +3177,7 @@ export default function StudyRoomPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 5,
+                    boxShadow: opticalInputMode === 'counter' ? `0 3px 12px ${themeObj.accent}40` : 'none',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -3188,8 +3205,8 @@ export default function StudyRoomPage() {
                       <span style={{
                         fontSize: isMobile ? '0.68rem' : '0.74rem',
                         fontWeight: 900,
-                        color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : '#f59e0b',
-                        background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                        color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : themeObj.accent,
+                        background: themeObj.innerBg,
                         padding: '2px 7px',
                         borderRadius: 8,
                         border: `1px solid ${themeObj.border}`
@@ -3211,11 +3228,12 @@ export default function StudyRoomPage() {
                             padding: '2px 6px',
                             borderRadius: 6,
                             border: 'none',
-                            background: opticalOptionCount === 4 ? '#6366f1' : 'transparent',
+                            background: opticalOptionCount === 4 ? themeObj.accent : 'transparent',
                             color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
                             fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 900,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
                           }}
                         >
                           A-D (4)
@@ -3230,11 +3248,12 @@ export default function StudyRoomPage() {
                             padding: '2px 6px',
                             borderRadius: 6,
                             border: 'none',
-                            background: opticalOptionCount === 5 ? '#6366f1' : 'transparent',
+                            background: opticalOptionCount === 5 ? themeObj.accent : 'transparent',
                             color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
                             fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 900,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
                           }}
                         >
                           A-E (5)
@@ -3249,7 +3268,7 @@ export default function StudyRoomPage() {
                             padding: '2px 6px',
                             borderRadius: 6,
                             border: `1px solid ${themeObj.border}`,
-                            background: 'transparent',
+                            background: themeObj.buttonBg,
                             color: '#ef4444',
                             fontSize: isMobile ? '0.64rem' : '0.68rem',
                             fontWeight: 800,
@@ -3290,8 +3309,8 @@ export default function StudyRoomPage() {
                             justifyContent: 'space-between',
                             padding: isMobile ? '0.3rem 0.4rem' : '0.35rem 0.6rem',
                             borderRadius: 10,
-                            background: userAns ? (isDark ? 'rgba(245,158,11,0.14)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
-                            border: `1px solid ${userAns ? (isDark ? 'rgba(245,158,11,0.4)' : '#fde68a') : themeObj.border}`,
+                            background: userAns ? (themeObj.opticalSelectedBg || 'rgba(99, 102, 241, 0.15)') : themeObj.innerBg,
+                            border: `1px solid ${userAns ? (themeObj.opticalSelectedBorder || themeObj.accent) : themeObj.border}`,
                             transition: 'all 0.15s',
                             minWidth: 0
                           }}
@@ -3300,7 +3319,7 @@ export default function StudyRoomPage() {
                             <span style={{
                               fontSize: isMobile ? '0.72rem' : '0.78rem',
                               fontWeight: 900,
-                              color: userAns ? '#f59e0b' : themeObj.text
+                              color: userAns ? themeObj.accent : themeObj.text
                             }}>
                               {qNo}.
                             </span>
@@ -3318,10 +3337,10 @@ export default function StudyRoomPage() {
                                     width: isMobile ? 25 : 30,
                                     height: isMobile ? 25 : 30,
                                     borderRadius: '50%',
-                                    border: isSelected ? 'none' : `1.5px solid ${themeObj.border}`,
+                                    border: isSelected ? `1.5px solid ${themeObj.accent}` : `1.5px solid ${themeObj.border}`,
                                     background: isSelected
-                                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-                                      : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                                      ? (themeObj.accentGradient || `linear-gradient(135deg, ${themeObj.accent}, ${themeObj.accent})`)
+                                      : themeObj.buttonBg,
                                     color: isSelected ? '#ffffff' : themeObj.text,
                                     fontWeight: 900,
                                     fontSize: isMobile ? '0.72rem' : '0.8rem',
@@ -3329,7 +3348,7 @@ export default function StudyRoomPage() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    boxShadow: isSelected ? '0 2px 8px rgba(245,158,11,0.4)' : 'none',
+                                    boxShadow: isSelected ? `0 2px 10px ${themeObj.accent}55` : 'none',
                                     transform: isSelected ? 'scale(1.08)' : 'scale(1)',
                                     transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                     flexShrink: 0
@@ -3405,7 +3424,7 @@ export default function StudyRoomPage() {
                       style={{
                         padding: isFullscreenView ? '1.1rem 1.6rem' : isMobile ? '0.75rem 1.1rem' : '0.95rem 1.3rem',
                         borderRadius: isMobile ? 14 : 16,
-                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        background: themeObj.accentGradient || 'linear-gradient(135deg, #f59e0b, #d97706)',
                         border: 'none',
                         color: 'white',
                         fontWeight: 900,
@@ -3415,7 +3434,7 @@ export default function StudyRoomPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 8,
-                        boxShadow: '0 6px 20px rgba(245,158,11,0.35)'
+                        boxShadow: `0 6px 20px ${themeObj.accent}44`
                       }}
                     >
                       <Plus size={isMobile ? 18 : 22} strokeWidth={3} />
@@ -6037,14 +6056,14 @@ export default function StudyRoomPage() {
                 }} className="custom-scrollbar">
                   {completedQuizResult.answers.map(ans => {
                     const hasKey = completedQuizResult.hasAnswerKey;
-                    let badgeBg = isDark ? 'rgba(255,255,255,0.06)' : '#ffffff';
+                    let badgeBg = themeObj.buttonBg;
                     let badgeBorder = themeObj.border;
                     let badgeText = themeObj.text;
 
                     if (hasKey) {
                       if (!ans.userAnswerLetter) {
-                        badgeBg = isDark ? 'rgba(148, 163, 184, 0.1)' : '#f1f5f9';
-                        badgeText = '#64748b';
+                        badgeBg = themeObj.innerBg;
+                        badgeText = themeObj.subText;
                       } else if (ans.isCorrect) {
                         badgeBg = 'rgba(16, 185, 129, 0.15)';
                         badgeBorder = '#10b981';
