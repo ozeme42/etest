@@ -438,7 +438,7 @@ export default function StudyRoomPage() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isSmallMobile = useMediaQuery('(max-width: 480px)');
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
-  const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
+  const { studyPlans = [], studyAssignments = [], updateStudyAssignment } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
   const { submissions = [], addSubmission, updateSubmission } = useEvaluation() || {};
   const { getCoachingProfileForStudent } = useCoaching() || {};
@@ -732,6 +732,10 @@ export default function StudyRoomPage() {
               id: subId,
               dedupeKey: subId,
               roadmapAssignmentId: assignment.id,
+              roadmapPlanId: plan.id,
+              roadmapSubjectId: subject.id,
+              roadmapSubjectName: subject.name,
+              roadmapTargetId: subject.id,
               isRoadmapTask: true,
               sourceType: 'roadmap',
               sourceLabel: '🗺️ Yol Haritası',
@@ -741,7 +745,7 @@ export default function StudyRoomPage() {
               subtitle: `${plan.title} Yol Haritası`,
               dayName: sDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === sDayKey)?.long : null,
               dayKey: sDayKey,
-              questionCount: 20,
+              questionCount: 0,
               dueDate: subject.dueDate,
               isCompleted: isSubjectCompleted
             });
@@ -759,6 +763,12 @@ export default function StudyRoomPage() {
                 id: topId,
                 dedupeKey: topId,
                 roadmapAssignmentId: assignment.id,
+                roadmapPlanId: plan.id,
+                roadmapTopicId: topic.id,
+                roadmapTopicName: topic.name,
+                roadmapSubjectId: subject.id,
+                roadmapSubjectName: subject.name,
+                roadmapTargetId: topic.id,
                 isRoadmapTask: true,
                 sourceType: 'roadmap',
                 sourceLabel: '🗺️ Yol Haritası',
@@ -768,7 +778,7 @@ export default function StudyRoomPage() {
                 subtitle: `${plan.title} Yol Haritası`,
                 dayName: tDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === tDayKey)?.long : null,
                 dayKey: tDayKey,
-                questionCount: 20,
+                questionCount: 0,
                 dueDate: topic.dueDate,
                 isCompleted
               });
@@ -776,6 +786,7 @@ export default function StudyRoomPage() {
           }
         });
       });
+
     });
 
     return taskList;
@@ -954,6 +965,10 @@ export default function StudyRoomPage() {
                   id: subId,
                   dedupeKey: subId,
                   roadmapAssignmentId: assignment.id,
+                  roadmapPlanId: plan.id,
+                  roadmapSubjectId: subject.id,
+                  roadmapSubjectName: subject.name,
+                  roadmapTargetId: subject.id,
                   isRoadmapTask: true,
                   sourceType: 'roadmap',
                   sourceLabel: '🗺️ Yol Haritası',
@@ -963,7 +978,7 @@ export default function StudyRoomPage() {
                   subtitle: `${dayCfg.long} Yol Haritası`,
                   dayName: dayCfg.long,
                   dayKey: dayCfg.key,
-                  questionCount: 20,
+                  questionCount: 0,
                   dueDate: subject.dueDate,
                   isCompleted: isSubjectCompleted
                 });
@@ -984,6 +999,12 @@ export default function StudyRoomPage() {
                     id: topId,
                     dedupeKey: topId,
                     roadmapAssignmentId: assignment.id,
+                    roadmapPlanId: plan.id,
+                    roadmapTopicId: topic.id,
+                    roadmapTopicName: topic.name,
+                    roadmapSubjectId: subject.id,
+                    roadmapSubjectName: subject.name,
+                    roadmapTargetId: topic.id,
                     isRoadmapTask: true,
                     sourceType: 'roadmap',
                     sourceLabel: '🗺️ Yol Haritası',
@@ -993,7 +1014,7 @@ export default function StudyRoomPage() {
                     subtitle: `${dayCfg.long} Yol Haritası`,
                     dayName: dayCfg.long,
                     dayKey: dayCfg.key,
-                    questionCount: 20,
+                    questionCount: 0,
                     dueDate: topic.dueDate,
                     isCompleted
                   });
@@ -1001,6 +1022,7 @@ export default function StudyRoomPage() {
               }
             }
           });
+
         });
       });
 
@@ -1068,29 +1090,53 @@ export default function StudyRoomPage() {
   const handleSelectTask = (task, startImmediately = false) => {
     if (!task) return;
     setSelectedTask(task);
-    setOpticalInputMode('optical');
-    localStorage.setItem('study_optical_mode', 'optical');
     setShowHomeworkPickerModal(false);
 
-    // Dersi otomatik eşle
-    const matchedSubjId = matchSubjectFromTask(task);
-    if (matchedSubjId) {
-      setSelectedSubject(matchedSubjId);
-      localStorage.setItem('study_selected_subject', matchedSubjId);
-      const subjObj = STUDY_SUBJECTS.find(s => s.id === matchedSubjId);
-      if (subjObj) {
-        setMinutesPerQuestion(subjObj.defaultMinPerQ || 2.0);
-        localStorage.setItem('study_min_per_q', String(subjObj.defaultMinPerQ || 2.0));
+    const isRoadmap = task.isRoadmapTask || task.sourceType === 'roadmap';
+
+    if (isRoadmap) {
+      // Yol Haritası konu takibi olduğu için optik girme YOKTUR, sadece odaklanarak çalışma (Pomodoro) vardır.
+      setActiveStudyMode('study');
+      localStorage.setItem('study_master_mode', 'study');
+      setOpticalAnswers({});
+      localStorage.removeItem('study_optical_answers');
+      setOpticalInputMode('counter');
+      localStorage.setItem('study_optical_mode', 'counter');
+
+      // Dersi eşle
+      const matchedSubjId = matchSubjectFromTask(task);
+      if (matchedSubjId) {
+        setSelectedSubject(matchedSubjId);
+        localStorage.setItem('study_selected_subject', matchedSubjId);
       }
+
+      // Varsayılan çalışma süresi 25 dk Pomodoro
+      setDurations(d => ({ ...d, pomodoro: 25 }));
+      if (!isRunning) setTimeLeft(25 * 60);
+    } else {
+      setOpticalInputMode('optical');
+      localStorage.setItem('study_optical_mode', 'optical');
+
+      // Dersi otomatik eşle
+      const matchedSubjId = matchSubjectFromTask(task);
+      if (matchedSubjId) {
+        setSelectedSubject(matchedSubjId);
+        localStorage.setItem('study_selected_subject', matchedSubjId);
+        const subjObj = STUDY_SUBJECTS.find(s => s.id === matchedSubjId);
+        if (subjObj) {
+          setMinutesPerQuestion(subjObj.defaultMinPerQ || 2.0);
+          localStorage.setItem('study_min_per_q', String(subjObj.defaultMinPerQ || 2.0));
+        }
+      }
+
+      // Hedef soru sayısını ayarla
+      const qCount = extractQuestionCountFromTask(task);
+      handleSetNewTargetGoal(qCount, true);
+
+      // Soru moduna geç
+      setActiveStudyMode('question');
+      localStorage.setItem('study_master_mode', 'question');
     }
-
-    // Hedef soru sayısını ayarla
-    const qCount = extractQuestionCountFromTask(task);
-    handleSetNewTargetGoal(qCount, true);
-
-    // Soru moduna geç
-    setActiveStudyMode('question');
-    localStorage.setItem('study_master_mode', 'question');
 
     if (startImmediately) {
       setIsRunning(true);
@@ -1101,6 +1147,64 @@ export default function StudyRoomPage() {
       setIsRunning(false);
     }
   };
+
+  // Yol Haritası Konu Çalışmasını Tamamlama Fonksiyonu
+  const handleCompleteRoadmapTask = async () => {
+    if (!selectedTask || (!selectedTask.isRoadmapTask && selectedTask.sourceType !== 'roadmap')) return;
+
+    try {
+      const assignmentId = selectedTask.roadmapAssignmentId;
+      const targetId = selectedTask.roadmapTargetId || selectedTask.roadmapTopicId || selectedTask.roadmapSubjectId || selectedTask.id;
+      const targetName = selectedTask.roadmapTopicName || selectedTask.roadmapSubjectName || selectedTask.topic || selectedTask.subject;
+
+      if (assignmentId && updateStudyAssignment) {
+        const assignment = (studyAssignments || []).find(a => String(a.id) === String(assignmentId));
+        if (assignment) {
+          let currentCompleted = [];
+          if (Array.isArray(assignment.completedTopics)) currentCompleted = [...assignment.completedTopics];
+          else if (typeof assignment.completedTopics === 'string') {
+            try { currentCompleted = JSON.parse(assignment.completedTopics); } catch(e) {}
+          } else if (typeof assignment.topic === 'string') {
+            try { currentCompleted = JSON.parse(assignment.topic); } catch(e) {}
+          }
+          
+          const newSet = new Set(currentCompleted.map(String));
+          if (targetId) newSet.add(String(targetId));
+          if (targetName) newSet.add(String(targetName));
+          const updatedList = Array.from(newSet);
+
+          await updateStudyAssignment(assignmentId, {
+            completedTopics: updatedList
+          });
+        }
+      }
+
+      // Çalışma süresini istatistiklere ekle
+      const elapsedMinutes = Math.max(1, Math.round(currentElapsedSec / 60));
+      setDailyStats(prev => ({
+        ...prev,
+        studyMinutes: prev.studyMinutes + elapsedMinutes,
+        sessionsCount: prev.sessionsCount + 1
+      }));
+
+      // Tebrik ve tamamlama efektleri
+      try {
+        ambientAudio.playChime();
+      } catch (e) {}
+
+      try {
+        jsConfettiRef.current?.addConfetti({ emojis: ['🎉', '⭐', '✨', '🎯', '📚'] });
+      } catch (e) {}
+
+      showStudyToast(`"${selectedTask.title || selectedTask.topic || 'Konu'}" çalışması tamamlandı! 🎉`, 'success');
+      handleClearSelectedTask();
+      setIsRunning(false);
+    } catch (err) {
+      console.error('Error completing roadmap task:', err);
+      showStudyToast('Konu tamamlanırken bir hata oluştu.', 'error');
+    }
+  };
+
 
   // Program sayfasından gelindiğinde görevi otomatik yükle, ders & soru sayısını aktar ve doğrudan başlat
   useEffect(() => {
@@ -2542,8 +2646,10 @@ export default function StudyRoomPage() {
       {/* 2. AKTİF GÖREV BİLGİ KARTI (SADECE BİR GÖREV YÜKLENDİĞİNDE GÖSTERİLİR) */}
       {selectedTask && (
         <div style={{
-          background: isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff',
-          border: '1.5px solid #3b82f6',
+          background: selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap'
+            ? (isDark ? 'rgba(139, 92, 246, 0.14)' : '#f5f3ff')
+            : (isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff'),
+          border: `1.5px solid ${selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap' ? '#8b5cf6' : '#3b82f6'}`,
           borderRadius: 18,
           padding: '0.85rem 1.15rem',
           display: 'flex',
@@ -2551,14 +2657,18 @@ export default function StudyRoomPage() {
           justifyContent: 'space-between',
           gap: 12,
           flexWrap: 'wrap',
-          boxShadow: '0 4px 16px rgba(59,130,246,0.12)'
+          boxShadow: selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap'
+            ? '0 4px 16px rgba(139,92,246,0.15)'
+            : '0 4px 16px rgba(59,130,246,0.12)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
             <div style={{
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              background: selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap'
+                ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+                : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -2569,11 +2679,23 @@ export default function StudyRoomPage() {
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {selectedTask.sourceType === 'program' ? '📅 Program Görevi' : selectedTask.sourceType === 'bookTest' ? '📚 Kitap Testi' : '📝 Ödev'}
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  color: selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap' ? '#8b5cf6' : '#3b82f6',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  {selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap'
+                    ? '🗺️ Yol Haritası (Konu Takibi)'
+                    : selectedTask.sourceType === 'program'
+                    ? '📅 Program Görevi'
+                    : selectedTask.sourceType === 'bookTest'
+                    ? '📚 Kitap Testi'
+                    : '📝 Ödev'}
                 </span>
                 {selectedTask.subject && (
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(59,130,246,0.2)', color: '#2563eb', padding: '0.05rem 0.45rem', borderRadius: 6 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(139,92,246,0.18)', color: '#7c3aed', padding: '0.05rem 0.45rem', borderRadius: 6 }}>
                     {selectedTask.subject}
                   </span>
                 )}
@@ -2595,12 +2717,12 @@ export default function StudyRoomPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {(selectedTask.realTestId || selectedTask.bookTestId) && (
+            {(selectedTask.isRoadmapTask || selectedTask.sourceType === 'roadmap') ? (
               <button
                 type="button"
-                onClick={() => handleLaunchTaskQuiz(selectedTask)}
+                onClick={handleCompleteRoadmapTask}
                 style={{
-                  padding: '0.45rem 0.9rem',
+                  padding: '0.45rem 0.95rem',
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   color: '#ffffff',
                   border: 'none',
@@ -2611,11 +2733,34 @@ export default function StudyRoomPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 5,
-                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                  boxShadow: '0 3px 10px rgba(16,185,129,0.35)'
                 }}
               >
-                <PlayCircle size={15} /> Testi Çöz
+                <CheckCircle2 size={15} /> Konuyu Tamamla ✅
               </button>
+            ) : (
+              (selectedTask.realTestId || selectedTask.bookTestId) && (
+                <button
+                  type="button"
+                  onClick={() => handleLaunchTaskQuiz(selectedTask)}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontWeight: 900,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                  }}
+                >
+                  <PlayCircle size={15} /> Testi Çöz
+                </button>
+              )
             )}
             <button
               type="button"
@@ -2640,6 +2785,7 @@ export default function StudyRoomPage() {
           </div>
         </div>
       )}
+
 
       {/* 3. ANA İÇERİK IZGARASI (SOL SAYAÇ + SAĞ KONTROLLER) */}
       <div className={isFullscreenView ? "sr-zen-grid" : "sr-card-body-grid"}>
@@ -3763,7 +3909,41 @@ export default function StudyRoomPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Yol Haritası Görevi Seçiliyse Tamamlama Butonu */}
+              {activeStudyMode === 'study' && (selectedTask?.isRoadmapTask || selectedTask?.sourceType === 'roadmap') && (
+                <div style={{ width: '100%', marginTop: 6, paddingTop: 8, borderTop: `1px solid ${themeObj.border}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: isMobile ? '0.74rem' : '0.8rem', fontWeight: 800, color: '#8b5cf6' }}>
+                    🗺️ {selectedTask.title || selectedTask.topic}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCompleteRoadmapTask}
+                    className="sr-action-btn-main"
+                    style={{
+                      width: '100%',
+                      padding: isMobile ? '0.65rem 0.85rem' : '0.8rem 1.1rem',
+                      borderRadius: 12,
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: isMobile ? '0.8rem' : '0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                    }}
+                  >
+                    <CheckCircle2 size={isMobile ? 15 : 17} />
+                    <span>Konu Çalışmasını Tamamla &amp; Bitir ✅</span>
+                  </button>
+                </div>
+              )}
             </div>
+
           )}
 
         </div>
@@ -5693,56 +5873,86 @@ export default function StudyRoomPage() {
                                           {task.title}
                                         </div>
                                       )}
+                                       <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                                         {isRoadmap ? (
+                                           <span style={{ color: '#8b5cf6', fontWeight: 800 }}>🎯 Konu Çalışması • Odaklanma (Optik Yok)</span>
+                                         ) : (
+                                           <>
+                                             ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                                             {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
+                                           </>
+                                         )}
+                                       </div>
+                                     </div>
 
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                                        ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
-                                        {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
-                                      </div>
-                                    </div>
+                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                       <button
+                                         type="button"
+                                         onClick={() => handleSelectTask(task, false)}
+                                         style={{
+                                           padding: '0.45rem 0.85rem',
+                                           borderRadius: 10,
+                                           background: isRoadmap
+                                             ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+                                             : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                           color: '#ffffff',
+                                           border: 'none',
+                                           fontWeight: 900,
+                                           fontSize: '0.76rem',
+                                           cursor: 'pointer',
+                                           display: 'flex',
+                                           alignItems: 'center',
+                                           gap: 5,
+                                           boxShadow: isRoadmap ? '0 3px 10px rgba(139,92,246,0.25)' : '0 3px 10px rgba(245,158,11,0.25)'
+                                         }}
+                                       >
+                                         <Target size={13} /> {isRoadmap ? 'Konu Çalış' : 'Görevi Seç'}
+                                       </button>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSelectTask(task, false)}
-                                        style={{
-                                          padding: '0.45rem 0.85rem',
-                                          borderRadius: 10,
-                                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                          color: '#ffffff',
-                                          border: 'none',
-                                          fontWeight: 900,
-                                          fontSize: '0.76rem',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 5,
-                                          boxShadow: '0 3px 10px rgba(245,158,11,0.25)'
-                                        }}
-                                      >
-                                        <Target size={13} /> Görevi Seç
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => handleLaunchTaskQuiz(task)}
-                                        style={{
-                                          padding: '0.45rem 0.85rem',
-                                          borderRadius: 10,
-                                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                                          color: '#ffffff',
-                                          border: 'none',
-                                          fontWeight: 900,
-                                          fontSize: '0.76rem',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 5,
-                                          boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
-                                        }}
-                                      >
-                                        <PlayCircle size={13} /> Hemen Çöz
-                                      </button>
-                                    </div>
+                                       {isRoadmap ? (
+                                         <button
+                                           type="button"
+                                           onClick={() => handleSelectTask(task, true)}
+                                           style={{
+                                             padding: '0.45rem 0.85rem',
+                                             borderRadius: 10,
+                                             background: 'linear-gradient(135deg, #10b981, #059669)',
+                                             color: '#ffffff',
+                                             border: 'none',
+                                             fontWeight: 900,
+                                             fontSize: '0.76rem',
+                                             cursor: 'pointer',
+                                             display: 'flex',
+                                             alignItems: 'center',
+                                             gap: 5,
+                                             boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                                           }}
+                                         >
+                                           <PlayCircle size={13} /> Hemen Başla
+                                         </button>
+                                       ) : (
+                                         <button
+                                           type="button"
+                                           onClick={() => handleLaunchTaskQuiz(task)}
+                                           style={{
+                                             padding: '0.45rem 0.85rem',
+                                             borderRadius: 10,
+                                             background: 'linear-gradient(135deg, #10b981, #059669)',
+                                             color: '#ffffff',
+                                             border: 'none',
+                                             fontWeight: 900,
+                                             fontSize: '0.76rem',
+                                             cursor: 'pointer',
+                                             display: 'flex',
+                                             alignItems: 'center',
+                                             gap: 5,
+                                             boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                                           }}
+                                         >
+                                           <PlayCircle size={13} /> Testi Çöz
+                                         </button>
+                                       )}
+                                     </div>
                                   </div>
                                 );
                               })}
@@ -6125,10 +6335,15 @@ export default function StudyRoomPage() {
                                 {task.title}
                               </div>
                             )}
-
                             <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                              ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
-                              {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
+                              {isRoadmap ? (
+                                <span style={{ color: '#8b5cf6', fontWeight: 800 }}>🎯 Konu Çalışması • Odaklanma (Optik Yok)</span>
+                              ) : (
+                                <>
+                                  ✏️ {task.questionCount} Soru • Yaklaşık {Math.round(task.questionCount * minutesPerQuestion)} dk
+                                  {!bookInfo?.isBookTest && task.topic ? ` • ${task.topic}` : ''}
+                                </>
+                              )}
                             </div>
                           </div>
 
@@ -6139,7 +6354,9 @@ export default function StudyRoomPage() {
                               style={{
                                 padding: '0.5rem 0.9rem',
                                 borderRadius: 10,
-                                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                background: isRoadmap
+                                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+                                  : 'linear-gradient(135deg, #f59e0b, #d97706)',
                                 color: '#ffffff',
                                 border: 'none',
                                 fontWeight: 900,
@@ -6148,32 +6365,55 @@ export default function StudyRoomPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 5,
-                                boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
+                                boxShadow: isRoadmap ? '0 3px 10px rgba(139,92,246,0.3)' : '0 3px 10px rgba(245,158,11,0.3)'
                               }}
                             >
-                              <Target size={13} /> Görevi Seç
+                              <Target size={13} /> {isRoadmap ? 'Konu Çalış' : 'Görevi Seç'}
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleLaunchTaskQuiz(task)}
-                              style={{
-                                padding: '0.5rem 0.9rem',
-                                borderRadius: 10,
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                color: '#ffffff',
-                                border: 'none',
-                                fontWeight: 900,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
-                              }}
-                            >
-                              <PlayCircle size={14} /> Hemen Çöz
-                            </button>
+                            {isRoadmap ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTask(task, true)}
+                                style={{
+                                  padding: '0.5rem 0.9rem',
+                                  borderRadius: 10,
+                                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 900,
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                                }}
+                              >
+                                <PlayCircle size={14} /> Hemen Başla
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleLaunchTaskQuiz(task)}
+                                style={{
+                                  padding: '0.5rem 0.9rem',
+                                  borderRadius: 10,
+                                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 900,
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                                }}
+                              >
+                                <PlayCircle size={14} /> Testi Çöz
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
