@@ -37,8 +37,11 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
         if (map[sId][qNo] !== undefined) return; // already set from submission.teacherScores
         // Only load a score if it was explicitly set by a teacher evaluation
         const isGraded = a.evaluatedByTeacher === true || Boolean(a.evaluatedAt) || (typeof a.score === 'number' && a.score > 0) || a.evalStatus === 'graded' || a.evalStatus === 'evaluated' || submission?.isEvaluatedByTeacher === true || submission?.isEvaluated === true;
-        if (a.score !== undefined && a.score !== null && isGraded) {
-          map[sId][qNo] = typeof a.score === 'number' ? a.score : Number(a.score);
+        const isExplicitEmpty = a.evalStatus === 'empty' || a.score === 'empty' || (Number(a.score) === 0 && a.isCorrect === null && isGraded);
+        if (isExplicitEmpty) {
+          map[sId][qNo] = 'empty';
+        } else if (a.score !== undefined && a.score !== null && isGraded) {
+          map[sId][qNo] = typeof a.score === 'number' ? a.score : (a.score === 'empty' ? 'empty' : Number(a.score));
         }
         // Do NOT map isCorrect → 10/0. That would pre-fill OE questions with wrong marks.
       });
@@ -136,16 +139,21 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
             totalMax += 10;
             let isCorrect = existingAns.isCorrect;
 
-            if (score !== undefined && score !== null && score !== 'empty') {
+            if (score === 'empty') {
+              isCorrect = null;
+              blank++;
+            } else if (score !== undefined && score !== null) {
               const numSc = Number(score);
               totalEarned += numSc;
               isCorrect = numSc >= 5;
               if (isCorrect) correct++; else wrong++;
-            } else if (score === 'empty' || (userAns === null && !textAns)) {
+            } else if (userAns === null && !textAns) {
+              isCorrect = null;
               blank++;
             } else {
               const u = normalizeAnswerIndex(userAns);
               if (u === null && !textAns) {
+                isCorrect = null;
                 blank++;
               } else {
                 const qObj = secQs[qIdx] || {};
@@ -183,8 +191,9 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
               questionNoInSection: qNo,
               userAnswer: userAns !== undefined ? userAns : null,
               userAnswerText: textAns || null,
-              score: score !== undefined ? score : (isCorrect ? 10 : 0),
-              isCorrect,
+              score: score === 'empty' ? 'empty' : (score !== undefined ? score : (isCorrect === true ? 10 : (isCorrect === false ? 0 : 'empty'))),
+              isCorrect: score === 'empty' ? null : isCorrect,
+              evalStatus: score === 'empty' ? 'empty' : (isCorrect === true ? (score === 5 ? 'half' : 'correct') : (isCorrect === false ? 'wrong' : 'empty')),
               teacherNote: note,
               evaluatedByTeacher: true,
               evaluatedAt: new Date().toISOString()

@@ -152,9 +152,12 @@ export default function CompositeHomeworkReview({
           const hasText = Boolean(textVal && String(textVal).trim());
 
           const directTeacherSc = teacherScores[sec.id]?.[i] ?? teacherScores[rawId]?.[i] ?? teacherScores[sIdx]?.[i] ?? dbSecScores[i] ?? dbSecScores[String(i)];
-          const hasExplicitTeacherScore = directTeacherSc !== undefined && directTeacherSc !== null && directTeacherSc !== 'empty';
+          const isExplicitEmpty = directTeacherSc === 'empty' || rawAnsItem?.score === 'empty' || rawAnsItem?.evalStatus === 'empty' || (rawAnsItem?.score === 0 && rawAnsItem?.isCorrect === null);
+          const hasExplicitTeacherScore = !isExplicitEmpty && directTeacherSc !== undefined && directTeacherSc !== null && directTeacherSc !== 'empty';
 
-          if (hasExplicitTeacherScore) {
+          if (isExplicitEmpty) {
+            blankCount++;
+          } else if (hasExplicitTeacherScore) {
             if (Number(directTeacherSc) >= 5) correctCount++;
             else wrongCount++;
           } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null) {

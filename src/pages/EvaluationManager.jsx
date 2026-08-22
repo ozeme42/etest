@@ -312,7 +312,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
             const qNo = a.questionNo || a.questionNoInSection || (idx + 1);
             // Only load scores that were explicitly set by teacher evaluation
             if (a.score !== undefined && a.score !== null && a.evaluatedByTeacher === true) {
-              scores[qNo] = Number(a.score);
+              const isExplicitEmpty = a.evalStatus === 'empty' || a.score === 'empty' || (Number(a.score) === 0 && a.isCorrect === null);
+              scores[qNo] = isExplicitEmpty ? 'empty' : Number(a.score);
             }
             if (a.teacherNote || a.teacher_note || a.feedback) {
               notes[qNo] = a.teacherNote || a.teacher_note || a.feedback;
@@ -436,12 +437,17 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
       const updatedAnswers = (submission.answers || []).map((ans, idx) => {
         const qNo = ans.questionNo || (idx + 1);
         const hasScore = questionScores[qNo] !== undefined && questionScores[qNo] !== null;
-        const score = hasScore ? questionScores[qNo] : null;
+        const rawScore = hasScore ? questionScores[qNo] : null;
+        const isExplicitEmpty = rawScore === 'empty' || (rawScore === null && ans.userAnswer === null && !ans.userAnswerText);
+        const score = isExplicitEmpty ? 'empty' : (rawScore !== null ? Number(rawScore) : null);
+        const isCorrect = isExplicitEmpty ? null : (score !== null ? (score >= 5) : null);
+        const evalStatus = isExplicitEmpty ? 'empty' : (isCorrect === true ? (score === 5 ? 'half' : 'correct') : (isCorrect === false ? 'wrong' : 'empty'));
         const note = teacherNotes[qNo] || '';
         return {
           ...ans,
-          score: score !== null ? score : (ans.score ?? null),
-          isCorrect: score !== null ? (score >= 5) : null,
+          score: isExplicitEmpty ? 'empty' : (score !== null ? score : (ans.score ?? null)),
+          isCorrect,
+          evalStatus,
           evaluatedByTeacher: hasScore,
           teacherNote: note,
           evaluatedAt: new Date().toISOString()

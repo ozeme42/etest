@@ -2129,7 +2129,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
               userAnswers?.isEvaluatedByTeacher === true ||
               userAnswers?.raw_data?.isEvaluatedByTeacher === true
             );
-            if (hasTeacherGrade && a.score !== undefined && a.score !== null && a.score !== '') {
+            const isExplicitEmpty = a.evalStatus === 'empty' || a.score === 'empty' || (userAnswers?.teacherScores?.[sId]?.[qNo] === 'empty') || (Number(a.score) === 0 && a.isCorrect === null && hasTeacherGrade);
+            if (isExplicitEmpty) {
+              map[sId][qNo] = 'empty';
+            } else if (hasTeacherGrade && a.score !== undefined && a.score !== null && a.score !== '') {
               map[sId][qNo] = typeof a.score === 'number' ? Number(a.score) : (typeof a.earnedScore === 'number' ? Number(a.earnedScore) : 10);
             }
             // else: not yet graded → undefined → shows as pending
@@ -2321,8 +2324,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           let evalStatus = 'empty';
 
           if (isQOE) {
-            if (teacherSc === 'empty') {
-              score = 0;
+            if (teacherSc === 'empty' || (!textAns && (teacherSc === undefined || teacherSc === null))) {
+              score = 'empty';
               isCorrect = null;
               evalStatus = 'empty';
             } else if (teacherSc !== undefined && teacherSc !== null) {
