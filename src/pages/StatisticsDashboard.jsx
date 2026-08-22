@@ -23,6 +23,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import { computeStudentAnalyticsData, isHomeworkForStudent } from '../utils/testResolver';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import StudentResultsPage from './StudentResultsPage';
 import './StatisticsDashboard.css';
@@ -54,7 +55,56 @@ function Avatar({ name, index, size = 36 }) {
 }
 
 /* ── HERO KPI CARD ──────────────────────────────────────────────────────────── */
-function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge }) {
+function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border, badge, isMobile }) {
+  if (isMobile) {
+    return (
+      <div style={{
+        background: 'var(--color-surface, #ffffff)',
+        border: `1.5px solid ${border || 'var(--color-border, #e2e8f0)'}`,
+        borderRadius: '1rem',
+        padding: '0.65rem 0.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '0.35rem',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+        position: 'relative',
+        minWidth: 0,
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '0.65rem',
+            background: bg || 'rgba(99, 102, 241, 0.12)',
+            color: color || '#6366f1',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Icon size={17} />
+          </div>
+          {badge && (
+            <span style={{ fontSize: '0.58rem', fontWeight: 900, padding: '1px 5px', borderRadius: 99, background: bg, color: color, border: `1px solid ${border}`, whiteSpace: 'nowrap' }}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <div>
+          <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'block', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+            {value}
+          </span>
+          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {label}
+          </span>
+        </div>
+        {sub && (
+          <span style={{ fontSize: '0.62rem', color: color || 'var(--color-text-muted, #64748b)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+            {sub}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{
       background: 'var(--color-surface, #ffffff)',
@@ -135,6 +185,7 @@ function getSubjectKey(s) {
 export default function StatisticsDashboard() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [searchParams, setSearchParams] = useSearchParams();
   const studentIdParam = searchParams.get('studentId');
 
@@ -541,72 +592,99 @@ export default function StatisticsDashboard() {
   return (
     <div className="stats-dashboard-page">
       
-      {/* ─── 1. EXECUTIVE HEADER & CONTROLS ─── */}
+      {/* ─── 1. EXECUTIVE HEADER & CONTROLS (MOBILE APP NATIVE STYLE) ─── */}
       <header className="stats-glass-card" style={{
-        padding: '1.25rem 1.75rem',
+        padding: isMobile ? '0.85rem 0.85rem' : '1.25rem 1.75rem',
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        background: 'var(--color-surface, #ffffff)'
+        alignItems: isMobile ? 'stretch' : 'center',
+        gap: isMobile ? '0.75rem' : '1rem',
+        background: 'var(--color-surface, #ffffff)',
+        borderRadius: isMobile ? '1.25rem' : '1.5rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
-            }}
-            style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border-input, #cbd5e1)',
-              borderRadius: '0.75rem',
-              padding: '0.55rem 0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontWeight: 800,
-              color: 'var(--color-text, #334155)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-            }}
-          >
-            <ArrowLeft size={16} /> Geri Dön
-          </button>
+        {/* Top bar with back button and title */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+            <button
+              onClick={() => {
+                if (window.history.length > 1) navigate(-1);
+                else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+              }}
+              style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border-input, #cbd5e1)',
+                borderRadius: '0.75rem',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                color: 'var(--color-text, #334155)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                flexShrink: 0
+              }}
+            >
+              <ArrowLeft size={isMobile ? 15 : 16} /> {!isMobile && 'Geri Dön'}
+            </button>
 
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(165, 180, 252, 0.3)', color: '#818cf8', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-              <Sparkles size={13} /> LMS 360° Akıllı Analitik & Performans Masası
+            <div style={{ minWidth: 0 }}>
+              {!isMobile && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(165, 180, 252, 0.3)', color: '#818cf8', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  <Sparkles size={13} /> LMS 360° Akıllı Analitik & Performans Masası
+                </div>
+              )}
+              <h1 style={{ margin: 0, fontSize: isMobile ? '1.1rem' : '1.45rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                İstatistikler & Başarı Analizi 📊
+              </h1>
+              {!isMobile && (
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)' }}>
+                  Ödevler, Kitap Takibi, Deneme Netleri, Yol Haritası ve Periyodik Gelişim Eğrileri.
+                </p>
+              )}
             </div>
-            <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
-              Gelişmiş İstatistikler & Çok Boyutlu Başarı Analizi 📊
-            </h1>
-            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)' }}>
-              Ödevler, Kitap Takibi, Deneme Netleri, Yol Haritası ve Periyodik Gelişim Eğrileri.
-            </p>
+          </div>
+
+          {/* Sınıf / Öğrenci Sayısı Rozeti */}
+          <div style={{
+            fontSize: isMobile ? '0.65rem' : '0.75rem',
+            fontWeight: 900,
+            padding: isMobile ? '0.3rem 0.6rem' : '0.35rem 0.75rem',
+            borderRadius: 99,
+            background: 'rgba(99, 102, 241, 0.12)',
+            color: '#6366f1',
+            border: '1px solid rgba(165, 180, 252, 0.3)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}>
+            👥 {filteredStudents.length} Öğrenci
           </div>
         </div>
 
         {/* Header Right Filters & Student Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '0.65rem' : '0.75rem', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
           {/* Hızlı Öğrenci Seçici Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: isMobile ? '100%' : 'auto' }}>
             <select
               value=""
               onChange={e => {
                 if (e.target.value) handleSelectStudentForResults(e.target.value);
               }}
               style={{
-                padding: '0.5rem 1.6rem 0.5rem 0.85rem',
+                width: isMobile ? '100%' : 'auto',
+                padding: isMobile ? '0.55rem 0.85rem' : '0.5rem 1.6rem 0.5rem 0.85rem',
                 borderRadius: '0.75rem',
                 border: '1.5px solid var(--color-border-input, #6366f1)',
                 background: 'var(--color-surface, #f5f3ff)',
                 color: 'var(--color-text, #4f46e5)',
-                fontSize: '0.78rem',
+                fontSize: isMobile ? '0.76rem' : '0.78rem',
                 fontWeight: 900,
                 cursor: 'pointer',
                 outline: 'none',
-                boxShadow: '0 2px 10px rgba(99,102,241,0.12)'
+                boxShadow: '0 2px 10px rgba(99,102,241,0.12)',
+                boxSizing: 'border-box'
               }}
             >
               <option value="">👤 Öğrenci Seç & Detaylı Karnesini Gör...</option>
@@ -618,19 +696,34 @@ export default function StatisticsDashboard() {
             </select>
           </div>
 
-          {/* Sınıf Filtresi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid var(--color-border, #e2e8f0)', paddingLeft: '0.75rem' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', marginRight: 4 }}>
+          {/* Yatay Kaydırılabilir Filtre Çubuğu (Sınıf & Zaman) */}
+          <div className="sd-hide-scrollbar" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            width: isMobile ? '100%' : 'auto',
+            overflowX: 'auto',
+            paddingBottom: isMobile ? '2px' : '0',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            {/* Sınıf Filtreleri */}
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', whiteSpace: 'nowrap', marginRight: 2 }}>
               Sınıf:
             </span>
             <button
               onClick={() => setSelectedGradeFilter('ALL')}
               style={{
-                padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.75rem',
+                borderRadius: '0.65rem',
                 border: selectedGradeFilter === 'ALL' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input, #cbd5e1)',
                 background: selectedGradeFilter === 'ALL' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface, #ffffff)',
-                color: selectedGradeFilter === 'ALL' ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                boxShadow: selectedGradeFilter === 'ALL' ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
+                color: selectedGradeFilter === 'ALL' ? '#ffffff' : 'var(--color-text, #475569)',
+                fontSize: isMobile ? '0.72rem' : '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxShadow: selectedGradeFilter === 'ALL' ? '0 3px 10px rgba(99,102,241,0.25)' : 'none',
+                flexShrink: 0
               }}
             >
               Tümü
@@ -642,29 +735,35 @@ export default function StatisticsDashboard() {
                   key={g.id}
                   onClick={() => setSelectedGradeFilter(g.id)}
                   style={{
-                    padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                    padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.75rem',
+                    borderRadius: '0.65rem',
                     border: isSel ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input, #cbd5e1)',
                     background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface, #ffffff)',
-                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                    boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
+                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)',
+                    fontSize: isMobile ? '0.72rem' : '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isSel ? '0 3px 10px rgba(99,102,241,0.25)' : 'none',
+                    flexShrink: 0
                   }}
                 >
                   {g.name}
                 </button>
               );
             })}
-          </div>
 
-          {/* Zaman Aralığı Filtresi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', borderLeft: '1.5px solid var(--color-border, #e2e8f0)', paddingLeft: '0.75rem' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', marginRight: 4 }}>
+            <div style={{ height: 16, width: 1, background: 'var(--color-border, #cbd5e1)', margin: '0 3px', flexShrink: 0 }} />
+
+            {/* Zaman Filtreleri */}
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', whiteSpace: 'nowrap', marginRight: 2 }}>
               Zaman:
             </span>
             {[
               { id: 'ALL', label: 'Tümü' },
               { id: 'TODAY', label: 'Bugün' },
-              { id: 'WEEK', label: 'Son 7 Gün' },
-              { id: 'MONTH', label: 'Son 30 Gün' }
+              { id: 'WEEK', label: 'Son 7G' },
+              { id: 'MONTH', label: 'Son 30G' }
             ].map(t => {
               const isSel = timeRange === t.id;
               return (
@@ -672,11 +771,17 @@ export default function StatisticsDashboard() {
                   key={t.id}
                   onClick={() => setTimeRange(t.id)}
                   style={{
-                    padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
+                    padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.75rem',
+                    borderRadius: '0.65rem',
                     border: isSel ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input, #cbd5e1)',
                     background: isSel ? 'linear-gradient(135deg,#10b981,#059669)' : 'var(--color-surface, #ffffff)',
-                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                    boxShadow: isSel ? '0 4px 14px rgba(16,185,129,0.25)' : 'none'
+                    color: isSel ? '#ffffff' : 'var(--color-text, #475569)',
+                    fontSize: isMobile ? '0.72rem' : '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isSel ? '0 3px 10px rgba(16,185,129,0.25)' : 'none',
+                    flexShrink: 0
                   }}
                 >
                   {t.label}
@@ -687,25 +792,26 @@ export default function StatisticsDashboard() {
         </div>
       </header>
 
-      {/* ─── 2. SEKMELER (NAV TABS) ─── */}
-      <div style={{
+      {/* ─── 2. SEKMELER (NAV TABS - MOBILE APP SEGMENTED BAR) ─── */}
+      <div className="sd-hide-scrollbar" style={{
         display: 'flex',
-        gap: 6,
+        gap: isMobile ? 4 : 6,
         background: 'var(--color-surface, #ffffff)',
-        padding: '0.45rem',
-        borderRadius: '1.15rem',
+        padding: isMobile ? '0.35rem' : '0.45rem',
+        borderRadius: isMobile ? '1rem' : '1.15rem',
         border: '1.5px solid var(--color-border, #e2e8f0)',
         overflowX: 'auto',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+        WebkitOverflowScrolling: 'touch'
       }}>
         {[
-          { key: 'overview', label: '🌐 Genel Bakış & KPI Özeti', icon: BarChart3 },
-          { key: 'periodic', label: '📊 Soru & Zaman Trendi (Günlük / Aylık)', icon: TrendingUp },
-          { key: 'subjects', label: '📚 Dersler & Konu Kazanım Karnesi', icon: BookOpen },
-          { key: 'books', label: '📖 Kitap Takibi & Test Çözümleri', icon: BookCheck },
-          { key: 'exams', label: '📋 Deneme Sınavları & Net Analizi', icon: Award },
-          { key: 'roadmap', label: '🗺️ Yol Haritası & Müfredat İlerlemesi', icon: Compass },
-          { key: 'students', label: '👥 Öğrenci Karşılaştırma & Sıralama', icon: Users }
+          { key: 'overview', label: isMobile ? '🌐 Genel' : '🌐 Genel Bakış & KPI Özeti', icon: BarChart3 },
+          { key: 'periodic', label: isMobile ? '📈 Trendler' : '📊 Soru & Zaman Trendi', icon: TrendingUp },
+          { key: 'subjects', label: isMobile ? '📚 Dersler' : '📚 Dersler & Konu Kazanımları', icon: BookOpen },
+          { key: 'books', label: isMobile ? '📖 Kitaplar' : '📖 Kitap Takibi & Testler', icon: BookCheck },
+          { key: 'exams', label: isMobile ? '📋 Denemeler' : '📋 Deneme Sınavları & Netler', icon: Award },
+          { key: 'roadmap', label: isMobile ? '🗺️ Yol Haritası' : '🗺️ Yol Haritası & İlerleme', icon: Compass },
+          { key: 'students', label: isMobile ? '👥 Öğrenciler' : '👥 Öğrenci Matrisi & Sıralama', icon: Users }
         ].map(t => {
           const active = activeTab === t.key;
           const Icon = t.icon;
@@ -714,17 +820,17 @@ export default function StatisticsDashboard() {
               key={t.key}
               onClick={() => setActiveTab(t.key)}
               style={{
-                flex: '1 1 auto',
-                padding: '0.65rem 1.1rem',
-                borderRadius: '0.85rem',
+                flex: isMobile ? '0 0 auto' : '1 1 auto',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.1rem',
+                borderRadius: isMobile ? '0.75rem' : '0.85rem',
                 border: 'none',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: isMobile ? '0.75rem' : '0.82rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 5,
                 transition: 'all 0.15s',
                 background: active ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
                 color: active ? '#ffffff' : 'var(--color-text-muted, #64748b)',
@@ -732,7 +838,7 @@ export default function StatisticsDashboard() {
                 whiteSpace: 'nowrap'
               }}
             >
-              <Icon size={16} />
+              <Icon size={isMobile ? 14 : 16} />
               <span>{t.label}</span>
             </button>
           );
@@ -740,86 +846,98 @@ export default function StatisticsDashboard() {
       </div>
 
       {/* ─── 3. 6 BÜYÜK TEMEL PERFORMANS GÖSTERGESİ (EXECUTIVE KPI CARDS) ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(210px, 1fr))',
+        gap: isMobile ? '0.5rem' : '1rem'
+      }}>
         <StatHeroCard 
           icon={Zap} 
-          label="Toplam Çözülen Soru" 
-          value={`${classKPIs.totalQuestions} Soru`} 
-          sub={`✓ ${classKPIs.totalCorrect} Doğru · ✗ ${classKPIs.totalWrong} Yanlış`} 
+          label="Toplam Soru" 
+          value={`${classKPIs.totalQuestions}`} 
+          sub={`✓ ${classKPIs.totalCorrect} D · ✗ ${classKPIs.totalWrong} Y`} 
           color="#3b82f6" 
           bg="#eff6ff" 
           border="#bae6fd"
-          badge="Tüm Kaynaklar"
+          badge="Tümü"
+          isMobile={isMobile}
         />
         <StatHeroCard 
           icon={Trophy} 
-          label="Genel Başarı & Doğruluk" 
+          label="Genel Başarı" 
           value={`%${classKPIs.overallAccuracy}`} 
           sub={classKPIs.overallAccuracy >= 75 ? '🔥 Yüksek Başarı' : classKPIs.overallAccuracy >= 55 ? '⚡ Orta Seviye' : '⚠️ Destek Gerekli'} 
           color={classKPIs.overallAccuracy >= 75 ? '#16a34a' : classKPIs.overallAccuracy >= 55 ? '#d97706' : '#dc2626'} 
           bg={classKPIs.overallAccuracy >= 75 ? '#f0fdf4' : classKPIs.overallAccuracy >= 55 ? '#fffbeb' : '#fef2f2'} 
           border={classKPIs.overallAccuracy >= 75 ? '#bbf7d0' : classKPIs.overallAccuracy >= 55 ? '#fde68a' : '#fecaca'} 
-          badge="Net Doğruluk"
+          badge="Doğruluk"
+          isMobile={isMobile}
         />
         <StatHeroCard 
           icon={Award} 
-          label="Deneme Net Ortalaması" 
+          label="Deneme Neti" 
           value={`${classKPIs.overallExamNet} Net`} 
-          sub={`${classKPIs.totalExamsCount} Deneme Kağıdı Analiz Edildi`} 
+          sub={`${classKPIs.totalExamsCount} Deneme Sınavı`} 
           color="#8b5cf6" 
           bg="#f5f3ff" 
           border="#ddd6fe" 
-          badge="LGS / Denemeler"
+          badge="LGS Net"
+          isMobile={isMobile}
         />
         <StatHeroCard 
           icon={BookCheck} 
-          label="Takip Edilen Kitaplar" 
-          value={`${allBooks.length} Kitap / ${allBookTests.length} Test`} 
-          sub={`${classKPIs.totalUniqueBooks} Öğrenci Aktif Kitap Çözüyor`} 
+          label="Takip Kitapları" 
+          value={`${allBooks.length} Kitap`} 
+          sub={`${allBookTests.length} Test Çözüldü`} 
           color="#10b981" 
           bg="#f0fdf4" 
           border="#bbf7d0" 
-          badge="Fiziksel Kitap"
+          badge="Kitaplar"
+          isMobile={isMobile}
         />
         <StatHeroCard 
           icon={Compass} 
-          label="Yol Haritası Tamamlama" 
+          label="Yol Haritası" 
           value={`%${classKPIs.overallRoadmapPct}`} 
-          sub={`${classKPIs.completedRoadmapTasks} / ${classKPIs.totalRoadmapTasks} Görev Bitti`} 
+          sub={`${classKPIs.completedRoadmapTasks}/${classKPIs.totalRoadmapTasks} Görev`} 
           color="#d97706" 
           bg="#fffbeb" 
           border="#fde68a" 
-          badge="Müfredat Hedefi"
+          badge="Müfredat"
+          isMobile={isMobile}
         />
         <StatHeroCard 
           icon={Users} 
-          label="Aktif Öğrenci Sayısı" 
-          value={`${classKPIs.totalStudents} Öğrenci`} 
-          sub={selectedGradeFilter === 'ALL' ? 'Tüm sınıflar dahil' : `${selectedGradeFilter}. sınıf seviyesi`} 
+          label="Öğrenci Sayısı" 
+          value={`${classKPIs.totalStudents}`} 
+          sub={selectedGradeFilter === 'ALL' ? 'Tüm Sınıflar' : `${selectedGradeFilter}. Sınıf`} 
           color="#0284c7" 
           bg="#f0f9ff" 
           border="#bae6fd" 
-          badge="Sınıf Havuzu"
+          badge="Sınıf"
+          isMobile={isMobile}
         />
       </div>
 
       {/* ─── TAB 1: 🌐 GENEL BAKIŞ & YÖNETİCİ ÖZETİ ─── */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
           {/* Top Podium Cards */}
           {topPodium.length > 0 && (
-            <div className="stats-glass-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--color-surface, #ffffff)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Trophy size={18} color="#d97706" /> En Başarılı Öğrenciler Kürsüsü (Top 3)
+            <div className="stats-glass-card" style={{ padding: isMobile ? '0.85rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.65rem' : '1rem', background: 'var(--color-surface, #ffffff)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Trophy size={isMobile ? 16 : 18} color="#d97706" /> En Başarılı Öğrenciler (Top 3)
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                  Genel soru çözümü ve sınav doğruluk yüzdesine göre sıralanmıştır
-                </span>
+                {!isMobile && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                    Genel soru çözümü ve sınav doğruluk yüzdesine göre sıralanmıştır
+                  </span>
+                )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? '0.5rem' : '1rem' }}>
                 {topPodium.map((std, rank) => {
                   const medals = [
                     { title: '1. Birincilik', icon: '🥇', grad: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fffbeb', border: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a', text: '#f59e0b' },
@@ -834,30 +952,31 @@ export default function StatisticsDashboard() {
                       style={{
                         background: m.grad,
                         border: `1.5px solid ${m.border}`,
-                        borderRadius: '1.15rem', padding: '1rem 1.25rem',
-                        display: 'flex', alignItems: 'center', gap: '0.85rem',
+                        borderRadius: isMobile ? '0.85rem' : '1.15rem',
+                        padding: isMobile ? '0.65rem 0.85rem' : '1rem 1.25rem',
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
                         boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease'
                       }}
                       title={`${std.name} öğrencisinin tüm karne ve istatistik sonuçlarını incele`}
                     >
-                      <div style={{ fontSize: '1.8rem', lineHeight: 1, flexShrink: 0 }}>{m.icon}</div>
-                      <Avatar name={std.name} index={std.idx} size={42} />
+                      <div style={{ fontSize: isMobile ? '1.4rem' : '1.8rem', lineHeight: 1, flexShrink: 0 }}>{m.icon}</div>
+                      <Avatar name={std.name} index={std.idx} size={isMobile ? 36 : 42} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: m.text, textTransform: 'uppercase' }}>{m.title}</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>· {std.gradeName}</span>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: m.text, textTransform: 'uppercase' }}>{m.title}</span>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>· {std.gradeName}</span>
                         </div>
-                        <h4 style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <h4 style={{ margin: '1px 0 0', fontSize: isMobile ? '0.85rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {std.name}
                         </h4>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a' }}>
                             %{std.avgScore} Başarı · {std.totalQ} Soru
                           </span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                            Karnesi <ChevronRight size={12} />
+                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                            Karnesi <ChevronRight size={11} />
                           </span>
                         </div>
                       </div>
@@ -869,30 +988,30 @@ export default function StatisticsDashboard() {
           )}
 
           {/* Charts Row: Subject Mastery & Source Breakdown */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(360px, 1fr))', gap: isMobile ? '0.75rem' : '1.25rem' }}>
             
             {/* Ders Başarı Çubuk Grafiği */}
-            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: 'var(--color-surface, #ffffff)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <BarChart3 size={18} color="#4f46e5" /> Ders Bazlı Başarı Oranı & Soru Hacmi
+            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: isMobile ? 280 : 360, background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <BarChart3 size={isMobile ? 16 : 18} color="#4f46e5" /> Ders Başarı Oranı & Soru Hacmi
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                  Branş Yetkinliği
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                  Branşlar
                 </span>
               </div>
 
-              <div style={{ height: 260, width: '100%' }}>
+              <div style={{ height: isMobile ? 210 : 260, width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={subjectAggregates} margin={{ top: 20, right: 15, left: -20, bottom: 10 }}>
+                  <BarChart data={subjectAggregates} margin={{ top: 15, right: 10, left: isMobile ? -25 : -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'} />
-                    <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={8} />
-                    <YAxis axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} tickFormatter={v => `%${v}`} />
+                    <XAxis dataKey="subject" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={6} />
+                    <YAxis axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text-muted, #64748b)' }} tickFormatter={v => `%${v}`} />
                     <Tooltip 
                       formatter={(val, name, props) => [`%${val} (Toplam ${props.payload.totalQ} Soru)`, 'Başarı Oranı']}
                       contentStyle={{ borderRadius: '12px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }}
                     />
-                    <Bar dataKey="Başarı %" radius={[8, 8, 0, 0]} barSize={28}>
+                    <Bar dataKey="Başarı %" radius={[6, 6, 0, 0]} barSize={isMobile ? 20 : 28}>
                       {subjectAggregates.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -903,17 +1022,17 @@ export default function StatisticsDashboard() {
             </div>
 
             {/* Kaynak Dağılımı (Ödev vs Kitap vs Deneme) */}
-            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 360, background: 'var(--color-surface, #ffffff)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <PieIcon size={18} color="#059669" /> Soru Kaynakları Dağılımı
+            <div className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: isMobile ? 280 : 360, background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <PieIcon size={isMobile ? 16 : 18} color="#059669" /> Soru Kaynakları Dağılımı
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                   Ödev · Kitap · Deneme
                 </span>
               </div>
 
-              <div style={{ height: 260, width: '100%' }}>
+              <div style={{ height: isMobile ? 210 : 260, width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -922,8 +1041,8 @@ export default function StatisticsDashboard() {
                       nameKey="name"
                       cx="50%"
                       cy="44%"
-                      innerRadius={55}
-                      outerRadius={95}
+                      innerRadius={isMobile ? 42 : 55}
+                      outerRadius={isMobile ? 75 : 95}
                       paddingAngle={4}
                     >
                       {sourceBreakdownData.map((entry, index) => (
@@ -935,7 +1054,7 @@ export default function StatisticsDashboard() {
                       contentStyle={{ borderRadius: '12px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }}
                     />
                     <Legend 
-                      formatter={(val) => <span style={{ color: 'var(--color-text, #0f172a)', fontSize: '0.78rem', fontWeight: 800, padding: '2px 8px' }}>{val}</span>}
+                      formatter={(val) => <span style={{ color: 'var(--color-text, #0f172a)', fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, padding: '2px 4px' }}>{val}</span>}
                       layout="horizontal"
                       align="center"
                       verticalAlign="bottom"
@@ -948,26 +1067,26 @@ export default function StatisticsDashboard() {
           </div>
 
           {/* ⚠️ Erken Uyarı Radarı & Destek Bekleyen Konular */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
-            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca', background: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fffafa' }}>
-              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertTriangle size={18} color="#ef4444" /> Sınıfın En Çok Zorlandığı Kritik Konular (%65 Altı)
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(360px, 1fr))', gap: isMobile ? '0.75rem' : '1.25rem' }}>
+            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca', background: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fffafa', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem 0', fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertTriangle size={isMobile ? 16 : 18} color="#ef4444" /> Kritik Konular (%65 Altı)
               </h3>
               {criticalWeakInsights.weakTopics.length === 0 ? (
-                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 700, padding: '1rem 0' }}>
+                <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, padding: '0.5rem 0' }}>
                   🎉 Harika! Sınıf genelinde kritik seviyede başarısız olunan konu bulunmuyor.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {criticalWeakInsights.weakTopics.map((top, i) => (
-                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 12, padding: '0.65rem 0.95rem', border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                      <div>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase' }}>{top.subject}</span>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>{top.name}</div>
+                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 10, padding: '0.55rem 0.75rem', border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase' }}>{top.subject}</span>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{top.name}</div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#ef4444' }}>%{top.accuracy} Başarı</span>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} Soru Çözüldü</div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#ef4444' }}>%{top.accuracy} Başarı</span>
+                        <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} Soru</div>
                       </div>
                     </div>
                   ))}
@@ -975,33 +1094,33 @@ export default function StatisticsDashboard() {
               )}
             </div>
 
-            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a', background: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffdf5' }}>
-              <h3 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, fontSize: '0.95rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldAlert size={18} color="#f59e0b" /> Bireysel Destek & Takip Gerektiren Öğrenciler
+            <div className="stats-glass-card" style={{ border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a', background: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffdf5', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+              <h3 style={{ margin: '0 0 0.65rem 0', fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShieldAlert size={isMobile ? 16 : 18} color="#f59e0b" /> Destek Gerektiren Öğrenciler
               </h3>
               {criticalWeakInsights.strugglingStudents.length === 0 ? (
-                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 700, padding: '1rem 0' }}>
+                <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, padding: '0.5rem 0' }}>
                   🌟 Tüm öğrencilerin soru doğruluk ortalaması %60 barajının üzerinde!
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {criticalWeakInsights.strugglingStudents.map((std, i) => (
-                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 12, padding: '0.65rem 0.95rem', border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Avatar name={std.name} index={std.idx} size={32} />
-                        <div>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{std.name}</div>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{std.gradeName} · {std.totalQ} Soru</span>
+                    <div key={i} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: 10, padding: '0.55rem 0.75rem', border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <Avatar name={std.name} index={std.idx} size={30} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{std.name}</div>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{std.gradeName} · {std.totalQ} Soru</span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleSelectStudentForResults(std.id)}
                         style={{
                           background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a', color: '#f59e0b',
-                          borderRadius: 8, padding: '0.3rem 0.65rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer'
+                          borderRadius: 8, padding: '0.25rem 0.55rem', fontWeight: 900, fontSize: '0.68rem', cursor: 'pointer', flexShrink: 0
                         }}
                       >
-                        Karnesini Aç ↗
+                        Karne ↗
                       </button>
                     </div>
                   ))}
@@ -1015,35 +1134,35 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 2: 📊 PERİYODİK SORU & ZAMAN TRENDİ ─── */}
       {activeTab === 'periodic' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <TrendingUp size={20} color="#6366f1" /> Günlük Soru Çözüm Hacmi & İlerleme Eğrisi
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <TrendingUp size={isMobile ? 17 : 20} color="#6366f1" /> Günlük Soru Çözüm Hacmi & Eğrisi
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
+                <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
                   Sınıf genelinde gün gün çözülen toplam soru miktarı ve doğruluk trendi
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#16a34a' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /> Doğru Soru
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 800, color: '#16a34a' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Doğru
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#ef4444' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} /> Yanlış Soru
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 800, color: '#ef4444' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} /> Yanlış
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', fontWeight: 800, color: '#818cf8' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }} /> Toplam Soru
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 800, color: '#818cf8' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1' }} /> Toplam
                 </div>
               </div>
             </div>
 
-            <div style={{ height: 320, width: '100%' }}>
+            <div style={{ height: isMobile ? 240 : 320, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={timeVelocityData} margin={{ top: 15, right: 15, left: -20, bottom: 5 }}>
+                <AreaChart data={timeVelocityData} margin={{ top: 15, right: 10, left: isMobile ? -25 : -20, bottom: 5 }}>
                   <defs>
                     <linearGradient id="colorTotalQ" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -1055,12 +1174,12 @@ export default function StatisticsDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'} />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted, #64748b)' }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text-muted, #64748b)', fontWeight: 700 }} dy={6} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text-muted, #64748b)' }} />
                   <Tooltip contentStyle={{ borderRadius: '14px', border: '1.5px solid var(--color-border, #e2e8f0)', fontWeight: 800 }} />
-                  <Area type="monotone" dataKey="Toplam Soru" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorTotalQ)" />
-                  <Area type="monotone" dataKey="Doğru" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCorrectQ)" />
-                  <Area type="monotone" dataKey="Yanlış" stroke="#ef4444" strokeWidth={2} fillOpacity={0} />
+                  <Area type="monotone" dataKey="Toplam Soru" stroke="#6366f1" strokeWidth={isMobile ? 2 : 3} fillOpacity={1} fill="url(#colorTotalQ)" />
+                  <Area type="monotone" dataKey="Doğru" stroke="#10b981" strokeWidth={isMobile ? 2 : 2.5} fillOpacity={1} fill="url(#colorCorrectQ)" />
+                  <Area type="monotone" dataKey="Yanlış" stroke="#ef4444" strokeWidth={1.5} fillOpacity={0} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -1071,34 +1190,34 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 3: 📚 DERSLER & KONU KAZANIM KARNESİ ─── */}
       {activeTab === 'subjects' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
             {subjectAggregates.map(subj => {
               const isExpanded = expandedSubjectCard === subj.subject;
               return (
-                <div key={subj.subject} className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div key={subj.subject} className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', display: 'flex', flexDirection: 'column', gap: 10, padding: isMobile ? '0.85rem' : '1.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: `${subj.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                      <div style={{ width: isMobile ? 32 : 38, height: isMobile ? 32 : 38, borderRadius: 10, background: `${subj.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1rem' : '1.2rem' }}>
                         {SUBJECT_COLORS[subj.subject]?.icon || '📚'}
                       </div>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{subj.subject}</h4>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{subj.totalQ} Soru Çözüldü</span>
+                        <h4 style={{ margin: 0, fontSize: isMobile ? '0.9rem' : '0.98rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{subj.subject}</h4>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{subj.totalQ} Soru Çözüldü</span>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 900, color: subj.color }}>%{subj.accuracy}</span>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: subj.accuracy >= 75 ? '#16a34a' : subj.accuracy >= 55 ? '#d97706' : '#dc2626' }}>
+                      <span style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: subj.color }}>%{subj.accuracy}</span>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: subj.accuracy >= 75 ? '#16a34a' : subj.accuracy >= 55 ? '#d97706' : '#dc2626' }}>
                         {subj.accuracy >= 75 ? '🏆 Güçlü' : subj.accuracy >= 55 ? '📈 Gelişiyor' : '⚠️ Destek'}
                       </div>
                     </div>
                   </div>
 
                   {/* Soru Dağılım Çubuğu */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>
                     <span style={{ color: '#16a34a' }}>✓ {subj.correct} D</span>
                     <span>·</span>
                     <span style={{ color: '#ef4444' }}>✗ {subj.wrong} Y</span>
@@ -1114,14 +1233,14 @@ export default function StatisticsDashboard() {
                   <button
                     onClick={() => setExpandedSubjectCard(isExpanded ? null : subj.subject)}
                     style={{
-                      marginTop: 4,
-                      padding: '0.45rem',
+                      marginTop: 2,
+                      padding: '0.4rem',
                       borderRadius: 8,
                       border: '1px solid var(--color-border, #e2e8f0)',
                       background: 'var(--color-surface-hover, #f8fafc)',
                       color: 'var(--color-text, #475569)',
                       fontWeight: 800,
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -1130,24 +1249,24 @@ export default function StatisticsDashboard() {
                     }}
                   >
                     <span>{isExpanded ? 'Konuları Gizle' : `Konu Kazanımlarını Gör (${subj.topicList.length})`}</span>
-                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </button>
 
                   {/* Genişletilmiş Konu Tablosu */}
                   {isExpanded && (
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--color-border, #f1f5f9)', paddingTop: 8 }}>
+                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid var(--color-border, #f1f5f9)', paddingTop: 6 }}>
                       {subj.topicList.length === 0 ? (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', textAlign: 'center', padding: '0.4rem 0' }}>
                           Ayrıntılı konu etiketi bulunmuyor
                         </div>
                       ) : (
                         subj.topicList.map((top, tIdx) => (
-                          <div key={tIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0.35rem 0.5rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 6 }}>
+                          <div key={tIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', padding: '0.35rem 0.45rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 6 }}>
                             <span style={{ fontWeight: 700, color: 'var(--color-text, #334155)', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {top.name}
                             </span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} S</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{top.totalQ} S</span>
                               <span style={{ fontWeight: 900, color: top.accuracy >= 70 ? '#16a34a' : top.accuracy >= 50 ? '#d97706' : '#dc2626' }}>
                                 %{top.accuracy}
                               </span>
@@ -1167,48 +1286,48 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 4: 📖 KİTAP TAKİBİ & TEST ÇÖZÜMLERİ ─── */}
       {activeTab === 'books' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <BookCheck size={20} color="#10b981" /> Takip Edilen Fiziksel Soru Bankaları & Testler
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <BookCheck size={isMobile ? 17 : 20} color="#10b981" /> Takip Edilen Kitaplar & Testler
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
-                  Öğrencilere tanımlı kaynak kitaplar, çözülen test miktarları ve başarı durumları
+                <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
+                  Öğrencilere tanımlı kaynak kitaplar ve çözülen testler
                 </p>
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                {allBooks.length} Kitap Tanımlı
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                {allBooks.length} Kitap
               </span>
             </div>
 
             {allBooks.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontWeight: 700 }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
                 Henüz sisteme eklenmiş takip kitabı bulunmuyor.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
                 {allBooks.map(b => {
                   const testsInBook = (allBookTests || []).filter(t => String(t.bookId) === String(b.id));
                   return (
-                    <div key={b.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={b.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: '1.5rem' }}>📚</span>
+                          <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }}>📚</span>
                           <div>
-                            <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{b.title}</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#818cf8', fontWeight: 800 }}>{b.publisher || b.subject || 'Soru Bankası'}</span>
+                            <h4 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{b.title}</h4>
+                            <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 800 }}>{b.publisher || b.subject || 'Soru Bankası'}</span>
                           </div>
                         </div>
-                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: 8, background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', fontWeight: 800, fontSize: '0.7rem', border: '1px solid rgba(165, 180, 252, 0.3)' }}>
+                        <span style={{ padding: '0.15rem 0.5rem', borderRadius: 8, background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8', fontWeight: 800, fontSize: '0.68rem', border: '1px solid rgba(165, 180, 252, 0.3)', flexShrink: 0 }}>
                           {testsInBook.length} Test
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 4 }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>
                         Ders: <strong style={{ color: 'var(--color-text, #0f172a)' }}>{b.subject || 'Genel'}</strong> {b.grade ? `· ${b.grade}. Sınıf` : ''}
                       </div>
                     </div>
@@ -1223,48 +1342,48 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 5: 📋 DENEME SINAVLARI & NET ANALİZİ ─── */}
       {activeTab === 'exams' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Award size={20} color="#8b5cf6" /> Sınıf Genel Deneme Sınavları & Net Gelişimi
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Award size={isMobile ? 17 : 20} color="#8b5cf6" /> Sınıf Genel Deneme Net Gelişimi
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
-                  Tüm LGS ve branş deneme sınavlarının sınıf net ortalamaları
+                <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
+                  LGS ve branş deneme sınavlarının sınıf net ortalamaları
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
                   Ort. {classKPIs.overallExamNet} Net
                 </span>
               </div>
             </div>
 
             {classKPIs.totalExamsCount === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontWeight: 700 }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
                 Henüz değerlendirilmiş deneme sınavı kaydı bulunmuyor.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
                 {filteredStudents.map(std => {
                   const stdExams = unifiedStudentData.find(s => s.id === std.id)?.filteredExams || [];
                   if (stdExams.length === 0) return null;
                   return (
-                    <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Avatar name={std.name} size={32} />
-                          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
+                          <Avatar name={std.name} size={30} />
+                          <span style={{ fontWeight: 800, fontSize: isMobile ? '0.82rem' : '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
                         </div>
-                        <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: '0.95rem' }}>
+                        <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: isMobile ? '0.88rem' : '0.95rem' }}>
                           {unifiedStudentData.find(s => s.id === std.id)?.avgExamNet} Net
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                         {stdExams.length} Deneme Çözdü · Son Deneme: {stdExams[0]?.title || 'LGS Denemesi'}
                       </div>
                     </div>
@@ -1279,33 +1398,33 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 6: 🗺️ YOL HARİTASI & MÜFREDAT İLERLEMESİ ─── */}
       {activeTab === 'roadmap' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem' }}>
           
-          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+          <div className="stats-glass-card" style={{ background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Compass size={20} color="#d97706" /> Çalışma Programı & Yol Haritası Görev Durumu
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Compass size={isMobile ? 17 : 20} color="#d97706" /> Program & Yol Haritası Durumu
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
-                  Öğrencilere tanımlanan haftalık hedefler, konu kazanımları ve tamamlama oranları
+                <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
+                  Öğrencilere tanımlanan haftalık hedefler ve tamamlama oranları
                 </p>
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: 99, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
                 % {classKPIs.overallRoadmapPct} Tamamlanma
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
               {searchedAndSortedStudents.map(std => (
-                <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Avatar name={std.name} size={32} />
-                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
+                      <Avatar name={std.name} size={30} />
+                      <span style={{ fontWeight: 800, fontSize: isMobile ? '0.82rem' : '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
                     </div>
-                    <span style={{ fontWeight: 900, color: std.roadmapPct >= 70 ? '#16a34a' : '#d97706', fontSize: '0.88rem' }}>
+                    <span style={{ fontWeight: 900, color: std.roadmapPct >= 70 ? '#16a34a' : '#d97706', fontSize: isMobile ? '0.82rem' : '0.88rem' }}>
                       %{std.roadmapPct}
                     </span>
                   </div>
@@ -1314,8 +1433,8 @@ export default function StatisticsDashboard() {
                     <div style={{ height: '100%', width: `${std.roadmapPct}%`, background: std.roadmapPct >= 70 ? '#10b981' : '#f59e0b', borderRadius: 99 }} />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                    <span>{std.completedTasks} / {std.totalTasks} Görev Tamamlandı</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                    <span>{std.completedTasks} / {std.totalTasks} Görev Bitti</span>
                     <span>{std.gradeName}</span>
                   </div>
                 </div>
@@ -1328,32 +1447,34 @@ export default function StatisticsDashboard() {
 
       {/* ─── TAB 7: 👥 ÖĞRENCİ KARŞILAŞTIRMA & SIRALAMA TABLOSU ─── */}
       {(activeTab === 'students' || activeTab === 'overview') && (
-        <section className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'var(--color-surface, #ffffff)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <section className="stats-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1.25rem', background: 'var(--color-surface, #ffffff)', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.75rem', flexDirection: isMobile ? 'column' : 'row', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={20} color="#16a34a" /> Öğrenci Bazlı Kapsamlı Başarı & Karne Matrisi
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.95rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Users size={isMobile ? 18 : 20} color="#16a34a" /> Öğrenci Başarı & Karne Matrisi
+                <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                   {searchedAndSortedStudents.length} Öğrenci
                 </span>
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted, #64748b)' }}>
-                Öğrenciye tıklayarak veya "Detaylı Karne"ye basarak tüm sonuçlarını görüntüleyebilirsiniz.
-              </p>
+              {!isMobile && (
+                <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted, #64748b)' }}>
+                  Öğrenciye tıklayarak veya "Detaylı Karne"ye basarak tüm sonuçlarını görüntüleyebilirsiniz.
+                </p>
+              )}
             </div>
 
             {/* Arama & Sıralama Kontrolleri */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8 }}>
               <select
                 value={studentTableSort}
                 onChange={e => setStudentTableSort(e.target.value)}
                 style={{
-                  padding: '0.5rem 1.4rem 0.5rem 0.75rem',
+                  padding: isMobile ? '0.55rem 0.85rem' : '0.5rem 1.4rem 0.5rem 0.75rem',
                   borderRadius: '0.75rem',
                   border: '1.5px solid var(--color-border-input, #cbd5e1)',
                   background: 'var(--color-surface, #ffffff)',
                   color: 'var(--color-text, #334155)',
-                  fontSize: '0.78rem',
+                  fontSize: isMobile ? '0.76rem' : '0.78rem',
                   fontWeight: 800,
                   outline: 'none',
                   cursor: 'pointer'
@@ -1365,7 +1486,7 @@ export default function StatisticsDashboard() {
                 <option value="roadmapPct">Sırala: Yol Haritası İlerlemesine Göre</option>
               </select>
 
-              <div style={{ position: 'relative', minWidth: 200 }}>
+              <div style={{ position: 'relative', width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : 200 }}>
                 <Search size={15} color="var(--color-text-muted, #94a3b8)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type="text"
@@ -1378,126 +1499,257 @@ export default function StatisticsDashboard() {
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '880px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1.5px solid var(--color-border, #e2e8f0)', background: 'var(--color-surface-hover, #f8fafc)' }}>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıf</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Soru</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Doğruluk %</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Deneme Neti</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Yol Haritası</th>
-                  <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
-                </tr>
-              </thead>
-              <tbody>
-                {searchedAndSortedStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
-                      Kayıtlı veya aramayla eşleşen öğrenci bulunamadı.
-                    </td>
-                  </tr>
-                ) : (
-                  searchedAndSortedStudents.map((student, idx) => {
-                    const isHigh = student.avgScore >= 75;
-                    const isMid = student.avgScore >= 55;
-                    return (
-                      <tr key={student.id} style={{ borderBottom: '1px solid var(--color-border, #e2e8f0)', transition: 'background 0.15s' }}>
-                        <td style={{ padding: '0.85rem 1rem' }}>
-                          <div
-                            onClick={() => handleSelectStudentForResults(student.id)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
-                            title="Öğrencinin tüm sonuçlarını ve karne dökümünü incele"
-                          >
-                            <Avatar name={student.name} index={student.idx} size={36} />
-                            <div>
-                              <span style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', display: 'block' }}>{student.name}</span>
-                              <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 700 }}>Detaylı Karnesi ↗</span>
+          {isMobile ? (
+            /* 📱 NATIVE MOBILE STUDENT CARDS VIEW */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {searchedAndSortedStudents.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
+                  Kayıtlı veya aramayla eşleşen öğrenci bulunamadı.
+                </div>
+              ) : (
+                searchedAndSortedStudents.map((student) => {
+                  const isHigh = student.avgScore >= 75;
+                  const isMid = student.avgScore >= 55;
+                  return (
+                    <div
+                      key={student.id}
+                      style={{
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
+                        borderRadius: 14,
+                        padding: '0.85rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      {/* Top row: Avatar + Name + Grade + Score badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div
+                          onClick={() => handleSelectStudentForResults(student.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1, cursor: 'pointer' }}
+                        >
+                          <Avatar name={student.name} index={student.idx} size={36} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {student.name}
                             </div>
+                            <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 800 }}>
+                              {student.gradeName}
+                            </span>
                           </div>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem' }}>
-                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: 99, background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)', fontWeight: 800, fontSize: '0.72rem' }}>
-                            {student.gradeName}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                          <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem' }}>{student.totalQ} Soru</div>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>✓{student.totalCorrect} · ✗{student.totalWrong}</div>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                          <span style={{
-                            padding: '0.25rem 0.65rem', borderRadius: '0.5rem',
-                            background: isHigh ? 'rgba(16, 185, 129, 0.15)' : isMid ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: isHigh ? '#10b981' : isMid ? '#f59e0b' : '#ef4444',
-                            border: `1px solid ${isHigh ? 'rgba(16, 185, 129, 0.35)' : isMid ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
-                            fontWeight: 900, fontSize: '0.82rem'
+                        </div>
+
+                        <span style={{
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '0.5rem',
+                          background: isHigh ? 'rgba(16, 185, 129, 0.15)' : isMid ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          color: isHigh ? '#10b981' : isMid ? '#f59e0b' : '#ef4444',
+                          border: `1px solid ${isHigh ? 'rgba(16, 185, 129, 0.35)' : isMid ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                          fontWeight: 900,
+                          fontSize: '0.82rem',
+                          flexShrink: 0
+                        }}>
+                          %{student.avgScore} Başarı
+                        </span>
+                      </div>
+
+                      {/* Middle stats row: 3 metrics */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: 6,
+                        background: 'var(--color-surface, #ffffff)',
+                        borderRadius: 10,
+                        padding: '0.45rem 0.5rem',
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                        textAlign: 'center'
+                      }}>
+                        <div>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, display: 'block', textTransform: 'uppercase' }}>Soru</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{student.totalQ}</span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, display: 'block', textTransform: 'uppercase' }}>Deneme Net</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#8b5cf6' }}>{student.avgExamNet}</span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, display: 'block', textTransform: 'uppercase' }}>Yol Haritası</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: student.roadmapPct >= 70 ? '#10b981' : '#f59e0b' }}>%{student.roadmapPct}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        <button
+                          onClick={() => handleSelectStudentForResults(student.id)}
+                          style={{
+                            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                            border: 'none',
+                            borderRadius: '0.65rem',
+                            padding: '0.45rem 0.6rem',
+                            cursor: 'pointer',
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                          }}
+                        >
+                          <BarChart3 size={13} /> Karnesini Gör
+                        </button>
+                        <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
+                          <button style={{
+                            width: '100%',
+                            background: 'rgba(99, 102, 241, 0.12)',
+                            border: '1px solid rgba(165, 180, 252, 0.3)',
+                            borderRadius: '0.65rem',
+                            padding: '0.45rem 0.6rem',
+                            cursor: 'pointer',
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            color: '#818cf8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4
                           }}>
-                            %{student.avgScore}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                          <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: '0.85rem' }}>
-                            {student.avgExamNet} Net
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', minWidth: 140 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{ flex: 1, height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
-                              <div style={{
-                                height: '100%', borderRadius: 99, width: `${student.roadmapPct}%`,
-                                background: student.roadmapPct >= 70 ? 'linear-gradient(90deg,#10b981,#059669)'
-                                  : student.roadmapPct >= 40 ? 'linear-gradient(90deg,#f59e0b,#f97316)'
-                                  : 'linear-gradient(90deg,#f43f5e,#e11d48)',
-                                transition: 'width 0.6s ease'
-                              }} />
-                            </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', minWidth: 32 }}>%{student.roadmapPct}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                            <button
+                            Koçluk <ArrowUpRight size={13} />
+                          </button>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            /* 💻 DESKTOP TABLE VIEW */
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '880px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1.5px solid var(--color-border, #e2e8f0)', background: 'var(--color-surface-hover, #f8fafc)' }}>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıf</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Soru</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Doğruluk %</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Deneme Neti</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Yol Haritası</th>
+                    <th style={{ padding: '0.85rem 1rem', color: 'var(--color-text, #0f172a)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {searchedAndSortedStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
+                        Kayıtlı veya aramayla eşleşen öğrenci bulunamadı.
+                      </td>
+                    </tr>
+                  ) : (
+                    searchedAndSortedStudents.map((student, idx) => {
+                      const isHigh = student.avgScore >= 75;
+                      const isMid = student.avgScore >= 55;
+                      return (
+                        <tr key={student.id} style={{ borderBottom: '1px solid var(--color-border, #e2e8f0)', transition: 'background 0.15s' }}>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <div
                               onClick={() => handleSelectStudentForResults(student.id)}
-                              style={{
-                                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                                border: 'none',
-                                borderRadius: '0.6rem',
-                                padding: '0.38rem 0.8rem',
-                                cursor: 'pointer',
-                                fontWeight: 800,
-                                fontSize: '0.74rem',
-                                color: '#ffffff',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
-                              }}
-                              title="Öğrencinin tüm sınav, ödev ve karne verilerini detaylı incele"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+                              title="Öğrencinin tüm sonuçlarını ve karne dökümünü incele"
                             >
-                              <BarChart3 size={13} /> Karnesini Gör
-                            </button>
-                            <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
-                              <button style={{
-                                background: 'rgba(99, 102, 241, 0.12)',
-                                border: '1px solid rgba(165, 180, 252, 0.3)',
-                                borderRadius: '0.6rem', padding: '0.38rem 0.75rem',
-                                cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
-                                color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 4
-                              }}>
-                                Koçluk <ArrowUpRight size={13} />
+                              <Avatar name={student.name} index={student.idx} size={36} />
+                              <div>
+                                <span style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', display: 'block' }}>{student.name}</span>
+                                <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 700 }}>Detaylı Karnesi ↗</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: 99, background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.3)', fontWeight: 800, fontSize: '0.72rem' }}>
+                              {student.gradeName}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                            <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem' }}>{student.totalQ} Soru</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>✓{student.totalCorrect} · ✗{student.totalWrong}</div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '0.25rem 0.65rem', borderRadius: '0.5rem',
+                              background: isHigh ? 'rgba(16, 185, 129, 0.15)' : isMid ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: isHigh ? '#10b981' : isMid ? '#f59e0b' : '#ef4444',
+                              border: `1px solid ${isHigh ? 'rgba(16, 185, 129, 0.35)' : isMid ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                              fontWeight: 900, fontSize: '0.82rem'
+                            }}>
+                              %{student.avgScore}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                            <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: '0.85rem' }}>
+                              {student.avgExamNet} Net
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', minWidth: 140 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ flex: 1, height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{
+                                  height: '100%', borderRadius: 99, width: `${student.roadmapPct}%`,
+                                  background: student.roadmapPct >= 70 ? 'linear-gradient(90deg,#10b981,#059669)'
+                                    : student.roadmapPct >= 40 ? 'linear-gradient(90deg,#f59e0b,#f97316)'
+                                    : 'linear-gradient(90deg,#f43f5e,#e11d48)',
+                                  transition: 'width 0.6s ease'
+                                }} />
+                              </div>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', minWidth: 32 }}>%{student.roadmapPct}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                              <button
+                                onClick={() => handleSelectStudentForResults(student.id)}
+                                style={{
+                                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                  border: 'none',
+                                  borderRadius: '0.6rem',
+                                  padding: '0.38rem 0.8rem',
+                                  cursor: 'pointer',
+                                  fontWeight: 800,
+                                  fontSize: '0.74rem',
+                                  color: '#ffffff',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                                }}
+                                title="Öğrencinin tüm sınav, ödev ve karne verilerini detaylı incele"
+                              >
+                                <BarChart3 size={13} /> Karnesini Gör
                               </button>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                              <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
+                                <button style={{
+                                  background: 'rgba(99, 102, 241, 0.12)',
+                                  border: '1px solid rgba(165, 180, 252, 0.3)',
+                                  borderRadius: '0.6rem', padding: '0.38rem 0.75rem',
+                                  cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
+                                  color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: 4
+                                }}>
+                                  Koçluk <ArrowUpRight size={13} />
+                                </button>
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
 
