@@ -518,67 +518,70 @@ export default function StudyPlanManager() {
       <div className="study-glass-card study-search-presets-bar">
         
         {/* Search Box */}
-        <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: isMobile ? '100%' : '450px', width: '100%' }}>
-          <Search size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #94a3b8)' }} />
+        <div style={{ position: 'relative', flex: '1 1 auto', maxWidth: isMobile ? '100%' : '450px', width: '100%' }}>
+          <Search size={isMobile ? 15 : 17} style={{ position: 'absolute', left: isMobile ? '0.65rem' : '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #94a3b8)', pointerEvents: 'none' }} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Yol haritası, ünite veya konu ara..."
+            placeholder={isMobile ? "Yol haritası, konu veya ünite ara..." : "Yol haritası, ünite veya konu ara..."}
             style={{
               width: '100%',
-              padding: isMobile ? '0.6rem 2.2rem 0.6rem 2.35rem' : '0.75rem 1rem 0.75rem 2.75rem',
-              borderRadius: '0.85rem',
+              height: isMobile ? '34px' : '42px',
+              padding: isMobile ? '0.25rem 1.8rem 0.25rem 2rem' : '0.65rem 1rem 0.65rem 2.6rem',
+              borderRadius: isMobile ? '0.65rem' : '0.85rem',
               background: 'var(--color-surface, #ffffff)',
               border: '1.5px solid var(--color-border-input, #cbd5e1)',
               color: 'var(--color-text, #0f172a)',
-              fontSize: isMobile ? '0.82rem' : '0.9rem',
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
               fontWeight: 600,
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              outline: 'none'
             }}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', cursor: 'pointer' }}
+              style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', cursor: 'pointer', padding: 2 }}
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
         </div>
 
         {/* Quick Ready-Made Templates Chips */}
         <div className="study-presets-container sd-hide-scrollbar">
-          <span style={{ fontSize: isMobile ? '0.74rem' : '0.82rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-            <Sparkles size={15} style={{ color: '#d97706' }} /> Hazır Şablon:
+          <span style={{ fontSize: isMobile ? '0.68rem' : '0.82rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+            <Sparkles size={isMobile ? 12 : 15} style={{ color: '#d97706' }} /> {isMobile ? 'Şablon:' : 'Hazır Şablon:'}
           </span>
           {PRESET_TEMPLATES.map(tmpl => (
             <button
               key={tmpl.id}
               onClick={() => handleLoadTemplate(tmpl)}
               style={{
-                fontSize: isMobile ? '0.72rem' : '0.78rem',
+                fontSize: isMobile ? '0.66rem' : '0.78rem',
                 fontWeight: 800,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
-                borderRadius: '0.75rem',
-                background: 'rgba(99, 102, 241, 0.12)',
-                border: '1px solid rgba(165, 180, 252, 0.3)',
+                padding: isMobile ? '0.15rem 0.45rem' : '0.45rem 0.85rem',
+                borderRadius: isMobile ? '0.45rem' : '0.75rem',
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(165, 180, 252, 0.25)',
                 color: '#6366f1',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
+                gap: '0.25rem',
                 transition: 'all 0.15s',
                 flexShrink: 0
               }}
               title={tmpl.desc}
             >
-              <Zap size={13} style={{ color: '#0284c7' }} /> {tmpl.category}
+              <Zap size={isMobile ? 11 : 13} style={{ color: '#0284c7' }} /> {tmpl.category}
             </button>
           ))}
         </div>
 
       </div>
+
 
 
       {/* ── ROADMAPS GRID ── */}
