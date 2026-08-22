@@ -2818,9 +2818,9 @@ export default function StudentDashboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)',
-            gap: isMobile ? '0.45rem' : '0.85rem',
-            padding: isMobile ? '0.75rem 0.45rem 0.65rem' : '0.9rem 1.25rem',
+            gridTemplateColumns: isMobile ? 'repeat(6, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr))',
+            gap: isMobile ? '0.2rem' : '0.85rem',
+            padding: isMobile ? '0.65rem 0.25rem 0.55rem' : '0.9rem 1.25rem',
             marginBottom: isMobile ? '0.9rem' : '1.35rem',
             background: 'var(--color-surface, #ffffff)',
             border: '1.5px solid var(--color-border, #e2e8f0)',
@@ -2833,7 +2833,7 @@ export default function StudentDashboard() {
           {[
             {
               id: 'study_room',
-              label: 'Çalışma Odası',
+              label: isMobile ? 'Oda' : 'Çalışma Odası',
               icon: Headphones,
               gradient: 'linear-gradient(135deg, #10b981, #059669)',
               shadow: 'rgba(16, 185, 129, 0.35)',
@@ -2850,7 +2850,7 @@ export default function StudentDashboard() {
               badgeBg: '#e11d48',
               onClick: () => navigate('/student/homeworks')
             },
-            {
+            ...(!isMobile ? [{
               id: 'program',
               label: 'Program',
               icon: CalendarDays,
@@ -2858,7 +2858,7 @@ export default function StudentDashboard() {
               shadow: 'rgba(59, 130, 246, 0.35)',
               badge: null,
               onClick: () => navigate('/my-program')
-            },
+            }] : []),
             {
               id: 'books',
               label: 'Kitaplar',
@@ -2890,7 +2890,7 @@ export default function StudentDashboard() {
             },
             {
               id: 'add_test',
-              label: 'Test Ekle',
+              label: isMobile ? '+ Test' : 'Test Ekle',
               icon: Plus,
               gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)',
               shadow: 'rgba(6, 182, 212, 0.35)',
@@ -2924,35 +2924,35 @@ export default function StudentDashboard() {
                 <div
                   style={{
                     position: 'relative',
-                    width: isMobile ? 42 : 50,
-                    height: isMobile ? 42 : 50,
-                    borderRadius: isMobile ? 13 : 16,
+                    width: isMobile ? 38 : 50,
+                    height: isMobile ? 38 : 50,
+                    borderRadius: isMobile ? 12 : 16,
                     background: item.gradient,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
                     boxShadow: `0 4px 12px ${item.shadow}`,
-                    marginBottom: isMobile ? 4 : 6,
+                    marginBottom: isMobile ? 3 : 6,
                     border: '1px solid rgba(255, 255, 255, 0.25)'
                   }}
                 >
-                  <Icon size={isMobile ? 20 : 24} strokeWidth={2.4} />
+                  <Icon size={isMobile ? 18 : 24} strokeWidth={2.4} />
 
                   {/* Notification Badge on top right of icon */}
                   {item.badge !== null && item.badge !== undefined && (
                     <span
                       style={{
                         position: 'absolute',
-                        top: isMobile ? -4 : -5,
-                        right: isMobile ? -4 : -5,
+                        top: isMobile ? -3 : -5,
+                        right: isMobile ? -3 : -5,
                         background: '#ffffff',
                         color: item.badgeBg || '#e11d48',
                         border: `2px solid ${item.badgeBg || '#e11d48'}`,
-                        fontSize: isMobile ? '0.58rem' : '0.65rem',
+                        fontSize: isMobile ? '0.55rem' : '0.65rem',
                         fontWeight: 900,
-                        minWidth: isMobile ? 16 : 18,
-                        height: isMobile ? 16 : 18,
+                        minWidth: isMobile ? 15 : 18,
+                        height: isMobile ? 15 : 18,
                         borderRadius: 99,
                         display: 'flex',
                         alignItems: 'center',
@@ -2970,7 +2970,7 @@ export default function StudentDashboard() {
                 {/* App Title Label */}
                 <span
                   style={{
-                    fontSize: isMobile ? '0.65rem' : '0.74rem',
+                    fontSize: isMobile ? '0.62rem' : '0.74rem',
                     fontWeight: 800,
                     color: 'var(--color-text, #0f172a)',
                     lineHeight: 1.1,
