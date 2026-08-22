@@ -5582,41 +5582,40 @@ export default function StudyRoomPage() {
             {/* 1. GÖRÜNÜM: HAFTALIK DERS PROGRAMI (GÜN GÜN SEÇİM & LİSTE) */}
             {hwSourceTab === 'program' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
-                {/* Gün Seçici Çubuk: Mobilde 4'lü Kolay Tıklanabilir 2 Satır Izgara, Masaüstünde Yatay Şerit */}
+                {/* Gün Seçici Yatay Şerit (Tek Satır, Geniş ve Rahat Tıklanabilir) */}
                 <div style={{
-                  display: isMobile ? 'grid' : 'flex',
-                  gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : undefined,
-                  gap: isMobile ? 6 : 8,
-                  overflowX: isMobile ? 'visible' : 'auto',
-                  padding: isMobile ? '2px 0 8px' : '6px 3px 12px',
+                  display: 'flex',
+                  gap: isMobile ? 8 : 10,
+                  overflowX: 'auto',
+                  padding: isMobile ? '4px 2px 10px' : '6px 3px 12px',
                   borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
-                  scrollbarWidth: 'thin'
+                  scrollbarWidth: 'thin',
+                  WebkitOverflowScrolling: 'touch',
+                  flexShrink: 0
                 }}>
                   <button
                     type="button"
                     onClick={() => setSelectedProgramDay('all')}
                     style={{
-                      padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 1.35rem',
-                      borderRadius: isMobile ? 12 : 14,
+                      flexShrink: 0,
+                      padding: isMobile ? '0.55rem 0.95rem' : '0.75rem 1.25rem',
+                      borderRadius: 14,
                       border: `2px solid ${selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-border, #e2e8f0)'}`,
                       background: selectedProgramDay === 'all' ? (isDark ? 'rgba(59,130,246,0.25)' : '#eff6ff') : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
                       color: selectedProgramDay === 'all' ? '#3b82f6' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.78rem' : '1rem',
+                      fontSize: isMobile ? '0.85rem' : '0.96rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: isMobile ? 54 : 44,
-                      gap: isMobile ? 3 : 7,
+                      gap: 6,
                       boxShadow: selectedProgramDay === 'all' ? '0 4px 14px rgba(59,130,246,0.3)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span style={{ fontSize: isMobile ? '1.1rem' : '1.15rem' }}>🌟</span>
-                    <span>{isMobile ? 'Tümü' : 'Tüm Hafta'}</span>
+                    <span style={{ fontSize: isMobile ? '1.1rem' : '1.2rem' }}>🌟</span>
+                    <span>Tüm Hafta</span>
                   </button>
 
                   {WEEK_DAYS_CONFIG.map(dayCfg => {
@@ -5633,8 +5632,9 @@ export default function StudyRoomPage() {
                         type="button"
                         onClick={() => setSelectedProgramDay(dayCfg.key)}
                         style={{
-                          padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 1.35rem',
-                          borderRadius: isMobile ? 12 : 14,
+                          flexShrink: 0,
+                          padding: isMobile ? '0.55rem 0.95rem' : '0.75rem 1.25rem',
+                          borderRadius: 14,
                           border: `2px solid ${isSelected ? dayCfg.color : isToday ? '#f59e0b' : 'var(--color-border, #e2e8f0)'}`,
                           background: isSelected
                             ? (isDark ? 'rgba(59,130,246,0.25)' : dayCfg.bg)
@@ -5643,15 +5643,12 @@ export default function StudyRoomPage() {
                               : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
                           color: isSelected ? dayCfg.color : 'var(--color-text)',
                           fontWeight: 900,
-                          fontSize: isMobile ? '0.78rem' : '1rem',
+                          fontSize: isMobile ? '0.85rem' : '0.96rem',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           display: 'flex',
-                          flexDirection: isMobile ? 'column' : 'row',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: isMobile ? 54 : 44,
-                          gap: isMobile ? 3 : 7,
+                          gap: 6,
                           boxShadow: isSelected
                             ? '0 4px 14px rgba(59,130,246,0.3)'
                             : isToday
@@ -5660,36 +5657,29 @@ export default function StudyRoomPage() {
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ fontSize: isMobile ? '1.05rem' : '1.15rem' }}>{dayCfg.icon}</span>
-                          {isMobile && isToday && (
-                            <span style={{ width: 6, height: 6, borderRadius: 99, background: '#f59e0b', display: 'inline-block' }} />
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span>{isMobile ? dayCfg.short : dayCfg.long}</span>
-                          {displayCount > 0 && (
-                            <span style={{
-                              fontSize: isMobile ? '0.66rem' : '0.82rem',
-                              fontWeight: 900,
-                              background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
-                              color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
-                              padding: isMobile ? '1px 5px' : '3px 9px',
-                              borderRadius: 99
-                            }}>
-                              {displayCount}
-                            </span>
-                          )}
-                        </div>
-                        {!isMobile && isToday && (
+                        <span style={{ fontSize: isMobile ? '1.1rem' : '1.2rem' }}>{dayCfg.icon}</span>
+                        <span>{dayCfg.long}</span>
+                        {displayCount > 0 && (
                           <span style={{
-                            fontSize: '0.7rem',
+                            fontSize: isMobile ? '0.72rem' : '0.8rem',
+                            fontWeight: 900,
+                            background: isSelected ? dayCfg.color : 'var(--color-border, #e2e8f0)',
+                            color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
+                            padding: '2px 8px',
+                            borderRadius: 99
+                          }}>
+                            {displayCount}
+                          </span>
+                        )}
+                        {isToday && (
+                          <span style={{
+                            fontSize: '0.68rem',
                             fontWeight: 900,
                             color: '#ffffff',
                             background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            padding: '3px 8px',
+                            padding: '2px 6px',
                             borderRadius: 6,
-                            letterSpacing: '0.04em',
+                            letterSpacing: '0.03em',
                             boxShadow: '0 2px 8px rgba(245,158,11,0.35)'
                           }}>
                             BUGÜN
