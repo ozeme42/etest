@@ -2247,8 +2247,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             else wrong++;
           }
         } else if (isQOE) {
-          totalOE++;
-          pending++;
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
+          const hasText = Boolean(textVal && String(textVal).trim());
+          if (hasText) {
+            totalOE++;
+            pending++;
+          } else {
+            blank++;
+          }
         } else {
           const userAnsObj = sa.answers?.[i];
           const numUAns = unwrapUserAnswer(userAnsObj);
@@ -2977,15 +2983,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           {isReviewMode ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.65rem' }}>
               <div style={{
-                background: liveReviewStats.isPending ? '#f5f3ff' : '#f8fafc',
-                border: liveReviewStats.isPending ? '1.5px solid #ddd6fe' : '1.5px solid #cbd5e1',
+                background: (liveReviewStats.isPending && !isTeacherMode) ? '#f5f3ff' : '#f8fafc',
+                border: (liveReviewStats.isPending && !isTeacherMode) ? '1.5px solid #ddd6fe' : '1.5px solid #cbd5e1',
                 borderRadius: '0.65rem',
                 padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.65rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem'
               }}>
-                {liveReviewStats.isPending ? (
+                {liveReviewStats.isPending && !isTeacherMode ? (
                   <span style={{ fontSize: isMobile ? '0.72rem' : '0.84rem', fontWeight: 900, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     ⏳ Öğretmen Değerlendirmesinde
                   </span>
@@ -2994,8 +3000,18 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, color: liveReviewStats.pct >= 70 ? '#16a34a' : (liveReviewStats.pct >= 50 ? '#d97706' : '#dc2626') }}>
                       %{liveReviewStats.pct}
                     </span>
-                    <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: '#64748b' }}>
-                      ({liveReviewStats.correct} D / {liveReviewStats.wrong} Y)
+                    <span style={{ fontSize: isMobile ? '0.65rem' : '0.74rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      (<span style={{ color: '#16a34a', fontWeight: 900 }}>{liveReviewStats.correct} D</span>
+                      <span>/</span>
+                      <span style={{ color: '#dc2626', fontWeight: 900 }}>{liveReviewStats.wrong} Y</span>
+                      <span>/</span>
+                      <span style={{ color: '#64748b', fontWeight: 900 }}>{liveReviewStats.blank} B</span>
+                      {liveReviewStats.pending > 0 && (
+                        <>
+                          <span style={{ color: '#cbd5e1' }}>•</span>
+                          <span style={{ color: '#7c3aed', fontWeight: 900 }}>⏳ {liveReviewStats.pending} Bekleyen</span>
+                        </>
+                      )})
                     </span>
                   </>
                 )}
