@@ -2377,26 +2377,55 @@ export default function StudyRoomPage() {
           })}
         </div>
 
-        {/* 2 Buton (Program Sayfası ve Zen Odak) */}
+        {/* 3 Buton (Program Sayfası, Ödev Seç ve Zen Odak) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'auto auto',
-          gap: isMobile ? 6 : 8
+          gridTemplateColumns: isMobile ? '1fr 1fr 1fr' : 'auto auto auto',
+          gap: isMobile ? 5 : 8
         }}>
+          {/* Program Sayfası Butonu (Doğrudan Programı Açar) */}
+          <button
+            onClick={() => navigate('/student/program')}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              border: 'none',
+              color: '#ffffff',
+              borderRadius: isMobile ? 12 : 16,
+              padding: isFullscreenView ? '0.85rem 1.1rem' : isMobile ? '0.55rem 0.55rem' : '0.75rem 0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              fontSize: isFullscreenView ? '0.84rem' : isMobile ? '0.72rem' : '0.78rem',
+              fontWeight: 900,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+              transition: 'all 0.15s'
+            }}
+            title="Ders Programını tam sayfa aç"
+          >
+            <Calendar size={isMobile ? 14 : 17} />
+            <span>📅 Program</span>
+          </button>
+
           {/* Ödev / Test Seç Modalı Butonu */}
           <button
-            onClick={() => setShowHomeworkPickerModal(true)}
+            onClick={() => {
+              setHwSourceTab('bookTest');
+              setShowHomeworkPickerModal(true);
+            }}
             style={{
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
               border: 'none',
               color: '#ffffff',
               borderRadius: isMobile ? 12 : 16,
-              padding: isFullscreenView ? '0.85rem 1.1rem' : isMobile ? '0.55rem 0.75rem' : '0.75rem 0.95rem',
+              padding: isFullscreenView ? '0.85rem 1.1rem' : isMobile ? '0.55rem 0.55rem' : '0.75rem 0.95rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 6,
+              gap: 5,
               fontSize: isFullscreenView ? '0.84rem' : isMobile ? '0.72rem' : '0.78rem',
               fontWeight: 900,
               whiteSpace: 'nowrap',
@@ -5299,7 +5328,7 @@ export default function StudyRoomPage() {
               marginBottom: isMobile ? 8 : 12
             }}>
               {[
-                { id: 'program', label: '📅 Program', count: allAssignedTasks.filter(t => (t.sourceType === 'program' || t.sourceType === 'roadmap' || t.dayKey) && (!hideCompletedTasks || !t.isCompleted)).length },
+                { id: 'program', label: '📅 Program (Aç ↗)', isNav: true },
                 { id: 'bookTest', label: '📚 Kitap Testleri', count: allAssignedTasks.filter(t => t.sourceType === 'bookTest' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'homework', label: '📝 Atanmış Ödevler', count: allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length },
                 { id: 'all', label: '🌟 Tüm Liste', count: allAssignedTasks.filter(t => (!hideCompletedTasks || !t.isCompleted)).length }
@@ -5309,15 +5338,26 @@ export default function StudyRoomPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setHwSourceTab(tab.id)}
+                    onClick={() => {
+                      if (tab.id === 'program' || tab.isNav) {
+                        setShowHomeworkPickerModal(false);
+                        navigate('/student/program');
+                      } else {
+                        setHwSourceTab(tab.id);
+                      }
+                    }}
                     style={{
                       padding: isMobile ? '0.6rem 0.5rem' : '0.75rem 0.85rem',
                       borderRadius: 10,
                       border: 'none',
-                      background: isTabActive ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
-                      color: isTabActive ? '#ffffff' : 'var(--color-text)',
+                      background: tab.id === 'program'
+                        ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                        : isTabActive
+                          ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                          : 'transparent',
+                      color: (tab.id === 'program' || isTabActive) ? '#ffffff' : 'var(--color-text)',
                       fontWeight: 900,
-                      fontSize: isMobile ? '0.82rem' : '0.94rem',
+                      fontSize: isMobile ? '0.8rem' : '0.92rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -5325,20 +5365,22 @@ export default function StudyRoomPage() {
                       gap: 6,
                       transition: 'all 0.15s ease',
                       whiteSpace: 'nowrap',
-                      boxShadow: isTabActive ? '0 3px 10px rgba(59,130,246,0.35)' : 'none'
+                      boxShadow: (tab.id === 'program' || isTabActive) ? '0 3px 10px rgba(59,130,246,0.35)' : 'none'
                     }}
                   >
                     <span>{tab.label}</span>
-                    <span style={{
-                      fontSize: isMobile ? '0.7rem' : '0.78rem',
-                      fontWeight: 900,
-                      background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
-                      color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
-                      padding: isMobile ? '2px 6px' : '2px 8px',
-                      borderRadius: 99
-                    }}>
-                      {tab.count}
-                    </span>
+                    {tab.count !== undefined && (
+                      <span style={{
+                        fontSize: isMobile ? '0.7rem' : '0.78rem',
+                        fontWeight: 900,
+                        background: isTabActive ? 'rgba(255,255,255,0.28)' : 'var(--color-border, #e2e8f0)',
+                        color: isTabActive ? '#ffffff' : 'var(--color-text-muted)',
+                        padding: isMobile ? '2px 6px' : '2px 8px',
+                        borderRadius: 99
+                      }}>
+                        {tab.count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
