@@ -36,6 +36,24 @@ const SUBJECTS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', '
 const TOPIC_STATUSES = ['Başlanmadı', 'Başlandı', 'Öğrenildi', 'Tekrar Yapıldı', 'Tamamlandı'];
 const STATUS_COLOR = { 'Başlanmadı': '#94a3b8', 'Başlandı': '#f59e0b', 'Öğrenildi': '#3b82f6', 'Tekrar Yapıldı': '#f97316', 'Tamamlandı': '#10b981' };
 
+const formatCleanDate = (rawDate) => {
+  if (!rawDate) return '';
+  try {
+    if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate.trim())) {
+      const [y, m, d] = rawDate.trim().split('-').map(Number);
+      const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+      return `${d} ${months[m - 1] || ''} ${y}`;
+    }
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    return String(rawDate);
+  } catch {
+    return String(rawDate);
+  }
+};
+
 export function getCurrentWeekKey() {
   const d = new Date();
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -108,16 +126,22 @@ function TabBtn({ id, active, label, onClick, isMobile }) {
       style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 0.9rem',
         borderRadius: isMobile ? '0.75rem' : '0.7rem 0.7rem 0 0',
-        border: isMobile
-          ? (active ? '1.5px solid #818cf8' : '1.5px solid var(--color-border, #e2e8f0)')
-          : (active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent'),
-        borderBottom: !isMobile && active ? '2px solid var(--color-surface, white)' : undefined,
+        ...(isMobile
+          ? {
+              border: active ? '1.5px solid #818cf8' : '1.5px solid var(--color-border, #e2e8f0)'
+            }
+          : {
+              borderTop: active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent',
+              borderLeft: active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent',
+              borderRight: active ? '2px solid var(--color-border, #e2e8f0)' : '2px solid transparent',
+              borderBottom: active ? '2px solid var(--color-surface, white)' : '2px solid transparent'
+            }),
         background: active
           ? (isMobile ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'var(--color-surface, white)')
           : (isMobile ? 'var(--color-surface-hover, #f8fafc)' : 'transparent'),
         color: active ? (isMobile ? '#ffffff' : 'var(--color-primary, #7c3aed)') : 'var(--color-text-muted, #64748b)',
         fontWeight: active ? 900 : 700,
-        fontSize: isMobile ? '0.74rem' : '0.74rem',
+        fontSize: '0.74rem',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
         marginBottom: !isMobile && active ? -2 : 0,
