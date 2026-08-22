@@ -2787,59 +2787,61 @@ export default function StudentDashboard() {
       ════════════════════════════════════════════ */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* ── HIZLI KISAYOLLAR MOBİL ŞERİDİ ── */}
+        {/* ── HIZLI KISAYOLLAR MOBİL KARTLARI / MENÜSÜ ── */}
         <div
-          className="sd-hide-scrollbar"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            padding: isMobile ? '0.35rem 0 0.85rem' : '0.2rem 0 1.2rem',
-            width: '100%'
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)',
+            gap: isMobile ? '0.45rem' : '0.65rem',
+            marginBottom: isMobile ? '0.85rem' : '1.25rem',
+            width: '100%',
+            boxSizing: 'border-box'
           }}
         >
           {[
-            { label: '📋 Ödevlerim', badge: pendingCount > 0 ? pendingCount : null, badgeColor: '#ef4444', onClick: () => navigate('/student/homeworks') },
-            { label: '📅 Haftalık Program', onClick: () => navigate('/my-program') },
-            { label: '📚 Kitaplarım', badge: assignedBooksList.length || null, badgeColor: '#6366f1', onClick: () => navigate('/student/books') },
-            { label: '📊 Gelişim & Karne', onClick: () => navigate('/student/results') },
-            { label: '🎯 Hedeflerim', badge: goalTrackingData.totalItemsCount || null, badgeColor: '#a855f7', onClick: () => navigate('/goals') },
-            { label: '➕ Test Ekle', isAction: true, onClick: () => setIsManualTestModalOpen(true) },
+            { label: '📋 Ödevlerim', shortLabel: '📋 Ödevler', badge: pendingCount > 0 ? pendingCount : null, badgeColor: '#ef4444', onClick: () => navigate('/student/homeworks') },
+            { label: '📅 Haftalık Program', shortLabel: '📅 Program', onClick: () => navigate('/my-program') },
+            { label: '📚 Kitaplarım', shortLabel: '📚 Kitaplar', badge: assignedBooksList.length || null, badgeColor: '#6366f1', onClick: () => navigate('/student/books') },
+            { label: '📊 Gelişim & Karne', shortLabel: '📊 Gelişim', onClick: () => navigate('/student/results') },
+            { label: '🎯 Hedeflerim', shortLabel: '🎯 Hedefler', badge: goalTrackingData.totalItemsCount || null, badgeColor: '#a855f7', onClick: () => navigate('/goals') },
+            { label: '➕ Test Ekle', shortLabel: '➕ Test Ekle', isAction: true, onClick: () => setIsManualTestModalOpen(true) },
           ].map((item, i) => (
             <button
               key={i}
               type="button"
               onClick={item.onClick}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: 5,
-                padding: isMobile ? '0.45rem 0.8rem' : '0.5rem 0.95rem',
-                borderRadius: 99,
+                justifyContent: 'center',
+                gap: 4,
+                padding: isMobile ? '0.55rem 0.3rem' : '0.5rem 0.95rem',
+                borderRadius: isMobile ? 12 : 99,
                 background: item.isAction ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--color-surface)',
                 border: item.isAction ? 'none' : '1.5px solid var(--color-border)',
                 color: item.isAction ? '#ffffff' : 'var(--color-text)',
-                fontSize: isMobile ? '0.74rem' : '0.78rem',
+                fontSize: isMobile ? '0.72rem' : '0.78rem',
                 fontWeight: 800,
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
-                boxShadow: item.isAction ? '0 2px 10px rgba(16,185,129,0.35)' : '0 2px 6px rgba(0,0,0,0.03)',
-                flexShrink: 0,
-                transition: 'all 0.15s ease'
+                boxShadow: item.isAction ? '0 2px 8px rgba(16,185,129,0.3)' : '0 1px 4px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease',
+                position: 'relative',
+                minHeight: isMobile ? 44 : 'auto',
+                boxSizing: 'border-box'
               }}
             >
-              <span>{item.label}</span>
+              <span>{isMobile ? item.shortLabel : item.label}</span>
               {item.badge !== null && item.badge !== undefined && (
                 <span style={{
                   background: item.badgeColor,
                   color: '#ffffff',
-                  fontSize: '0.62rem',
+                  fontSize: '0.6rem',
                   fontWeight: 900,
                   padding: '1px 5px',
                   borderRadius: 99,
-                  lineHeight: 1.1
+                  lineHeight: 1.1,
+                  flexShrink: 0
                 }}>
                   {item.badge}
                 </span>
