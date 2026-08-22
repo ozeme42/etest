@@ -147,21 +147,21 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     for (let i = 1; i <= qCount; i++) {
       const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
       const qObj = questions[i - 1] || bundleQ || {};
+      const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const isQOE = Boolean(
         a?.isOpenEnded ||
         a?.type === 'acik_uclu' ||
         qObj?.type === 'acik_uclu' ||
         qObj?.isOpenEnded ||
-        isOpenEndedMode
-      );
-
-      const hasTeacherGraded = Boolean(
-        (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') &&
-        (a?.evaluatedByTeacher === true || (typeof a?.score === 'number' && a.score > 0))
+        isOpenEndedMode ||
+        hasText
       );
 
       if (isQOE) {
-        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
+        if (!hasText) {
+          scores[i] = 'empty';
+        } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
           scores[i] = Number(a.score);
         } else {
           scores[i] = 'empty';
@@ -169,7 +169,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       } else {
         const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
         const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
-        if (hasTeacherGraded && a?.score !== undefined && a?.score !== null && a?.score !== '') {
+        if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
           scores[i] = Number(a.score);
         } else if (hasAns) {
           const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
@@ -202,16 +202,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     let earned = 0;
     for (let i = 1; i <= qCount; i++) {
       const s = questionScores[i];
-      if (s !== undefined && s !== null && s !== 'empty') {
+      if (s !== undefined && s !== null && s !== 'empty' && !isNaN(Number(s))) {
         earned += Number(s);
       }
     }
     return earned;
   }, [qCount, questionScores]);
-
-  const scorePercentage = useMemo(() => {
-    return totalMaxScore > 0 ? Math.min(100, Math.round((totalEarnedScore / totalMaxScore) * 100)) : 0;
-  }, [totalEarnedScore, totalMaxScore]);
 
   const isTrulyEvaluated = useMemo(() => {
     if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
@@ -335,42 +331,63 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     let cCount = 0;
     let wCount = 0;
     let bCount = 0;
+    let pCount = 0;
 
     for (let i = 1; i <= qCount; i++) {
       const qObj = questions[i - 1] || bundleQ || {};
       const ansObj = answers.find(a => (a.questionNo === i || String(a.questionId).includes(`_${i}`))) || answers[i - 1] || {};
       const rawAns = unwrapUserAnswer(ansObj?.userAnswer ?? ansObj);
-      const textAns = typeof ansObj?.userAnswerText === 'string' ? ansObj.userAnswerText.trim() : '';
-      const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty') || textAns.length > 0;
+      const textVal = ansObj?.userAnswerText || ansObj?.textAns || ansObj?.text || ansObj?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const teacherSc = questionScores[i];
+      const isItemOE = isOpenEndedMode || hasText || qObj.type === 'acik_uclu' || qObj.type === 'gorsel_klasik' || ansObj.isOpenEnded;
 
-      if (isOpenEndedMode) {
-        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+      if (isItemOE) {
+        const isExplicitEmpty = teacherSc === 'empty' || ansObj.evalStatus === 'empty' || ansObj.score === 'empty' || (!hasText && (teacherSc === undefined || teacherSc === null || teacherSc === 'empty' || (Number(teacherSc) === 0 && ansObj.isCorrect === null)));
+
+        if (isExplicitEmpty || !hasText) {
+          bCount++;
+        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
+        } else if (hasText) {
+          pCount++;
+          bCount++;
         } else {
           bCount++;
         }
       } else {
-        if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
+        const hasOption = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
+        if (!hasOption) {
+          bCount++;
+        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
-        } else if (hasAns) {
+        } else {
           const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
           if (isRight === true) cCount++;
           else if (isRight === false) wCount++;
           else bCount++;
-        } else {
-          bCount++;
         }
       }
     }
-    return { correctCount: cCount, wrongCount: wCount, blankCount: bCount };
-  }, [qCount, questionScores, answers, questions, bundleQ, test, isOpenEndedMode]);
+    return { correctCount: cCount, wrongCount: wCount, blankCount: bCount, pendingCount: pCount };
+  }, [qCount, questionScores, answers, questions, bundleQ, test, isOpenEndedMode, submission]);
 
-  const { correctCount, wrongCount, blankCount } = stats;
+  const { correctCount, wrongCount, blankCount, pendingCount } = stats;
+
+  const scorePercentage = useMemo(() => {
+    const totalScored = correctCount + wrongCount + blankCount;
+    if (totalScored > 0) {
+      return Math.min(100, Math.round((correctCount / totalScored) * 100));
+    }
+    return 0;
+  }, [correctCount, wrongCount, blankCount]);
+
+  const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
+  const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
 
   const imageUrls = useMemo(() => {
     const collected = [];
@@ -519,119 +536,86 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {isOpenEndedMode ? (
-            !isTrulyEvaluated ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: isMobile ? '0.3rem 0.65rem' : '0.45rem 1rem',
-                borderRadius: '0.65rem',
-                background: '#f5f3ff',
-                border: '1.5px solid #ddd6fe',
-                color: '#6b21a8',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.78rem' : '0.88rem',
-                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.12)'
-              }}>
-                <Clock size={16} color="#7c3aed" />
-                <span>⏳ Değerlendirmede</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
-                  borderRadius: '0.55rem',
-                  background: '#f5f3ff',
-                  border: '1px solid #ddd6fe',
-                  color: '#6b21a8',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.74rem' : '0.82rem'
-                }}>
-                  <Award size={15} color="#7c3aed" />
-                  <span>{totalEarnedScore} / {totalMaxScore} Puan</span>
-                </div>
-                <div style={{
-                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                  color: '#ffffff',
-                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-                  borderRadius: '0.55rem',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.76rem' : '0.84rem',
-                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-                }}>
-                  %{scorePercentage} Başarı
-                </div>
-              </div>
-            )
-          ) : (
-            <>
-              {/* Doğru Pill */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-                borderRadius: '0.55rem',
-                background: '#f0fdf4',
-                border: '1px solid #86efac',
-                color: '#15803d',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.74rem' : '0.8rem'
-              }}>
-                <CheckCircle size={14} color="#16a34a" />
-                <span>{correctCount} D</span>
-              </div>
+          {/* Doğru Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <CheckCircle size={14} color="#16a34a" />
+            <span>{correctCount} D</span>
+          </div>
 
-              {/* Yanlış Pill */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-                borderRadius: '0.55rem',
-                background: '#fef2f2',
-                border: '1px solid #fca5a5',
-                color: '#b91c1c',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.74rem' : '0.8rem'
-              }}>
-                <XCircle size={14} color="#ef4444" />
-                <span>{wrongCount} Y</span>
-              </div>
+          {/* Yanlış Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <XCircle size={14} color="#ef4444" />
+            <span>{wrongCount} Y</span>
+          </div>
 
-              {/* Boş Pill */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-                borderRadius: '0.55rem',
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                color: '#475569',
-                fontWeight: 800,
-                fontSize: isMobile ? '0.74rem' : '0.8rem'
-              }}>
-                <AlertCircle size={14} color="#64748b" />
-                <span>{blankCount} B</span>
-              </div>
+          {/* Boş Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+            borderRadius: '0.55rem',
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
+            fontWeight: 800,
+            fontSize: isMobile ? '0.74rem' : '0.8rem'
+          }}>
+            <AlertCircle size={14} color="#64748b" />
+            <span>{blankCount} B</span>
+          </div>
 
-              <div style={{
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: '#ffffff',
-                padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-                borderRadius: '0.55rem',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.76rem' : '0.84rem',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-              }}>
-                %{scorePercentage} Başarı
-              </div>
-            </>
+          {/* Başarı & Net Pill */}
+          <div style={{
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: '#ffffff',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+            borderRadius: '0.55rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.76rem' : '0.84rem',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+          }}>
+            %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
+          </div>
+
+          {pendingCount > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+              borderRadius: '0.55rem',
+              background: '#f5f3ff',
+              border: '1px solid #ddd6fe',
+              color: '#7c3aed',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.74rem' : '0.8rem'
+            }}>
+              <Clock size={14} color="#7c3aed" />
+              <span>{pendingCount} Bekliyor</span>
+            </div>
           )}
 
           {isTeacherMode && (
@@ -684,7 +668,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               Soru {currentQNo} İncelemesi
             </h3>
             {isItemOE ? (
-              (teacherSc === 'empty' || (!isText && (!hasGradedScore || teacherSc === 'empty' || (Number(teacherSc) === 0 && ansObj.isCorrect === null)))) ? (
+              (!isText || teacherSc === 'empty') ? (
                 <span style={{
                   color: '#475569',
                   background: '#f1f5f9',
@@ -696,7 +680,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 }}>
                   ○ BOŞ
                 </span>
-              ) : hasGradedScore || typeof teacherSc === 'number' ? (
+              ) : (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) ? (
                 Number(teacherSc) >= 5 ? (
                   <span style={{
                     color: '#15803d',
