@@ -52,14 +52,6 @@ export default function CompositeHomeworkReview({
   const rawSections = unifiedTest.sections;
 
   const unifiedSub = useMemo(() => {
-    // 🐛 DEBUG: raw submission.answers
-    const rawA = submission?.answers || submission?.formattedAnswers || submission?.raw_data?.answers || [];
-    console.log('📦 submission.answers count:', rawA.length);
-    if (Array.isArray(rawA)) {
-      rawA.forEach((a, i) => {
-        console.log(`  [${i}] questionNo=${a.questionNo} sectionIdx=${a.sectionIndex} sectionId=${a.sectionId} sectionTitle="${a.sectionTitle}" qNoInSec=${a.questionNoInSection} userAnswer=${a.userAnswer}`);
-      });
-    }
     return normalizeUnifiedSubmission(submission, unifiedTest);
   }, [submission, unifiedTest]);
 
@@ -119,17 +111,11 @@ export default function CompositeHomeworkReview({
     };
 
     rawSections.forEach((sec, sIdx) => {
-      // Always look up by numeric sIdx — this is always set correctly in normalizeUnifiedSubmission
       const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? { answers: {}, openEndedText: {}, teacherScores: {} };
 
       const secQs = sec.questions || sec.resolvedQuestions || [];
       const count = sec.qCount || secQs.length || 1;
       const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
-
-      // 🐛 DEBUG
-      console.group(`[overallStats] Bölüm ${sIdx}: "${sec.title}" (${count} soru)`);
-      console.log('sa.answers:', JSON.stringify(sa.answers));
-      console.log('secQs length:', secQs.length);
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
@@ -153,22 +139,18 @@ export default function CompositeHomeworkReview({
         } else {
           const rawAnsVal = sa.answers?.[i] ?? sa.answers?.[String(i)];
           const u = normalizeOpt(rawAnsVal);
-
           if (u === null) {
-            console.log(`  S${sIdx} Q${i}: BOŞ (rawAns=${rawAnsVal})`);
             blankCount++;
           } else {
             let isCorr = null;
             if (qObj && Object.keys(qObj).length > 0) {
               isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
             }
-            console.log(`  S${sIdx} Q${i}: cevap=${u} isCorr=${isCorr} → ${isCorr === false ? 'YANLIŞ' : 'DOĞRU'}`);
             if (isCorr === false) wrongCount++;
             else correctCount++;
           }
         }
       }
-      console.groupEnd();
     });
 
     const scorePct = (correctCount + wrongCount + blankCount) > 0
