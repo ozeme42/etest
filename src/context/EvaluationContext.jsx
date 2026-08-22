@@ -121,17 +121,35 @@ export function EvaluationProvider({ children }) {
             if (s?.supabaseId) dbIds.add(String(s.supabaseId));
           });
 
-          // Only keep local items that are unsynced drafts or not yet in DB and not deleted
+          // Keep ALL local items that are not in DB yet and not deleted
           const localOnly = (prev || []).filter(localSub => {
             const lId = String(localSub?.id || '');
             const lSuId = String(localSub?.supabaseId || '');
             if (!lId && !lSuId) return false;
             if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
             if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
-            return lId.startsWith('draft_') || lId.startsWith('sub_manual_');
+            return true; // Preserve all local submissions!
           });
 
-          const mergedList = [...updatedSubs, ...localOnly];
+          // Also check localStorage backups for any submissions saved across tabs or sessions
+          let lsSubs = [];
+          try {
+            const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
+            const l2 = JSON.parse(localStorage.getItem('etest_submissions') || '[]');
+            lsSubs = [...(Array.isArray(l1) ? l1 : []), ...(Array.isArray(l2) ? l2 : [])];
+          } catch {}
+
+          const lsOnly = lsSubs.filter(lsSub => {
+            const lId = String(lsSub?.id || '');
+            const lSuId = String(lsSub?.supabaseId || '');
+            if (!lId && !lSuId) return false;
+            if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
+            if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
+            if (localOnly.some(lo => (lo.id && lo.id === lsSub.id) || (lo.supabaseId && lo.supabaseId === lsSub.supabaseId))) return false;
+            return true;
+          });
+
+          const mergedList = [...updatedSubs, ...localOnly, ...lsOnly];
           try {
             localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
             localStorage.setItem('etest_submissions', JSON.stringify(mergedList));

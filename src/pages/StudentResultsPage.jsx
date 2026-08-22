@@ -1043,10 +1043,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const curInfo = allCurTestsMap.get(bTestId) || {};
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
 
-      // Discard only completely empty ghost records that have no answers and no completed status
-      if (!isManual && sub.sourceType !== 'study_room_optical' && (!sub.answers || sub.answers.length === 0) && !sub.correctCount && !sub.wrongCount) {
-        if (isHomeworkSub && !hwObj) return;
-      }
+      // All student submissions are preserved and displayed
 
       const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
       const cleanBookTitle = rawBookTitle ? rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim() : '';
