@@ -3024,6 +3024,10 @@ export default function StudentDashboard() {
           <StudentGamificationCard
             student={selectedStudent}
             submissions={submissions}
+            homeworks={homeworks}
+            books={books}
+            bookTests={bookTests}
+            mockExams={selectedStudent ? getMockExamsForStudent(selectedStudent.id) : []}
             studySessions={[]}
             users={users}
           />

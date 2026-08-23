@@ -1,7 +1,10 @@
 /**
  * Gamification Service
- * Scaled XP System (1/10th scale) with 30+ Comprehensive Badges & Achievements, Levels, and Leaderboards.
+ * Scaled XP System (1/10th scale) with 35+ Comprehensive Badges & Achievements,
+ * Fully Synchronized with Homeworks, Tracked Book Tests, Standalone Quizzes, and Mock Exams.
  */
+
+import { computeStudentAnalyticsData } from '../utils/testResolver';
 
 export const LEVEL_TIERS = [
   { level: 1, title: 'Acemi', minXp: 0, maxXp: 150, icon: '🥉', color: '#94a3b8', bgGradient: 'linear-gradient(135deg, #64748b, #475569)' },
@@ -19,6 +22,18 @@ export const LEVEL_TIERS = [
   { level: 13, title: 'Kadim Hükümdar', minXp: 15000, maxXp: 20000, icon: '👑', color: '#eab308', bgGradient: 'linear-gradient(135deg, #eab308, #ca8a04)' },
   { level: 14, title: 'Evrenin Zirvesi', minXp: 20000, maxXp: 999999, icon: '🌌', color: '#ec4899', bgGradient: 'linear-gradient(135deg, #ec4899, #be185d)' }
 ];
+
+export function normalizeCanonicalSubject(subjectName) {
+  if (!subjectName || typeof subjectName !== 'string') return 'Genel';
+  const lower = subjectName.toLowerCase().trim();
+  if (lower.includes('matematik') || lower.includes('geometri')) return 'Matematik';
+  if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyoloji')) return 'Fen Bilimleri';
+  if (lower.includes('türkçe') || lower.includes('turkce') || lower.includes('edebiyat') || lower.includes('paragraf') || lower.includes('dil bilgisi')) return 'Türkçe';
+  if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('tarih') || lower.includes('coğrafya') || lower.includes('felsefe')) return 'Sosyal & İnkılap';
+  if (lower.includes('ingilizce') || lower.includes('english') || lower.includes('yabancı dil')) return 'İngilizce';
+  if (lower.includes('din') || lower.includes('ahlak')) return 'Din Kültürü';
+  return subjectName.trim();
+}
 
 export const BADGE_DEFINITIONS = [
   // ─── TEST & SINAV BAŞARILARI ───
@@ -93,11 +108,63 @@ export const BADGE_DEFINITIONS = [
     progress: (stats) => ({ current: Math.min(5, stats.highAccuracyTests), target: 5 })
   },
 
+  // ─── KİTAP TAKİBİ & ÖDEV BAŞARILARI ───
+  {
+    id: 'book_worm_1',
+    title: 'Kitap Kurdu',
+    desc: 'Kitap takibinden en az 3 kitap testi tamamla.',
+    icon: '📚',
+    category: 'test',
+    xpReward: 8,
+    check: (stats) => stats.bookTestsSolvedCount >= 3,
+    progress: (stats) => ({ current: Math.min(3, stats.bookTestsSolvedCount), target: 3 })
+  },
+  {
+    id: 'book_worm_2',
+    title: 'Kitap Avcısı',
+    desc: 'Kitap takibinden toplam 10 kitap testi tamamla.',
+    icon: '📖',
+    category: 'test',
+    xpReward: 18,
+    check: (stats) => stats.bookTestsSolvedCount >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.bookTestsSolvedCount), target: 10 })
+  },
+  {
+    id: 'book_worm_3',
+    title: 'Kütüphane Fatihi',
+    desc: 'Kitap takibinden toplam 25 kitap testi tamamla.',
+    icon: '🏰',
+    category: 'test',
+    xpReward: 35,
+    check: (stats) => stats.bookTestsSolvedCount >= 25,
+    progress: (stats) => ({ current: Math.min(25, stats.bookTestsSolvedCount), target: 25 })
+  },
+  {
+    id: 'hw_master_1',
+    title: 'Ödev Sorumlusu',
+    desc: 'Ödev modülünden en az 3 ödev tamamla.',
+    icon: '📝',
+    category: 'test',
+    xpReward: 8,
+    check: (stats) => stats.homeworksSolvedCount >= 3,
+    progress: (stats) => ({ current: Math.min(3, stats.homeworksSolvedCount), target: 3 })
+  },
+  {
+    id: 'hw_master_2',
+    title: 'Ödev Şampiyonu',
+    desc: 'Ödev modülünden toplam 10 ödev tamamla.',
+    icon: '🎯',
+    category: 'test',
+    xpReward: 18,
+    check: (stats) => stats.homeworksSolvedCount >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.homeworksSolvedCount), target: 10 })
+  },
+
   // ─── SORU SAYISI KİLOMETRE TAŞLARI ───
   {
     id: 'q_25',
     title: 'Soru Avcısı',
-    desc: 'Toplam 25 soru çöz.',
+    desc: 'Tüm kaynaklardan toplam 25 soru çöz.',
     icon: '🏹',
     category: 'milestone',
     xpReward: 4,
@@ -155,16 +222,26 @@ export const BADGE_DEFINITIONS = [
     progress: (stats) => ({ current: Math.min(1000, stats.totalQuestionsSolved), target: 1000 })
   },
 
-  // ─── DERS ODAKLI UZMANLIKLAR ───
+  // ─── DERS ODAKLI UZMANLIKLAR (TÜM KAYNAKLAR DAHİL) ───
   {
-    id: 'math_explorer',
+    id: 'math_apprentice',
     title: 'Matematik Çırağı',
-    desc: 'Matematik dersinde toplam 20 doğru soruya ulaş.',
+    desc: 'Matematik dersinde toplam 10 doğru soruya ulaş.',
     icon: '📐',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, stats.subjectCorrect?.['Matematik'] || 0), target: 20 })
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Matematik'] || 0), target: 10 })
+  },
+  {
+    id: 'math_explorer',
+    title: 'Matematik Kaşifi',
+    desc: 'Matematik dersinde toplam 30 doğru soruya ulaş.',
+    icon: '📐',
+    category: 'subject',
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Matematik'] || 0), target: 30 })
   },
   {
     id: 'math_wizard',
@@ -172,19 +249,40 @@ export const BADGE_DEFINITIONS = [
     desc: 'Matematik dersinde toplam 60 doğru soruya ulaş.',
     icon: '🧮',
     category: 'subject',
-    xpReward: 15,
+    xpReward: 18,
     check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 60,
     progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Matematik'] || 0), target: 60 })
   },
   {
-    id: 'science_explorer',
-    title: 'Fen Kaşifi',
-    desc: 'Fen Bilimleri dersinde toplam 20 doğru soruya ulaş.',
+    id: 'math_master',
+    title: 'Matematik Üstadı',
+    desc: 'Matematik dersinde toplam 120 doğru soruya ulaş.',
+    icon: '👑',
+    category: 'subject',
+    xpReward: 30,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 120,
+    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Matematik'] || 0), target: 120 })
+  },
+
+  {
+    id: 'science_apprentice',
+    title: 'Fen Çırağı',
+    desc: 'Fen Bilimleri dersinde toplam 10 doğru soruya ulaş.',
     icon: '🔬',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 20 })
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 10 })
+  },
+  {
+    id: 'science_explorer',
+    title: 'Fen Kaşifi',
+    desc: 'Fen Bilimleri dersinde toplam 30 doğru soruya ulaş.',
+    icon: '🔬',
+    category: 'subject',
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 30 })
   },
   {
     id: 'science_genius',
@@ -192,19 +290,40 @@ export const BADGE_DEFINITIONS = [
     desc: 'Fen Bilimleri dersinde toplam 60 doğru soruya ulaş.',
     icon: '🧬',
     category: 'subject',
-    xpReward: 15,
+    xpReward: 18,
     check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 60,
     progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 60 })
   },
   {
-    id: 'turkish_explorer',
-    title: 'Kelime Ustası',
-    desc: 'Türkçe dersinde toplam 20 doğru soruya ulaş.',
+    id: 'science_master',
+    title: 'Fen Üstadı',
+    desc: 'Fen Bilimleri dersinde toplam 120 doğru soruya ulaş.',
+    icon: '🧪',
+    category: 'subject',
+    xpReward: 30,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 120,
+    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 120 })
+  },
+
+  {
+    id: 'turkish_apprentice',
+    title: 'Kelime Çırağı',
+    desc: 'Türkçe dersinde toplam 10 doğru soruya ulaş.',
     icon: '📖',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, stats.subjectCorrect?.['Türkçe'] || 0), target: 20 })
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Türkçe'] || 0), target: 10 })
+  },
+  {
+    id: 'turkish_explorer',
+    title: 'Kelime Ustası',
+    desc: 'Türkçe dersinde toplam 30 doğru soruya ulaş.',
+    icon: '📖',
+    category: 'subject',
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Türkçe'] || 0), target: 30 })
   },
   {
     id: 'turkish_master',
@@ -212,39 +331,123 @@ export const BADGE_DEFINITIONS = [
     desc: 'Türkçe dersinde toplam 60 doğru soruya ulaş.',
     icon: '✒️',
     category: 'subject',
-    xpReward: 15,
+    xpReward: 18,
     check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 60,
     progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Türkçe'] || 0), target: 60 })
   },
   {
-    id: 'social_expert',
-    title: 'Tarih & Coğrafya',
-    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 20 doğruya ulaş.',
+    id: 'turkish_genius',
+    title: 'Edebiyat Dehası',
+    desc: 'Türkçe dersinde toplam 120 doğru soruya ulaş.',
+    icon: '📜',
+    category: 'subject',
+    xpReward: 30,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 120,
+    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Türkçe'] || 0), target: 120 })
+  },
+
+  {
+    id: 'social_explorer',
+    title: 'Tarih Kaşifi',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 10 doğruya ulaş.',
     icon: '🌍',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['Sosyal Bilgiler'] || stats.subjectCorrect?.['T.C. İnkılap Tarihi ve Atatürkçülük'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, (stats.subjectCorrect?.['Sosyal Bilgiler'] || 0) + (stats.subjectCorrect?.['T.C. İnkılap Tarihi ve Atatürkçülük'] || 0)), target: 20 })
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 10 })
+  },
+  {
+    id: 'social_genius',
+    title: 'Sosyal Bilgini',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 30 doğruya ulaş.',
+    icon: '🏛️',
+    category: 'subject',
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 30 })
+  },
+  {
+    id: 'social_master',
+    title: 'Tarih Üstadı',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 60 doğruya ulaş.',
+    icon: '🗺️',
+    category: 'subject',
+    xpReward: 18,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 60,
+    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 60 })
+  },
+
+  {
+    id: 'english_apprentice',
+    title: 'Dil Çırağı',
+    desc: 'İngilizce dersinde 10 doğru soruya ulaş.',
+    icon: '💬',
+    category: 'subject',
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['İngilizce'] || 0), target: 10 })
   },
   {
     id: 'english_pro',
     title: 'Global Dil',
-    desc: 'İngilizce dersinde 20 doğru soruya ulaş.',
-    icon: '💬',
+    desc: 'İngilizce dersinde 30 doğru soruya ulaş.',
+    icon: '🌐',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, stats.subjectCorrect?.['İngilizce'] || 0), target: 20 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['İngilizce'] || 0), target: 30 })
+  },
+  {
+    id: 'english_master',
+    title: 'Dil Dehası',
+    desc: 'İngilizce dersinde 60 doğru soruya ulaş.',
+    icon: '🗣️',
+    category: 'subject',
+    xpReward: 18,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 60,
+    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['İngilizce'] || 0), target: 60 })
+  },
+
+  {
+    id: 'religion_apprentice',
+    title: 'Ahlak Çırağı',
+    desc: 'Din Kültürü dersinde 10 doğru soruya ulaş.',
+    icon: '🕊️',
+    category: 'subject',
+    xpReward: 5,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 10,
+    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 10 })
   },
   {
     id: 'religion_pro',
     title: 'Ahlak & Değerler',
-    desc: 'Din Kültürü dersinde 20 doğru soruya ulaş.',
-    icon: '🕊️',
+    desc: 'Din Kültürü dersinde 30 doğru soruya ulaş.',
+    icon: '✨',
     category: 'subject',
-    xpReward: 6,
-    check: (stats) => (stats.subjectCorrect?.['Din Kültürü ve Ahlak Bilgisi'] || stats.subjectCorrect?.['Din Kültürü'] || 0) >= 20,
-    progress: (stats) => ({ current: Math.min(20, (stats.subjectCorrect?.['Din Kültürü ve Ahlak Bilgisi'] || stats.subjectCorrect?.['Din Kültürü'] || 0)), target: 20 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 30 })
+  },
+  {
+    id: 'religion_master',
+    title: 'Erdem Üstadı',
+    desc: 'Din Kültürü dersinde 60 doğru soruya ulaş.',
+    icon: '🌟',
+    category: 'subject',
+    xpReward: 18,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 60,
+    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 60 })
+  },
+
+  {
+    id: 'multi_subject_master',
+    title: 'Çok Yönlü Zihin',
+    desc: 'En az 4 farklı dersten doğru sorular çöz.',
+    icon: '🌈',
+    category: 'subject',
+    xpReward: 15,
+    check: (stats) => stats.distinctSubjectsCount >= 4,
+    progress: (stats) => ({ current: Math.min(4, stats.distinctSubjectsCount), target: 4 })
   },
 
   // ─── GÜNLÜK SERİ & DİSİPLİN (STREAKS) ───
@@ -385,6 +588,10 @@ export function getLevelInfo(xp) {
 export function computeStudentGamificationData({
   studentId,
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
+  mockExams = [],
   studySessions = []
 }) {
   const sId = String(studentId || '');
@@ -392,18 +599,31 @@ export function computeStudentGamificationData({
     return {
       xp: 0,
       levelInfo: getLevelInfo(0),
-      stats: { totalSolvedTests: 0, totalCorrect: 0, totalQuestionsSolved: 0, dailyStreak: 0 },
+      stats: { totalSolvedTests: 0, totalCorrect: 0, totalQuestionsSolved: 0, dailyStreak: 0, subjectCorrect: {} },
       unlockedBadges: [],
       lockedBadges: BADGE_DEFINITIONS.map(b => ({ ...b, progress: { current: 0, target: 1 } }))
     };
   }
 
-  // Filter student submissions
-  const studentSubs = (submissions || []).filter(s => {
-    if (!s) return false;
-    const subSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-    return subSid === sId || (sId.includes('-') && subSid.replace(/-/g, '') === sId.replace(/-/g, ''));
-  }).filter(s => s.status !== 'in_progress' && s.status !== 'draft');
+  // 1. Resolve unified analytics using testResolver (includes Homeworks, Book Tests, Standalone Submissions & Mock Exams)
+  let resolvedAnalytics = { generalTrialExams: [], otherHomeworkSubmissions: [] };
+  try {
+    resolvedAnalytics = computeStudentAnalyticsData({
+      studentId: sId,
+      submissions,
+      homeworks,
+      books,
+      bookTests,
+      studentMockExams: mockExams
+    });
+  } catch (err) {
+    console.error('Error computing student analytics for gamification:', err);
+  }
+
+  const allItems = [
+    ...(resolvedAnalytics.generalTrialExams || []),
+    ...(resolvedAnalytics.otherHomeworkSubmissions || [])
+  ];
 
   let totalCorrect = 0;
   let totalWrong = 0;
@@ -411,22 +631,40 @@ export function computeStudentGamificationData({
   let totalSolvedTests = 0;
   let perfectTestsCount = 0;
   let highAccuracyTests = 0;
+  let bookTestsSolvedCount = 0;
+  let homeworksSolvedCount = 0;
   let hasNightTest = false;
   let hasEarlyTest = false;
   let hasWeekendTest = false;
   const subjectCorrect = {};
   const activeDates = new Set();
 
-  studentSubs.forEach(s => {
+  allItems.forEach(item => {
     totalSolvedTests++;
-    const correct = Number(s.correctCount || s.correct || 0);
-    const wrong = Number(s.wrongCount || s.wrong || 0);
-    const empty = Number(s.blankCount || s.emptyCount || 0);
-    const totalQ = Number(s.totalQuestions || (correct + wrong + empty) || 1);
+    const correct = Number(item.correctCount ?? item.totalCorrect ?? 0);
+    const wrong = Number(item.wrongCount ?? item.totalWrong ?? 0);
+    const empty = Number(item.emptyCount ?? item.totalEmpty ?? 0);
+    const totalQ = Number(item.totalQuestions || (correct + wrong + empty) || 1);
 
     totalCorrect += correct;
     totalWrong += wrong;
     totalEmpty += empty;
+
+    // Track Tracked Book tests & Homework counts
+    const isBookItem = Boolean(
+      item.isBookTest ||
+      item.isExamBook ||
+      item.parentBookId ||
+      item.bookTestId ||
+      item.sourceType === 'trackedBook' ||
+      item.sourceType === 'book' ||
+      (item.title && (item.title.toLowerCase().includes('kitap') || item.title.includes('›')))
+    );
+    if (isBookItem) {
+      bookTestsSolvedCount++;
+    } else {
+      homeworksSolvedCount++;
+    }
 
     // Perfect test
     if (totalQ > 0 && correct === totalQ && wrong === 0) {
@@ -438,12 +676,21 @@ export function computeStudentGamificationData({
       highAccuracyTests++;
     }
 
-    // Subject breakdown
-    const subj = s.subjectName || s.subject || 'Genel';
-    subjectCorrect[subj] = (subjectCorrect[subj] || 0) + correct;
+    // Subject breakdown (from scores or item.subject)
+    if (item.scores && typeof item.scores === 'object' && Object.keys(item.scores).length > 0) {
+      Object.entries(item.scores).forEach(([subjKey, sc]) => {
+        const c = Number(sc.d ?? sc.correct ?? 0);
+        const canon = normalizeCanonicalSubject(subjKey);
+        subjectCorrect[canon] = (subjectCorrect[canon] || 0) + c;
+      });
+    } else {
+      const subj = item.subjectName || item.subject || 'Genel';
+      const canon = normalizeCanonicalSubject(subj);
+      subjectCorrect[canon] = (subjectCorrect[canon] || 0) + correct;
+    }
 
     // Date & Time checks
-    const rawDate = s.submittedAt || s.completedAt || s.createdAt || s.date;
+    const rawDate = item.date || item.submittedAt || item.completedAt || item.createdAt;
     if (rawDate) {
       const dt = new Date(rawDate);
       if (!isNaN(dt.getTime())) {
@@ -499,6 +746,7 @@ export function computeStudentGamificationData({
   }
 
   const totalQuestionsSolved = totalCorrect + totalWrong + totalEmpty;
+  const distinctSubjectsCount = Object.keys(subjectCorrect).filter(k => (subjectCorrect[k] || 0) > 0).length;
 
   // Build stats object for badge checker
   const stats = {
@@ -507,6 +755,9 @@ export function computeStudentGamificationData({
     totalQuestionsSolved,
     perfectTestsCount,
     highAccuracyTests,
+    bookTestsSolvedCount,
+    homeworksSolvedCount,
+    distinctSubjectsCount,
     hasNightTest,
     hasEarlyTest,
     hasWeekendTest,
@@ -532,11 +783,11 @@ export function computeStudentGamificationData({
 
   // Scaled XP Calculation (1/10 scale)
   let totalXp = 0;
-  totalXp += totalCorrect * 1;                         // 1 XP per correct answer (was 10)
-  totalXp += Math.round(totalSolvedTests * 2.5);       // 2.5 XP per completed test (was 25)
-  totalXp += perfectTestsCount * 5;                    // 5 XP per 100% test (was 50)
-  totalXp += Math.floor(totalStudyMinutes / 25) * 2;   // 2 XP per 25 min pomodoro (was 20)
-  totalXp += Math.round(dailyStreak * 1.5);            // 1.5 XP per streak day (was 15)
+  totalXp += totalCorrect * 1;                         // 1 XP per correct answer
+  totalXp += Math.round(totalSolvedTests * 2.5);       // 2.5 XP per completed test
+  totalXp += perfectTestsCount * 5;                    // 5 XP per 100% test
+  totalXp += Math.floor(totalStudyMinutes / 25) * 2;   // 2 XP per 25 min pomodoro
+  totalXp += Math.round(dailyStreak * 1.5);            // 1.5 XP per streak day
   unlockedBadges.forEach(b => { totalXp += b.xpReward; });
 
   const levelInfo = getLevelInfo(totalXp);
@@ -553,6 +804,10 @@ export function computeStudentGamificationData({
 export function computeLeaderboard({
   users = [],
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
+  mockExams = [],
   studySessions = []
 }) {
   const students = (users || []).filter(u => u.role === 'student');
@@ -561,6 +816,10 @@ export function computeLeaderboard({
     const data = computeStudentGamificationData({
       studentId: st.id,
       submissions,
+      homeworks,
+      books,
+      bookTests,
+      mockExams,
       studySessions
     });
 

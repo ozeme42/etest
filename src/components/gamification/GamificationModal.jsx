@@ -25,6 +25,10 @@ const BADGE_CATEGORIES = [
 export default function GamificationModal({
   student,
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
+  mockExams = [],
   studySessions = [],
   users = [],
   onClose
@@ -37,17 +41,25 @@ export default function GamificationModal({
     return computeStudentGamificationData({
       studentId: student?.id,
       submissions,
+      homeworks,
+      books,
+      bookTests,
+      mockExams,
       studySessions
     });
-  }, [student, submissions, studySessions]);
+  }, [student, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
   const leaderboard = useMemo(() => {
     return computeLeaderboard({
       users,
       submissions,
+      homeworks,
+      books,
+      bookTests,
+      mockExams,
       studySessions
     });
-  }, [users, submissions, studySessions]);
+  }, [users, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
   const { levelInfo, stats, unlockedBadges, lockedBadges, xp } = gamification;
 

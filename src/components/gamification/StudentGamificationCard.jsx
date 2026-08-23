@@ -7,6 +7,10 @@ import { useTheme } from '../../context/ThemeContext';
 export default function StudentGamificationCard({
   student,
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
+  mockExams = [],
   studySessions = [],
   users = []
 }) {
@@ -17,9 +21,13 @@ export default function StudentGamificationCard({
     return computeStudentGamificationData({
       studentId: student?.id,
       submissions,
+      homeworks,
+      books,
+      bookTests,
+      mockExams,
       studySessions
     });
-  }, [student, submissions, studySessions]);
+  }, [student, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
   const { levelInfo, stats, unlockedBadges, xp } = gamification;
 
@@ -223,6 +231,10 @@ export default function StudentGamificationCard({
         <GamificationModal
           student={student}
           submissions={submissions}
+          homeworks={homeworks}
+          books={books}
+          bookTests={bookTests}
+          mockExams={mockExams}
           studySessions={studySessions}
           users={users}
           onClose={() => setIsModalOpen(false)}
