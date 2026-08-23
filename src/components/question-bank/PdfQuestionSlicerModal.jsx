@@ -1,10 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Scissors, Upload, X, Check, Trash2, Plus, ArrowRight,
-  ZoomIn, ZoomOut, RotateCcw, Image as ImageIcon, FileText, CheckCircle2
+  ZoomIn, ZoomOut, RotateCcw, Image as ImageIcon, FileText,
+  CheckCircle2, ChevronLeft, ChevronRight, Loader2, AlertCircle
 } from 'lucide-react';
 import { compressImageToWebP } from '../../services/imageCompressionService';
 import { useTheme } from '../../context/ThemeContext';
+import { pdfjs } from 'react-pdf';
+
+// Ensure PDF.js worker is configured
+if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString();
+}
 
 export default function PdfQuestionSlicerModal({
   isOpen,
@@ -21,48 +31,37 @@ export default function PdfQuestionSlicerModal({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentRect, setCurrentRect] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  // PDF Multi-page support
+  const [pdfDoc, setPdfDoc] = useState(null);
+  const [pdfNumPages, setPdfNumPages] = useState(0);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imageObjRef = useRef(null);
 
-  if (!isOpen) return null;
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setSourceFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
-      const img = new Image();
-      img.onload = () => {
-        imageObjRef.current = img;
-        setSourceImage(dataUrl);
-        drawCanvas(img);
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const drawCanvas = (img = imageObjRef.current, rect = currentRect) => {
+  const drawCanvas = useCallback((img = imageObjRef.current, rect = currentRect) => {
     const canvas = canvasRef.current;
     if (!canvas || !img) return;
 
-    canvas.width = img.width;
-    canvas.height = img.height;
+    if (canvas.width !== img.width || canvas.height !== img.height) {
+      canvas.width = img.width;
+      canvas.height = img.height;
+    }
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw main image
+    // Draw base image
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0);
 
-    // Draw previous sliced rectangles
-    slicedQuestions.forEach((sq, idx) => {
-      if (sq.rect) {
+    // Draw already sliced question rectangles
+    slicedQuestions.forEach((sq) => {
+      if (sq.rect && (!sq.page || sq.page === pdfCurrentPage)) {
         ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
         ctx.fillRect(sq.rect.x, sq.rect.y, sq.rect.w, sq.rect.h);
         ctx.strokeStyle = '#22c55e';
@@ -71,14 +70,14 @@ export default function PdfQuestionSlicerModal({
 
         // Badge label
         ctx.fillStyle = '#22c55e';
-        ctx.fillRect(sq.rect.x, sq.rect.y - 24, 60, 24);
+        ctx.fillRect(sq.rect.x, Math.max(0, sq.rect.y - 24), 68, 24);
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px sans-serif';
-        ctx.fillText(`Soru ${idx + 1}`, sq.rect.x + 6, sq.rect.y - 7);
+        ctx.fillText(`Soru ${sq.qNo}`, sq.rect.x + 8, Math.max(16, sq.rect.y - 7));
       }
     });
 
-    // Draw active drawing rect
+    // Draw active drawing rectangle
     if (rect && rect.w && rect.h) {
       ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
       ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -88,7 +87,110 @@ export default function PdfQuestionSlicerModal({
       ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       ctx.setLineDash([]);
     }
+  }, [slicedQuestions, currentRect, pdfCurrentPage]);
+
+  // Render PDF Page to Canvas and Image
+  const renderPdfPage = async (doc, pageNum) => {
+    try {
+      setIsLoadingFile(true);
+      setLoadError(null);
+      const page = await doc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 2.0 }); // 2x high resolution for crisp text
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = viewport.width;
+      offCanvas.height = viewport.height;
+      const offCtx = offCanvas.getContext('2d');
+
+      await page.render({ canvasContext: offCtx, viewport }).promise;
+
+      const dataUrl = offCanvas.toDataURL('image/png');
+      const img = new Image();
+      img.onload = () => {
+        imageObjRef.current = img;
+        setSourceImage(dataUrl);
+        setIsLoadingFile(false);
+      };
+      img.src = dataUrl;
+    } catch (err) {
+      console.error('PDF sayfa render hatası:', err);
+      setLoadError('PDF sayfası açılırken bir hata oluştu.');
+      setIsLoadingFile(false);
+    }
   };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSourceFileName(file.name);
+    setLoadError(null);
+    setIsLoadingFile(true);
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const doc = await loadingTask.promise;
+        setPdfDoc(doc);
+        setPdfNumPages(doc.numPages);
+        setPdfCurrentPage(1);
+        await renderPdfPage(doc, 1);
+      } catch (err) {
+        console.error('PDF yükleme hatası:', err);
+        setLoadError('PDF dosyası açılamadı. Lütfen geçerli bir PDF veya görsel dosyası seçin.');
+        setIsLoadingFile(false);
+      }
+      return;
+    }
+
+    // Normal Image Files (PNG, JPG, JPEG, WEBP, GIF)
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      const img = new Image();
+      img.onload = () => {
+        imageObjRef.current = img;
+        setSourceImage(dataUrl);
+        setPdfDoc(null);
+        setPdfNumPages(0);
+        setIsLoadingFile(false);
+      };
+      img.onerror = () => {
+        setLoadError('Görsel dosyası yüklenemedi. Lütfen geçerli bir resim seçin.');
+        setIsLoadingFile(false);
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      setLoadError('Dosya okunamadı.');
+      setIsLoadingFile(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleNextPage = async () => {
+    if (!pdfDoc || pdfCurrentPage >= pdfNumPages) return;
+    const nextPage = pdfCurrentPage + 1;
+    setPdfCurrentPage(nextPage);
+    await renderPdfPage(pdfDoc, nextPage);
+  };
+
+  const handlePrevPage = async () => {
+    if (!pdfDoc || pdfCurrentPage <= 1) return;
+    const prevPage = pdfCurrentPage - 1;
+    setPdfCurrentPage(prevPage);
+    await renderPdfPage(pdfDoc, prevPage);
+  };
+
+  // Redraw canvas whenever sourceImage, zoom, or currentRect changes
+  useEffect(() => {
+    if (sourceImage && imageObjRef.current) {
+      drawCanvas();
+    }
+  }, [sourceImage, zoom, currentRect, slicedQuestions, drawCanvas]);
 
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -120,14 +222,12 @@ export default function PdfQuestionSlicerModal({
       h: Math.abs(coords.y - startPos.y)
     };
     setCurrentRect(rect);
-    drawCanvas(imageObjRef.current, rect);
   };
 
   const handleMouseUp = async () => {
-    if (!isDrawing || !currentRect || currentRect.w < 20 || currentRect.h < 20) {
+    if (!isDrawing || !currentRect || currentRect.w < 25 || currentRect.h < 25) {
       setIsDrawing(false);
       setCurrentRect(null);
-      drawCanvas();
       return;
     }
 
@@ -161,18 +261,13 @@ export default function PdfQuestionSlicerModal({
       optionCount: 4,
       subject,
       grade,
+      page: pdfCurrentPage,
       rect: currentRect
     };
 
     setSlicedQuestions(prev => [...prev, newQuestion]);
     setCurrentRect(null);
   };
-
-  useEffect(() => {
-    if (sourceImage && imageObjRef.current) {
-      drawCanvas();
-    }
-  }, [slicedQuestions]);
 
   const handleDeleteQuestion = (id) => {
     setSlicedQuestions(prev => prev.filter(q => q.id !== id).map((q, idx) => ({ ...q, qNo: idx + 1 })));
@@ -192,12 +287,14 @@ export default function PdfQuestionSlicerModal({
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         background: 'rgba(0, 0, 0, 0.75)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
@@ -210,8 +307,8 @@ export default function PdfQuestionSlicerModal({
         style={{
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
-          width: '95vw',
-          maxWidth: 1200,
+          width: '96vw',
+          maxWidth: 1240,
           height: '92vh',
           borderRadius: 24,
           border: '1.5px solid var(--color-border)',
@@ -252,25 +349,23 @@ export default function PdfQuestionSlicerModal({
                 Akıllı Soru Kırpıcı & Ayırıcı (Smart Slicer)
               </h2>
               <p style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Sayfadaki soruların etrafını fareyle seçerek kırpın ve tek tıkla soru bankasına kaydedin.
+                PDF veya test sayfasındaki soruları farenizle seçip kırparak anında soru bankasına aktarın.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-text-muted)',
-                padding: 6
-              }}
-            >
-              <X size={20} />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--color-text-muted)',
+              padding: 6
+            }}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* Content Body: Left Canvas / Right Sliced Cards */}
@@ -295,28 +390,67 @@ export default function PdfQuestionSlicerModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: 10
+                gap: 10,
+                flexWrap: 'wrap'
               }}
             >
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 14px',
-                  borderRadius: 10,
-                  background: '#6366f1',
-                  color: 'white',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                <Upload size={14} />
-                <span>{sourceImage ? 'Başka Görsel Yükle' : 'Test Görseli / PDF Yükle'}</span>
-                <input type="file" accept="image/*,application/pdf" onChange={handleFileUpload} style={{ display: 'none' }} />
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 15px',
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: 'white',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(99,102,241,0.25)'
+                  }}
+                >
+                  <Upload size={15} />
+                  <span>{sourceImage ? 'Başka PDF / Görsel Yükle' : '📁 PDF veya Görsel Seç'}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
 
+                {sourceFileName && (
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                    {sourceFileName}
+                  </span>
+                )}
+              </div>
+
+              {/* PDF Page Navigation */}
+              {pdfNumPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '4px 10px', borderRadius: 10 }}>
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={pdfCurrentPage <= 1 || isLoadingFile}
+                    style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage <= 1 ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage <= 1 ? 0.4 : 1 }}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>
+                    Sayfa {pdfCurrentPage} / {pdfNumPages}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={pdfCurrentPage >= pdfNumPages || isLoadingFile}
+                    style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage >= pdfNumPages ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage >= pdfNumPages ? 0.4 : 1 }}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+
+              {/* Zoom Controls */}
               {sourceImage && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
@@ -355,35 +489,51 @@ export default function PdfQuestionSlicerModal({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '2rem',
-                cursor: sourceImage ? 'crosshair' : 'default'
+                cursor: sourceImage ? 'crosshair' : 'default',
+                position: 'relative'
               }}
             >
-              {!sourceImage ? (
-                <div style={{ textAlign: 'center', maxWidth: 360 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 20, background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-                    <ImageIcon size={32} className="text-indigo-500" />
-                  </div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px 0' }}>Henüz Görsel Yüklenmedi</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                    Kırpmak istediğiniz test sayfasını yukarıdaki butondan yükleyin.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.1s' }}>
-                  <canvas
-                    ref={canvasRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    style={{
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-                      borderRadius: 8,
-                      maxWidth: 'none',
-                      userSelect: 'none'
-                    }}
-                  />
+              {isLoadingFile && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: '#6366f1' }}>
+                  <Loader2 size={36} className="animate-spin" />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>Dosya yükleniyor ve hazırlanıyor…</span>
                 </div>
               )}
+
+              {loadError && !isLoadingFile && (
+                <div style={{ textAlign: 'center', color: '#ef4444', maxWidth: 360 }}>
+                  <AlertCircle size={36} style={{ margin: '0 auto 8px auto' }} />
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{loadError}</p>
+                </div>
+              )}
+
+              {!sourceImage && !isLoadingFile && !loadError && (
+                <div style={{ textAlign: 'center', maxWidth: 380 }}>
+                  <div style={{ width: 68, height: 68, borderRadius: 22, background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto' }}>
+                    <FileText size={34} className="text-indigo-500" />
+                  </div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '0 0 6px 0' }}>PDF veya Görsel Yükleyin</h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+                    Kırpmak istediğiniz PDF testini veya soru görselini yukarıdaki butondan seçin.
+                  </p>
+                </div>
+              )}
+
+              {/* Canvas always mounted when sourceImage is loaded */}
+              <div style={{ display: sourceImage && !isLoadingFile ? 'block' : 'none', transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.1s' }}>
+                <canvas
+                  ref={canvasRef}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  style={{
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    maxWidth: 'none',
+                    userSelect: 'none'
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -421,8 +571,8 @@ export default function PdfQuestionSlicerModal({
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {slicedQuestions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                  Sayfa üzerinden farenizle soru etrafında seçim yapın. Kırpılan sorular burada listelenecektir. ✂️
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                  Sayfa üzerinden farenizle soru etrafında seçim yapın. Kırptığınız her soru otomatik olarak WebP formatına çevrilip burada listelenecektir. ✂️
                 </div>
               ) : (
                 slicedQuestions.map(q => (
