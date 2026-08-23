@@ -37,6 +37,7 @@ import DashboardBooksCard from '../features/dashboard/components/DashboardBooksC
 import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
 import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
+import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
@@ -3018,6 +3019,16 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
+                {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
+        <div style={{ marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+          <StudentGamificationCard
+            student={selectedStudent}
+            submissions={submissions}
+            studySessions={[]}
+            users={users}
+          />
+        </div>
+
         <div className="sd-grid-layout">
 
           {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}

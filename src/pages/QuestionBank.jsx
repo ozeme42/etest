@@ -13,6 +13,9 @@ import './QuestionBank.css';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
+import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
+import { compressImageToWebP, compressMultipleImages } from '../services/imageCompressionService';
+import { Scissors } from 'lucide-react';
 
 import { JSON_TEMPLATE, subjectThemes, gradeThemes } from '../features/question-bank/constants/questionBankConstants';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
@@ -34,6 +37,7 @@ export default function QuestionBank() {
   
   // Portal Overview Active Tab is always grades now
   const [overviewTab, setOverviewTab] = useState('grades');
+  const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
 
   // Active Subject Page State: null = Overview Grid, s.id = Subject Page, 'all_subjects' = Tüm Dersler
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -182,6 +186,43 @@ export default function QuestionBank() {
     } catch (err) {
       console.error('Toplu görsel yükleme hatası:', err);
     }
+  };
+
+    const handleSaveSlicedQuestions = (slicedList) => {
+    if (!slicedList || slicedList.length === 0) return;
+
+    const base64List = slicedList.map(s => s.image);
+    const totalKb = slicedList.reduce((sum, s) => sum + (s.sizeKb || 50), 0);
+
+    const generatedQuestionsList = slicedList.map((s, idx) => ({
+      questionNo: idx + 1,
+      questionText: `${idx + 1}. Soru`,
+      imageUrl: s.image,
+      correctAnswer: s.correctAnswer || 'A',
+      optionCount: s.optionCount || 4,
+      options: s.optionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']
+    }));
+
+    setUploadedFileInfo({
+      name: `${slicedList.length} Adet Kırpılmış Görsel Soru (WebP)`,
+      size: `${totalKb} KB`,
+      type: 'gorsel',
+      data: base64List[0],
+      count: slicedList.length
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      contentType: 'gorsel',
+      contentPayload: base64List.join('\n\n'),
+      questionCount: slicedList.length,
+      questionsList: generatedQuestionsList,
+      title: prev.title || `Kırpılmış Test (${slicedList.length} Soru)`
+    }));
+
+    setImageUrls(base64List);
+    setShowModal(true);
+    setCreationStep(2);
   };
 
   const handleFileSelected = (file) => {
@@ -2221,7 +2262,27 @@ export default function QuestionBank() {
                 </div>
 
                 <p style={{ fontSize: '0.95rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'center' }}>
-                  Veya manuel içerik türü seçerek devam edin:
+                  <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))' : 'linear-gradient(135deg, #eef2ff, #f5f3ff)', border: '1.5px solid #818cf8', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                      <Scissors size={24} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)' }}>✂️ PDF / Görselden Akıllı Soru Kırpıcı (Smart Slicer)</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>PDF sayfasındaki soruları farenizle seçip kırparak anında soru bankasına aktarın.</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); setIsSlicerModalOpen(true); }}
+                    className="btn-gradient"
+                    style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Scissors size={16} /> Soru Kırpıcıyı Başlat
+                  </button>
+                </div>
+
+                Veya manuel içerik türü seçerek devam edin:
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1rem' }}>
@@ -3404,6 +3465,17 @@ export default function QuestionBank() {
           </div>
         );
       })()}
+
+      {/* PDF QUESTION SLICER MODAL */}
+      {isSlicerModalOpen && (
+        <PdfQuestionSlicerModal
+          isOpen={isSlicerModalOpen}
+          onClose={() => setIsSlicerModalOpen(false)}
+          onSaveQuestions={handleSaveSlicedQuestions}
+          subject={activeSubjectId ? 'Matematik' : 'Matematik'}
+          grade={activeGradeId ? `${activeGradeId}. Sınıf` : '8. Sınıf'}
+        />
+      )}
 
       {previewImage && (
         <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.92)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem', cursor: 'pointer' }}>
