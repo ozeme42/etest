@@ -4,14 +4,14 @@
  */
 
 export const LEVEL_TIERS = [
-  { level: 1, title: 'Çırak', minXp: 0, maxXp: 25, icon: '🥉', color: '#94a3b8', bgGradient: 'linear-gradient(135deg, #64748b, #475569)' },
-  { level: 2, title: 'Yolcu', minXp: 25, maxXp: 60, icon: '🧭', color: '#38bdf8', bgGradient: 'linear-gradient(135deg, #0284c7, #0369a1)' },
-  { level: 3, title: 'Kaşif', minXp: 60, maxXp: 120, icon: '🔭', color: '#34d399', bgGradient: 'linear-gradient(135deg, #059669, #047857)' },
-  { level: 4, title: 'Savaşçı', minXp: 120, maxXp: 220, icon: '⚔️', color: '#fbbf24', bgGradient: 'linear-gradient(135deg, #d97706, #b45309)' },
-  { level: 5, title: 'Usta', minXp: 220, maxXp: 380, icon: '🏹', color: '#fb7185', bgGradient: 'linear-gradient(135deg, #e11d48, #be123c)' },
-  { level: 6, title: 'Üstat', minXp: 380, maxXp: 600, icon: '🛡️', color: '#a78bfa', bgGradient: 'linear-gradient(135deg, #7c3aed, #5b21b6)' },
-  { level: 7, title: 'Efsane', minXp: 600, maxXp: 950, icon: '⚡', color: '#f43f5e', bgGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)' },
-  { level: 8, title: 'Bilge', minXp: 950, maxXp: 99999, icon: '👑', color: '#eab308', bgGradient: 'linear-gradient(135deg, #f59e0b, #d97706)' }
+  { level: 1, title: 'Çırak', minXp: 0, maxXp: 250, icon: '🥉', color: '#94a3b8', bgGradient: 'linear-gradient(135deg, #64748b, #475569)' },
+  { level: 2, title: 'Yolcu', minXp: 250, maxXp: 600, icon: '🧭', color: '#38bdf8', bgGradient: 'linear-gradient(135deg, #0284c7, #0369a1)' },
+  { level: 3, title: 'Kaşif', minXp: 600, maxXp: 1200, icon: '🔭', color: '#34d399', bgGradient: 'linear-gradient(135deg, #059669, #047857)' },
+  { level: 4, title: 'Savaşçı', minXp: 1200, maxXp: 2200, icon: '⚔️', color: '#fbbf24', bgGradient: 'linear-gradient(135deg, #d97706, #b45309)' },
+  { level: 5, title: 'Usta', minXp: 2200, maxXp: 3800, icon: '🏹', color: '#fb7185', bgGradient: 'linear-gradient(135deg, #e11d48, #be123c)' },
+  { level: 6, title: 'Üstat', minXp: 3800, maxXp: 6000, icon: '🛡️', color: '#a78bfa', bgGradient: 'linear-gradient(135deg, #7c3aed, #5b21b6)' },
+  { level: 7, title: 'Efsane', minXp: 6000, maxXp: 9500, icon: '⚡', color: '#f43f5e', bgGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)' },
+  { level: 8, title: 'Bilge', minXp: 9500, maxXp: 999999, icon: '👑', color: '#eab308', bgGradient: 'linear-gradient(135deg, #f59e0b, #d97706)' }
 ];
 
 export const BADGE_DEFINITIONS = [
