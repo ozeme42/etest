@@ -162,7 +162,7 @@ export default function GamificationModal({
           {[
             { key: 'badges', label: '🏆 Rozetlerim', count: `${unlockedBadges.length}/${BADGE_DEFINITIONS.length}` },
             { key: 'leaderboard', label: '🥇 Liderlik Sıralaması', count: `${leaderboard.length} Öğrenci` },
-            { key: 'levels', label: '⭐ Rütbe Basamakları', count: '8 Seviye' }
+            { key: 'levels', label: '⭐ Rütbe Basamakları', count: `${LEVEL_TIERS.length} Seviye` }
           ].map(t => (
             <button
               key={t.key}

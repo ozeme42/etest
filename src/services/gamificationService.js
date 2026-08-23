@@ -4,14 +4,20 @@
  */
 
 export const LEVEL_TIERS = [
-  { level: 1, title: 'Çırak', minXp: 0, maxXp: 250, icon: '🥉', color: '#94a3b8', bgGradient: 'linear-gradient(135deg, #64748b, #475569)' },
-  { level: 2, title: 'Yolcu', minXp: 250, maxXp: 600, icon: '🧭', color: '#38bdf8', bgGradient: 'linear-gradient(135deg, #0284c7, #0369a1)' },
-  { level: 3, title: 'Kaşif', minXp: 600, maxXp: 1200, icon: '🔭', color: '#34d399', bgGradient: 'linear-gradient(135deg, #059669, #047857)' },
-  { level: 4, title: 'Savaşçı', minXp: 1200, maxXp: 2200, icon: '⚔️', color: '#fbbf24', bgGradient: 'linear-gradient(135deg, #d97706, #b45309)' },
-  { level: 5, title: 'Usta', minXp: 2200, maxXp: 3800, icon: '🏹', color: '#fb7185', bgGradient: 'linear-gradient(135deg, #e11d48, #be123c)' },
-  { level: 6, title: 'Üstat', minXp: 3800, maxXp: 6000, icon: '🛡️', color: '#a78bfa', bgGradient: 'linear-gradient(135deg, #7c3aed, #5b21b6)' },
-  { level: 7, title: 'Efsane', minXp: 6000, maxXp: 9500, icon: '⚡', color: '#f43f5e', bgGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)' },
-  { level: 8, title: 'Bilge', minXp: 9500, maxXp: 999999, icon: '👑', color: '#eab308', bgGradient: 'linear-gradient(135deg, #f59e0b, #d97706)' }
+  { level: 1, title: 'Acemi', minXp: 0, maxXp: 150, icon: '🥉', color: '#94a3b8', bgGradient: 'linear-gradient(135deg, #64748b, #475569)' },
+  { level: 2, title: 'Çırak', minXp: 150, maxXp: 350, icon: '🔨', color: '#64748b', bgGradient: 'linear-gradient(135deg, #475569, #334155)' },
+  { level: 3, title: 'Yolcu', minXp: 350, maxXp: 700, icon: '🧭', color: '#38bdf8', bgGradient: 'linear-gradient(135deg, #0284c7, #0369a1)' },
+  { level: 4, title: 'Kaşif', minXp: 700, maxXp: 1200, icon: '🔭', color: '#34d399', bgGradient: 'linear-gradient(135deg, #059669, #047857)' },
+  { level: 5, title: 'Muhafız', minXp: 1200, maxXp: 1900, icon: '🛡️', color: '#10b981', bgGradient: 'linear-gradient(135deg, #10b981, #047857)' },
+  { level: 6, title: 'Savaşçı', minXp: 1900, maxXp: 2800, icon: '⚔️', color: '#fbbf24', bgGradient: 'linear-gradient(135deg, #d97706, #b45309)' },
+  { level: 7, title: 'Şövalye', minXp: 2800, maxXp: 3900, icon: '🏇', color: '#f59e0b', bgGradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+  { level: 8, title: 'Usta', minXp: 3900, maxXp: 5200, icon: '🏹', color: '#fb7185', bgGradient: 'linear-gradient(135deg, #e11d48, #be123c)' },
+  { level: 9, title: 'Üstat', minXp: 5200, maxXp: 6800, icon: '🔮', color: '#a78bfa', bgGradient: 'linear-gradient(135deg, #7c3aed, #5b21b6)' },
+  { level: 10, title: 'Başkumandan', minXp: 6800, maxXp: 8800, icon: '🎖️', color: '#8b5cf6', bgGradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' },
+  { level: 11, title: 'Efsane', minXp: 8800, maxXp: 11500, icon: '⚡', color: '#f43f5e', bgGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)' },
+  { level: 12, title: 'Bilge', minXp: 11500, maxXp: 15000, icon: '📜', color: '#06b6d4', bgGradient: 'linear-gradient(135deg, #0891b2, #0e7490)' },
+  { level: 13, title: 'Kadim Hükümdar', minXp: 15000, maxXp: 20000, icon: '👑', color: '#eab308', bgGradient: 'linear-gradient(135deg, #eab308, #ca8a04)' },
+  { level: 14, title: 'Evrenin Zirvesi', minXp: 20000, maxXp: 999999, icon: '🌌', color: '#ec4899', bgGradient: 'linear-gradient(135deg, #ec4899, #be185d)' }
 ];
 
 export const BADGE_DEFINITIONS = [
