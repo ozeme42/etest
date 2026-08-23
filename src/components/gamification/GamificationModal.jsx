@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Trophy, Award, X, Sparkles, Flame, CheckCircle2, Lock,
-  Crown, Star, Zap, Shield, TrendingUp, Users, Target
+  Crown, Star, Zap, Shield, TrendingUp, Users, Target, Filter
 } from 'lucide-react';
 import {
   computeStudentGamificationData,
@@ -10,6 +10,17 @@ import {
   BADGE_DEFINITIONS
 } from '../../services/gamificationService';
 import { useTheme } from '../../context/ThemeContext';
+
+const BADGE_CATEGORIES = [
+  { key: 'all', label: 'Tümü' },
+  { key: 'test', label: '🎯 Test & Sınav' },
+  { key: 'accuracy', label: '🎖️ Tam Puan & İsabet' },
+  { key: 'milestone', label: '🏹 Soru Sayısı' },
+  { key: 'subject', label: '📚 Dersler' },
+  { key: 'streak', label: '🔥 Günlük Seri' },
+  { key: 'study', label: '⏱️ Odaklanma' },
+  { key: 'special', label: '✨ Özel' }
+];
 
 export default function GamificationModal({
   student,
@@ -20,6 +31,7 @@ export default function GamificationModal({
 }) {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('badges'); // 'badges' | 'leaderboard' | 'levels'
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const gamification = useMemo(() => {
     return computeStudentGamificationData({
@@ -38,6 +50,16 @@ export default function GamificationModal({
   }, [users, submissions, studySessions]);
 
   const { levelInfo, stats, unlockedBadges, lockedBadges, xp } = gamification;
+
+  const filteredUnlockedBadges = useMemo(() => {
+    if (selectedCategory === 'all') return unlockedBadges;
+    return unlockedBadges.filter(b => b.category === selectedCategory);
+  }, [unlockedBadges, selectedCategory]);
+
+  const filteredLockedBadges = useMemo(() => {
+    if (selectedCategory === 'all') return lockedBadges;
+    return lockedBadges.filter(b => b.category === selectedCategory);
+  }, [lockedBadges, selectedCategory]);
 
   return (
     <div
@@ -59,7 +81,7 @@ export default function GamificationModal({
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
           width: '100%',
-          maxWidth: 720,
+          maxWidth: 780,
           maxHeight: '90vh',
           borderRadius: 24,
           border: '1.5px solid var(--color-border)',
@@ -85,18 +107,19 @@ export default function GamificationModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
+                width: 42,
+                height: 42,
+                borderRadius: 14,
                 background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                fontSize: '1.4rem'
               }}
             >
-              <Trophy size={20} />
+              {levelInfo.icon}
             </div>
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0 }}>
@@ -173,45 +196,68 @@ export default function GamificationModal({
           {/* TAB 1: BADGES */}
           {activeTab === 'badges' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Category Filter Pills */}
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                {BADGE_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setSelectedCategory(cat.key)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      border: selectedCategory === cat.key ? '1px solid #6366f1' : '1px solid var(--color-border)',
+                      background: selectedCategory === cat.key ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'transparent',
+                      color: selectedCategory === cat.key ? '#6366f1' : 'var(--color-text-muted)',
+                      fontWeight: 800,
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Unlocked Badges Section */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <Sparkles size={16} className="text-amber-500" />
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Kazanılan Rozetler ({unlockedBadges.length})
+                    Kazanılan Rozetler ({filteredUnlockedBadges.length})
                   </h3>
                 </div>
 
-                {unlockedBadges.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: 16, border: '1px dashed var(--color-border)' }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                      Henüz kazanılmış rozetin yok. İlk testini tamamlayarak "İlk Adım" rozetini kazanabilirsin! 🎯
+                {filteredUnlockedBadges.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: 16, border: '1px dashed var(--color-border)' }}>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                      Bu kategoride henüz kazanılmış bir rozetin bulunmuyor. Test çözerek ve çalışarak rozetleri açabilirsin! 🎯
                     </p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-                    {unlockedBadges.map(b => (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
+                    {filteredUnlockedBadges.map(b => (
                       <div
                         key={b.id}
                         style={{
-                          padding: '0.9rem',
+                          padding: '0.85rem',
                           borderRadius: 16,
                           background: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffbeb',
                           border: '1.5px solid rgba(245, 158, 11, 0.3)',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 6
+                          gap: 5
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '1.8rem' }}>{b.icon}</span>
+                          <span style={{ fontSize: '1.7rem' }}>{b.icon}</span>
                           <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#d97706', background: 'rgba(245,158,11,0.15)', padding: '2px 6px', borderRadius: 6 }}>
                             +{b.xpReward} XP
                           </span>
                         </div>
-                        <div style={{ fontWeight: 900, fontSize: '0.88rem' }}>{b.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{b.desc}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: '0.7rem', color: '#16a34a', fontWeight: 800 }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.86rem' }}>{b.title}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{b.desc}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, fontSize: '0.7rem', color: '#16a34a', fontWeight: 800 }}>
                           <CheckCircle2 size={13} />
                           <span>Tamamlandı</span>
                         </div>
@@ -226,35 +272,35 @@ export default function GamificationModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <Lock size={15} className="text-slate-400" />
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)' }}>
-                    Kilitli Rozetler ({lockedBadges.length})
+                    Kilitli Rozetler ({filteredLockedBadges.length})
                   </h3>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-                  {lockedBadges.map(b => {
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
+                  {filteredLockedBadges.map(b => {
                     const pct = Math.round((b.progress.current / b.progress.target) * 100);
                     return (
                       <div
                         key={b.id}
                         style={{
-                          padding: '0.9rem',
+                          padding: '0.85rem',
                           borderRadius: 16,
                           background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
                           border: '1.5px solid var(--color-border)',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 6,
+                          gap: 5,
                           opacity: 0.85
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '1.8rem', filter: 'grayscale(1)' }}>{b.icon}</span>
+                          <span style={{ fontSize: '1.7rem', filter: 'grayscale(1)' }}>{b.icon}</span>
                           <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', background: 'var(--color-border)', padding: '2px 6px', borderRadius: 6 }}>
                             +{b.xpReward} XP
                           </span>
                         </div>
-                        <div style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)' }}>{b.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{b.desc}</div>
+                        <div style={{ fontWeight: 900, fontSize: '0.86rem', color: 'var(--color-text)' }}>{b.title}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{b.desc}</div>
 
                         {/* Progress Bar */}
                         <div style={{ marginTop: 4 }}>
