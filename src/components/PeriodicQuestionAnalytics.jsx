@@ -352,7 +352,7 @@ export default function PeriodicQuestionAnalytics({
     const daysToSunday = currentDayOfWeek === 0 ? 0 : 7 - currentDayOfWeek;
     const endDate = new Date(today.getTime() + daysToSunday * 86400000);
 
-    const totalWeeks = isMobile ? 12 : 16;
+    const totalWeeks = isMobile ? 14 : 22;
     const totalDays = totalWeeks * 7;
     const startDate = new Date(endDate.getTime() - (totalDays - 1) * 86400000);
 
@@ -430,13 +430,25 @@ export default function PeriodicQuestionAnalytics({
     const pastDaysCount = totalDays - Math.max(0, daysToSunday);
     const consistencyRate = pastDaysCount > 0 ? Math.round((activeDaysCount / pastDaysCount) * 100) : 0;
 
+    // Extract distinct month labels aligned with week columns
+    const monthLabels = [];
+    let lastMonth = '';
+    weeks.forEach((week, wIdx) => {
+      const firstDayInWeek = week[0];
+      if (firstDayInWeek && firstDayInWeek.monthName !== lastMonth) {
+        monthLabels.push({ wIdx, label: firstDayInWeek.monthName });
+        lastMonth = firstDayInWeek.monthName;
+      }
+    });
+
     return {
       weeks,
       totalWeeks,
       activeDaysCount,
       totalQuestions,
       bestDay,
-      consistencyRate
+      consistencyRate,
+      monthLabels
     };
   }, [filteredItems, selectedSubject, isMobile]);
 
@@ -940,13 +952,13 @@ export default function PeriodicQuestionAnalytics({
           </div>
         )}
 
-        {/* 3. GitHub Tarzı Çalışma Isı Haritası (Study Heatmap) */}
+        {/* 3. GitHub Tarzı Çalışma Isı Haritası (Study Heatmap - Tam Genişlik & Sağa-Sola Yaslı) */}
         {activeChartView === 'heatmap' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
             {/* Heatmap Üst Başlık & Özet Rozetleri */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: '0 0.25rem' }}>
               <div>
-                <div style={{ fontSize: isMobile ? '0.82rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: isMobile ? '0.82rem' : '0.95rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>📅 Günlük Çalışma Isı Haritası</span>
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, background: isDark ? 'rgba(34,197,94,0.18)' : '#dcfce7', color: '#16a34a', padding: '1px 7px', borderRadius: 6 }}>
                     Son {heatmapData.totalWeeks} Hafta
@@ -973,81 +985,123 @@ export default function PeriodicQuestionAnalytics({
               </div>
             </div>
 
-            {/* Isı Haritası Matrisi (Grid) */}
-            <div style={{ overflowX: 'auto', paddingBottom: 6, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
-              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, minWidth: 'fit-content' }}>
-                {/* Gün İsimleri & Kareler (Pzt'den Paz'a 7 Satır) */}
+            {/* Isı Haritası Matrisi (Grid - 100% Tam Genişlik & Sağa Sola Yaslı) */}
+            <div style={{ width: '100%', overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ width: '100%', minWidth: isMobile ? '360px' : 'auto', display: 'flex', flexDirection: 'column', gap: isMobile ? 3 : 5 }}>
+                
+                {/* 1. Ay Başlıkları Satırı */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, marginBottom: 2 }}>
+                  <span style={{ width: isMobile ? 26 : 32, flexShrink: 0 }} />
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${heatmapData.totalWeeks}, minmax(0, 1fr))`,
+                    width: '100%',
+                    gap: isMobile ? '3px' : '5px'
+                  }}>
+                    {heatmapData.weeks.map((week, wIdx) => {
+                      const firstDay = week[0];
+                      const prevWeekFirstDay = wIdx > 0 ? heatmapData.weeks[wIdx - 1][0] : null;
+                      const isNewMonth = !prevWeekFirstDay || (firstDay && firstDay.monthName !== prevWeekFirstDay.monthName);
+                      return (
+                        <div key={wIdx} style={{ fontSize: '0.64rem', fontWeight: 800, color: isDark ? '#94a3b8' : '#64748b', overflow: 'visible', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                          {isNewMonth ? firstDay.monthName : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Gün İsimleri & Kareler (Pzt'den Paz'a 7 Satır - %100 Sağa-Sola Tam Yaslı) */}
                 {['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'].map((dayLabel, dayIdx) => (
-                  <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span style={{ width: 26, fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textAlign: 'right', paddingRight: 4, userSelect: 'none' }}>
+                  <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, width: '100%' }}>
+                    {/* Sol Gün Etiketi */}
+                    <span style={{
+                      width: isMobile ? 26 : 32,
+                      fontSize: isMobile ? '0.62rem' : '0.7rem',
+                      fontWeight: 800,
+                      color: 'var(--color-text-muted)',
+                      textAlign: 'right',
+                      flexShrink: 0,
+                      userSelect: 'none'
+                    }}>
                       {dayIdx % 2 === 0 ? dayLabel : ''}
                     </span>
 
-                    {heatmapData.weeks.map((week, wIdx) => {
-                      const day = week[dayIdx];
-                      if (!day) return <div key={wIdx} style={{ width: 14, height: 14 }} />;
+                    {/* Günlük Kareler Grid (1fr Eşit Dağılım) */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${heatmapData.totalWeeks}, minmax(0, 1fr))`,
+                      width: '100%',
+                      gap: isMobile ? '3px' : '5px'
+                    }}>
+                      {heatmapData.weeks.map((week, wIdx) => {
+                        const day = week[dayIdx];
+                        if (!day) return <div key={wIdx} style={{ width: '100%', aspectRatio: '1/1' }} />;
 
-                      // Dynamic Heatmap Colors
-                      let bg = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
-                      let border = isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #cbd5e1';
-                      let shadow = 'none';
+                        // Dynamic Heatmap Colors
+                        let bg = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+                        let border = isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #cbd5e1';
+                        let shadow = 'none';
 
-                      if (!day.isFuture) {
-                        if (day.level === 1) {
-                          bg = isDark ? '#064e3b' : '#bbf7d0';
-                          border = isDark ? '1px solid #065f46' : '1px solid #86efac';
-                        } else if (day.level === 2) {
-                          bg = isDark ? '#047857' : '#4ade80';
-                          border = isDark ? '1px solid #059669' : '1px solid #22c55e';
-                        } else if (day.level === 3) {
-                          bg = isDark ? '#059669' : '#22c55e';
-                          border = isDark ? '1px solid #10b981' : '1px solid #16a34a';
-                        } else if (day.level === 4) {
-                          bg = isDark ? '#10b981' : '#15803d';
-                          border = '1.5px solid #f59e0b';
-                          shadow = '0 0 8px rgba(16,185,129,0.5)';
+                        if (!day.isFuture) {
+                          if (day.level === 1) {
+                            bg = isDark ? '#064e3b' : '#bbf7d0';
+                            border = isDark ? '1px solid #065f46' : '1px solid #86efac';
+                          } else if (day.level === 2) {
+                            bg = isDark ? '#047857' : '#4ade80';
+                            border = isDark ? '1px solid #059669' : '1px solid #22c55e';
+                          } else if (day.level === 3) {
+                            bg = isDark ? '#059669' : '#22c55e';
+                            border = isDark ? '1px solid #10b981' : '1px solid #16a34a';
+                          } else if (day.level === 4) {
+                            bg = isDark ? '#10b981' : '#15803d';
+                            border = '1.5px solid #f59e0b';
+                            shadow = '0 0 8px rgba(16,185,129,0.5)';
+                          }
                         }
-                      }
 
-                      if (day.isToday) {
-                        border = '2px solid #6366f1';
-                      }
+                        if (day.isToday) {
+                          border = '2px solid #6366f1';
+                        }
 
-                      const isSelected = selectedHeatmapDay?.date === day.date;
-                      if (isSelected) {
-                        border = '2px solid #ffffff';
-                        shadow = '0 0 10px #6366f1';
-                      }
+                        const isSelected = selectedHeatmapDay?.date === day.date;
+                        if (isSelected) {
+                          border = '2px solid #ffffff';
+                          shadow = '0 0 10px #6366f1';
+                        }
 
-                      return (
-                        <div
-                          key={day.date || wIdx}
-                          onClick={() => !day.isFuture && setSelectedHeatmapDay(day)}
-                          onMouseEnter={() => !day.isFuture && !isMobile && setSelectedHeatmapDay(day)}
-                          style={{
-                            width: isMobile ? 13 : 15,
-                            height: isMobile ? 13 : 15,
-                            borderRadius: 3.5,
-                            background: bg,
-                            border,
-                            boxShadow: shadow,
-                            cursor: day.isFuture ? 'default' : 'pointer',
-                            opacity: day.isFuture ? 0.3 : 1,
-                            transition: 'all 0.15s ease',
-                            transform: isSelected ? 'scale(1.25)' : 'none',
-                            zIndex: isSelected ? 5 : 1
-                          }}
-                          title={`${day.fullLabel}: ${day.q} Soru (${day.rate}% Başarı)`}
-                        />
-                      );
-                    })}
+                        return (
+                          <div
+                            key={day.date || wIdx}
+                            onClick={() => !day.isFuture && setSelectedHeatmapDay(day)}
+                            onMouseEnter={() => !day.isFuture && !isMobile && setSelectedHeatmapDay(day)}
+                            style={{
+                              width: '100%',
+                              aspectRatio: '1/1',
+                              minHeight: isMobile ? 14 : 18,
+                              maxHeight: 28,
+                              borderRadius: isMobile ? 3 : 5,
+                              background: bg,
+                              border,
+                              boxShadow: shadow,
+                              cursor: day.isFuture ? 'default' : 'pointer',
+                              opacity: day.isFuture ? 0.3 : 1,
+                              transition: 'all 0.15s ease',
+                              transform: isSelected ? 'scale(1.2)' : 'none',
+                              zIndex: isSelected ? 5 : 1
+                            }}
+                            title={`${day.fullLabel}: ${day.q} Soru (${day.rate}% Başarı)`}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Isı Haritası Lejantı & Seçili Gün Detay Kartı */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 4, borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
               {/* Lejant (Az -> Çok) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
                 <span>Daha Az</span>
