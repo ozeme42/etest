@@ -38,6 +38,7 @@ import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoad
 import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
+import { computeStudentGamificationData } from '../services/gamificationService';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
@@ -2236,6 +2237,28 @@ export default function StudentDashboard() {
       completionRate
     };
   }, [dayProgramInfo, fullProcessedWeekMap, tests]);
+
+  
+  const studentGamification = useMemo(() => {
+    if (!selectedStudent) return null;
+    return computeStudentGamificationData({
+      studentId: selectedStudent.id,
+      submissions,
+      homeworks,
+      books,
+      bookTests,
+      mockExams: selectedStudent ? getMockExamsForStudent(selectedStudent.id) : [],
+      studySessions: []
+    });
+  }, [selectedStudent, submissions, homeworks, books, bookTests]);
+
+  const studentRank = studentGamification?.levelInfo || {
+    level: 1,
+    title: 'Acemi',
+    icon: '🥉',
+    bgGradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+    color: '#6366f1'
+  };
 
   const completedCount = taskStats.completedCount;
   const overdueCount = taskStats.overdueCount;
