@@ -275,7 +275,7 @@ export default function PeriodicQuestionAnalytics({
     return [];
   }, [period, dayRange, filteredItems, selectedSubject]);
 
-  // 3. Seçili Periyot Özeti (Grand Totals)
+  // 3. Seçili Periyot Özeti & Günlük Ortalama (Grand Totals & Daily Average)
   const totals = useMemo(() => {
     const totQ = chartData.reduce((acc, d) => acc + d.toplamSoru, 0);
     const totD = chartData.reduce((acc, d) => acc + d.doğru, 0);
@@ -284,8 +284,24 @@ export default function PeriodicQuestionAnalytics({
     const totTests = chartData.reduce((acc, d) => acc + d.testSayısı, 0);
     const avgRate = totQ > 0 ? Math.round((totD / totQ) * 100) : 0;
 
-    return { totQ, totD, totY, totB, totTests, avgRate };
-  }, [chartData]);
+    const activeDaysCount = chartData.filter(d => d.toplamSoru > 0).length;
+    let dailyAvg = 0;
+    let activeAvg = 0;
+    if (period === 'daily') {
+      dailyAvg = totQ > 0 ? parseFloat((totQ / dayRange).toFixed(1)) : 0;
+      activeAvg = activeDaysCount > 0 ? Math.round(totQ / activeDaysCount) : 0;
+    } else if (period === 'weekly') {
+      const daysCount = (chartData.length || 6) * 7;
+      dailyAvg = totQ > 0 ? parseFloat((totQ / daysCount).toFixed(1)) : 0;
+      activeAvg = Math.round(totQ / (chartData.length || 6));
+    } else {
+      const daysCount = (chartData.length || 6) * 30;
+      dailyAvg = totQ > 0 ? parseFloat((totQ / daysCount).toFixed(1)) : 0;
+      activeAvg = Math.round(totQ / (chartData.length || 6));
+    }
+
+    return { totQ, totD, totY, totB, totTests, avgRate, dailyAvg, activeAvg, activeDaysCount };
+  }, [chartData, period, dayRange]);
 
   // 4. Ders Bazlı Dağılım Çubukları (Denemelerin dersleri de ilgili derslere dağıtılır)
   const subjectBreakdown = useMemo(() => {
@@ -501,14 +517,14 @@ export default function PeriodicQuestionAnalytics({
         </div>
       </div>
 
-      {/* ── 4'LÜ MİKRO KPI ÖZET KARTLARI (YÜKSEK KONTRAST & AÇIK TEMADA BELİRGİN) ── */}
+      {/* ── 5'Lİ MİKRO KPI ÖZET KARTLARI & GÜNLÜK ORTALAMA METRİĞİ ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(130px, 1fr))',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
         gap: isMobile ? '0.45rem' : '0.65rem',
         marginBottom: isMobile ? '0.75rem' : '1.1rem'
       }}>
-        {/* Toplam Soru */}
+        {/* 1. Toplam Soru */}
         <div style={{
           background: isDark
             ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.08) 100%)'
@@ -545,7 +561,44 @@ export default function PeriodicQuestionAnalytics({
           </div>
         </div>
 
-        {/* Doğru Sayısı */}
+        {/* 2. GÜNLÜK ORTALAMA ÇÖZÜLEN SORU (YENİ METRİK) */}
+        <div style={{
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.08) 100%)'
+            : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a',
+          borderRadius: '0.85rem',
+          padding: isMobile ? '0.55rem 0.65rem' : '0.7rem 0.85rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: isMobile ? '64px' : '72px',
+          boxShadow: isDark ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.08)'
+        }}>
+          <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            ⚡ Günlük Ortalama
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 3 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', fontWeight: 900, color: isDark ? '#fde68a' : '#78350f', lineHeight: 1, whiteSpace: 'nowrap' }}>
+              {totals.dailyAvg}
+            </span>
+            <span style={{
+              fontSize: isMobile ? '0.62rem' : '0.68rem',
+              fontWeight: 900,
+              color: isDark ? '#fde68a' : '#b45309',
+              background: isDark ? 'rgba(245, 158, 11, 0.25)' : '#ffffff',
+              padding: '0.15rem 0.4rem',
+              borderRadius: '0.4rem',
+              border: isDark ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #fde68a',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}>
+              {period === 'daily' ? `${totals.activeDaysCount}/${dayRange} Gün` : 'Soru / Gün'}
+            </span>
+          </div>
+        </div>
+
+        {/* 3. Doğru Sayısı */}
         <div style={{
           background: isDark
             ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.08) 100%)'
@@ -582,7 +635,7 @@ export default function PeriodicQuestionAnalytics({
           </div>
         </div>
 
-        {/* Yanlış & Boş */}
+        {/* 4. Yanlış & Boş */}
         <div style={{
           background: isDark
             ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.08) 100%)'
@@ -619,7 +672,7 @@ export default function PeriodicQuestionAnalytics({
           </div>
         </div>
 
-        {/* Başarı Oranı */}
+        {/* 5. Başarı Oranı */}
         <div style={{
           background: totals.avgRate >= 70
             ? (isDark ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.08) 100%)' : 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)')
@@ -673,8 +726,7 @@ export default function PeriodicQuestionAnalytics({
           </div>
         </div>
       </div>
-
-      {/* ── GRAFİK & DETAY GÖRÜNÜM SEÇİCİ SEKMELERİ ── */}
+{/* ── GRAFİK & DETAY GÖRÜNÜM SEÇİCİ SEKMELERİ ── */}
       <div style={{
         background: isDark ? 'var(--color-surface-hover, #1e293b)' : '#f1f5f9',
         borderRadius: '0.75rem',
@@ -772,6 +824,15 @@ export default function PeriodicQuestionAnalytics({
                   <Bar dataKey="doğru" name="Doğru" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="yanlış" name="Yanlış" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="boş" name="Boş" stackId="a" fill="#94a3b8" radius={[3, 3, 0, 0]} />
+                  {totals.dailyAvg > 0 && (
+                    <ReferenceLine
+                      y={totals.dailyAvg}
+                      stroke="#f59e0b"
+                      strokeDasharray="4 4"
+                      strokeWidth={1.5}
+                      label={!isMobile ? { value: `Ortalama: ${totals.dailyAvg} Soru`, position: 'insideTopRight', fill: '#d97706', fontSize: 10, fontWeight: 900 } : undefined}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             </div>
