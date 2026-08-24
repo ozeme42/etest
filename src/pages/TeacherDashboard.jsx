@@ -18,6 +18,9 @@ import { useCoaching } from '../context/CoachingContext';
 import { getAvatarBg, getSubjectTheme } from '../config/subjectThemes';
 import { timeAgo } from '../utils/dateHelpers';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
+import TeacherActionCenter from '../components/teacher/TeacherActionCenter';
+import TeacherClassPulseRadar from '../components/teacher/TeacherClassPulseRadar';
+import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
 import './TeacherDashboard.css';
 
@@ -133,7 +136,7 @@ function PillTab({ id, label, icon: Icon, badge, active, onClick }) {
 ───────────────────────────────────────── */
 export default function TeacherDashboard() {
   const { data, addTest, updateTest }   = useCurriculum();
-  const { questions }                   = useQuestionBank();
+  const { questions, addQuestion }     = useQuestionBank();
   const { homeworks = [] }              = useHomework();
   const { submissions = [] }            = useEvaluation();
   const { users = [], addStudentForTeacher, updateUser } = useUser();
@@ -168,6 +171,8 @@ export default function TeacherDashboard() {
   const [editStudentPassword, setEditStudentPassword] = useState('');
   const [editStudentGrade, setEditStudentGrade]     = useState('');
   const [selectedReportStudent, setSelectedReportStudent] = useState(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiModalConfig, setAiModalConfig] = useState({ subject: '', topic: '' });
 
   useEffect(() => {
     if (data?.grades?.length > 0 && !newStudentGrade) {
@@ -224,6 +229,35 @@ export default function TeacherDashboard() {
   }, [students, teacherSubmissions]);
 
   /* upcoming homeworks */
+  const pendingEvaluations = useMemo(() => {
+    return teacherSubmissions.filter(sub => {
+      if (sub.isEvaluatedByTeacher) return false;
+      const isOpen = sub.type === 'open_ended' || sub.sourceType === 'open_ended' || sub.status === 'pending_evaluation';
+      const hasUnscoredAnswers = Array.isArray(sub.answers) && sub.answers.some(a => a.userAnswerText && !a.score && !a.evaluatedByTeacher);
+      return isOpen || hasUnscoredAnswers;
+    });
+  }, [teacherSubmissions]);
+
+  const dueHomeworks = useMemo(() => {
+    const now = Date.now();
+    return teacherHomeworks.filter(h => {
+      if (!h.dueDate) return false;
+      const d = new Date(h.dueDate).getTime();
+      return d >= now - 86400000 && d <= now + 2 * 86400000;
+    });
+  }, [teacherHomeworks]);
+
+  const handleLaunchAiForTopic = (topicName, subjectName) => {
+    setAiModalConfig({ topic: topicName, subject: subjectName || 'Matematik' });
+    setIsAiModalOpen(true);
+  };
+
+  const handleSaveAiQuestions = (bundle) => {
+    if (addQuestion) {
+      addQuestion(bundle);
+    }
+  };
+
   const upcomingHw = useMemo(() => {
     const now = Date.now();
     return teacherHomeworks
@@ -382,66 +416,13 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* ══════════ PENDING MANUAL TEST APPROVALS BANNER ══════════ */}
-        {pendingManualApprovals.length > 0 && (
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(99, 102, 241, 0.12))',
-            border: '1.5px solid rgba(168, 85, 247, 0.35)',
-            borderRadius: '1.25rem',
-            padding: '1rem 1.4rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            boxShadow: '0 4px 16px -2px rgba(124, 58, 237, 0.1)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '0.85rem',
-                background: 'linear-gradient(135deg, #7c3aed, #9333ea)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-              }}>
-                <Clock3 size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                  {pendingManualApprovals.length} Adet Manuel Test Onayınızı Bekliyor!
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  Öğrencilerinizin eklediği test sonuçlarını onaylayarak istatistiklerine yansımasını sağlayın.
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/approvals')}
-              style={{
-                padding: '0.6rem 1.2rem',
-                borderRadius: '0.75rem',
-                border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
-                color: '#ffffff',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-              }}
-            >
-              <span>Onay Merkezi'ne Git</span>
-              <ChevronRight size={15} />
-            </button>
-          </div>
-        )}
+        {/* ══════════ 1. DAILY ACTION CENTER & TEACHER COCKPIT ══════════ */}
+        <TeacherActionCenter
+          pendingManualApprovals={pendingManualApprovals}
+          pendingEvaluations={pendingEvaluations}
+          dueHomeworks={dueHomeworks}
+          students={students}
+        />
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
         <div className="teacher-stats-grid">
@@ -482,6 +463,14 @@ export default function TeacherDashboard() {
               students={students}
               submissions={teacherSubmissions}
               homeworks={teacherHomeworks}
+            />
+
+            {/* ══════════ 2. CLASS PULSE RADAR (AT-RISK STUDENTS & WEAK TOPICS) ══════════ */}
+            <TeacherClassPulseRadar
+              students={students}
+              submissions={teacherSubmissions}
+              onSelectStudent={(std) => setSelectedReportStudent(std)}
+              onLaunchAiForTopic={handleLaunchAiForTopic}
             />
 
             <div className="teacher-overview-grid">
@@ -1116,6 +1105,22 @@ export default function TeacherDashboard() {
         )}
 
       </div>
+
+      {/* ══════════ MODAL: AI QUESTION GENERATOR FOR REMEDIAL TESTS ══════════ */}
+      {isAiModalOpen && (
+        <AiQuestionGeneratorModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onSaveQuestions={handleSaveAiQuestions}
+          defaultSubject={aiModalConfig.subject || 'Matematik'}
+          defaultTopic={aiModalConfig.topic || ''}
+          curData={data}
+          availableGrades={data?.grades || []}
+          availableSubjects={data?.subjects || []}
+          availableUnits={data?.units || []}
+          availableTopics={data?.topics || []}
+        />
+      )}
 
       {/* ══════════ MODAL: ÖĞRENCİ HIZLI KARNE & VELİ RAPORU ══════════ */}
       {selectedReportStudent && (
