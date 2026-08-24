@@ -7,7 +7,7 @@ import {
   Type, FolderTree, Edit2, Eye, CheckCircle2, Check, ExternalLink,
   Layers, ArrowLeft, Globe, BookOpen, LayoutGrid, List,
   Ruler, TestTube2, BookCopy, MessageSquare, Sparkles,
-  ChevronRight, GraduationCap, School, Search, Calendar
+  ChevronRight, ChevronDown, ChevronUp, FolderOpen, Folder, GraduationCap, School, Search, Calendar
 } from 'lucide-react';
 import './QuestionBank.css';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
@@ -40,6 +40,34 @@ export default function QuestionBank() {
   const [overviewTab, setOverviewTab] = useState('grades');
   const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [expandedUnits, setExpandedUnits] = useState({});
+  const [aiModalConfig, setAiModalConfig] = useState({ subject: '', grade: '', topic: '' });
+
+  const toggleUnitExpand = (unitId) => {
+    setExpandedUnits(prev => ({
+      ...prev,
+      [unitId]: !prev[unitId]
+    }));
+  };
+
+  const toggleAllUnits = (subjectUnits) => {
+    const allOpen = subjectUnits.every(u => expandedUnits[u.id]);
+    const nextState = {};
+    if (!allOpen) {
+      subjectUnits.forEach(u => { nextState[u.id] = true; });
+    }
+    setExpandedUnits(nextState);
+  };
+
+  const handleLaunchAiWithTopic = (topicName, unitName) => {
+    setAiModalConfig({
+      subject: activeSubject?.name || 'Matematik',
+      grade: activeGrade?.name || '8. Sınıf',
+      topic: topicName ? `${unitName ? unitName + ' - ' : ''}${topicName}` : (unitName || '')
+    });
+    setIsAiModalOpen(true);
+  };
+
 
   // Active Subject Page State: null = Overview Grid, s.id = Subject Page, 'all_subjects' = Tüm Dersler
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -2161,6 +2189,342 @@ export default function QuestionBank() {
             );
           })()}
 
+          {/* ═════════════════════════════════════════════════════════════════════
+              CURRICULUM UNITS & TOPICS EXPLORER (Müfredat Ünite & Konu Gezgini)
+          ═════════════════════════════════════════════════════════════════════ */}
+          {activeSubjectId !== 'all_subjects' && (() => {
+            const subjectUnits = curData.units.filter(u => u.subjectId === activeSubjectId);
+            const allUnitsOpen = subjectUnits.length > 0 && subjectUnits.every(u => expandedUnits[u.id]);
+
+            return (
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '1.25rem',
+                padding: '1.25rem',
+                boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '0.75rem', background: activeSubjectTheme.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FolderTree size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        📚 {activeSubject?.name} Müfredat Üniteleri ve Konuları
+                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 99, background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', fontWeight: 800 }}>
+                          {subjectUnits.length} Ünite
+                        </span>
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        Üniteye tıklayarak alt konuları açabilir, seçtiğiniz konuya özel soruları filtreleyebilir veya doğrudan AI ile soru üretebilirsiniz.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {subjectUnits.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => toggleAllUnits(subjectUnits)}
+                        style={{
+                          background: 'var(--color-surface-hover)',
+                          border: '1px solid var(--color-border-input)',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '0.6rem',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
+                          color: 'var(--color-text)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        {allUnitsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        <span>{allUnitsOpen ? 'Tüm Üniteleri Kapat' : 'Tüm Üniteleri Aç'}</span>
+                      </button>
+                    )}
+
+                    {(selectedUnit !== 'all' || selectedTopic !== 'all') && (
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedUnit('all'); setSelectedTopic('all'); }}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '0.6rem',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <X size={13} />
+                        <span>Filtreyi Sıfırla (Tüm Sorular)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Units List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {subjectUnits.map((unit, uIdx) => {
+                    const unitTopics = curData.topics.filter(t => t.unitId === unit.id);
+                    const isExpanded = !!expandedUnits[unit.id];
+                    const isUnitSelected = selectedUnit === unit.id;
+
+                    // Question count for this unit
+                    const uTopicIds = unitTopics.map(t => t.id);
+                    const unitQCount = questions.filter(q =>
+                      uTopicIds.includes(q.topicId) ||
+                      q.topicId === `unit_${unit.id}_all` ||
+                      q.topicId === unit.id
+                    ).length;
+
+                    return (
+                      <div
+                        key={unit.id}
+                        style={{
+                          background: isUnitSelected ? (isDark ? 'rgba(99, 102, 241, 0.12)' : '#eef2ff') : 'var(--color-surface-hover)',
+                          border: `1.5px solid ${isUnitSelected ? '#6366f1' : 'var(--color-border)'}`,
+                          borderRadius: '1rem',
+                          overflow: 'hidden',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {/* Unit Header Bar */}
+                        <div
+                          style={{
+                            padding: '0.85rem 1.15rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            gap: '0.75rem',
+                            flexWrap: 'wrap'
+                          }}
+                          onClick={() => toggleUnitExpand(unit.id)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 200 }}>
+                            <div style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '0.55rem',
+                              background: isExpanded ? '#6366f1' : 'var(--color-surface)',
+                              color: isExpanded ? '#ffffff' : activeSubjectTheme.color,
+                              border: '1px solid var(--color-border-input)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 900,
+                              fontSize: '0.8rem',
+                              flexShrink: 0
+                            }}>
+                              {uIdx + 1}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                                {unit.name}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+                                <span>📘 {unitTopics.length} Konu</span>
+                                <span>•</span>
+                                <span>📊 {unitQCount} Soru / Test</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons on Unit */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedUnit(unit.id);
+                                setSelectedTopic('all');
+                              }}
+                              style={{
+                                padding: '0.35rem 0.7rem',
+                                borderRadius: '0.55rem',
+                                background: (selectedUnit === unit.id && selectedTopic === 'all') ? '#6366f1' : 'var(--color-surface)',
+                                border: '1px solid var(--color-border-input)',
+                                color: (selectedUnit === unit.id && selectedTopic === 'all') ? '#ffffff' : 'var(--color-text)',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                              title="Tüm ünite sorularını listele"
+                            >
+                              <Eye size={13} />
+                              <span>Soruları Listele ({unitQCount})</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleLaunchAiWithTopic('', unit.name)}
+                              style={{
+                                padding: '0.35rem 0.7rem',
+                                borderRadius: '0.55rem',
+                                background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                boxShadow: '0 2px 8px rgba(139,92,246,0.3)'
+                              }}
+                              title="Yapay zeka ile bu üniteye özel soru paketi üret"
+                            >
+                              <Sparkles size={13} />
+                              <span>AI Soru Üret</span>
+                            </button>
+
+                            <div
+                              onClick={() => toggleUnitExpand(unit.id)}
+                              style={{
+                                padding: '0.35rem',
+                                borderRadius: '0.5rem',
+                                color: 'var(--color-text-muted)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Topics List */}
+                        {isExpanded && (
+                          <div style={{
+                            borderTop: '1px solid var(--color-border)',
+                            background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff',
+                            padding: '0.85rem 1.15rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem'
+                          }}>
+                            {unitTopics.length === 0 ? (
+                              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', padding: '0.25rem 0' }}>
+                                Bu ünitede henüz alt konu başlığı tanımlanmamış.
+                              </div>
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
+                                {unitTopics.map((topic, tIdx) => {
+                                  const isTopicSelected = selectedTopic === topic.id;
+                                  const topicQCount = questions.filter(q => q.topicId === topic.id).length;
+
+                                  return (
+                                    <div
+                                      key={topic.id}
+                                      style={{
+                                        background: isTopicSelected ? (isDark ? 'rgba(99, 102, 241, 0.2)' : '#e0e7ff') : 'var(--color-surface-hover)',
+                                        border: `1.5px solid ${isTopicSelected ? '#6366f1' : 'var(--color-border-input)'}`,
+                                        borderRadius: '0.75rem',
+                                        padding: '0.55rem 0.75rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '0.5rem',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      <div
+                                        onClick={() => {
+                                          setSelectedUnit(unit.id);
+                                          setSelectedTopic(topic.id);
+                                        }}
+                                        style={{ cursor: 'pointer', flex: 1, minWidth: 0 }}
+                                      >
+                                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isTopicSelected ? '#4f46e5' : 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          📘 {topic.name}
+                                        </div>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
+                                          {topicQCount} Soru / Test
+                                        </div>
+                                      </div>
+
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedUnit(unit.id);
+                                            setSelectedTopic(topic.id);
+                                          }}
+                                          style={{
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '0.45rem',
+                                            background: isTopicSelected ? '#6366f1' : 'var(--color-surface)',
+                                            border: '1px solid var(--color-border)',
+                                            color: isTopicSelected ? '#ffffff' : 'var(--color-text)',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 800,
+                                            cursor: 'pointer'
+                                          }}
+                                          title="Bu konunun sorularını göster"
+                                        >
+                                          {isTopicSelected ? '✓ Seçili' : 'Seç'}
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleLaunchAiWithTopic(topic.name, unit.name)}
+                                          style={{
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '0.45rem',
+                                            background: 'rgba(139, 92, 246, 0.12)',
+                                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                                            color: '#8b5cf6',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 900,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 2
+                                          }}
+                                          title="Bu konuya özel AI ile soru üret"
+                                        >
+                                          <Sparkles size={11} /> AI
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {subjectUnits.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-muted)' }}>
+                      <FolderTree size={36} style={{ marginBottom: 6, opacity: 0.5 }} />
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>Bu derse ait henüz ünite tanımlanmamış.</div>
+                      <div style={{ fontSize: '0.75rem', marginTop: 2 }}>Yönetici panelinden müfredat üniteleri ekleyebilir veya yukarıdaki "Yeni Soru Ekle" butonunu kullanabilirsiniz.</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Subject Filter Bar */}
           <div className="top-filter-bar">
             <div className="filter-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -3606,10 +3970,14 @@ export default function QuestionBank() {
       {isAiModalOpen && (
         <AiQuestionGeneratorModal
           isOpen={isAiModalOpen}
-          onClose={() => setIsAiModalOpen(false)}
+          onClose={() => {
+            setIsAiModalOpen(false);
+            setAiModalConfig({ subject: '', grade: '', topic: '' });
+          }}
           onSaveQuestions={handleSaveAiQuestions}
-          defaultSubject={activeSubject?.name || 'Matematik'}
-          defaultGrade={activeGrade?.name || '8. Sınıf'}
+          defaultSubject={aiModalConfig.subject || activeSubject?.name || 'Matematik'}
+          defaultGrade={aiModalConfig.grade || activeGrade?.name || '8. Sınıf'}
+          defaultTopic={aiModalConfig.topic || ''}
           availableGrades={curData?.grades || []}
           availableSubjects={curData?.subjects || []}
         />

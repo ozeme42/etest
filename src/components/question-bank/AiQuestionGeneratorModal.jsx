@@ -13,6 +13,7 @@ export default function AiQuestionGeneratorModal({
   onSaveQuestions,
   defaultSubject = 'Matematik',
   defaultGrade = '8. Sınıf',
+  defaultTopic = '',
   availableGrades = [],
   availableSubjects = []
 }) {
@@ -29,7 +30,7 @@ export default function AiQuestionGeneratorModal({
   // Question Config
   const [subject, setSubject] = useState(defaultSubject);
   const [grade, setGrade] = useState(defaultGrade);
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState(defaultTopic);
   const [difficulty, setDifficulty] = useState('Orta');
   const [questionCount, setQuestionCount] = useState(5);
   const [optionCount, setOptionCount] = useState(4);
@@ -54,7 +55,8 @@ export default function AiQuestionGeneratorModal({
   useEffect(() => {
     if (defaultSubject) setSubject(defaultSubject);
     if (defaultGrade) setGrade(defaultGrade);
-  }, [defaultSubject, defaultGrade]);
+    if (defaultTopic) setTopic(defaultTopic);
+  }, [defaultSubject, defaultGrade, defaultTopic]);
 
   if (!isOpen) return null;
 
