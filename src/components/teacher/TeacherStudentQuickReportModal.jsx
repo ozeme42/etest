@@ -8,11 +8,15 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { getAvatarBg, getSubjectTheme } from '../../config/subjectThemes';
 import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { computeStudentAnalyticsData } from '../../utils/testResolver';
 import { timeAgo } from '../../utils/dateHelpers';
 
 export default function TeacherStudentQuickReportModal({
   student,
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
   grades = [],
   teacherName = 'Öğretmeniniz',
   isCoached = false,
@@ -26,12 +30,34 @@ export default function TeacherStudentQuickReportModal({
 
   if (!student) return null;
 
-  // Student's Submissions
+  // Helper to normalize subjects reliably
+  const normalizeSubjectName = (rawName) => {
+    if (!rawName) return 'Genel';
+    const s = String(rawName).trim();
+    const l = s.toLowerCase();
+    if (l.includes('matematik') || l.includes('geometri')) return 'Matematik';
+    if (l.includes('türkçe') || l.includes('paragraf') || l.includes('edebiyat') || l.includes('dil bilgisi')) return 'Türkçe';
+    if (l.includes('fen') || l.includes('fizik') || l.includes('kimya') || l.includes('biyoloji')) return 'Fen Bilimleri';
+    if (l.includes('sosyal') || l.includes('tarih') || l.includes('coğrafya') || l.includes('inkılap')) return 'Sosyal Bilgiler';
+    if (l.includes('ingilizce') || l.includes('english')) return 'İngilizce';
+    if (l.includes('din') || l.includes('ahlak')) return 'Din Kültürü';
+    return s || 'Genel';
+  };
+
+  // Student's Complete Resolved Submissions (including Tracked Books & Homeworks)
   const studentSubs = useMemo(() => {
-    return submissions
-      .filter(s => s.studentId === student.id)
-      .sort((a, b) => new Date(b.submittedAt || b.createdAt || 0) - new Date(a.submittedAt || a.createdAt || 0));
-  }, [submissions, student.id]);
+    const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+      studentId: student.id,
+      targetStudent: student,
+      submissions,
+      homeworks,
+      books,
+      bookTests
+    });
+
+    return [...generalTrialExams, ...otherHomeworkSubmissions]
+      .sort((a, b) => new Date(b.date || b.submittedAt || 0) - new Date(a.date || a.submittedAt || 0));
+  }, [student, submissions, homeworks, books, bookTests]);
 
   // Performance Metrics
   const stats = useMemo(() => {
@@ -39,46 +65,48 @@ export default function TeacherStudentQuickReportModal({
     let totalCorrect = 0;
     let totalWrong = 0;
     let totalBlank = 0;
-    let validScoreSum = 0;
-    let validScoreCount = 0;
+    let bookTestsCount = 0;
 
     const subjectMap = {};
 
     studentSubs.forEach(sub => {
-      const correct = sub.correctCount ?? sub.correct ?? 0;
-      const wrong = sub.wrongCount ?? sub.wrong ?? 0;
-      const blank = sub.blankCount ?? sub.emptyCount ?? 0;
-      const qCount = sub.totalQuestions || (correct + wrong + blank) || (Array.isArray(sub.answers) ? sub.answers.length : 10);
+      const correct = Number(sub.correctCount ?? sub.correct ?? 0);
+      const wrong = Number(sub.wrongCount ?? sub.wrong ?? 0);
+      const blank = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+      const qCount = Number(sub.totalQuestions || (correct + wrong + blank) || 10);
 
       totalQuestions += qCount;
       totalCorrect += correct;
       totalWrong += wrong;
       totalBlank += blank;
 
-      const pct = getSubmissionScorePct(sub);
-      if (pct !== null) {
-        validScoreSum += pct;
-        validScoreCount++;
+      if (sub.parentBookId || sub.isExamBook || sub.sourceType === 'bookTest') {
+        bookTestsCount++;
       }
 
       // Subject breakdown
-      const subName = sub.subject || sub.testSubject || (sub.testTitle ? sub.testTitle.split(' ')[0] : 'Genel') || 'Genel';
-      if (!subjectMap[subName]) {
-        subjectMap[subName] = { name: subName, scoreSum: 0, count: 0, correct: 0, total: 0 };
+      let subjName = normalizeSubjectName(sub.subject);
+      if (subjName === 'Genel' && sub.parentBookId) {
+        const parentBook = books.find(b => String(b.id) === String(sub.parentBookId));
+        if (parentBook) {
+          subjName = normalizeSubjectName(parentBook.subject || parentBook.title);
+        }
       }
-      if (pct !== null) {
-        subjectMap[subName].scoreSum += pct;
-        subjectMap[subName].count += 1;
+
+      if (!subjectMap[subjName]) {
+        subjectMap[subjName] = { name: subjName, correct: 0, wrong: 0, total: 0, count: 0 };
       }
-      subjectMap[subName].correct += correct;
-      subjectMap[subName].total += qCount;
+      subjectMap[subjName].correct += correct;
+      subjectMap[subjName].wrong += wrong;
+      subjectMap[subjName].total += qCount;
+      subjectMap[subjName].count += 1;
     });
 
-    const avgScore = validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : 0;
+    const avgScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
     const subjects = Object.values(subjectMap).map(s => ({
       ...s,
-      avg: s.count > 0 ? Math.round(s.scoreSum / s.count) : 0
-    })).sort((a, b) => b.avg - a.avg);
+      avg: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
 
     return {
       totalQuestions,
@@ -87,9 +115,10 @@ export default function TeacherStudentQuickReportModal({
       totalBlank,
       avgScore,
       testCount: studentSubs.length,
+      bookTestsCount,
       subjects
     };
-  }, [studentSubs]);
+  }, [studentSubs, books]);
 
   // Copy Password Handler
   const handleCopyPassword = () => {

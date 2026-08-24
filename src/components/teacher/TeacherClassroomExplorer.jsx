@@ -4,16 +4,21 @@ import {
   Users, Search, Filter, ChevronDown, ChevronUp, ChevronRight,
   TrendingUp, TrendingDown, BookOpen, Layers, Key, Check,
   Copy, Calendar, Award, Activity, BarChart3, MessageSquare,
-  Sparkles, Clock, Edit2, Target, CheckCircle2, AlertCircle
+  Sparkles, Clock, Edit2, Target, CheckCircle2, AlertCircle,
+  BookMarked
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getAvatarBg, getSubjectTheme } from '../../config/subjectThemes';
 import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { computeStudentAnalyticsData } from '../../utils/testResolver';
 import { timeAgo } from '../../utils/dateHelpers';
 
 export default function TeacherClassroomExplorer({
   students = [],
   submissions = [],
+  homeworks = [],
+  books = [],
+  bookTests = [],
   grades = [],
   coachedIds = [],
   onUpdateUser,
@@ -31,21 +36,7 @@ export default function TeacherClassroomExplorer({
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [copiedPwdId, setCopiedPwdId] = useState(null);
 
-  // 1. Filter submissions by timeFilter
-  const timeFilteredSubs = useMemo(() => {
-    const now = Date.now();
-    if (timeFilter === 'week') {
-      const sevenDaysAgo = now - 7 * 86400000;
-      return submissions.filter(s => new Date(s.submittedAt || s.createdAt || 0).getTime() >= sevenDaysAgo);
-    }
-    if (timeFilter === 'month') {
-      const thirtyDaysAgo = now - 30 * 86400000;
-      return submissions.filter(s => new Date(s.submittedAt || s.createdAt || 0).getTime() >= thirtyDaysAgo);
-    }
-    return submissions;
-  }, [submissions, timeFilter]);
-
-  // 2. Class / Grade Tabs Data
+  // 1. Class / Grade Tabs Data
   const gradeTabs = useMemo(() => {
     const list = [{ id: 'all', name: 'Tüm Sınıflar', count: students.length }];
 
@@ -65,7 +56,7 @@ export default function TeacherClassroomExplorer({
     return list;
   }, [grades, students]);
 
-  // 3. Filtered Students
+  // 2. Filtered Students
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
       // Grade match
@@ -94,86 +85,134 @@ export default function TeacherClassroomExplorer({
     });
   }, [students, selectedGradeId, searchQuery]);
 
-  // 4. Compute Deep Performance Stats per Student (Historical, Subjects, Topics)
+  // Helper to normalize subjects reliably
+  const normalizeSubjectName = (rawName) => {
+    if (!rawName) return 'Genel';
+    const s = String(rawName).trim();
+    const l = s.toLowerCase();
+    if (l.includes('matematik') || l.includes('geometri')) return 'Matematik';
+    if (l.includes('türkçe') || l.includes('paragraf') || l.includes('edebiyat') || l.includes('dil bilgisi')) return 'Türkçe';
+    if (l.includes('fen') || l.includes('fizik') || l.includes('kimya') || l.includes('biyoloji')) return 'Fen Bilimleri';
+    if (l.includes('sosyal') || l.includes('tarih') || l.includes('coğrafya') || l.includes('inkılap')) return 'Sosyal Bilgiler';
+    if (l.includes('ingilizce') || l.includes('english')) return 'İngilizce';
+    if (l.includes('din') || l.includes('ahlak')) return 'Din Kültürü';
+    return s || 'Genel';
+  };
+
+  // 3. Compute Deep Performance Stats per Student (using complete computeStudentAnalyticsData)
   const studentStatsMap = useMemo(() => {
     const map = {};
+    const now = Date.now();
+    const timeThreshold = timeFilter === 'week' ? now - 7 * 86400000 : timeFilter === 'month' ? now - 30 * 86400000 : 0;
 
     students.forEach(std => {
-      const stdSubs = timeFilteredSubs
-        .filter(sub => sub.studentId === std.id)
-        .sort((a, b) => new Date(a.submittedAt || a.createdAt || 0) - new Date(b.submittedAt || b.createdAt || 0)); // chronological
+      // Complete analytics resolution including Tracked Books, Homeworks, and Optical Tests
+      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+        studentId: std.id,
+        targetStudent: std,
+        submissions,
+        homeworks,
+        books,
+        bookTests
+      });
+
+      const allResolvedSubs = [...generalTrialExams, ...otherHomeworkSubmissions]
+        .filter(sub => {
+          if (!timeThreshold) return true;
+          const subDateMs = new Date(sub.date || sub.submittedAt || sub.createdAt || 0).getTime();
+          return subDateMs >= timeThreshold;
+        })
+        .sort((a, b) => new Date(a.date || a.submittedAt || 0) - new Date(b.date || b.submittedAt || 0));
 
       let totalQuestions = 0;
       let totalCorrect = 0;
       let totalWrong = 0;
       let totalBlank = 0;
-      let validScoreSum = 0;
-      let validScoreCount = 0;
+      let totalNet = 0;
+      let bookTestsCount = 0;
 
       const subjectMap = {};
       const topicMap = {};
       const historyPoints = [];
 
-      stdSubs.forEach((sub, idx) => {
-        const correct = sub.correctCount ?? sub.correct ?? 0;
-        const wrong = sub.wrongCount ?? sub.wrong ?? 0;
-        const blank = sub.blankCount ?? sub.emptyCount ?? 0;
-        const qCount = sub.totalQuestions || (correct + wrong + blank) || (Array.isArray(sub.answers) ? sub.answers.length : 10);
+      allResolvedSubs.forEach((sub, idx) => {
+        const correct = Number(sub.correctCount ?? sub.correct ?? 0);
+        const wrong = Number(sub.wrongCount ?? sub.wrong ?? 0);
+        const blank = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+        const qCount = Number(sub.totalQuestions || (correct + wrong + blank) || 10);
+        const net = Number(sub.totalNet ?? (correct - (wrong * 0.25)) ?? 0);
 
         totalQuestions += qCount;
         totalCorrect += correct;
         totalWrong += wrong;
         totalBlank += blank;
+        totalNet += net;
 
-        const scorePct = getSubmissionScorePct(sub);
-        if (scorePct !== null) {
-          validScoreSum += scorePct;
-          validScoreCount++;
-          historyPoints.push({
-            score: scorePct,
-            title: sub.testTitle || sub.title || `Test ${idx + 1}`,
-            date: sub.submittedAt || sub.createdAt
-          });
+        if (sub.parentBookId || sub.isExamBook || sub.sourceType === 'bookTest') {
+          bookTestsCount++;
         }
 
-        // Subject Aggregation
-        const subjName = sub.subject || sub.testSubject || (sub.testTitle ? sub.testTitle.split(' ')[0] : 'Genel') || 'Genel';
+        const scorePct = qCount > 0 ? Math.round((correct / qCount) * 100) : 0;
+        historyPoints.push({
+          score: scorePct,
+          title: sub.title || `Test ${idx + 1}`,
+          date: sub.date
+        });
+
+        // ── Subject Resolution ──
+        let subjName = normalizeSubjectName(sub.subject);
+        if (subjName === 'Genel' && sub.parentBookId) {
+          const parentBook = books.find(b => String(b.id) === String(sub.parentBookId));
+          if (parentBook) {
+            subjName = normalizeSubjectName(parentBook.subject || parentBook.title);
+          }
+        }
+
         if (!subjectMap[subjName]) {
-          subjectMap[subjName] = { name: subjName, questions: 0, correct: 0, wrong: 0, scoreSum: 0, count: 0 };
+          subjectMap[subjName] = { name: subjName, questions: 0, correct: 0, wrong: 0, blank: 0, netSum: 0, testCount: 0 };
         }
         subjectMap[subjName].questions += qCount;
         subjectMap[subjName].correct += correct;
         subjectMap[subjName].wrong += wrong;
-        if (scorePct !== null) {
-          subjectMap[subjName].scoreSum += scorePct;
-          subjectMap[subjName].count += 1;
+        subjectMap[subjName].blank += blank;
+        subjectMap[subjName].netSum += net;
+        subjectMap[subjName].testCount += 1;
+
+        // ── Topic Resolution ──
+        let topicName = sub.topic || sub.topicName;
+        if (!topicName) {
+          const rawTitle = sub.title || '';
+          topicName = rawTitle
+            .replace(/^[0-9]+[a-zA-ZçğıöşüÇĞİÖŞÜ\s\-\.\:]*—\s*/, '')
+            .replace(/^Test\s*[0-9]+[\:\-\s]*/i, '')
+            .trim();
+          if (!topicName || topicName.length < 3) {
+            topicName = rawTitle || 'Genel Konu';
+          }
         }
 
-        // Topic Aggregation
-        const topicName = sub.topicName || sub.topic || (sub.testTitle ? sub.testTitle.replace(/^(\d+\.\s*Sınıf|LGS|TYT|AYT)\s*/i, '') : null) || 'Genel Konu';
         if (!topicMap[topicName]) {
-          topicMap[topicName] = { name: topicName, subject: subjName, questions: 0, correct: 0, wrong: 0, scoreSum: 0, count: 0 };
+          topicMap[topicName] = { name: topicName, subject: subjName, questions: 0, correct: 0, wrong: 0, blank: 0, testCount: 0 };
         }
         topicMap[topicName].questions += qCount;
         topicMap[topicName].correct += correct;
         topicMap[topicName].wrong += wrong;
-        if (scorePct !== null) {
-          topicMap[topicName].scoreSum += scorePct;
-          topicMap[topicName].count += 1;
-        }
+        topicMap[topicName].blank += blank;
+        topicMap[topicName].testCount += 1;
       });
 
-      const avgScore = validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : 0;
+      const avgScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
       const subjects = Object.values(subjectMap).map(s => ({
         ...s,
-        avgScore: s.count > 0 ? Math.round(s.scoreSum / s.count) : (s.questions > 0 ? Math.round((s.correct / s.questions) * 100) : 0),
+        avgScore: s.questions > 0 ? Math.round((s.correct / s.questions) * 100) : 0,
+        avgNet: s.testCount > 0 ? Number((s.netSum / s.testCount).toFixed(1)) : 0,
         theme: getSubjectTheme(s.name)
       })).sort((a, b) => b.questions - a.questions);
 
       const topics = Object.values(topicMap).map(t => ({
         ...t,
-        avgScore: t.count > 0 ? Math.round(t.scoreSum / t.count) : (t.questions > 0 ? Math.round((t.correct / t.questions) * 100) : 0)
+        avgScore: t.questions > 0 ? Math.round((t.correct / t.questions) * 100) : 0
       })).sort((a, b) => b.questions - a.questions);
 
       // Trend calculation
@@ -191,8 +230,10 @@ export default function TeacherClassroomExplorer({
         totalCorrect,
         totalWrong,
         totalBlank,
+        totalNet: Number(totalNet.toFixed(1)),
         avgScore,
-        testCount: stdSubs.length,
+        testCount: allResolvedSubs.length,
+        bookTestsCount,
         subjects,
         topics,
         historyPoints,
@@ -201,7 +242,7 @@ export default function TeacherClassroomExplorer({
     });
 
     return map;
-  }, [students, timeFilteredSubs]);
+  }, [students, submissions, homeworks, books, bookTests, timeFilter]);
 
   // Copy password helper
   const handleCopyPassword = (stdId, pwd) => {
@@ -235,7 +276,7 @@ export default function TeacherClassroomExplorer({
             </span>
           </h3>
           <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            Sınıf bazında öğrencilerin tarihsel başarı gidişatını, ders ve konu bazlı soru çözüm sayılarını inceleyin.
+            Kitap takibi, deneme ve ödevler dahil tüm ders ve konu bazlı soru çözüm sayıları ile başarı oranları.
           </p>
         </div>
 
@@ -371,7 +412,7 @@ export default function TeacherClassroomExplorer({
         /* ── 4. RICH STUDENT LIST WITH DRILLDOWN CARDS ── */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           {filteredStudents.map((student, i) => {
-            const st = studentStatsMap[student.id] || { totalQuestions: 0, avgScore: 0, testCount: 0, subjects: [], topics: [], historyPoints: [] };
+            const st = studentStatsMap[student.id] || { totalQuestions: 0, avgScore: 0, testCount: 0, bookTestsCount: 0, subjects: [], topics: [], historyPoints: [] };
             const isExpanded = expandedStudentId === student.id;
             const isCoached = coachedIds.includes(student.id);
             const gObj = grades.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
@@ -511,34 +552,34 @@ export default function TeacherClassroomExplorer({
                   </div>
                 </div>
 
-                {/* ── MIDDLE ROW: KPI METRICS + HISTORICAL SPARKLINE + SUBJECT PROGRESS BADGES ── */}
+                {/* ── MIDDLE ROW: KPI METRICS + HISTORICAL SPARKLINE + KITAP TAKIBI BADGE ── */}
                 <div style={{
                   background: 'var(--color-surface-hover)',
                   border: '1px solid var(--color-border)',
                   borderRadius: '1rem',
                   padding: '0.85rem 1rem',
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
                   gap: '0.85rem',
                   alignItems: 'center'
                 }}>
                   {/* Total Questions & Tests */}
                   <div>
                     <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block' }}>
-                      Çözülen Soru
+                      Toplam Çözülen Soru
                     </span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
                       {st.totalQuestions} Soru
                     </span>
                     <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                      ⚡ {st.testCount} Test ({st.totalCorrect}D / {st.totalWrong}Y)
+                      ⚡ {st.testCount} Sınav ({st.totalCorrect}D / {st.totalWrong}Y / {st.totalBlank}B)
                     </span>
                   </div>
 
                   {/* General Success & Trend */}
                   <div>
                     <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block' }}>
-                      Başarı Durumu
+                      Genel Başarı Oranı
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: '1.15rem', fontWeight: 900, color: st.avgScore >= 70 ? '#10b981' : st.avgScore >= 45 ? '#f59e0b' : '#ef4444' }}>
@@ -557,10 +598,23 @@ export default function TeacherClassroomExplorer({
                     </div>
                   </div>
 
+                  {/* Kitap Takibi Test Sayısı */}
+                  <div>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block' }}>
+                      Kitap Takibi &amp; Ödev
+                    </span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <BookMarked size={16} /> {st.bookTestsCount} Kitap Testi
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                      Kitaplardan çözülen optik testler
+                    </span>
+                  </div>
+
                   {/* Historical Tests Mini Progression Bar */}
                   <div>
                     <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
-                      Tarihsel Başarı Gidişatı (Son Sınavlar)
+                      Tarihsel Başarı Gidişatı
                     </span>
                     {st.historyPoints.length === 0 ? (
                       <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Henüz sınav çözmedi</span>
@@ -572,7 +626,7 @@ export default function TeacherClassroomExplorer({
                           return (
                             <div
                               key={pIdx}
-                              title={`${pt.title}: %${pt.score} Puan (${pt.date ? new Date(pt.date).toLocaleDateString('tr-TR') : ''})`}
+                              title={`${pt.title}: %${pt.score} Başarı (${pt.date ? new Date(pt.date).toLocaleDateString('tr-TR') : ''})`}
                               style={{
                                 width: 14,
                                 height: h,

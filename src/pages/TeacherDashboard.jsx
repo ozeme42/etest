@@ -15,6 +15,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
 import { getAvatarBg, getSubjectTheme } from '../config/subjectThemes';
 import { timeAgo } from '../utils/dateHelpers';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
@@ -139,6 +140,7 @@ export default function TeacherDashboard() {
   const { data, addTest, updateTest }   = useCurriculum();
   const { questions, addQuestion }     = useQuestionBank();
   const { homeworks = [] }              = useHomework();
+  const { books = [], bookTests = [] }  = useTrackedBooks() || {};
   const { submissions = [] }            = useEvaluation();
   const { users = [], addStudentForTeacher, updateUser } = useUser();
   const { currentUser }                 = useAuth();
@@ -450,6 +452,8 @@ export default function TeacherDashboard() {
             students={students}
             submissions={teacherSubmissions}
             homeworks={teacherHomeworks}
+            books={books}
+            bookTests={bookTests}
           />
         )}
 
@@ -461,12 +465,17 @@ export default function TeacherDashboard() {
               students={students}
               submissions={teacherSubmissions}
               homeworks={teacherHomeworks}
+              books={books}
+              bookTests={bookTests}
             />
 
             {/* ══════════ 2. CLASS PULSE RADAR (AT-RISK STUDENTS & WEAK TOPICS) ══════════ */}
             <TeacherClassPulseRadar
               students={students}
               submissions={teacherSubmissions}
+              homeworks={teacherHomeworks}
+              books={books}
+              bookTests={bookTests}
               onSelectStudent={(std) => setSelectedReportStudent(std)}
               onLaunchAiForTopic={handleLaunchAiForTopic}
             />
@@ -768,6 +777,9 @@ export default function TeacherDashboard() {
           <TeacherClassroomExplorer
             students={students}
             submissions={teacherSubmissions}
+            homeworks={teacherHomeworks}
+            books={books}
+            bookTests={bookTests}
             grades={data?.grades || []}
             coachedIds={coachedIds}
             onUpdateUser={updateUser}
@@ -869,6 +881,9 @@ export default function TeacherDashboard() {
         <TeacherStudentQuickReportModal
           student={selectedReportStudent}
           submissions={teacherSubmissions}
+          homeworks={teacherHomeworks}
+          books={books}
+          bookTests={bookTests}
           grades={data?.grades || []}
           teacherName={currentUser?.name || 'Öğretmeniniz'}
           isCoached={coachedIds.includes(selectedReportStudent.id)}

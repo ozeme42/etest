@@ -10,24 +10,56 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { getSubjectTheme } from '../../config/subjectThemes';
 import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { computeStudentAnalyticsData } from '../../utils/testResolver';
 
-export default function TeacherClassAnalytics({ students = [], submissions = [], homeworks = [] }) {
+export default function TeacherClassAnalytics({ students = [], submissions = [], homeworks = [], books = [], bookTests = [] }) {
   const { isDark } = useTheme();
   const [timeRange, setTimeRange] = useState('week'); // 'week' | 'month' | 'all'
 
-  // 1. Filter submissions based on timeRange
+  // Helper to normalize subjects reliably
+  const normalizeSubjectName = (rawName) => {
+    if (!rawName) return 'Genel';
+    const s = String(rawName).trim();
+    const l = s.toLowerCase();
+    if (l.includes('matematik') || l.includes('geometri')) return 'Matematik';
+    if (l.includes('türkçe') || l.includes('paragraf') || l.includes('edebiyat') || l.includes('dil bilgisi')) return 'Türkçe';
+    if (l.includes('fen') || l.includes('fizik') || l.includes('kimya') || l.includes('biyoloji')) return 'Fen Bilimleri';
+    if (l.includes('sosyal') || l.includes('tarih') || l.includes('coğrafya') || l.includes('inkılap')) return 'Sosyal Bilgiler';
+    if (l.includes('ingilizce') || l.includes('english')) return 'İngilizce';
+    if (l.includes('din') || l.includes('ahlak')) return 'Din Kültürü';
+    return s || 'Genel';
+  };
+
+  // 1. Aggregate and filter all students' resolved submissions (including Tracked Books, Homeworks, Optical)
   const filteredSubs = useMemo(() => {
     const now = Date.now();
-    if (timeRange === 'week') {
-      const sevenDaysAgo = now - 7 * 86400000;
-      return submissions.filter(s => new Date(s.submittedAt || s.createdAt || 0).getTime() >= sevenDaysAgo);
-    }
-    if (timeRange === 'month') {
-      const thirtyDaysAgo = now - 30 * 86400000;
-      return submissions.filter(s => new Date(s.submittedAt || s.createdAt || 0).getTime() >= thirtyDaysAgo);
-    }
-    return submissions;
-  }, [submissions, timeRange]);
+    const timeThreshold = timeRange === 'week' ? now - 7 * 86400000 : timeRange === 'month' ? now - 30 * 86400000 : 0;
+    const allSubs = [];
+
+    students.forEach(std => {
+      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+        studentId: std.id,
+        targetStudent: std,
+        submissions,
+        homeworks,
+        books,
+        bookTests
+      });
+
+      [...generalTrialExams, ...otherHomeworkSubmissions].forEach(sub => {
+        const subDateMs = new Date(sub.date || sub.submittedAt || sub.createdAt || 0).getTime();
+        if (!timeThreshold || subDateMs >= timeThreshold) {
+          allSubs.push({
+            ...sub,
+            studentId: std.id,
+            resolvedSubject: normalizeSubjectName(sub.subject)
+          });
+        }
+      });
+    });
+
+    return allSubs;
+  }, [students, submissions, homeworks, books, bookTests, timeRange]);
 
   // 2. Compute Summary Metrics
   const summaryStats = useMemo(() => {
@@ -85,7 +117,7 @@ export default function TeacherClassAnalytics({ students = [], submissions = [],
     }
 
     filteredSubs.forEach(sub => {
-      const dateStr = (sub.submittedAt || sub.createdAt || new Date().toISOString()).split('T')[0];
+      const dateStr = (sub.date || sub.submittedAt || sub.createdAt || new Date().toISOString()).split('T')[0];
       if (daysMap[dateStr]) {
         const correct = sub.correctCount ?? sub.correct ?? 0;
         const wrong = sub.wrongCount ?? sub.wrong ?? 0;
@@ -106,28 +138,29 @@ export default function TeacherClassAnalytics({ students = [], submissions = [],
     const subMap = {};
 
     filteredSubs.forEach(sub => {
-      const subjectName = sub.subject || sub.testSubject || (sub.testTitle ? sub.testTitle.split(' ')[0] : 'Genel') || 'Genel';
+      const subjectName = sub.resolvedSubject || normalizeSubjectName(sub.subject);
       if (!subMap[subjectName]) {
-        subMap[subjectName] = { name: subjectName, scoreSum: 0, count: 0, questionCount: 0 };
+        subMap[subjectName] = { name: subjectName, correct: 0, wrong: 0, total: 0, count: 0 };
       }
-      const score = getSubmissionScorePct(sub);
-      if (score !== null) {
-        subMap[subjectName].scoreSum += score;
-        subMap[subjectName].count += 1;
-      }
-      const correct = sub.correctCount ?? sub.correct ?? 0;
-      const wrong = sub.wrongCount ?? sub.wrong ?? 0;
-      subMap[subjectName].questionCount += (sub.totalQuestions || (correct + wrong) || 10);
+      const correct = Number(sub.correctCount ?? sub.correct ?? 0);
+      const wrong = Number(sub.wrongCount ?? sub.wrong ?? 0);
+      const blank = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+      const qCount = Number(sub.totalQuestions || (correct + wrong + blank) || 10);
+
+      subMap[subjectName].correct += correct;
+      subMap[subjectName].wrong += wrong;
+      subMap[subjectName].total += qCount;
+      subMap[subjectName].count += 1;
     });
 
     return Object.values(subMap)
       .map(item => ({
         ...item,
-        avgScore: item.count > 0 ? Math.round(item.scoreSum / item.count) : 0,
+        avgScore: item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0,
         color: getSubjectTheme(item.name).accent || '#6366f1'
       }))
-      .sort((a, b) => b.avgScore - a.avgScore)
-      .slice(0, 6);
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 7);
   }, [filteredSubs]);
 
   // Custom Chart Tooltip
