@@ -418,7 +418,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
 }
 export function isHomeworkForStudent(hw, student, grades = []) {
   if (!hw || !student) return false;
-  const studentId = String(student.id || student.studentId || '');
+  const studentObj = typeof student === 'string' ? { id: student } : student;
+  const studentId = String(studentObj.id || studentObj.studentId || '');
   const targetIds = Array.isArray(hw.targetIds) ? hw.targetIds.map(String) : [];
 
   // 1. Direct student target
@@ -433,10 +434,10 @@ export function isHomeworkForStudent(hw, student, grades = []) {
     // Gather all possible identifiers for the student
     const studentIdentifiers = new Set([
       studentId,
-      String(student.gradeId || ''),
-      String(student.classId || ''),
-      String(student.grade || ''),
-      String(student.className || '')
+      String(studentObj.gradeId || ''),
+      String(studentObj.classId || ''),
+      String(studentObj.grade || ''),
+      String(studentObj.className || '')
     ]);
 
     // Also add grade names/IDs from grades list matching student's grade
