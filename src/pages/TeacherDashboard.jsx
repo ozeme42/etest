@@ -20,6 +20,7 @@ import { timeAgo } from '../utils/dateHelpers';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
 import TeacherActionCenter from '../components/teacher/TeacherActionCenter';
 import TeacherClassPulseRadar from '../components/teacher/TeacherClassPulseRadar';
+import TeacherClassroomExplorer from '../components/teacher/TeacherClassroomExplorer';
 import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
 import './TeacherDashboard.css';
@@ -762,286 +763,22 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* ══════════ TAB: STUDENTS ══════════ */}
-        {/* ══════════ TAB: STUDENTS ══════════ */}
+        {/* ══════════ TAB: STUDENTS (SINIFLAR & ÖĞRENCİ BAŞARI ANALİZ LİSTESİ) ══════════ */}
         {tab === 'students' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{
-              background: 'var(--color-surface)',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: '1.25rem', padding: '1rem 1.25rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem',
-              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-            }}>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={18} color="#6366f1" /> Sınıfım & Öğrenci Listesi
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.3)' }}>{students.length} Öğrenci</span>
-              </h3>
-              <button
-                onClick={() => { if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id); setShowAddStudentModal(true); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg,#059669,#10b981)',
-                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
-                }}
-              >
-                <UserPlus size={15} /> Öğrenci Ekle
-              </button>
-            </div>
-
-            {students.length === 0 ? (
-              <div style={{
-                background: 'var(--color-surface)',
-                border: '1.5px dashed var(--color-border-input)',
-                borderRadius: '1.25rem', padding: '3.5rem 1.5rem', textAlign: 'center',
-                color: 'var(--color-text-muted)'
-              }}>
-                <Users size={44} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
-                <p style={{ fontWeight: 700, margin: '0 0 1rem', color: 'var(--color-text)' }}>Henüz sınıfınıza öğrenci eklemediniz.</p>
-                <button onClick={() => setShowAddStudentModal(true)} style={{
-                  padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg,#059669,#10b981)',
-                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
-                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6
-                }}>
-                  <UserPlus size={15} /> İlk Öğrenciyi Ekle
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* ── 1. DESKTOP TABLE VIEW ── */}
-                <div className="teacher-students-desktop-table" style={{
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: '1.25rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
-                  overflowX: 'auto', padding: 0
-                }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta / Kullanıcı Adı</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Sınav</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Koçluk</th>
-                        <th style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, i) => {
-                        const solved = submissions.filter(s => s.studentId === student.id).length;
-                        const isCoached = coachedIds.includes(student.id);
-                        const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
-                                  || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
-                        return (
-                          <tr key={student.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}>
-                            <td style={{ padding: '0.85rem 1rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                <Avatar name={student.name} index={i} size={34} />
-                                <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem' }}>{student.name}</span>
-                              </div>
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem' }}>
-                              <select
-                                value={gObj ? gObj.id : (student.gradeId || '')}
-                                onChange={async (e) => {
-                                  const gId = e.target.value;
-                                  const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name || gId;
-                                  await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
-                                }}
-                                style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none' }}
-                              >
-                                <option value="">— Sınıf Seçiniz</option>
-                                {data.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                              </select>
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>{student.email}</td>
-                            <td style={{ padding: '0.85rem 1rem' }}>
-                              <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.45rem', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                <Key size={11} /> {student.password || '123456'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center', fontWeight: 900, color: solved > 0 ? '#10b981' : 'var(--color-text-muted)', fontSize: '0.88rem' }}>{solved}</td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                              {isCoached ? (
-                                <span style={{ padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)', fontWeight: 800, fontSize: '0.7rem' }}>🎯 Koçlukta</span>
-                              ) : (
-                                <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <button
-                                  onClick={() => setSelectedReportStudent(student)}
-                                  style={{
-                                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                                    border: 'none',
-                                    borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                                    fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    boxShadow: '0 2px 8px rgba(2,132,199,0.25)'
-                                  }}
-                                  title="Öğrenci Karnesi, Soru Dağılımı ve Veli WhatsApp Mesajı"
-                                >
-                                  <BarChart3 size={13} /> Karne &amp; Rapor
-                                </button>
-                                <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
-                                  <button
-                                    style={{
-                                      background: 'rgba(139, 92, 246, 0.15)',
-                                      border: '1.5px solid rgba(139, 92, 246, 0.3)',
-                                      borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                                      fontWeight: 800, fontSize: '0.75rem', color: '#c084fc',
-                                      display: 'inline-flex', alignItems: 'center', gap: 4
-                                    }}
-                                  >
-                                    <Calendar size={13} /> Program
-                                  </button>
-                                </Link>
-                                <button
-                                  onClick={() => openEditStudentModal(student)}
-                                  style={{
-                                    background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
-                                    borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                                    fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text)',
-                                    display: 'inline-flex', alignItems: 'center', gap: 4
-                                  }}
-                                >
-                                  <Edit2 size={12} /> Düzenle
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* ── 2. MOBILE CARD VIEW (SUPER SLEEK ON PHONES) ── */}
-                <div className="teacher-students-mobile-list">
-                  {students.map((student, i) => {
-                    const solved = submissions.filter(s => s.studentId === student.id).length;
-                    const isCoached = coachedIds.includes(student.id);
-                    const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
-                              || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
-                    return (
-                      <div key={student.id} className="student-mobile-card">
-                        <div className="student-mobile-top-row">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-                            <Avatar name={student.name} index={i} size={40} />
-                            <div style={{ minWidth: 0 }}>
-                              <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {student.name}
-                              </h4>
-                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {student.email}
-                              </p>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => openEditStudentModal(student)}
-                            style={{
-                              background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
-                              borderRadius: '0.65rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                              fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text)',
-                              display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0
-                            }}
-                          >
-                            <Edit2 size={12} /> Düzenle
-                          </button>
-                        </div>
-
-                        {/* Meta Grid */}
-                        <div className="student-mobile-meta-grid">
-                          <div className="student-meta-item">
-                            <span className="student-meta-label">Sınıfı</span>
-                            <select
-                              value={gObj ? gObj.id : (student.gradeId || '')}
-                              onChange={async (e) => {
-                                const gId = e.target.value;
-                                const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name || gId;
-                                await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
-                              }}
-                              style={{ padding: '0.3rem 0.5rem', borderRadius: '0.5rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none', width: '100%' }}
-                            >
-                              <option value="">— Seçiniz</option>
-                              {data.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                            </select>
-                          </div>
-
-                          <div className="student-meta-item">
-                            <span className="student-meta-label">Giriş Şifresi</span>
-                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.45rem', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
-                              <Key size={11} /> {student.password || '123456'}
-                            </span>
-                          </div>
-
-                          <div className="student-meta-item">
-                            <span className="student-meta-label">Çözülen Sınav</span>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: solved > 0 ? '#10b981' : 'var(--color-text-muted)' }}>
-                              {solved} adet
-                            </span>
-                          </div>
-
-                          <div className="student-meta-item">
-                            <span className="student-meta-label">Koçluk Durumu</span>
-                            {isCoached ? (
-                              <span style={{ padding: '0.15rem 0.55rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)', fontWeight: 900, fontSize: '0.68rem', width: 'fit-content' }}>
-                                🎯 Koçlukta
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
-                                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text-muted)', borderRadius: 99, padding: '0.15rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', width: 'fit-content' }}
-                              >
-                                + Koçluğa Ekle
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Mobile Action Buttons: Quick Report & Coaching */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem', marginTop: '0.35rem' }}>
-                          <button
-                            onClick={() => setSelectedReportStudent(student)}
-                            style={{
-                              padding: '0.6rem 0.75rem', borderRadius: '0.75rem',
-                              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                              border: 'none', color: '#ffffff',
-                              fontWeight: 900, fontSize: '0.78rem',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                              boxShadow: '0 3px 10px rgba(2,132,199,0.3)'
-                            }}
-                          >
-                            <BarChart3 size={14} /> Karne &amp; Veli
-                          </button>
-
-                          <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
-                            <button
-                              style={{
-                                width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem',
-                                background: 'rgba(139, 92, 246, 0.15)',
-                                border: '1.5px solid rgba(139, 92, 246, 0.3)',
-                                color: '#c084fc', fontWeight: 900, fontSize: '0.78rem',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
-                              }}
-                            >
-                              <Calendar size={14} /> Program ➔
-                            </button>
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+          <TeacherClassroomExplorer
+            students={students}
+            submissions={teacherSubmissions}
+            grades={data?.grades || []}
+            coachedIds={coachedIds}
+            onUpdateUser={updateUser}
+            onOpenEditStudent={openEditStudentModal}
+            onSelectStudentReport={(std) => setSelectedReportStudent(std)}
+            onToggleCoaching={(stdId) => toggleCoachedStudent(currentUser?.id || 'teacher_1', stdId)}
+            onAddStudentClick={() => {
+              if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id);
+              setShowAddStudentModal(true);
+            }}
+          />
         )}
 
         {/* ══════════ TAB: COACHING ══════════ */}
