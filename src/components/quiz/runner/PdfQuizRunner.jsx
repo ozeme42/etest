@@ -610,6 +610,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
+              const q = (questions && questions[idx]) || {};
               const selectedOpt = answers[qNo];
               const textVal = openEndedText[qNo] || '';
               const isAnswered = selectedOpt !== undefined || Boolean(textVal);
