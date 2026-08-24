@@ -7,17 +7,20 @@ if (!pdfjs.GlobalWorkerOptions.workerSrc) {
   ).toString();
 }
 
+export const DEFAULT_GEMINI_MODELS = [
+  { id: 'gemini-3.7-flash', name: '🔥 Gemini 3.7 Flash (En Yeni & Güçlü • Önerilen)' },
+  { id: 'gemini-3.5-flash', name: '⚡ Gemini 3.5 Flash (Yüksek Hızlı & Dengeli)' },
+  { id: 'gemini-3.5-flash-lite', name: '💡 Gemini 3.5 Flash-Lite (Ultra Hızlı)' },
+  { id: 'gemini-3.1-pro', name: '🧠 Gemini 3.1 Pro (Gelişmiş Akıl Yürütme)' },
+  { id: 'gemini-2.5-flash', name: '🛡️ Gemini 2.5 Flash' }
+];
+
 /**
- * Fetch available Gemini models supported for generateContent
+ * Fetch available Gemini models supported for generateContent directly from user API Key
  */
 export async function getAvailableGeminiModels(apiKey) {
   if (!apiKey || !apiKey.trim()) {
-    return [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Detaylı Akıl Yürütme)' },
-      { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B (Kompakt)' }
-    ];
+    return DEFAULT_GEMINI_MODELS;
   }
 
   try {
@@ -30,22 +33,25 @@ export async function getAvailableGeminiModels(apiKey) {
           const id = m.name.replace(/^models\//, '');
           return {
             id,
-            name: `${m.displayName || id} (${id})`
+            name: m.displayName ? `${m.displayName} (${id})` : id
           };
         });
 
-      if (models.length > 0) return models;
+      if (models.length > 0) {
+        return models.sort((a, b) => {
+          if (a.id.includes('3.7')) return -1;
+          if (b.id.includes('3.7')) return 1;
+          if (a.id.includes('3.5')) return -1;
+          if (b.id.includes('3.5')) return 1;
+          return a.id.localeCompare(b.id);
+        });
+      }
     }
   } catch (err) {
-    console.warn('[aiQuestionService] Could not list models:', err.message);
+    console.warn('[aiQuestionService] Could not list models from Google:', err.message);
   }
 
-  return [
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Detaylı Akıl Yürütme)' },
-    { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B (Kompakt)' }
-  ];
+  return DEFAULT_GEMINI_MODELS;
 }
 
 /**
@@ -79,7 +85,7 @@ export async function extractTextFromPdf(file) {
  */
 export async function generateQuestionsWithGemini({
   apiKey,
-  model = 'gemini-1.5-flash',
+  model = 'gemini-3.7-flash',
   subject = 'Matematik',
   grade = '8. Sınıf',
   topic = '',
@@ -152,10 +158,11 @@ Kurallar:
 
   const modelsToTry = [
     model,
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
+    'gemini-3.7-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-pro',
+    'gemini-2.5-flash'
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   let lastError = null;

@@ -25,12 +25,13 @@ export default function AiQuestionGeneratorModal({
   // API Key & Model
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [showKeyInput, setShowKeyInput] = useState(() => !localStorage.getItem('gemini_api_key'));
-  const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
   const [availableModelOptions, setAvailableModelOptions] = useState([
-    { id: 'gemini-1.5-flash', name: '⚡ Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
-    { id: 'gemini-2.0-flash', name: '🚀 Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
-    { id: 'gemini-1.5-pro', name: '🧠 Gemini 1.5 Pro (Gelişmiş Akıl Yürütme)' },
-    { id: 'gemini-1.5-flash-8b', name: '💡 Gemini 1.5 Flash 8B (Kompakt)' }
+    { id: 'gemini-3.7-flash', name: '🔥 Gemini 3.7 Flash (En Yeni & Güçlü • Önerilen)' },
+    { id: 'gemini-3.5-flash', name: '⚡ Gemini 3.5 Flash (Yüksek Hızlı & Dengeli)' },
+    { id: 'gemini-3.5-flash-lite', name: '💡 Gemini 3.5 Flash-Lite (Ultra Hızlı)' },
+    { id: 'gemini-3.1-pro', name: '🧠 Gemini 3.1 Pro (Gelişmiş Akıl Yürütme)' },
+    { id: 'gemini-2.5-flash', name: '🛡️ Gemini 2.5 Flash' }
   ]);
 
   // Question Config
@@ -63,6 +64,16 @@ export default function AiQuestionGeneratorModal({
     if (defaultGrade) setGrade(defaultGrade);
     if (defaultTopic) setTopic(defaultTopic);
   }, [defaultSubject, defaultGrade, defaultTopic]);
+
+  useEffect(() => {
+    if (apiKey && apiKey.trim()) {
+      getAvailableGeminiModels(apiKey).then(models => {
+        if (models && models.length > 0) {
+          setAvailableModelOptions(models);
+        }
+      }).catch(() => {});
+    }
+  }, [apiKey]);
 
   if (!isOpen) return null;
 
