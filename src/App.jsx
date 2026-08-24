@@ -557,28 +557,28 @@ function AppContent() {
               <Route path="/study-room" element={<RequireAuth><StudyRoomPage /></RequireAuth>} />
               <Route path="/student/study-room" element={<RequireAuth><StudyRoomPage /></RequireAuth>} />
               <Route path="/student/summaries" element={<RequireAuth><StudentSummaryPage /></RequireAuth>} />
-              <Route path="/summaries" element={<RequireAuth><SummaryManagerPage /></RequireAuth>} />
+              <Route path="/summaries" element={<RequireRole roles={['teacher', 'admin']}><SummaryManagerPage /></RequireRole>} />
               <Route path="/student/books" element={<RequireAuth><StudentBooksPage /></RequireAuth>} />
               <Route path="/student/books/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/book-details/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/student/exams" element={<RequireAuth><StudentExamsPage /></RequireAuth>} />
               <Route path="/student/exams/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
-              <Route path="/homeworks" element={<RequireAuth><HomeworkManager /></RequireAuth>} />
+              <Route path="/homeworks" element={<RequireRole roles={['teacher', 'admin']}><HomeworkManager /></RequireRole>} />
               <Route path="/approvals" element={<RequireRole roles={['teacher', 'admin']}><ApprovalsPage /></RequireRole>} />
               <Route path="/onaylar" element={<Navigate to="/approvals" replace />} />
               <Route path="/evaluations" element={<RequireRole roles={['teacher', 'admin']}><EvaluationManager /></RequireRole>} />
               <Route path="/evaluation" element={<Navigate to="/evaluations" replace />} />
-              <Route path="/questions" element={<RequireAuth><QuestionBank /></RequireAuth>} />
+              <Route path="/questions" element={<RequireRole roles={['teacher', 'admin']}><QuestionBank /></RequireRole>} />
               <Route path="/quiz/:testId" element={<RequireAuth><ModularQuizPage /></RequireAuth>} />
               <Route path="/book-quiz/:testId" element={<RequireAuth><TrackedBookQuizRunner /></RequireAuth>} />
               <Route path="/quiz-review/:testId" element={<RequireAuth><ModularQuizReviewPage /></RequireAuth>} />
               <Route path="/review/:submissionId" element={<RequireAuth><ModularQuizReviewPage /></RequireAuth>} />
-              <Route path="/books" element={<RequireAuth><BookManager /></RequireAuth>} />
-              <Route path="/books/:id" element={<RequireAuth><BookContentManager /></RequireAuth>} />
-              <Route path="/study-plans" element={<RequireAuth><StudyPlanManager /></RequireAuth>} />
-              <Route path="/study-plans/:id" element={<RequireAuth><StudyPlanDetail /></RequireAuth>} />
+              <Route path="/books" element={<RequireRole roles={['teacher', 'admin']}><BookManager /></RequireRole>} />
+              <Route path="/books/:id" element={<RequireRole roles={['teacher', 'admin']}><BookContentManager /></RequireRole>} />
+              <Route path="/study-plans" element={<RequireRole roles={['teacher', 'admin']}><StudyPlanManager /></RequireRole>} />
+              <Route path="/study-plans/:id" element={<RequireRole roles={['teacher', 'admin']}><StudyPlanDetail /></RequireRole>} />
               <Route path="/student/study-plan/:assignmentId" element={<RequireAuth><StudentStudyPlanView /></RequireAuth>} />
-              <Route path="/statistics" element={<RequireAuth><StatisticsDashboard /></RequireAuth>} />
+              <Route path="/statistics" element={<RequireRole roles={['teacher', 'admin']}><StatisticsDashboard /></RequireRole>} />
               <Route path="/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />
               <Route path="/student/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />
               <Route path="/student/results" element={<RequireAuth><StudentResultsPage /></RequireAuth>} />
@@ -588,12 +588,12 @@ function AppContent() {
               <Route path="/student/wrong-answers" element={<RequireAuth><StudentWrongAnswersPage /></RequireAuth>} />
               <Route path="/my-program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
               <Route path="/student/program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
-              <Route path="/coaching/:studentId" element={<RequireAuth><StudentCoachingPage /></RequireAuth>} />
+              <Route path="/coaching/:studentId" element={<RequireRole roles={['teacher', 'admin']}><StudentCoachingPage /></RequireRole>} />
               <Route path="/my-coaching" element={<RequireAuth><MyCoachingPage /></RequireAuth>} />
-              <Route path="/physical-exam" element={<RequireAuth><ExamManager /></RequireAuth>} />
-              <Route path="/scales" element={<RequireAuth><ScalePage /></RequireAuth>} />
-              <Route path="/exam-analysis" element={<RequireAuth><ExamAnalysisPage /></RequireAuth>} />
-              <Route path="/exam-analysis/:examId" element={<RequireAuth><ExamAnalysisPage /></RequireAuth>} />
+              <Route path="/physical-exam" element={<RequireRole roles={['teacher', 'admin']}><ExamManager /></RequireRole>} />
+              <Route path="/scales" element={<RequireRole roles={['teacher', 'admin']}><ScalePage /></RequireRole>} />
+              <Route path="/exam-analysis" element={<RequireRole roles={['teacher', 'admin']}><ExamAnalysisPage /></RequireRole>} />
+              <Route path="/exam-analysis/:examId" element={<RequireRole roles={['teacher', 'admin']}><ExamAnalysisPage /></RequireRole>} />
               <Route path="/physical-exam/:hwId" element={<RequireAuth><PhysicalExamRunner /></RequireAuth>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
