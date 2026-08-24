@@ -10,6 +10,7 @@ export default memo(function DashboardHomeworksCard({
   getRowTheme
 }) {
   const navigate = useNavigate();
+  const actualPendingCount = Array.isArray(pendingTasks) ? pendingTasks.length : (pendingCount || 0);
 
   const getHwDayDiff = (dueDate) => {
     if (!dueDate) return null;
@@ -46,9 +47,9 @@ export default memo(function DashboardHomeworksCard({
         <button
           onClick={() => navigate('/student/homeworks')}
           style={{
-            background: pendingCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-            color: pendingCount > 0 ? '#ef4444' : '#10b981',
-            border: pendingCount > 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
+            background: actualPendingCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+            color: actualPendingCount > 0 ? '#ef4444' : '#10b981',
+            border: actualPendingCount > 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
             borderRadius: 99,
             padding: '0.25rem 0.75rem',
             fontSize: '0.7rem',
@@ -59,7 +60,7 @@ export default memo(function DashboardHomeworksCard({
             gap: 4
           }}
         >
-          {pendingCount > 0 ? `${pendingCount} Bekleyen` : 'Tümü Bitti 🎉'}
+          {actualPendingCount > 0 ? `${actualPendingCount} Bekleyen` : 'Tümü Bitti 🎉'}
           <ChevronRight size={12} />
         </button>
       </div>
