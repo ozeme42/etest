@@ -29,113 +29,12 @@ export default function PeriodicQuestionAnalytics({
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [activeChartView, setActiveChartView] = useState('distribution'); // 'distribution' | 'trend' | 'subjects' | 'table'
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [selectedHeatmapDay, setSelectedHeatmapDay] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
-    
-  const [selectedHeatmapDay, setSelectedHeatmapDay] = useState(null);
-
-  // ── 📅 GITHUB TARZI ÇALIŞMA ISI HARİTASI HESAPLAMA (SON 16 HAFTA / ~112 GÜN) ──
-  const heatmapData = useMemo(() => {
-    const todayYMD = getTurkeyToday();
-    const [ty, tm, td] = todayYMD.split('-').map(Number);
-    const today = new Date(ty, tm - 1, td);
-
-    // End on Sunday of current week
-    const currentDayOfWeek = today.getDay(); // 0: Sun, 1: Mon...
-    const daysToSunday = currentDayOfWeek === 0 ? 0 : 7 - currentDayOfWeek;
-    const endDate = new Date(today.getTime() + daysToSunday * 86400000);
-
-    const totalWeeks = isMobile ? 12 : 16;
-    const totalDays = totalWeeks * 7;
-    const startDate = new Date(endDate.getTime() - (totalDays - 1) * 86400000);
-
-    const dayMap = {};
-    filteredItems.forEach(it => {
-      if (!it.date) return;
-      if (!dayMap[it.date]) {
-        dayMap[it.date] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
-      }
-      const stats = getItemSubjectStats(it, selectedSubject);
-      dayMap[it.date].d += stats.d;
-      dayMap[it.date].y += stats.y;
-      dayMap[it.date].b += stats.b;
-      dayMap[it.date].q += stats.q;
-      dayMap[it.date].tests += 1;
-    });
-
-    const weeks = [];
-    let currentWeek = [];
-    let bestDay = { q: 0, date: '', label: '' };
-    let totalQuestions = 0;
-    let activeDaysCount = 0;
-
-    for (let i = 0; i < totalDays; i++) {
-      const curDate = new Date(startDate.getTime() + i * 86400000);
-      const ymd = getTurkeyYMD(curDate);
-      const stats = dayMap[ymd] || { d: 0, y: 0, b: 0, q: 0, tests: 0 };
-      const q = stats.q;
-      const rate = q > 0 ? Math.round((stats.d / q) * 100) : 0;
-      const isFuture = ymd > todayYMD;
-
-      let level = 0;
-      if (!isFuture && q > 0) {
-        activeDaysCount++;
-        totalQuestions += q;
-        if (q >= 100) level = 4;
-        else if (q >= 50) level = 3;
-        else if (q >= 20) level = 2;
-        else level = 1;
-
-        if (q > bestDay.q) {
-          bestDay = {
-            q,
-            date: ymd,
-            label: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long' })}`
-          };
-        }
-      }
-
-      const dayObj = {
-        date: ymd,
-        dayNum: curDate.getDate(),
-        monthName: curDate.toLocaleString('tr-TR', { month: 'short' }),
-        dayName: curDate.toLocaleString('tr-TR', { weekday: 'short' }),
-        fullLabel: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })} ${curDate.toLocaleString('tr-TR', { weekday: 'long' })}`,
-        q,
-        d: stats.d,
-        y: stats.y,
-        b: stats.b,
-        rate,
-        tests: stats.tests,
-        level,
-        isToday: ymd === todayYMD,
-        isFuture
-      };
-
-      currentWeek.push(dayObj);
-
-      if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-    }
-
-    const pastDaysCount = totalDays - Math.max(0, daysToSunday);
-    const consistencyRate = pastDaysCount > 0 ? Math.round((activeDaysCount / pastDaysCount) * 100) : 0;
-
-    return {
-      weeks,
-      totalWeeks,
-      activeDaysCount,
-      totalQuestions,
-      bestDay,
-      consistencyRate
-    };
-  }, [filteredItems, selectedSubject, isMobile]);
-
-  return () => window.removeEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // 1. Tüm Test ve Deneme Kayıtlarını Tek Bir Temiz Listede Birleştir (Türkiye Saati Uyumlu)
@@ -441,6 +340,105 @@ export default function PeriodicQuestionAnalytics({
       .filter(s => s.q > 0)
       .sort((a, b) => b.q - a.q);
   }, [unifiedItems]);
+
+  // ── 📅 GITHUB TARZI ÇALIŞMA ISI HARİTASI HESAPLAMA (SON 16 HAFTA / ~112 GÜN) ──
+  const heatmapData = useMemo(() => {
+    const todayYMD = getTurkeyToday();
+    const [ty, tm, td] = todayYMD.split('-').map(Number);
+    const today = new Date(ty, tm - 1, td);
+
+    // End on Sunday of current week
+    const currentDayOfWeek = today.getDay(); // 0: Sun, 1: Mon...
+    const daysToSunday = currentDayOfWeek === 0 ? 0 : 7 - currentDayOfWeek;
+    const endDate = new Date(today.getTime() + daysToSunday * 86400000);
+
+    const totalWeeks = isMobile ? 12 : 16;
+    const totalDays = totalWeeks * 7;
+    const startDate = new Date(endDate.getTime() - (totalDays - 1) * 86400000);
+
+    const dayMap = {};
+    (filteredItems || []).forEach(it => {
+      if (!it.date) return;
+      if (!dayMap[it.date]) {
+        dayMap[it.date] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+      }
+      const stats = getItemSubjectStats(it, selectedSubject);
+      dayMap[it.date].d += stats.d;
+      dayMap[it.date].y += stats.y;
+      dayMap[it.date].b += stats.b;
+      dayMap[it.date].q += stats.q;
+      dayMap[it.date].tests += 1;
+    });
+
+    const weeks = [];
+    let currentWeek = [];
+    let bestDay = { q: 0, date: '', label: '' };
+    let totalQuestions = 0;
+    let activeDaysCount = 0;
+
+    for (let i = 0; i < totalDays; i++) {
+      const curDate = new Date(startDate.getTime() + i * 86400000);
+      const ymd = getTurkeyYMD(curDate);
+      const stats = dayMap[ymd] || { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+      const q = stats.q;
+      const rate = q > 0 ? Math.round((stats.d / q) * 100) : 0;
+      const isFuture = ymd > todayYMD;
+
+      let level = 0;
+      if (!isFuture && q > 0) {
+        activeDaysCount++;
+        totalQuestions += q;
+        if (q >= 100) level = 4;
+        else if (q >= 50) level = 3;
+        else if (q >= 20) level = 2;
+        else level = 1;
+
+        if (q > bestDay.q) {
+          bestDay = {
+            q,
+            date: ymd,
+            label: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long' })}`
+          };
+        }
+      }
+
+      const dayObj = {
+        date: ymd,
+        dayNum: curDate.getDate(),
+        monthName: curDate.toLocaleString('tr-TR', { month: 'short' }),
+        dayName: curDate.toLocaleString('tr-TR', { weekday: 'short' }),
+        fullLabel: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })} ${curDate.toLocaleString('tr-TR', { weekday: 'long' })}`,
+        q,
+        d: stats.d,
+        y: stats.y,
+        b: stats.b,
+        rate,
+        tests: stats.tests,
+        level,
+        isToday: ymd === todayYMD,
+        isFuture
+      };
+
+      currentWeek.push(dayObj);
+
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    }
+
+    const pastDaysCount = totalDays - Math.max(0, daysToSunday);
+    const consistencyRate = pastDaysCount > 0 ? Math.round((activeDaysCount / pastDaysCount) * 100) : 0;
+
+    return {
+      weeks,
+      totalWeeks,
+      activeDaysCount,
+      totalQuestions,
+      bestDay,
+      consistencyRate
+    };
+  }, [filteredItems, selectedSubject, isMobile]);
 
   // Custom Chart Tooltip (High Contrast)
   const CustomTooltip = ({ active, payload, label }) => {
