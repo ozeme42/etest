@@ -33,7 +33,109 @@ export default function PeriodicQuestionAnalytics({
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+  const [selectedHeatmapDay, setSelectedHeatmapDay] = useState(null);
+
+  // ── 📅 GITHUB TARZI ÇALIŞMA ISI HARİTASI HESAPLAMA (SON 16 HAFTA / ~112 GÜN) ──
+  const heatmapData = useMemo(() => {
+    const todayYMD = getTurkeyToday();
+    const [ty, tm, td] = todayYMD.split('-').map(Number);
+    const today = new Date(ty, tm - 1, td);
+
+    // End on Sunday of current week
+    const currentDayOfWeek = today.getDay(); // 0: Sun, 1: Mon...
+    const daysToSunday = currentDayOfWeek === 0 ? 0 : 7 - currentDayOfWeek;
+    const endDate = new Date(today.getTime() + daysToSunday * 86400000);
+
+    const totalWeeks = isMobile ? 12 : 16;
+    const totalDays = totalWeeks * 7;
+    const startDate = new Date(endDate.getTime() - (totalDays - 1) * 86400000);
+
+    const dayMap = {};
+    filteredItems.forEach(it => {
+      if (!it.date) return;
+      if (!dayMap[it.date]) {
+        dayMap[it.date] = { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+      }
+      const stats = getItemSubjectStats(it, selectedSubject);
+      dayMap[it.date].d += stats.d;
+      dayMap[it.date].y += stats.y;
+      dayMap[it.date].b += stats.b;
+      dayMap[it.date].q += stats.q;
+      dayMap[it.date].tests += 1;
+    });
+
+    const weeks = [];
+    let currentWeek = [];
+    let bestDay = { q: 0, date: '', label: '' };
+    let totalQuestions = 0;
+    let activeDaysCount = 0;
+
+    for (let i = 0; i < totalDays; i++) {
+      const curDate = new Date(startDate.getTime() + i * 86400000);
+      const ymd = getTurkeyYMD(curDate);
+      const stats = dayMap[ymd] || { d: 0, y: 0, b: 0, q: 0, tests: 0 };
+      const q = stats.q;
+      const rate = q > 0 ? Math.round((stats.d / q) * 100) : 0;
+      const isFuture = ymd > todayYMD;
+
+      let level = 0;
+      if (!isFuture && q > 0) {
+        activeDaysCount++;
+        totalQuestions += q;
+        if (q >= 100) level = 4;
+        else if (q >= 50) level = 3;
+        else if (q >= 20) level = 2;
+        else level = 1;
+
+        if (q > bestDay.q) {
+          bestDay = {
+            q,
+            date: ymd,
+            label: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long' })}`
+          };
+        }
+      }
+
+      const dayObj = {
+        date: ymd,
+        dayNum: curDate.getDate(),
+        monthName: curDate.toLocaleString('tr-TR', { month: 'short' }),
+        dayName: curDate.toLocaleString('tr-TR', { weekday: 'short' }),
+        fullLabel: `${curDate.getDate()} ${curDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })} ${curDate.toLocaleString('tr-TR', { weekday: 'long' })}`,
+        q,
+        d: stats.d,
+        y: stats.y,
+        b: stats.b,
+        rate,
+        tests: stats.tests,
+        level,
+        isToday: ymd === todayYMD,
+        isFuture
+      };
+
+      currentWeek.push(dayObj);
+
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    }
+
+    const pastDaysCount = totalDays - Math.max(0, daysToSunday);
+    const consistencyRate = pastDaysCount > 0 ? Math.round((activeDaysCount / pastDaysCount) * 100) : 0;
+
+    return {
+      weeks,
+      totalWeeks,
+      activeDaysCount,
+      totalQuestions,
+      bestDay,
+      consistencyRate
+    };
+  }, [filteredItems, selectedSubject, isMobile]);
+
+  return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // 1. Tüm Test ve Deneme Kayıtlarını Tek Bir Temiz Listede Birleştir (Türkiye Saati Uyumlu)
@@ -741,6 +843,7 @@ export default function PeriodicQuestionAnalytics({
         {[
           { id: 'distribution', label: '📊 Soru Dağılımı', short: '📊 Soru' },
           { id: 'trend',        label: '📈 Başarı Eğrisi', short: '📈 Başarı' },
+          { id: 'heatmap',      label: '📅 Isı Haritası', short: '📅 Isı Haritası' },
           { id: 'subjects',     label: '📚 Ders Analizi', short: '📚 Dersler' },
           { id: 'table',        label: '📋 Döküm Tablosu', short: '📋 Tablo' }
         ].map(view => {
@@ -839,7 +942,149 @@ export default function PeriodicQuestionAnalytics({
           </div>
         )}
 
-        {/* 2. Başarı Eğrisi (Area Chart) */}
+        {/* 3. GitHub Tarzı Çalışma Isı Haritası (Study Heatmap) */}
+        {activeChartView === 'heatmap' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Heatmap Üst Başlık & Özet Rozetleri */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: '0 0.25rem' }}>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.82rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📅 Günlük Çalışma Isı Haritası</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: isDark ? 'rgba(34,197,94,0.18)' : '#dcfce7', color: '#16a34a', padding: '1px 7px', borderRadius: 6 }}>
+                    Son {heatmapData.totalWeeks} Hafta
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  Her kutu bir günü temsil eder. Renk koyulaştıkça çözülen soru sayısı artar.
+                </div>
+              </div>
+
+              {/* Mini KPI Rozetleri */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                  ⚡ <strong>{heatmapData.activeDaysCount}</strong> Aktif Gün
+                </span>
+                {heatmapData.bestDay.q > 0 && (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', border: '1px solid rgba(245,158,11,0.3)', color: '#d97706' }}>
+                    👑 Rekor: <strong>{heatmapData.bestDay.q} Soru</strong> ({heatmapData.bestDay.label})
+                  </span>
+                )}
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(99,102,241,0.15)' : '#e0e7ff', border: '1px solid rgba(99,102,241,0.3)', color: '#4f46e5' }}>
+                  📈 %{heatmapData.consistencyRate} Devamlılık
+                </span>
+              </div>
+            </div>
+
+            {/* Isı Haritası Matrisi (Grid) */}
+            <div style={{ overflowX: 'auto', paddingBottom: 6, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, minWidth: 'fit-content' }}>
+                {/* Gün İsimleri & Kareler (Pzt'den Paz'a 7 Satır) */}
+                {['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'].map((dayLabel, dayIdx) => (
+                  <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ width: 26, fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textAlign: 'right', paddingRight: 4, userSelect: 'none' }}>
+                      {dayIdx % 2 === 0 ? dayLabel : ''}
+                    </span>
+
+                    {heatmapData.weeks.map((week, wIdx) => {
+                      const day = week[dayIdx];
+                      if (!day) return <div key={wIdx} style={{ width: 14, height: 14 }} />;
+
+                      // Dynamic Heatmap Colors
+                      let bg = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+                      let border = isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #cbd5e1';
+                      let shadow = 'none';
+
+                      if (!day.isFuture) {
+                        if (day.level === 1) {
+                          bg = isDark ? '#064e3b' : '#bbf7d0';
+                          border = isDark ? '1px solid #065f46' : '1px solid #86efac';
+                        } else if (day.level === 2) {
+                          bg = isDark ? '#047857' : '#4ade80';
+                          border = isDark ? '1px solid #059669' : '1px solid #22c55e';
+                        } else if (day.level === 3) {
+                          bg = isDark ? '#059669' : '#22c55e';
+                          border = isDark ? '1px solid #10b981' : '1px solid #16a34a';
+                        } else if (day.level === 4) {
+                          bg = isDark ? '#10b981' : '#15803d';
+                          border = '1.5px solid #f59e0b';
+                          shadow = '0 0 8px rgba(16,185,129,0.5)';
+                        }
+                      }
+
+                      if (day.isToday) {
+                        border = '2px solid #6366f1';
+                      }
+
+                      const isSelected = selectedHeatmapDay?.date === day.date;
+                      if (isSelected) {
+                        border = '2px solid #ffffff';
+                        shadow = '0 0 10px #6366f1';
+                      }
+
+                      return (
+                        <div
+                          key={day.date || wIdx}
+                          onClick={() => !day.isFuture && setSelectedHeatmapDay(day)}
+                          onMouseEnter={() => !day.isFuture && !isMobile && setSelectedHeatmapDay(day)}
+                          style={{
+                            width: isMobile ? 13 : 15,
+                            height: isMobile ? 13 : 15,
+                            borderRadius: 3.5,
+                            background: bg,
+                            border,
+                            boxShadow: shadow,
+                            cursor: day.isFuture ? 'default' : 'pointer',
+                            opacity: day.isFuture ? 0.3 : 1,
+                            transition: 'all 0.15s ease',
+                            transform: isSelected ? 'scale(1.25)' : 'none',
+                            zIndex: isSelected ? 5 : 1
+                          }}
+                          title={`${day.fullLabel}: ${day.q} Soru (${day.rate}% Başarı)`}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Isı Haritası Lejantı & Seçili Gün Detay Kartı */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 4, borderTop: '1px solid var(--color-border)' }}>
+              {/* Lejant (Az -> Çok) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
+                <span>Daha Az</span>
+                <span style={{ width: 11, height: 11, borderRadius: 2, background: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', display: 'inline-block' }} title="0 Soru" />
+                <span style={{ width: 11, height: 11, borderRadius: 2, background: isDark ? '#064e3b' : '#bbf7d0', display: 'inline-block' }} title="1-20 Soru" />
+                <span style={{ width: 11, height: 11, borderRadius: 2, background: isDark ? '#047857' : '#4ade80', display: 'inline-block' }} title="21-50 Soru" />
+                <span style={{ width: 11, height: 11, borderRadius: 2, background: isDark ? '#059669' : '#22c55e', display: 'inline-block' }} title="51-99 Soru" />
+                <span style={{ width: 11, height: 11, borderRadius: 2, background: isDark ? '#10b981' : '#15803d', border: '1px solid #f59e0b', display: 'inline-block' }} title="100+ Soru" />
+                <span>Daha Çok</span>
+              </div>
+
+              {/* Seçili Gün Canlı Bilgi Şeridi */}
+              {selectedHeatmapDay ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff', padding: '3px 10px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.3)', fontSize: '0.74rem', fontWeight: 800 }}>
+                  <span style={{ color: 'var(--color-text)' }}>📅 {selectedHeatmapDay.fullLabel}:</span>
+                  <span style={{ color: '#4f46e5' }}><strong>{selectedHeatmapDay.q} Soru</strong> ({selectedHeatmapDay.tests} Test)</span>
+                  {selectedHeatmapDay.q > 0 && (
+                    <>
+                      <span style={{ color: '#16a34a' }}>{selectedHeatmapDay.d}D</span>
+                      <span style={{ color: '#dc2626' }}>{selectedHeatmapDay.y}Y</span>
+                      <span style={{ color: '#d97706' }}>%{selectedHeatmapDay.rate}</span>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                  Detay görmek için bir güne dokunun veya üzerine gelin 👆
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+
+                {/* 2. Başarı Eğrisi (Area Chart) */}
         {activeChartView === 'trend' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 0.35rem 0.5rem' : '0 0.5rem 0.75rem' }}>
