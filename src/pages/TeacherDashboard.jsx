@@ -231,10 +231,12 @@ export default function TeacherDashboard() {
   /* upcoming homeworks */
   const pendingEvaluations = useMemo(() => {
     return teacherSubmissions.filter(sub => {
-      if (sub.isEvaluatedByTeacher) return false;
-      const isOpen = sub.type === 'open_ended' || sub.sourceType === 'open_ended' || sub.status === 'pending_evaluation';
-      const hasUnscoredAnswers = Array.isArray(sub.answers) && sub.answers.some(a => a.userAnswerText && !a.score && !a.evaluatedByTeacher);
-      return isOpen || hasUnscoredAnswers;
+      if (sub.isEvaluatedByTeacher || sub.status === 'evaluated' || sub.status === 'approved' || sub.evalStatus === 'graded') return false;
+      const isOpen = (sub.type === 'open_ended' || sub.sourceType === 'open_ended' || sub.status === 'pending_evaluation') && !sub.evaluatedAt;
+      const hasUnscoredOpenEnded = Array.isArray(sub.answers) && sub.answers.some(a => 
+        a.userAnswerText && String(a.userAnswerText).trim() !== '' && typeof a.score !== 'number' && !a.evaluatedByTeacher && !a.evaluatedAt
+      );
+      return isOpen || hasUnscoredOpenEnded;
     });
   }, [teacherSubmissions]);
 
@@ -242,8 +244,9 @@ export default function TeacherDashboard() {
     const now = Date.now();
     return teacherHomeworks.filter(h => {
       if (!h.dueDate) return false;
-      const d = new Date(h.dueDate).getTime();
-      return d >= now - 86400000 && d <= now + 2 * 86400000;
+      const dueMs = new Date(h.dueDate).getTime();
+      const daysLeft = Math.ceil((dueMs - now) / 86400000);
+      return daysLeft >= 0 && daysLeft <= 2;
     });
   }, [teacherHomeworks]);
 
@@ -416,13 +419,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* ══════════ 1. DAILY ACTION CENTER & TEACHER COCKPIT ══════════ */}
-        <TeacherActionCenter
-          pendingManualApprovals={pendingManualApprovals}
-          pendingEvaluations={pendingEvaluations}
-          dueHomeworks={dueHomeworks}
-          students={students}
-        />
+        
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
         <div className="teacher-stats-grid">
@@ -471,6 +468,14 @@ export default function TeacherDashboard() {
               submissions={teacherSubmissions}
               onSelectStudent={(std) => setSelectedReportStudent(std)}
               onLaunchAiForTopic={handleLaunchAiForTopic}
+            />
+
+            {/* ══════════ 1. DAILY ACTION CENTER & TEACHER COCKPIT ══════════ */}
+            <TeacherActionCenter
+              pendingManualApprovals={pendingManualApprovals}
+              pendingEvaluations={pendingEvaluations}
+              dueHomeworks={dueHomeworks}
+              students={students}
             />
 
             <div className="teacher-overview-grid">
