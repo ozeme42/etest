@@ -380,23 +380,32 @@
 }
 
 /* ═══════════════════════════════════════════════════
-   MOBILE RESPONSIVENESS (< 768px)
+   PREMIER MOBILE APP EXPERIENCE (< 768px & Ultra-Small)
    ═══════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .teacher-dashboard-container {
-    padding: 0.75rem 0.5rem 5.5rem 0.5rem;
+    padding: 0.65rem 0.65rem 5.5rem 0.65rem;
   }
 
-  .teacher-hero-header {
-    padding: 1rem;
-    border-radius: 1.15rem;
-    flex-direction: column;
-    align-items: stretch;
+  .teacher-main-wrapper {
     gap: 0.85rem;
   }
 
+  /* ── 1. NATIVE APP HERO HEADER ── */
+  .teacher-hero-header {
+    padding: 0.85rem 1rem;
+    border-radius: 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  }
+
   .teacher-profile-group {
-    justify-content: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justifyContent: flex-start;
   }
 
   .teacher-avatar-icon {
@@ -407,11 +416,12 @@
 
   .teacher-info-text h1 {
     font-size: 1.15rem;
+    margin: 1px 0 0;
   }
 
   .teacher-header-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     width: 100%;
   }
@@ -419,26 +429,31 @@
   .btn-header-add-student,
   .btn-header-create-test {
     justify-content: center;
-    padding: 0.6rem 0.5rem;
+    padding: 0.55rem 0.5rem;
     font-size: 0.78rem;
+    border-radius: 0.75rem;
   }
 
-  /* Stat cards: 2x2 grid */
+  /* ── 2. APP-LIKE 2x2 STAT KPI GRID (ALWAYS 2 COLUMNS ON ALL PHONES) ── */
   .teacher-stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
   }
 
   .stat-hero-card {
-    padding: 0.75rem 0.85rem;
-    gap: 0.65rem;
-    border-radius: 1rem;
+    padding: 0.65rem 0.75rem;
+    gap: 0.55rem;
+    border-radius: 0.95rem;
+    min-width: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   }
 
   .stat-hero-icon {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 0.65rem;
+    flex-shrink: 0;
   }
 
   .stat-hero-icon svg {
@@ -447,27 +462,41 @@
   }
 
   .stat-hero-label {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .stat-hero-value {
-    font-size: 1rem;
+    font-size: 0.98rem;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .stat-hero-sub {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Quick Actions: 2 columns */
+  /* ── 3. APP LAUNCHER QUICK ACTIONS GRID (2 COLUMNS) ── */
   .teacher-quick-actions-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
   }
 
   .quick-action-btn {
-    padding: 0.75rem 0.85rem;
-    border-radius: 0.95rem;
+    padding: 0.75rem 0.8rem;
+    border-radius: 1rem;
     gap: 0.55rem;
+    min-height: 58px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
   .quick-action-icon {
@@ -477,58 +506,194 @@
   }
 
   .quick-action-icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .quick-action-btn p:first-child {
+    font-size: 0.82rem !important;
+    font-weight: 900;
+  }
+
+  .quick-action-btn p:last-child {
+    font-size: 0.64rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── 4. SMOOTH HORIZONTAL SCROLLING TABS (NO SCROLLBAR) ── */
+  .teacher-tab-bar {
+    padding: 0.3rem;
+    border-radius: 0.95rem;
+    gap: 0.35rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .teacher-tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── 5. OVERVIEW CONTENT GRIDS ── */
+  .teacher-overview-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .overview-card-box {
+    padding: 0.95rem;
+    border-radius: 1.15rem;
+    gap: 0.75rem;
+  }
+
+  .overview-card-header h3 {
+    font-size: 0.88rem;
+  }
+
+  /* ── 6. STUDENTS MOBILE CARDS (MODERN APP PROFILE TILES) ── */
+  .teacher-students-desktop-table {
+    display: none !important;
+  }
+
+  .teacher-students-mobile-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .student-mobile-card {
+    border-radius: 1.15rem;
+    padding: 0.9rem;
+    gap: 0.65rem;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .student-mobile-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.75rem;
+  }
+
+  .student-meta-item {
+    min-width: 0;
+  }
+
+  .student-meta-label {
+    font-size: 0.6rem;
+  }
+
+  .student-meta-val {
+    font-size: 0.75rem;
+  }
+}
+
+/* ── 7. RESPONSIVE SUPPORT FOR COMPACT PHONES (320px - 380px) ── */
+@media (max-width: 380px) {
+  .teacher-dashboard-container {
+    padding: 0.5rem 0.4rem 5.5rem 0.4rem;
+  }
+
+  .teacher-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+  }
+
+  .stat-hero-card {
+    padding: 0.55rem 0.6rem;
+    gap: 0.45rem;
+  }
+
+  .stat-hero-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .stat-hero-icon svg {
     width: 16px;
     height: 16px;
   }
 
+  .stat-hero-value {
+    font-size: 0.88rem;
+  }
+
+  .teacher-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+  }
+
+  .quick-action-btn {
+    padding: 0.65rem 0.7rem;
+  }
+
+  .quick-action-icon {
+    width: 30px;
+    height: 30px;
+  }
+
   .quick-action-btn p:first-child {
-    font-size: 0.8rem !important;
-  }
-
-  .quick-action-btn p:last-child {
-    font-size: 0.65rem !important;
-  }
-
-  /* Tabs: Smooth horizontal scroll */
-  .teacher-tab-bar {
-    padding: 0.35rem;
-    border-radius: 1rem;
-    gap: 0.35rem;
-  }
-
-  /* Overview cards */
-  .teacher-overview-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .overview-card-box {
-    padding: 1rem;
-    border-radius: 1rem;
-  }
-
-  /* Hide wide table on mobile, show rich mobile cards */
-  .teacher-students-desktop-table {
-    display: none;
-  }
-
-  .teacher-students-mobile-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    font-size: 0.78rem !important;
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   ULTRA SMALL PHONES (< 420px)
-   ═══════════════════════════════════════════════════ */
-@media (max-width: 420px) {
-  .teacher-stats-grid {
-    grid-template-columns: 1fr;
+/* ══════════ ADAPTIVE SUB-GRIDS ══════════ */
+.teacher-hw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.teacher-grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.85rem;
+}
+
+.teacher-tests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.teacher-coaching-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .teacher-hw-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
   }
   
-  .teacher-quick-actions-grid {
+  .teacher-grades-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .teacher-tests-grid {
     grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .teacher-coaching-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
   }
 }
 
+@media (min-width: 480px) and (max-width: 768px) {
+  .teacher-grades-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .teacher-tests-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .teacher-coaching-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

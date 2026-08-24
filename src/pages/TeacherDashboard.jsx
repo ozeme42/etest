@@ -581,7 +581,7 @@ export default function TeacherDashboard() {
                   <p style={{ margin: 0, fontWeight: 700 }}>Yaklaşan ödev teslimi yok. <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontWeight: 800 }}>Ödev oluştur →</button></p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.85rem' }}>
+                <div className="teacher-hw-grid">
                   {upcomingHw.map((hw) => {
                     const due = new Date(hw.dueDate);
                     const daysLeft = Math.ceil((due - Date.now()) / 86400000);
@@ -625,7 +625,7 @@ export default function TeacherDashboard() {
                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <GraduationCap size={18} color="#6366f1" /> Sınıf Bazında Öğrenci Dağılımı
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.85rem' }}>
+                <div className="teacher-grades-grid">
                   {data.grades.map((grade, gi) => {
                     const count = students.filter(s =>
                       String(s.gradeId) === String(grade.id) || s.gradeId === grade.name ||
@@ -695,7 +695,7 @@ export default function TeacherDashboard() {
                 <p style={{ margin: 0 }}>Arama kriterlerine uygun test bulunamadı.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem' }}>
+              <div className="teacher-tests-grid">
                 {visibleTests.map(test => {
                   const sc = getSubjectTheme(test.subject);
                   return (
@@ -1004,7 +1004,7 @@ export default function TeacherDashboard() {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem' }}>
+            <div className="teacher-coaching-grid">
               {students.map((std, i) => {
                 const isCoached = coachedIds.includes(std.id);
                 return (
