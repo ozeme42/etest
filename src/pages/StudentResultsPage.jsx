@@ -1544,6 +1544,29 @@ a.evaluatedAt ||
                     <Plus size={16} /> ✏️ Manuel Test Sonucu Ekle
                   </button>
 
+                  {!isStudentRole && (
+                    <button
+                      onClick={handleClearAllResults}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: '#ef4444',
+                        border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                        borderRadius: 14,
+                        padding: '0.6rem 1rem',
+                        fontWeight: 900,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      title="Seçili öğrencinin tüm sınav sonuçlarını temizle"
+                    >
+                      <Trash2 size={15} /> Sonuçları Temizle
+                    </button>
+                  )}
+
                 {/* Student Selector */}
                 {!isStudentRole ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: 16, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
@@ -2002,6 +2025,26 @@ a.evaluatedAt ||
                           <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                             <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
                           </button>
+                          {!isStudentRole && (
+                            <button
+                              onClick={(e) => handleDeleteResult(s, e)}
+                              title="Bu Sınavı Kalıcı Olarak Sil"
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                                color: '#ef4444',
+                                border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                                borderRadius: 8,
+                                padding: '0.35rem 0.5rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2555,6 +2598,26 @@ a.evaluatedAt ||
                         <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                           <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
                         </button>
+                        {!isStudentRole && (
+                          <button
+                            onClick={(e) => handleDeleteResult(s, e)}
+                            title="Bu Sınavı Kalıcı Olarak Sil"
+                            style={{
+                              background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
+                              color: '#ef4444',
+                              border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
+                              borderRadius: 8,
+                              padding: '0.35rem 0.5rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import SummaryManagerPage from './SummaryManagerPage';
+import StudentResultsPage from './StudentResultsPage';
+import { Award } from 'lucide-react';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -128,11 +130,11 @@ export default function AdminDashboard() {
             { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.3)' },
             { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)' },
             { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.3)' },
-            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)' },
+            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri (Görüntüle)', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', onClick: () => setActiveTab('results') },
           ].map(kpi => {
             const Icon = kpi.icon;
             return (
-              <div key={kpi.label} style={{
+              <div key={kpi.label} onClick={kpi.onClick} style={{
                 background: 'var(--color-surface)',
                 border: '1.5px solid var(--color-border)',
                 borderRadius: '1.25rem',
@@ -140,7 +142,9 @@ export default function AdminDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
+                boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)',
+                cursor: kpi.onClick ? 'pointer' : 'default',
+                transition: 'transform 0.15s ease'
               }}>
                 <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, border: `1px solid ${kpi.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon size={22} />
@@ -173,6 +177,7 @@ export default function AdminDashboard() {
             { id: 'matrix', label: 'Öğretmen & Öğrenci Eşleşmeleri', icon: GraduationCap, count: `${teachers.length} Öğretmen`, alert: unassignedStudents.length },
             { id: 'summaries', label: 'Ders Özetleri Modülü', icon: BookOpen, count: 'Editör' },
             { id: 'homeworks', label: 'Ödev Takip Merkezi', icon: BarChart3, count: 'Rapor' },
+            { id: 'results', label: 'Tüm Sınav & Test Sonuçları', icon: Award, count: `${submissions.length} Sonuç` },
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;

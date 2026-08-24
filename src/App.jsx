@@ -464,6 +464,12 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
 
               {/* Grup 3: İstatistik & Admin */}
               <div className="nav-section-title">📊 Analiz &amp; Sistem</div>
+              <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                  <Award size={16} color="white" />
+                </div>
+                <span>Tüm Sonuçlar &amp; Karne</span>
+              </NavLink>
               <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
                   <BarChart2 size={16} color="white" />
