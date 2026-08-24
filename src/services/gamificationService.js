@@ -887,13 +887,75 @@ export function computeStudentGamificationData({
   const totalTreesPlanted = Math.max(pomodoroSessions, localTreesPlanted);
   const dailyGoalAchieved = localGoalAchievedCount > 0;
 
-    // Scaled XP Calculation with Progressive Streak Multiplier & Bonus
+  // Calculate Daily Streak
+  const sortedDates = Array.from(activeDates).sort().reverse();
+  let dailyStreak = 0;
+  if (sortedDates.length > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    if (sortedDates[0] === today || sortedDates[0] === yesterday) {
+      dailyStreak = 1;
+      let checkDate = new Date(sortedDates[0]);
+      for (let i = 1; i < sortedDates.length; i++) {
+        const prevExpected = new Date(checkDate.getTime() - 86400000).toISOString().split('T')[0];
+        if (sortedDates[i] === prevExpected) {
+          dailyStreak++;
+          checkDate = new Date(sortedDates[i]);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  const totalQuestionsSolved = totalCorrect + totalWrong + totalEmpty;
+  const distinctSubjectsCount = Object.keys(subjectCorrect).filter(k => (subjectCorrect[k] || 0) > 0).length;
+
+  // Build stats object for badge checker
+  const stats = {
+    totalSolvedTests,
+    totalCorrect,
+    totalWrong,
+    totalEmpty,
+    totalQuestionsSolved,
+    perfectTestsCount,
+    highAccuracyTests,
+    bookTestsSolvedCount,
+    homeworksSolvedCount,
+    dailyStreak,
+    pomodoroSessions,
+    totalStudyMinutes: totalStudyMinutesCombined,
+    totalTreesPlanted,
+    dailyGoalAchieved,
+    distinctSubjectsCount,
+    hasNightTest,
+    hasEarlyTest,
+    hasWeekendTest,
+    subjectCorrect
+  };
+
+  // 2. Check and unlock badges
+  const unlockedBadges = [];
+  const lockedBadges = [];
+
+  BADGE_DEFINITIONS.forEach(b => {
+    const isUnlocked = Boolean(b.check(stats));
+    const prog = b.progress ? b.progress(stats) : { current: isUnlocked ? 1 : 0, target: 1 };
+    if (isUnlocked) {
+      unlockedBadges.push({ ...b, unlockedAt: new Date().toISOString(), progress: prog });
+    } else {
+      lockedBadges.push({ ...b, progress: prog });
+    }
+  });
+
+  // Scaled XP Calculation with Progressive Streak Multiplier & Bonus
   const isTodaySolved = activeDates.has(new Date().toISOString().split('T')[0]);
   const streakTierInfo = getStreakTierInfo(dailyStreak, isTodaySolved);
 
   const baseQuestionsXp = totalCorrect * 1;
   const baseTestsXp = Math.round(totalSolvedTests * 2.5);
-  // Apply streak multiplier (1.0x to 1.5x) to questions & tests
+  // Apply streak multiplier (1.05x to 1.60x) to questions & tests
   const multipliedXp = Math.round((baseQuestionsXp + baseTestsXp) * streakTierInfo.multiplier);
 
   const cumulativeStreakBonus = calculateCumulativeStreakBonus(dailyStreak);
