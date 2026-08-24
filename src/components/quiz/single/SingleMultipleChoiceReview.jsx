@@ -3,13 +3,11 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import { ArrowLeft, Award, CheckCircle2, XCircle, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft, Award, CheckCircle2, XCircle, HelpCircle, ChevronLeft,
+  ChevronRight, Trophy, Zap, Clock, ShieldCheck, Filter, LayoutList, Square
+} from 'lucide-react';
 
-/**
- * SingleMultipleChoiceReview
- * Dedicated, isolated review screen strictly for Single Multiple-Choice assignments.
- * Features an informative stats header (Doğru, Yanlış, Boş, Başarı %, Net) and clean question review.
- */
 export default function SingleMultipleChoiceReview({
   submission = {},
   test = {},
@@ -19,9 +17,9 @@ export default function SingleMultipleChoiceReview({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [activeQIdx, setActiveQIdx] = useState(0);
   const [viewMode, setViewMode] = useState('single');
+
   const answers = submission.answers || submission.formattedAnswers || [];
 
-  // Map answers to easy lookup with bulletproof null-checks
   const answersMap = {};
   if (Array.isArray(answers)) {
     answers.forEach((a, idx) => {
@@ -67,7 +65,6 @@ export default function SingleMultipleChoiceReview({
 
   const totalQuestions = questions.length || answers.length || submission.totalQuestions || 1;
 
-  // Recompute stats live and build synchronized maps
   const isCorrectMap = {};
   const correctAnswersArray = [];
   let correctCount = 0;
@@ -102,270 +99,270 @@ export default function SingleMultipleChoiceReview({
     correctAnswersArray.push(normC);
   }
 
-  // If live counts are both 0 and submission already had validated counts, preserve them
   if (correctCount === 0 && wrongCount === 0 && (submission.correctCount || submission.wrongCount)) {
     correctCount = Number(submission.correctCount || 0);
     wrongCount = Number(submission.wrongCount || 0);
   }
 
   const blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
-  const score      = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : (submission.score || 0);
-  const rawNet     = Math.max(0, correctCount - wrongCount * 0.25);
-  const netScore   = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
+  const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : (submission.score || 0);
+  const rawNet = Math.max(0, correctCount - wrongCount * 0.25);
+  const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
+
+  const getScoreBadge = (pct) => {
+    if (pct >= 85) return { label: 'Mükemmel 🌟', bg: 'linear-gradient(135deg, #10b981, #059669)', color: '#ffffff' };
+    if (pct >= 70) return { label: 'Çok İyi 🎯', bg: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#ffffff' };
+    if (pct >= 50) return { label: 'Başarılı 👍', bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#ffffff' };
+    return { label: 'Geliştirilmeli 📈', bg: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff' };
+  };
+
+  const badge = getScoreBadge(score);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      {/* Top Header with Comprehensive Stats Bar */}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden' }}>
+      {/* ── TOP HEADER ── */}
       <div style={{
         background: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.5rem',
+        borderBottom: '1.5px solid #e2e8f0',
+        padding: isMobile ? '0.75rem 1rem' : '1rem 1.75rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.75rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+        gap: '0.85rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+        zIndex: 50
       }}>
-        {/* Left: Title & Subtitle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <button
             type="button"
             onClick={onClose}
             style={{
-              padding: '0.5rem',
-              borderRadius: '0.65rem',
-              border: '1px solid #cbd5e1',
+              padding: '0.55rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid #cbd5e1',
               background: '#f8fafc',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              color: '#334155'
+              justifyContent: 'center',
+              color: '#334155',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
             }}
             title="Geri Dön"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#0f172a' }}>
-              🔍 {test.title || 'Çoktan Seçmeli Test İncelemesi'}
-            </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
-              Öğrenci: {submission.studentName || 'Öğrenci'} • Toplam {totalQuestions} Soru
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                {test.title || submission.testTitle || 'Sınav Çözüm İnceleme'}
+              </h3>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, background: badge.bg, color: badge.color }}>
+                {badge.label}
+              </span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+              Cevap Anahtarı ve Detaylı Soru Çözümleri
             </span>
           </div>
         </div>
 
-        {/* Right: Informative Metric Pills & Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-          {/* Doğru Pill */}
+        {/* KPI Cards */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.65rem', flexWrap: 'wrap' }}>
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            color: '#15803d',
-            fontWeight: 900,
-            fontSize: '0.82rem'
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.06))',
+            border: '1.5px solid rgba(99,102,241,0.3)',
+            borderRadius: '0.85rem',
+            padding: '0.35rem 0.85rem',
+            textAlign: 'center'
           }}>
-            <CheckCircle2 size={15} color="#16a34a" />
-            <span>{correctCount} Doğru</span>
+            <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 800, textTransform: 'uppercase' }}>NET PUAN</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#4f46e5' }}>{netScore}</div>
           </div>
 
-          {/* Yanlış Pill */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            color: '#b91c1c',
-            fontWeight: 900,
-            fontSize: '0.82rem'
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1.5px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '0.85rem',
+            padding: '0.35rem 0.85rem',
+            textAlign: 'center'
           }}>
-            <XCircle size={15} color="#ef4444" />
-            <span>{wrongCount} Yanlış</span>
+            <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800, textTransform: 'uppercase' }}>DOĞRU</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#059669' }}>{correctCount}</div>
           </div>
 
-          {/* Boş Pill */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.7rem',
-            borderRadius: '0.65rem',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#475569',
-            fontWeight: 800,
-            fontSize: '0.82rem'
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1.5px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: '0.85rem',
+            padding: '0.35rem 0.85rem',
+            textAlign: 'center'
           }}>
-            <HelpCircle size={15} color="#64748b" />
-            <span>{blankCount} Boş</span>
+            <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 800, textTransform: 'uppercase' }}>YANLIŞ</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#dc2626' }}>{wrongCount}</div>
           </div>
 
-          {/* Başarı & Net Pill */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '0.35rem 0.75rem',
-            borderRadius: '0.65rem',
-            background: '#eff6ff',
-            border: '1px solid #93c5fd',
-            color: '#1d4ed8',
-            fontWeight: 900,
-            fontSize: '0.82rem'
+            background: '#f1f5f9',
+            border: '1.5px solid #cbd5e1',
+            borderRadius: '0.85rem',
+            padding: '0.35rem 0.85rem',
+            textAlign: 'center'
           }}>
-            <Award size={15} color="#2563eb" />
-            <span>%{score} Başarı (Net: {netScore})</span>
+            <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>BOŞ</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#475569' }}>{blankCount}</div>
           </div>
-
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '0.55rem 1.15rem',
-              borderRadius: '0.75rem',
-              border: '1.5px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              marginLeft: '0.25rem'
-            }}
-          >
-            Kapat / Çık
-          </button>
         </div>
       </div>
 
-      {/* Main Layout */}
+      {/* Main Review Layout */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <QuizPanelLayout
-          panelTitle="Sınav Cevapları"
-          panelSubtitle="Cevap Anahtarı"
-          icon="🔍"
+          panelTitle="Cevap Durumu"
+          panelSubtitle="Soru bazlı doğruluk listesi"
+          icon="📊"
           defaultPosition="right"
           defaultSize={320}
           defaultOpenOnMobile={false}
           documentContent={
-            <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Top Question Bubbles Navigator & View Mode Toggle */}
-              {totalQuestions > 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+              {/* Question Navigator */}
+              <div style={{
+                background: '#ffffff',
+                borderBottom: '1px solid #e2e8f0',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.65rem'
+              }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.5rem',
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: '0.85rem',
-                  padding: '0.45rem 0.75rem',
-                  flexShrink: 0
+                  gap: '0.45rem',
+                  overflowX: 'auto',
+                  padding: '0.15rem 0',
+                  flex: 1,
+                  justifyContent: isMobile ? 'flex-start' : 'center'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
-                    {Array.from({ length: totalQuestions }).map((_, idx) => {
-                      const qNo = idx + 1;
-                      const isCorr = isCorrectMap[qNo];
-                      const isSelected = viewMode === 'single' && activeQIdx === idx;
+                  {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((qNo) => {
+                    const isCurrent = activeQIdx === qNo - 1;
+                    const isCorr = isCorrectMap[qNo];
 
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            setViewMode('single');
-                            setActiveQIdx(idx);
-                          }}
-                          style={{
-                            minWidth: '32px',
-                            height: '32px',
-                            borderRadius: '0.5rem',
-                            border: isSelected ? '2px solid #2563eb' : '1px solid var(--color-border-input)',
-                            background: isSelected ? '#2563eb' : (isCorr === true ? '#dcfce7' : (isCorr === false ? '#fee2e2' : 'var(--color-surface)')),
-                            color: isSelected ? '#ffffff' : (isCorr === true ? '#15803d' : (isCorr === false ? '#b91c1c' : 'var(--color-text-muted)')),
-                            fontWeight: 900,
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {qNo}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    let bBg = '#f1f5f9';
+                    let bBorder = '1.5px solid #cbd5e1';
+                    let bColor = '#64748b';
+
+                    if (isCorr === true) {
+                      bBg = '#dcfce7';
+                      bBorder = '1.5px solid #16a34a';
+                      bColor = '#15803d';
+                    } else if (isCorr === false) {
+                      bBg = '#fee2e2';
+                      bBorder = '1.5px solid #dc2626';
+                      bColor = '#b91c1c';
+                    }
+
+                    if (isCurrent) {
+                      bBorder = '2.5px solid #6366f1';
+                    }
+
+                    return (
+                      <button
+                        key={qNo}
+                        type="button"
+                        onClick={() => {
+                          setActiveQIdx(qNo - 1);
+                          if (viewMode === 'list') {
+                            document.getElementById(`review-q-${qNo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }
+                        }}
+                        style={{
+                          width: isMobile ? '30px' : '34px',
+                          height: isMobile ? '30px' : '34px',
+                          borderRadius: '0.65rem',
+                          border: bBorder,
+                          background: bBg,
+                          color: bColor,
+                          fontWeight: 900,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: isCurrent ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={`Soru ${qNo}'e Geç`}
+                      >
+                        {isCorr === true ? '✓' : isCorr === false ? '✗' : qNo}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
                   <button
                     type="button"
                     onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
                     style={{
-                      padding: '0.3rem 0.6rem',
-                      borderRadius: '0.5rem',
-                      border: '1px solid var(--color-border-input)',
-                      background: 'var(--color-surface-hover)',
-                      color: 'var(--color-text-secondary)',
-                      fontSize: '0.72rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '0.6rem',
+                      border: '1.5px solid #cbd5e1',
+                      background: '#f8fafc',
+                      color: '#0f172a',
+                      fontSize: '0.74rem',
                       fontWeight: 800,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
+                      cursor: 'pointer'
                     }}
                   >
-                    {viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru'}
+                    {viewMode === 'single' ? <LayoutList size={14} color="#6366f1" /> : <Square size={14} color="#6366f1" />}
+                    <span>{isMobile ? '' : (viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru')}</span>
                   </button>
                 </div>
-              )}
+              </div>
 
-              {/* Question Content */}
-              {viewMode === 'single' && totalQuestions > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {(() => {
-                    const idx = activeQIdx;
-                    const qNo = idx + 1;
-                    const q = (Array.isArray(questions) ? questions[idx] : null) || {};
-                    const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
-                    const normU = normalizeAns(uAns);
-                    const normC = correctAnswersArray[idx];
-                    const isCorrect = isCorrectMap[qNo];
+              {/* Main Review Area */}
+              <div style={{ padding: isMobile ? '0.85rem 0.75rem' : '1.5rem 2rem', overflowY: 'auto', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {viewMode === 'single' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                    {(() => {
+                      const curQ = questions[activeQIdx] || {};
+                      const qNo = activeQIdx + 1;
+                      const curAnsObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[activeQIdx] || {};
+                      const curUAns = answersMap[qNo] ?? curAnsObj.userAnswer;
+                      const curCAns = resolveCorrectForQ(qNo, activeQIdx, curAnsObj, curQ, test);
 
-                    return (
-                      <MultipleChoiceReview
-                        key={q.id || idx}
-                        question={q}
-                        qNo={qNo}
-                        totalQuestions={totalQuestions}
-                        selectedOption={normU}
-                        userAnswer={normU}
-                        correctOption={normC}
-                        correctAnswer={normC}
-                        isCorrect={isCorrect}
-                        isMobile={isMobile}
-                      />
-                    );
-                  })()}
+                      return (
+                        <MultipleChoiceReview
+                          key={curQ.id || activeQIdx}
+                          question={curQ}
+                          qNo={qNo}
+                          totalQuestions={totalQuestions}
+                          imageUrls={curQ.images || curQ.imageUrls || (curQ.imageUrl ? [curQ.imageUrl] : [])}
+                          userAnswer={curUAns}
+                          correctAnswer={curCAns}
+                          isCorrect={isCorrectMap[qNo]}
+                          isMobile={isMobile}
+                        />
+                      );
+                    })()}
 
-                  {/* Stepper Bottom Action */}
-                  {totalQuestions > 1 && (
+                    {/* Stepper Footer */}
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      background: 'var(--color-surface)',
-                      border: '1.5px solid var(--color-border)',
-                      borderRadius: '0.85rem',
-                      padding: '0.5rem 0.85rem',
-                      marginTop: '0.25rem'
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '1.15rem',
+                      padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.5rem',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
                     }}>
                       <button
                         type="button"
@@ -374,24 +371,31 @@ export default function SingleMultipleChoiceReview({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          padding: '0.4rem 0.75rem',
-                          borderRadius: '0.6rem',
-                          border: '1.5px solid var(--color-border-input)',
-                          background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
-                          color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
-                          fontSize: '0.78rem',
+                          gap: '0.4rem',
+                          padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.35rem',
+                          borderRadius: '0.85rem',
+                          border: '1.5px solid #cbd5e1',
+                          background: activeQIdx === 0 ? '#f1f5f9' : '#ffffff',
+                          color: activeQIdx === 0 ? '#94a3b8' : '#0f172a',
+                          fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 800,
                           cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
                           opacity: activeQIdx === 0 ? 0.45 : 1
                         }}
                       >
-                        <ChevronLeft size={15} />
+                        <ChevronLeft size={17} />
                         <span>Önceki Soru</span>
                       </button>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
-                        {activeQIdx + 1} / {totalQuestions}
-                      </span>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6366f1' }}>
+                          {activeQIdx + 1} / {totalQuestions}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>
+                          Soru İnceleme
+                        </span>
+                      </div>
+
                       <button
                         type="button"
                         disabled={activeQIdx >= totalQuestions - 1}
@@ -399,64 +403,60 @@ export default function SingleMultipleChoiceReview({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          padding: '0.4rem 0.85rem',
-                          borderRadius: '0.6rem',
+                          gap: '0.4rem',
+                          padding: isMobile ? '0.55rem 1rem' : '0.65rem 1.45rem',
+                          borderRadius: '0.85rem',
                           border: 'none',
-                          background: activeQIdx >= totalQuestions - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                          color: activeQIdx >= totalQuestions - 1 ? 'var(--color-text-muted)' : '#ffffff',
-                          fontSize: '0.78rem',
+                          background: activeQIdx >= totalQuestions - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                          color: activeQIdx >= totalQuestions - 1 ? '#94a3b8' : '#ffffff',
+                          fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 900,
                           cursor: activeQIdx >= totalQuestions - 1 ? 'not-allowed' : 'pointer',
-                          opacity: activeQIdx >= totalQuestions - 1 ? 0.45 : 1
+                          opacity: activeQIdx >= totalQuestions - 1 ? 0.45 : 1,
+                          boxShadow: activeQIdx >= totalQuestions - 1 ? 'none' : '0 4px 14px rgba(79,70,229,0.35)'
                         }}
                       >
                         <span>Sonraki Soru</span>
-                        <ChevronRight size={15} />
+                        <ChevronRight size={17} />
                       </button>
                     </div>
-                  )}
-                </div>
-              ) : (
-                Array.from({ length: totalQuestions }).map((_, idx) => {
-                  const qNo = idx + 1;
-                  const q = (Array.isArray(questions) ? questions[idx] : null) || {};
-                  const uAns = answersMap[qNo] ?? (Array.isArray(answers) ? answers[idx]?.userAnswer : null);
-                  const normU = normalizeAns(uAns);
-                  const normC = correctAnswersArray[idx];
-                  const isCorrect = isCorrectMap[qNo];
+                  </div>
+                ) : (
+                  questions.map((q, idx) => {
+                    const qNo = idx + 1;
+                    const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
+                    const uAns = answersMap[qNo] ?? ansObj.userAnswer;
+                    const cAns = resolveCorrectForQ(qNo, idx, ansObj, q, test);
 
-                  return (
-                    <MultipleChoiceReview
-                      key={q.id || idx}
-                      question={q}
-                      qNo={qNo}
-                      totalQuestions={totalQuestions}
-                      selectedOption={normU}
-                      userAnswer={normU}
-                      correctOption={normC}
-                      correctAnswer={normC}
-                      isCorrect={isCorrect}
-                      isMobile={isMobile}
-                    />
-                  );
-                })
-              )}
+                    return (
+                      <div key={idx} id={`review-q-${qNo}`}>
+                        <MultipleChoiceReview
+                          question={q}
+                          qNo={qNo}
+                          totalQuestions={totalQuestions}
+                          imageUrls={q.images || q.imageUrls || (q.imageUrl ? [q.imageUrl] : [])}
+                          userAnswer={uAns}
+                          correctAnswer={cAns}
+                          isCorrect={isCorrectMap[qNo]}
+                          isMobile={isMobile}
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           }
           answerContent={
             <OpticalBubblePanel
               qCount={totalQuestions}
               answers={answersMap}
-              resolvedQuestions={questions}
               correctAnswers={correctAnswersArray}
-              isCorrectMap={isCorrectMap}
-              submissionAnswers={answers}
-              testCtx={test}
               isReviewMode={true}
               onSelectOption={(qNo) => {
                 setActiveQIdx(qNo - 1);
               }}
+              resolvedQuestions={questions}
             />
           }
         />

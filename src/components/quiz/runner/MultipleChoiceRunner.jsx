@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
-import { Check, Eye, Pencil } from 'lucide-react';
+import { Check, Eye, Pencil, Sparkles, HelpCircle, Zap, Star, Bookmark } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
@@ -17,11 +17,12 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '0.85rem',
+      borderRadius: '1rem',
       overflow: 'hidden',
       background: 'var(--color-surface-hover)',
-      border: '1px solid var(--color-border)',
-      marginBottom: '0.75rem'
+      border: '1.5px solid var(--color-border)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+      marginBottom: '0.85rem'
     }}>
       <img
         src={src}
@@ -40,18 +41,19 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
           title="Tam Ekran Görüntüle"
           style={{
             position: 'absolute',
-            top: 8,
-            right: 8,
-            padding: '0.4rem',
-            borderRadius: '0.5rem',
-            background: 'rgba(15,23,42,0.7)',
-            backdropFilter: 'blur(4px)',
+            top: 10,
+            right: 10,
+            padding: '0.45rem',
+            borderRadius: '0.65rem',
+            background: 'rgba(15,23,42,0.75)',
+            backdropFilter: 'blur(8px)',
             color: 'white',
-            border: 'none',
+            border: '1px solid rgba(255,255,255,0.2)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
           }}
         >
           <Eye size={16} />
@@ -62,9 +64,90 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
 });
 
 /**
+ * Helper to render formatted text with styled bold keywords, premises (I, II, III), and code/math
+ */
+function FormattedQuestionText({ text }) {
+  if (!text) return null;
+
+  // Split by line breaks and process
+  const lines = text.split('\n');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+      {lines.map((line, lIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={lIdx} style={{ height: '0.3rem' }} />;
+
+        // Check if this line is a Roman numeral premise (I., II., III., IV.) or bullet
+        const isPremise = /^([IVXLCDM]+\.|\d+\.|[a-z]\))\s+/i.test(trimmed);
+
+        // Bold parser
+        const parts = line.split(/(\*{2,}[^*]+\*{2,})/g);
+
+        const renderedLine = parts.map((part, pIdx) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return (
+              <strong
+                key={pIdx}
+                style={{
+                  fontWeight: 900,
+                  color: 'var(--color-text)',
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  padding: '1px 5px',
+                  borderRadius: '4px'
+                }}
+              >
+                {part.slice(2, -2)}
+              </strong>
+            );
+          }
+          return part;
+        });
+
+        if (isPremise) {
+          return (
+            <div
+              key={lIdx}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.65rem',
+                background: 'var(--color-surface-hover)',
+                borderLeft: '3.5px solid #6366f1',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0 0.65rem 0.65rem 0',
+                fontSize: '0.96rem',
+                lineHeight: 1.6,
+                fontWeight: 600,
+                color: 'var(--color-text)'
+              }}
+            >
+              <span>{renderedLine}</span>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={lIdx}
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.7,
+              color: 'var(--color-text)',
+              fontWeight: 500
+            }}
+          >
+            {renderedLine}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * MultipleChoiceRunner Component
- * Dedicated runner for Multiple-Choice (A, B, C, D, E) questions.
- * Intelligently displays option texts (if present) or optical bubbles (for image-based tests).
+ * Dedicated runner for Multiple-Choice questions with vibrant, high-contrast, modern UI.
  */
 export default function MultipleChoiceRunner({
   question,
@@ -107,8 +190,11 @@ export default function MultipleChoiceRunner({
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+  const subjectName = question?.subject || question?.subjectName || '';
+  const topicName = question?.topic || question?.topicName || '';
+  const difficulty = question?.difficulty || 'Orta';
 
-  // Collect all resolved images with single-source priority to avoid duplicate stacked images
+  // Collect all resolved images
   const resolvedImages = useMemo(() => {
     const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
 
@@ -127,17 +213,8 @@ export default function MultipleChoiceRunner({
       }
     };
 
-    // 1. Explicit imageUrls prop passed specifically for this question
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      imageUrls.forEach(addVal);
-    }
-
-    // 2. Direct question.imageUrl (specific to this single question)
-    if (urls.length === 0 && question?.imageUrl) {
-      addVal(question.imageUrl);
-    }
-
-    // 3. Question-level images array
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) imageUrls.forEach(addVal);
+    if (urls.length === 0 && question?.imageUrl) addVal(question.imageUrl);
     if (urls.length === 0) {
       const qImages = question?.images || question?.imageUrls;
       if (Array.isArray(qImages) && qImages.length > 0) {
@@ -149,27 +226,18 @@ export default function MultipleChoiceRunner({
         }
       }
     }
-
-    // 4. Content payload or image payload
     if (urls.length === 0) {
       addVal(question?.imagePayload);
       addVal(question?.contentPayload);
     }
-
-    // 5. IndexedDB fallback only if still empty
-    if (urls.length === 0 && idbImage) {
-      addVal(idbImage);
-    }
+    if (urls.length === 0 && idbImage) addVal(idbImage);
 
     return Array.from(new Set(urls.filter(Boolean)));
   }, [imageUrls, question, qNo, idbImage]);
 
   const handleOpenImage = (src) => {
-    if (onOpenLightbox) {
-      onOpenLightbox(src);
-    } else {
-      setActiveLightbox(src);
-    }
+    if (onOpenLightbox) onOpenLightbox(src);
+    else setActiveLightbox(src);
   };
 
   // Extract option texts
@@ -191,62 +259,108 @@ export default function MultipleChoiceRunner({
 
   const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
+  // Difficulty badge colors
+  const diffBadge = {
+    'Kolay': { bg: 'rgba(16,185,129,0.12)', text: '#10b981', border: 'rgba(16,185,129,0.3)', icon: '🌱' },
+    'Orta': { bg: 'rgba(99,102,241,0.12)', text: '#6366f1', border: 'rgba(99,102,241,0.3)', icon: '🎯' },
+    'Zor': { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b', border: 'rgba(245,158,11,0.3)', icon: '🔥' },
+    'Yeni Nesil': { bg: 'linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15))', text: '#ec4899', border: 'rgba(236,72,153,0.35)', icon: '🌟' }
+  }[difficulty] || { bg: 'rgba(99,102,241,0.12)', text: '#6366f1', border: 'rgba(99,102,241,0.3)', icon: '🎯' };
+
   return (
     <div
       id={`q-card-${qNo}`}
       style={{
-        background: 'var(--color-surface)',
-        borderRadius: isMobile ? '1.15rem' : '1.35rem',
-        border: (selectedOption !== null && selectedOption !== undefined) ? '1.5px solid rgba(99, 102, 241, 0.45)' : '1.5px solid var(--color-border)',
-        padding: isMobile ? '1rem' : '1.35rem',
-        boxShadow: (selectedOption !== null && selectedOption !== undefined) ? '0 8px 25px -4px rgba(99, 102, 241, 0.08)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
+        background: 'var(--color-surface, #ffffff)',
+        borderRadius: isMobile ? '1.25rem' : '1.5rem',
+        border: (selectedOption !== null && selectedOption !== undefined) ? '2px solid #6366f1' : '1.5px solid var(--color-border)',
+        padding: isMobile ? '1.1rem' : '1.65rem',
+        boxShadow: (selectedOption !== null && selectedOption !== undefined)
+          ? '0 12px 35px -5px rgba(99, 102, 241, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.1)'
+          : '0 6px 25px -4px rgba(0,0,0,0.06)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.15rem',
-        transition: 'all 0.2s ease',
+        gap: '1.25rem',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative'
       }}
     >
-      {/* ── TOP HEADER BAR ── */}
+      {/* ── TOP HEADER BAR (Vibrant Badges & Status) ── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--color-border)',
-        paddingBottom: '0.75rem',
+        borderBottom: '1.5px solid var(--color-border)',
+        paddingBottom: '0.85rem',
         flexWrap: 'wrap',
-        gap: '0.5rem'
+        gap: '0.65rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <span style={{
-            padding: '0.3rem 0.75rem',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(79, 70, 229, 0.12))',
-            border: '1.5px solid rgba(99, 102, 241, 0.35)',
-            color: '#6366f1',
-            borderRadius: '0.6rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.82rem' : '0.88rem',
+        {/* Left: Question Badge, Subject, Topic & Difficulty */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)'
+            gap: '0.4rem',
+            padding: '0.35rem 0.85rem',
+            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            color: '#ffffff',
+            borderRadius: '0.75rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.82rem' : '0.9rem',
+            boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+            letterSpacing: '0.02em'
           }}>
-            SORU {qNo} {totalQuestions > 1 && `/ ${totalQuestions}`}
-          </span>
+            <span>SORU {qNo}</span>
+            {totalQuestions > 1 && <span style={{ opacity: 0.8, fontSize: '0.76rem' }}>/ {totalQuestions}</span>}
+          </div>
+
+          {subjectName && (
+            <span style={{
+              padding: '0.25rem 0.65rem',
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              color: '#3b82f6',
+              borderRadius: '0.6rem',
+              fontWeight: 800,
+              fontSize: '0.74rem'
+            }}>
+              📘 {subjectName}
+            </span>
+          )}
+
+          {topicName && (
+            <span style={{
+              padding: '0.25rem 0.65rem',
+              background: 'var(--color-surface-hover)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)',
+              borderRadius: '0.6rem',
+              fontWeight: 700,
+              fontSize: '0.74rem'
+            }}>
+              🏷️ {topicName}
+            </span>
+          )}
+
           <span style={{
-            padding: '0.22rem 0.55rem',
-            background: 'var(--color-surface-hover)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
-            borderRadius: '0.5rem',
+            padding: '0.25rem 0.65rem',
+            background: diffBadge.bg,
+            border: `1px solid ${diffBadge.border}`,
+            color: diffBadge.text,
+            borderRadius: '0.6rem',
             fontWeight: 800,
-            fontSize: '0.72rem'
+            fontSize: '0.72rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
           }}>
-            🔘 Çoktan Seçmeli
+            <span>{diffBadge.icon}</span>
+            <span>{difficulty}</span>
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        {/* Right: Drawing tool & Answer Status Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {onOpenDrawing && (
             <button
               type="button"
@@ -254,45 +368,47 @@ export default function MultipleChoiceRunner({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.3rem',
-                padding: '0.22rem 0.55rem',
-                borderRadius: '0.5rem',
-                border: '1px solid var(--color-border)',
+                gap: '0.35rem',
+                padding: '0.3rem 0.65rem',
+                borderRadius: '0.6rem',
+                border: '1.5px solid var(--color-border-input)',
                 background: 'var(--color-surface-hover)',
-                color: 'var(--color-text-secondary)',
-                fontSize: '0.74rem',
+                color: 'var(--color-text)',
+                fontSize: '0.76rem',
                 fontWeight: 800,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s'
               }}
-              title="Çizim ve Karalama Tahtası"
+              title="Soru Üzerinde Çizim ve Karalama Yap"
             >
-              <Pencil size={13} />
-              <span>{isMobile ? 'Çizim' : 'Çizim Tahtası'}</span>
+              <Pencil size={14} color="#6366f1" />
+              <span>{isMobile ? 'Çizim' : 'Karalama Tahtası'}</span>
             </button>
           )}
 
           {selectedOption !== null && selectedOption !== undefined ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{
-                fontSize: '0.78rem',
+                fontSize: '0.8rem',
                 color: '#10b981',
                 fontWeight: 900,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.3rem',
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                padding: '0.2rem 0.55rem',
-                borderRadius: '99px'
+                gap: '0.35rem',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '99px',
+                boxShadow: '0 2px 8px rgba(16,185,129,0.2)'
               }}>
-                <Check size={13} strokeWidth={3} /> Cevaplandı ({optionLetters[selectedOption] || selectedOption})
+                <Check size={14} strokeWidth={3} /> Cevaplandı ({optionLetters[selectedOption] || selectedOption})
               </span>
               <button
                 type="button"
                 onClick={() => onSelectOption && onSelectOption(null)}
                 style={{
-                  padding: '0.2rem 0.45rem',
-                  borderRadius: '0.4rem',
+                  padding: '0.25rem 0.55rem',
+                  borderRadius: '0.5rem',
                   border: '1px solid var(--color-border)',
                   background: 'var(--color-surface-hover)',
                   color: 'var(--color-text-muted)',
@@ -300,7 +416,7 @@ export default function MultipleChoiceRunner({
                   fontWeight: 800,
                   cursor: 'pointer'
                 }}
-                title="Seçimi Temizle"
+                title="Seçilen Cevabı Temizle"
               >
                 Temizle
               </button>
@@ -311,30 +427,30 @@ export default function MultipleChoiceRunner({
               color: 'var(--color-text-muted)',
               fontWeight: 800,
               background: 'var(--color-surface-hover)',
-              padding: '0.2rem 0.55rem',
+              padding: '0.25rem 0.65rem',
               borderRadius: '99px',
               border: '1px solid var(--color-border)'
             }}>
-              — Yanıtlanmadı
+              ⏳ Yanıtlanmadı
             </span>
           )}
         </div>
       </div>
 
-      {/* ── BEAUTIFUL FRAMED QUESTION BOX ── */}
+      {/* ── QUESTION STAGE (Framed Canvas with Rich Typography) ── */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.04) 0%, rgba(99, 102, 241, 0.01) 100%)',
-        border: '1.5px solid rgba(99, 102, 241, 0.22)',
-        borderRadius: '1rem',
-        padding: isMobile ? '0.85rem 1rem' : '1.15rem 1.25rem',
+        border: '1.5px solid rgba(99, 102, 241, 0.18)',
+        borderRadius: '1.15rem',
+        padding: isMobile ? '1rem 1.15rem' : '1.35rem 1.5rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.85rem',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
+        gap: '1rem',
+        boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.02)'
       }}>
         {/* Question Images */}
         {resolvedImages.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {resolvedImages.map((url, idx) => (
               <StandardImageFrame
                 key={idx}
@@ -346,24 +462,16 @@ export default function MultipleChoiceRunner({
           </div>
         )}
 
-        {/* Question Text */}
+        {/* Question Text with Rich Premises & Highlights */}
         {qText && !qText.startsWith('Soru ') && (
-          <div style={{
-            fontSize: isMobile ? '0.94rem' : '1.02rem',
-            lineHeight: 1.65,
-            color: 'var(--color-text)',
-            fontWeight: 600,
-            whiteSpace: 'pre-wrap'
-          }}>
-            {qText}
-          </div>
+          <FormattedQuestionText text={qText} />
         )}
       </div>
 
-      {/* ── OPTIONS RENDERING ── */}
+      {/* ── OPTIONS RENDERING (Vibrant Interactive Tiles) ── */}
       {hasAnyOptionText ? (
         /* Vertical Stacked Options with Full Text */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.35rem' }}>
           {optionsWithText.map((optObj, optIdx) => {
             const isSelected = selectedOption === optIdx;
             return (
@@ -374,40 +482,69 @@ export default function MultipleChoiceRunner({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.85rem',
-                  padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1rem',
-                  borderRadius: '0.85rem',
-                  border: `2px solid ${isSelected ? '#6366f1' : 'var(--color-border)'}`,
-                  background: isSelected ? 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.06))' : 'var(--color-surface)',
-                  color: isSelected ? '#4f46e5' : 'var(--color-text)',
+                  gap: '1rem',
+                  padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                  borderRadius: '1rem',
+                  border: isSelected ? '2px solid #6366f1' : '1.5px solid var(--color-border)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.08))'
+                    : 'var(--color-surface, #ffffff)',
+                  color: isSelected ? '#4338ca' : 'var(--color-text)',
                   fontWeight: isSelected ? 800 : 500,
-                  fontSize: isMobile ? '0.88rem' : '0.92rem',
+                  fontSize: isMobile ? '0.92rem' : '0.98rem',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease',
-                  boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.15)' : 'none'
+                  transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: isSelected
+                    ? '0 6px 20px rgba(99,102,241,0.2), 0 0 0 1px rgba(99,102,241,0.2)'
+                    : '0 2px 8px rgba(0,0,0,0.02)',
+                  position: 'relative'
                 }}
               >
+                {/* Option Letter Pill */}
                 <span style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '0.75rem',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                    : 'var(--color-surface-hover)',
                   color: isSelected ? '#ffffff' : 'var(--color-text)',
-                  border: isSelected ? 'none' : '1px solid var(--color-border)',
+                  border: isSelected ? 'none' : '1.5px solid var(--color-border)',
                   fontWeight: 900,
-                  fontSize: '0.88rem',
+                  fontSize: '0.95rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                  boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
+                  transition: 'all 0.15s ease'
                 }}>
                   {optObj.letter}
                 </span>
-                <span style={{ flex: 1, lineHeight: 1.5 }}>
+
+                {/* Option Content Text */}
+                <span style={{ flex: 1, lineHeight: 1.55 }}>
                   {optObj.text}
                 </span>
+
+                {/* Selected Checkmark Halo */}
+                {isSelected && (
+                  <span style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.35)'
+                  }}>
+                    <Check size={14} strokeWidth={3} />
+                  </span>
+                )}
               </button>
             );
           })}
@@ -419,17 +556,17 @@ export default function MultipleChoiceRunner({
           alignItems: 'center',
           justifyContent: 'space-between',
           background: 'var(--color-surface-hover)',
-          padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.25rem',
-          borderRadius: '0.85rem',
+          padding: isMobile ? '0.85rem 1.15rem' : '1rem 1.5rem',
+          borderRadius: '1.15rem',
           border: '1.5px solid var(--color-border)',
-          marginTop: '0.25rem',
+          marginTop: '0.35rem',
           flexWrap: 'wrap',
-          gap: '0.5rem'
+          gap: '0.75rem'
         }}>
-          <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
-            Cevabınızı İşaretleyin:
+          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text)' }}>
+            🔘 Cevabınızı İşaretleyin:
           </span>
-          <div style={{ display: 'flex', gap: isMobile ? '0.5rem' : '0.65rem' }}>
+          <div style={{ display: 'flex', gap: isMobile ? '0.55rem' : '0.75rem' }}>
             {optionLetters.map((opt, optIdx) => {
               const isSelected = selectedOption === optIdx;
               return (
@@ -438,19 +575,19 @@ export default function MultipleChoiceRunner({
                   type="button"
                   onClick={() => onSelectOption && onSelectOption(isSelected ? null : optIdx)}
                   style={{
-                    width: isMobile ? '38px' : '42px',
-                    height: isMobile ? '38px' : '42px',
-                    borderRadius: '50%',
-                    border: `2px solid ${isSelected ? '#4f46e5' : 'var(--color-border-input)'}`,
+                    width: isMobile ? '42px' : '48px',
+                    height: isMobile ? '42px' : '48px',
+                    borderRadius: '0.85rem',
+                    border: isSelected ? '2px solid #4f46e5' : '1.5px solid var(--color-border-input)',
                     background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
                     color: isSelected ? '#ffffff' : 'var(--color-text)',
                     fontWeight: 900,
-                    fontSize: '0.92rem',
+                    fontSize: '1.05rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                    boxShadow: isSelected ? '0 6px 16px rgba(99,102,241,0.35)' : 'none',
                     transition: 'all 0.15s ease',
                     touchAction: 'manipulation'
                   }}

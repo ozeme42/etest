@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTheme } from '../../../context/ThemeContext';
 import MultipleChoiceRunner from '../runner/MultipleChoiceRunner';
@@ -8,12 +8,11 @@ import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
-import { Clock, Send, ArrowLeft, Sun, Moon, ChevronLeft, ChevronRight, Check, LayoutList, Square, Pencil } from 'lucide-react';
+import {
+  Clock, Send, ArrowLeft, Sun, Moon, ChevronLeft, ChevronRight,
+  Check, LayoutList, Square, Pencil, Sparkles, BookOpen, Layers, CheckCircle2
+} from 'lucide-react';
 
-/**
- * SingleMultipleChoiceRunner
- * Dedicated, isolated runner strictly for Single Multiple-Choice assignments.
- */
 export default function SingleMultipleChoiceRunner({
   test = {},
   questions = [],
@@ -27,10 +26,23 @@ export default function SingleMultipleChoiceRunner({
   const draftKey = `draft_single_mc_${test.id || 'test'}`;
 
   const [activeQIdx, setActiveQIdx] = useState(0);
-  const [viewMode, setViewMode] = useState('single'); // 'single' | 'list'
+  const [viewMode, setViewMode] = useState('single');
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
-  // 1. Convert to unified standardized questions
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsElapsed(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   const unifiedTest = useMemo(() => {
     const rawWithQs = {
       ...test,
@@ -45,7 +57,6 @@ export default function SingleMultipleChoiceRunner({
     : ((questions && questions.length > 0) ? questions : [test]);
   const totalQuestions = activeQuestions.length || 1;
 
-  // 2. Answers State
   const [answers, setAnswers] = useState(() => {
     const init = {};
     if (draftAnswers && draftAnswers.length > 0) {
@@ -150,7 +161,7 @@ export default function SingleMultipleChoiceRunner({
       blank: bCount,
       score: scorePct,
       net: Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2),
-      total: totalQuestions
+      totalQuestions: totalQuestions
     });
 
     setSubmissionPayload(formattedAnswers);
@@ -171,24 +182,27 @@ export default function SingleMultipleChoiceRunner({
   };
 
   const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
+  const progressPct = Math.round((answeredCount / totalQuestions) * 100);
   const activeQuestion = activeQuestions[activeQIdx] || activeQuestions[0] || {};
+  const testSubject = test.subject || activeQuestion.subject || 'Ders';
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden', position: 'relative' }}>
-      {/* Top Header */}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg, #f8fafc)', color: 'var(--color-text, #0f172a)', overflow: 'hidden', position: 'relative' }}>
+      
+      {/* ── TOP HEADER ── */}
       <div style={{
-        background: 'var(--color-surface)',
-        borderBottom: '1px solid var(--color-border)',
-        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.5rem',
+        background: isDark ? 'rgba(30, 41, 59, 0.95)' : '#ffffff',
+        borderBottom: '1.5px solid var(--color-border)',
+        padding: isMobile ? '0.6rem 0.85rem' : '0.85rem 1.75rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.65rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        gap: '0.75rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
         zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.6rem' : '0.85rem', minWidth: 0 }}>
           <button
             type="button"
             onClick={onExit}
@@ -202,34 +216,59 @@ export default function SingleMultipleChoiceRunner({
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-text)',
-              flexShrink: 0
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
             }}
-            title="Geri Dön"
+            title="Sınavdan Çık"
           >
             <ArrowLeft size={isMobile ? 18 : 20} />
           </button>
+
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {unifiedTest.title || 'Çoktan Seçmeli Test'}
-            </h3>
-            <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: '#2563eb' }}>
-              🔘 Çoktan Seçmeli • {totalQuestions} Soru
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.15rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {unifiedTest.title || 'Çoktan Seçmeli Test'}
+              </h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: 2 }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))', color: '#6366f1', padding: '1px 7px', borderRadius: 99, border: '1px solid rgba(99,102,241,0.3)' }}>
+                {testSubject}
+              </span>
+              <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                • {answeredCount}/{totalQuestions} Yanıtlandı (%{progressPct})
+              </span>
+            </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.65rem' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '0.75rem',
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1.5px solid rgba(16, 185, 129, 0.35)',
+            color: '#10b981',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.78rem' : '0.85rem'
+          }}>
+            <Clock size={15} />
+            <span>{formatTime(secondsElapsed)}</span>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsDrawingOpen(prev => !prev)}
             style={{
-              padding: isMobile ? '0.45rem 0.7rem' : '0.55rem 1rem',
+              padding: isMobile ? '0.45rem 0.7rem' : '0.5rem 0.95rem',
               borderRadius: '0.75rem',
               border: `1.5px solid ${isDrawingOpen ? '#6366f1' : 'var(--color-border-input)'}`,
-              background: isDrawingOpen ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)',
-              color: isDrawingOpen ? '#4f46e5' : 'var(--color-text)',
+              background: isDrawingOpen ? 'rgba(99,102,241,0.15)' : 'var(--color-surface-hover)',
+              color: isDrawingOpen ? '#6366f1' : 'var(--color-text)',
               fontWeight: 800,
-              fontSize: isMobile ? '0.78rem' : '0.85rem',
+              fontSize: isMobile ? '0.78rem' : '0.84rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -237,25 +276,44 @@ export default function SingleMultipleChoiceRunner({
             }}
           >
             <Pencil size={15} />
-            <span>{isMobile ? 'Çizim' : 'Çizim Tahtası'}</span>
+            <span>{isMobile ? 'Çizim' : 'Karalama Tahtası'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            style={{
+              padding: '0.45rem 0.65rem',
+              borderRadius: '0.75rem',
+              border: '1.5px solid var(--color-border-input)',
+              background: 'var(--color-surface-hover)',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Temayı Değiştir"
+          >
+            {isDark ? <Sun size={16} color="#f59e0b" /> : <Moon size={16} color="#6366f1" />}
           </button>
 
           <button
             type="button"
             onClick={handleFinishExam}
             style={{
-              padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
+              padding: isMobile ? '0.5rem 0.95rem' : '0.55rem 1.35rem',
               borderRadius: '0.75rem',
               border: 'none',
-              background: 'linear-gradient(135deg, #16a34a, #15803d)',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
               color: '#ffffff',
               fontWeight: 900,
-              fontSize: isMobile ? '0.82rem' : '0.88rem',
+              fontSize: isMobile ? '0.82rem' : '0.9rem',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.45rem'
             }}
           >
             <Send size={15} />
@@ -264,40 +322,42 @@ export default function SingleMultipleChoiceRunner({
         </div>
       </div>
 
+      <div style={{ width: '100%', height: '4px', background: 'rgba(99,102,241,0.1)', overflow: 'hidden' }}>
+        <div style={{
+          width: `${progressPct}%`,
+          height: '100%',
+          background: 'linear-gradient(90deg, #6366f1, #10b981)',
+          transition: 'width 0.3s ease'
+        }} />
+      </div>
+
       {/* Main Layout */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <QuizPanelLayout
-          panelTitle="Optik Form"
-          panelSubtitle="Cevap Kağıdı"
+          panelTitle="Optik Cevap Kağıdı"
+          panelSubtitle="İşaretlemeler anlık kaydedilir"
           icon="📋"
           defaultPosition="right"
           defaultSize={320}
           defaultOpenOnMobile={false}
           documentContent={
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'var(--color-bg)' }}>
-              {/* ── TOP QUESTION NAVIGATOR STRIP ── */}
+              {/* Question navigator */}
               <div style={{
                 background: 'var(--color-surface)',
                 borderBottom: '1px solid var(--color-border)',
-                padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 1.15rem',
+                padding: isMobile ? '0.45rem 0.75rem' : '0.6rem 1.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '0.65rem',
-                zIndex: 10,
-                flexShrink: 0
+                gap: '0.65rem'
               }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-secondary)', flexShrink: 0 }}>
-                  <b style={{ color: '#6366f1' }}>{activeQIdx + 1}</b> / {totalQuestions} Soru • <span style={{ color: answeredCount === totalQuestions ? '#10b981' : 'var(--color-text-muted)' }}>{answeredCount} Yanıtlandı</span>
-                </div>
-
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.3rem',
+                  gap: '0.45rem',
                   overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  padding: '0.1rem 0',
+                  padding: '0.15rem 0',
                   flex: 1,
                   justifyContent: isMobile ? 'flex-start' : 'center'
                 }}>
@@ -306,7 +366,7 @@ export default function SingleMultipleChoiceRunner({
                     const isAnswered = answers[qNo] !== null && answers[qNo] !== undefined && answers[qNo] !== 'empty';
 
                     let bBg = 'var(--color-surface-hover)';
-                    let bBorder = '1px solid var(--color-border-input)';
+                    let bBorder = '1.5px solid var(--color-border-input)';
                     let bColor = 'var(--color-text-muted)';
 
                     if (isCurrent) {
@@ -314,9 +374,9 @@ export default function SingleMultipleChoiceRunner({
                       bBorder = '2px solid #6366f1';
                       bColor = '#ffffff';
                     } else if (isAnswered) {
-                      bBg = 'rgba(22, 163, 74, 0.15)';
-                      bBorder = '1.5px solid #16a34a';
-                      bColor = '#16a34a';
+                      bBg = 'rgba(16, 185, 129, 0.15)';
+                      bBorder = '1.5px solid #10b981';
+                      bColor = '#10b981';
                     }
 
                     return (
@@ -330,59 +390,59 @@ export default function SingleMultipleChoiceRunner({
                           }
                         }}
                         style={{
-                          width: isMobile ? '28px' : '30px',
-                          height: isMobile ? '28px' : '30px',
-                          borderRadius: '50%',
+                          width: isMobile ? '30px' : '34px',
+                          height: isMobile ? '30px' : '34px',
+                          borderRadius: '0.65rem',
                           border: bBorder,
                           background: bBg,
                           color: bColor,
                           fontWeight: 900,
-                          fontSize: '0.74rem',
+                          fontSize: '0.8rem',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
-                          boxShadow: isCurrent ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
+                          boxShadow: isCurrent ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
                           transition: 'all 0.15s ease'
                         }}
                         title={`Soru ${qNo}'e Geç`}
                       >
-                        {isAnswered && !isCurrent ? <Check size={13} strokeWidth={3} /> : qNo}
+                        {isAnswered && !isCurrent ? <Check size={14} strokeWidth={3} /> : qNo}
                       </button>
                     );
                   })}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
                   <button
                     type="button"
                     onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem',
-                      padding: '0.25rem 0.55rem',
-                      borderRadius: '0.5rem',
-                      border: '1px solid var(--color-border)',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '0.6rem',
+                      border: '1.5px solid var(--color-border)',
                       background: 'var(--color-surface-hover)',
-                      color: 'var(--color-text-secondary)',
-                      fontSize: '0.72rem',
+                      color: 'var(--color-text)',
+                      fontSize: '0.74rem',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
                     title={viewMode === 'single' ? 'Tüm Soruları Liste Halinde Göster' : 'Tek Tek Sırayla Göster'}
                   >
-                    {viewMode === 'single' ? <LayoutList size={13} /> : <Square size={13} />}
+                    {viewMode === 'single' ? <LayoutList size={14} color="#6366f1" /> : <Square size={14} color="#6366f1" />}
                     <span>{isMobile ? '' : (viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru')}</span>
                   </button>
                 </div>
               </div>
 
-              {/* ── MAIN CONTENT ── */}
-              <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Main Questions View */}
+              <div style={{ padding: isMobile ? '0.85rem 0.75rem' : '1.5rem 2rem', overflowY: 'auto', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {viewMode === 'single' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                     <MultipleChoiceRunner
                       key={activeQuestion.id || activeQIdx}
                       question={activeQuestion}
@@ -402,9 +462,9 @@ export default function SingleMultipleChoiceRunner({
                       justifyContent: 'space-between',
                       background: 'var(--color-surface)',
                       border: '1.5px solid var(--color-border)',
-                      borderRadius: '1rem',
-                      padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1.25rem',
-                      marginTop: '0.25rem'
+                      borderRadius: '1.15rem',
+                      padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.5rem',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
                     }}>
                       <button
                         type="button"
@@ -413,25 +473,30 @@ export default function SingleMultipleChoiceRunner({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 1.1rem',
-                          borderRadius: '0.7rem',
+                          gap: '0.4rem',
+                          padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.35rem',
+                          borderRadius: '0.85rem',
                           border: '1.5px solid var(--color-border-input)',
                           background: activeQIdx === 0 ? 'var(--color-surface-hover)' : 'var(--color-surface)',
                           color: activeQIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
-                          fontSize: isMobile ? '0.78rem' : '0.85rem',
+                          fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 800,
                           cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
-                          opacity: activeQIdx === 0 ? 0.5 : 1,
+                          opacity: activeQIdx === 0 ? 0.45 : 1,
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <ChevronLeft size={16} />
+                        <ChevronLeft size={17} />
                         <span>Önceki Soru</span>
                       </button>
 
-                      <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
-                        {activeQIdx + 1} / {totalQuestions}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6366f1' }}>
+                          {activeQIdx + 1} / {totalQuestions}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          Soru İlerlemesi
+                        </span>
                       </div>
 
                       <button
@@ -441,22 +506,22 @@ export default function SingleMultipleChoiceRunner({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.2rem',
-                          borderRadius: '0.7rem',
+                          gap: '0.4rem',
+                          padding: isMobile ? '0.55rem 1rem' : '0.65rem 1.45rem',
+                          borderRadius: '0.85rem',
                           border: 'none',
                           background: activeQIdx >= totalQuestions - 1 ? 'var(--color-surface-hover)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
                           color: activeQIdx >= totalQuestions - 1 ? 'var(--color-text-muted)' : '#ffffff',
-                          fontSize: isMobile ? '0.78rem' : '0.85rem',
+                          fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 900,
                           cursor: activeQIdx >= totalQuestions - 1 ? 'not-allowed' : 'pointer',
-                          opacity: activeQIdx >= totalQuestions - 1 ? 0.5 : 1,
-                          boxShadow: activeQIdx >= totalQuestions - 1 ? 'none' : '0 2px 8px rgba(79,70,229,0.3)',
+                          opacity: activeQIdx >= totalQuestions - 1 ? 0.45 : 1,
+                          boxShadow: activeQIdx >= totalQuestions - 1 ? 'none' : '0 4px 14px rgba(79,70,229,0.35)',
                           transition: 'all 0.15s ease'
                         }}
                       >
                         <span>Sonraki Soru</span>
-                        <ChevronRight size={16} />
+                        <ChevronRight size={17} />
                       </button>
                     </div>
                   </div>
@@ -492,14 +557,12 @@ export default function SingleMultipleChoiceRunner({
           }
         />
 
-        {/* Global Drawing Pad */}
         <DrawingCanvas
           isOpen={isDrawingOpen}
           onClose={() => setIsDrawingOpen(false)}
         />
       </div>
 
-      {/* Result Modal */}
       <QuizResultModal
         isOpen={showResultModal}
         title={unifiedTest.title || 'Çoktan Seçmeli Test Sonucu'}

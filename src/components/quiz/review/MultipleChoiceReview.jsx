@@ -1,12 +1,9 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
-import { Eye, Key } from 'lucide-react';
+import { Eye, Key, Check, X, HelpCircle, Lightbulb, Sparkles, BookOpen } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 
-/**
- * StandardImageFrame Component
- */
 const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFullscreen }) {
   if (!src) return null;
   return (
@@ -17,11 +14,12 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '0.85rem',
+      borderRadius: '1rem',
       overflow: 'hidden',
       background: '#f8fafc',
-      border: '1px solid #e2e8f0',
-      marginBottom: '0.75rem'
+      border: '1.5px solid #e2e8f0',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+      marginBottom: '0.85rem'
     }}>
       <img
         src={src}
@@ -40,30 +38,27 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
           title="Tam Ekran Görüntüle"
           style={{
             position: 'absolute',
-            top: 8,
-            right: 8,
-            padding: '0.35rem',
-            borderRadius: '0.5rem',
-            background: 'rgba(15,23,42,0.65)',
+            top: 10,
+            right: 10,
+            padding: '0.45rem',
+            borderRadius: '0.65rem',
+            background: 'rgba(15,23,42,0.75)',
+            backdropFilter: 'blur(8px)',
             color: 'white',
-            border: 'none',
+            border: '1px solid rgba(255,255,255,0.2)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <Eye size={14} />
+          <Eye size={16} />
         </button>
       )}
     </div>
   );
 });
 
-/**
- * MultipleChoiceReview Component
- * Displays multiple-choice review with student answer vs correct answer, option texts, and badges.
- */
 export default function MultipleChoiceReview({
   question,
   qNo = 1,
@@ -81,7 +76,6 @@ export default function MultipleChoiceReview({
   const [activeLightbox, setActiveLightbox] = useState(null);
   const [idbImage, setIdbImage] = useState(null);
 
-  // Load IndexedDB image if stored locally
   useEffect(() => {
     let isMounted = true;
     async function loadIdb() {
@@ -127,8 +121,9 @@ export default function MultipleChoiceReview({
   const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+  const explanation = question?.explanation || question?.solution || question?.answerExplanation || '';
+  const topicName = question?.topic || question?.topicName || '';
 
-  // Collect all resolved images with single-source priority to avoid duplicate stacked images
   const resolvedImages = useMemo(() => {
     const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
 
@@ -147,17 +142,8 @@ export default function MultipleChoiceReview({
       }
     };
 
-    // 1. Explicit imageUrls prop passed specifically for this question
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      imageUrls.forEach(addVal);
-    }
-
-    // 2. Direct question.imageUrl (specific to this single question)
-    if (urls.length === 0 && question?.imageUrl) {
-      addVal(question.imageUrl);
-    }
-
-    // 3. Question-level images array
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) imageUrls.forEach(addVal);
+    if (urls.length === 0 && question?.imageUrl) addVal(question.imageUrl);
     if (urls.length === 0) {
       const qImages = question?.images || question?.imageUrls;
       if (Array.isArray(qImages) && qImages.length > 0) {
@@ -169,30 +155,20 @@ export default function MultipleChoiceReview({
         }
       }
     }
-
-    // 4. Content payload or image payload
     if (urls.length === 0) {
       addVal(question?.imagePayload);
       addVal(question?.contentPayload);
     }
-
-    // 5. IndexedDB fallback only if still empty
-    if (urls.length === 0 && idbImage) {
-      addVal(idbImage);
-    }
+    if (urls.length === 0 && idbImage) addVal(idbImage);
 
     return Array.from(new Set(urls.filter(Boolean)));
   }, [imageUrls, question, qNo, idbImage]);
 
   const handleOpenImage = (src) => {
-    if (onOpenLightbox) {
-      onOpenLightbox(src);
-    } else {
-      setActiveLightbox(src);
-    }
+    if (onOpenLightbox) onOpenLightbox(src);
+    else setActiveLightbox(src);
   };
 
-  // Extract option texts
   const optionsWithText = optionLetters.map((opt, optIdx) => {
     const raw = rawOptions[optIdx];
     let text = '';
@@ -211,120 +187,147 @@ export default function MultipleChoiceReview({
 
   const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
+  let cardBorder = '1.5px solid #e2e8f0';
+  let headerBg = 'linear-gradient(135deg, #4f46e5, #7c3aed)';
+  if (effectiveIsCorrect === true) {
+    cardBorder = '2px solid #86efac';
+  } else if (effectiveIsCorrect === false) {
+    cardBorder = '2px solid #fca5a5';
+  }
+
   return (
-    <div style={{
-      background: '#ffffff',
-      borderRadius: '1.25rem',
-      border: effectiveIsCorrect === true ? '1.5px solid #86efac' : (hasSelected && effectiveIsCorrect === false ? '1.5px solid #fca5a5' : '1.5px solid #cbd5e1'),
-      padding: isMobile ? '1rem' : '1.5rem',
-      boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.15rem'
-    }}>
+    <div
+      id={`review-q-${qNo}`}
+      style={{
+        background: '#ffffff',
+        borderRadius: isMobile ? '1.25rem' : '1.5rem',
+        border: cardBorder,
+        padding: isMobile ? '1.1rem' : '1.65rem',
+        boxShadow: effectiveIsCorrect === true
+          ? '0 10px 30px -5px rgba(16, 185, 129, 0.12)'
+          : effectiveIsCorrect === false
+            ? '0 10px 30px -5px rgba(239, 68, 68, 0.12)'
+            : '0 6px 20px -4px rgba(0,0,0,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.25rem',
+        position: 'relative'
+      }}
+    >
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid #e2e8f0',
-        paddingBottom: '0.75rem'
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '0.85rem',
+        flexWrap: 'wrap',
+        gap: '0.65rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
             padding: '0.35rem 0.85rem',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            color: '#1d4ed8',
-            borderRadius: '0.5rem',
+            background: headerBg,
+            color: '#ffffff',
+            borderRadius: '0.75rem',
             fontWeight: 900,
-            fontSize: '0.9rem'
+            fontSize: isMobile ? '0.82rem' : '0.88rem',
+            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)'
           }}>
-            SORU {qNo} {totalQuestions > 1 && `/ ${totalQuestions}`}
-          </span>
-          <span style={{
-            padding: '0.2rem 0.6rem',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            color: '#64748b',
-            borderRadius: '0.4rem',
-            fontWeight: 800,
-            fontSize: '0.75rem'
-          }}>
-            Çoktan Seçmeli
+            <span>SORU {qNo}</span>
+            {totalQuestions > 1 && <span style={{ opacity: 0.8, fontSize: '0.76rem' }}>/ {totalQuestions}</span>}
+          </div>
+
+          {topicName && (
+            <span style={{ padding: '0.22rem 0.65rem', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.74rem' }}>
+              🏷️ {topicName}
+            </span>
+          )}
+
+          <span style={{ padding: '0.22rem 0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.72rem' }}>
+            🔘 Çoktan Seçmeli
           </span>
         </div>
 
-        {/* Result Badge */}
         {!hasSelected ? (
-          <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 800 }}>
-            ○ BOŞ (Yanıtlanmadı)
+          <span style={{ fontSize: '0.82rem', color: '#64748b', background: '#f1f5f9', border: '1.5px solid #cbd5e1', padding: '0.25rem 0.85rem', borderRadius: '99px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <HelpCircle size={15} /> BOŞ (Yanıtlanmadı)
           </span>
         ) : effectiveIsCorrect === true ? (
-          <span style={{ fontSize: '0.78rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-            ✓ DOĞRU
+          <span style={{ fontSize: '0.82rem', color: '#15803d', background: '#dcfce7', border: '1.5px solid #86efac', padding: '0.25rem 0.85rem', borderRadius: '99px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(16,185,129,0.2)' }}>
+            <Check size={16} strokeWidth={3} /> DOĞRU CEVAP (+1 Net)
           </span>
         ) : (
-          <span style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.2rem 0.65rem', borderRadius: '999px', fontWeight: 900 }}>
-            ✗ YANLIŞ
+          <span style={{ fontSize: '0.82rem', color: '#b91c1c', background: '#fee2e2', border: '1.5px solid #fca5a5', padding: '0.25rem 0.85rem', borderRadius: '99px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(239,68,68,0.2)' }}>
+            <X size={16} strokeWidth={3} /> YANLIŞ CEVAP (-0.25 Net)
           </span>
         )}
       </div>
 
-      {/* Images */}
-      {resolvedImages.map((url, idx) => (
-        <StandardImageFrame
-          key={idx}
-          src={url}
-          alt={`Soru ${qNo} Görsel ${idx + 1}`}
-          onOpenFullscreen={() => handleOpenImage(url)}
-        />
-      ))}
+      {/* Stage */}
+      <div style={{
+        background: '#f8fafc',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '1.15rem',
+        padding: isMobile ? '1rem 1.15rem' : '1.35rem 1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.85rem'
+      }}>
+        {resolvedImages.map((url, idx) => (
+          <StandardImageFrame
+            key={idx}
+            src={url}
+            alt={`Soru ${qNo} Görsel ${idx + 1}`}
+            onOpenFullscreen={() => handleOpenImage(url)}
+          />
+        ))}
 
-      {/* Question Text */}
-      {qText && !qText.startsWith('Soru ') && (
-        <div style={{
-          fontSize: '1rem',
-          lineHeight: 1.65,
-          color: '#0f172a',
-          fontWeight: 700,
-          whiteSpace: 'pre-wrap'
-        }}>
-          {qText}
-        </div>
-      )}
+        {qText && !qText.startsWith('Soru ') && (
+          <div style={{
+            fontSize: '1rem',
+            lineHeight: 1.7,
+            color: '#0f172a',
+            fontWeight: 600,
+            whiteSpace: 'pre-wrap'
+          }}>
+            {qText}
+          </div>
+        )}
+      </div>
 
-      {/* Options Rendering */}
+      {/* Options */}
       {hasAnyOptionText ? (
-        /* Vertical Stacked Options with Full Text */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
           {optionsWithText.map((optObj, optIdx) => {
-            const isSelected = normalizedUser === optIdx;
+            const isUserSelected = normalizedUser === optIdx;
             const isKeyOption = normalizedCorrect === optIdx;
 
             let cardBg = '#ffffff';
-            let cardBorder = '1.5px solid #cbd5e1';
+            let cardBorder = '1.5px solid #e2e8f0';
             let circleBg = '#f1f5f9';
             let circleColor = '#475569';
             let textColor = '#1e293b';
 
-            if (isSelected) {
+            if (isUserSelected) {
               if (effectiveIsCorrect === true) {
-                cardBg = '#f0fdf4';
+                cardBg = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
                 cardBorder = '2px solid #16a34a';
                 circleBg = '#16a34a';
                 circleColor = '#ffffff';
                 textColor = '#14532d';
-              } else if (effectiveIsCorrect === false) {
-                cardBg = '#fef2f2';
+              } else {
+                cardBg = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
                 cardBorder = '2px solid #dc2626';
                 circleBg = '#dc2626';
                 circleColor = '#ffffff';
                 textColor = '#7f1d1d';
               }
             } else if (isKeyOption && !effectiveIsCorrect) {
-              // Highlight the correct answer if student got it wrong or left blank
-              cardBg = '#f0fdf4';
+              cardBg = 'linear-gradient(135deg, #f0fdf4, #ecfdf5)';
               cardBorder = '2px solid #16a34a';
               circleBg = '#16a34a';
               circleColor = '#ffffff';
@@ -337,34 +340,36 @@ export default function MultipleChoiceReview({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.85rem',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '0.85rem',
+                  gap: '1rem',
+                  padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                  borderRadius: '1rem',
                   border: cardBorder,
                   background: cardBg,
                   color: textColor,
-                  fontWeight: isSelected || isKeyOption ? 800 : 500,
-                  fontSize: '0.92rem',
+                  fontWeight: isUserSelected || isKeyOption ? 800 : 500,
+                  fontSize: isMobile ? '0.92rem' : '0.98rem',
+                  boxShadow: (isUserSelected || isKeyOption) ? '0 4px 14px rgba(0,0,0,0.06)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
               >
                 <span style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '0.75rem',
                   background: circleBg,
                   color: circleColor,
                   fontWeight: 900,
-                  fontSize: '0.85rem',
+                  fontSize: '0.92rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  boxShadow: (isUserSelected || isKeyOption) ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
                 }}>
                   {optObj.letter}
                 </span>
 
-                <span style={{ flex: 1, lineHeight: 1.5 }}>
+                <span style={{ flex: 1, lineHeight: 1.55 }}>
                   {optObj.text}
                 </span>
 
@@ -374,25 +379,32 @@ export default function MultipleChoiceReview({
                     fontWeight: 900,
                     color: '#15803d',
                     background: '#dcfce7',
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: '0.4rem',
+                    border: '1px solid #86efac',
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '0.6rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 3
+                    gap: 4,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.2)'
                   }}>
-                    <Key size={12} /> DOĞRU CEVAP
+                    <Key size={13} /> DOĞRU CEVAP
                   </span>
                 )}
-                {isSelected && !isKeyOption && (
+
+                {isUserSelected && !isKeyOption && (
                   <span style={{
                     fontSize: '0.75rem',
                     fontWeight: 900,
                     color: '#b91c1c',
                     background: '#fee2e2',
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: '0.4rem'
+                    border: '1px solid #fca5a5',
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '0.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
                   }}>
-                    ÖĞRENCİ SEÇİMİ
+                    <X size={13} /> SİZİN SEÇİMİNİZ
                   </span>
                 )}
               </div>
@@ -400,27 +412,25 @@ export default function MultipleChoiceReview({
           })}
         </div>
       ) : (
-        /* Optical Bubble Strip Review (A, B, C, D, E) */
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.75rem',
+          gap: '0.85rem',
           background: '#f8fafc',
-          padding: '1rem 1.25rem',
-          borderRadius: '0.85rem',
-          border: '1.5px solid #e2e8f0',
-          marginTop: '0.25rem'
+          padding: isMobile ? '0.85rem 1.15rem' : '1.15rem 1.5rem',
+          borderRadius: '1.15rem',
+          border: '1.5px solid #e2e8f0'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ÖĞRENCİ SEÇİMİ:</span>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#64748b' }}>SİZİN CEVABINIZ:</span>
               <span style={{
-                fontSize: '0.85rem',
+                fontSize: '0.88rem',
                 fontWeight: 900,
                 color: !hasSelected ? '#64748b' : effectiveIsCorrect === true ? '#15803d' : '#b91c1c',
                 background: !hasSelected ? '#e2e8f0' : effectiveIsCorrect === true ? '#dcfce7' : '#fee2e2',
-                padding: '0.2rem 0.6rem',
-                borderRadius: '0.4rem'
+                padding: '0.25rem 0.75rem',
+                borderRadius: '0.5rem'
               }}>
                 {hasSelected ? optionLetters[normalizedUser] : 'Boş'}
               </span>
@@ -428,76 +438,49 @@ export default function MultipleChoiceReview({
 
             {normalizedCorrect !== null && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>DOĞRU CEVAP:</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#64748b' }}>DOĞRU CEVAP:</span>
                 <span style={{
-                  fontSize: '0.85rem',
+                  fontSize: '0.88rem',
                   fontWeight: 900,
                   color: '#15803d',
                   background: '#dcfce7',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '0.4rem',
+                  border: '1px solid #86efac',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '0.5rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 3
+                  gap: 4
                 }}>
-                  <Key size={12} /> {optionLetters[normalizedCorrect]}
+                  <Key size={13} /> {optionLetters[normalizedCorrect]}
                 </span>
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          <div style={{ display: 'flex', gap: '0.65rem' }}>
-            {optionLetters.map((opt, optIdx) => {
-              const isUserChoice = normalizedUser === optIdx;
-              const isKeyOption = normalizedCorrect === optIdx;
-
-              let btnBg = '#ffffff';
-              let btnBorder = '2px solid #cbd5e1';
-              let btnColor = '#475569';
-
-              if (isUserChoice) {
-                if (effectiveIsCorrect === true) {
-                  btnBg = '#16a34a';
-                  btnBorder = '2px solid #16a34a';
-                  btnColor = '#ffffff';
-                } else {
-                  btnBg = '#dc2626';
-                  btnBorder = '2px solid #dc2626';
-                  btnColor = '#ffffff';
-                }
-              } else if (isKeyOption && !effectiveIsCorrect) {
-                btnBg = '#dcfce7';
-                btnBorder = '2px solid #16a34a';
-                btnColor = '#15803d';
-              }
-
-              return (
-                <div
-                  key={opt}
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    border: btnBorder,
-                    background: btnBg,
-                    color: btnColor,
-                    fontWeight: 900,
-                    fontSize: '0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: isUserChoice ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
-                  }}
-                >
-                  {opt}
-                </div>
-              );
-            })}
+      {/* Explanation */}
+      {explanation && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.9), rgba(236, 253, 245, 0.6))',
+          border: '1.5px solid #86efac',
+          borderRadius: '1.15rem',
+          padding: isMobile ? '1rem' : '1.25rem 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          boxShadow: '0 4px 16px rgba(16, 185, 129, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#047857', fontWeight: 900, fontSize: '0.92rem' }}>
+            <Lightbulb size={18} color="#10b981" />
+            <span>💡 Çözüm Rehberi & Detaylı Açıklama:</span>
+          </div>
+          <div style={{ fontSize: '0.92rem', color: '#166534', lineHeight: 1.65, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+            {explanation}
           </div>
         </div>
       )}
 
-      {/* Lightbox for Images */}
       {activeLightbox && (
         <ImageLightbox
           isOpen={Boolean(activeLightbox)}
