@@ -6,7 +6,8 @@ import {
   Search, Calendar, Layers, BarChart3, TrendingUp, Target,
   UserCheck, Sparkles, UserPlus, Eye, CheckCircle2, Flame,
   BookMarked, Star, Award, Zap, ArrowRight, Bell, Map, Key,
-  Check, Trash2, ArrowUpRight, ShieldAlert, School, ShieldCheck, Clock3
+  Check, Trash2, ArrowUpRight, ShieldAlert, School, ShieldCheck, Clock3,
+  AlertCircle, AlertTriangle
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
