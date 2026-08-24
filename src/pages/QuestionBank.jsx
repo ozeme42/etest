@@ -2243,6 +2243,20 @@ export default function QuestionBank() {
             const unitTopics = selectedUnit !== 'all' ? curData.topics.filter(t => t.unitId === selectedUnit) : [];
 
             // Unit Color Themes
+            
+            // Topic Color Themes (Matching Grade & Subject & Unit card palettes)
+            const topicGradients = [
+              { bg: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: '#0284c7', shadow: '0 12px 30px rgba(2, 132, 199, 0.35)' },
+              { bg: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', color: '#059669', shadow: '0 12px 30px rgba(16, 185, 129, 0.35)' },
+              { bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: '#7c3aed', shadow: '0 12px 30px rgba(139, 92, 246, 0.35)' },
+              { bg: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', color: '#d97706', shadow: '0 12px 30px rgba(245, 158, 11, 0.35)' },
+              { bg: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: '#db2777', shadow: '0 12px 30px rgba(236, 72, 153, 0.35)' },
+              { bg: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', color: '#4f46e5', shadow: '0 12px 30px rgba(99, 102, 241, 0.35)' },
+              { bg: 'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)', color: '#0d9488', shadow: '0 12px 30px rgba(20, 184, 166, 0.35)' },
+              { bg: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', color: '#e11d48', shadow: '0 12px 30px rgba(244, 63, 94, 0.35)' },
+              { bg: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', color: '#9333ea', shadow: '0 12px 30px rgba(168, 85, 247, 0.35)' }
+            ];
+
             const unitGradients = [
               { bg: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#6366f1', shadow: '0 10px 25px rgba(99, 102, 241, 0.35)' },
               { bg: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#0284c7', shadow: '0 10px 25px rgba(2, 132, 199, 0.35)' },
@@ -2553,8 +2567,8 @@ export default function QuestionBank() {
                   /* ══════════════════════════════════════════════════════════════════
                       LEVEL 4: TOPIC CARDS GRID (When a specific Unit is selected)
                   ══════════════════════════════════════════════════════════════════ */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-                    {/* Active Unit Header Card */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Active Unit Hero / Sub-Header */}
                     <div style={{
                       background: 'var(--color-surface)',
                       border: '1.5px solid var(--color-border)',
@@ -2567,7 +2581,7 @@ export default function QuestionBank() {
                       flexWrap: 'wrap',
                       gap: '1rem'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '240px' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -2575,34 +2589,36 @@ export default function QuestionBank() {
                             setSelectedTopic('all');
                           }}
                           style={{
-                            padding: '0.5rem 0.85rem',
-                            borderRadius: '0.65rem',
+                            padding: '0.55rem 0.95rem',
+                            borderRadius: '0.75rem',
                             border: '1.5px solid var(--color-border-input)',
                             background: 'var(--color-surface-hover)',
                             color: 'var(--color-text)',
                             fontWeight: 800,
-                            fontSize: '0.82rem',
+                            fontSize: '0.85rem',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 5
+                            gap: 6,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                            transition: 'all 0.15s ease'
                           }}
                         >
-                          <ArrowLeft size={16} />
+                          <ArrowLeft size={17} />
                           <span>Tüm Ünitelere Dön</span>
                         </button>
 
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>
                               📖 {activeUnitObj?.name}
                             </h3>
-                            <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 800 }}>
-                              {unitTopics.length} Konu
+                            <span style={{ fontSize: '0.74rem', padding: '2px 8px', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 800 }}>
+                              {unitTopics.length} Konu Kartı
                             </span>
                           </div>
-                          <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                            {activeSubject?.name} dersinin bu ünitesine ait konular aşağıdadır. İstediğiniz konunun kartına tıklayarak sorularını filtreleyebilirsiniz.
+                          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                            {activeSubject?.name} dersine ait bu ünitenin tüm konuları aşağıda kartlar olarak listelenmiştir.
                           </span>
                         </div>
                       </div>
@@ -2615,133 +2631,166 @@ export default function QuestionBank() {
                             background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
                             border: 'none',
                             color: '#ffffff',
-                            padding: '0.55rem 1rem',
-                            borderRadius: '0.65rem',
+                            padding: '0.6rem 1.15rem',
+                            borderRadius: '0.75rem',
                             fontWeight: 900,
-                            fontSize: '0.82rem',
+                            fontSize: '0.84rem',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 5,
-                            boxShadow: '0 4px 12px rgba(139,92,246,0.3)'
+                            gap: 6,
+                            boxShadow: '0 4px 14px rgba(139,92,246,0.35)'
                           }}
                         >
-                          <Sparkles size={15} />
+                          <Sparkles size={16} />
                           <span>Bu Üniteye AI Soru Üret</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Topic Cards Grid */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-                      gap: '0.85rem'
-                    }}>
+                    {/* TOPIC CARDS GRID (Sınıf, Ders ve Ünitelerle Birebir Aynı Tasarımda) */}
+                    <div className="qbank-grid">
                       {/* Topic Card 0: All topics in this unit */}
                       <div
                         onClick={() => setSelectedTopic('all')}
                         style={{
                           background: selectedTopic === 'all'
-                            ? (isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.15))' : 'linear-gradient(135deg, #e0e7ff, #ede9fe)')
-                            : 'var(--color-surface)',
-                          border: selectedTopic === 'all' ? '2px solid #6366f1' : '1.5px solid var(--color-border)',
-                          borderRadius: '1.15rem',
-                          padding: '1.15rem',
+                            ? 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)'
+                            : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                          borderRadius: '1.5rem',
+                          padding: '1.6rem',
+                          color: 'white',
                           cursor: 'pointer',
+                          boxShadow: selectedTopic === 'all' ? '0 14px 35px rgba(79, 70, 229, 0.5)' : '0 10px 25px rgba(99, 102, 241, 0.35)',
+                          border: selectedTopic === 'all' ? '2.5px solid #ffffff' : '1.5px solid rgba(255,255,255,0.3)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'space-between',
-                          gap: '0.75rem',
-                          boxShadow: selectedTopic === 'all' ? '0 6px 20px rgba(99,102,241,0.2)' : '0 2px 8px rgba(0,0,0,0.02)',
-                          transition: 'all 0.2s ease'
+                          minHeight: '195px'
                         }}
+                        className="qbank-card"
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '2px 8px', borderRadius: 99 }}>
-                            TÜM KONULAR
-                          </span>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                          <Layers size={125} />
+                        </div>
+
+                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Layers size={26} color="white" />
+                            </div>
+                            <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.25)', fontWeight: 900, fontSize: '0.74rem' }}>
+                              GENEL LİSTE
+                            </span>
+                          </div>
+
+                          <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.82rem', fontWeight: 900, padding: '0.3rem 0.8rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
                             ⚡ {questions.filter(q => q.unitId === activeUnitObj?.id || curData.topics.filter(t => t.unitId === activeUnitObj?.id).map(t => t.id).includes(q.topicId)).length} Soru
                           </span>
                         </div>
 
-                        <div>
-                          <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.25rem' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, lineHeight: 1.2 }}>
                             🌟 Ünitenin Tüm Soruları
+                          </h3>
+                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.45rem', fontSize: '0.82rem', fontWeight: 800, opacity: 0.95 }}>
+                            <span>{selectedTopic === 'all' ? '✓ Aktif Olarak Gösteriliyor' : 'Bu Ünitedeki Tüm Soruları Listele'}</span>
+                            <ChevronRight size={15} />
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                            Bu ünitedeki tüm alt başlıkları kapsayan soru ve testler.
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.45rem', borderTop: '1px solid var(--color-border)' }}>
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: selectedTopic === 'all' ? '#4f46e5' : 'var(--color-text-muted)' }}>
-                            {selectedTopic === 'all' ? '✓ Aktif Filtre' : 'Soruları Listele'}
-                          </span>
-                          <ChevronRight size={16} color={selectedTopic === 'all' ? '#4f46e5' : 'var(--color-text-muted)'} />
                         </div>
                       </div>
 
-                      {/* Individual Topic Cards */}
+                      {/* Individual Topic Cards (Matching Grade & Subject Cards) */}
                       {unitTopics.map((topic, tIdx) => {
+                        const theme = topicGradients[tIdx % topicGradients.length];
                         const isTopicSelected = selectedTopic === topic.id;
                         const topicQCount = questions.filter(q => q.topicId === topic.id).length;
 
                         return (
                           <div
                             key={topic.id}
-                            onClick={() => setSelectedTopic(topic.id)}
                             style={{
-                              background: isTopicSelected
-                                ? (isDark ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.15))' : 'linear-gradient(135deg, #dcfce7, #ecfdf5)')
-                                : 'var(--color-surface)',
-                              border: isTopicSelected ? '2px solid #10b981' : '1.5px solid var(--color-border)',
-                              borderRadius: '1.15rem',
-                              padding: '1.15rem',
-                              cursor: 'pointer',
+                              background: theme.bg,
+                              borderRadius: '1.5rem',
+                              padding: '1.6rem',
+                              color: 'white',
+                              boxShadow: isTopicSelected ? '0 16px 40px rgba(0,0,0,0.45)' : theme.shadow,
+                              border: isTopicSelected ? '2.5px solid #ffffff' : '1.5px solid rgba(255,255,255,0.25)',
+                              transform: isTopicSelected ? 'scale(1.02)' : 'none',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden',
                               display: 'flex',
                               flexDirection: 'column',
                               justifyContent: 'space-between',
-                              gap: '0.75rem',
-                              boxShadow: isTopicSelected ? '0 6px 20px rgba(16,185,129,0.2)' : '0 2px 8px rgba(0,0,0,0.02)',
-                              transition: 'all 0.2s ease'
+                              minHeight: '205px'
                             }}
+                            className="qbank-card"
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{
-                                fontSize: '0.72rem',
-                                fontWeight: 900,
-                                color: isTopicSelected ? '#047857' : '#64748b',
-                                background: isTopicSelected ? 'rgba(16,185,129,0.2)' : 'var(--color-surface-hover)',
-                                padding: '2px 8px',
-                                borderRadius: 99
-                              }}>
-                                KONU {tIdx + 1}
-                              </span>
-
-                              <span style={{
-                                fontSize: '0.76rem',
-                                fontWeight: 900,
-                                color: topicQCount > 0 ? '#10b981' : 'var(--color-text-muted)',
-                                background: topicQCount > 0 ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                                padding: '2px 7px',
-                                borderRadius: '0.4rem'
-                              }}>
-                                ⚡ {topicQCount} Soru
-                              </span>
+                            {/* Watermark floating icon */}
+                            <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                              <Sparkles size={125} />
                             </div>
 
-                            <div>
-                              <div style={{ fontSize: '0.96rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.3 }}>
-                                🏷️ {topic.name}
+                            {/* Top row */}
+                            <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="card-icon-box" style={{ width: '46px', height: '46px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Sparkles size={24} color="white" />
+                                </div>
+                                <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.25)', fontWeight: 900, fontSize: '0.74rem', backdropFilter: 'blur(6px)' }}>
+                                  {tIdx + 1}. KONU
+                                </span>
                               </div>
+
+                              <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.82rem', fontWeight: 900, padding: '0.28rem 0.75rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                                ⚡ {topicQCount} Soru / Test
+                              </span>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
-                              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: isTopicSelected ? '#15803d' : 'var(--color-text-muted)' }}>
-                                {isTopicSelected ? '✓ Seçili Konu' : 'Soruları Filtrele'}
-                              </span>
+                            {/* Title */}
+                            <div style={{ position: 'relative', zIndex: 2, margin: '1rem 0' }}>
+                              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.25 }}>
+                                {topic.name}
+                              </h3>
+                              {isTopicSelected && (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: '0.45rem', padding: '2px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.25)', fontSize: '0.72rem', fontWeight: 800 }}>
+                                  <Check size={13} /> Aktif Filtre
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Footer Actions */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', position: 'relative', zIndex: 2, paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTopic(topic.id);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.45rem 0.75rem',
+                                  borderRadius: '0.6rem',
+                                  background: isTopicSelected ? '#ffffff' : 'rgba(255,255,255,0.95)',
+                                  color: theme.color,
+                                  border: 'none',
+                                  fontWeight: 900,
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4,
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+                                }}
+                              >
+                                <span>{isTopicSelected ? '✓ Soruları Listelendi' : 'Soruları Filtrele'}</span>
+                                <ChevronRight size={14} />
+                              </button>
 
                               <button
                                 type="button"
@@ -2750,29 +2799,38 @@ export default function QuestionBank() {
                                   handleLaunchAiWithTopic(topic.name, activeUnitObj?.name || '', topic.id, activeUnitObj?.id || '');
                                 }}
                                 style={{
-                                  padding: '0.3rem 0.65rem',
-                                  borderRadius: '0.55rem',
-                                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                                  border: 'none',
-                                  color: '#ffffff',
+                                  padding: '0.45rem 0.75rem',
+                                  borderRadius: '0.6rem',
+                                  background: 'rgba(0,0,0,0.3)',
+                                  color: 'white',
+                                  border: '1px solid rgba(255,255,255,0.3)',
                                   fontWeight: 900,
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.78rem',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 3,
-                                  boxShadow: '0 2px 6px rgba(139,92,246,0.25)'
+                                  gap: 4
                                 }}
-                                title="Bu konuya özel AI ile soru üret"
+                                title="Bu konuya özel yapay zeka ile soru üret"
                               >
-                                <Sparkles size={12} />
-                                <span>AI Soru</span>
+                                <Sparkles size={13} />
+                                <span>AI</span>
                               </button>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {unitTopics.length === 0 && (
+                      <div style={{ padding: '3rem', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-border-input)' }}>
+                        <FolderTree size={44} color="var(--color-text-muted)" style={{ marginBottom: '0.75rem' }} />
+                        <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: 'var(--color-text)' }}>Bu ünitede henüz alt konu tanımlanmamış.</h3>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                          Yukarıdaki "Bu Üniteye AI Soru Üret" butonu ile ünite genelinde sorular üretebilir veya yönetici panelinden alt konular tanımlayabilirsiniz.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
