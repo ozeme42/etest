@@ -5,6 +5,8 @@ import {
   BookOpen, Layers, Key, Check, HelpCircle, Eye, RefreshCw, FolderTree
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { dbGetUserAiApiKey, dbSaveUserAiApiKey } from '../../services/supabaseService';
 import { generateQuestionsWithGemini, extractTextFromPdf, getAvailableGeminiModels, DEFAULT_GEMINI_MODELS } from '../../services/aiQuestionService';
 
 export default function AiQuestionGeneratorModal({
@@ -25,13 +27,19 @@ export default function AiQuestionGeneratorModal({
   availableTopics = []
 }) {
   const { isDark } = useTheme();
+  const { currentUser } = useAuth();
+  const userId = currentUser?.id || 'guest_teacher';
 
   // Step 1: Config & Input | Step 2: Review & Edit Studio
   const [step, setStep] = useState(1);
 
-  // API Key & Model
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [showKeyInput, setShowKeyInput] = useState(() => !localStorage.getItem('gemini_api_key'));
+  // API Key & Model (Kişiye ve Öğretmene Özel)
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem(`gemini_api_key_${userId}`) || localStorage.getItem('gemini_api_key') || '';
+  });
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keySaveSuccess, setKeySaveSuccess] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
   const [availableModelOptions, setAvailableModelOptions] = useState(DEFAULT_GEMINI_MODELS);
 
@@ -72,6 +80,27 @@ export default function AiQuestionGeneratorModal({
   const allSubjects = curData.subjects?.length ? curData.subjects : availableSubjects;
   const allUnits = curData.units?.length ? curData.units : availableUnits;
   const allTopics = curData.topics?.length ? curData.topics : availableTopics;
+
+  // Load teacher's personal private API Key from Supabase on mount / user change
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let isMounted = true;
+    async function loadTeacherKey() {
+      try {
+        const cloudKey = await dbGetUserAiApiKey(currentUser.id);
+        if (isMounted && cloudKey) {
+          setApiKey(cloudKey);
+          setShowKeyInput(false);
+        } else if (isMounted && !apiKey) {
+          setShowKeyInput(true);
+        }
+      } catch (err) {
+        console.warn('[AiModal] Error loading user API key:', err);
+      }
+    }
+    loadTeacherKey();
+    return () => { isMounted = false; };
+  }, [currentUser?.id]);
 
   // Initialize and sync selections from default props
   useEffect(() => {
@@ -147,11 +176,36 @@ export default function AiQuestionGeneratorModal({
 
   if (!isOpen) return null;
 
-  const handleSaveApiKey = (key) => {
-    setApiKey(key);
-    if (key.trim()) {
-      localStorage.setItem('gemini_api_key', key.trim());
-      setShowKeyInput(false);
+  const handleSaveApiKey = async (key) => {
+    const cleanKey = key.trim();
+    setApiKey(cleanKey);
+    setIsSavingKey(true);
+    try {
+      if (currentUser?.id) {
+        await dbSaveUserAiApiKey(currentUser.id, cleanKey, {
+          defaultModel: selectedModel,
+          userName: currentUser.name || currentUser.email || ''
+        });
+      } else {
+        localStorage.setItem('gemini_api_key', cleanKey);
+      }
+      setKeySaveSuccess(true);
+      setTimeout(() => setKeySaveSuccess(false), 3000);
+      if (cleanKey) {
+        setShowKeyInput(false);
+      }
+    } catch (err) {
+      console.warn('[AiModal] Error saving API key:', err);
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
+  const handleRemoveApiKey = async () => {
+    if (window.confirm('Bu hesaba kayıtlı Gemini API anahtarını veritabanından kaldırmak istediğinize emin misiniz?')) {
+      await handleSaveApiKey('');
+      setApiKey('');
+      setShowKeyInput(true);
     }
   };
 
@@ -458,62 +512,110 @@ export default function AiQuestionGeneratorModal({
           </div>
         </div>
 
-        {/* API KEY CONFIG ACCORDION */}
+        {/* ── KULLANICIYA ÖZEL GÜVENLİ API KEY PANELİ ── */}
         {showKeyInput && (
           <div style={{
-            padding: '0.85rem 1.4rem',
-            background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#eff6ff',
+            padding: '1rem 1.4rem',
+            background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))' : 'linear-gradient(135deg, #f0fdf4, #eff6ff)',
             borderBottom: '1.5px solid var(--color-border)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 6
+            gap: '0.65rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                🔑 Google Gemini API Anahtarı:
-              </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span style={{ fontSize: '0.85rem' }}>🔒</span>
+                <label style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  Öğretmene Özel Gemini API Anahtarı
+                </label>
+                <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 800, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  {currentUser?.name || currentUser?.email || 'Öğretmen Hesabı'}
+                </span>
+              </div>
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noreferrer"
-                style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800, textDecoration: 'none' }}
+                style={{ fontSize: '0.74rem', color: '#6366f1', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
               >
                 Ücretsiz API Key Al (Google AI Studio) ↗
               </a>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+
+            <p style={{ margin: 0, fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#475569', lineHeight: 1.45 }}>
+              🛡️ <strong>Kişiye Özel Güvenlik:</strong> Girdiğiniz anahtar doğrudan bulut veritabanında <u>yalnızca sizin hesabınıza</u> özel şifreli saklanır. Diğer öğretmenler veya öğrenciler sizin API anahtarınızı veya soru kotanızı asla göremez ve kullanamaz.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input
                 type="password"
-                placeholder="AIzaSy..."
+                placeholder="AIzaSy... (Kişisel Gemini API Anahtarınız)"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 style={{
                   flex: 1,
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: '0.6rem',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '0.65rem',
                   border: '1.5px solid var(--color-border-input)',
                   background: 'var(--color-surface)',
                   color: 'var(--color-text)',
-                  fontSize: '0.82rem',
-                  fontFamily: 'monospace'
+                  fontSize: '0.84rem',
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.04em'
                 }}
               />
+
               <button
+                type="button"
                 onClick={() => handleSaveApiKey(apiKey)}
+                disabled={isSavingKey}
                 style={{
-                  padding: '0.45rem 1rem',
-                  borderRadius: '0.6rem',
-                  background: '#6366f1',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '0.65rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer'
+                  fontSize: '0.8rem',
+                  cursor: isSavingKey ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                  flexShrink: 0
                 }}
               >
-                Kaydet
+                {isSavingKey ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                <span>{isSavingKey ? 'Kaydediliyor...' : 'Hesabıma Kaydet'}</span>
               </button>
+
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={handleRemoveApiKey}
+                  style={{
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: '0.65rem',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#ef4444',
+                    border: '1.5px solid rgba(239, 68, 68, 0.3)',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                  title="Anahtarı Hesabınızdan Kaldırın"
+                >
+                  Kaldır
+                </button>
+              )}
             </div>
+
+            {keySaveSuccess && (
+              <div style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Check size={14} /> API anahtarı hesabınıza ve veritabanına başarıyla kaydedildi!
+              </div>
+            )}
           </div>
         )}
 

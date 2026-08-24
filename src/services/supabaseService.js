@@ -2115,4 +2115,83 @@ export async function dbDeleteScale(scaleId) {
   } catch (err) {
     console.warn('[Supabase] dbDeleteScale catch:', err.message);
   }
-}
+}
+// ==========================================
+// 15. KULLANICIYA / ÖĞRETMENE ÖZEL YAPAY ZEKA (AI) API ANAHTARI
+// ==========================================
+export async function dbGetUserAiApiKey(userId) {
+  if (!userId) return null;
+  const userKey = `gemini_api_key_${userId}`;
+  const localVal = localStorage.getItem(userKey);
+
+  if (!isSupabaseConfigured()) return localVal || null;
+
+  try {
+    const storeId = `user_ai_config_${userId}`;
+    const { data, error } = await supabase
+      .from('coaching_profiles')
+      .select('*')
+      .eq('id', storeId)
+      .maybeSingle();
+
+    if (!error && data) {
+      const parsed = data.extra_data
+        ? (typeof data.extra_data === 'string' ? JSON.parse(data.extra_data) : data.extra_data)
+        : (data.data ? (typeof data.data === 'string' ? JSON.parse(data.data) : data.data) : {});
+      const cloudKey = parsed.apiKey || parsed.gemini_api_key || parsed.key || null;
+      if (cloudKey) {
+        localStorage.setItem(userKey, cloudKey);
+        return cloudKey;
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase] dbGetUserAiApiKey:', err.message);
+  }
+  return localVal || null;
+}
+
+export async function dbSaveUserAiApiKey(userId, apiKey, metadata = {}) {
+  if (!userId) return false;
+  const userKey = `gemini_api_key_${userId}`;
+  const cleanKey = apiKey ? String(apiKey).trim() : '';
+
+  if (cleanKey) {
+    localStorage.setItem(userKey, cleanKey);
+  } else {
+    localStorage.removeItem(userKey);
+  }
+
+  if (!isSupabaseConfigured()) return true;
+
+  try {
+    const storeId = `user_ai_config_${userId}`;
+    const payload = {
+      id: storeId,
+      student_id: String(userId),
+      target_school: 'AI_SETTINGS',
+      parent_notes: 'User-specific private Gemini API key configuration',
+      extra_data: JSON.stringify({
+        userId: String(userId),
+        apiKey: cleanKey,
+        defaultModel: metadata.defaultModel || 'gemini-3.7-flash',
+        userName: metadata.userName || '',
+        updatedAt: new Date().toISOString()
+      })
+    };
+
+    const { error } = await supabase
+      .from('coaching_profiles')
+      .upsert([payload], { onConflict: 'id' });
+
+    if (error) {
+      // Fallback with data column if extra_data not present
+      const fallbackPayload = { ...payload, data: payload.extra_data };
+      delete fallbackPayload.extra_data;
+      await supabase.from('coaching_profiles').upsert([fallbackPayload], { onConflict: 'id' });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveUserAiApiKey error:', err.message);
+    return false;
+  }
+}
