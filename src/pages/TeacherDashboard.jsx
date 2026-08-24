@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { getAvatarBg, getSubjectTheme } from '../config/subjectThemes';
 import { timeAgo } from '../utils/dateHelpers';
+import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
+import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
 import './TeacherDashboard.css';
 
 /* ─────────────────────────────────────────
@@ -165,6 +167,7 @@ export default function TeacherDashboard() {
   const [editStudentEmail, setEditStudentEmail]     = useState('');
   const [editStudentPassword, setEditStudentPassword] = useState('');
   const [editStudentGrade, setEditStudentGrade]     = useState('');
+  const [selectedReportStudent, setSelectedReportStudent] = useState(null);
 
   useEffect(() => {
     if (data?.grades?.length > 0 && !newStudentGrade) {
@@ -301,6 +304,7 @@ export default function TeacherDashboard() {
 
   const tabs = [
     { id: 'overview',  label: 'Genel Bakış', icon: Activity },
+    { id: 'analytics', label: 'Canlı Grafikler & Analiz', icon: BarChart3 },
     { id: 'tests',     label: 'Testler & Sınavlar', icon: FileText, badge: visibleTests.length },
     { id: 'students',  label: 'Sınıfım & Öğrenciler', icon: Users, badge: students.length },
     { id: 'coaching',  label: 'Koçluk & Takip', icon: Target },
@@ -322,7 +326,7 @@ export default function TeacherDashboard() {
     { icon: ShieldCheck, label: 'Onay Merkezi',  sub: pendingManualApprovals.length > 0 ? `⏳ ${pendingManualApprovals.length} test bekliyor` : 'Manuel test & onaylar', grad: 'linear-gradient(135deg,#7c3aed,#a855f7)', shadow: '0 6px 20px rgba(124,58,237,0.35)', onClick: () => navigate('/approvals') },
     { icon: BookOpen,  label: 'Ödev Ver',         sub: 'Öğrencilere ödev ata',    grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: '0 6px 20px rgba(245,158,11,0.35)',  onClick: () => navigate('/homeworks') },
     { icon: Layers,    label: 'Soru Bankası',     sub: 'Sorularını yönet',        grad: 'linear-gradient(135deg,#0284c7,#0369a1)', shadow: '0 6px 20px rgba(2,132,199,0.35)', onClick: () => navigate('/questions') },
-    { icon: BarChart3, label: 'İstatistikler',    sub: 'Analiz & raporlar',       grad: 'linear-gradient(135deg,#e11d48,#f43f5e)', shadow: '0 6px 20px rgba(244,63,94,0.35)',  onClick: () => navigate('/statistics') },
+    { icon: BarChart3, label: 'Canlı Analiz',     sub: 'Sınıf performans grafikleri', grad: 'linear-gradient(135deg,#e11d48,#f43f5e)', shadow: '0 6px 20px rgba(244,63,94,0.35)', onClick: () => setTab('analytics') },
   ];
 
   /* ── render helpers ── */
@@ -461,9 +465,26 @@ export default function TeacherDashboard() {
           ))}
         </div>
 
+        {/* ══════════ TAB: ANALYTICS (CANLI GRAFİKLER & ANALİZ) ══════════ */}
+        {tab === 'analytics' && (
+          <TeacherClassAnalytics
+            students={students}
+            submissions={teacherSubmissions}
+            homeworks={teacherHomeworks}
+          />
+        )}
+
         {/* ══════════ TAB: OVERVIEW ══════════ */}
         {tab === 'overview' && (
-          <div className="teacher-overview-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Live Visual Performance Pulse & Chart */}
+            <TeacherClassAnalytics
+              students={students}
+              submissions={teacherSubmissions}
+              homeworks={teacherHomeworks}
+            />
+
+            <div className="teacher-overview-grid">
 
             {/* Recent Activity */}
             <div className="overview-card-box">
@@ -490,12 +511,19 @@ export default function TeacherDashboard() {
                     const hasDetails = correct !== undefined && wrong !== undefined;
                     const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
                     return (
-                      <div key={sub.id || i} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.75rem',
-                        padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
-                        background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                        border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
-                      }}>
+                      <div
+                        key={sub.id || i}
+                        onClick={() => student && setSelectedReportStudent(student)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.75rem',
+                          padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
+                          background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
+                          border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease'
+                        }}
+                        title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                      >
                         <Avatar name={student?.name} index={si >= 0 ? si : i} size={34} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -542,7 +570,12 @@ export default function TeacherDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   {leaderboard.slice(0, 7).map((std, rank) => (
-                    <div key={std.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      key={std.id}
+                      onClick={() => setSelectedReportStudent(std)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0.5rem', borderRadius: '0.65rem', transition: 'background 0.15s' }}
+                      title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                    >
                       <div style={{
                         width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                         background: rank === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
@@ -648,6 +681,7 @@ export default function TeacherDashboard() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         )}
 
@@ -846,6 +880,20 @@ export default function TeacherDashboard() {
                             </td>
                             <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <button
+                                  onClick={() => setSelectedReportStudent(student)}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                    border: 'none',
+                                    borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
+                                    fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    boxShadow: '0 2px 8px rgba(2,132,199,0.25)'
+                                  }}
+                                  title="Öğrenci Karnesi, Soru Dağılımı ve Veli WhatsApp Mesajı"
+                                >
+                                  <BarChart3 size={13} /> Karne &amp; Rapor
+                                </button>
                                 <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
                                   <button
                                     style={{
@@ -856,7 +904,7 @@ export default function TeacherDashboard() {
                                       display: 'inline-flex', alignItems: 'center', gap: 4
                                     }}
                                   >
-                                    <Calendar size={13} /> Program &amp; Koçluk
+                                    <Calendar size={13} /> Program
                                   </button>
                                 </Link>
                                 <button
@@ -963,21 +1011,36 @@ export default function TeacherDashboard() {
                           </div>
                         </div>
 
-                        {/* Direct Program & Coaching Navigation Button */}
-                        <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none', width: '100%', marginTop: '0.35rem' }}>
+                        {/* Mobile Action Buttons: Quick Report & Coaching */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem', marginTop: '0.35rem' }}>
                           <button
+                            onClick={() => setSelectedReportStudent(student)}
                             style={{
-                              width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
-                              background: 'rgba(139, 92, 246, 0.15)',
-                              border: '1.5px solid rgba(139, 92, 246, 0.3)',
-                              color: '#c084fc', fontWeight: 800, fontSize: '0.8rem',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                              boxShadow: '0 2px 8px rgba(124,58,237,0.08)'
+                              padding: '0.6rem 0.75rem', borderRadius: '0.75rem',
+                              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                              border: 'none', color: '#ffffff',
+                              fontWeight: 900, fontSize: '0.78rem',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                              boxShadow: '0 3px 10px rgba(2,132,199,0.3)'
                             }}
                           >
-                            <Calendar size={14} /> Haftalık Program &amp; Koçluk Paneli ➔
+                            <BarChart3 size={14} /> Karne &amp; Veli
                           </button>
-                        </Link>
+
+                          <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
+                            <button
+                              style={{
+                                width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem',
+                                background: 'rgba(139, 92, 246, 0.15)',
+                                border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                                color: '#c084fc', fontWeight: 900, fontSize: '0.78rem',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                              }}
+                            >
+                              <Calendar size={14} /> Program ➔
+                            </button>
+                          </Link>
+                        </div>
                       </div>
                     );
                   })}
@@ -1053,6 +1116,20 @@ export default function TeacherDashboard() {
         )}
 
       </div>
+
+      {/* ══════════ MODAL: ÖĞRENCİ HIZLI KARNE & VELİ RAPORU ══════════ */}
+      {selectedReportStudent && (
+        <TeacherStudentQuickReportModal
+          student={selectedReportStudent}
+          submissions={teacherSubmissions}
+          grades={data?.grades || []}
+          teacherName={currentUser?.name || 'Öğretmeniniz'}
+          isCoached={coachedIds.includes(selectedReportStudent.id)}
+          onToggleCoaching={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', selectedReportStudent.id)}
+          onEditStudent={(std) => openEditStudentModal(std)}
+          onClose={() => setSelectedReportStudent(null)}
+        />
+      )}
 
       {/* ══════════ MODAL: TEST OLUŞTUR / DÜZENLE ══════════ */}
       {showModal && (
