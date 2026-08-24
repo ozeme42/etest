@@ -1940,6 +1940,45 @@ export default function StudentDashboard() {
             return false;
           };
 
+          // A.1) Kitap Testlerine Özel Tarihler (hw.testDueDates)
+          if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+              if (!tDateStr) return;
+              const tYMD = String(tDateStr).split('T')[0];
+              if (dayYMD === tYMD) {
+                const tObj = (bookTests || []).find(b => String(b?.id) === String(testId));
+                const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
+                const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
+                  (submissions || []).some(s => isMatchHwSub(s, hw, testId));
+                const testTitle = tObj?.name || 'Bölüm Testi';
+                const cleanBookTitle = bookObj?.title || hw.title || 'Takip Kitabı';
+                const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
+
+                const exists = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && m.testId === testId));
+                if (!exists) {
+                  autoHwItems.push({
+                    id: autoId,
+                    hwId: hw.id,
+                    testId: testId,
+                    bookTestId: testId,
+                    bookId: hw.bookId || bookObj?.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+                    bookTitle: cleanBookTitle,
+                    title: `${cleanBookTitle} — ${testTitle}`,
+                    questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                    done: isTestSolved
+                  });
+                }
+              }
+            });
+            return;
+          }
+
+          // A.2) Genel Ödev / Kitap Teslim Tarihi
           const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw)) ||
             (submissions || []).find(s => isMatchHwSub(s, hw));
           const isDone = !!sub;
@@ -1972,17 +2011,23 @@ export default function StudentDashboard() {
                   (submissions || []).some(s => isMatchHwSub(s, hw, testId));
 
                 const tObj = (bookTests || []).find(b => String(b?.id) === String(testId));
+                const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
                 const testTitle = tObj?.name || `Test ${idx + 1}`;
+                const cleanBookTitle = bookObj?.title || hw.title || 'Takip Kitabı';
                 const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}` || m.hwId === hw.id);
                 if (!exists) {
                   autoHwItems.push({
                     id: `auto_hw_${hw.id}_${testId}`,
                     hwId: hw.id,
                     testId: testId,
+                    bookTestId: testId,
+                    bookId: hw.bookId || bookObj?.id,
                     isAutoHomework: true,
+                    isBookTask: true,
                     taskType: 'kitap',
-                    subject: hw.subject || 'Atanan Kitap',
-                    title: `${hw.title || 'Kitap'} — ${testTitle}`,
+                    subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+                    bookTitle: cleanBookTitle,
+                    title: `${cleanBookTitle} — ${testTitle}`,
                     questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
                     time: formattedDue || null,
                     done: isTestSolved
@@ -2112,7 +2157,7 @@ export default function StudentDashboard() {
     };
   }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
 
-  // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (KİTAP TAKİBİ, YOL HARİTASI, ÖDEVLER, SINAVLAR, PROGRAM) ──
+  // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (HER TÜRLÜ KİTAP, YOL HARİTASI, ÖDEV, SINAV, PROGRAM) ──
   const catchUpTasks = useMemo(() => {
     if (!selectedStudent) return [];
     const list = [];
@@ -2122,31 +2167,130 @@ export default function StudentDashboard() {
     const nowTime = nowZero.getTime();
     const studentId = String(selectedStudent.id);
 
-    // 1. HAFTALIK PROGRAM & GÜNLÜK GÖREVLER (Önceki günlerden kalan yapılmamışlar)
-    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
-    DAYS_OF_WEEK.forEach((d, idx) => {
-      if (idx < todayIdx) {
-        const dData = fullProcessedWeekMap[d.key];
-        (dData?.items || []).forEach(item => {
-          if (!item.done) {
-            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId}_${d.key}`);
-            if (!seen.has(key)) {
-              seen.add(key);
-              list.push({
-                ...item,
-                categoryType: item.taskType || 'program',
-                sourceDayName: d.name,
-                sourceDayKey: d.key,
-                isCatchUp: true,
-                reason: `${d.name} gününden kalan program görevi`
-              });
+    // Helper: Check if a test/homework/book submission exists for this student
+    const isTestSolvedByStudent = (tId, hId) => {
+      const targetTId = tId ? String(tId) : null;
+      const targetHId = hId ? String(hId) : null;
+      return (submissions || []).some(s => {
+        if (String(s.studentId) !== studentId) return false;
+        const sTestId = s.testId ? String(s.testId) : null;
+        const sRealTestId = s.realTestId ? String(s.realTestId) : null;
+        const sBookTestId = s.bookTestId ? String(s.bookTestId) : null;
+        const sHwId = (s.homeworkId || s.hwId) ? String(s.homeworkId || s.hwId) : null;
+
+        if (targetTId && (sTestId === targetTId || sRealTestId === targetTId || sBookTestId === targetTId)) return true;
+        if (targetHId && sHwId === targetHId) return true;
+        return false;
+      });
+    };
+
+    // 1. KİTAP TAKİBİNDEKİ TÜM TARİHLİ TESTLER (hw.testDueDates ve hw.dueDate)
+    (homeworks || []).filter(hw => isHomeworkForStudent(hw, studentId)).forEach(hw => {
+      const isBook = Boolean(hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook');
+      const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
+      const cleanBookTitle = bookObj?.title || hw.title || 'Takip Kitabı';
+
+      // A) Bireysel Test Tarihleri (hw.testDueDates)
+      if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object') {
+        Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+          if (!tDateStr) return;
+          const targetDateObj = parseSafeDate(tDateStr);
+          if (targetDateObj && targetDateObj.getTime() < nowTime) {
+            const isSolved = isTestSolvedByStudent(testId, hw.id);
+            if (!isSolved) {
+              const key = `book_test_${hw.id}_${testId}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
+                list.push({
+                  id: key,
+                  hwId: hw.id,
+                  testId: testId,
+                  bookTestId: testId,
+                  bookId: hw.bookId || bookObj?.id,
+                  isAutoHomework: true,
+                  isBookTask: true,
+                  taskType: 'kitap',
+                  categoryType: 'kitap',
+                  subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+                  bookTitle: cleanBookTitle,
+                  title: `${cleanBookTitle} — ${tObj?.name || 'Bölüm Testi'}`,
+                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
+                  dueDateObj: targetDateObj,
+                  isCatchUp: true,
+                  reason: `📚 Kitap Testi Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
+                });
+              }
             }
           }
         });
       }
+
+      // B) Tüm Kitap İçin Genel Teslim Tarihi (hw.dueDate)
+      const rawDue = hw.dueDate || hw.assignedDueDate;
+      const dueDateObj = parseSafeDate(rawDue);
+      if (isBook && dueDateObj && dueDateObj.getTime() < nowTime) {
+        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+          hw.tests.forEach((testId, idx) => {
+            const isSolved = isTestSolvedByStudent(testId, hw.id);
+            if (!isSolved) {
+              const key = `book_test_${hw.id}_${testId}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
+                list.push({
+                  id: key,
+                  hwId: hw.id,
+                  testId: testId,
+                  bookTestId: testId,
+                  bookId: hw.bookId || bookObj?.id,
+                  isAutoHomework: true,
+                  isBookTask: true,
+                  taskType: 'kitap',
+                  categoryType: 'kitap',
+                  subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+                  bookTitle: cleanBookTitle,
+                  title: `${cleanBookTitle} — ${tObj?.name || `Test ${idx + 1}`}`,
+                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
+                  dueDateObj,
+                  isCatchUp: true,
+                  reason: `📚 Kitap Ödevi Gecikti (Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')})`
+                });
+              }
+            }
+          });
+        } else {
+          const isSolved = isTestSolvedByStudent(hw.testId, hw.id);
+          if (!isSolved) {
+            const key = `book_hw_${hw.id}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push({
+                id: key,
+                hwId: hw.id,
+                testId: hw.testId || hw.tests?.[0],
+                isAutoHomework: true,
+                isBookTask: true,
+                taskType: 'kitap',
+                categoryType: 'kitap',
+                subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+                bookTitle: cleanBookTitle,
+                title: hw.title || 'Kitap Görevi',
+                questionCount: hw.questionCount || hw.totalQuestions ? `${hw.questionCount || hw.totalQuestions} soru` : null,
+                dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
+                dueDateObj,
+                isCatchUp: true,
+                reason: `📚 Kitap Ödevi Gecikti (Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')})`
+              });
+            }
+          }
+        }
+      }
     });
 
-    // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
+    // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) TARİHLİ GÖREVLER
     (studyAssignments || []).filter(a => String(a?.studentId) === studentId).forEach(assignment => {
       if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
       const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
@@ -2198,52 +2342,39 @@ export default function StudentDashboard() {
       });
     });
 
-    // 3. KİTAP TAKİBİ & KİTAP TESTLERİ (TRACKED BOOKS)
-    (homeworks || []).filter(hw => isHomeworkForStudent(hw, studentId)).forEach(hw => {
-      const isBook = Boolean(hw.isBookAssignment || hw.bookId);
-      if (!isBook) return;
-
-      const isDone = (submissions || []).some(s => 
-        String(s.studentId) === studentId && 
-        (String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.testId) || String(s.testId) === String(hw.id))
-      );
-      if (isDone) return;
-
-      const rawDue = hw.dueDate || hw.assignedDueDate;
-      const dueDateObj = parseSafeDate(rawDue);
-      if (dueDateObj && dueDateObj.getTime() < nowTime) {
-        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
-        const key = `book_hw_${hw.id}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          list.push({
-            id: key,
-            hwId: hw.id,
-            testId: hw.testId || hw.tests?.[0],
-            isAutoHomework: true,
-            isBookTask: true,
-            taskType: 'kitap',
-            categoryType: 'kitap',
-            subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
-            bookTitle: bookObj?.title || hw.title || 'Takip Kitabı',
-            title: hw.title || 'Kitap Bölüm Testi',
-            questionCount: hw.questionCount || hw.totalQuestions,
-            dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
-            dueDateObj,
-            isCatchUp: true,
-            reason: `📚 Kitap Takibi Gecikti (Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')})`
-          });
-        }
+    // 3. HAFTALIK PROGRAMDAN ÖNCEKİ GÜNLERDE KALAN TÜM GÖREVLER
+    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
+    DAYS_OF_WEEK.forEach((d, idx) => {
+      if (idx < todayIdx) {
+        const dData = fullProcessedWeekMap[d.key];
+        (dData?.items || []).forEach(item => {
+          if (!item.done) {
+            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
+            const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
+            const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
+            if (!alreadyIn) {
+              seen.add(key);
+              list.push({
+                ...item,
+                categoryType: item.taskType || 'program',
+                sourceDayName: d.name,
+                sourceDayKey: d.key,
+                isCatchUp: true,
+                reason: `${d.name} gününden kalan program görevi`
+              });
+            }
+          }
+        });
       }
     });
 
-    // 4. TÜM DİĞER ATANAN ÖDEVLER & DENEME SINAVLARI (GENEL ÖDEVLER)
+    // 4. DİĞER TÜM GECİKEN ÖDEVLER & DENEME SINAVLARI
     (pendingTasks || []).forEach(task => {
       const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
       if (dueDateObj && dueDateObj.getTime() < nowTime) {
         const key = String(task.id || task.hwId || task.testId);
-        const hwCleanKey = key.replace(/^hw_/, '');
-        const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(key));
+        const hwCleanKey = key.replace(/^hw_/, '').replace(/^auto_hw_/, '');
+        const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(hwCleanKey));
         if (!alreadyIn) {
           seen.add(key);
           const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam';
