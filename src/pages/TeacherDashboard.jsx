@@ -264,6 +264,38 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Aggregate top executive metrics across all students
+  const executiveMetrics = useMemo(() => {
+    let totalQuestions = 0;
+    let totalCorrect = 0;
+    let totalSubs = 0;
+
+    students.forEach(std => {
+      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+        studentId: std.id,
+        targetStudent: std,
+        submissions,
+        homeworks,
+        books,
+        bookTests
+      });
+
+      const all = [...generalTrialExams, ...otherHomeworkSubmissions];
+      totalSubs += all.length;
+      all.forEach(sub => {
+        const correct = Number(sub.correctCount ?? sub.correct ?? 0);
+        const wrong = Number(sub.wrongCount ?? sub.wrong ?? 0);
+        const blank = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+        const qCount = Number(sub.totalQuestions || (correct + wrong + blank) || 10);
+        totalQuestions += qCount;
+        totalCorrect += correct;
+      });
+    });
+
+    const avgSuccess = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+    return { totalQuestions, avgSuccess, totalSubs };
+  }, [students, submissions, homeworks, books, bookTests]);
+
   const upcomingHw = useMemo(() => {
     const now = Date.now();
     return teacherHomeworks
@@ -426,10 +458,10 @@ export default function TeacherDashboard() {
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
         <div className="teacher-stats-grid">
-          <StatHeroCard icon={Users}          label="Sınıfımdaki Öğrenciler" value={`${students.length} Öğrenci`} sub="Aktif sınıf kaydı" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.3)" />
-          <StatHeroCard icon={BookOpen}       label="Verilen Ödevler"        value={`${teacherHomeworks.length} Ödev`} sub="Atanan ödevler" color="#fbbf24" bg="rgba(217, 119, 6, 0.15)" border="rgba(217, 119, 6, 0.3)" />
-          <StatHeroCard icon={ClipboardCheck} label="Çözülen Sınavlar"       value={`${teacherSubmissions.length} Kağıt`} sub="Öğrenci yanıtı" color="#4ade80" bg="rgba(22, 163, 74, 0.15)" border="rgba(22, 163, 74, 0.3)" />
-          <StatHeroCard icon={Layers}         label="Soru Bankası"           value={`${teacherQuestions.length} Soru`} sub="Eklediğiniz sorular" color="#c084fc" bg="rgba(124, 58, 237, 0.15)" border="rgba(124, 58, 237, 0.3)" />
+          <StatHeroCard icon={Users}          label="Kayıtlı Öğrenci"      value={`${students.length} Öğrenci`} sub="Sınıflar & Şubeler" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.3)" />
+          <StatHeroCard icon={Activity}       label="Toplam Çözülen Soru"  value={`${executiveMetrics.totalQuestions} Soru`} sub={`⚡ ${executiveMetrics.totalSubs} Sınav / Test`} color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.3)" />
+          <StatHeroCard icon={Award}          label="Sınıf Başarı Ort."    value={`%${executiveMetrics.avgSuccess}`} sub="Genel Net Başarısı" color="#10b981" bg="rgba(16, 185, 129, 0.15)" border="rgba(16, 185, 129, 0.3)" />
+          <StatHeroCard icon={BookOpen}       label="Ödev & Soru Bankası"  value={`${teacherHomeworks.length} Ödev`} sub={`${teacherQuestions.length} Soru Havuzu`} color="#f59e0b" bg="rgba(245, 158, 11, 0.15)" border="rgba(245, 158, 11, 0.3)" />
         </div>
 
         {/* ══════════ QUICK ACTIONS GRID ══════════ */}
@@ -457,19 +489,19 @@ export default function TeacherDashboard() {
           />
         )}
 
-        {/* ══════════ TAB: OVERVIEW ══════════ */}
+        {/* ══════════ TAB: OVERVIEW (PRO EXECUTIVE COCKPIT) ══════════ */}
         {tab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Live Visual Performance Pulse & Chart */}
-            <TeacherClassAnalytics
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            
+            {/* 1. Daily Action Center (Only shows urgent items or clean state) */}
+            <TeacherActionCenter
+              pendingManualApprovals={pendingManualApprovals}
+              pendingEvaluations={pendingEvaluations}
+              dueHomeworks={dueHomeworks}
               students={students}
-              submissions={teacherSubmissions}
-              homeworks={teacherHomeworks}
-              books={books}
-              bookTests={bookTests}
             />
 
-            {/* ══════════ 2. CLASS PULSE RADAR (AT-RISK STUDENTS & WEAK TOPICS) ══════════ */}
+            {/* 2. Class Pulse Radar (At-risk students & Weak topics with AI remedial test generator) */}
             <TeacherClassPulseRadar
               students={students}
               submissions={teacherSubmissions}
@@ -480,212 +512,204 @@ export default function TeacherDashboard() {
               onLaunchAiForTopic={handleLaunchAiForTopic}
             />
 
-            {/* ══════════ 1. DAILY ACTION CENTER & TEACHER COCKPIT ══════════ */}
-            <TeacherActionCenter
-              pendingManualApprovals={pendingManualApprovals}
-              pendingEvaluations={pendingEvaluations}
-              dueHomeworks={dueHomeworks}
-              students={students}
-            />
-
+            {/* 3. 2-Column Balanced Dashboard Grid */}
             <div className="teacher-overview-grid">
 
-            {/* Recent Activity */}
-            <div className="overview-card-box">
-              <div className="overview-card-header">
-                <h3>
-                  <Activity size={18} color="#10b981" /> Son Öğrenci Aktiviteleri
-                </h3>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{recentSubs.length} kayıt</span>
-              </div>
-              {recentSubs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                  <Activity size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
-                  <p style={{ margin: 0, fontWeight: 700 }}>Henüz çözülen sınav yok</p>
+              {/* Left Column: Recent Student Activity Feed */}
+              <div className="overview-card-box">
+                <div className="overview-card-header">
+                  <h3>
+                    <Activity size={18} color="#10b981" /> Son Çözülen Sınavlar &amp; Aktiviteler
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{recentSubs.length} kayıt</span>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {recentSubs.map((sub, i) => {
-                    const student = users.find(u => u.id === sub.studentId);
-                    const scorePct = getSubmissionScorePct(sub);
-                    const good = scorePct !== null && scorePct >= 70;
-                    const si = students.findIndex(s => s.id === sub.studentId);
-                    const correct = sub.correctCount ?? sub.correct;
-                    const wrong = sub.wrongCount ?? sub.wrong;
-                    const hasDetails = correct !== undefined && wrong !== undefined;
-                    const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
-                    return (
-                      <div
-                        key={sub.id || i}
-                        onClick={() => student && setSelectedReportStudent(student)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '0.75rem',
-                          padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
-                          background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                          border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
-                          cursor: 'pointer',
-                          transition: 'transform 0.15s ease'
-                        }}
-                        title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
-                      >
-                        <Avatar name={student?.name} index={si >= 0 ? si : i} size={34} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {student?.name || 'Öğrenci'}
-                          </p>
-                          <p style={{ margin: '0.1rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {sub.testTitle || 'Sınav'} · {timeAgo(sub.submittedAt)}
-                            {hasDetails && <span style={{ marginLeft: 6, color: 'var(--color-text-muted)' }}>({correct}D {wrong}Y{net !== undefined ? ` · ${net} Net` : ''})</span>}
-                          </p>
+                {recentSubs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                    <Activity size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
+                    <p style={{ margin: 0, fontWeight: 700 }}>Henüz çözülen sınav yok</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {recentSubs.map((sub, i) => {
+                      const student = users.find(u => u.id === sub.studentId);
+                      const scorePct = getSubmissionScorePct(sub);
+                      const good = scorePct !== null && scorePct >= 70;
+                      const si = students.findIndex(s => s.id === sub.studentId);
+                      const correct = sub.correctCount ?? sub.correct;
+                      const wrong = sub.wrongCount ?? sub.wrong;
+                      const hasDetails = correct !== undefined && wrong !== undefined;
+                      const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
+                      return (
+                        <div
+                          key={sub.id || i}
+                          onClick={() => student && setSelectedReportStudent(student)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
+                            background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
+                            border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
+                            cursor: 'pointer',
+                            transition: 'transform 0.15s ease'
+                          }}
+                          title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                        >
+                          <Avatar name={student?.name} index={si >= 0 ? si : i} size={34} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {student?.name || 'Öğrenci'}
+                            </p>
+                            <p style={{ margin: '0.1rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {sub.testTitle || 'Sınav'} · {timeAgo(sub.submittedAt)}
+                              {hasDetails && <span style={{ marginLeft: 6, color: 'var(--color-text-muted)' }}>({correct}D {wrong}Y{net !== undefined ? ` · ${net} Net` : ''})</span>}
+                            </p>
+                          </div>
+                          {scorePct !== null ? (
+                            <span style={{
+                              fontWeight: 900, fontSize: '0.8rem',
+                              padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
+                              background: good ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                              color: good ? '#10b981' : '#ef4444', flexShrink: 0,
+                              border: `1px solid ${good ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
+                            }}>%{scorePct}</span>
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>
+                          )}
                         </div>
-                        {scorePct !== null ? (
-                          <span style={{
-                            fontWeight: 900, fontSize: '0.8rem',
-                            padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
-                            background: good ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                            color: good ? '#10b981' : '#ef4444', flexShrink: 0,
-                            border: `1px solid ${good ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
-                          }}>%{scorePct}</span>
-                        ) : (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Student Leaderboard */}
-            <div className="overview-card-box">
-              <div className="overview-card-header">
-                <h3>
-                  <Award size={18} color="#f59e0b" /> Öğrenci Başarı Sıralaması
-                </h3>
-                <button onClick={() => setTab('students')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  Tümü <ChevronRight size={13} />
-                </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              {leaderboard.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                  <Users size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
-                  <p style={{ margin: 0, fontWeight: 700 }}>Henüz öğrenci yok</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {leaderboard.slice(0, 7).map((std, rank) => (
-                    <div
-                      key={std.id}
-                      onClick={() => setSelectedReportStudent(std)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0.5rem', borderRadius: '0.65rem', transition: 'background 0.15s' }}
-                      title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
-                    >
-                      <div style={{
-                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                        background: rank === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
-                          : rank === 1 ? 'linear-gradient(135deg,#94a3b8,#64748b)'
-                          : rank === 2 ? 'linear-gradient(135deg,#f97316,#ea580c)'
-                          : 'var(--color-surface-hover)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.68rem', fontWeight: 900,
-                        color: rank < 3 ? '#fff' : 'var(--color-text-muted)',
-                      }}>{rank + 1}</div>
-                      <Avatar name={std.name} index={std.idx} size={32} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{std.name}</p>
-                        <ScoreBar value={std.avg} />
-                      </div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>{std.count} sınav</span>
+
+              {/* Right Column: Leaderboard & Upcoming Homeworks */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                
+                {/* Student Leaderboard */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <Award size={18} color="#f59e0b" /> Sınıf Başarı Sıralaması
+                    </h3>
+                    <button onClick={() => setTab('students')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Tüm Sınıfı Gör <ChevronRight size={13} />
+                    </button>
+                  </div>
+                  {leaderboard.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                      <Users size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700 }}>Henüz öğrenci verisi yok</p>
                     </div>
-                  ))}
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {leaderboard.slice(0, 5).map((std, rank) => (
+                        <div
+                          key={std.id}
+                          onClick={() => setSelectedReportStudent(std)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0.5rem', borderRadius: '0.65rem', transition: 'background 0.15s' }}
+                          title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                        >
+                          <div style={{
+                            width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                            background: rank === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+                              : rank === 1 ? 'linear-gradient(135deg,#94a3b8,#64748b)'
+                              : rank === 2 ? 'linear-gradient(135deg,#f97316,#ea580c)'
+                              : 'var(--color-surface-hover)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.68rem', fontWeight: 900,
+                            color: rank < 3 ? '#fff' : 'var(--color-text-muted)',
+                          }}>{rank + 1}</div>
+                          <Avatar name={std.name} index={std.idx} size={30} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{std.name}</p>
+                            <ScoreBar value={std.avg} />
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>{std.count} sınav</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Upcoming Homeworks */}
-            <div className="overview-card-box" style={{ gridColumn: '1 / -1' }}>
-              <div className="overview-card-header">
-                <h3>
-                  <Calendar size={18} color="#6366f1" /> Yaklaşan Ödev Teslimleri
-                </h3>
-                <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  Tüm Ödevler <ChevronRight size={13} />
-                </button>
-              </div>
-              {upcomingHw.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                  <Calendar size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
-                  <p style={{ margin: 0, fontWeight: 700 }}>Yaklaşan ödev teslimi yok. <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontWeight: 800 }}>Ödev oluştur →</button></p>
-                </div>
-              ) : (
-                <div className="teacher-hw-grid">
-                  {upcomingHw.map((hw) => {
-                    const due = new Date(hw.dueDate);
-                    const daysLeft = Math.ceil((due - Date.now()) / 86400000);
-                    const urgent = daysLeft <= 2;
-                    const tIds = hw.targetIds || [];
-                    return (
-                      <div key={hw.id} style={{
-                        borderRadius: '1rem', padding: '1rem',
-                        background: urgent ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                        border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.35)' : 'var(--color-border)'}`,
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{
-                            fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 99,
-                            background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)',
-                            color: urgent ? '#ef4444' : '#60a5fa',
-                            border: `1px solid ${urgent ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.3)'}`
+                {/* Upcoming Homeworks */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <Calendar size={18} color="#6366f1" /> Yaklaşan Ödev Teslimleri
+                    </h3>
+                    <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Ödevleri Yönet <ChevronRight size={13} />
+                    </button>
+                  </div>
+                  {upcomingHw.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.75rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                      <Calendar size={32} style={{ margin: '0 auto 0.4rem', opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700 }}>Yaklaşan ödev teslimi yok</p>
+                    </div>
+                  ) : (
+                    <div className="teacher-hw-grid">
+                      {upcomingHw.slice(0, 4).map((hw) => {
+                        const due = new Date(hw.dueDate);
+                        const daysLeft = Math.ceil((due - Date.now()) / 86400000);
+                        const urgent = daysLeft <= 2;
+                        const tIds = hw.targetIds || [];
+                        return (
+                          <div key={hw.id} style={{
+                            borderRadius: '0.85rem', padding: '0.75rem',
+                            background: urgent ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
+                            border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.35)' : 'var(--color-border)'}`,
                           }}>
-                            {urgent ? '🔥 ' : ''}{daysLeft <= 0 ? 'Bugün!' : `${daysLeft}g kaldı`}
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            👥 {tIds.length} öğrenci
-                          </span>
-                        </div>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {hw.title}
-                        </p>
-                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                          Son: {due.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
-                        </p>
-                      </div>
-                    );
-                  })}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                              <span style={{
+                                fontSize: '0.62rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99,
+                                background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+                                color: urgent ? '#ef4444' : '#60a5fa',
+                                border: `1px solid ${urgent ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.3)'}`
+                              }}>
+                                {urgent ? '🔥 ' : ''}{daysLeft <= 0 ? 'Bugün!' : `${daysLeft}g kaldı`}
+                              </span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                👥 {tIds.length} öğrenci
+                              </span>
+                            </div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {hw.title}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Sınıf Dağılımı (Mini Pill Row) */}
+                {data.grades.length > 0 && (
+                  <div className="overview-card-box">
+                    <h3 style={{ margin: '0 0 0.65rem', fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <GraduationCap size={16} color="#6366f1" /> Sınıf &amp; Şube Dağılımı
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.5rem' }}>
+                      {data.grades.map((grade, gi) => {
+                        const count = students.filter(s =>
+                          String(s.gradeId) === String(grade.id) || s.gradeId === grade.name ||
+                          String(s.classId) === String(grade.id) || s.grade === grade.name || s.className === grade.name
+                        ).length;
+                        const GRADE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#14b8a6','#f97316'];
+                        const gc = GRADE_COLORS[gi % GRADE_COLORS.length];
+                        return (
+                          <div key={grade.id} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.55rem', textAlign: 'center' }}>
+                            <p style={{ fontSize: '1.2rem', fontWeight: 900, color: gc, margin: 0, lineHeight: 1 }}>{count}</p>
+                            <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', margin: '0.2rem 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{grade.name}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
             </div>
 
-            {/* Grade Distribution */}
-            {data.grades.length > 0 && (
-              <div className="overview-card-box" style={{ gridColumn: '1 / -1' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <GraduationCap size={18} color="#6366f1" /> Sınıf Bazında Öğrenci Dağılımı
-                </h3>
-                <div className="teacher-grades-grid">
-                  {data.grades.map((grade, gi) => {
-                    const count = students.filter(s =>
-                      String(s.gradeId) === String(grade.id) || s.gradeId === grade.name ||
-                      String(s.classId) === String(grade.id) || s.grade === grade.name || s.className === grade.name
-                    ).length;
-                    const pct = students.length ? Math.round((count / students.length) * 100) : 0;
-                    const GRADE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#14b8a6','#f97316','#8b5cf6','#0ea5e9'];
-                    const gc = GRADE_COLORS[gi % GRADE_COLORS.length];
-                    return (
-                      <div key={grade.id} style={{ background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.8rem', fontWeight: 900, color: gc, margin: 0, lineHeight: 1 }}>{count}</p>
-                        <p style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', margin: '0.35rem 0' }}>{grade.name}</p>
-                        <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 9, overflow: 'hidden', marginTop: '0.5rem' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: gc, borderRadius: 9, transition: 'width 0.6s ease' }} />
-                        </div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>%{pct}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
           </div>
         )}
 
