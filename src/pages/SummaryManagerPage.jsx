@@ -14,6 +14,18 @@ import {
 import './SummaryManagerPage.css';
 
 const TEMPLATES = {
+  goals: `<div class="callout box-goals" style="border-left: 4.5px solid #6366f1; background: rgba(99, 102, 241, 0.08); padding: 1rem 1.25rem; border-radius: 0.85rem; margin: 1.25rem 0;">
+  <h3 style="color: #6366f1; margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px;">
+    🎯 Bu Bölümün Sonunda Neler Öğreneceksiniz?
+  </h3>
+  <p style="margin-bottom: 0.5rem; font-size: 0.9em; opacity: 0.9;">Bu konuyu tamamladığınızda aşağıdaki kazanımları elde etmiş olacaksınız:</p>
+  <ul style="margin: 0; padding-left: 1.5rem;">
+    <li><strong>Kavrama:</strong> Konuyla ilgili temel kavram ve terimleri <em>tanımlayabileceksiniz</em>.</li>
+    <li><strong>Açıklama:</strong> Neden-sonuç ilişkilerini ve temel prensipleri kendi cümlelerinizle <em>açıklayabileceksiniz</em>.</li>
+    <li><strong>Uygulama:</strong> Karşılaştığınız soru ve problemleri adım adım <em>çözümleyebileceksiniz</em>.</li>
+    <li><strong>Analiz & Yorumlama:</strong> Tablo, grafik ve verileri doğru şekilde <em>yorumlayabileceksiniz</em>.</li>
+  </ul>
+</div>`,
   note: `<div class="callout box-info">
   <strong>📌 Önemli Not:</strong> Bu konuda dikkat edilmesi gereken en temel kural burada açıklanır.
 </div>`,

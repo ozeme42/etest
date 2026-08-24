@@ -104,8 +104,11 @@ export async function generateQuestionsWithGemini({
   const optionLetters = optionCount === 4 ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
   const isMultipleChoice = questionType === 'coktan_secmeli';
 
-  const systemInstruction = `Sen Türkiye MEB müfredatına ve ÖSYM/LGS sınav standartlarına son derece hakim, uzman bir soru yazarısın.
-Görevin: Verilen ders, sınıf, konu ve kaynak materyale (metin veya PDF özeti) TAM UYUMLU, pedagojik olarak kusursuz ${questionCount} adet soru içeren bir soru paketi hazırlamaktır.
+  const systemInstruction = `Sen Türkiye MEB müfredatına ve ÖSYM/LGS sınav standartlarına son derece hakim, uzman bir eğitim bilimci ve soru yazarısın.
+Görevin: Verilen ders, sınıf, konu ve kaynak materyale TAM UYUMLU, pedagojik olarak kusursuz ${questionCount} adet soru içeren bir soru paketi hazırlamaktır.
+
+Pedagojik Öğrenme Hedefleri İlkesi:
+- Soru açıklamaları ("explanation") ve hedefler doğrudan öğrenci merkezli olmalı, öğrencinin kazanımını hedeflemelidir ("Bu soruyu tamamladığınızda [kavramı] açıklayabileceksiniz, tanımlayabileceksiniz, hesaplayabileceksiniz, ayırt edebileceksiniz").
 
 Kurallar:
 1. Sorular ${grade} seviyesinde ve ${subject} dersi için olmalıdır.
@@ -113,7 +116,7 @@ Kurallar:
 3. ${isMultipleChoice ? `Her soru TAM ${optionCount} şıktan (${optionLetters.join(', ')}) oluşmalıdır. Şıklar çeldirici nitelikte ve mantıklı olmalıdır.` : 'Sorular açık uçlu / klasik yanıt formatında olmalıdır.'}
 4. Soru köklerinde kalın harf ("altı çizili", "değildir", "ulaşılamaz", "hangisidir") vurgularını **bold** yap.
 5. Matematik ve Fen formüllerinde LaTeX matematik gösterimi kullan (örn: $x^2 + y^2 = z^2$, $\\frac{a}{b}$, $\\sqrt{x}$).
-6. ${includeExplanation ? 'Her soru için adım adım doğru cevabın açıklaması ("explanation") ekle.' : ''}
+6. ${includeExplanation ? 'Her soru için "Bu soruyu çözdüğünüzde [ilgili kazanımı] açıklayabileceksiniz / tanımlayabileceksiniz" formatında öğrenme hedefini ve adım adım çözüm yolunu içeren detaylı ("explanation") ekle.' : ''}
 7. Yanıtını YALNIZCA ve YALNIZCA geçerli bir JSON array olarak döndür. Markdown backtick veya ekstra açıklama yazma.`;
 
   let prompt = `Aşağıdaki kriterlere göre ${questionCount} adet soru üret:\n\n`;
