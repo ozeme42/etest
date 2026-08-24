@@ -112,8 +112,13 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const toggleSidebar = () => setIsOpen(prev => !prev);
   const closeSidebar = () => setIsOpen(false);
+
+  // Close sidebar on page change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
   const toggleCollapse = () => {
     setIsCollapsed(prev => {
       const next = !prev;
@@ -196,7 +201,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
         </button>
       )}
 
-      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link to="/" className="brand" onClick={closeSidebar}>
             <span className="brand-icon">✨</span>

@@ -223,18 +223,23 @@ html.ssp-in-fullscreen .sidebar {
   transition: opacity 0.3s ease;
 }
 
-/* --- Responsive Layout --- */
-@media (max-width: 768px) {
+/* --- Responsive Layout (Mobile & Tablet up to 1024px) --- */
+@media (max-width: 1024px) {
   .app-container {
     flex-direction: column;
   }
   
   .mobile-header {
-    display: flex;
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 9995;
     background: var(--color-surface);
     backdrop-filter: blur(16px);
     border-bottom: 1.5px solid var(--color-border);
-    padding: 0.85rem 1rem;
+    padding: 0.75rem 1rem;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .mobile-header .brand-text {
@@ -243,29 +248,60 @@ html.ssp-in-fullscreen .sidebar {
 
   .mobile-menu-btn {
     color: var(--color-text);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
   }
   
   .app-container:not(.no-sidebar) .main-content {
     padding-bottom: calc(env(safe-area-inset-bottom) + 85px);
+    width: 100% !important;
+    max-width: 100% !important;
   }
   
   .sidebar {
-    position: fixed;
-    transform: translateX(-100%);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 290px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    transform: translateX(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease !important;
+    display: flex !important;
   }
   
   .sidebar.open {
-    transform: translateX(0);
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    box-shadow: 4px 0 30px rgba(0, 0, 0, 0.45) !important;
   }
   
   .sidebar-overlay {
-    display: block;
-    pointer-events: none;
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    z-index: 99990 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
   }
   
   .sidebar-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 }
 
@@ -333,8 +369,23 @@ html.ssp-in-fullscreen .sidebar {
   }
 }
 
-/* Sidebar Collapsed State (Tablet & Desktop) */
-.sidebar.collapsed {
+/* Sidebar Collapsed State (Desktop Only) */
+@media (min-width: 1025px) {
+  .sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transform: translateX(-100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+.sidebar.collapsed.dummy {
   width: 0 !important;
   min-width: 0 !important;
   max-width: 0 !important;
