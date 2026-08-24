@@ -238,19 +238,32 @@ export default function TeacherDashboard() {
   const pendingEvaluations = useMemo(() => {
     return teacherSubmissions.filter(sub => {
       if (!sub) return false;
+      // Otomatik puanlanan dijital testleri kesinlikle hariç tut
+      if (
+        sub.sourceType === 'trackedBook' ||
+        sub.sourceType === 'online_quiz' ||
+        sub.sourceType === 'modular_quiz' ||
+        sub.sourceType === 'physical_exam' ||
+        sub.isManual === true ||
+        sub.sourceType === 'manual_test'
+      ) {
+        return false;
+      }
       if (sub.isEvaluatedByTeacher || sub.status === 'evaluated' || sub.status === 'approved' || sub.evalStatus === 'graded' || sub.evaluatedAt) return false;
       
-      // SADECE açık uçlu sınav kağıtları
-      const isOpenEndedType = sub.type === 'open_ended' || sub.sourceType === 'open_ended' || sub.format === 'open_ended' || sub.status === 'pending_evaluation';
+      // SADECE ve SADECE açıkça açık uçlu (open_ended) olarak tanımlanmış sınav kağıtları
+      const isOpenEndedType = sub.type === 'open_ended' || sub.sourceType === 'open_ended' || sub.format === 'open_ended';
       if (!isOpenEndedType) return false;
 
-      // İçerisinde henüz puanlanmamış açık uçlu soru yanıtı var mı?
-      const hasUnscoredAnswers = Array.isArray(sub.answers) && sub.answers.some(a => 
-        (a.questionType === 'open_ended' || a.isOpenEnded || sub.type === 'open_ended') &&
+      // İçerisinde açık uçlu soru olan ve öğretmen tarafından henüz puanlanmamış soru var mı?
+      const hasUnscoredOpenEnded = Array.isArray(sub.answers) && sub.answers.some(a => 
+        (a.questionType === 'open_ended' || a.isOpenEnded) &&
         a.userAnswerText && String(a.userAnswerText).trim() !== '' &&
-        typeof a.score !== 'number'
+        typeof a.score !== 'number' &&
+        !a.evaluatedByTeacher &&
+        !a.evaluatedAt
       );
-      return hasUnscoredAnswers || sub.status === 'pending_evaluation';
+      return Boolean(hasUnscoredOpenEnded);
     });
   }, [teacherSubmissions]);
 
@@ -709,7 +722,15 @@ export default function TeacherDashboard() {
           <StatHeroCard icon={FileText}       label="Bekleyen Ödevler"     value={`${teacherHomeworks.length} Ödev`} sub={dueHomeworks.length > 0 ? `🔥 ${dueHomeworks.length} süresi yaklaştı` : 'Tüm ödevler planlı'} color="#fbbf24" bg="rgba(217, 119, 6, 0.15)" border="rgba(217, 119, 6, 0.4)" />
           <StatHeroCard icon={ClipboardCheck} label="Yaklaşan Sınavlar"    value={`${upcomingExams.length} Sınav`} sub="Deneme & Optik Test" color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.4)" />
           <StatHeroCard icon={TrendingUp}     label="Başarı Ortalaması"    value={`%${executiveMetrics.avgSuccess}`} sub={`${executiveMetrics.totalQuestions} Soru Çözüldü`} color="#4ade80" bg="rgba(22, 163, 74, 0.15)" border="rgba(22, 163, 74, 0.4)" />
-          <StatHeroCard icon={Bell}           label="Bildirim & Onay"      value={`${totalPendingNotifications} Bildirim`} sub={totalPendingNotifications > 0 ? `${pendingManualApprovals.length} Onay, ${pendingEvaluations.length} Açık Uçlu` : 'Tüm işlemler güncel'} color="#f43f5e" bg="rgba(225, 29, 72, 0.15)" border="rgba(225, 29, 72, 0.4)" />
+          <StatHeroCard 
+            icon={Bell} 
+            label="Bildirim & Onay" 
+            value={`${totalPendingNotifications} Bildirim`} 
+            sub={totalPendingNotifications > 0 ? `${pendingManualApprovals.length} Onay, ${pendingEvaluations.length} Açık Uçlu` : 'Tüm işlemler güncel'} 
+            color={totalPendingNotifications > 0 ? '#f43f5e' : '#10b981'} 
+            bg={totalPendingNotifications > 0 ? 'rgba(225, 29, 72, 0.15)' : 'rgba(16, 185, 129, 0.15)'} 
+            border={totalPendingNotifications > 0 ? 'rgba(225, 29, 72, 0.4)' : 'rgba(16, 185, 129, 0.4)'} 
+          />
         </div>
 
         {/* ═══════════════════════════════════════════════════
