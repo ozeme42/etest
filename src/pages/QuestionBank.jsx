@@ -14,6 +14,7 @@ import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
+import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import { compressImageToWebP, compressMultipleImages } from '../services/imageCompressionService';
 import { Scissors } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export default function QuestionBank() {
   // Portal Overview Active Tab is always grades now
   const [overviewTab, setOverviewTab] = useState('grades');
   const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   // Active Subject Page State: null = Overview Grid, s.id = Subject Page, 'all_subjects' = Tüm Dersler
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -188,7 +190,22 @@ export default function QuestionBank() {
     }
   };
 
-    const handleSaveSlicedQuestions = (slicedList) => {
+    
+  const handleSaveAiQuestions = async (bundleQuestion) => {
+    if (!bundleQuestion) return;
+    try {
+      await addQuestion({
+        ...bundleQuestion,
+        createdBy: currentUser?.id
+      });
+      alert(`✅ "${bundleQuestion.title}" başarıyla Soru Bankası'na eklendi!`);
+    } catch (err) {
+      console.error('Error saving AI generated questions:', err);
+      alert('Soru paketi kaydedilirken bir hata oluştu: ' + err.message);
+    }
+  };
+
+  const handleSaveSlicedQuestions = (slicedList) => {
     if (!slicedList || slicedList.length === 0) return;
 
     const base64List = slicedList.map(s => s.image);
@@ -1555,11 +1572,57 @@ export default function QuestionBank() {
               </div>
             </div>
 
-            {currentUser?.role === 'teacher' && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#6366f1', padding: '0.4rem 0.9rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800 }}>
-                <span>🔒 Öğretmen Özel Bankası: Yalnızca kendi içerikleriniz</span>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '0.75rem',
+                  fontWeight: 900,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(139,92,246,0.35)'
+                }}
+              >
+                <Sparkles size={16} />
+                <span>🤖 AI ile Soru Üret</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { resetForm(); setShowModal(true); }}
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '0.75rem',
+                  fontWeight: 900,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.35)'
+                }}
+              >
+                <Plus size={16} />
+                <span>Yeni Soru Ekle</span>
+              </button>
+
+              {currentUser?.role === 'teacher' && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#6366f1', padding: '0.4rem 0.9rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800 }}>
+                  <span>🔒 Öğretmen Özel Bankası</span>
+                </div>
+              )}
+            </div>
           </header>
 
           {/* 4 LIVE KPI HERO METRIC CARDS */}
@@ -1803,13 +1866,36 @@ export default function QuestionBank() {
               <ArrowLeft size={18} /> Tüm Sınıf Portalı'na Dön
             </button>
 
-            <button
-              className="btn btn-primary"
-              onClick={() => { resetForm(); setShowModal(true); }}
-              style={{ background: activeGradeTheme.color, borderColor: activeGradeTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeGradeTheme.shadow }}
-            >
-              <Plus size={18} /> {activeGrade?.name} İçin Yeni Soru / Test Ekle
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '0.7rem 1.25rem',
+                  borderRadius: '0.85rem',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 14px rgba(139,92,246,0.35)'
+                }}
+              >
+                <Sparkles size={18} /> 🤖 {activeGrade?.name} İçin AI ile Soru Üret
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => { resetForm(); setShowModal(true); }}
+                style={{ background: activeGradeTheme.color, borderColor: activeGradeTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeGradeTheme.shadow }}
+              >
+                <Plus size={18} /> {activeGrade?.name} İçin Yeni Soru / Test Ekle
+              </button>
+            </div>
           </div>
 
           {/* Dedicated Grade Hero Banner */}
@@ -1995,13 +2081,36 @@ export default function QuestionBank() {
               <ArrowLeft size={18} /> Tüm Ders Portalı'na Dön
             </button>
 
-            <button
-              className="btn btn-primary"
-              onClick={() => { resetForm(); setShowModal(true); }}
-              style={{ background: activeSubjectTheme.color, borderColor: activeSubjectTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeSubjectTheme.shadow }}
-            >
-              <Plus size={18} /> {activeSubject?.name} İçin Yeni Soru / Test Ekle
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '0.7rem 1.25rem',
+                  borderRadius: '0.85rem',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 14px rgba(139,92,246,0.35)'
+                }}
+              >
+                <Sparkles size={18} /> 🤖 {activeSubject?.name} İçin AI ile Soru Üret
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => { resetForm(); setShowModal(true); }}
+                style={{ background: activeSubjectTheme.color, borderColor: activeSubjectTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeSubjectTheme.shadow }}
+              >
+                <Plus size={18} /> {activeSubject?.name} İçin Yeni Soru / Test Ekle
+              </button>
+            </div>
           </div>
 
           {/* Dedicated Subject Hero Banner */}
@@ -2259,6 +2368,33 @@ export default function QuestionBank() {
                       Görsel (PNG/JPG), PDF (.pdf), HTML (.html) veya JSON (.json) dosyanızı seçin veya buraya sürükleyin
                     </div>
                   </label>
+                </div>
+
+                
+                {/* 🤖 AI QUESTION GENERATOR WIZARD CARD */}
+                <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.2))' : 'linear-gradient(135deg, #fdf4ff, #f5f3ff)', border: '1.5px solid #c084fc', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 14px rgba(139,92,246,0.4)' }}>
+                      <Sparkles size={24} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        🤖 Yapay Zeka ile Soru Paketi Üretici (Google Gemini)
+                        <span style={{ fontSize: '0.68rem', padding: '2px 7px', borderRadius: 99, background: '#8b5cf6', color: '#ffffff', fontWeight: 800 }}>ÖNERİLEN ⚡</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        Konu metni veya PDF yükleyerek MEB / ÖSYM formatında 4/5 şıklı soru paketleri üretin, düzenleyin ve tek tıkla aktarın.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); setIsAiModalOpen(true); }}
+                    className="btn-gradient"
+                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', padding: '0.65rem 1.25rem', fontSize: '0.85rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none', color: '#ffffff', fontWeight: 900, boxShadow: '0 4px 14px rgba(139,92,246,0.35)' }}
+                  >
+                    <Sparkles size={16} /> AI Soru Üreticiyi Başlat
+                  </button>
                 </div>
 
                 <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))' : 'linear-gradient(135deg, #eef2ff, #f5f3ff)', border: '1.5px solid #818cf8', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -3465,6 +3601,19 @@ export default function QuestionBank() {
           </div>
         );
       })()}
+
+      {/* AI QUESTION GENERATOR MODAL */}
+      {isAiModalOpen && (
+        <AiQuestionGeneratorModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onSaveQuestions={handleSaveAiQuestions}
+          defaultSubject={activeSubject?.name || 'Matematik'}
+          defaultGrade={activeGrade?.name || '8. Sınıf'}
+          availableGrades={curData?.grades || []}
+          availableSubjects={curData?.subjects || []}
+        />
+      )}
 
       {/* PDF QUESTION SLICER MODAL */}
       {isSlicerModalOpen && (

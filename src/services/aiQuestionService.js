@@ -1,0 +1,203 @@
+import { pdfjs } from 'react-pdf';
+
+if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString();
+}
+
+/**
+ * Extract text content from an uploaded PDF file
+ */
+export async function extractTextFromPdf(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const pdfDoc = await loadingTask.promise;
+    let fullText = '';
+    const maxPages = Math.min(pdfDoc.numPages, 25);
+
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      if (pageText.trim()) {
+        fullText += `\n[Sayfa ${i}]\n${pageText}\n`;
+      }
+    }
+    return fullText.trim();
+  } catch (err) {
+    console.error('[aiQuestionService] PDF text extraction error:', err);
+    throw new Error('PDF içeriği ayıklanamadı: ' + (err.message || err));
+  }
+}
+
+/**
+ * Generate questions using Google Gemini API
+ */
+export async function generateQuestionsWithGemini({
+  apiKey,
+  model = 'gemini-2.5-flash',
+  subject = 'Matematik',
+  grade = '8. Sınıf',
+  topic = '',
+  sourceType = 'text', // 'text' | 'pdf' | 'topic_only'
+  sourceContent = '',
+  questionCount = 5,
+  optionCount = 4,
+  difficulty = 'Orta',
+  questionType = 'coktan_secmeli', // 'coktan_secmeli' | 'acik_uclu'
+  includeExplanation = true
+}) {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Lütfen geçerli bir Google Gemini API anahtarı giriniz.');
+  }
+
+  const optionLetters = optionCount === 4 ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+  const isMultipleChoice = questionType === 'coktan_secmeli';
+
+  const systemInstruction = `Sen Türkiye MEB müfredatına ve ÖSYM/LGS sınav standartlarına son derece hakim, uzman bir soru yazarısın.
+Görevin: Verilen ders, sınıf, konu ve kaynak materyale (metin veya PDF özeti) TAM UYUMLU, pedagojik olarak kusursuz ${questionCount} adet soru içeren bir soru paketi hazırlamaktır.
+
+Kurallar:
+1. Sorular ${grade} seviyesinde ve ${subject} dersi için olmalıdır.
+2. Zorluk seviyesi: ${difficulty}. (Yeni Nesil seçilmişse mantık-muhakeme, tablo/grafik yorumlama, gerçek yaşam senaryoları ve öncüllü soru tipleri kullan).
+3. ${isMultipleChoice ? `Her soru TAM ${optionCount} şıktan (${optionLetters.join(', ')}) oluşmalıdır. Şıklar çeldirici nitelikte ve mantıklı olmalıdır.` : 'Sorular açık uçlu / klasik yanıt formatında olmalıdır.'}
+4. Soru köklerinde kalın harf ("altı çizili", "değildir", "ulaşılamaz", "hangisidir") vurgularını **bold** yap.
+5. Matematik ve Fen formüllerinde LaTeX matematik gösterimi kullan (örn: $x^2 + y^2 = z^2$, $\\frac{a}{b}$, $\\sqrt{x}$).
+6. ${includeExplanation ? 'Her soru için adım adım doğru cevabın açıklaması ("explanation") ekle.' : ''}
+7. Yanıtını YALNIZCA ve YALNIZCA geçerli bir JSON array olarak döndür. Markdown backtick veya ekstra açıklama yazma.`;
+
+  let prompt = `Aşağıdaki kriterlere göre ${questionCount} adet soru üret:\n\n`;
+  prompt += `Ders: ${subject}\n`;
+  prompt += `Sınıf Seviyesi: ${grade}\n`;
+  if (topic) prompt += `Konu: ${topic}\n`;
+  prompt += `Zorluk: ${difficulty}\n`;
+  prompt += `Şık Sayısı: ${optionCount} (${optionLetters.join(', ')})\n\n`;
+
+  if (sourceType !== 'topic_only' && sourceContent && sourceContent.trim()) {
+    prompt += `KAYNAK MATERYAL (Soruları doğrudan bu metne/özete dayandır):\n"""\n${sourceContent.slice(0, 15000)}\n"""\n\n`;
+  }
+
+  prompt += `Döndürülecek JSON Şeması:
+[
+  {
+    "questionText": "Soru metni veya öncülleri...",
+    "options": ${isMultipleChoice ? JSON.stringify(optionLetters.map(l => `${l}) Şık metni`)) : '[]'},
+    "correctAnswer": 0, // Doğru şıkkın indexi (0=A, 1=B, 2=C, 3=D, 4=E)
+    "correctAnswerLetter": "A",
+    "explanation": "Detaylı çözüm rehberi ve doğru cevabın nedeni...",
+    "difficulty": "${difficulty}",
+    "topic": "${topic || subject}"
+  }
+]`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          { text: systemInstruction + '\n\n' + prompt }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.4,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 8192
+    }
+  };
+
+  const modelsToTry = [
+    model,
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-3.0-flash'
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+  let lastError = null;
+  let responseData = null;
+
+  for (const currentModel of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey.trim()}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => ({}));
+        const msg = errorJson.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+        throw new Error(msg);
+      }
+
+      responseData = await res.json();
+      if (responseData) break;
+    } catch (err) {
+      console.warn(`[aiQuestionService] Model ${currentModel} failed:`, err.message);
+      lastError = err;
+    }
+  }
+
+  if (!responseData) {
+    throw new Error(lastError?.message || 'Gemini API yanıt vermedi. Lütfen API anahtarınızı ve internet bağlantınızı kontrol ediniz.');
+  }
+
+  const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!rawText) {
+    throw new Error('Yapay zeka boş bir yanıt döndürdü.');
+  }
+
+  let cleanJson = rawText.trim();
+  if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+
+  try {
+    const parsedQuestions = JSON.parse(cleanJson);
+    if (!Array.isArray(parsedQuestions)) {
+      throw new Error('Dönen yanıt bir soru listesi içermiyor.');
+    }
+
+    return parsedQuestions.map((q, idx) => {
+      let cAns = typeof q.correctAnswer === 'number' ? q.correctAnswer : 0;
+      if (q.correctAnswerLetter) {
+        const letterIdx = optionLetters.indexOf(String(q.correctAnswerLetter).trim().toUpperCase());
+        if (letterIdx !== -1) cAns = letterIdx;
+      }
+
+      let opts = Array.isArray(q.options) ? q.options : [];
+      if (isMultipleChoice && opts.length < optionCount) {
+        for (let i = opts.length; i < optionCount; i++) {
+          opts.push(`${optionLetters[i]}) Şık ${optionLetters[i]}`);
+        }
+      } else if (isMultipleChoice && opts.length > optionCount) {
+        opts = opts.slice(0, optionCount);
+      }
+
+      return {
+        id: `ai_q_${Date.now()}_${idx + 1}`,
+        questionText: q.questionText || `Soru ${idx + 1}`,
+        options: opts,
+        correctAnswer: cAns,
+        correctAnswerLetter: optionLetters[cAns] || 'A',
+        explanation: q.explanation || '',
+        difficulty: q.difficulty || difficulty,
+        topic: q.topic || topic || subject,
+        subject: subject,
+        grade: grade,
+        optionCount: optionCount,
+        questionType: questionType
+      };
+    });
+  } catch (parseErr) {
+    console.error('[aiQuestionService] JSON parse error:', parseErr, cleanJson);
+    throw new Error('Yapay zekanın ürettiği sorular JSON formatına dönüştürülemedi. Lütfen tekrar deneyiniz.');
+  }
+}
