@@ -115,7 +115,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Kitap takibinden en az 3 kitap testi tamamla.',
     icon: '📚',
     category: 'test',
-    xpReward: 8,
+    xpReward: 10,
     check: (stats) => stats.bookTestsSolvedCount >= 3,
     progress: (stats) => ({ current: Math.min(3, stats.bookTestsSolvedCount), target: 3 })
   },
@@ -125,7 +125,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Kitap takibinden toplam 10 kitap testi tamamla.',
     icon: '📖',
     category: 'test',
-    xpReward: 18,
+    xpReward: 30,
     check: (stats) => stats.bookTestsSolvedCount >= 10,
     progress: (stats) => ({ current: Math.min(10, stats.bookTestsSolvedCount), target: 10 })
   },
@@ -135,7 +135,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Kitap takibinden toplam 25 kitap testi tamamla.',
     icon: '🏰',
     category: 'test',
-    xpReward: 35,
+    xpReward: 75,
     check: (stats) => stats.bookTestsSolvedCount >= 25,
     progress: (stats) => ({ current: Math.min(25, stats.bookTestsSolvedCount), target: 25 })
   },
@@ -145,7 +145,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Ödev modülünden en az 3 ödev tamamla.',
     icon: '📝',
     category: 'test',
-    xpReward: 8,
+    xpReward: 10,
     check: (stats) => stats.homeworksSolvedCount >= 3,
     progress: (stats) => ({ current: Math.min(3, stats.homeworksSolvedCount), target: 3 })
   },
@@ -155,7 +155,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Ödev modülünden toplam 10 ödev tamamla.',
     icon: '🎯',
     category: 'test',
-    xpReward: 18,
+    xpReward: 30,
     check: (stats) => stats.homeworksSolvedCount >= 10,
     progress: (stats) => ({ current: Math.min(10, stats.homeworksSolvedCount), target: 10 })
   },
@@ -167,7 +167,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Tüm kaynaklardan toplam 25 soru çöz.',
     icon: '🏹',
     category: 'milestone',
-    xpReward: 4,
+    xpReward: 5,
     check: (stats) => stats.totalQuestionsSolved >= 25,
     progress: (stats) => ({ current: Math.min(25, stats.totalQuestionsSolved), target: 25 })
   },
@@ -177,7 +177,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Toplam 50 soru çöz.',
     icon: '📜',
     category: 'milestone',
-    xpReward: 8,
+    xpReward: 10,
     check: (stats) => stats.totalQuestionsSolved >= 50,
     progress: (stats) => ({ current: Math.min(50, stats.totalQuestionsSolved), target: 50 })
   },
@@ -187,7 +187,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Toplam 100 soru çözerek ilk büyük barajı aş.',
     icon: '🛡️',
     category: 'milestone',
-    xpReward: 15,
+    xpReward: 25,
     check: (stats) => stats.totalQuestionsSolved >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.totalQuestionsSolved), target: 100 })
   },
@@ -197,7 +197,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Toplam 250 soru çöz.',
     icon: '⚔️',
     category: 'milestone',
-    xpReward: 20,
+    xpReward: 60,
     check: (stats) => stats.totalQuestionsSolved >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.totalQuestionsSolved), target: 250 })
   },
@@ -207,7 +207,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Toplam 500 soru çöz.',
     icon: '👑',
     category: 'milestone',
-    xpReward: 30,
+    xpReward: 120,
     check: (stats) => stats.totalQuestionsSolved >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.totalQuestionsSolved), target: 500 })
   },
@@ -217,7 +217,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Toplam 1.000 soru çözerek efsaneler arasına gir.',
     icon: '🌟',
     category: 'milestone',
-    xpReward: 50,
+    xpReward: 250,
     check: (stats) => stats.totalQuestionsSolved >= 1000,
     progress: (stats) => ({ current: Math.min(1000, stats.totalQuestionsSolved), target: 1000 })
   },
@@ -230,7 +230,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Matematik dersinde toplam 100 doğru soruya ulaş.',
     icon: '📐',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Matematik'] || 0), target: 100 })
   },
@@ -240,7 +240,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Matematik dersinde toplam 250 doğru soruya ulaş.',
     icon: '📐',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Matematik'] || 0), target: 250 })
   },
@@ -250,7 +250,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Matematik dersinde toplam 500 doğru soruya ulaş.',
     icon: '🧮',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Matematik'] || 0), target: 500 })
   },
@@ -260,7 +260,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Matematik dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '👑',
     category: 'subject',
-    xpReward: 100,
+    xpReward: 250,
     check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 1000,
     progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Matematik'] || 0), target: 1000 })
   },
@@ -272,7 +272,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Fen Bilimleri dersinde toplam 100 doğru soruya ulaş.',
     icon: '🔬',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 100 })
   },
@@ -282,7 +282,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Fen Bilimleri dersinde toplam 250 doğru soruya ulaş.',
     icon: '🔬',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 250 })
   },
@@ -292,7 +292,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Fen Bilimleri dersinde toplam 500 doğru soruya ulaş.',
     icon: '🧬',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 500 })
   },
@@ -302,7 +302,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Fen Bilimleri dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '🧪',
     category: 'subject',
-    xpReward: 100,
+    xpReward: 250,
     check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 1000,
     progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 1000 })
   },
@@ -314,7 +314,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Türkçe dersinde toplam 100 doğru soruya ulaş.',
     icon: '📖',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Türkçe'] || 0), target: 100 })
   },
@@ -324,7 +324,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Türkçe dersinde toplam 250 doğru soruya ulaş.',
     icon: '📖',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Türkçe'] || 0), target: 250 })
   },
@@ -334,7 +334,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Türkçe dersinde toplam 500 doğru soruya ulaş.',
     icon: '✒️',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Türkçe'] || 0), target: 500 })
   },
@@ -344,7 +344,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Türkçe dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '📜',
     category: 'subject',
-    xpReward: 100,
+    xpReward: 250,
     check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 1000,
     progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Türkçe'] || 0), target: 1000 })
   },
@@ -356,7 +356,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 100 doğruya ulaş.',
     icon: '🌍',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 100 })
   },
@@ -366,7 +366,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 250 doğruya ulaş.',
     icon: '🏛️',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 250 })
   },
@@ -376,7 +376,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 500 doğruya ulaş.',
     icon: '🗺️',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 500 })
   },
@@ -388,7 +388,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'İngilizce dersinde 100 doğru soruya ulaş.',
     icon: '💬',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['İngilizce'] || 0), target: 100 })
   },
@@ -398,7 +398,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'İngilizce dersinde 250 doğru soruya ulaş.',
     icon: '🌐',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['İngilizce'] || 0), target: 250 })
   },
@@ -408,7 +408,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'İngilizce dersinde 500 doğru soruya ulaş.',
     icon: '🗣️',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['İngilizce'] || 0), target: 500 })
   },
@@ -420,7 +420,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Din Kültürü dersinde 100 doğru soruya ulaş.',
     icon: '🕊️',
     category: 'subject',
-    xpReward: 10,
+    xpReward: 25,
     check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 100,
     progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 100 })
   },
@@ -430,7 +430,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Din Kültürü dersinde 250 doğru soruya ulaş.',
     icon: '✨',
     category: 'subject',
-    xpReward: 25,
+    xpReward: 60,
     check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 250,
     progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 250 })
   },
@@ -440,7 +440,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'Din Kültürü dersinde 500 doğru soruya ulaş.',
     icon: '🌟',
     category: 'subject',
-    xpReward: 50,
+    xpReward: 120,
     check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 500,
     progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 500 })
   },
@@ -452,7 +452,7 @@ export const BADGE_DEFINITIONS = [
     desc: 'En az 4 farklı dersten en az 50\'şer doğru soru çöz.',
     icon: '🌈',
     category: 'subject',
-    xpReward: 40,
+    xpReward: 80,
     check: (stats) => Object.values(stats.subjectCorrect || {}).filter(c => c >= 50).length >= 4,
     progress: (stats) => ({ current: Math.min(4, Object.values(stats.subjectCorrect || {}).filter(c => c >= 50).length), target: 4 })
   },
