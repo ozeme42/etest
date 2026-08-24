@@ -6,9 +6,9 @@ import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil, ArrowLeft } from 'lucide-react';
 
-export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId }) {
+export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId, onExit }) {
   const { isDark, toggleTheme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { tests: globalTests } = useQuestionBank();
@@ -436,6 +436,31 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
         zIndex: 20
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.65rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+          <button
+            type="button"
+            onClick={onExit || (() => window.history.back())}
+            title="Sınavdan Çık / Geri Dön"
+            style={{
+              padding: isMobile ? '0.28rem 0.5rem' : '0.35rem 0.75rem',
+              borderRadius: '0.55rem',
+              background: 'var(--color-surface-hover)',
+              border: '1.5px solid var(--color-border-input)',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.3rem',
+              fontSize: isMobile ? '0.74rem' : '0.82rem',
+              fontWeight: 800,
+              flexShrink: 0,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <ArrowLeft size={isMobile ? 15 : 18} />
+            {!isMobile && <span>Geri</span>}
+          </button>
           <span style={{
             padding: isMobile ? '0.2rem 0.45rem' : '0.28rem 0.6rem',
             background: 'linear-gradient(135deg, #059669, #10b981)',
