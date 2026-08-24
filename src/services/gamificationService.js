@@ -222,234 +222,240 @@ export const BADGE_DEFINITIONS = [
     progress: (stats) => ({ current: Math.min(1000, stats.totalQuestionsSolved), target: 1000 })
   },
 
-  // ─── DERS ODAKLI UZMANLIKLAR (TÜM KAYNAKLAR DAHİL) ───
+  // ─── DERS ODAKLI UZMANLIKLAR (100 DOĞRUDAN BAŞLAYAN ZORLU KADEMELER) ───
+  // MATEMATİK
   {
     id: 'math_apprentice',
     title: 'Matematik Çırağı',
-    desc: 'Matematik dersinde toplam 10 doğru soruya ulaş.',
+    desc: 'Matematik dersinde toplam 100 doğru soruya ulaş.',
     icon: '📐',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Matematik'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Matematik'] || 0), target: 100 })
   },
   {
     id: 'math_explorer',
     title: 'Matematik Kaşifi',
-    desc: 'Matematik dersinde toplam 30 doğru soruya ulaş.',
+    desc: 'Matematik dersinde toplam 250 doğru soruya ulaş.',
     icon: '📐',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Matematik'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Matematik'] || 0), target: 250 })
   },
   {
     id: 'math_wizard',
     title: 'Matematik Dehası',
-    desc: 'Matematik dersinde toplam 60 doğru soruya ulaş.',
+    desc: 'Matematik dersinde toplam 500 doğru soruya ulaş.',
     icon: '🧮',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Matematik'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Matematik'] || 0), target: 500 })
   },
   {
     id: 'math_master',
     title: 'Matematik Üstadı',
-    desc: 'Matematik dersinde toplam 120 doğru soruya ulaş.',
+    desc: 'Matematik dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '👑',
     category: 'subject',
-    xpReward: 30,
-    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 120,
-    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Matematik'] || 0), target: 120 })
+    xpReward: 100,
+    check: (stats) => (stats.subjectCorrect?.['Matematik'] || 0) >= 1000,
+    progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Matematik'] || 0), target: 1000 })
   },
 
+  // FEN BİLİMLERİ
   {
     id: 'science_apprentice',
     title: 'Fen Çırağı',
-    desc: 'Fen Bilimleri dersinde toplam 10 doğru soruya ulaş.',
+    desc: 'Fen Bilimleri dersinde toplam 100 doğru soruya ulaş.',
     icon: '🔬',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 100 })
   },
   {
     id: 'science_explorer',
     title: 'Fen Kaşifi',
-    desc: 'Fen Bilimleri dersinde toplam 30 doğru soruya ulaş.',
+    desc: 'Fen Bilimleri dersinde toplam 250 doğru soruya ulaş.',
     icon: '🔬',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 250 })
   },
   {
     id: 'science_genius',
     title: 'Fen Bilgini',
-    desc: 'Fen Bilimleri dersinde toplam 60 doğru soruya ulaş.',
+    desc: 'Fen Bilimleri dersinde toplam 500 doğru soruya ulaş.',
     icon: '🧬',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 500 })
   },
   {
     id: 'science_master',
     title: 'Fen Üstadı',
-    desc: 'Fen Bilimleri dersinde toplam 120 doğru soruya ulaş.',
+    desc: 'Fen Bilimleri dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '🧪',
     category: 'subject',
-    xpReward: 30,
-    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 120,
-    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 120 })
+    xpReward: 100,
+    check: (stats) => (stats.subjectCorrect?.['Fen Bilimleri'] || 0) >= 1000,
+    progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Fen Bilimleri'] || 0), target: 1000 })
   },
 
+  // TÜRKÇE
   {
     id: 'turkish_apprentice',
     title: 'Kelime Çırağı',
-    desc: 'Türkçe dersinde toplam 10 doğru soruya ulaş.',
+    desc: 'Türkçe dersinde toplam 100 doğru soruya ulaş.',
     icon: '📖',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Türkçe'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Türkçe'] || 0), target: 100 })
   },
   {
     id: 'turkish_explorer',
     title: 'Kelime Ustası',
-    desc: 'Türkçe dersinde toplam 30 doğru soruya ulaş.',
+    desc: 'Türkçe dersinde toplam 250 doğru soruya ulaş.',
     icon: '📖',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Türkçe'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Türkçe'] || 0), target: 250 })
   },
   {
     id: 'turkish_master',
     title: 'Türkçe Üstadı',
-    desc: 'Türkçe dersinde toplam 60 doğru soruya ulaş.',
+    desc: 'Türkçe dersinde toplam 500 doğru soruya ulaş.',
     icon: '✒️',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Türkçe'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Türkçe'] || 0), target: 500 })
   },
   {
     id: 'turkish_genius',
     title: 'Edebiyat Dehası',
-    desc: 'Türkçe dersinde toplam 120 doğru soruya ulaş.',
+    desc: 'Türkçe dersinde toplam 1.000 doğru soruya ulaş.',
     icon: '📜',
     category: 'subject',
-    xpReward: 30,
-    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 120,
-    progress: (stats) => ({ current: Math.min(120, stats.subjectCorrect?.['Türkçe'] || 0), target: 120 })
+    xpReward: 100,
+    check: (stats) => (stats.subjectCorrect?.['Türkçe'] || 0) >= 1000,
+    progress: (stats) => ({ current: Math.min(1000, stats.subjectCorrect?.['Türkçe'] || 0), target: 1000 })
   },
 
+  // SOSYAL & İNKILAP TARİHİ
   {
     id: 'social_explorer',
     title: 'Tarih Kaşifi',
-    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 10 doğruya ulaş.',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 100 doğruya ulaş.',
     icon: '🌍',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 100 })
   },
   {
     id: 'social_genius',
     title: 'Sosyal Bilgini',
-    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 30 doğruya ulaş.',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 250 doğruya ulaş.',
     icon: '🏛️',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 250 })
   },
   {
     id: 'social_master',
     title: 'Tarih Üstadı',
-    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 60 doğruya ulaş.',
+    desc: 'Sosyal Bilgiler / İnkılap Tarihi dersinde 500 doğruya ulaş.',
     icon: '🗺️',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['Sosyal & İnkılap'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Sosyal & İnkılap'] || 0), target: 500 })
   },
 
+  // İNGİLİZCE
   {
     id: 'english_apprentice',
     title: 'Dil Çırağı',
-    desc: 'İngilizce dersinde 10 doğru soruya ulaş.',
+    desc: 'İngilizce dersinde 100 doğru soruya ulaş.',
     icon: '💬',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['İngilizce'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['İngilizce'] || 0), target: 100 })
   },
   {
     id: 'english_pro',
     title: 'Global Dil',
-    desc: 'İngilizce dersinde 30 doğru soruya ulaş.',
+    desc: 'İngilizce dersinde 250 doğru soruya ulaş.',
     icon: '🌐',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['İngilizce'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['İngilizce'] || 0), target: 250 })
   },
   {
     id: 'english_master',
     title: 'Dil Dehası',
-    desc: 'İngilizce dersinde 60 doğru soruya ulaş.',
+    desc: 'İngilizce dersinde 500 doğru soruya ulaş.',
     icon: '🗣️',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['İngilizce'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['İngilizce'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['İngilizce'] || 0), target: 500 })
   },
 
+  // DİN KÜLTÜRÜ
   {
     id: 'religion_apprentice',
     title: 'Ahlak Çırağı',
-    desc: 'Din Kültürü dersinde 10 doğru soruya ulaş.',
+    desc: 'Din Kültürü dersinde 100 doğru soruya ulaş.',
     icon: '🕊️',
     category: 'subject',
-    xpReward: 5,
-    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 10,
-    progress: (stats) => ({ current: Math.min(10, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 10 })
+    xpReward: 10,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 100,
+    progress: (stats) => ({ current: Math.min(100, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 100 })
   },
   {
     id: 'religion_pro',
     title: 'Ahlak & Değerler',
-    desc: 'Din Kültürü dersinde 30 doğru soruya ulaş.',
+    desc: 'Din Kültürü dersinde 250 doğru soruya ulaş.',
     icon: '✨',
     category: 'subject',
-    xpReward: 10,
-    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 30,
-    progress: (stats) => ({ current: Math.min(30, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 30 })
+    xpReward: 25,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 250,
+    progress: (stats) => ({ current: Math.min(250, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 250 })
   },
   {
     id: 'religion_master',
     title: 'Erdem Üstadı',
-    desc: 'Din Kültürü dersinde 60 doğru soruya ulaş.',
+    desc: 'Din Kültürü dersinde 500 doğru soruya ulaş.',
     icon: '🌟',
     category: 'subject',
-    xpReward: 18,
-    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 60,
-    progress: (stats) => ({ current: Math.min(60, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 60 })
+    xpReward: 50,
+    check: (stats) => (stats.subjectCorrect?.['Din Kültürü'] || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.subjectCorrect?.['Din Kültürü'] || 0), target: 500 })
   },
 
+  // ÇOK YÖNLÜ ZİHİN
   {
     id: 'multi_subject_master',
     title: 'Çok Yönlü Zihin',
-    desc: 'En az 4 farklı dersten doğru sorular çöz.',
+    desc: 'En az 4 farklı dersten en az 50\'şer doğru soru çöz.',
     icon: '🌈',
     category: 'subject',
-    xpReward: 15,
-    check: (stats) => stats.distinctSubjectsCount >= 4,
-    progress: (stats) => ({ current: Math.min(4, stats.distinctSubjectsCount), target: 4 })
+    xpReward: 40,
+    check: (stats) => Object.values(stats.subjectCorrect || {}).filter(c => c >= 50).length >= 4,
+    progress: (stats) => ({ current: Math.min(4, Object.values(stats.subjectCorrect || {}).filter(c => c >= 50).length), target: 4 })
   },
-
   // ─── GÜNLÜK SERİ & DİSİPLİN (STREAKS) ───
   {
     id: 'streak_3',
