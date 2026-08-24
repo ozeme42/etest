@@ -22,6 +22,12 @@ export default function StudentBookDetailsPage() {
   const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
   const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [feedbackToast, setFeedbackToast] = useState(null);
   const [mistakeModalTest, setMistakeModalTest] = useState(null);
   const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null });
@@ -426,7 +432,135 @@ export default function StudentBookDetailsPage() {
         <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
           <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Harita Yükleniyor...</h3>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <style>{`
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .sbdp-anim { animation: fadeSlideUp 0.25s ease both; }
+        .sbdp-subject-card { transition: box-shadow 0.2s, transform 0.2s; }
+        .sbdp-subject-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; transform: translateY(-2px); }
+        .sbdp-test-row { transition: background 0.15s, box-shadow 0.15s; }
+        .sbdp-test-row:hover { background: var(--color-surface-hover) !important; }
+        .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
+        .sbdp-btn-solve:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3) !important; transform: translateY(-1px); }
+
+        .sbdp-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          width: 100%;
+        }
+        .sbdp-stat-item {
+          border-right: 1px solid var(--color-border);
+          padding: 1rem 0.6rem;
+          text-align: center;
+          box-sizing: border-box;
+        }
+        .sbdp-stat-item:last-child {
+          border-right: none;
+        }
+
+        /* 📱 MOBIL UYGULAMA DÜZENİ VE RESPONSIVE ENTEGRASYONU */
+        @media (max-width: 768px) {
+          .sbdp-page-container {
+            padding: 0.65rem 0.75rem 4rem 0.75rem !important;
+          }
+          .sbdp-hero-box {
+            padding: 1.1rem 1.1rem 1rem 1.1rem !important;
+            border-radius: 18px !important;
+          }
+          .sbdp-hero-cover {
+            width: 52px !important;
+            height: 68px !important;
+            border-radius: 10px !important;
+          }
+          .sbdp-hero-title {
+            font-size: 1.15rem !important;
+            line-height: 1.3 !important;
+            margin-bottom: 0.5rem !important;
+          }
+          .sbdp-stats-grid {
+            grid-template-columns: repeat(5, 1fr) !important;
+          }
+          .sbdp-stat-item {
+            padding: 0.65rem 0.2rem !important;
+          }
+          .sbdp-stat-val {
+            font-size: 1.05rem !important;
+          }
+          .sbdp-stat-lbl {
+            font-size: 0.62rem !important;
+            letter-spacing: 0 !important;
+          }
+          .sbdp-test-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 0.75rem 0.85rem !important;
+            border-radius: 14px !important;
+            gap: 0.6rem !important;
+          }
+          .sbdp-test-header-mobile {
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            width: 100% !important;
+          }
+          .sbdp-test-actions-mobile {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+          }
+          .sbdp-test-actions-mobile button, .sbdp-test-actions-mobile a {
+            flex: 1 !important;
+            min-width: 110px !important;
+            justify-content: center !important;
+            padding: 0.5rem 0.65rem !important;
+            font-size: 0.76rem !important;
+            border-radius: 10px !important;
+          }
+          .sbdp-chart-card {
+            padding: 1rem 0.85rem !important;
+            border-radius: 16px !important;
+          }
+          .sbdp-subject-card {
+            border-radius: 16px !important;
+          }
+        }
+
+        .sbdp-mistake-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
+        }
+        @media (max-width: 1024px) {
+          .sbdp-mistake-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .sbdp-mistake-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+          }
+          .sbdp-mistake-card {
+            padding: 0.65rem 0.75rem !important;
+            border-radius: 11px !important;
+          }
+          .sbdp-mistake-card:last-child {
+            grid-column: span 2;
+          }
+          .sbdp-mistake-card-title {
+            font-size: 0.72rem !important;
+          }
+          .sbdp-mistake-card-pct {
+            font-size: 0.82rem !important;
+          }
+          .sbdp-mistake-card-val {
+            font-size: 1.05rem !important;
+          }
+        }
+      `}</style>
         </div>
       );
     }
@@ -994,7 +1128,7 @@ export default function StudentBookDetailsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
+    <div className="sbdp-page-container" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: isMobile ? '0.65rem 0.75rem 4rem' : '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .sbdp-anim { animation: fadeSlideUp 0.3s ease both; }
@@ -1181,12 +1315,12 @@ export default function StudentBookDetailsPage() {
       )}
 
       <div className="sbdp-anim" style={{ borderRadius: '1.5rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid #e2e8f0' }}>
-        <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)', padding: '2rem 2.5rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
+        <div className="sbdp-hero-box" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)', padding: isMobile ? '1.1rem 1.1rem 1rem' : '2rem 2.5rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: -50, right: 80, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', position: 'relative' }}>
-            <div style={{ width: 90, height: 120, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+            <div className="sbdp-hero-cover" style={{ width: isMobile ? 54 : 90, height: isMobile ? 70 : 120, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
               <BookOpen size={44} />
             </div>
 
@@ -1199,7 +1333,7 @@ export default function StudentBookDetailsPage() {
                   {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (Ortaokul A-D)' : '🎯 5 Seçenekli Optik (Lise A-E)'}
                 </span>
               </div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
+              <h1 className="sbdp-hero-title" style={{ fontSize: isMobile ? '1.15rem' : '1.75rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
                 {book.title}
                 {book.pdfUrl && (
                   <button
@@ -1227,34 +1361,34 @@ export default function StudentBookDetailsPage() {
         <div className="sbdp-stats-grid" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
           <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: 'rgba(16,185,129,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>✅</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a' }}>{overallCorrect}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#16a34a' }}>{overallCorrect}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase' }}>Doğru</div>
           </div>
           <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: 'rgba(239,68,68,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>❌</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#dc2626' }}>{overallWrong}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#dc2626' }}>{overallWrong}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase' }}>Yanlış</div>
           </div>
           <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: 'var(--color-surface-hover)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>⬜</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{overallBlank}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{overallBlank}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Boş</div>
           </div>
           <div className="sbdp-stat-item sbdp-stat-test" style={{ background: 'rgba(37,99,235,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>📋</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#2563eb' }}>{overallCompleted}/{overallTotal}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#2563eb' }}>{overallCompleted}/{overallTotal}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase' }}>Test</div>
           </div>
           <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: 'rgba(124,58,237,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>🎯</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed' }}>%{overallSuccessRate}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#7c3aed' }}>%{overallSuccessRate}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase' }}>Başarı</div>
           </div>
         </div>
       </div>
 
       {subjectChartData.length > 0 && (
-        <div className="sbdp-anim" style={{ background: 'var(--color-surface)', borderRadius: '1.4rem', border: '1.5px solid var(--color-border)', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+        <div className="sbdp-anim sbdp-chart-card" style={{ background: 'var(--color-surface)', borderRadius: isMobile ? '16px' : '1.4rem', border: '1.5px solid var(--color-border)', padding: isMobile ? '1rem 0.9rem' : '1.75rem 2rem', marginBottom: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
           
           {/* Chart Header & Selectors */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -1916,7 +2050,7 @@ export default function StudentBookDetailsPage() {
                         else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                         return (
-                          <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                          <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                               {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
                             </div>
@@ -1982,7 +2116,7 @@ export default function StudentBookDetailsPage() {
                               </div>
                             )}
 
-                            <div style={{ flexShrink: 0 }}>
+                            <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                               {test.isCompleted ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                   <button
@@ -2119,7 +2253,7 @@ export default function StudentBookDetailsPage() {
                                 else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                                 return (
-                                  <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                                  <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                                       {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
                                     </div>
@@ -2185,7 +2319,7 @@ export default function StudentBookDetailsPage() {
                                       </div>
                                     )}
 
-                                    <div style={{ flexShrink: 0 }}>
+                                    <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                                       {test.isCompleted ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                           <button
@@ -2299,7 +2433,7 @@ export default function StudentBookDetailsPage() {
                       else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                       return (
-                        <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                        <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                           <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                             {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
                           </div>
@@ -2341,7 +2475,7 @@ export default function StudentBookDetailsPage() {
                             </div>
                           )}
 
-                          <div style={{ flexShrink: 0 }}>
+                          <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                             {test.isCompleted ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                 <button
