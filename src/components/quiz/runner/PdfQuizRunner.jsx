@@ -668,6 +668,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                   ) : (
                     <div style={{ display: 'flex', gap: '0.45rem' }}>
                       {(() => {
+                        const targetObj = q || test || {};
                         const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
   const isExplicitFive = explicitOpt === 5 ? true : (explicitOpt === 4 ? false : Boolean(
                           Number(test?.optionCount) === 5 ||
