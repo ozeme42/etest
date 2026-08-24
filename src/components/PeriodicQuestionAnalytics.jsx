@@ -629,12 +629,15 @@ export default function PeriodicQuestionAnalytics({
         </div>
       </div>
 
-      {/* ── 5'Lİ ULTRA KOMPAKT KPI ÖZET KARTLARI (MOBİLDE TEK SATIRDA SADE & ŞIK) ── */}
+      {/* ── 5'Lİ ULTRA KOMPAKT KPI ÖZET KARTLARI (MOBİLDE & MASAÜSTÜNDE TAŞMA YAPMAYAN DÜZEN) ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: isMobile ? '0.25rem' : '0.65rem',
-        marginBottom: isMobile ? '0.65rem' : '1.1rem'
+        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+        gap: isMobile ? '0.25rem' : '0.5rem',
+        marginBottom: isMobile ? '0.65rem' : '1rem',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* 1. Toplam Soru */}
         <div style={{
@@ -643,21 +646,23 @@ export default function PeriodicQuestionAnalytics({
             : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
           border: isDark ? '1.5px solid rgba(59, 130, 246, 0.35)' : '1.5px solid #bfdbfe',
           borderRadius: isMobile ? '0.65rem' : '0.85rem',
-          padding: isMobile ? '0.35rem 0.2rem' : '0.7rem 0.85rem',
+          padding: isMobile ? '0.35rem 0.2rem' : '0.55rem 0.45rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isMobile ? 'center' : 'stretch',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '52px' : '72px',
+          minHeight: isMobile ? '52px' : '68px',
+          minWidth: 0,
+          overflow: 'hidden',
           textAlign: isMobile ? 'center' : 'left',
           boxShadow: isDark ? 'none' : '0 2px 6px rgba(59, 130, 246, 0.06)'
         }}>
           <div style={{
-            fontSize: isMobile ? '0.56rem' : '0.7rem',
+            fontSize: isMobile ? '0.56rem' : '0.68rem',
             fontWeight: 900,
             color: isDark ? '#60a5fa' : '#1d4ed8',
             textTransform: 'uppercase',
-            letterSpacing: isMobile ? '0' : '0.04em',
+            letterSpacing: isMobile ? '0' : '0.02em',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -670,17 +675,20 @@ export default function PeriodicQuestionAnalytics({
             alignItems: 'center',
             justifyContent: isMobile ? 'center' : 'space-between',
             gap: isMobile ? 2 : 4,
-            marginTop: isMobile ? 1 : 3
+            marginTop: isMobile ? 1 : 3,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden'
           }}>
-            <span style={{ fontSize: isMobile ? '1.02rem' : '1.45rem', fontWeight: 900, color: isDark ? '#93c5fd' : '#1e3a8a', lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: isMobile ? '1.02rem' : '1.28rem', fontWeight: 900, color: isDark ? '#93c5fd' : '#1e3a8a', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totQ}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.54rem' : '0.68rem',
+              fontSize: isMobile ? '0.54rem' : '0.64rem',
               fontWeight: 900,
               color: isDark ? '#bfdbfe' : '#1d4ed8',
               background: isDark ? 'rgba(59, 130, 246, 0.25)' : '#ffffff',
-              padding: isMobile ? '1px 3px' : '0.15rem 0.4rem',
+              padding: isMobile ? '1px 3px' : '0.12rem 0.35rem',
               borderRadius: isMobile ? '0.3rem' : '0.4rem',
               border: isDark ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid #bfdbfe',
               whiteSpace: 'nowrap',
@@ -698,21 +706,23 @@ export default function PeriodicQuestionAnalytics({
             : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
           border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a',
           borderRadius: isMobile ? '0.65rem' : '0.85rem',
-          padding: isMobile ? '0.35rem 0.2rem' : '0.7rem 0.85rem',
+          padding: isMobile ? '0.35rem 0.2rem' : '0.55rem 0.45rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isMobile ? 'center' : 'stretch',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '52px' : '72px',
+          minHeight: isMobile ? '52px' : '68px',
+          minWidth: 0,
+          overflow: 'hidden',
           textAlign: isMobile ? 'center' : 'left',
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.06)'
         }}>
           <div style={{
-            fontSize: isMobile ? '0.56rem' : '0.7rem',
+            fontSize: isMobile ? '0.56rem' : '0.68rem',
             fontWeight: 900,
             color: isDark ? '#fbbf24' : '#b45309',
             textTransform: 'uppercase',
-            letterSpacing: isMobile ? '0' : '0.04em',
+            letterSpacing: isMobile ? '0' : '0.02em',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -725,17 +735,20 @@ export default function PeriodicQuestionAnalytics({
             alignItems: 'center',
             justifyContent: isMobile ? 'center' : 'space-between',
             gap: isMobile ? 2 : 4,
-            marginTop: isMobile ? 1 : 3
+            marginTop: isMobile ? 1 : 3,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden'
           }}>
-            <span style={{ fontSize: isMobile ? '1.02rem' : '1.45rem', fontWeight: 900, color: isDark ? '#fde68a' : '#78350f', lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: isMobile ? '1.02rem' : '1.28rem', fontWeight: 900, color: isDark ? '#fde68a' : '#78350f', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.dailyAvg}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.54rem' : '0.68rem',
+              fontSize: isMobile ? '0.54rem' : '0.64rem',
               fontWeight: 900,
               color: isDark ? '#fde68a' : '#b45309',
               background: isDark ? 'rgba(245, 158, 11, 0.25)' : '#ffffff',
-              padding: isMobile ? '1px 3px' : '0.15rem 0.4rem',
+              padding: isMobile ? '1px 3px' : '0.12rem 0.35rem',
               borderRadius: isMobile ? '0.3rem' : '0.4rem',
               border: isDark ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #fde68a',
               whiteSpace: 'nowrap',
@@ -753,21 +766,23 @@ export default function PeriodicQuestionAnalytics({
             : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
           border: isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid #a7f3d0',
           borderRadius: isMobile ? '0.65rem' : '0.85rem',
-          padding: isMobile ? '0.35rem 0.2rem' : '0.7rem 0.85rem',
+          padding: isMobile ? '0.35rem 0.2rem' : '0.55rem 0.45rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isMobile ? 'center' : 'stretch',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '52px' : '72px',
+          minHeight: isMobile ? '52px' : '68px',
+          minWidth: 0,
+          overflow: 'hidden',
           textAlign: isMobile ? 'center' : 'left',
           boxShadow: isDark ? 'none' : '0 2px 6px rgba(16, 185, 129, 0.06)'
         }}>
           <div style={{
-            fontSize: isMobile ? '0.56rem' : '0.7rem',
+            fontSize: isMobile ? '0.56rem' : '0.68rem',
             fontWeight: 900,
             color: isDark ? '#34d399' : '#047857',
             textTransform: 'uppercase',
-            letterSpacing: isMobile ? '0' : '0.04em',
+            letterSpacing: isMobile ? '0' : '0.02em',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -780,17 +795,20 @@ export default function PeriodicQuestionAnalytics({
             alignItems: 'center',
             justifyContent: isMobile ? 'center' : 'space-between',
             gap: isMobile ? 2 : 4,
-            marginTop: isMobile ? 1 : 3
+            marginTop: isMobile ? 1 : 3,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden'
           }}>
-            <span style={{ fontSize: isMobile ? '1.02rem' : '1.45rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#064e3b', lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: isMobile ? '1.02rem' : '1.28rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#064e3b', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totD}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.54rem' : '0.68rem',
+              fontSize: isMobile ? '0.54rem' : '0.64rem',
               fontWeight: 900,
               color: isDark ? '#a7f3d0' : '#047857',
               background: isDark ? 'rgba(16, 185, 129, 0.25)' : '#ffffff',
-              padding: isMobile ? '1px 3px' : '0.15rem 0.4rem',
+              padding: isMobile ? '1px 3px' : '0.12rem 0.35rem',
               borderRadius: isMobile ? '0.3rem' : '0.4rem',
               border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #a7f3d0',
               whiteSpace: 'nowrap',
@@ -808,21 +826,23 @@ export default function PeriodicQuestionAnalytics({
             : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
           border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca',
           borderRadius: isMobile ? '0.65rem' : '0.85rem',
-          padding: isMobile ? '0.35rem 0.2rem' : '0.7rem 0.85rem',
+          padding: isMobile ? '0.35rem 0.2rem' : '0.55rem 0.45rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isMobile ? 'center' : 'stretch',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '52px' : '72px',
+          minHeight: isMobile ? '52px' : '68px',
+          minWidth: 0,
+          overflow: 'hidden',
           textAlign: isMobile ? 'center' : 'left',
           boxShadow: isDark ? 'none' : '0 2px 6px rgba(239, 68, 68, 0.06)'
         }}>
           <div style={{
-            fontSize: isMobile ? '0.56rem' : '0.7rem',
+            fontSize: isMobile ? '0.56rem' : '0.68rem',
             fontWeight: 900,
             color: isDark ? '#f87171' : '#b91c1c',
             textTransform: 'uppercase',
-            letterSpacing: isMobile ? '0' : '0.04em',
+            letterSpacing: isMobile ? '0' : '0.02em',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -835,17 +855,20 @@ export default function PeriodicQuestionAnalytics({
             alignItems: 'center',
             justifyContent: isMobile ? 'center' : 'space-between',
             gap: isMobile ? 2 : 4,
-            marginTop: isMobile ? 1 : 3
+            marginTop: isMobile ? 1 : 3,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden'
           }}>
-            <span style={{ fontSize: isMobile ? '1.02rem' : '1.45rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#7f1d1d', lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: isMobile ? '1.02rem' : '1.28rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#7f1d1d', lineHeight: 1, whiteSpace: 'nowrap' }}>
               {totals.totY}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.54rem' : '0.68rem',
+              fontSize: isMobile ? '0.54rem' : '0.64rem',
               fontWeight: 900,
               color: isDark ? '#fecaca' : '#991b1b',
               background: isDark ? 'rgba(239, 68, 68, 0.25)' : '#ffffff',
-              padding: isMobile ? '1px 3px' : '0.15rem 0.4rem',
+              padding: isMobile ? '1px 3px' : '0.12rem 0.35rem',
               borderRadius: isMobile ? '0.3rem' : '0.4rem',
               border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca',
               whiteSpace: 'nowrap',
@@ -865,21 +888,23 @@ export default function PeriodicQuestionAnalytics({
             ? (isDark ? '1.5px solid rgba(168, 85, 247, 0.35)' : '1.5px solid #e9d5ff')
             : (isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a'),
           borderRadius: isMobile ? '0.65rem' : '0.85rem',
-          padding: isMobile ? '0.35rem 0.2rem' : '0.7rem 0.85rem',
+          padding: isMobile ? '0.35rem 0.2rem' : '0.55rem 0.45rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isMobile ? 'center' : 'stretch',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '52px' : '72px',
+          minHeight: isMobile ? '52px' : '68px',
+          minWidth: 0,
+          overflow: 'hidden',
           textAlign: isMobile ? 'center' : 'left',
           boxShadow: isDark ? 'none' : (totals.avgRate >= 70 ? '0 2px 6px rgba(168, 85, 247, 0.06)' : '0 2px 6px rgba(245, 158, 11, 0.06)')
         }}>
           <div style={{
-            fontSize: isMobile ? '0.56rem' : '0.7rem',
+            fontSize: isMobile ? '0.56rem' : '0.68rem',
             fontWeight: 900,
             color: totals.avgRate >= 70 ? (isDark ? '#c084fc' : '#6b21a8') : (isDark ? '#fbbf24' : '#b45309'),
             textTransform: 'uppercase',
-            letterSpacing: isMobile ? '0' : '0.04em',
+            letterSpacing: isMobile ? '0' : '0.02em',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -892,10 +917,13 @@ export default function PeriodicQuestionAnalytics({
             alignItems: 'center',
             justifyContent: isMobile ? 'center' : 'space-between',
             gap: isMobile ? 2 : 4,
-            marginTop: isMobile ? 1 : 3
+            marginTop: isMobile ? 1 : 3,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden'
           }}>
             <span style={{
-              fontSize: isMobile ? '1.02rem' : '1.45rem',
+              fontSize: isMobile ? '1.02rem' : '1.28rem',
               fontWeight: 900,
               color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#581c87') : (isDark ? '#fef3c7' : '#78350f'),
               lineHeight: 1,
@@ -904,11 +932,11 @@ export default function PeriodicQuestionAnalytics({
               %{totals.avgRate}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.54rem' : '0.68rem',
+              fontSize: isMobile ? '0.54rem' : '0.64rem',
               fontWeight: 900,
               color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#7e22ce') : (isDark ? '#fef3c7' : '#92400e'),
               background: isDark ? (totals.avgRate >= 70 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(245, 158, 11, 0.25)') : '#ffffff',
-              padding: isMobile ? '1px 3px' : '0.15rem 0.4rem',
+              padding: isMobile ? '1px 3px' : '0.12rem 0.35rem',
               borderRadius: isMobile ? '0.3rem' : '0.4rem',
               border: isDark ? (totals.avgRate >= 70 ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)') : (totals.avgRate >= 70 ? '1px solid #e9d5ff' : '1px solid #fde68a'),
               whiteSpace: 'nowrap',
@@ -929,12 +957,15 @@ export default function PeriodicQuestionAnalytics({
         gap: 3,
         marginBottom: '0.85rem',
         border: isDark ? '1px solid var(--color-border)' : '1.5px solid #cbd5e1',
-        overflowX: 'auto'
+        overflowX: 'auto',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}>
         {[
           { id: 'distribution', label: '📊 Soru Dağılımı', short: '📊 Soru' },
           { id: 'trend',        label: '📈 Başarı Eğrisi', short: '📈 Başarı' },
-          { id: 'heatmap',      label: '📅 Isı Haritası', short: '📅 Isı Haritası' },
+          { id: 'heatmap',      label: '📅 Isı Haritası', short: '📅 Isı' },
           { id: 'subjects',     label: '📚 Ders Analizi', short: '📚 Dersler' },
           { id: 'table',        label: '📋 Döküm Tablosu', short: '📋 Tablo' }
         ].map(view => {
@@ -945,20 +976,24 @@ export default function PeriodicQuestionAnalytics({
               type="button"
               onClick={() => setActiveChartView(view.id)}
               style={{
-                flex: '1 1 auto',
-                padding: isMobile ? '0.35rem 0.4rem' : '0.45rem 0.85rem',
+                flex: '1 1 0',
+                minWidth: 0,
+                padding: isMobile ? '0.35rem 0.4rem' : '0.45rem 0.4rem',
                 borderRadius: '0.55rem',
                 border: isActive ? (isDark ? '1px solid rgba(99,102,241,0.4)' : '1.5px solid #c7d2fe') : 'none',
                 background: isActive ? (isDark ? 'var(--color-surface, #0f172a)' : '#ffffff') : 'transparent',
                 color: isActive ? '#4f46e5' : (isDark ? '#94a3b8' : '#334155'),
                 fontWeight: 900,
-                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontSize: isMobile ? '0.72rem' : '0.76rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 boxShadow: isActive ? '0 2px 8px rgba(79,70,229,0.18)' : 'none',
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
                 textAlign: 'center'
               }}
+              title={view.label}
             >
               {isMobile ? view.short : view.label}
             </button>
