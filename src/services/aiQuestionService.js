@@ -8,6 +8,47 @@ if (!pdfjs.GlobalWorkerOptions.workerSrc) {
 }
 
 /**
+ * Fetch available Gemini models supported for generateContent
+ */
+export async function getAvailableGeminiModels(apiKey) {
+  if (!apiKey || !apiKey.trim()) {
+    return [
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Detaylı Akıl Yürütme)' },
+      { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B (Kompakt)' }
+    ];
+  }
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`);
+    if (res.ok) {
+      const data = await res.json();
+      const models = (data.models || [])
+        .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => {
+          const id = m.name.replace(/^models\//, '');
+          return {
+            id,
+            name: `${m.displayName || id} (${id})`
+          };
+        });
+
+      if (models.length > 0) return models;
+    }
+  } catch (err) {
+    console.warn('[aiQuestionService] Could not list models:', err.message);
+  }
+
+  return [
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Detaylı Akıl Yürütme)' },
+    { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B (Kompakt)' }
+  ];
+}
+
+/**
  * Extract text content from an uploaded PDF file
  */
 export async function extractTextFromPdf(file) {
@@ -38,7 +79,7 @@ export async function extractTextFromPdf(file) {
  */
 export async function generateQuestionsWithGemini({
   apiKey,
-  model = 'gemini-2.5-flash',
+  model = 'gemini-1.5-flash',
   subject = 'Matematik',
   grade = '8. Sınıf',
   topic = '',
@@ -111,10 +152,10 @@ Kurallar:
 
   const modelsToTry = [
     model,
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
     'gemini-1.5-flash',
-    'gemini-3.0-flash'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro'
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   let lastError = null;

@@ -5,7 +5,7 @@ import {
   BookOpen, Layers, Key, Check, HelpCircle, Eye, RefreshCw
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { generateQuestionsWithGemini, extractTextFromPdf } from '../../services/aiQuestionService';
+import { generateQuestionsWithGemini, extractTextFromPdf, getAvailableGeminiModels } from '../../services/aiQuestionService';
 
 export default function AiQuestionGeneratorModal({
   isOpen,
@@ -25,7 +25,13 @@ export default function AiQuestionGeneratorModal({
   // API Key & Model
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [showKeyInput, setShowKeyInput] = useState(() => !localStorage.getItem('gemini_api_key'));
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
+  const [availableModelOptions, setAvailableModelOptions] = useState([
+    { id: 'gemini-1.5-flash', name: '⚡ Gemini 1.5 Flash (Önerilen • Hızlı & Ücretsiz)' },
+    { id: 'gemini-2.0-flash', name: '🚀 Gemini 2.0 Flash (Yeni Nesil Hızlı)' },
+    { id: 'gemini-1.5-pro', name: '🧠 Gemini 1.5 Pro (Gelişmiş Akıl Yürütme)' },
+    { id: 'gemini-1.5-flash-8b', name: '💡 Gemini 1.5 Flash 8B (Kompakt)' }
+  ]);
 
   // Question Config
   const [subject, setSubject] = useState(defaultSubject);
@@ -603,8 +609,20 @@ export default function AiQuestionGeneratorModal({
                 )}
               </div>
 
-              {/* Row 3: Parametreler (Soru Adedi, Şık Sayısı, Zorluk) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+              {/* Row 3: Parametreler (Model, Soru Adedi, Şık Sayısı, Zorluk) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>🤖 Yapay Zeka Modeli:</label>
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                  >
+                    {availableModelOptions.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>Soru Adedi:</label>
                   <select
