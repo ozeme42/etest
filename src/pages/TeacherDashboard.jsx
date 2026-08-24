@@ -580,64 +580,133 @@ export default function TeacherDashboard() {
     <div className="teacher-dashboard-container">
       <div className="teacher-main-wrapper">
 
-        {/* ══════════ TOP HERO HEADER ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            1. TOP HERO HEADER & GREETING BAR
+            ═══════════════════════════════════════════════════ */}
         <div className="teacher-hero-header">
           <div className="teacher-profile-group">
-            <div className="teacher-avatar-icon" style={{ background: '#4f46e5' }}>
-              <GraduationCap size={26} color="#fff" />
+            <div className="teacher-avatar-icon" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+              <GraduationCap size={26} color="#ffffff" />
             </div>
             <div className="teacher-info-text">
               <div className="teacher-badge-row">
-                <span className="teacher-badge-label" style={{ color: 'var(--color-text-muted)' }}>Öğretmen Paneli</span>
-                <span className="teacher-pro-pill" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)' }}>PRO DESK</span>
+                <span className="teacher-badge-label">Öğretmen Yönetim Portalı</span>
+                <span className="teacher-pro-pill" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.25)' }}>PRO DESK</span>
               </div>
               <h1 style={{ color: 'var(--color-text)' }}>{currentUser?.name || 'Öğretmen'}</h1>
+              <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                📅 {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
             </div>
           </div>
 
           <div className="teacher-header-actions">
+            {totalPendingNotifications > 0 && (
+              <button
+                onClick={() => navigate('/approvals')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.55rem 0.95rem', borderRadius: '0.75rem',
+                  background: 'rgba(239, 68, 68, 0.12)', border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Bekleyen bildirim ve onaylara git"
+              >
+                <Bell size={15} color="#ef4444" />
+                <span>{totalPendingNotifications} Bildirim</span>
+              </button>
+            )}
             <button
               onClick={() => { if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id); setShowAddStudentModal(true); }}
-              className="btn-header-add-student" style={{ background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)' }}
+              className="btn-header-add-student"
+              style={{ background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)' }}
             >
               <UserPlus size={15} /> Öğrenci Ekle
             </button>
             <button
               onClick={() => { resetForm(); setShowModal(true); }}
-              className="btn-header-create-test" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#ffffff' }}
+              className="btn-header-create-test"
+              style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#ffffff' }}
             >
               <Plus size={15} /> Test Oluştur
             </button>
           </div>
         </div>
 
-        
+        {/* ═══════════════════════════════════════════════════
+            2. PENDING ACTION / NOTIFICATION BANNER (IF ANY)
+            ═══════════════════════════════════════════════════ */}
+        {totalPendingNotifications > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.08))',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '1rem',
+            padding: '0.75rem 1.15rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: '0.75rem',
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.05)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertTriangle size={17} />
+              </div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                <span style={{ color: '#ef4444', fontWeight: 900 }}>{totalPendingNotifications} adet işlem bekliyor:</span>
+                <span style={{ marginLeft: 6, fontWeight: 600, color: 'var(--color-text-muted)' }}>
+                  {pendingManualApprovals.length > 0 && `${pendingManualApprovals.length} test onayı`}
+                  {pendingEvaluations.length > 0 && `${pendingManualApprovals.length > 0 ? ', ' : ''}${pendingEvaluations.length} açık uçlu sınav`}
+                  {dueHomeworks.length > 0 && `${(pendingManualApprovals.length > 0 || pendingEvaluations.length > 0) ? ', ' : ''}${dueHomeworks.length} teslimi yaklaşan ödev`}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/approvals')}
+              style={{
+                padding: '0.4rem 0.9rem', borderRadius: '0.6rem',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                border: 'none', color: '#ffffff', fontWeight: 800, fontSize: '0.75rem',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)'
+              }}
+            >
+              Onay Merkezine Git →
+            </button>
+          </div>
+        )}
 
-        {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            3. TOP 6 KPI METRIC CARDS (EXECUTIVE DASHBOARD)
+            ═══════════════════════════════════════════════════ */}
         <div className="teacher-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-          <StatHeroCard icon={Users}          label="Toplam Öğrenci"       value={`${students.length} Öğrenci`} sub="Aktif Sınıf Kaydı" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.3)" />
-          <StatHeroCard icon={BookMarked}     label="Aktif Branşlar"       value={`${activeSubjects.length} Ders`} sub="Müfredat & Kitaplar" color="#c084fc" bg="rgba(147, 51, 234, 0.15)" border="rgba(147, 51, 234, 0.3)" />
-          <StatHeroCard icon={FileText}       label="Bekleyen Ödevler"     value={`${teacherHomeworks.length} Ödev`} sub={`${dueHomeworks.length > 0 ? `🔥 ${dueHomeworks.length} süresi yaklaştı` : 'Teslim aşamasında'}`} color="#fbbf24" bg="rgba(217, 119, 6, 0.15)" border="rgba(217, 119, 6, 0.3)" />
-          <StatHeroCard icon={ClipboardCheck} label="Yaklaşan Sınavlar"    value={`${upcomingExams.length} Sınav`} sub="Deneme & Optik Test" color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.3)" />
-          <StatHeroCard icon={TrendingUp}     label="Başarı Ortalaması"    value={`%${executiveMetrics.avgSuccess}`} sub={`${executiveMetrics.totalQuestions} Soru Çözüldü`} color="#4ade80" bg="rgba(22, 163, 74, 0.15)" border="rgba(22, 163, 74, 0.3)" />
-          <StatHeroCard icon={Bell}           label="Bildirim & Onay"      value={`${totalPendingNotifications} Bildirim`} sub={`${pendingManualApprovals.length} Onay, ${pendingEvaluations.length} Açık Uçlu`} color="#f43f5e" bg="rgba(225, 29, 72, 0.15)" border="rgba(225, 29, 72, 0.3)" />
+          <StatHeroCard icon={Users}          label="Toplam Öğrenci"       value={`${students.length} Öğrenci`} sub="Aktif sınıf kaydı" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.4)" />
+          <StatHeroCard icon={BookMarked}     label="Aktif Branşlar"       value={`${activeSubjects.length} Branş`} sub="Müfredat & Kitap Takibi" color="#c084fc" bg="rgba(147, 51, 234, 0.15)" border="rgba(147, 51, 234, 0.4)" />
+          <StatHeroCard icon={FileText}       label="Bekleyen Ödevler"     value={`${teacherHomeworks.length} Ödev`} sub={dueHomeworks.length > 0 ? `🔥 ${dueHomeworks.length} süresi yaklaştı` : 'Tüm ödevler planlı'} color="#fbbf24" bg="rgba(217, 119, 6, 0.15)" border="rgba(217, 119, 6, 0.4)" />
+          <StatHeroCard icon={ClipboardCheck} label="Yaklaşan Sınavlar"    value={`${upcomingExams.length} Sınav`} sub="Deneme & Optik Test" color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.4)" />
+          <StatHeroCard icon={TrendingUp}     label="Başarı Ortalaması"    value={`%${executiveMetrics.avgSuccess}`} sub={`${executiveMetrics.totalQuestions} Soru Çözüldü`} color="#4ade80" bg="rgba(22, 163, 74, 0.15)" border="rgba(22, 163, 74, 0.4)" />
+          <StatHeroCard icon={Bell}           label="Bildirim & Onay"      value={`${totalPendingNotifications} Bildirim`} sub={`${pendingManualApprovals.length} Onay, ${pendingEvaluations.length} Açık Uçlu`} color="#f43f5e" bg="rgba(225, 29, 72, 0.15)" border="rgba(225, 29, 72, 0.4)" />
         </div>
 
-        {/* ══════════ QUICK ACTIONS GRID ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            4. QUICK ACTIONS ROW
+            ═══════════════════════════════════════════════════ */}
         <section className="teacher-quick-actions-grid">
           {quickActions.map(qa => (
             <QuickAction key={qa.label} {...qa} />
           ))}
         </section>
 
-        {/* ══════════ TAB BAR ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            5. MAIN TAB NAVIGATION BAR
+            ═══════════════════════════════════════════════════ */}
         <div className="teacher-tab-bar custom-scrollbar">
           {tabs.map(t => (
             <PillTab key={t.id} {...t} active={tab === t.id} onClick={setTab} />
           ))}
         </div>
 
-        {/* ══════════ TAB: ANALYTICS (CANLI GRAFİKLER & ANALİZ) ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            TAB 1: ANALYTICS (CANLI GRAFİKLER & PERFORMANS)
+            ═══════════════════════════════════════════════════ */}
         {tab === 'analytics' && (
           <TeacherClassAnalytics
             students={students}
@@ -648,11 +717,13 @@ export default function TeacherDashboard() {
           />
         )}
 
-        {/* ══════════ TAB: OVERVIEW (TAM DONANIMLI ÖĞRETMEN KOKPİTİ) ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            TAB 2: OVERVIEW (TAM DONANIMLI 10-MODÜLLÜ KOKPİT)
+            ═══════════════════════════════════════════════════ */}
         {tab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* ── 1. GÜNLÜK AJANDA & BİLDİRİM ŞERİDİ ── */}
+            {/* ── 1. GÜNLÜK AJANDA ŞERİDİ ── */}
             <div style={{
               background: 'var(--color-surface)',
               border: '1.5px solid var(--color-border)',
@@ -710,13 +781,13 @@ export default function TeacherDashboard() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-              gap: '1.15rem'
+              gap: '1.25rem'
             }}>
 
               {/* ═══════════════════════════════════════════
                   SOL SÜTUN: DİKKAT LİSTESİ + SON AKTİVİTELER + BİLDİRİMLER
                   ═══════════════════════════════════════════ */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
                 {/* ⚠️ 1. TAKİP EDİLMESİ GEREKEN ÖĞRENCİLER (RİSK / DİKKAT LİSTESİ) */}
                 <div className="overview-card-box" style={{ border: '1.5px solid rgba(239, 68, 68, 0.35)' }}>
@@ -743,7 +814,7 @@ export default function TeacherDashboard() {
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
-                            background: std.severity === 'danger' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            background: std.severity === 'danger' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)',
                             border: `1px solid ${std.severity === 'danger' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
                             gap: '0.6rem'
                           }}
@@ -823,8 +894,8 @@ export default function TeacherDashboard() {
                             style={{
                               display: 'flex', alignItems: 'center', gap: '0.75rem',
                               padding: '0.6rem 0.85rem', borderRadius: '0.8rem',
-                              background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                              border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
+                              background: good ? 'rgba(16, 185, 129, 0.08)' : scorePct !== null ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-surface-hover)',
+                              border: `1px solid ${good ? 'rgba(16, 185, 129, 0.25)' : scorePct !== null ? 'rgba(239, 68, 68, 0.25)' : 'var(--color-border)'}`,
                               cursor: 'pointer',
                               transition: 'transform 0.15s ease'
                             }}
@@ -844,9 +915,9 @@ export default function TeacherDashboard() {
                               <span style={{
                                 fontWeight: 900, fontSize: '0.78rem',
                                 padding: '0.15rem 0.55rem', borderRadius: '0.5rem',
-                                background: good ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                background: good ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)',
                                 color: good ? '#10b981' : '#ef4444', flexShrink: 0,
-                                border: `1px solid ${good ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
+                                border: `1px solid ${good ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`
                               }}>%{scorePct}</span>
                             ) : (
                               <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>
@@ -871,7 +942,7 @@ export default function TeacherDashboard() {
               {/* ═══════════════════════════════════════════
                   SAĞ SÜTUN: BRANŞLAR + BEKLEYEN ÖDEVLER + YAKLAŞAN SINAVLAR + SON EKLENENLER
                   ═══════════════════════════════════════════ */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
                 {/* 📚 1. AKTİF DERSLER & BRANŞ BAŞARISI */}
                 <div className="overview-card-box">
@@ -900,7 +971,7 @@ export default function TeacherDashboard() {
                               </div>
                             </div>
                             <div style={{ height: 4, background: 'var(--color-border)', borderRadius: 4, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${subj.avgScore}%`, background: subj.avgScore >= 70 ? '#10b981' : '#f59e0b', borderRadius: 4 }} />
+                              <div style={{ height: '100%', width: `${subj.avgScore}%`, background: subj.avgScore >= 70 ? '#10b981' : '#f59e0b', borderRadius: 4, transition: 'width 0.6s ease' }} />
                             </div>
                           </div>
                         );
@@ -934,8 +1005,8 @@ export default function TeacherDashboard() {
                         return (
                           <div key={hw.id} style={{
                             borderRadius: '0.75rem', padding: '0.65rem 0.85rem',
-                            background: urgent ? 'rgba(239, 68, 68, 0.1)' : 'var(--color-surface-hover)',
-                            border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.35)' : 'var(--color-border)'}`,
+                            background: urgent ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-surface-hover)',
+                            border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
                           }}>
                             <div style={{ minWidth: 0, flex: 1 }}>
@@ -946,7 +1017,7 @@ export default function TeacherDashboard() {
                             </div>
                             <span style={{
                               fontSize: '0.65rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99,
-                              background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+                              background: urgent ? 'rgba(239, 68, 68, 0.18)' : 'rgba(59, 130, 246, 0.15)',
                               color: urgent ? '#ef4444' : '#60a5fa', flexShrink: 0
                             }}>
                               {urgent ? '🔥 ' : ''}{daysLeft <= 0 ? 'Bugün!' : `${daysLeft}g kaldı`}
@@ -1040,7 +1111,9 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* ══════════ TAB: TESTS ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            TAB 3: TESTS (TESTLER & SINAVLAR)
+            ═══════════════════════════════════════════════════ */}
         {tab === 'tests' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* search & filter bar */}
@@ -1123,7 +1196,9 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* ══════════ TAB: STUDENTS (SINIFLAR & ÖĞRENCİ BAŞARI ANALİZ LİSTESİ) ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            TAB 4: STUDENTS (SINIFLAR & ÖĞRENCİ ANALİZ LİSTESİ)
+            ═══════════════════════════════════════════════════ */}
         {tab === 'students' && (
           <TeacherClassroomExplorer
             students={students}
@@ -1144,7 +1219,9 @@ export default function TeacherDashboard() {
           />
         )}
 
-        {/* ══════════ TAB: COACHING ══════════ */}
+        {/* ═══════════════════════════════════════════════════
+            TAB 5: COACHING (BİREYSEL KOÇLUK & TAKİP)
+            ═══════════════════════════════════════════════════ */}
         {tab === 'coaching' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{
