@@ -1779,6 +1779,12 @@ export default function StudyRoomPage() {
         questionsDone: dailyStats.questionsDone + (activeStudyMode === 'question' ? currentProgressCount : 0)
       });
 
+      try {
+        jsConfettiRef.current?.addConfetti({ emojis: ['🌲', '✨', '⚡', '🏆', '🎉'] });
+      } catch (e) {}
+
+      showStudyToast(`🌲 Tebrikler! 1 Odaklanma Ağacı (+10 XP) diktin ve Pomodoro'yu tamamladın (+15 XP)! 🎉`, 'success');
+
       // Mola moduna geçiş yap (Tek mola sistemi)
       setActiveStudyMode('break');
       const baseBreak = Number(durations.shortBreak || durations.breakTime) || 10;
@@ -1938,6 +1944,12 @@ export default function StudyRoomPage() {
       pomodorosDone: dailyStats.pomodorosDone + 1,
       questionsDone: dailyStats.questionsDone + currentProgressCount
     });
+
+    try {
+      jsConfettiRef.current?.addConfetti({ emojis: ['⚡', '🌲', '🔥', '🎯', '🌟'] });
+    } catch (e) {}
+
+    showStudyToast(`⚡ Erken Bitirme Başarısı! +15 Pomodoro XP ve +10 Ağaç Bonusu Kazandın! 🎉`, 'success');
 
     // Soru modunda ders istatistiğini kaydet
     if (currentProgressCount > 0 && elapsedSec >= 10) {

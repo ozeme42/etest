@@ -552,68 +552,139 @@ export const BADGE_DEFINITIONS = [
     progress: (stats) => ({ current: Math.min(30, stats.dailyStreak), target: 30 })
   },
 
-  // ─── ÇALIŞMA ODASI & ZAMAN ───
+  // ─── ÇALIŞMA ODASI & DERİN ODAKLANMA BAŞARILARI ───
   {
     id: 'pomodoro_1',
     title: 'İlk Odak',
     desc: 'Çalışma odasında ilk Pomodoro oturumunu tamamla.',
     icon: '⏱️',
     category: 'study',
-    xpReward: 4,
-    check: (stats) => stats.pomodoroSessions >= 1,
-    progress: (stats) => ({ current: Math.min(1, stats.pomodoroSessions), target: 1 })
+    xpReward: 20,
+    check: (stats) => (stats.pomodoroSessions || 0) >= 1,
+    progress: (stats) => ({ current: Math.min(1, stats.pomodoroSessions || 0), target: 1 })
   },
   {
     id: 'pomodoro_5',
-    title: 'Odaklanma Ustası',
-    desc: 'Çalışma odasında en az 5 Pomodoro oturumu tamamla.',
+    title: 'Odaklanma Çırağı',
+    desc: 'Çalışma odasında 5 Pomodoro oturumunu başarıyla bitir.',
     icon: '🧘',
     category: 'study',
-    xpReward: 12,
-    check: (stats) => stats.pomodoroSessions >= 5,
-    progress: (stats) => ({ current: Math.min(5, stats.pomodoroSessions), target: 5 })
+    xpReward: 45,
+    check: (stats) => (stats.pomodoroSessions || 0) >= 5,
+    progress: (stats) => ({ current: Math.min(5, stats.pomodoroSessions || 0), target: 5 })
   },
   {
     id: 'pomodoro_15',
-    title: 'Derin Çalışma',
+    title: 'Derin Odaklanma',
     desc: 'Çalışma odasında toplam 15 Pomodoro oturumuna ulaş.',
     icon: '🧠',
     category: 'study',
-    xpReward: 25,
-    check: (stats) => stats.pomodoroSessions >= 15,
-    progress: (stats) => ({ current: Math.min(15, stats.pomodoroSessions), target: 15 })
+    xpReward: 90,
+    check: (stats) => (stats.pomodoroSessions || 0) >= 15,
+    progress: (stats) => ({ current: Math.min(15, stats.pomodoroSessions || 0), target: 15 })
   },
+  {
+    id: 'pomodoro_30',
+    title: 'Zihin Akışı',
+    desc: 'Toplam 30 Pomodoro oturumuna ulaşarak odaklanma ustası ol.',
+    icon: '⚡',
+    category: 'study',
+    xpReward: 180,
+    check: (stats) => (stats.pomodoroSessions || 0) >= 30,
+    progress: (stats) => ({ current: Math.min(30, stats.pomodoroSessions || 0), target: 30 })
+  },
+  {
+    id: 'tree_5',
+    title: 'Orman Yetiştiricisi',
+    desc: 'Çalışma odasında odaklanarak en az 5 ağaç dik.',
+    icon: '🌲',
+    category: 'study',
+    xpReward: 30,
+    check: (stats) => (stats.totalTreesPlanted || 0) >= 5,
+    progress: (stats) => ({ current: Math.min(5, stats.totalTreesPlanted || 0), target: 5 })
+  },
+  {
+    id: 'tree_20',
+    title: 'Büyük Orman Koruyucusu',
+    desc: 'Odaklanma ormanına toplam 20 ağaç kazandır.',
+    icon: '🏞️',
+    category: 'study',
+    xpReward: 80,
+    check: (stats) => (stats.totalTreesPlanted || 0) >= 20,
+    progress: (stats) => ({ current: Math.min(20, stats.totalTreesPlanted || 0), target: 20 })
+  },
+  {
+    id: 'tree_50',
+    title: 'Efsanevi Vaha',
+    desc: 'Odaklanma ormanına 50 ağaç dikerek efsanevi bir ekosistem kur.',
+    icon: '🌴',
+    category: 'study',
+    xpReward: 200,
+    check: (stats) => (stats.totalTreesPlanted || 0) >= 50,
+    progress: (stats) => ({ current: Math.min(50, stats.totalTreesPlanted || 0), target: 50 })
+  },
+  {
+    id: 'focus_time_120',
+    title: 'Zaman Bükücü',
+    desc: 'Çalışma odasında toplam 120 dakika saf odaklanma süresine ulaş.',
+    icon: '⌛',
+    category: 'study',
+    xpReward: 40,
+    check: (stats) => (stats.totalStudyMinutes || 0) >= 120,
+    progress: (stats) => ({ current: Math.min(120, stats.totalStudyMinutes || 0), target: 120 })
+  },
+  {
+    id: 'focus_time_500',
+    title: 'Zamanın Efendisi',
+    desc: 'Çalışma odasında 500 dakikadan fazla çalışma süresine ulaş.',
+    icon: '🌌',
+    category: 'study',
+    xpReward: 150,
+    check: (stats) => (stats.totalStudyMinutes || 0) >= 500,
+    progress: (stats) => ({ current: Math.min(500, stats.totalStudyMinutes || 0), target: 500 })
+  },
+  {
+    id: 'daily_goal_hero',
+    title: 'Günün Fatihi',
+    desc: 'Çalışma odasında günlük belirlediğin çalışma hedefini %100 tamamla.',
+    icon: '🎯',
+    category: 'study',
+    xpReward: 35,
+    check: (stats) => stats.dailyGoalAchieved === true,
+    progress: (stats) => ({ current: stats.dailyGoalAchieved ? 1 : 0, target: 1 })
+  },
+
+  // ─── ÖZEL ZAMAN & DİSİPLİN BAŞARILARI ───
   {
     id: 'night_owl',
     title: 'Gece Kuşu',
-    desc: 'Saat 22:00\'den sonra bir test çöz.',
+    desc: 'Saat 22:00\'den sonra çalışma odasında veya testte odaklan.',
     icon: '🦉',
     category: 'special',
-    xpReward: 5,
+    xpReward: 25,
     check: (stats) => stats.hasNightTest === true,
     progress: (stats) => ({ current: stats.hasNightTest ? 1 : 0, target: 1 })
   },
   {
     id: 'early_bird',
     title: 'Erken Kalkan',
-    desc: 'Sabah 08:30\'dan önce bir test çöz.',
+    desc: 'Sabah 08:30\'dan önce çalışma odasında güne odaklanarak başla.',
     icon: '🌅',
     category: 'special',
-    xpReward: 5,
+    xpReward: 25,
     check: (stats) => stats.hasEarlyTest === true,
     progress: (stats) => ({ current: stats.hasEarlyTest ? 1 : 0, target: 1 })
   },
   {
     id: 'weekend_warrior',
     title: 'Hafta Sonu Savaşçısı',
-    desc: 'Hafta sonu (Cumartesi veya Pazar) test çöz.',
+    desc: 'Hafta sonu (Cumartesi veya Pazar) çalışma odasında çalış veya test çöz.',
     icon: '🏕️',
     category: 'special',
-    xpReward: 5,
+    xpReward: 25,
     check: (stats) => stats.hasWeekendTest === true,
     progress: (stats) => ({ current: stats.hasWeekendTest ? 1 : 0, target: 1 })
-  }
-];
+  }];
 
 export function getLevelInfo(xp) {
   const currentXp = Math.max(0, Math.round(Number(xp) || 0));
@@ -769,7 +840,6 @@ export function computeStudentGamificationData({
 
   // Calculate Pomodoro & Study Room activity
   const studentSessions = (studySessions || []).filter(ss => String(ss.studentId || ss.userId || '') === sId);
-  const pomodoroSessions = studentSessions.length;
   let totalStudyMinutes = 0;
   studentSessions.forEach(ss => {
     totalStudyMinutes += Number(ss.durationMinutes || ss.duration || 25);
@@ -783,65 +853,41 @@ export function computeStudentGamificationData({
     }
   });
 
-  // Calculate Daily Streak
-  const sortedDates = Array.from(activeDates).sort().reverse();
-  let dailyStreak = 0;
-  if (sortedDates.length > 0) {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  // Extract Study Room Data from localStorage if available
+  let localPomodoros = 0;
+  let localStudyMinutes = 0;
+  let localTreesPlanted = 0;
+  let localGoalAchievedCount = 0;
 
-    if (sortedDates[0] === today || sortedDates[0] === yesterday) {
-      dailyStreak = 1;
-      let checkDate = new Date(sortedDates[0]);
-      for (let i = 1; i < sortedDates.length; i++) {
-        const prevExpected = new Date(checkDate.getTime() - 86400000).toISOString().split('T')[0];
-        if (sortedDates[i] === prevExpected) {
-          dailyStreak++;
-          checkDate = new Date(sortedDates[i]);
-        } else {
-          break;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('study_stats_')) {
+          const val = JSON.parse(localStorage.getItem(key) || '{}');
+          localPomodoros += Number(val.pomodorosDone || 0);
+          localStudyMinutes += Number(val.totalMinutes || 0);
+          if (val.goalAchieved || (val.questionsDone && val.questionsDone >= 10) || (val.pomodorosDone && val.pomodorosDone >= 2)) {
+            localGoalAchievedCount++;
+          }
+        } else if (key && key.startsWith('study_forest_')) {
+          const trees = JSON.parse(localStorage.getItem(key) || '[]');
+          if (Array.isArray(trees)) {
+            localTreesPlanted += trees.length;
+          }
         }
       }
+    } catch (e) {
+      // ignore
     }
   }
 
-  const totalQuestionsSolved = totalCorrect + totalWrong + totalEmpty;
-  const distinctSubjectsCount = Object.keys(subjectCorrect).filter(k => (subjectCorrect[k] || 0) > 0).length;
+  const pomodoroSessions = Math.max(studentSessions.length, localPomodoros);
+  const totalStudyMinutesCombined = Math.max(totalStudyMinutes, localStudyMinutes);
+  const totalTreesPlanted = Math.max(pomodoroSessions, localTreesPlanted);
+  const dailyGoalAchieved = localGoalAchievedCount > 0;
 
-  // Build stats object for badge checker
-  const stats = {
-    totalSolvedTests,
-    totalCorrect,
-    totalQuestionsSolved,
-    perfectTestsCount,
-    highAccuracyTests,
-    bookTestsSolvedCount,
-    homeworksSolvedCount,
-    distinctSubjectsCount,
-    hasNightTest,
-    hasEarlyTest,
-    hasWeekendTest,
-    pomodoroSessions,
-    totalStudyMinutes,
-    dailyStreak,
-    subjectCorrect
-  };
-
-  // Evaluate Badges
-  const unlockedBadges = [];
-  const lockedBadges = [];
-
-  BADGE_DEFINITIONS.forEach(b => {
-    const isUnlocked = b.check(stats);
-    const prog = b.progress(stats);
-    if (isUnlocked) {
-      unlockedBadges.push({ ...b, unlocked: true, progress: prog });
-    } else {
-      lockedBadges.push({ ...b, unlocked: false, progress: prog });
-    }
-  });
-
-  // Scaled XP Calculation with Progressive Streak Multiplier & Bonus
+    // Scaled XP Calculation with Progressive Streak Multiplier & Bonus
   const isTodaySolved = activeDates.has(new Date().toISOString().split('T')[0]);
   const streakTierInfo = getStreakTierInfo(dailyStreak, isTodaySolved);
 
@@ -852,12 +898,16 @@ export function computeStudentGamificationData({
 
   const cumulativeStreakBonus = calculateCumulativeStreakBonus(dailyStreak);
   const perfectBonus = perfectTestsCount * 5;
-  const pomodoroBonus = Math.floor(totalStudyMinutes / 25) * 2;
+  // High-value Study Room XP Bonuses:
+  const pomodoroBonus = pomodoroSessions * 15;                       // 15 XP per 25-min Pomodoro
+  const treeBonus = totalTreesPlanted * 10;                           // 10 XP per planted focus tree
+  const focusTimeBonus = Math.floor(totalStudyMinutesCombined / 60) * 20; // 20 XP per 60 min focus
+  const goalBonus = localGoalAchievedCount * 30;                      // 30 XP per daily goal achieved
 
   let badgeXp = 0;
   unlockedBadges.forEach(b => { badgeXp += b.xpReward; });
 
-  const totalXp = multipliedXp + cumulativeStreakBonus + perfectBonus + pomodoroBonus + badgeXp;
+  const totalXp = multipliedXp + cumulativeStreakBonus + perfectBonus + pomodoroBonus + treeBonus + focusTimeBonus + goalBonus + badgeXp;
   const levelInfo = getLevelInfo(totalXp);
 
   return {
