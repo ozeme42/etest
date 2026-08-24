@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame } from 'lucide-react';
+import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2 } from 'lucide-react';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -20,6 +20,8 @@ export default memo(function DashboardTodayTasks({
     : activeDayConfig?.color
     ? `linear-gradient(135deg, ${activeDayConfig.color}, #3b82f6)`
     : 'linear-gradient(135deg, #4f46e5, #6366f1)';
+
+  const hasCatchUp = Array.isArray(catchUpTasks) && catchUpTasks.length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -326,222 +328,235 @@ export default memo(function DashboardTodayTasks({
       {/* ═══════════════════════════════════════════════════
           BÖLÜM 2: 🔥 EKSİKLERİ TAMAMLA & AKILLI TELAFİ HAVUZU
           ═══════════════════════════════════════════════════ */}
-      {catchUpTasks && catchUpTasks.length > 0 && (
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid rgba(245, 158, 11, 0.4)',
-          borderRadius: '1.15rem',
-          overflow: 'hidden',
-          boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)'
-        }}>
-          {/* Header */}
-          <div
-            onClick={() => setIsCatchUpExpanded(prev => !prev)}
-            style={{
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(239, 68, 68, 0.12))',
-              borderBottom: isCatchUpExpanded ? '1px solid rgba(245, 158, 11, 0.25)' : 'none',
-              padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.25rem',
+      <div style={{
+        background: 'var(--color-surface)',
+        border: hasCatchUp ? '1.5px solid rgba(245, 158, 11, 0.45)' : '1.5px solid var(--color-border)',
+        borderRadius: '1.15rem',
+        overflow: 'hidden',
+        boxShadow: hasCatchUp ? '0 4px 16px rgba(245, 158, 11, 0.08)' : '0 4px 16px rgba(0, 0, 0, 0.03)'
+      }}>
+        {/* Header */}
+        <div
+          onClick={() => setIsCatchUpExpanded(prev => !prev)}
+          style={{
+            background: hasCatchUp 
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(239, 68, 68, 0.12))'
+              : (isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)'),
+            borderBottom: isCatchUpExpanded ? (hasCatchUp ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--color-border)') : 'none',
+            padding: isMobile ? '0.75rem 1rem' : '0.85rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8,
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: hasCatchUp ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 8,
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                color: '#fff',
+              justifyContent: 'center',
+              fontSize: '1rem',
+              flexShrink: 0,
+              boxShadow: hasCatchUp ? '0 2px 8px rgba(239, 68, 68, 0.25)' : '0 2px 8px rgba(16, 185, 129, 0.25)'
+            }}>
+              {hasCatchUp ? '🔥' : '✨'}
+            </div>
+            <div>
+              <h4 style={{
+                margin: 0,
+                fontSize: isMobile ? '0.88rem' : '0.98rem',
+                fontWeight: 900,
+                color: 'var(--color-text)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)'
+                gap: 6
               }}>
-                🔥
-              </div>
-              <div>
-                <h4 style={{
-                  margin: 0,
-                  fontSize: isMobile ? '0.88rem' : '0.98rem',
+                Akıllı Telafi Havuzu (Eksikleri Kapat)
+                <span style={{
+                  fontSize: '0.68rem',
                   fontWeight: 900,
-                  color: 'var(--color-text)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                  background: hasCatchUp ? '#ef4444' : '#10b981',
+                  color: '#ffffff',
+                  boxShadow: hasCatchUp ? '0 2px 6px rgba(239, 68, 68, 0.3)' : '0 2px 6px rgba(16, 185, 129, 0.3)'
                 }}>
-                  Eksikleri Tamamla (Akıllı Telafi Havuzu)
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 900,
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
-                  }}>
-                    {catchUpTasks.length} Geciken Görev
-                  </span>
-                </h4>
-                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  Önceki günlerden kalan eksiklerini kapatıp başarı puanını yükselt!
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontWeight: 800, fontSize: '0.78rem' }}>
-              <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
-              {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {hasCatchUp ? `${catchUpTasks.length} Geciken Görev` : '0 Eksik • Tam'}
+                </span>
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                {hasCatchUp 
+                  ? 'Önceki günlerden kalan eksiklerini kapatıp başarı puanını yükselt!'
+                  : 'Tebrikler! Geciken hiçbir görevin yok, tüm hedeflerin zamanında ilerliyor.'}
+              </p>
             </div>
           </div>
 
-          {/* Catch-Up Task Items */}
-          {isCatchUpExpanded && (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              maxHeight: isMobile ? 'none' : '340px',
-              overflowY: isMobile ? 'visible' : 'auto'
-            }}>
-              {catchUpTasks.map((task, cIdx) => {
-                const isLast = cIdx === catchUpTasks.length - 1;
-                const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
-                const rawTitle = task.title || task.testName || task.topic || 'Telafi Görevi';
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: hasCatchUp ? '#f59e0b' : '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>
+            <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
+            {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+        </div>
 
-                return (
-                  <div
-                    key={`catchup_${task.id || task.hwId || cIdx}`}
-                    onClick={() => onTaskClick && onTaskClick(task)}
-                    className="hw-row"
-                    style={{
-                      padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.15rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: isMobile ? '0.65rem' : '0.9rem',
-                      borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
-                      background: 'var(--color-surface)',
-                      borderLeft: '5px solid #f59e0b',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.6rem' : '0.85rem', flex: 1, minWidth: 0 }}>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
-                        style={{
-                          width: isMobile ? 26 : 28,
-                          height: isMobile ? 26 : 28,
-                          borderRadius: '50%',
-                          border: '2px solid rgba(245, 158, 11, 0.6)',
-                          background: 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          cursor: 'pointer',
-                          padding: 0
-                        }}
-                        title="Tamamlandı olarak işaretle"
-                      >
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
-                      </button>
+        {/* Catch-Up Task Items */}
+        {isCatchUpExpanded && (
+          <div>
+            {hasCatchUp ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                maxHeight: isMobile ? 'none' : '340px',
+                overflowY: isMobile ? 'visible' : 'auto'
+              }}>
+                {catchUpTasks.map((task, cIdx) => {
+                  const isLast = cIdx === catchUpTasks.length - 1;
+                  const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                  const rawTitle = task.title || task.testName || task.topic || 'Telafi Görevi';
 
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          {task.subject && (
-                            <span style={{
-                              fontSize: '0.64rem',
-                              fontWeight: 900,
-                              color: '#b45309',
-                              background: '#fef3c7',
-                              border: '1px solid #fde68a',
-                              padding: '1px 6px',
-                              borderRadius: 6,
-                              flexShrink: 0
-                            }}>
-                              {task.subject}
-                            </span>
-                          )}
-                          <span style={{
-                            fontSize: isMobile ? '0.84rem' : '0.88rem',
-                            fontWeight: 800,
-                            color: 'var(--color-text)',
-                            wordBreak: 'break-word',
-                            lineHeight: 1.3
-                          }}>
-                            {rawTitle}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', fontWeight: 700 }}>
-                          <span style={{ color: '#ef4444' }}>⚠️ {task.reason || 'Geciken görev'}</span>
-                          {task.bookTitle && (
-                            <span style={{ color: 'var(--color-text-muted)' }}>• 📖 {task.bookTitle}</span>
-                          )}
-                          {task.questionCount && (
-                            <span style={{ color: 'var(--color-text-muted)' }}>• {task.questionCount} Soru</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      {isQuizTask ? (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
-                          style={{
-                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
-                            fontSize: isMobile ? '0.74rem' : '0.78rem',
-                            fontWeight: 900,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            boxShadow: '0 3px 10px rgba(245, 158, 11, 0.3)'
-                          }}
-                        >
-                          <PlayCircle size={13} /> Telafi Et
-                        </button>
-                      ) : (
+                  return (
+                    <div
+                      key={`catchup_${task.id || task.hwId || cIdx}`}
+                      onClick={() => onTaskClick && onTaskClick(task)}
+                      className="hw-row"
+                      style={{
+                        padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.15rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: isMobile ? '0.65rem' : '0.9rem',
+                        borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        borderLeft: '5px solid #f59e0b',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.6rem' : '0.85rem', flex: 1, minWidth: 0 }}>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                           style={{
-                            background: 'var(--color-surface-hover)',
-                            color: 'var(--color-text)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: 8,
-                            padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.75rem',
-                            fontSize: isMobile ? '0.72rem' : '0.76rem',
-                            fontWeight: 800,
+                            width: isMobile ? 26 : 28,
+                            height: isMobile ? 26 : 28,
+                            borderRadius: '50%',
+                            border: '2px solid rgba(245, 158, 11, 0.6)',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                             cursor: 'pointer',
-                            whiteSpace: 'nowrap'
+                            padding: 0
                           }}
+                          title="Tamamlandı olarak işaretle"
                         >
-                          Tamamla
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
                         </button>
-                      )}
+
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            {task.subject && (
+                              <span style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 900,
+                                color: '#b45309',
+                                background: '#fef3c7',
+                                border: '1px solid #fde68a',
+                                padding: '1px 6px',
+                                borderRadius: 6,
+                                flexShrink: 0
+                              }}>
+                                {task.subject}
+                              </span>
+                            )}
+                            <span style={{
+                              fontSize: isMobile ? '0.84rem' : '0.88rem',
+                              fontWeight: 800,
+                              color: 'var(--color-text)',
+                              wordBreak: 'break-word',
+                              lineHeight: 1.3
+                            }}>
+                              {rawTitle}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', fontWeight: 700 }}>
+                            <span style={{ color: '#ef4444' }}>⚠️ {task.reason || 'Geciken görev'}</span>
+                            {task.bookTitle && (
+                              <span style={{ color: 'var(--color-text-muted)' }}>• 📖 {task.bookTitle}</span>
+                            )}
+                            {task.questionCount && (
+                              <span style={{ color: 'var(--color-text-muted)' }}>• {task.questionCount} Soru</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        {isQuizTask ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                            style={{
+                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
+                              fontSize: isMobile ? '0.74rem' : '0.78rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              boxShadow: '0 3px 10px rgba(245, 158, 11, 0.3)'
+                            }}
+                          >
+                            <PlayCircle size={13} /> Telafi Et
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
+                            style={{
+                              background: 'var(--color-surface-hover)',
+                              color: 'var(--color-text)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 8,
+                              padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.75rem',
+                              fontSize: isMobile ? '0.72rem' : '0.76rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Tamamla
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--color-text)' }}>
+                <CheckCircle2 size={24} color="#10b981" style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  <strong style={{ color: '#10b981' }}>Eksiksiz İlerleme:</strong> Önceki günlerden kalan gecikmiş hiçbir ödev veya telafi görevin bulunmuyor. Harikasın!
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
     </div>
   );
