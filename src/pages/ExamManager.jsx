@@ -78,7 +78,7 @@ export default function ExamManager() {
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
   const navigate = useNavigate();
 
-  const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
+  const students = useMemo(() => users.filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewingExamDetails, setViewingExamDetails] = useState(null);

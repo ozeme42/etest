@@ -210,7 +210,7 @@ export default function StudyPlanManager() {
 
   const isTeacher = currentUser?.role === 'teacher';
   const isAdmin = currentUser?.role === 'admin';
-  const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+  const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
 
   // Filter study plans so a teacher ONLY sees study plans they added / created themselves
   const studyPlans = useMemo(() => {

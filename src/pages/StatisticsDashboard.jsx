@@ -213,7 +213,7 @@ export default function StatisticsDashboard() {
 
   // 1. Öğretmenin Sorumlu Olduğu Öğrenciler
   const allTeacherStudents = useMemo(() => {
-    const all = (users || []).filter(u => u && u.role === 'student');
+    const all = (users || []).filter(u => u && u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
     if (!isTeacher || !teacherId) return all;
     return all.filter(u => u.teacherId === teacherId || !u.teacherId);
   }, [users, isTeacher, teacherId]);

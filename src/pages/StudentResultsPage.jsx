@@ -516,7 +516,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     }
   };
 
-  const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
+  const studentMembers = useMemo(() => users.filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id || currentUser?.id === u.id)), [users, currentUser]);
 
   const activeTargetStudentId = propStudentId || searchParams.get('studentId');
 
