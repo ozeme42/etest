@@ -25,11 +25,11 @@ export default memo(function DashboardTodayTasks({
 
   // Category Icon & Badge Resolver for Catch-Up Items
   const getCatchUpCategoryBadge = (task) => {
-    if (task.categoryType === 'kitap' || task.isBookTask || task.bookTitle) {
-      return { label: '📚 Kitap Takibi', bg: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: 'rgba(5, 150, 105, 0.3)' };
-    }
     if (task.categoryType === 'yol_haritasi' || task.isRoadmapTask || task.roadmapAssignmentId) {
       return { label: '🗺️ Yol Haritası', bg: 'rgba(124, 58, 237, 0.12)', color: '#7c3aed', border: 'rgba(124, 58, 237, 0.3)' };
+    }
+    if (task.categoryType === 'kitap' || task.isBookTask || task.bookTestId || (task.testId && task.bookId)) {
+      return { label: '📚 Kitap Takibi', bg: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: 'rgba(5, 150, 105, 0.3)' };
     }
     if (task.categoryType === 'deneme' || task.isExamTask || task.type === 'physicalExam') {
       return { label: '📊 Deneme Sınavı', bg: 'rgba(225, 29, 72, 0.12)', color: '#e11d48', border: 'rgba(225, 29, 72, 0.3)' };

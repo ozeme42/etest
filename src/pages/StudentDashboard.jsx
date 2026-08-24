@@ -2223,7 +2223,7 @@ export default function StudentDashboard() {
       // Find matched book object
       let bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
       if (!bookObj && hw.title) {
-        bookObj = (books || []).find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
+        bookObj = (books || []).find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim())));
       }
       if (!bookObj && Array.isArray(hw.tests) && hw.tests.length > 0) {
         const matchedBt = (bookTests || []).find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
@@ -2255,7 +2255,7 @@ export default function StudentDashboard() {
                   isBookTask: true,
                   taskType: 'kitap',
                   categoryType: 'kitap',
-                  subject: hw.subject || bookObj?.subjects?.[0]?.name || 'Kitap Takibi',
+                  subject: hw.subject || bookObj?.subject || bookObj?.subjects?.[0]?.name || 'Kitap Takibi',
                   bookTitle: cleanBookTitle,
                   title: `${cleanBookTitle} — ${tObj?.name || 'Bölüm Testi'}`,
                   questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
@@ -2274,7 +2274,6 @@ export default function StudentDashboard() {
       const rawDue = hw.dueDate || hw.assignedDueDate;
       const dueDateObj = parseSafeDate(rawDue);
       if (dueDateObj && dueDateObj.getTime() < nowTime) {
-        // Collect all tests in this book assignment
         let targetTests = [];
         if (Array.isArray(hw.tests) && hw.tests.length > 0) {
           targetTests = hw.tests;
@@ -2300,7 +2299,7 @@ export default function StudentDashboard() {
                   isBookTask: true,
                   taskType: 'kitap',
                   categoryType: 'kitap',
-                  subject: hw.subject || bookObj?.subjects?.[0]?.name || 'Kitap Takibi',
+                  subject: hw.subject || bookObj?.subject || bookObj?.subjects?.[0]?.name || 'Kitap Takibi',
                   bookTitle: cleanBookTitle,
                   title: `${cleanBookTitle} — ${tObj?.name || `Test ${idx + 1}`}`,
                   questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
@@ -2312,32 +2311,6 @@ export default function StudentDashboard() {
               }
             }
           });
-        } else {
-          const isSolved = isTestSolvedByStudent(hw.testId, hw.id);
-          if (!isSolved) {
-            const key = `book_hw_${hw.id}`;
-            if (!seen.has(key)) {
-              seen.add(key);
-              list.push({
-                id: key,
-                hwId: hw.id,
-                testId: hw.testId,
-                bookId: hw.bookId || bookObj?.id,
-                isAutoHomework: true,
-                isBookTask: true,
-                taskType: 'kitap',
-                categoryType: 'kitap',
-                subject: hw.subject || bookObj?.subjects?.[0]?.name || 'Kitap Takibi',
-                bookTitle: cleanBookTitle,
-                title: hw.title || 'Kitap Görevi',
-                questionCount: hw.questionCount || hw.totalQuestions ? `${hw.questionCount || hw.totalQuestions} soru` : null,
-                dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
-                dueDateObj,
-                isCatchUp: true,
-                reason: `📚 Kitap Ödevi Gecikti (Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')})`
-              });
-            }
-          }
         }
       }
     });
