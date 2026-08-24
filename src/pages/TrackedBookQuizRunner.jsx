@@ -814,8 +814,8 @@ export default function TrackedBookQuizRunner() {
   const subjectName = resolvedSubject;
   
   const explicitOptionCount = Number(
-    resolvedBook?.optionCount ||
     resolvedTest?.optionCount ||
+    resolvedBook?.optionCount ||
     resolvedHw?.optionCount
   );
 
@@ -827,9 +827,11 @@ export default function TrackedBookQuizRunner() {
     )
   );
 
-  // If explicit 4, or if not explicit 5 and no E in answer key, default to 4 options
-  const isFourOptions = explicitOptionCount === 4 || (
-    explicitOptionCount !== 5 && !answerKeyHasE
+  // Strict priority: 4 -> 4 options, 5 -> 5 options. Otherwise check answer key or exam type.
+  const isFourOptions = explicitOptionCount === 4 ? true : (
+    explicitOptionCount === 5 ? false : (
+      !answerKeyHasE && !Boolean(String(resolvedBook?.title || resolvedTest?.name || '').match(/tyt|ayt|yks|lise|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf/i))
+    )
   );
   const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
 
