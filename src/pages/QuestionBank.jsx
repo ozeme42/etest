@@ -59,11 +59,19 @@ export default function QuestionBank() {
     setExpandedUnits(nextState);
   };
 
-  const handleLaunchAiWithTopic = (topicName, unitName) => {
+  const handleLaunchAiWithTopic = (topicName, unitName, topicId = '', unitId = '') => {
+    const currentGrade = curData.grades.find(g => g.id === activeGradeId) || activeGrade;
+    const currentSubject = curData.subjects.find(s => s.id === activeSubjectId) || activeSubject;
+
     setAiModalConfig({
-      subject: activeSubject?.name || 'Matematik',
-      grade: activeGrade?.name || '8. Sınıf',
-      topic: topicName ? `${unitName ? unitName + ' - ' : ''}${topicName}` : (unitName || '')
+      subject: currentSubject?.name || 'Matematik',
+      subjectId: currentSubject?.id || activeSubjectId || '',
+      grade: currentGrade?.name || '8. Sınıf',
+      gradeId: currentGrade?.id || activeGradeId || '',
+      unitName: unitName || '',
+      unitId: unitId || '',
+      topic: topicName || '',
+      topicId: topicId || ''
     });
     setIsAiModalOpen(true);
   };
@@ -445,9 +453,15 @@ export default function QuestionBank() {
         const sUnits = curData.units.filter(u => u.subjectId === activeSubjectId).map(u => u.id);
         const sTopics = curData.topics.filter(t => sUnits.includes(t.unitId)).map(t => t.id);
 
+        const currentSubjectObj = curData.subjects.find(s => s.id === activeSubjectId);
+        const currentSubjectName = (currentSubjectObj?.name || '').toLowerCase().trim();
+        const qSubName = (q.subject || '').toLowerCase().trim();
+
         const belongsToSubject = sTopics.includes(q.topicId) || 
-          sUnits.some(uId => q.topicId === `unit_${uId}_all`) || 
-          q.topicId === `sub_${activeSubjectId}_all`;
+          sUnits.some(uId => q.topicId === `unit_${uId}_all` || q.topicId === uId || q.unitId === uId) || 
+          q.topicId === `sub_${activeSubjectId}_all` ||
+          q.subjectId === activeSubjectId ||
+          (currentSubjectName && qSubName && qSubName === currentSubjectName);
 
         if (!belongsToSubject) return false;
       }
@@ -484,7 +498,15 @@ export default function QuestionBank() {
       if (selectedSubject && selectedSubject !== 'all') {
         const subjectUnits = curData.units.filter(u => u.subjectId === selectedSubject).map(u => u.id);
         const subjectTopics = curData.topics.filter(t => subjectUnits.includes(t.unitId)).map(t => t.id);
-        const belongsToSubject = subjectTopics.includes(q.topicId) || subjectUnits.some(uId => q.topicId === `unit_${uId}_all`) || q.topicId === `sub_${selectedSubject}_all`;
+        const dropSubObj = curData.subjects.find(s => s.id === selectedSubject);
+        const dropSubName = (dropSubObj?.name || '').toLowerCase().trim();
+        const qSubName = (q.subject || '').toLowerCase().trim();
+
+        const belongsToSubject = subjectTopics.includes(q.topicId) || 
+          subjectUnits.some(uId => q.topicId === `unit_${uId}_all` || q.topicId === uId || q.unitId === uId) || 
+          q.topicId === `sub_${selectedSubject}_all` ||
+          q.subjectId === selectedSubject ||
+          (dropSubName && qSubName && qSubName === dropSubName);
         if (!belongsToSubject) return false;
       }
 
@@ -615,13 +637,35 @@ export default function QuestionBank() {
       const gradeObj = subjectObj ? curData.grades.find(g => g.id === subjectObj.gradeId) : null;
 
       let key = 'Genel / Kategori Belirtilmemiş';
-      let title = 'Genel Sorular';
-      let subtitle = 'Kategori Atanmamış İçerikler';
+      let title = q.subject ? `${q.subject} Soru Paketi` : 'Genel Sorular';
+      let subtitle = q.topic || 'Kategori Atanmamış İçerikler';
 
-      if (topicObj) {
-        key = `${gradeObj?.name || ''}_${subjectObj?.name || 'Ders'}_${unitObj?.name || 'Ünite'}_${topicObj.name}`;
-        title = `${subjectObj?.name || 'Ders'} ➔ ${unitObj?.name || 'Ünite'}`;
-        subtitle = `Konu: ${topicObj.name}`;
+      // Fallback matching by unitId or topic name
+      let effectiveTopicObj = topicObj;
+      let effectiveUnitObj = unitObj;
+      let effectiveSubjectObj = subjectObj;
+
+      if (!effectiveTopicObj && q.topic) {
+        effectiveTopicObj = curData.topics.find(t => t.name.toLowerCase().trim() === q.topic.toLowerCase().trim());
+        if (effectiveTopicObj) {
+          effectiveUnitObj = curData.units.find(u => u.id === effectiveTopicObj.unitId);
+          effectiveSubjectObj = effectiveUnitObj ? curData.subjects.find(s => s.id === effectiveUnitObj.subjectId) : null;
+        }
+      }
+
+      if (!effectiveUnitObj && q.unitId) {
+        effectiveUnitObj = curData.units.find(u => u.id === q.unitId);
+        effectiveSubjectObj = effectiveUnitObj ? curData.subjects.find(s => s.id === effectiveUnitObj.subjectId) : null;
+      }
+
+      if (effectiveTopicObj) {
+        key = `${effectiveSubjectObj?.name || q.subject || 'Ders'}_${effectiveUnitObj?.name || 'Ünite'}_${effectiveTopicObj.name}`;
+        title = `${effectiveSubjectObj?.name || q.subject || 'Ders'} ➔ ${effectiveUnitObj?.name || 'Ünite'}`;
+        subtitle = `Konu: ${effectiveTopicObj.name}`;
+      } else if (effectiveUnitObj) {
+        key = `unit_${effectiveUnitObj.id}`;
+        title = `${effectiveSubjectObj?.name || q.subject || 'Ders'} ➔ ${effectiveUnitObj.name}`;
+        subtitle = q.topic ? `Konu: ${q.topic}` : `Tüm Ünite İçerikleri`;
       } else if (q.topicId?.startsWith('unit_')) {
         const uId = q.topicId.replace('unit_', '').replace('_all', '');
         const uObj = curData.units.find(u => u.id === uId);
@@ -2372,7 +2416,7 @@ export default function QuestionBank() {
 
                             <button
                               type="button"
-                              onClick={() => handleLaunchAiWithTopic('', unit.name)}
+                              onClick={() => handleLaunchAiWithTopic('', unit.name, '', unit.id)}
                               style={{
                                 padding: '0.35rem 0.7rem',
                                 borderRadius: '0.55rem',
@@ -2483,7 +2527,7 @@ export default function QuestionBank() {
 
                                         <button
                                           type="button"
-                                          onClick={() => handleLaunchAiWithTopic(topic.name, unit.name)}
+                                          onClick={() => handleLaunchAiWithTopic(topic.name, unit.name, topic.id, unit.id)}
                                           style={{
                                             padding: '0.25rem 0.5rem',
                                             borderRadius: '0.45rem',
@@ -3972,14 +4016,21 @@ export default function QuestionBank() {
           isOpen={isAiModalOpen}
           onClose={() => {
             setIsAiModalOpen(false);
-            setAiModalConfig({ subject: '', grade: '', topic: '' });
+            setAiModalConfig({ subject: '', grade: '', topic: '', unitId: '', topicId: '', subjectId: '', gradeId: '' });
           }}
           onSaveQuestions={handleSaveAiQuestions}
           defaultSubject={aiModalConfig.subject || activeSubject?.name || 'Matematik'}
+          defaultSubjectId={aiModalConfig.subjectId || activeSubjectId || ''}
           defaultGrade={aiModalConfig.grade || activeGrade?.name || '8. Sınıf'}
+          defaultGradeId={aiModalConfig.gradeId || activeGradeId || ''}
           defaultTopic={aiModalConfig.topic || ''}
+          defaultTopicId={aiModalConfig.topicId || ''}
+          defaultUnitId={aiModalConfig.unitId || ''}
+          curData={curData}
           availableGrades={curData?.grades || []}
           availableSubjects={curData?.subjects || []}
+          availableUnits={curData?.units || []}
+          availableTopics={curData?.topics || []}
         />
       )}
 

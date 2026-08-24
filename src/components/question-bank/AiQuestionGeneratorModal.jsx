@@ -1,21 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sparkles, X, Upload, FileText, CheckCircle2, AlertCircle,
   Plus, Trash2, Edit3, ArrowRight, ArrowLeft, RotateCcw,
-  BookOpen, Layers, Key, Check, HelpCircle, Eye, RefreshCw
+  BookOpen, Layers, Key, Check, HelpCircle, Eye, RefreshCw, FolderTree
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { generateQuestionsWithGemini, extractTextFromPdf, getAvailableGeminiModels } from '../../services/aiQuestionService';
+import { generateQuestionsWithGemini, extractTextFromPdf, getAvailableGeminiModels, DEFAULT_GEMINI_MODELS } from '../../services/aiQuestionService';
 
 export default function AiQuestionGeneratorModal({
   isOpen,
   onClose,
   onSaveQuestions,
   defaultSubject = 'Matematik',
+  defaultSubjectId = '',
   defaultGrade = '8. Sınıf',
+  defaultGradeId = '',
   defaultTopic = '',
+  defaultTopicId = '',
+  defaultUnitId = '',
+  curData = { grades: [], subjects: [], units: [], topics: [] },
   availableGrades = [],
-  availableSubjects = []
+  availableSubjects = [],
+  availableUnits = [],
+  availableTopics = []
 }) {
   const { isDark } = useTheme();
 
@@ -26,18 +33,20 @@ export default function AiQuestionGeneratorModal({
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [showKeyInput, setShowKeyInput] = useState(() => !localStorage.getItem('gemini_api_key'));
   const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
-  const [availableModelOptions, setAvailableModelOptions] = useState([
-    { id: 'gemini-3.7-flash', name: '🔥 Gemini 3.7 Flash (En Yeni & Güçlü • Önerilen)' },
-    { id: 'gemini-3.5-flash', name: '⚡ Gemini 3.5 Flash (Yüksek Hızlı & Dengeli)' },
-    { id: 'gemini-3.5-flash-lite', name: '💡 Gemini 3.5 Flash-Lite (Ultra Hızlı)' },
-    { id: 'gemini-3.1-pro', name: '🧠 Gemini 3.1 Pro (Gelişmiş Akıl Yürütme)' },
-    { id: 'gemini-2.5-flash', name: '🛡️ Gemini 2.5 Flash' }
-  ]);
+  const [availableModelOptions, setAvailableModelOptions] = useState(DEFAULT_GEMINI_MODELS);
+
+  // Curriculum State
+  const [selectedGradeId, setSelectedGradeId] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedUnitId, setSelectedUnitId] = useState('');
+  const [selectedTopicId, setSelectedTopicId] = useState('');
+
+  // Custom text inputs if not found in curriculum
+  const [customGrade, setCustomGrade] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
+  const [customTopic, setCustomTopic] = useState('');
 
   // Question Config
-  const [subject, setSubject] = useState(defaultSubject);
-  const [grade, setGrade] = useState(defaultGrade);
-  const [topic, setTopic] = useState(defaultTopic);
   const [difficulty, setDifficulty] = useState('Orta');
   const [questionCount, setQuestionCount] = useState(5);
   const [optionCount, setOptionCount] = useState(4);
@@ -59,12 +68,57 @@ export default function AiQuestionGeneratorModal({
 
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    if (defaultSubject) setSubject(defaultSubject);
-    if (defaultGrade) setGrade(defaultGrade);
-    if (defaultTopic) setTopic(defaultTopic);
-  }, [defaultSubject, defaultGrade, defaultTopic]);
+  const allGrades = curData.grades?.length ? curData.grades : availableGrades;
+  const allSubjects = curData.subjects?.length ? curData.subjects : availableSubjects;
+  const allUnits = curData.units?.length ? curData.units : availableUnits;
+  const allTopics = curData.topics?.length ? curData.topics : availableTopics;
 
+  // Initialize and sync selections from default props
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 1. Resolve Grade
+    let gId = defaultGradeId;
+    if (!gId && defaultGrade) {
+      const foundG = allGrades.find(g => g.name.toLowerCase() === defaultGrade.toLowerCase() || g.id === defaultGrade);
+      if (foundG) gId = foundG.id;
+    }
+    if (!gId && allGrades.length > 0) gId = allGrades[0].id;
+    setSelectedGradeId(gId || '');
+    setCustomGrade(defaultGrade || (allGrades.find(g => g.id === gId)?.name) || '8. Sınıf');
+
+    // 2. Resolve Subject
+    let sId = defaultSubjectId;
+    if (!sId && defaultSubject) {
+      const foundS = allSubjects.find(s => s.name.toLowerCase() === defaultSubject.toLowerCase() && (!gId || s.gradeId === gId));
+      if (foundS) sId = foundS.id;
+    }
+    if (!sId) {
+      const gradeSubs = allSubjects.filter(s => !gId || s.gradeId === gId);
+      if (gradeSubs.length > 0) sId = gradeSubs[0].id;
+    }
+    setSelectedSubjectId(sId || '');
+    setCustomSubject(defaultSubject || (allSubjects.find(s => s.id === sId)?.name) || 'Matematik');
+
+    // 3. Resolve Unit
+    let uId = defaultUnitId;
+    if (!uId && sId) {
+      const subUnits = allUnits.filter(u => u.subjectId === sId);
+      if (subUnits.length > 0) uId = subUnits[0].id;
+    }
+    setSelectedUnitId(uId || '');
+
+    // 4. Resolve Topic
+    let tId = defaultTopicId;
+    if (!tId && defaultTopic && uId) {
+      const foundT = allTopics.find(t => t.name.toLowerCase() === defaultTopic.toLowerCase() && t.unitId === uId);
+      if (foundT) tId = foundT.id;
+    }
+    setSelectedTopicId(tId || '');
+    setCustomTopic(defaultTopic || '');
+  }, [isOpen, defaultGradeId, defaultGrade, defaultSubjectId, defaultSubject, defaultUnitId, defaultTopicId, defaultTopic]);
+
+  // Load models dynamically when API key is available
   useEffect(() => {
     if (apiKey && apiKey.trim()) {
       getAvailableGeminiModels(apiKey).then(models => {
@@ -74,6 +128,22 @@ export default function AiQuestionGeneratorModal({
       }).catch(() => {});
     }
   }, [apiKey]);
+
+  // Filtered dropdown lists based on selection
+  const subjectsForGrade = useMemo(() => {
+    if (!selectedGradeId) return allSubjects;
+    return allSubjects.filter(s => s.gradeId === selectedGradeId);
+  }, [selectedGradeId, allSubjects]);
+
+  const unitsForSubject = useMemo(() => {
+    if (!selectedSubjectId) return [];
+    return allUnits.filter(u => u.subjectId === selectedSubjectId);
+  }, [selectedSubjectId, allUnits]);
+
+  const topicsForUnit = useMemo(() => {
+    if (!selectedUnitId) return [];
+    return allTopics.filter(t => t.unitId === selectedUnitId);
+  }, [selectedUnitId, allTopics]);
 
   if (!isOpen) return null;
 
@@ -101,8 +171,8 @@ export default function AiQuestionGeneratorModal({
     try {
       const text = await extractTextFromPdf(file);
       setExtractedPdfText(text);
-      if (!topic) {
-        setTopic(file.name.replace(/\.pdf$/i, '').replace(/[_-]/g, ' '));
+      if (!customTopic && !selectedTopicId) {
+        setCustomTopic(file.name.replace(/\.pdf$/i, '').replace(/[_-]/g, ' '));
       }
     } catch (err) {
       setErrorMessage('PDF metni ayıklanırken hata oluştu: ' + err.message);
@@ -110,6 +180,16 @@ export default function AiQuestionGeneratorModal({
       setIsExtractingPdf(false);
     }
   };
+
+  // Get active names for display and prompt
+  const activeGradeObj = allGrades.find(g => g.id === selectedGradeId);
+  const activeSubjectObj = allSubjects.find(s => s.id === selectedSubjectId);
+  const activeUnitObj = allUnits.find(u => u.id === selectedUnitId);
+  const activeTopicObj = allTopics.find(t => t.id === selectedTopicId);
+
+  const finalGradeName = activeGradeObj?.name || customGrade || '8. Sınıf';
+  const finalSubjectName = activeSubjectObj?.name || customSubject || 'Matematik';
+  const finalTopicName = activeTopicObj?.name || customTopic || activeUnitObj?.name || finalSubjectName;
 
   const handleGenerate = async () => {
     if (!apiKey.trim()) {
@@ -126,9 +206,9 @@ export default function AiQuestionGeneratorModal({
       const questions = await generateQuestionsWithGemini({
         apiKey,
         model: selectedModel,
-        subject,
-        grade,
-        topic,
+        subject: finalSubjectName,
+        grade: finalGradeName,
+        topic: finalTopicName,
         sourceType,
         sourceContent: effectiveContent,
         questionCount: Number(questionCount) || 5,
@@ -139,7 +219,7 @@ export default function AiQuestionGeneratorModal({
       });
 
       setGeneratedQuestions(questions);
-      setPackageTitle(`${grade} ${subject} - ${topic || 'Yapay Zeka Soru Paketi'} (${questions.length} Soru)`);
+      setPackageTitle(`${finalGradeName} ${finalSubjectName} - ${finalTopicName} (${questions.length} Soru)`);
       setStep(2);
     } catch (err) {
       setErrorMessage(err.message || 'Soru üretimi sırasında bir hata oluştu.');
@@ -148,7 +228,6 @@ export default function AiQuestionGeneratorModal({
     }
   };
 
-  // Question editing helpers in Step 2
   const handleUpdateQuestion = (qIndex, field, value) => {
     setGeneratedQuestions(prev => prev.map((q, idx) => {
       if (idx === qIndex) {
@@ -201,9 +280,9 @@ export default function AiQuestionGeneratorModal({
       correctAnswerLetter: 'A',
       explanation: 'Çözüm açıklaması...',
       difficulty: difficulty,
-      topic: topic || subject,
-      subject: subject,
-      grade: grade,
+      topic: finalTopicName,
+      subject: finalSubjectName,
+      grade: finalGradeName,
       optionCount: optionCount,
       questionType: questionType
     };
@@ -212,6 +291,18 @@ export default function AiQuestionGeneratorModal({
 
   const handleSaveToQuestionBank = () => {
     if (generatedQuestions.length === 0) return;
+
+    // Resolve exact curriculum Topic ID
+    let resolvedTopicId = 'global_all';
+    if (selectedTopicId) {
+      resolvedTopicId = selectedTopicId;
+    } else if (selectedUnitId) {
+      resolvedTopicId = `unit_${selectedUnitId}_all`;
+    } else if (selectedSubjectId) {
+      resolvedTopicId = `sub_${selectedSubjectId}_all`;
+    } else if (selectedGradeId) {
+      resolvedTopicId = `grade_${selectedGradeId}_all`;
+    }
 
     const letters = ['A', 'B', 'C', 'D', 'E'];
     const subQuestions = generatedQuestions.map((q, idx) => {
@@ -224,7 +315,13 @@ export default function AiQuestionGeneratorModal({
         correctAnswerLetter: letters[cAns] || 'A',
         explanation: q.explanation || '',
         difficulty: q.difficulty || difficulty,
-        topic: q.topic || topic || subject,
+        topic: finalTopicName,
+        topicId: resolvedTopicId,
+        subject: finalSubjectName,
+        subjectId: selectedSubjectId || null,
+        unitId: selectedUnitId || null,
+        grade: finalGradeName,
+        gradeId: selectedGradeId || null,
         contentType: 'text'
       };
     });
@@ -233,10 +330,15 @@ export default function AiQuestionGeneratorModal({
 
     const bundleQuestion = {
       id: `q_ai_${Date.now()}`,
-      title: packageTitle || `${subject} AI Soru Paketi (${subQuestions.length} Soru)`,
-      subject: subject,
-      gradeId: grade,
-      topicId: topic || 'Genel',
+      title: packageTitle || `${finalSubjectName} AI Soru Paketi (${subQuestions.length} Soru)`,
+      subject: finalSubjectName,
+      subjectId: selectedSubjectId || null,
+      grade: finalGradeName,
+      gradeId: selectedGradeId || null,
+      unitId: selectedUnitId || null,
+      unitName: activeUnitObj?.name || null,
+      topic: finalTopicName,
+      topicId: resolvedTopicId,
       contentType: 'json',
       type: questionType,
       isBundle: true,
@@ -272,7 +374,7 @@ export default function AiQuestionGeneratorModal({
         border: '1.5px solid var(--color-border)',
         boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
         width: '100%',
-        maxWidth: step === 1 ? '750px' : '1050px',
+        maxWidth: step === 1 ? '780px' : '1050px',
         maxHeight: '92vh',
         display: 'flex',
         flexDirection: 'column',
@@ -440,38 +542,96 @@ export default function AiQuestionGeneratorModal({
           {step === 1 ? (
             /* ══════════ STEP 1: FORM & SOURCE SELECTION ══════════ */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Row 1: Ders, Sınıf, Konu */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>Ders:</label>
-                  <input
-                    type="text"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Örn: Matematik, Fizik, Türkçe"
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
+              {/* Row 1: Sınıf, Ders, Ünite, Konu Dropdown Grid */}
+              <div style={{ background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc', padding: '0.9rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FolderTree size={16} color="#6366f1" />
+                  <span>Hedef Müfredat Kazanımı ve Konu Seçimi:</span>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>Sınıf Seviyesi:</label>
-                  <input
-                    type="text"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    placeholder="Örn: 8. Sınıf (LGS), 12. Sınıf (TYT/AYT)"
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem' }}>
+                  {/* Sınıf */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: 3, display: 'block', color: 'var(--color-text-muted)' }}>Sınıf Seviyesi:</label>
+                    <select
+                      value={selectedGradeId}
+                      onChange={(e) => {
+                        const gId = e.target.value;
+                        setSelectedGradeId(gId);
+                        const subs = allSubjects.filter(s => s.gradeId === gId);
+                        const firstSub = subs[0]?.id || '';
+                        setSelectedSubjectId(firstSub);
+                        const uns = allUnits.filter(u => u.subjectId === firstSub);
+                        setSelectedUnitId(uns[0]?.id || '');
+                        setSelectedTopicId('');
+                      }}
+                      style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                    >
+                      {allGrades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Ders */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: 3, display: 'block', color: 'var(--color-text-muted)' }}>Ders:</label>
+                    <select
+                      value={selectedSubjectId}
+                      onChange={(e) => {
+                        const sId = e.target.value;
+                        setSelectedSubjectId(sId);
+                        const uns = allUnits.filter(u => u.subjectId === sId);
+                        setSelectedUnitId(uns[0]?.id || '');
+                        setSelectedTopicId('');
+                      }}
+                      style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                    >
+                      {subjectsForGrade.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Ünite */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: 3, display: 'block', color: 'var(--color-text-muted)' }}>Ünite:</label>
+                    <select
+                      value={selectedUnitId}
+                      onChange={(e) => {
+                        const uId = e.target.value;
+                        setSelectedUnitId(uId);
+                        setSelectedTopicId('');
+                      }}
+                      style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                    >
+                      <option value="">-- Tüm Ünite / Genel --</option>
+                      {unitsForSubject.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Konu */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: 3, display: 'block', color: 'var(--color-text-muted)' }}>Konu / Alt Başlık:</label>
+                    <select
+                      value={selectedTopicId}
+                      onChange={(e) => setSelectedTopicId(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
+                    >
+                      <option value="">-- {topicsForUnit.length > 0 ? 'Tüm Konular / Manuel Yaz' : 'Özel Konu Yaz'} --</option>
+                      {topicsForUnit.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>Konu / Kazanım Başlığı:</label>
-                  <input
-                    type="text"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder="Örn: Üslü Sayılar, Kurtuluş Savaşı"
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
+
+                {/* Custom Topic Input if not in predefined list */}
+                {!selectedTopicId && (
+                  <div style={{ marginTop: '0.65rem' }}>
+                    <input
+                      type="text"
+                      value={customTopic}
+                      onChange={(e) => setCustomTopic(e.target.value)}
+                      placeholder="Özel Konu / Kazanım Başlığı yazınız (Örn: Üslü Sayılarda Çarpma, Kurtuluş Savaşı...)"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Row 2: Kaynak Materyali Seçimi (Metin, PDF, Sadece Konu) */}
@@ -615,13 +775,13 @@ export default function AiQuestionGeneratorModal({
 
                 {sourceType === 'topic_only' && (
                   <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', padding: '0.4rem 0.2rem' }}>
-                    💡 Ekstra bir kaynak metin yüklemeden doğrudan seçtiğiniz ders, sınıf ve konu kazanımlarına göre sorular üretilecektir.
+                    💡 Ekstra bir kaynak metin yüklemeden doğrudan seçtiğiniz <b>{finalGradeName} {finalSubjectName} - {finalTopicName}</b> kazanımlarına göre sorular üretilecektir.
                   </div>
                 )}
               </div>
 
               {/* Row 3: Parametreler (Model, Soru Adedi, Şık Sayısı, Zorluk) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>🤖 Yapay Zeka Modeli:</label>
                   <select
@@ -634,6 +794,7 @@ export default function AiQuestionGeneratorModal({
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: 4, display: 'block' }}>Soru Adedi:</label>
                   <select
@@ -671,7 +832,7 @@ export default function AiQuestionGeneratorModal({
                     <option value="Kolay">Kolay (Temel Kavramlar)</option>
                     <option value="Orta">Orta (Müfredat Standardı)</option>
                     <option value="Zor">Zor (İleri Seviye)</option>
-                    <option value="Yeni Nesil">🌟 Yeni Nesil (Beceri & Mantık Temelli)</option>
+                    <option value="Yeni Nesil">🌟 Yeni Nesil (Beceri & Mantık)</option>
                   </select>
                 </div>
               </div>
@@ -1035,7 +1196,7 @@ export default function AiQuestionGeneratorModal({
                 }}
               >
                 <CheckCircle2 size={16} />
-                <span>💾 Soru Bankasına Paket Olarak Aktar</span>
+                <span>💾 Soru Bankasına ({finalSubjectName}) Aktar</span>
               </button>
             </>
           )}
