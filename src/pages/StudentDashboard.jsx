@@ -2112,6 +2112,157 @@ export default function StudentDashboard() {
     };
   }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
 
+  // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (KİTAP TAKİBİ, YOL HARİTASI, ÖDEVLER, SINAVLAR, PROGRAM) ──
+  const catchUpTasks = useMemo(() => {
+    if (!selectedStudent) return [];
+    const list = [];
+    const seen = new Set();
+    const nowZero = new Date();
+    nowZero.setHours(0, 0, 0, 0);
+    const nowTime = nowZero.getTime();
+    const studentId = String(selectedStudent.id);
+
+    // 1. HAFTALIK PROGRAM & GÜNLÜK GÖREVLER (Önceki günlerden kalan yapılmamışlar)
+    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
+    DAYS_OF_WEEK.forEach((d, idx) => {
+      if (idx < todayIdx) {
+        const dData = fullProcessedWeekMap[d.key];
+        (dData?.items || []).forEach(item => {
+          if (!item.done) {
+            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId}_${d.key}`);
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push({
+                ...item,
+                categoryType: item.taskType || 'program',
+                sourceDayName: d.name,
+                sourceDayKey: d.key,
+                isCatchUp: true,
+                reason: `${d.name} gününden kalan program görevi`
+              });
+            }
+          }
+        });
+      }
+    });
+
+    // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
+    (studyAssignments || []).filter(a => String(a?.studentId) === studentId).forEach(assignment => {
+      if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
+      const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
+
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
+
+      (plan.subjects || []).forEach(subject => {
+        (subject?.topics || []).forEach(topic => {
+          const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+          if (isCompleted) return;
+
+          let targetDateObj = null;
+          if (topic?.dueDate) {
+            targetDateObj = parseSafeDate(topic.dueDate);
+          } else if (subject?.dueDate) {
+            targetDateObj = parseSafeDate(subject.dueDate);
+          } else if (assignment?.dueDate) {
+            targetDateObj = parseSafeDate(assignment.dueDate);
+          }
+
+          if (targetDateObj && targetDateObj.getTime() < nowTime) {
+            const key = `roadmap_${assignment.id}_${topic.id}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push({
+                id: key,
+                roadmapAssignmentId: assignment.id,
+                isAutoHomework: true,
+                isRoadmapTask: true,
+                taskType: 'yol_haritasi',
+                categoryType: 'yol_haritasi',
+                subject: subject.name || 'Yol Haritası',
+                bookTitle: plan.title,
+                title: topic.name,
+                dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
+                dueDateObj: targetDateObj,
+                isCatchUp: true,
+                reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
+              });
+            }
+          }
+        });
+      });
+    });
+
+    // 3. KİTAP TAKİBİ & KİTAP TESTLERİ (TRACKED BOOKS)
+    (homeworks || []).filter(hw => isHomeworkForStudent(hw, studentId)).forEach(hw => {
+      const isBook = Boolean(hw.isBookAssignment || hw.bookId);
+      if (!isBook) return;
+
+      const isDone = (submissions || []).some(s => 
+        String(s.studentId) === studentId && 
+        (String(s.homeworkId) === String(hw.id) || String(s.testId) === String(hw.testId) || String(s.testId) === String(hw.id))
+      );
+      if (isDone) return;
+
+      const rawDue = hw.dueDate || hw.assignedDueDate;
+      const dueDateObj = parseSafeDate(rawDue);
+      if (dueDateObj && dueDateObj.getTime() < nowTime) {
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
+        const key = `book_hw_${hw.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({
+            id: key,
+            hwId: hw.id,
+            testId: hw.testId || hw.tests?.[0],
+            isAutoHomework: true,
+            isBookTask: true,
+            taskType: 'kitap',
+            categoryType: 'kitap',
+            subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
+            bookTitle: bookObj?.title || hw.title || 'Takip Kitabı',
+            title: hw.title || 'Kitap Bölüm Testi',
+            questionCount: hw.questionCount || hw.totalQuestions,
+            dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
+            dueDateObj,
+            isCatchUp: true,
+            reason: `📚 Kitap Takibi Gecikti (Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')})`
+          });
+        }
+      }
+    });
+
+    // 4. TÜM DİĞER ATANAN ÖDEVLER & DENEME SINAVLARI (GENEL ÖDEVLER)
+    (pendingTasks || []).forEach(task => {
+      const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
+      if (dueDateObj && dueDateObj.getTime() < nowTime) {
+        const key = String(task.id || task.hwId || task.testId);
+        const hwCleanKey = key.replace(/^hw_/, '');
+        const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(key));
+        if (!alreadyIn) {
+          seen.add(key);
+          const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam';
+          list.push({
+            ...task,
+            isCatchUp: true,
+            isOverdueHomework: true,
+            categoryType: isExam ? 'deneme' : 'ödev',
+            reason: isExam 
+              ? `📊 Deneme Sınavı Gecikti (Son Teslim: ${task.dueDateStr})` 
+              : `📝 Ödev Teslimi Gecikti (Son Teslim: ${task.dueDateStr})`
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, homeworks, submissions, books, bookTests, pendingTasks, todayDayKey]);
+
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
     const isObj = typeof taskOrId === 'object';
@@ -3112,6 +3263,7 @@ export default function StudentDashboard() {
                 isDark={isDark}
                 activeDayConfig={DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0]}
                 dayProgramInfo={dayProgramInfo}
+                catchUpTasks={catchUpTasks}
                 showAllDayTasks={showAllDayTasks}
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}

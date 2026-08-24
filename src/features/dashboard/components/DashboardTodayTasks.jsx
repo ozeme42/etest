@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2 } from 'lucide-react';
+import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar } from 'lucide-react';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -22,6 +22,23 @@ export default memo(function DashboardTodayTasks({
     : 'linear-gradient(135deg, #4f46e5, #6366f1)';
 
   const hasCatchUp = Array.isArray(catchUpTasks) && catchUpTasks.length > 0;
+
+  // Category Icon & Badge Resolver for Catch-Up Items
+  const getCatchUpCategoryBadge = (task) => {
+    if (task.categoryType === 'kitap' || task.isBookTask || task.bookTitle) {
+      return { label: '📚 Kitap Takibi', bg: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: 'rgba(5, 150, 105, 0.3)' };
+    }
+    if (task.categoryType === 'yol_haritasi' || task.isRoadmapTask || task.roadmapAssignmentId) {
+      return { label: '🗺️ Yol Haritası', bg: 'rgba(124, 58, 237, 0.12)', color: '#7c3aed', border: 'rgba(124, 58, 237, 0.3)' };
+    }
+    if (task.categoryType === 'deneme' || task.isExamTask || task.type === 'physicalExam') {
+      return { label: '📊 Deneme Sınavı', bg: 'rgba(225, 29, 72, 0.12)', color: '#e11d48', border: 'rgba(225, 29, 72, 0.3)' };
+    }
+    if (task.categoryType === 'program') {
+      return { label: '📅 Program Görevi', bg: 'rgba(79, 70, 229, 0.12)', color: '#4f46e5', border: 'rgba(79, 70, 229, 0.3)' };
+    }
+    return { label: '📝 Ödev', bg: 'rgba(217, 119, 6, 0.12)', color: '#d97706', border: 'rgba(217, 119, 6, 0.3)' };
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -327,6 +344,7 @@ export default memo(function DashboardTodayTasks({
 
       {/* ═══════════════════════════════════════════════════
           BÖLÜM 2: 🔥 EKSİKLERİ TAMAMLA & AKILLI TELAFİ HAVUZU
+          (Kitap Takibi, Yol Haritası, Sınavlar, Ödevler, Program)
           ═══════════════════════════════════════════════════ */}
       <div style={{
         background: 'var(--color-surface)',
@@ -394,7 +412,7 @@ export default memo(function DashboardTodayTasks({
               </h4>
               <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                 {hasCatchUp 
-                  ? 'Önceki günlerden kalan eksiklerini kapatıp başarı puanını yükselt!'
+                  ? 'Kitap takibi, yol haritası, deneme sınavı ve haftalık programdan kalan eksikleri tamamla!'
                   : 'Tebrikler! Geciken hiçbir görevin yok, tüm hedeflerin zamanında ilerliyor.'}
               </p>
             </div>
@@ -413,13 +431,14 @@ export default memo(function DashboardTodayTasks({
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: isMobile ? 'none' : '340px',
+                maxHeight: isMobile ? 'none' : '380px',
                 overflowY: isMobile ? 'visible' : 'auto'
               }}>
                 {catchUpTasks.map((task, cIdx) => {
                   const isLast = cIdx === catchUpTasks.length - 1;
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                   const rawTitle = task.title || task.testName || task.topic || 'Telafi Görevi';
+                  const catBadge = getCatchUpCategoryBadge(task);
 
                   return (
                     <div
@@ -463,15 +482,27 @@ export default memo(function DashboardTodayTasks({
 
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 900,
+                              color: catBadge.color,
+                              background: catBadge.bg,
+                              border: `1px solid ${catBadge.border}`,
+                              padding: '1px 6px',
+                              borderRadius: 6,
+                              flexShrink: 0
+                            }}>
+                              {catBadge.label}
+                            </span>
                             {task.subject && (
                               <span style={{
                                 fontSize: '0.64rem',
-                                fontWeight: 900,
-                                color: '#b45309',
-                                background: '#fef3c7',
-                                border: '1px solid #fde68a',
-                                padding: '1px 6px',
-                                borderRadius: 6,
+                                fontWeight: 800,
+                                color: 'var(--color-text-muted)',
+                                background: 'var(--color-surface-hover)',
+                                border: '1px solid var(--color-border)',
+                                padding: '1px 5px',
+                                borderRadius: 5,
                                 flexShrink: 0
                               }}>
                                 {task.subject}
@@ -501,7 +532,28 @@ export default memo(function DashboardTodayTasks({
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        {isQuizTask ? (
+                        {task.roadmapAssignmentId ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                            style={{
+                              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
+                              fontSize: isMobile ? '0.74rem' : '0.78rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              boxShadow: '0 3px 10px rgba(124, 58, 237, 0.3)'
+                            }}
+                          >
+                            <Compass size={13} /> Haritaya Git
+                          </button>
+                        ) : isQuizTask ? (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
@@ -550,7 +602,7 @@ export default memo(function DashboardTodayTasks({
               <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--color-text)' }}>
                 <CheckCircle2 size={24} color="#10b981" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  <strong style={{ color: '#10b981' }}>Eksiksiz İlerleme:</strong> Önceki günlerden kalan gecikmiş hiçbir ödev veya telafi görevin bulunmuyor. Harikasın!
+                  <strong style={{ color: '#10b981' }}>Eksiksiz İlerleme:</strong> Kitap takibi, yol haritası veya haftalık programında gecikmiş hiçbir görevin bulunmuyor. Harikasın!
                 </div>
               </div>
             )}
