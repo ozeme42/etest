@@ -2604,41 +2604,56 @@ export default function StudentDashboard() {
           {/* SOL: Avatar + İsim + Rozetler */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.6rem', minWidth: 0, flex: 1 }}>
 
-            {/* Avatar with ring */}
+            {/* Avatar with ring - Rütbe Profil Simgesi */}
             <div style={{ position:'relative', flexShrink:0 }}>
               <div style={{
                 position:'absolute',
-                inset: -3,
+                inset: -4,
                 borderRadius:'50%',
-                background:'conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8)',
-                padding: 2
-              }}>
-                <div style={{ inset:0, borderRadius:'50%', background:'rgba(30,16,101,0.7)', position:'absolute' }} />
-              </div>
-              <div style={{
-                width: isMobile ? 54 : 88,
-                height: isMobile ? 54 : 88,
-                borderRadius:'50%',
-                background: `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize: isMobile ? '1.45rem' : '2.45rem',
-                fontWeight: 900,
-                color:'#ffffff',
-                position:'relative',
-                zIndex:1,
-                boxShadow:`0 0 0 2.5px rgba(255,255,255,0.25), 0 8px 24px ${avatarColor}80`
-              }}>
-                {selectedStudent?.name?.charAt(0)?.toUpperCase() || 'Ö'}
-              </div>
-              <div className="sd-online" style={{
-                position:'absolute', bottom:2, right:2, zIndex:2,
-                width: isMobile ? 14 : 20,
-                height: isMobile ? 14 : 20,
-                borderRadius:'50%',
-                background:'linear-gradient(135deg, #4ade80, #22c55e)',
-                border: `${isMobile ? 2 : 3}px solid rgba(30,16,101,0.9)`,
-                boxShadow:'0 2px 8px rgba(34,197,94,0.6)'
+                background: studentRank.bgGradient || 'conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8)',
+                padding: 2,
+                opacity: 0.8,
+                filter: 'blur(2px)'
               }} />
+              <div style={{
+                width: isMobile ? 58 : 92,
+                height: isMobile ? 58 : 92,
+                borderRadius: '50%',
+                background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.95rem' : '3.1rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                position: 'relative',
+                zIndex: 2,
+                boxShadow: `0 0 0 3px rgba(255,255,255,0.35), 0 8px 28px ${studentRank.color || avatarColor}90`,
+                userSelect: 'none'
+              }}
+              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level})`}
+              >
+                <span>{studentRank.icon || '🛡️'}</span>
+              </div>
+              {/* Seviye (Lv) Alt Rozeti */}
+              <div style={{
+                position: 'absolute',
+                bottom: -2,
+                right: -2,
+                zIndex: 4,
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#ffffff',
+                border: '2px solid #ffffff',
+                borderRadius: 99,
+                padding: isMobile ? '1px 5px' : '2px 8px',
+                fontSize: isMobile ? '0.58rem' : '0.74rem',
+                fontWeight: 900,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.2
+              }}>
+                Lv.{studentRank.level}
+              </div>
             </div>
 
             {/* İsim + Rozetler */}
