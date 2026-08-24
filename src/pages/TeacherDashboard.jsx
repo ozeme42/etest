@@ -376,6 +376,160 @@ export default function TeacherDashboard() {
     return ms && mf;
   });
 
+  // ── 1. ACTIVE SUBJECTS & BRANCH BREAKDOWN ──
+  const activeSubjects = useMemo(() => {
+    const map = {};
+    students.forEach(std => {
+      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+        studentId: std.id,
+        targetStudent: std,
+        submissions,
+        homeworks,
+        books,
+        bookTests
+      });
+
+      [...generalTrialExams, ...otherHomeworkSubmissions].forEach(sub => {
+        let subj = sub.subject || 'Genel';
+        const l = subj.toLowerCase();
+        if (l.includes('matematik') || l.includes('geometri')) subj = 'Matematik';
+        else if (l.includes('türkçe') || l.includes('paragraf') || l.includes('edebiyat')) subj = 'Türkçe';
+        else if (l.includes('fen') || l.includes('fizik') || l.includes('kimya') || l.includes('biyoloji')) subj = 'Fen Bilimleri';
+        else if (l.includes('sosyal') || l.includes('tarih') || l.includes('coğrafya') || l.includes('inkılap')) subj = 'Sosyal Bilgiler';
+        else if (l.includes('ingilizce') || l.includes('english')) subj = 'İngilizce';
+        else if (l.includes('din') || l.includes('ahlak')) subj = 'Din Kültürü';
+
+        if (!map[subj]) {
+          map[subj] = { name: subj, questions: 0, correct: 0, testCount: 0 };
+        }
+        const c = Number(sub.correctCount ?? sub.correct ?? 0);
+        const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
+        const b = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+        const q = Number(sub.totalQuestions || (c + w + b) || 10);
+        map[subj].questions += q;
+        map[subj].correct += c;
+        map[subj].testCount += 1;
+      });
+    });
+
+    return Object.values(map).map(s => ({
+      ...s,
+      avgScore: s.questions > 0 ? Math.round((s.correct / s.questions) * 100) : 0,
+      theme: getSubjectTheme(s.name)
+    })).sort((a, b) => b.questions - a.questions);
+  }, [students, submissions, homeworks, books, bookTests]);
+
+  // ── 2. UPCOMING EXAMS & TESTS ──
+  const upcomingExams = useMemo(() => {
+    const list = [];
+    // From homework exams
+    (teacherHomeworks || []).forEach(hw => {
+      if (hw.type === 'physicalExam' || hw.type === 'exam' || hw.isExam || hw.title?.toLowerCase().includes('deneme')) {
+        list.push({
+          id: hw.id,
+          title: hw.title,
+          subject: hw.subject || 'Genel Deneme',
+          dueDate: hw.dueDate,
+          type: 'Ödev Sınavı',
+          studentCount: (hw.targetIds || []).length || students.length
+        });
+      }
+    });
+
+    // From exam books
+    (books || []).forEach(b => {
+      if (b.bookType === 'exam' || b.isExamBook) {
+        list.push({
+          id: b.id,
+          title: b.title,
+          subject: b.subject || 'Fiziki Deneme',
+          type: 'Fiziki Kitap Denemesi',
+          studentCount: students.length
+        });
+      }
+    });
+
+    return list.slice(0, 5);
+  }, [teacherHomeworks, books, students]);
+
+  // ── 3. AT-RISK / NEEDS ATTENTION STUDENTS ──
+  const atRiskStudents = useMemo(() => {
+    const list = [];
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+
+    students.forEach(std => {
+      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
+        studentId: std.id,
+        targetStudent: std,
+        submissions,
+        homeworks,
+        books,
+        bookTests
+      });
+
+      const all = [...generalTrialExams, ...otherHomeworkSubmissions];
+      const recent = all.filter(s => new Date(s.date || s.submittedAt || 0).getTime() >= sevenDaysAgo);
+      
+      let totQ = 0, totC = 0;
+      all.forEach(s => {
+        const c = Number(s.correctCount ?? s.correct ?? 0);
+        const w = Number(s.wrongCount ?? s.wrong ?? 0);
+        const b = Number(s.emptyCount ?? s.blankCount ?? 0);
+        totQ += Number(s.totalQuestions || (c + w + b) || 10);
+        totC += c;
+      });
+
+      const avg = totQ > 0 ? Math.round((totC / totQ) * 100) : 0;
+      
+      if (all.length > 0 && avg < 50) {
+        list.push({
+          ...std,
+          reason: `Kritik Başarı (% ${avg})`,
+          severity: 'danger',
+          avg,
+          totalQuestions: totQ,
+          recentCount: recent.length
+        });
+      } else if (all.length > 0 && recent.length === 0) {
+        list.push({
+          ...std,
+          reason: 'Son 7 gündür sınav çözmedi',
+          severity: 'warning',
+          avg,
+          totalQuestions: totQ,
+          recentCount: 0
+        });
+      }
+    });
+
+    return list.slice(0, 6);
+  }, [students, submissions, homeworks, books, bookTests]);
+
+  // ── 4. RECENTLY ADDED STUDENTS ──
+  const recentlyAddedStudents = useMemo(() => {
+    return [...students].slice(-5).reverse();
+  }, [students]);
+
+  // ── 5. TODAY'S LESSONS / DAILY AGENDA ──
+  const todayAgenda = useMemo(() => {
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    const todayName = days[new Date().getDay()];
+    const todayYMD = new Date().toISOString().split('T')[0];
+
+    // Today due homeworks
+    const dueTodayHw = (teacherHomeworks || []).filter(h => h.dueDate && h.dueDate.startsWith(todayYMD));
+
+    return {
+      todayName,
+      todayDateStr: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      dueTodayHw,
+      activeBranchCount: activeSubjects.length
+    };
+  }, [teacherHomeworks, activeSubjects]);
+
+  // Total pending notifications
+  const totalPendingNotifications = pendingManualApprovals.length + pendingEvaluations.length + dueHomeworks.length;
+
   const tabs = [
     { id: 'overview',  label: 'Genel Bakış', icon: Activity },
     { id: 'analytics', label: 'Canlı Grafikler & Analiz', icon: BarChart3 },
@@ -459,11 +613,13 @@ export default function TeacherDashboard() {
         
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
-        <div className="teacher-stats-grid">
-          <StatHeroCard icon={Users}          label="Kayıtlı Öğrenci"      value={`${students.length} Öğrenci`} sub="Sınıflar & Şubeler" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.3)" />
-          <StatHeroCard icon={Activity}       label="Toplam Çözülen Soru"  value={`${executiveMetrics.totalQuestions} Soru`} sub={`⚡ ${executiveMetrics.totalSubs} Sınav / Test`} color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.3)" />
-          <StatHeroCard icon={Award}          label="Sınıf Başarı Ort."    value={`%${executiveMetrics.avgSuccess}`} sub="Genel Net Başarısı" color="#10b981" bg="rgba(16, 185, 129, 0.15)" border="rgba(16, 185, 129, 0.3)" />
-          <StatHeroCard icon={BookOpen}       label="Ödev & Soru Bankası"  value={`${teacherHomeworks.length} Ödev`} sub={`${teacherQuestions.length} Soru Havuzu`} color="#f59e0b" bg="rgba(245, 158, 11, 0.15)" border="rgba(245, 158, 11, 0.3)" />
+        <div className="teacher-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+          <StatHeroCard icon={Users}          label="Toplam Öğrenci"       value={`${students.length} Öğrenci`} sub="Aktif Sınıf Kaydı" color="#38bdf8" bg="rgba(2, 132, 199, 0.15)" border="rgba(2, 132, 199, 0.3)" />
+          <StatHeroCard icon={BookMarked}     label="Aktif Branşlar"       value={`${activeSubjects.length} Ders`} sub="Müfredat & Kitaplar" color="#c084fc" bg="rgba(147, 51, 234, 0.15)" border="rgba(147, 51, 234, 0.3)" />
+          <StatHeroCard icon={FileText}       label="Bekleyen Ödevler"     value={`${teacherHomeworks.length} Ödev`} sub={`${dueHomeworks.length > 0 ? `🔥 ${dueHomeworks.length} süresi yaklaştı` : 'Teslim aşamasında'}`} color="#fbbf24" bg="rgba(217, 119, 6, 0.15)" border="rgba(217, 119, 6, 0.3)" />
+          <StatHeroCard icon={ClipboardCheck} label="Yaklaşan Sınavlar"    value={`${upcomingExams.length} Sınav`} sub="Deneme & Optik Test" color="#6366f1" bg="rgba(99, 102, 241, 0.15)" border="rgba(99, 102, 241, 0.3)" />
+          <StatHeroCard icon={TrendingUp}     label="Başarı Ortalaması"    value={`%${executiveMetrics.avgSuccess}`} sub={`${executiveMetrics.totalQuestions} Soru Çözüldü`} color="#4ade80" bg="rgba(22, 163, 74, 0.15)" border="rgba(22, 163, 74, 0.3)" />
+          <StatHeroCard icon={Bell}           label="Bildirim & Onay"      value={`${totalPendingNotifications} Bildirim`} sub={`${pendingManualApprovals.length} Onay, ${pendingEvaluations.length} Açık Uçlu`} color="#f43f5e" bg="rgba(225, 29, 72, 0.15)" border="rgba(225, 29, 72, 0.3)" />
         </div>
 
         {/* ══════════ QUICK ACTIONS GRID ══════════ */}
@@ -491,191 +647,209 @@ export default function TeacherDashboard() {
           />
         )}
 
-        {/* ══════════ TAB: OVERVIEW (PRO EXECUTIVE COCKPIT) ══════════ */}
+        {/* ══════════ TAB: OVERVIEW (TAM DONANIMLI ÖĞRETMEN KOKPİTİ) ══════════ */}
         {tab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            
-            {/* 1. Daily Action Center (Only shows urgent items or clean state) */}
-            <TeacherActionCenter
-              pendingManualApprovals={pendingManualApprovals}
-              pendingEvaluations={pendingEvaluations}
-              dueHomeworks={dueHomeworks}
-              students={students}
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
 
-            {/* 2. Class Pulse Radar (At-risk students & Weak topics with AI remedial test generator) */}
-            <TeacherClassPulseRadar
-              students={students}
-              submissions={teacherSubmissions}
-              homeworks={teacherHomeworks}
-              books={books}
-              bookTests={bookTests}
-              onSelectStudent={(std) => setSelectedReportStudent(std)}
-              onLaunchAiForTopic={handleLaunchAiForTopic}
-            />
-
-            {/* 3. 2-Column Balanced Dashboard Grid */}
-            <div className="teacher-overview-grid">
-
-              {/* Left Column: Recent Student Activity Feed */}
-              <div className="overview-card-box">
-                <div className="overview-card-header">
-                  <h3>
-                    <Activity size={18} color="#10b981" /> Son Çözülen Sınavlar &amp; Aktiviteler
-                  </h3>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{recentSubs.length} kayıt</span>
+            {/* ── 1. GÜNLÜK AJANDA & BİLDİRİM ŞERİDİ ── */}
+            <div style={{
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: '1.25rem',
+              padding: '1rem 1.35rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.85rem',
+              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={20} />
                 </div>
-                {recentSubs.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                    <Activity size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
-                    <p style={{ margin: 0, fontWeight: 700 }}>Henüz çözülen sınav yok</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {recentSubs.map((sub, i) => {
-                      const student = users.find(u => u.id === sub.studentId);
-                      const scorePct = getSubmissionScorePct(sub);
-                      const good = scorePct !== null && scorePct >= 70;
-                      const si = students.findIndex(s => s.id === sub.studentId);
-                      const correct = sub.correctCount ?? sub.correct;
-                      const wrong = sub.wrongCount ?? sub.wrong;
-                      const hasDetails = correct !== undefined && wrong !== undefined;
-                      const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
-                      return (
-                        <div
-                          key={sub.id || i}
-                          onClick={() => student && setSelectedReportStudent(student)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.75rem',
-                            padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
-                            background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                            border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
-                            cursor: 'pointer',
-                            transition: 'transform 0.15s ease'
-                          }}
-                          title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
-                        >
-                          <Avatar name={student?.name} index={si >= 0 ? si : i} size={34} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {student?.name || 'Öğrenci'}
-                            </p>
-                            <p style={{ margin: '0.1rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {sub.testTitle || 'Sınav'} · {timeAgo(sub.submittedAt)}
-                              {hasDetails && <span style={{ marginLeft: 6, color: 'var(--color-text-muted)' }}>({correct}D {wrong}Y{net !== undefined ? ` · ${net} Net` : ''})</span>}
-                            </p>
-                          </div>
-                          {scorePct !== null ? (
-                            <span style={{
-                              fontWeight: 900, fontSize: '0.8rem',
-                              padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
-                              background: good ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                              color: good ? '#10b981' : '#ef4444', flexShrink: 0,
-                              border: `1px solid ${good ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
-                            }}>%{scorePct}</span>
-                          ) : (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div>
+                  <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📅 Bugünkü Plan &amp; Dersler — <span style={{ color: '#6366f1' }}>{todayAgenda.todayDateStr} ({todayAgenda.todayName})</span>
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {todayAgenda.dueTodayHw.length > 0
+                      ? `⚠️ Bugün teslim edilecek ${todayAgenda.dueTodayHw.length} ödev bulunuyor.`
+                      : '✅ Bugün için acil ödev teslimi bulunmuyor. Tüm sınıflar planlı ilerliyor.'}
+                  </p>
+                </div>
               </div>
 
-              {/* Right Column: Leaderboard & Upcoming Homeworks */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setTab('students')}
+                  style={{
+                    padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                    background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
+                    color: 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                  }}
+                >
+                  👥 Sınıf Listesi
+                </button>
+                <button
+                  onClick={() => setTab('analytics')}
+                  style={{
+                    padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none',
+                    color: 'white', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)'
+                  }}
+                >
+                  📈 Canlı Grafikler
+                </button>
+              </div>
+            </div>
+
+            {/* ── 2. ANA 2-SÜTUNLU KOKPİT GRID ── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+              gap: '1.15rem'
+            }}>
+
+              {/* ═══════════════════════════════════════════
+                  SOL SÜTUN: DİKKAT LİSTESİ + SON AKTİVİTELER + BİLDİRİMLER
+                  ═══════════════════════════════════════════ */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                 
-                {/* Student Leaderboard */}
-                <div className="overview-card-box">
+                {/* ⚠️ 1. TAKİP EDİLMESİ GEREKEN ÖĞRENCİLER (RİSK / DİKKAT LİSTESİ) */}
+                <div className="overview-card-box" style={{ border: '1.5px solid rgba(239, 68, 68, 0.35)' }}>
                   <div className="overview-card-header">
-                    <h3>
-                      <Award size={18} color="#f59e0b" /> Sınıf Başarı Sıralaması
+                    <h3 style={{ color: '#ef4444' }}>
+                      <AlertCircle size={18} color="#ef4444" /> ⚠️ Takip Edilmesi Gereken Öğrenciler
                     </h3>
-                    <button onClick={() => setTab('students')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      Tüm Sınıfı Gör <ChevronRight size={13} />
-                    </button>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+                      {atRiskStudents.length} Öğrenci
+                    </span>
                   </div>
-                  {leaderboard.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                      <Users size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
-                      <p style={{ margin: 0, fontWeight: 700 }}>Henüz öğrenci verisi yok</p>
+
+                  {atRiskStudents.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                      <CheckCircle2 size={32} color="#10b981" style={{ margin: '0 auto 0.4rem' }} />
+                      <p style={{ margin: 0, fontWeight: 800, color: '#10b981' }}>Tüm öğrenciler hedeflenen başarı düzeyinde!</p>
+                      <span style={{ fontSize: '0.72rem' }}>Kritik başarı düşüşü veya devamsızlık gösteren öğrenci yok.</span>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                      {leaderboard.slice(0, 5).map((std, rank) => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {atRiskStudents.map((std, i) => (
                         <div
                           key={std.id}
-                          onClick={() => setSelectedReportStudent(std)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0.5rem', borderRadius: '0.65rem', transition: 'background 0.15s' }}
-                          title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
+                            background: std.severity === 'danger' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            border: `1px solid ${std.severity === 'danger' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                            gap: '0.6rem'
+                          }}
                         >
-                          <div style={{
-                            width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                            background: rank === 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
-                              : rank === 1 ? 'linear-gradient(135deg,#94a3b8,#64748b)'
-                              : rank === 2 ? 'linear-gradient(135deg,#f97316,#ea580c)'
-                              : 'var(--color-surface-hover)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.68rem', fontWeight: 900,
-                            color: rank < 3 ? '#fff' : 'var(--color-text-muted)',
-                          }}>{rank + 1}</div>
-                          <Avatar name={std.name} index={std.idx} size={30} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{std.name}</p>
-                            <ScoreBar value={std.avg} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                            <Avatar name={std.name} index={i} size={32} />
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '0.84rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {std.name}
+                              </p>
+                              <p style={{ margin: '1px 0 0', fontSize: '0.7rem', color: std.severity === 'danger' ? '#ef4444' : '#f59e0b', fontWeight: 800 }}>
+                                {std.reason}
+                              </p>
+                            </div>
                           </div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>{std.count} sınav</span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                            <button
+                              onClick={() => setSelectedReportStudent(std)}
+                              style={{
+                                padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
+                                background: 'linear-gradient(135deg,#0284c7,#0369a1)',
+                                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.7rem',
+                                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3
+                              }}
+                              title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                            >
+                              <BarChart3 size={11} /> Karne
+                            </button>
+                            <button
+                              onClick={() => handleLaunchAiForTopic('Genel Telafi', 'Matematik')}
+                              style={{
+                                padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
+                                background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.7rem',
+                                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3
+                              }}
+                              title="Yapay Zeka ile Hızlı Telafi Testi Üret"
+                            >
+                              <Sparkles size={11} /> Telafi
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Upcoming Homeworks */}
+                {/* ⚡ 2. SON AKTİVİTELER (CANLI SINAV & ÇÖZÜM AKIŞI) */}
                 <div className="overview-card-box">
                   <div className="overview-card-header">
                     <h3>
-                      <Calendar size={18} color="#6366f1" /> Yaklaşan Ödev Teslimleri
+                      <Activity size={18} color="#10b981" /> ⚡ Son Çözülen Sınavlar &amp; Aktiviteler
                     </h3>
-                    <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      Ödevleri Yönet <ChevronRight size={13} />
-                    </button>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{recentSubs.length} kayıt</span>
                   </div>
-                  {upcomingHw.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.75rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                      <Calendar size={32} style={{ margin: '0 auto 0.4rem', opacity: 0.3 }} />
-                      <p style={{ margin: 0, fontWeight: 700 }}>Yaklaşan ödev teslimi yok</p>
+                  {recentSubs.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                      <Activity size={32} style={{ margin: '0 auto 0.4rem', opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700 }}>Henüz çözülen sınav yok</p>
                     </div>
                   ) : (
-                    <div className="teacher-hw-grid">
-                      {upcomingHw.slice(0, 4).map((hw) => {
-                        const due = new Date(hw.dueDate);
-                        const daysLeft = Math.ceil((due - Date.now()) / 86400000);
-                        const urgent = daysLeft <= 2;
-                        const tIds = hw.targetIds || [];
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {recentSubs.map((sub, i) => {
+                        const student = users.find(u => u.id === sub.studentId);
+                        const scorePct = getSubmissionScorePct(sub);
+                        const good = scorePct !== null && scorePct >= 70;
+                        const si = students.findIndex(s => s.id === sub.studentId);
+                        const correct = sub.correctCount ?? sub.correct;
+                        const wrong = sub.wrongCount ?? sub.wrong;
+                        const hasDetails = correct !== undefined && wrong !== undefined;
+                        const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
                         return (
-                          <div key={hw.id} style={{
-                            borderRadius: '0.85rem', padding: '0.75rem',
-                            background: urgent ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
-                            border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.35)' : 'var(--color-border)'}`,
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                              <span style={{
-                                fontSize: '0.62rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99,
-                                background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)',
-                                color: urgent ? '#ef4444' : '#60a5fa',
-                                border: `1px solid ${urgent ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.3)'}`
-                              }}>
-                                {urgent ? '🔥 ' : ''}{daysLeft <= 0 ? 'Bugün!' : `${daysLeft}g kaldı`}
-                              </span>
-                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                                👥 {tIds.length} öğrenci
-                              </span>
+                          <div
+                            key={sub.id || i}
+                            onClick={() => student && setSelectedReportStudent(student)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '0.75rem',
+                              padding: '0.6rem 0.85rem', borderRadius: '0.8rem',
+                              background: good ? 'rgba(16, 185, 129, 0.12)' : scorePct !== null ? 'rgba(239, 68, 68, 0.12)' : 'var(--color-surface-hover)',
+                              border: `1px solid ${good ? 'rgba(16, 185, 129, 0.3)' : scorePct !== null ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
+                              cursor: 'pointer',
+                              transition: 'transform 0.15s ease'
+                            }}
+                            title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                          >
+                            <Avatar name={student?.name} index={si >= 0 ? si : i} size={32} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student?.name || 'Öğrenci'}
+                              </p>
+                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.7rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {sub.testTitle || 'Sınav'} · {timeAgo(sub.submittedAt)}
+                                {hasDetails && <span style={{ marginLeft: 6, color: 'var(--color-text-muted)' }}>({correct}D {wrong}Y{net !== undefined ? ` · ${net} Net` : ''})</span>}
+                              </p>
                             </div>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {hw.title}
-                            </p>
+                            {scorePct !== null ? (
+                              <span style={{
+                                fontWeight: 900, fontSize: '0.78rem',
+                                padding: '0.15rem 0.55rem', borderRadius: '0.5rem',
+                                background: good ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                color: good ? '#10b981' : '#ef4444', flexShrink: 0,
+                                border: `1px solid ${good ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
+                              }}>%{scorePct}</span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>
+                            )}
                           </div>
                         );
                       })}
@@ -683,30 +857,180 @@ export default function TeacherDashboard() {
                   )}
                 </div>
 
-                {/* Sınıf Dağılımı (Mini Pill Row) */}
-                {data.grades.length > 0 && (
-                  <div className="overview-card-box">
-                    <h3 style={{ margin: '0 0 0.65rem', fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <GraduationCap size={16} color="#6366f1" /> Sınıf &amp; Şube Dağılımı
+                {/* 🔔 3. GÜNLÜK BİLDİRİM & ONAY MERKEZİ BANNERI */}
+                <TeacherActionCenter
+                  pendingManualApprovals={pendingManualApprovals}
+                  pendingEvaluations={pendingEvaluations}
+                  dueHomeworks={dueHomeworks}
+                  students={students}
+                />
+
+              </div>
+
+              {/* ═══════════════════════════════════════════
+                  SAĞ SÜTUN: BRANŞLAR + BEKLEYEN ÖDEVLER + YAKLAŞAN SINAVLAR + SON EKLENENLER
+                  ═══════════════════════════════════════════ */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+
+                {/* 📚 1. AKTİF DERSLER & BRANŞ BAŞARISI */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <BookOpen size={18} color="#6366f1" /> 📚 Aktif Dersler &amp; Branş Başarısı
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.5rem' }}>
-                      {data.grades.map((grade, gi) => {
-                        const count = students.filter(s =>
-                          String(s.gradeId) === String(grade.id) || s.gradeId === grade.name ||
-                          String(s.classId) === String(grade.id) || s.grade === grade.name || s.className === grade.name
-                        ).length;
-                        const GRADE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#14b8a6','#f97316'];
-                        const gc = GRADE_COLORS[gi % GRADE_COLORS.length];
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{activeSubjects.length} Branş</span>
+                  </div>
+
+                  {activeSubjects.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                      Henüz branş bazlı soru çözümü verisi yok.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {activeSubjects.slice(0, 5).map(subj => {
+                        const sc = subj.theme;
                         return (
-                          <div key={grade.id} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.55rem', textAlign: 'center' }}>
-                            <p style={{ fontSize: '1.2rem', fontWeight: 900, color: gc, margin: 0, lineHeight: 1 }}>{count}</p>
-                            <p style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', margin: '0.2rem 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{grade.name}</p>
+                          <div key={subj.name} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '0.45rem 0.65rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 900, color: sc.accent || '#6366f1' }}>{subj.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem' }}>
+                                <span style={{ color: 'var(--color-text-muted)' }}>{subj.questions} Soru</span>
+                                <span style={{ fontWeight: 900, color: subj.avgScore >= 70 ? '#10b981' : subj.avgScore >= 45 ? '#f59e0b' : '#ef4444' }}>%{subj.avgScore}</span>
+                              </div>
+                            </div>
+                            <div style={{ height: 4, background: 'var(--color-border)', borderRadius: 4, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${subj.avgScore}%`, background: subj.avgScore >= 70 ? '#10b981' : '#f59e0b', borderRadius: 4 }} />
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+                  )}
+                </div>
+
+                {/* 📝 2. BEKLEYEN ÖDEVLER */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <FileText size={18} color="#f59e0b" /> 📝 Bekleyen &amp; Aktif Ödevler
+                    </h3>
+                    <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Ödevleri Yönet <ChevronRight size={13} />
+                    </button>
                   </div>
-                )}
+                  {upcomingHw.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                      <Calendar size={30} style={{ margin: '0 auto 0.3rem', opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700 }}>Aktif bekleyen ödev yok</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {upcomingHw.slice(0, 3).map((hw) => {
+                        const due = new Date(hw.dueDate);
+                        const daysLeft = Math.ceil((due - Date.now()) / 86400000);
+                        const urgent = daysLeft <= 2;
+                        const tIds = hw.targetIds || [];
+                        return (
+                          <div key={hw.id} style={{
+                            borderRadius: '0.75rem', padding: '0.65rem 0.85rem',
+                            background: urgent ? 'rgba(239, 68, 68, 0.1)' : 'var(--color-surface-hover)',
+                            border: `1.5px solid ${urgent ? 'rgba(239, 68, 68, 0.35)' : 'var(--color-border)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
+                          }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {hw.title}
+                              </p>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>👥 {tIds.length || students.length} öğrenciye atandı</span>
+                            </div>
+                            <span style={{
+                              fontSize: '0.65rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99,
+                              background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+                              color: urgent ? '#ef4444' : '#60a5fa', flexShrink: 0
+                            }}>
+                              {urgent ? '🔥 ' : ''}{daysLeft <= 0 ? 'Bugün!' : `${daysLeft}g kaldı`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 🧪 3. YAKLAŞAN SINAVLAR */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <ClipboardCheck size={18} color="#10b981" /> 🧪 Yaklaşan Sınavlar &amp; Denemeler
+                    </h3>
+                    <button onClick={() => navigate('/physical-exam')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Sınavlar <ChevronRight size={13} />
+                    </button>
+                  </div>
+                  {upcomingExams.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                      <ClipboardCheck size={30} style={{ margin: '0 auto 0.3rem', opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700 }}>Planlanmış sınav bulunmuyor</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {upcomingExams.map(ex => (
+                        <div key={ex.id} style={{ padding: '0.65rem 0.85rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}>{ex.title}</p>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>{ex.subject} · {ex.type}</span>
+                          </div>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '2px 7px', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+                            Aktif
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 👥 4. SON EKLENEN ÖĞRENCİLER */}
+                <div className="overview-card-box">
+                  <div className="overview-card-header">
+                    <h3>
+                      <Users size={18} color="#0284c7" /> 👥 Son Eklenen Öğrenciler
+                    </h3>
+                    <button onClick={() => setShowAddStudentModal(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 900, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      + Yeni Ekle
+                    </button>
+                  </div>
+                  {recentlyAddedStudents.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                      Henüz öğrenci kaydı bulunmuyor.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {recentlyAddedStudents.map((std, i) => (
+                        <div key={std.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0 }}>
+                            <Avatar name={std.name} index={i} size={28} />
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{std.name}</p>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>{std.email}</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '1px 5px', borderRadius: 4, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', fontFamily: 'monospace' }}>
+                              🔑 {std.password || '123456'}
+                            </span>
+                            <button
+                              onClick={() => setSelectedReportStudent(std)}
+                              style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              Karne
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
               </div>
 
