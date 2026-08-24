@@ -18,6 +18,8 @@ import { useCoaching } from '../context/CoachingContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { getAvatarBg, getSubjectTheme } from '../config/subjectThemes';
 import { timeAgo } from '../utils/dateHelpers';
+import { computeStudentAnalyticsData } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
 import TeacherActionCenter from '../components/teacher/TeacherActionCenter';
 import TeacherClassPulseRadar from '../components/teacher/TeacherClassPulseRadar';
