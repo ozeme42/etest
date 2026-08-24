@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, Flame, Award, ChevronRight, Zap, Star, Shield, Sparkles } from 'lucide-react';
+import { Trophy, Flame, Award, ChevronRight, Zap, Star, Shield, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { computeStudentGamificationData } from '../../services/gamificationService';
 import GamificationModal from './GamificationModal';
 import { useTheme } from '../../context/ThemeContext';
@@ -29,7 +29,7 @@ export default function StudentGamificationCard({
     });
   }, [student, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
-  const { levelInfo, stats, unlockedBadges, xp } = gamification;
+  const { levelInfo, streakTierInfo, stats, unlockedBadges, xp } = gamification;
 
   return (
     <>
@@ -46,7 +46,7 @@ export default function StudentGamificationCard({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          gap: 14
+          gap: 12
         }}
       >
         {/* Ambient Top Glow */}
@@ -65,7 +65,7 @@ export default function StudentGamificationCard({
           }}
         />
 
-        {/* Header Row: Level + Streak + XP Button */}
+        {/* Header Row: Level + Streak + Action Button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           {/* Level & Rank Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -111,14 +111,14 @@ export default function StudentGamificationCard({
             </div>
           </div>
 
-          {/* Daily Streak & Action Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Streak & Multiplier Pill + Action Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {/* Streak Pill */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 6,
                 padding: '6px 12px',
                 borderRadius: 12,
                 background: stats.dailyStreak > 0
@@ -131,10 +131,24 @@ export default function StudentGamificationCard({
                 fontWeight: 900,
                 fontSize: '0.82rem'
               }}
-              title="Günlük Kesintisiz Seri"
+              title="Günlük Kesintisiz Seri ve Çarpan"
             >
               <Flame size={16} className={stats.dailyStreak > 0 ? 'text-amber-500 animate-pulse' : ''} />
               <span>{stats.dailyStreak} Gün Seri</span>
+              {streakTierInfo?.multiplier > 1.0 && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    background: '#f59e0b',
+                    color: '#ffffff',
+                    padding: '1px 6px',
+                    borderRadius: 6,
+                    fontWeight: 900
+                  }}
+                >
+                  {streakTierInfo.multiplier}x XP
+                </span>
+              )}
             </div>
 
             {/* Leaderboard / Badges Trigger */}
@@ -157,9 +171,9 @@ export default function StudentGamificationCard({
           </div>
         </div>
 
-        {/* Progress Bar Row */}
+        {/* Level Progress Bar Row */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 5 }}>
             <span>Sonraki Rütbe: <strong style={{ color: 'var(--color-text)' }}>{levelInfo.nextTierTitle}</strong></span>
             <span>%{levelInfo.progressPercent} ({levelInfo.inTierXp} / {levelInfo.tierSpan} XP)</span>
           </div>
@@ -167,7 +181,7 @@ export default function StudentGamificationCard({
           <div
             style={{
               width: '100%',
-              height: 10,
+              height: 9,
               borderRadius: 99,
               background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
               overflow: 'hidden',
@@ -187,11 +201,48 @@ export default function StudentGamificationCard({
           </div>
         </div>
 
+        {/* 🌟 MOTİVE EDİCİ GÜNLÜK SERİ & ÇARPAN BİLGİ ŞERİDİ */}
+        <div
+          style={{
+            padding: '0.65rem 0.95rem',
+            borderRadius: 12,
+            background: stats.isTodaySolved
+              ? (isDark ? 'rgba(34, 197, 94, 0.12)' : '#f0fdf4')
+              : (isDark ? 'rgba(245, 158, 11, 0.12)' : '#fffbeb'),
+            border: stats.isTodaySolved
+              ? '1px solid rgba(34, 197, 94, 0.3)'
+              : '1px solid rgba(245, 158, 11, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {stats.isTodaySolved ? (
+              <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
+            ) : (
+              <Flame size={16} className="text-amber-500 animate-pulse flex-shrink-0" />
+            )}
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: stats.isTodaySolved ? (isDark ? '#86efac' : '#15803d') : (isDark ? '#fcd34d' : '#b45309') }}>
+              {streakTierInfo?.statusText}
+            </span>
+          </div>
+
+          {streakTierInfo?.nextTier && (
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>Sonraki Bonus: <strong>{streakTierInfo.nextTier.title} ({streakTierInfo.nextTier.multiplier}x)</strong></span>
+              <span style={{ color: '#f59e0b', fontWeight: 900 }}>• {streakTierInfo.daysToNext} Gün Kaldı</span>
+            </div>
+          )}
+        </div>
+
         {/* Mini Unlocked Badges Shelf */}
         {unlockedBadges.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4, borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Kazanılan Rozetler ({unlockedBadges.length}):
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 2, borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
+              Rozetler ({unlockedBadges.length}):
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
               {unlockedBadges.slice(0, 5).map(b => (
@@ -201,11 +252,11 @@ export default function StudentGamificationCard({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 4,
-                    padding: '3px 8px',
+                    padding: '2px 8px',
                     borderRadius: 8,
                     background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
                     border: '1px solid var(--color-border)',
-                    fontSize: '0.75rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
                     color: 'var(--color-text)',
                     whiteSpace: 'nowrap'

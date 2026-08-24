@@ -1,22 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import {
   Trophy, Award, X, Sparkles, Flame, CheckCircle2, Lock,
-  Crown, Star, Zap, Shield, TrendingUp, Users, Target, Filter
+  Crown, Star, Zap, Shield, TrendingUp, Users, Target, Filter,
+  Check, ArrowRight
 } from 'lucide-react';
 import {
   computeStudentGamificationData,
   computeLeaderboard,
   LEVEL_TIERS,
+  STREAK_TIERS,
   BADGE_DEFINITIONS
 } from '../../services/gamificationService';
 import { useTheme } from '../../context/ThemeContext';
 
 const BADGE_CATEGORIES = [
   { key: 'all', label: 'Tümü' },
-  { key: 'test', label: '🎯 Test & Sınav' },
-  { key: 'accuracy', label: '🎖️ Tam Puan & İsabet' },
+  { key: 'subject', label: '📚 Ders Başarıları' },
   { key: 'milestone', label: '🏹 Soru Sayısı' },
-  { key: 'subject', label: '📚 Dersler' },
+  { key: 'test', label: '🎯 Test & Kitap' },
+  { key: 'accuracy', label: '🎖️ Tam Puan & İsabet' },
   { key: 'streak', label: '🔥 Günlük Seri' },
   { key: 'study', label: '⏱️ Odaklanma' },
   { key: 'special', label: '✨ Özel' }
@@ -34,7 +36,7 @@ export default function GamificationModal({
   onClose
 }) {
   const { isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState('badges'); // 'badges' | 'leaderboard' | 'levels'
+  const [activeTab, setActiveTab] = useState('badges'); // 'badges' | 'streaks' | 'leaderboard' | 'levels'
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const gamification = useMemo(() => {
@@ -61,7 +63,7 @@ export default function GamificationModal({
     });
   }, [users, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
-  const { levelInfo, stats, unlockedBadges, lockedBadges, xp } = gamification;
+  const { levelInfo, streakTierInfo, stats, unlockedBadges, lockedBadges, xp } = gamification;
 
   const filteredUnlockedBadges = useMemo(() => {
     if (selectedCategory === 'all') return unlockedBadges;
@@ -93,8 +95,8 @@ export default function GamificationModal({
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
           width: '100%',
-          maxWidth: 780,
-          maxHeight: '90vh',
+          maxWidth: 820,
+          maxHeight: '92vh',
           borderRadius: 24,
           border: '1.5px solid var(--color-border)',
           boxShadow: '0 25px 60px -15px rgba(0,0,0,0.3)',
@@ -138,7 +140,7 @@ export default function GamificationModal({
                 Başarılar & Liderlik Arenası
               </h2>
               <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                {levelInfo.title} (Lv. {levelInfo.level}) • {xp.toLocaleString('tr-TR')} Toplam XP
+                {levelInfo.title} (Lv. {levelInfo.level}) • {xp.toLocaleString('tr-TR')} Toplam XP • 🔥 {stats.dailyStreak} Gün Seri ({streakTierInfo?.multiplier}x XP)
               </p>
             </div>
           </div>
@@ -168,11 +170,14 @@ export default function GamificationModal({
             gap: 6,
             padding: '0.75rem 1.5rem',
             borderBottom: '1px solid var(--color-border)',
-            background: 'var(--color-surface)'
+            background: 'var(--color-surface)',
+            overflowX: 'auto',
+            scrollbarWidth: 'none'
           }}
         >
           {[
             { key: 'badges', label: '🏆 Rozetlerim', count: `${unlockedBadges.length}/${BADGE_DEFINITIONS.length}` },
+            { key: 'streaks', label: '🔥 Seri Çarpanları', count: `${stats.dailyStreak} Gün` },
             { key: 'leaderboard', label: '🥇 Liderlik Sıralaması', count: `${leaderboard.length} Öğrenci` },
             { key: 'levels', label: '⭐ Rütbe Basamakları', count: `${LEVEL_TIERS.length} Seviye` }
           ].map(t => (
@@ -181,6 +186,7 @@ export default function GamificationModal({
               onClick={() => setActiveTab(t.key)}
               style={{
                 flex: 1,
+                minWidth: 'fit-content',
                 padding: '0.55rem 0.8rem',
                 borderRadius: 12,
                 border: 'none',
@@ -194,7 +200,8 @@ export default function GamificationModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6
+                gap: 6,
+                whiteSpace: 'nowrap'
               }}
             >
               <span>{t.label}</span>
@@ -332,7 +339,126 @@ export default function GamificationModal({
             </div>
           )}
 
-          {/* TAB 2: LEADERBOARD */}
+          {/* TAB 2: STREAK MULTIPLIER & TIERS */}
+          {activeTab === 'streaks' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Active Streak Status Header */}
+              <div
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: 18,
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15))',
+                  border: '1.5px solid rgba(245,158,11,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: '2.5rem', animation: 'bounce 2s infinite' }}>🔥</div>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text)' }}>
+                      {stats.dailyStreak} Günlük Kesintisiz Seri
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      Mevcut Çarpan: <strong style={{ color: '#f59e0b' }}>{streakTierInfo?.multiplier}x XP</strong> • Toplam Seri Bonusu: <strong>+{stats.cumulativeStreakBonus || 0} XP</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 900,
+                      padding: '6px 14px',
+                      borderRadius: 12,
+                      background: stats.isTodaySolved ? '#22c55e' : '#f59e0b',
+                      color: 'white',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    {stats.isTodaySolved ? '✅ Bugünkü Seri Tamam' : '⚡ Bugün Soru Çöz!'}
+                  </span>
+                </div>
+              </div>
+
+              {/* All Streak Tiers List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Kademeli Seri Çarpanları & Günlük Bonuslar
+                </h3>
+
+                {STREAK_TIERS.filter(t => t.minDays > 0).map(t => {
+                  const isReached = stats.dailyStreak >= t.minDays;
+                  const isCurrent = streakTierInfo?.minDays === t.minDays;
+                  return (
+                    <div
+                      key={t.minDays}
+                      style={{
+                        padding: '1rem 1.25rem',
+                        borderRadius: 16,
+                        background: isCurrent
+                          ? (isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7')
+                          : isReached
+                            ? (isDark ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4')
+                            : (isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
+                        border: isCurrent
+                          ? '2px solid #f59e0b'
+                          : isReached
+                            ? '1.5px solid rgba(34, 197, 94, 0.3)'
+                            : '1.5px solid var(--color-border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 12
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ fontSize: '1.8rem' }}>{t.icon}</div>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span>{t.title}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#f59e0b', color: 'white', padding: '1px 6px', borderRadius: 6 }}>
+                              {t.multiplier}x XP
+                            </span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a' }}>
+                              +{t.dailyBonusXp} XP / gün
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                            {t.desc} (Gereken: {t.minDays} Gün Kesintisiz Seri)
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        {isCurrent ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.2)', padding: '4px 10px', borderRadius: 8 }}>
+                            Aktif Kademede
+                          </span>
+                        ) : isReached ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Check size={15} /> Açıldı
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                            {t.minDays - stats.dailyStreak} Gün Kaldı
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: LEADERBOARD */}
           {activeTab === 'leaderboard' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Podium for Top 3 */}
@@ -452,7 +578,7 @@ export default function GamificationModal({
             </div>
           )}
 
-          {/* TAB 3: LEVELS ROADMAP */}
+          {/* TAB 4: LEVELS ROADMAP */}
           {activeTab === 'levels' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {LEVEL_TIERS.map(tier => {

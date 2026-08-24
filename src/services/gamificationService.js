@@ -23,6 +23,60 @@ export const LEVEL_TIERS = [
   { level: 14, title: 'Evrenin Zirvesi', minXp: 20000, maxXp: 999999, icon: '🌌', color: '#ec4899', bgGradient: 'linear-gradient(135deg, #ec4899, #be185d)' }
 ];
 
+export const STREAK_TIERS = [
+  { minDays: 30, title: 'Efsanevi Titanyum', icon: '👑', color: '#ec4899', multiplier: 1.5, dailyBonusXp: 50, desc: 'Her soru ve teste +%50 XP Çarpanı & +50 Günlük XP Bonusu' },
+  { minDays: 14, title: 'Volkanik Seri', icon: '🌋', color: '#f43f5e', multiplier: 1.35, dailyBonusXp: 25, desc: 'Her soru ve teste +%35 XP Çarpanı & +25 Günlük XP Bonusu' },
+  { minDays: 7,  title: 'Durdurulamaz Alev', icon: '⚡', color: '#8b5cf6', multiplier: 1.2, dailyBonusXp: 12, desc: 'Her soru ve teste +%20 XP Çarpanı & +12 Günlük XP Bonusu' },
+  { minDays: 3,  title: 'Alev Başlangıcı', icon: '🔥', color: '#f59e0b', multiplier: 1.1, dailyBonusXp: 5, desc: 'Her soru ve teste +%10 XP Çarpanı & +5 Günlük XP Bonusu' },
+  { minDays: 1,  title: 'Alev Kıvılcımı', icon: '✨', color: '#38bdf8', multiplier: 1.0, dailyBonusXp: 2, desc: 'Standart Günlük Seri (+2 XP)' },
+  { minDays: 0,  title: 'Henüz Seri Yok', icon: '❄️', color: '#94a3b8', multiplier: 1.0, dailyBonusXp: 0, desc: 'Seri başlatmak için bugün test çöz!' }
+];
+
+export function getStreakTierInfo(dailyStreak, isTodaySolved = false) {
+  const streak = Math.max(0, Number(dailyStreak) || 0);
+  let activeTier = STREAK_TIERS[STREAK_TIERS.length - 1];
+  let nextTier = null;
+
+  for (let i = 0; i < STREAK_TIERS.length; i++) {
+    if (streak >= STREAK_TIERS[i].minDays) {
+      activeTier = STREAK_TIERS[i];
+      nextTier = i > 0 ? STREAK_TIERS[i - 1] : null;
+      break;
+    }
+  }
+
+  const daysToNext = nextTier ? Math.max(0, nextTier.minDays - streak) : 0;
+  const progressToNext = nextTier
+    ? Math.min(100, Math.round(((streak - activeTier.minDays) / (nextTier.minDays - activeTier.minDays)) * 100))
+    : 100;
+
+  return {
+    ...activeTier,
+    streak,
+    isTodaySolved,
+    nextTier,
+    daysToNext,
+    progressToNext,
+    statusText: isTodaySolved
+      ? `🔥 Harika! Bugünkü serin korundu (+${activeTier.dailyBonusXp} XP / ${activeTier.multiplier}x Çarpan)`
+      : streak > 0
+        ? `⚠️ Serini kaybetmemek ve ${activeTier.multiplier}x çarpanını korumak için bugün 1 test çöz!`
+        : `🚀 İlk serini başlatmak için bugün test çöz!`
+  };
+}
+
+export function calculateCumulativeStreakBonus(streakDays) {
+  let bonus = 0;
+  for (let d = 1; d <= streakDays; d++) {
+    if (d >= 30) bonus += 50;
+    else if (d >= 14) bonus += 25;
+    else if (d >= 7) bonus += 12;
+    else if (d >= 3) bonus += 5;
+    else bonus += 2;
+  }
+  return bonus;
+}
+
 export function normalizeCanonicalSubject(subjectName) {
   if (!subjectName || typeof subjectName !== 'string') return 'Genel';
   const lower = subjectName.toLowerCase().trim();
@@ -787,21 +841,35 @@ export function computeStudentGamificationData({
     }
   });
 
-  // Scaled XP Calculation (1/10 scale)
-  let totalXp = 0;
-  totalXp += totalCorrect * 1;                         // 1 XP per correct answer
-  totalXp += Math.round(totalSolvedTests * 2.5);       // 2.5 XP per completed test
-  totalXp += perfectTestsCount * 5;                    // 5 XP per 100% test
-  totalXp += Math.floor(totalStudyMinutes / 25) * 2;   // 2 XP per 25 min pomodoro
-  totalXp += Math.round(dailyStreak * 1.5);            // 1.5 XP per streak day
-  unlockedBadges.forEach(b => { totalXp += b.xpReward; });
+  // Scaled XP Calculation with Progressive Streak Multiplier & Bonus
+  const isTodaySolved = activeDates.has(new Date().toISOString().split('T')[0]);
+  const streakTierInfo = getStreakTierInfo(dailyStreak, isTodaySolved);
 
+  const baseQuestionsXp = totalCorrect * 1;
+  const baseTestsXp = Math.round(totalSolvedTests * 2.5);
+  // Apply streak multiplier (1.0x to 1.5x) to questions & tests
+  const multipliedXp = Math.round((baseQuestionsXp + baseTestsXp) * streakTierInfo.multiplier);
+
+  const cumulativeStreakBonus = calculateCumulativeStreakBonus(dailyStreak);
+  const perfectBonus = perfectTestsCount * 5;
+  const pomodoroBonus = Math.floor(totalStudyMinutes / 25) * 2;
+
+  let badgeXp = 0;
+  unlockedBadges.forEach(b => { badgeXp += b.xpReward; });
+
+  const totalXp = multipliedXp + cumulativeStreakBonus + perfectBonus + pomodoroBonus + badgeXp;
   const levelInfo = getLevelInfo(totalXp);
 
   return {
     xp: totalXp,
     levelInfo,
-    stats,
+    streakTierInfo,
+    stats: {
+      ...stats,
+      isTodaySolved,
+      multiplier: streakTierInfo.multiplier,
+      cumulativeStreakBonus
+    },
     unlockedBadges,
     lockedBadges
   };
