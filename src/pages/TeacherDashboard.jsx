@@ -527,6 +527,16 @@ export default function TeacherDashboard() {
     };
   }, [teacherHomeworks, activeSubjects]);
 
+  const pendingManualApprovals = useMemo(() => {
+    return (submissions || []).filter(sub => {
+      if (!sub.isManual && sub.sourceType !== 'manual_test') return false;
+      const isPending = sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected');
+      if (!isPending) return false;
+      if (currentUser?.role === 'admin') return true;
+      return teacherStudentIds.includes(String(sub.studentId)) || teacherStudentIds.includes(String(toUUID(sub.studentId)));
+    });
+  }, [submissions, teacherStudentIds, currentUser]);
+
   // Total pending notifications
   const totalPendingNotifications = pendingManualApprovals.length + pendingEvaluations.length + dueHomeworks.length;
 
@@ -537,16 +547,6 @@ export default function TeacherDashboard() {
     { id: 'students',  label: 'Sınıfım & Öğrenciler', icon: Users, badge: students.length },
     { id: 'coaching',  label: 'Koçluk & Takip', icon: Target },
   ];
-
-  const pendingManualApprovals = useMemo(() => {
-    return (submissions || []).filter(sub => {
-      if (!sub.isManual && sub.sourceType !== 'manual_test') return false;
-      const isPending = sub.approvalStatus === 'pending' || sub.status === 'pending_approval' || (sub.isApproved === false && sub.approvalStatus !== 'rejected');
-      if (!isPending) return false;
-      if (currentUser?.role === 'admin') return true;
-      return teacherStudentIds.includes(String(sub.studentId)) || teacherStudentIds.includes(String(toUUID(sub.studentId)));
-    });
-  }, [submissions, teacherStudentIds, currentUser]);
 
   const quickActions = [
     { icon: UserPlus,  label: 'Öğrenci Ekle',   sub: 'Hızlı sınıf kaydı',       grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: '0 6px 20px rgba(16,185,129,0.35)',  onClick: () => setShowAddStudentModal(true) },
