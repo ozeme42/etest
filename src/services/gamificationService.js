@@ -24,11 +24,11 @@ export const LEVEL_TIERS = [
 ];
 
 export const STREAK_TIERS = [
-  { minDays: 30, title: 'Efsanevi Titanyum', icon: '👑', color: '#ec4899', multiplier: 1.5, dailyBonusXp: 50, desc: 'Her soru ve teste +%50 XP Çarpanı & +50 Günlük XP Bonusu' },
-  { minDays: 14, title: 'Volkanik Seri', icon: '🌋', color: '#f43f5e', multiplier: 1.35, dailyBonusXp: 25, desc: 'Her soru ve teste +%35 XP Çarpanı & +25 Günlük XP Bonusu' },
-  { minDays: 7,  title: 'Durdurulamaz Alev', icon: '⚡', color: '#8b5cf6', multiplier: 1.2, dailyBonusXp: 12, desc: 'Her soru ve teste +%20 XP Çarpanı & +12 Günlük XP Bonusu' },
-  { minDays: 3,  title: 'Alev Başlangıcı', icon: '🔥', color: '#f59e0b', multiplier: 1.1, dailyBonusXp: 5, desc: 'Her soru ve teste +%10 XP Çarpanı & +5 Günlük XP Bonusu' },
-  { minDays: 1,  title: 'Alev Kıvılcımı', icon: '✨', color: '#38bdf8', multiplier: 1.0, dailyBonusXp: 2, desc: 'Standart Günlük Seri (+2 XP)' },
+  { minDays: 30, title: 'Efsanevi Titanyum', icon: '👑', color: '#ec4899', multiplier: 1.6, dailyBonusXp: 100, desc: 'Her soru ve teste +%60 XP Çarpanı & +100 Günlük XP Bonusu' },
+  { minDays: 14, title: 'Volkanik Seri', icon: '🌋', color: '#f43f5e', multiplier: 1.4, dailyBonusXp: 50, desc: 'Her soru ve teste +%40 XP Çarpanı & +50 Günlük XP Bonusu' },
+  { minDays: 7,  title: 'Durdurulamaz Alev', icon: '⚡', color: '#8b5cf6', multiplier: 1.25, dailyBonusXp: 25, desc: 'Her soru ve teste +%25 XP Çarpanı & +25 Günlük XP Bonusu' },
+  { minDays: 3,  title: 'Alev Başlangıcı', icon: '🔥', color: '#f59e0b', multiplier: 1.15, dailyBonusXp: 12, desc: 'Her soru ve teste +%15 XP Çarpanı & +12 Günlük XP Bonusu' },
+  { minDays: 1,  title: 'Alev Kıvılcımı', icon: '✨', color: '#38bdf8', multiplier: 1.05, dailyBonusXp: 5, desc: 'Standart Günlük Seri (+5 XP & 1.05x Çarpan)' },
   { minDays: 0,  title: 'Henüz Seri Yok', icon: '❄️', color: '#94a3b8', multiplier: 1.0, dailyBonusXp: 0, desc: 'Seri başlatmak için bugün test çöz!' }
 ];
 
@@ -68,11 +68,11 @@ export function getStreakTierInfo(dailyStreak, isTodaySolved = false) {
 export function calculateCumulativeStreakBonus(streakDays) {
   let bonus = 0;
   for (let d = 1; d <= streakDays; d++) {
-    if (d >= 30) bonus += 50;
-    else if (d >= 14) bonus += 25;
-    else if (d >= 7) bonus += 12;
-    else if (d >= 3) bonus += 5;
-    else bonus += 2;
+    if (d >= 30) bonus += 100;
+    else if (d >= 14) bonus += 50;
+    else if (d >= 7) bonus += 25;
+    else if (d >= 3) bonus += 12;
+    else bonus += 5;
   }
   return bonus;
 }
@@ -517,7 +517,7 @@ export const BADGE_DEFINITIONS = [
     desc: '3 gün aralıksız her gün ders çalış / test çöz.',
     icon: '🔥',
     category: 'streak',
-    xpReward: 8,
+    xpReward: 20,
     check: (stats) => stats.dailyStreak >= 3,
     progress: (stats) => ({ current: Math.min(3, stats.dailyStreak), target: 3 })
   },
@@ -527,7 +527,7 @@ export const BADGE_DEFINITIONS = [
     desc: '7 gün üst üste kesintisiz çalışmayı sürdür.',
     icon: '⚡',
     category: 'streak',
-    xpReward: 18,
+    xpReward: 45,
     check: (stats) => stats.dailyStreak >= 7,
     progress: (stats) => ({ current: Math.min(7, stats.dailyStreak), target: 7 })
   },
@@ -537,7 +537,7 @@ export const BADGE_DEFINITIONS = [
     desc: '14 gün üst üste her gün test çöz / çalış.',
     icon: '🌋',
     category: 'streak',
-    xpReward: 30,
+    xpReward: 80,
     check: (stats) => stats.dailyStreak >= 14,
     progress: (stats) => ({ current: Math.min(14, stats.dailyStreak), target: 14 })
   },
@@ -547,7 +547,7 @@ export const BADGE_DEFINITIONS = [
     desc: '30 gün kesintisiz seri yaparak alışkanlığı taçlandır.',
     icon: '🛡️',
     category: 'streak',
-    xpReward: 50,
+    xpReward: 150,
     check: (stats) => stats.dailyStreak >= 30,
     progress: (stats) => ({ current: Math.min(30, stats.dailyStreak), target: 30 })
   },
