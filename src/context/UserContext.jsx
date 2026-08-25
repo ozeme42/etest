@@ -34,9 +34,13 @@ export function UserProvider({ children }) {
   useEffect(() => {
     async function syncUsersFromSupabase() {
       if (!isSupabaseConfigured()) return;
+      const lastSync = sessionStorage.getItem('eTestLastUsersSync');
+      const now = Date.now();
+      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && users.length > 0) {
+        return;
+      }
       const dbUsersList = await dbGetUsers();
       if (dbUsersList && dbUsersList.length > 0) {
-        const now = Date.now();
         sessionStorage.setItem('eTestLastUsersSync', String(now));
         setUsers(prev => {
           const merged = dbUsersList.map(dbU => {

@@ -594,7 +594,7 @@ export async function dbDeleteSchedule(schId) {
 export async function dbGetSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    let query = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(10000);
+    let query = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
     if (studentId) query = query.eq('student_id', studentId);
     const { data, error } = await query;
     if (error) throw error;
