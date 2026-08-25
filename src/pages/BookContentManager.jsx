@@ -544,7 +544,7 @@ export default function BookContentManager() {
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === false ? true : false }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === true ? false : true }));
   const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === false ? true : false }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
   const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
@@ -1361,7 +1361,7 @@ export default function BookContentManager() {
                 const directTests = sortTestsNaturally(tests.filter(t => (String(t.subjectId || t.subject_id) === String(subject.id)) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !t.topic_id || t.topic_id === 'direct' || String(t.topic_id) === String(subject.id))));
                 const topicsList = subject.topics || [];
                 // Closed by default unless explicitly toggled to false
-                const isExpanded = collapsedSubjects[subject.id] === false;
+                const isExpanded = collapsedSubjects[subject.id] !== true;
 
                 return (
                   <div key={subject.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -1377,8 +1377,8 @@ export default function BookContentManager() {
                           <Layers size={18} style={{ color: '#6366f1' }} /> {subject.name}
                         </h3>
                         <span style={{ marginLeft: '0.75rem', fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.2rem 0.65rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #3b82f6' }}>
-                          {topicsList.length > 0 ? `${topicsList.length} Konu` : ''} 
-                          {directTests.length > 0 ? `${topicsList.length > 0 ? ' • ' : ''}${directTests.length} Direkt Test` : ''}
+                          {topicsList.length > 0 ? `${topicsList.length} Konu • ${tests.filter(t => topicsList.some(tp => String(tp.id) === String(t.topicId || t.topic_id))).length} Test` : ''} 
+                          {topicsList.length === 0 && directTests.length > 0 ? `${directTests.length} Test` : ''}
                           {topicsList.length === 0 && directTests.length === 0 ? 'İçerik Yok' : ''}
                         </span>
                       </div>
@@ -1447,7 +1447,7 @@ export default function BookContentManager() {
                         {topicsList.map(topic => {
                           const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
                           // Closed by default unless explicitly toggled to false
-                          const isTopicExpanded = collapsedTopics[topic.id] === false;
+                          const isTopicExpanded = collapsedTopics[topic.id] !== true;
 
                           return (
                             <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', margin: '0.5rem 0.25rem 1.25rem 0.25rem', paddingLeft: '1rem' }}>
