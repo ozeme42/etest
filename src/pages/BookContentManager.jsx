@@ -5,6 +5,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useCurriculum } from '../context/CurriculumContext';
+import { supabase } from '../lib/supabase';
 import { 
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, CheckCircle2,
   ChevronDown, ChevronRight, ChevronUp, Plus, Edit, Trash2, 
@@ -35,18 +36,76 @@ export default function BookContentManager() {
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
+  const [localLiveBook, setLocalLiveBook] = useState(null);
+  const [localLiveTests, setLocalLiveTests] = useState(null);
+  const [isLiveLoading, setIsLiveLoading] = useState(false);
+
+  const fetchLiveDirect = async () => {
+    if (!id) return;
+    setIsLiveLoading(true);
+    try {
+      const [bRes, tRes] = await Promise.all([
+        supabase.from('tracked_books').select('*').eq('id', String(id)).maybeSingle(),
+        supabase.from('tracked_book_tests').select('*').eq('book_id', String(id)).order('created_at', { ascending: true })
+      ]);
+
+      if (bRes.data) {
+        const b = bRes.data;
+        const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
+          ? b.subjects
+          : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+        setLocalLiveBook({
+          id: String(b.id),
+          title: b.title || b.raw_data?.title || '',
+          publisher: b.publisher || b.raw_data?.publisher || '',
+          bookType: b.book_type || b.bookType || b.raw_data?.bookType || 'standard',
+          optionCount: Number(b.option_count || b.raw_data?.optionCount) || 5,
+          pdfUrl: b.pdf_url || b.raw_data?.pdfUrl || '',
+          subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
+          raw_data: b.raw_data || {}
+        });
+      }
+
+      if (tRes.data) {
+        const mapped = tRes.data.map(t => ({
+          id: String(t.id),
+          bookId: String(t.book_id),
+          subjectId: t.subject_id ? String(t.subject_id) : null,
+          topicId: t.topic_id ? String(t.topic_id) : null,
+          name: t.name,
+          questionCount: t.question_count || 20,
+          answerKey: t.answer_key || {},
+          optionCount: Number(t.option_count || t.optionCount) || undefined,
+          pdfUrl: t.pdf_url || '',
+          createdAt: t.created_at
+        }));
+        setLocalLiveTests(mapped);
+      }
+    } catch (err) {
+      console.warn('[DirectLiveFetch] Error:', err);
+    } finally {
+      setIsLiveLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLiveDirect();
+  }, [id]);
+
   const book = useMemo(() => {
     const found = (books || []).find(b => String(b.id) === String(id) || toUUID(b.id) === toUUID(id));
     if (!found) return null;
     const subjects = (Array.isArray(found.subjects) && found.subjects.length > 0)
       ? found.subjects
       : (Array.isArray(found.raw_data?.subjects) ? found.raw_data.subjects : []);
-    return {
+    const mergedBook = localLiveBook || {
       ...found,
       subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
     };
+    return mergedBook;
   }, [books, id]);
   const tests = useMemo(() => {
+    if (localLiveTests && localLiveTests.length > 0) return localLiveTests;
     return (bookTests || []).filter(t => {
       const tBookId = String(t.bookId || t.book_id || '');
       const isIdMatch = tBookId === String(id) || 
@@ -56,7 +115,7 @@ export default function BookContentManager() {
       if (book?.title && t.bookTitle && String(t.bookTitle).toLowerCase().trim() === String(book.title).toLowerCase().trim()) return true;
       return false;
     });
-  }, [bookTests, id, book]);
+  }, [bookTests, id, book, localLiveTests]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   React.useEffect(() => {
@@ -1339,6 +1398,7 @@ export default function BookContentManager() {
                   <button
                     type="button"
                     onClick={async () => {
+                      await fetchLiveDirect();
                       if (refreshTrackedBooks) {
                         await refreshTrackedBooks();
                       }
