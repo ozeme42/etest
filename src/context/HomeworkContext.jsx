@@ -17,16 +17,22 @@ export function HomeworkProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshHomeworks = async () => {
+  const refreshHomeworks = async (force = false) => {
     if (!isSupabaseConfigured()) {
       setIsLoading(false);
       return null;
     }
+    const lastSync = sessionStorage.getItem('eTestLastHwSync');
+    const now = Date.now();
+    if (!force && lastSync && now - Number(lastSync) < 10 * 60 * 1000 && homeworks.length > 0) {
+      setIsLoading(false);
+      return homeworks;
+    }
+
     setIsLoading(true);
     try {
       const dbHws = await dbGetHomeworks();
       if (dbHws) {
-        const now = Date.now();
         sessionStorage.setItem('eTestLastHwSync', String(now));
         setHomeworks(dbHws);
       }

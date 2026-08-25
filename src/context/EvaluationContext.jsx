@@ -65,11 +65,19 @@ export function EvaluationProvider({ children }) {
 
   const [isSyncing, setIsSyncing] = useState(true);
 
-  const syncFromSupabase = async (showLoading = false) => {
+  const syncFromSupabase = async (showLoading = false, force = false) => {
+    const lastSync = sessionStorage.getItem('eTestLastSubsSync');
+    const now = Date.now();
+    if (!force && lastSync && now - Number(lastSync) < 5 * 60 * 1000 && submissions.length > 0) {
+      if (showLoading) setIsSyncing(false);
+      return;
+    }
+
     if (showLoading) setIsSyncing(true);
     try {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
+        sessionStorage.setItem('eTestLastSubsSync', String(now));
         const deletedIds = getDeletedIds();
 
         // Filter out deleted items from DB list immediately

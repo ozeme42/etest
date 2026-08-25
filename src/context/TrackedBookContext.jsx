@@ -30,15 +30,23 @@ export function TrackedBookProvider({ children }) {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshTrackedBooks = async () => {
+  const refreshTrackedBooks = async (force = false) => {
     if (!isSupabaseConfigured()) {
       setIsLoading(false);
       return null;
     }
+    const lastSync = sessionStorage.getItem('eTestLastTrackedBooksSync');
+    const now = Date.now();
+    if (!force && lastSync && now - Number(lastSync) < 10 * 60 * 1000 && books.length > 0) {
+      setIsLoading(false);
+      return { books, bookTests };
+    }
+
     setIsLoading(true);
     try {
       const res = await dbGetTrackedBooks();
       if (res) {
+        sessionStorage.setItem('eTestLastTrackedBooksSync', String(now));
         if (res.books) {
           const cleanBooks = res.books.map(b => ({
             ...b,

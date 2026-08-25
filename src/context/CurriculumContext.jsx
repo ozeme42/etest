@@ -86,10 +86,17 @@ export function CurriculumProvider({ children }) {
         });
       }
 
-      // 2. Fetch latest from Supabase if configured
+      // 2. Fetch latest from Supabase if configured and cache expired
+      const lastSync = sessionStorage.getItem('eTestLastCurriculumSync');
+      const now = Date.now();
+      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && curCache && curCache.grades?.length > 0) {
+        return;
+      }
+
       if (isSupabaseConfigured()) {
         const dbCurData = await dbGetCurriculum();
         if (dbCurData && dbCurData.grades && dbCurData.grades.length > 0) {
+          sessionStorage.setItem('eTestLastCurriculumSync', String(now));
           setData({
             grades: (dbCurData.grades || []).sort(naturalSort),
             subjects: (dbCurData.subjects || []).sort(naturalSort),

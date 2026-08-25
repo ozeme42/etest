@@ -51,10 +51,18 @@ export function SummaryProvider({ children }) {
         console.warn('IDB summary cache read failed', e);
       }
 
-      // Fetch from Supabase
+      // Fetch from Supabase if cache expired
+      const lastSync = sessionStorage.getItem('eTestLastSummariesSync');
+      const now = Date.now();
+      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
       try {
         const remote = await dbGetSummaries();
         if (remote && isMounted) {
+          sessionStorage.setItem('eTestLastSummariesSync', String(now));
           setSummaries(prev => {
             const map = new Map();
             // Remote first
