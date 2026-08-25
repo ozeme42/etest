@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  Tooltip, CartesianGrid, Legend, ReferenceLine, Cell,
+  Tooltip, CartesianGrid, Legend, ReferenceLine, Cell, LabelList,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   PieChart, Pie
 } from 'recharts';
@@ -404,7 +404,7 @@ function ChartTooltip({ active, payload, label }) {
 function CustomSubjectTooltip({ active, payload }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload || {};
-    const scoreVal = data['Başarı %'] !== undefined ? data['Başarı %'] : (data.accuracy !== undefined ? data.accuracy : data.avgScore);
+    const scoreVal = data['Başarı %'] !== undefined ? data['Başarı %'] : (data.value !== undefined ? data.value : (data.accuracy !== undefined ? data.accuracy : data.avgScore));
     const correctVal = data['Doğru'] !== undefined ? data['Doğru'] : (data.correctQ !== undefined ? data.correctQ : data.totalCorrect);
     const wrongVal = data['Yanlış'] !== undefined ? data['Yanlış'] : (data.wrongQ !== undefined ? data.wrongQ : data.totalWrong);
     const blankVal = data['Boş'] !== undefined ? data['Boş'] : (data.blankQ !== undefined ? data.blankQ : data.totalBlank);
@@ -417,7 +417,7 @@ function CustomSubjectTooltip({ active, payload }) {
       totalVal = c + w + b;
     }
 
-    const title = data.fullName || data.name || data.displayName || data.subject || 'Ders';
+    const title = data.fullSubject || data.fullName || data.name || data.displayName || data.subject || 'Ders';
 
     return (
       <div style={{
@@ -441,28 +441,30 @@ function CustomSubjectTooltip({ active, payload }) {
             </span>
           </div>
         )}
-        {correctVal !== undefined && !isNaN(correctVal) && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#10b981' }}>✓ Doğru:</span>
-            <span style={{ fontWeight: 800, color: '#10b981' }}>{correctVal}</span>
+        {correctVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 2, color: '#16a34a', fontWeight: 800 }}>
+            <span>Doğru:</span>
+            <span>{correctVal}</span>
           </div>
         )}
-        {wrongVal !== undefined && !isNaN(wrongVal) && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#ef4444' }}>✗ Yanlış:</span>
-            <span style={{ fontWeight: 800, color: '#ef4444' }}>{wrongVal}</span>
+        {wrongVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 2, color: '#dc2626', fontWeight: 800 }}>
+            <span>Yanlış:</span>
+            <span>{wrongVal}</span>
           </div>
         )}
-        {blankVal !== undefined && !isNaN(blankVal) && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>— Boş:</span>
-            <span style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>{blankVal}</span>
+        {blankVal !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 2, color: 'var(--color-text-muted)', fontWeight: 800 }}>
+            <span>Boş:</span>
+            <span>{blankVal}</span>
           </div>
         )}
-        <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: 'var(--color-text)', fontWeight: 800 }}>
-          <span>Toplam Soru:</span>
-          <span>{Number(totalVal) || 0}</span>
-        </div>
+        {data.count !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4, paddingTop: 4, borderTop: '1px dashed var(--color-border)', fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+            <span>Çözülen Test:</span>
+            <span style={{ fontWeight: 800 }}>{data.count} Test</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -676,29 +678,41 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   /* ── Radar data ─── */
   const radarData = useMemo(() => {
     const map = {};
-    SUBJECTS.forEach(s => { map[s] = { sum: 0, count: 0, totalQ: 0, totalCorrect: 0 }; });
+    SUBJECTS.forEach(s => { map[s] = { sum: 0, count: 0, totalQ: 0, totalCorrect: 0, totalWrong: 0, totalBlank: 0 }; });
     studentSubmissions.forEach(s => {
       if (map[s.subjectKey]) {
         map[s.subjectKey].sum += s.computedScore || 0;
         map[s.subjectKey].count++;
         map[s.subjectKey].totalQ += s.totalQuestions || 0;
         map[s.subjectKey].totalCorrect += s.correctCount || 0;
+        map[s.subjectKey].totalWrong += s.wrongCount || 0;
+        map[s.subjectKey].totalBlank += s.emptyCount || s.blankCount || 0;
       }
     });
     return SUBJECTS.map(s => {
       const count = map[s].count;
-      const avg = count > 0 ? Math.round(map[s].sum / count) : 0;
+      const totalQ = map[s].totalQ;
+      const totalCorrect = map[s].totalCorrect;
+      const totalWrong = map[s].totalWrong;
+      const totalBlank = map[s].totalBlank;
+      const avg = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : (count > 0 ? Math.round(map[s].sum / count) : 0);
       let short = s;
       if (s === 'Fen Bilimleri') short = 'Fen Bil.';
       else if (s === 'Sosyal Bilgiler') short = 'Sosyal';
       else if (s === 'Genel Testler') short = 'Genel Test';
+
+      const subjectWithPct = count > 0 ? `${short} (%${avg})` : short;
+
       return {
         subject: short,
         fullSubject: s,
+        subjectWithPct,
         value: avg,
-        count: count,
-        totalQ: map[s].totalQ,
-        totalCorrect: map[s].totalCorrect,
+        count,
+        totalQ,
+        totalCorrect,
+        totalWrong,
+        totalBlank,
         theme: getSubjectTheme(s, isDark)
       };
     });
@@ -1355,11 +1369,14 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                 </div>
 
                 {perfViewMode === 'radar' ? (
-                  <div style={{ width: '100%', height: isMobile ? 220 : 260 }}>
+                  <div style={{ width: '100%', height: isMobile ? 240 : 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData}>
                         <PolarGrid stroke="var(--color-border)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9 : 11, fontWeight: 800 }} />
+                        <PolarAngleAxis
+                          dataKey="subjectWithPct"
+                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9.5 : 11, fontWeight: 900 }}
+                        />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
                         <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} strokeWidth={2.5} />
                         <Tooltip content={<CustomSubjectTooltip />} />
@@ -1367,14 +1384,20 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div style={{ width: '100%', height: isMobile ? 220 : 260 }}>
+                  <div style={{ width: '100%', height: isMobile ? 240 : 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={radarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={radarData} margin={{ top: 24, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 11, fontWeight: 800 }} axisLine={false} tickLine={false} />
                         <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `%${v}`} />
                         <Tooltip content={<CustomSubjectTooltip />} />
-                        <Bar dataKey="value" name="Başarı" radius={[8, 8, 0, 0]}>
+                        <Bar dataKey="value" name="Başarı %" radius={[8, 8, 0, 0]}>
+                          <LabelList
+                            dataKey="value"
+                            position="top"
+                            formatter={(v) => (Number(v) > 0 ? `%${v}` : '')}
+                            style={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 12, fontWeight: 900 }}
+                          />
                           {radarData.map((entry, idx) => (
                             <Cell key={`cell-${idx}`} fill={entry.theme?.color || '#3b82f6'} />
                           ))}
@@ -1400,7 +1423,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                           background: 'var(--color-surface-hover)',
                           borderRadius: 12,
                           padding: '0.55rem 0.65rem',
-                          border: `1.5px solid ${hasTests ? d.theme?.border : 'var(--color-border)'}`,
+                          border: `1.5px solid ${hasTests ? (d.theme?.border || 'rgba(99,102,241,0.3)') : 'var(--color-border)'}`,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 4
@@ -1416,7 +1439,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                             </span>
                           </div>
                           <span style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: 900,
                             color: hasTests ? (isGood ? '#10b981' : isMid ? '#f59e0b' : '#ef4444') : 'var(--color-text-muted)',
                             flexShrink: 0
@@ -1438,8 +1461,13 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                           />
                         </div>
 
-                        <div style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                          {hasTests ? `${d.count} Test · ${d.totalQ} Soru` : 'Henüz test yok'}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
+                          <span>{hasTests ? `${d.count} Test` : 'Henüz test yok'}</span>
+                          {hasTests && (
+                            <span style={{ color: isGood ? '#10b981' : isMid ? '#f59e0b' : '#ef4444' }}>
+                              ✓{d.totalCorrect}D ✗{d.totalWrong}Y
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
