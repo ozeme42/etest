@@ -14,6 +14,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { idbGetPayload } from '../services/indexedDbService';
+import { toUUID } from '../services/supabaseService';
 
 const subjectThemes = {
   'Matematik': { bg: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.4)' },
@@ -233,60 +234,132 @@ export default function HomeworkManager() {
       return Object.keys(hw.testDueDates);
     }
     if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-      return hw.tests;
+      return hw.tests.map(String);
     }
-    if (hw.bookId && bookTests && bookTests.length > 0) {
-      const bTests = bookTests.filter(bt => String(bt.bookId) === String(hw.bookId));
-      if (bTests.length > 0) return bTests.map(bt => bt.id);
+    const bId = String(hw.bookId || hw.book_id || hw.metadata?.bookId || '');
+    if (bId && bookTests && bookTests.length > 0) {
+      const bTests = bookTests.filter(bt => String(bt.bookId || bt.book_id) === bId);
+      if (bTests.length > 0) return bTests.map(bt => String(bt.id));
     }
-    if (books && bookTests && (hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.title && (hw.title.includes('(Tüm Kitap') || hw.title.includes('(Kendi Eklediğim)'))))) {
+    if (books && (hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.title && (hw.title.includes('(Tüm Kitap') || hw.title.includes('(Kendi Eklediğim)'))))) {
       const cleanTitle = (hw.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
       const matchedBook = books.find(b => b.title && b.title.toLowerCase().trim() === cleanTitle);
       if (matchedBook) {
-        const bTests = bookTests.filter(bt => String(bt.bookId) === String(matchedBook.id));
-        if (bTests.length > 0) return bTests.map(bt => bt.id);
+        const mbId = String(matchedBook.id);
+        const bTests = (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === mbId);
+        if (bTests.length > 0) return bTests.map(bt => String(bt.id));
+        const rawSubs = (matchedBook.subjects && matchedBook.subjects.length > 0) ? matchedBook.subjects : (matchedBook.raw_data?.subjects || []);
+        const gathered = [];
+        rawSubs.forEach(s => {
+          (s.topics || []).forEach(tp => {
+            for (let i = 1; i <= 5; i++) {
+              gathered.push(`tbt_${mbId}_${s.id}_${tp.id}_${i}`);
+            }
+          });
+        });
+        if (gathered.length > 0) return gathered;
       }
     }
     return [];
   };
 
   const isTestCompletedByStudent = (testId, studentId, hw) => {
-    const tIdStr = String(testId);
-    const sIdStr = String(studentId);
+    const tIdStr = String(testId || '');
+    const sIdStr = String(studentId || '');
+    const sUuidStr = String(toUUID(studentId) || '');
+    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+    const tUuidStr = String(toUUID(testId) || '');
 
     // 1. Check in hw.submissions
     const subInHw = (hw?.submissions || []).find(s => {
-      if (String(s.studentId) !== sIdStr) return false;
+      const sStdId = String(s.studentId || s.student_id || '');
+      const isMatchStudent = !sIdStr || sStdId === sIdStr || (sUuidStr && sStdId === sUuidStr) || (sUuidStr && toUUID(sStdId) === sUuidStr);
+      if (!isMatchStudent) return false;
       if (s.status === 'in_progress' || s.status === 'draft' || s.isSubmitted === false) return false;
-      return String(s.testId) === tIdStr || String(s.bookTestId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr));
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+
+      const subFields = [
+        String(s.testId || ''),
+        String(s.test_id || ''),
+        String(s.bookTestId || ''),
+        String(s.realTestId || ''),
+        String(s.metadata?.realTestId || ''),
+        String(s.metadata?.bookTestId || ''),
+        String(s.metadata?.realId || ''),
+        String(s.extra_data?.realTestId || ''),
+        String(s.extra_data?.bookTestId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        subFields.push(...s.bookTestIds.map(String));
+      }
+      return subFields.some(f => f && (
+        f === tIdStr ||
+        f === tCleanId ||
+        f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+        (tUuidStr && f === tUuidStr) ||
+        toUUID(f) === tIdStr ||
+        (tUuidStr && toUUID(f) === tUuidStr)
+      ));
     });
     if (subInHw) return subInHw;
 
     // 2. Check in EvaluationContext submissions
     const subInEval = (submissions || []).find(s => {
-      if (String(s.studentId) !== sIdStr) return false;
+      const sStdId = String(s.studentId || s.student_id || '');
+      const isMatchStudent = !sIdStr || sStdId === sIdStr || (sUuidStr && sStdId === sUuidStr) || (sUuidStr && toUUID(sStdId) === sUuidStr);
+      if (!isMatchStudent) return false;
       if (s.status === 'in_progress' || s.status === 'draft' || s.isSubmitted === false) return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+
+      const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || s.extra_data || {});
       const matchFields = [
         String(s.testId || ''),
+        String(s.test_id || ''),
         String(s.realTestId || ''),
         String(s.bookTestId || ''),
-        String(s.metadata?.realTestId || ''),
-        String(s.metadata?.bookTestId || ''),
-        String(s.metadata?.realId || '')
+        String(meta?.realTestId || ''),
+        String(meta?.bookTestId || ''),
+        String(meta?.realId || ''),
+        String(s.extra_data?.realTestId || ''),
+        String(s.extra_data?.bookTestId || '')
       ];
       if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
         matchFields.push(...s.bookTestIds.map(String));
       }
-      return matchFields.some(f => f && f === tIdStr);
+      return matchFields.some(f => f && (
+        f === tIdStr ||
+        f === tCleanId ||
+        f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+        (tUuidStr && f === tUuidStr) ||
+        toUUID(f) === tIdStr ||
+        (tUuidStr && toUUID(f) === tUuidStr)
+      ));
     });
     return subInEval || null;
   };
 
   const getStudentSubmission = (hw, studentId) => {
     if (!hw || !studentId) return null;
-    return (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
-           submissions.find(s => (String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId)) ||
-           null;
+    const sIdStr = String(studentId);
+    const sUuidStr = String(toUUID(studentId) || '');
+    const hwIdStr = String(hw.id || '');
+    const hwCleanId = hwIdStr.replace(/^hw_/, '');
+
+    const isMatch = s => {
+      const sStdId = String(s.studentId || s.student_id || '');
+      const isMatchStudent = !sIdStr || sStdId === sIdStr || (sUuidStr && sStdId === sUuidStr) || (sUuidStr && toUUID(sStdId) === sUuidStr);
+      if (!isMatchStudent) return false;
+      if (s.status === 'in_progress' || s.status === 'draft' || s.isSubmitted === false) return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+
+      const sHwId = String(s.hwId || s.homeworkId || s.homework_id || '');
+      const sTestId = String(s.testId || s.test_id || '');
+      const sRealId = String(s.realTestId || s.metadata?.realTestId || s.metadata?.realId || '');
+
+      return sHwId === hwIdStr || sHwId === hwCleanId || sTestId === hwIdStr || sTestId === hwCleanId || sRealId === hwIdStr || sRealId === hwCleanId || toUUID(sHwId) === toUUID(hwIdStr) || toUUID(sTestId) === toUUID(hwIdStr);
+    };
+
+    return (hw.submissions || []).find(isMatch) || (submissions || []).find(isMatch) || null;
   };
 
   const getHomeworkStats = (hw) => {
