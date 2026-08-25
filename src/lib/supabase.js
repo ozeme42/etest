@@ -1,24 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 import { safeSetItem, cleanupLocalStorage } from '../utils/storageUtils';
 
-export const CURRENT_SUPABASE_URL = 'https://nvizichancilyhgmivlj.supabase.co';
-export const CURRENT_SUPABASE_KEY = 'sb_publishable_nelqUJSnXNfmiTXchT3igQ_KCjlK2LG';
+export const CURRENT_SUPABASE_URL = 'https://bstcisckpnmwmcggmtfi.supabase.co';
+export const CURRENT_SUPABASE_KEY = 'sb_publishable_7Cl0FqN78pFePi0J-rf1wA_maOE4sJ9';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Clean up any stale tokens from the old blocked project
+// Clean up any stale tokens from the old blocked projects
 try {
   Object.keys(localStorage).forEach(k => {
-    if (k.includes('oocwiitwxrungkbevhry')) {
+    if (k.includes('oocwiitwxrungkbevhry') || k.includes('nvizichancilyhgmivlj')) {
       localStorage.removeItem(k);
     }
   });
 } catch {}
 
 const isOldProject = Boolean(
-  (rawUrl && rawUrl.includes('oocwiitwxrungkbevhry')) ||
-  (rawKey && (rawKey.includes('oocwiitwxrungkbevhry') || rawKey.includes('HdO8o8rM2U6FkbR03NfAnL_bE3YRSzG8AXGefydqU-s')))
+  (rawUrl && (rawUrl.includes('oocwiitwxrungkbevhry') || rawUrl.includes('nvizichancilyhgmivlj'))) ||
+  (rawKey && (rawKey.includes('oocwiitwxrungkbevhry') || rawKey.includes('nvizichancilyhgmivlj') || rawKey.includes('HdO8o8rM2U6FkbR03NfAnL_bE3YRSzG8AXGefydqU-s')))
 );
 
 export const supabaseUrl = (!isOldProject && rawUrl && rawUrl.startsWith('http')) ? rawUrl : CURRENT_SUPABASE_URL;
