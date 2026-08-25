@@ -299,6 +299,9 @@ export function HomeworkProvider({ children }) {
   const clearHomeworkSubmissionsForStudent = async (hwId, studentId, bookId, testIds = []) => {
     const testIdsSet = new Set((testIds || []).map(String));
     (testIds || []).forEach(tid => {
+      const s = String(tid);
+      testIdsSet.add(s);
+      testIdsSet.add(s.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''));
       const u = toUUID(tid);
       if (u) testIdsSet.add(String(u));
     });
@@ -317,14 +320,29 @@ export function HomeworkProvider({ children }) {
           (hw.title && bookId && hw.title.includes(bookId))
         );
 
-        if (isTargetHw || isTargetBookHw || (!hwId && !bookId)) {
+        if (hasSpecificTests || isTargetHw || isTargetBookHw || (!hwId && !bookId)) {
           const subs = hw.submissions || hw.raw_data?.submissions || [];
           const updatedSubs = subs.filter(s => {
             const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
             if (!isMatchStudent) return true; // keep other students
 
             if (hasSpecificTests) {
-              const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || (toUUID(s.testId) && testIdsSet.has(toUUID(s.testId)));
+              const candidateFields = [
+                s.testId,
+                s.bookTestId,
+                s.realTestId,
+                s.id,
+                s.metadata?.testId,
+                s.metadata?.bookTestId,
+                s.metadata?.realTestId
+              ];
+              const isMatchingTest = candidateFields.some(f => {
+                if (!f) return false;
+                const fs = String(f);
+                const clean = fs.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+                const fu = toUUID(f);
+                return testIdsSet.has(fs) || testIdsSet.has(clean) || (fu && testIdsSet.has(String(fu)));
+              });
               return !isMatchingTest; // drop matching test
             }
             return false; // drop all for this student in this homework

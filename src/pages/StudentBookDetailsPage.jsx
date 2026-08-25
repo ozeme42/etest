@@ -21,7 +21,7 @@ export default function StudentBookDetailsPage() {
   const { users = [] } = useUser();
   const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw, deleteSubmissionsByTestId } = useEvaluation();
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -1124,6 +1124,47 @@ export default function StudentBookDetailsPage() {
     }
   };
 
+  const handleResetTestResult = async (test, e) => {
+    if (e) e.stopPropagation();
+    if (!test || !window.confirm(`"${test.name || 'Bu test'}" sonucunu sıfırlamak istiyor musunuz? Tüm çözülmüş kayıtları ve istatistikleri silinecektir.`)) return;
+
+    try {
+      const allTestIdentifiers = [
+        test.id,
+        test.testId,
+        test.bookTestId,
+        test.realTestId,
+        test.latestSubId,
+        test.bestSub?.id,
+        test.bestSub?.testId,
+        test.bestSub?.supabaseId
+      ].filter(Boolean);
+
+      if (test.latestSubId) {
+        await deleteSubmission(test.latestSubId);
+      }
+      if (test.bestSub?.id) {
+        await deleteSubmission(test.bestSub.id);
+      }
+      if (test.bestSub?.supabaseId) {
+        await deleteSubmission(test.bestSub.supabaseId);
+      }
+      if (typeof deleteSubmissionsByTestId === 'function' && test.id) {
+        await deleteSubmissionsByTestId(test.id);
+      }
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, allTestIdentifiers);
+      }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, allTestIdentifiers);
+      }
+      setFeedbackToast(`✓ "${test.name}" başarıyla sıfırlandı!`);
+      setTimeout(() => setFeedbackToast(null), 2500);
+    } catch (err) {
+      console.error('Reset test error:', err);
+    }
+  };
+
   return (
     <div className="sbdp-page-container" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: isMobile ? '0.65rem 0.75rem 4rem' : '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
       <style>{`
@@ -2147,27 +2188,8 @@ export default function StudentBookDetailsPage() {
                                       </button>
                                       <button
                                         style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                        title="Bu testi sıfırla (Sadece Öğretmen)"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                            if (test.latestSubId) {
-                                              await deleteSubmission(test.latestSubId);
-                                            }
-                                            if (test.bestSub?.id) {
-                                              await deleteSubmission(test.bestSub.id);
-                                            }
-                                            if (test.bestSub?.supabaseId) {
-                                              await deleteSubmission(test.bestSub.supabaseId);
-                                            }
-                                            if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                              await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                            }
-                                            if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                              await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                            }
-                                          }
-                                        }}
+                                        title="Bu testi sıfırla"
+                                        onClick={(e) => handleResetTestResult(test, e)}
                                       >
                                         <RotateCcw size={12} /> Sıfırla
                                       </button>
@@ -2351,28 +2373,9 @@ export default function StudentBookDetailsPage() {
                                               <button
                                                 style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                                 title="Bu testi sıfırla"
-                                                onClick={async (e) => {
-                                                  e.stopPropagation();
-                                                  if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                                    if (test.latestSubId) {
-                                                      await deleteSubmission(test.latestSubId);
-                                                    }
-                                                    if (test.bestSub?.id) {
-                                                      await deleteSubmission(test.bestSub.id);
-                                                    }
-                                                    if (test.bestSub?.supabaseId) {
-                                                      await deleteSubmission(test.bestSub.supabaseId);
-                                                    }
-                                                    if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                                      await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                                    }
-                                                    if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                                      await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                                    }
-                                                  }
-                                                }}
-                                              >
-                                                <RotateCcw size={12} /> Sıfırla
+                                        onClick={(e) => handleResetTestResult(test, e)}
+                                      >
+                                        <RotateCcw size={12} /> Sıfırla
                                               </button>
                                             </>
                                           )}
@@ -2506,29 +2509,10 @@ export default function StudentBookDetailsPage() {
                                     </button>
                                     <button
                                       style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                      title="Bu testi sıfırla (Sadece Öğretmen)"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                          if (test.latestSubId) {
-                                            await deleteSubmission(test.latestSubId);
-                                          }
-                                          if (test.bestSub?.id) {
-                                            await deleteSubmission(test.bestSub.id);
-                                          }
-                                          if (test.bestSub?.supabaseId) {
-                                            await deleteSubmission(test.bestSub.supabaseId);
-                                          }
-                                          if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                            await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                          }
-                                          if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                            await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                          }
-                                        }
-                                      }}
-                                    >
-                                      <RotateCcw size={12} /> Sıfırla
+                                      title="Bu testi sıfırla"
+                                        onClick={(e) => handleResetTestResult(test, e)}
+                                      >
+                                        <RotateCcw size={12} /> Sıfırla
                                     </button>
                                   </>
                                 )}

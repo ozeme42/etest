@@ -540,8 +540,14 @@ export function EvaluationProvider({ children }) {
     const testIdsSet = new Set((testIds || []).map(String));
     const testUuidsSet = new Set();
     (testIds || []).forEach(tid => {
+      const s = String(tid);
+      testIdsSet.add(s);
+      testIdsSet.add(s.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''));
       const u = toUUID(tid);
-      if (u) testUuidsSet.add(String(u));
+      if (u) {
+        testUuidsSet.add(String(u));
+        testIdsSet.add(String(u));
+      }
     });
 
     const hwIdsSet = new Set();
@@ -569,6 +575,8 @@ export function EvaluationProvider({ children }) {
         s.testId,
         s.realTestId,
         s.bookTestId,
+        s.id,
+        s.supabaseId,
         s.metadata?.realTestId,
         s.metadata?.bookTestId,
         s.metadata?.realId
@@ -578,8 +586,9 @@ export function EvaluationProvider({ children }) {
       const isMatchingTest = candidateFields.some(f => {
         if (!f) return false;
         const fs = String(f);
+        const clean = fs.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
         const fu = toUUID(f);
-        return testIdsSet.has(fs) || testUuidsSet.has(fs) || (fu && testUuidsSet.has(fu)) || (fu && testIdsSet.has(fu));
+        return testIdsSet.has(fs) || testIdsSet.has(clean) || testUuidsSet.has(fs) || (fu && testUuidsSet.has(String(fu))) || (fu && testIdsSet.has(String(fu)));
       });
 
       let shouldDelete = false;
@@ -601,6 +610,10 @@ export function EvaluationProvider({ children }) {
         if (s.supabaseId) toDeleteIds.push(String(s.supabaseId));
       }
     });
+
+    if (toDeleteIds.length > 0) {
+      markIdsAsDeleted(toDeleteIds);
+    }
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !toDeleteIds.includes(String(s.id)) && !toDeleteIds.includes(String(s.supabaseId)));

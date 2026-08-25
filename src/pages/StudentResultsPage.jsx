@@ -476,7 +476,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isDark } = useTheme();
-  const { submissions, deleteSubmission, deleteSubmissionsByTestId, clearSubmissionsForStudent } = useEvaluation();
+  const { submissions, deleteSubmission, deleteSubmissionsByTestId, clearSubmissionsForStudent, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { homeworks, clearHomeworkSubmissionsForStudent } = useHomework();
   const { data: curData } = useCurriculum();
@@ -491,6 +491,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     if (e) e.stopPropagation();
     if (!window.confirm(`"${subObj.testTitle || subObj.testName || 'Bu sınav'}" sonucunu kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
     try {
+      const allTestIdentifiers = [
+        subObj.testId,
+        subObj.bookTestId,
+        subObj.realTestId,
+        subObj.id,
+        subObj.submissionId,
+        subObj.supabaseId
+      ].filter(Boolean);
+
       if (subObj.id) {
         await deleteSubmission(subObj.id);
       }
@@ -503,8 +512,11 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (subObj.hwId && subObj.hwId !== subObj.testId) {
         await deleteSubmissionsByTestId(subObj.hwId);
       }
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(subObj.studentId, subObj.hwId, subObj.bookId, allTestIdentifiers);
+      }
       if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-        await clearHomeworkSubmissionsForStudent(subObj.hwId, subObj.studentId, subObj.bookId, [subObj.testId, subObj.bookTestId, subObj.realTestId].filter(Boolean));
+        await clearHomeworkSubmissionsForStudent(subObj.hwId, subObj.studentId, subObj.bookId, allTestIdentifiers);
       }
     } catch (err) {
       console.error('Delete error:', err);
@@ -516,6 +528,12 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     if (!window.confirm(`${selectedStudent.name || 'Öğrencinin'} tüm sınav sonuçlarını ve geçmişini kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
     try {
       await clearSubmissionsForStudent(selectedStudent.id);
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(null, selectedStudent.id, null, []);
+      }
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(selectedStudent.id, null, null, []);
+      }
     } catch (err) {
       console.error('Clear all error:', err);
     }

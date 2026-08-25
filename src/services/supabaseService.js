@@ -900,6 +900,9 @@ export async function dbClearHomeworkSubmissionsForStudent(hwId, studentId, book
     const stUuid = toUUID(stIdStr);
     const testIdsSet = new Set((testIds || []).map(String));
     (testIds || []).forEach(tid => {
+      const s = String(tid);
+      testIdsSet.add(s);
+      testIdsSet.add(s.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''));
       const u = toUUID(tid);
       if (u) testIdsSet.add(String(u));
     });
@@ -919,13 +922,28 @@ export async function dbClearHomeworkSubmissionsForStudent(hwId, studentId, book
         String(raw.bookId) === String(bookId) || 
         (hw.title && hw.title.includes(bookId))
       );
-      if (hwId || isTargetBook || (!hwId && !bookId)) {
+      if (hasSpecificTests || hwId || isTargetBook || (!hwId && !bookId)) {
         const subs = raw.submissions || hw.submissions || [];
         const filteredSubs = subs.filter(s => {
           const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
           if (!isMatchStudent) return true;
           if (hasSpecificTests) {
-            const isMatchTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || (toUUID(s.testId) && testIdsSet.has(toUUID(s.testId)));
+            const candidateFields = [
+              s.testId,
+              s.bookTestId,
+              s.realTestId,
+              s.id,
+              s.metadata?.testId,
+              s.metadata?.bookTestId,
+              s.metadata?.realTestId
+            ];
+            const isMatchTest = candidateFields.some(f => {
+              if (!f) return false;
+              const fs = String(f);
+              const clean = fs.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+              const fu = toUUID(f);
+              return testIdsSet.has(fs) || testIdsSet.has(clean) || (fu && testIdsSet.has(String(fu)));
+            });
             return !isMatchTest;
           }
           return false;
