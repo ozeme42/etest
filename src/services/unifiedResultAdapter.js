@@ -260,8 +260,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   // 7. Date Resolution
   const dateVal = extractItemDate(rawSub.submittedAt || rawSub.submitted_at || rawSub.completedAt || rawSub.date || raw.submittedAt || raw.completedAt || rawSub);
 
-  // 8. Unique Clean ID
-  // 8. Subject Key and Type Key
+  // 8. Unique Clean ID & Subject/Type Keys
+  const studentId = String(rawSub.studentId ?? rawSub.userId ?? rawSub.student_id ?? '');
+  const realTestId = matchedBookTest?.id || testIdCandidate;
+  const uniqueId = String(rawSub.id || rawSub.submissionId || `${rawSub.hwId || 'sub'}_${studentId}_${realTestId}`);
+
   const isPhysicalExam = Boolean(
     rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
     raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
