@@ -51,7 +51,7 @@ const StudentHomeworksPage = lazy(() => import('./pages/StudentHomeworksPage'));
 const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
 
 // One-time automatic cache bust for clean database sync
-const APP_CACHE_VERSION = 'v2026_08_25_master_sync_v6';
+const APP_CACHE_VERSION = 'v2026_08_25_master_sync_v7';
 try {
   if (localStorage.getItem('eTestAppCacheVersion') !== APP_CACHE_VERSION) {
     localStorage.removeItem('eTestTrackedBooks');
