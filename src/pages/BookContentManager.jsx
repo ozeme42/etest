@@ -167,7 +167,7 @@ export default function BookContentManager() {
     const idStr = String(id || '');
     const idUuid = toUUID(idStr);
 
-    return list.filter(t => {
+    const filtered = list.filter(t => {
       const tBookId = String(t.bookId || t.book_id || '');
       if (!tBookId) return false;
       const isIdMatch = tBookId === idStr || 
@@ -178,6 +178,28 @@ export default function BookContentManager() {
       if (book?.title && t.bookTitle && String(t.bookTitle).toLowerCase().trim() === String(book.title).toLowerCase().trim()) return true;
       return false;
     });
+
+    // Deduplicate duplicate tests in same subject & topic
+    const deduplicatedMap = new Map();
+    filtered.forEach(t => {
+      const sKey = String(t.subjectId || t.subject_id || t.subjectName || t.subject || '').trim().toLowerCase();
+      const topKey = String(t.topicId || t.topic_id || t.topicName || t.topic || 'direct').trim().toLowerCase();
+      const nameKey = String(t.name || '').trim().toLowerCase();
+      const key = `${sKey}___${topKey}___${nameKey}`;
+
+      if (!deduplicatedMap.has(key)) {
+        deduplicatedMap.set(key, t);
+      } else {
+        const existing = deduplicatedMap.get(key);
+        const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
+        const newAnsCount = Object.keys(t.answerKey || {}).filter(k => k !== '__meta').length;
+        if (newAnsCount > existingAnsCount) {
+          deduplicatedMap.set(key, t);
+        }
+      }
+    });
+
+    return Array.from(deduplicatedMap.values());
   }, [bookTests, id, book, localLiveTests]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
@@ -945,6 +967,63 @@ export default function BookContentManager() {
         return subject;
       });
       updateTrackedBook(book.id, { subjects });
+    }
+  };
+
+  const handleCleanDuplicateTests = async () => {
+    if (!window.confirm('Bu kitaptaki aynı isimli mükerrer (çift) testler taranıp fazla kayıtlar veritabanından silinecek. Onaylıyor musunuz?')) return;
+    setIsLiveLoading(true);
+    try {
+      const safeBookId = toUUID(id);
+      const candidateBookIds = Array.from(new Set([safeBookId, String(id)].filter(Boolean)));
+
+      const { data: allDbTests, error: fetchErr } = await supabase
+        .from('tracked_book_tests')
+        .select('*')
+        .in('book_id', candidateBookIds);
+
+      if (fetchErr) throw fetchErr;
+
+      const seenKeys = new Map();
+      const duplicateIdsToDelete = [];
+
+      (allDbTests || []).forEach(t => {
+        const sKey = String(t.subject_id || '').trim().toLowerCase();
+        const topKey = String(t.topic_id || 'direct').trim().toLowerCase();
+        const nameKey = String(t.name || '').trim().toLowerCase();
+        const key = `${sKey}___${topKey}___${nameKey}`;
+
+        if (!seenKeys.has(key)) {
+          seenKeys.set(key, t);
+        } else {
+          duplicateIdsToDelete.push(t.id);
+        }
+      });
+
+      if (duplicateIdsToDelete.length === 0) {
+        showToast('Mükerrer test bulunamadı, tüm testler benzersiz.', 'info');
+      } else {
+        for (let i = 0; i < duplicateIdsToDelete.length; i += 50) {
+          const chunk = duplicateIdsToDelete.slice(i, i + 50);
+          await supabase.from('tracked_book_tests').delete().in('id', chunk);
+        }
+
+        try {
+          const localTests = JSON.parse(localStorage.getItem('eTestTrackedBookTests') || '[]');
+          const delSet = new Set(duplicateIdsToDelete.map(String));
+          const cleanedLocal = localTests.filter(t => !delSet.has(String(t.id)));
+          safeSetItem('eTestTrackedBookTests', JSON.stringify(cleanedLocal));
+        } catch {}
+
+        await fetchLiveDirect();
+        if (refreshTrackedBooks) await refreshTrackedBooks();
+        showToast(`${duplicateIdsToDelete.length} adet mükerrer test veritabanından başarıyla temizlendi!`, 'success');
+      }
+    } catch (err) {
+      console.error('Error cleaning duplicate tests:', err);
+      showToast(`Hata: ${err.message}`, 'error');
+    } finally {
+      setIsLiveLoading(false);
     }
   };
 
@@ -1794,7 +1873,15 @@ export default function BookContentManager() {
                 <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Layers size={20} style={{ color: '#6366f1' }} /> Kitap Ders &amp; Ünite Hiyerarşisi
                 </div>
-                <div style={{ display: 'flex', gap: '0.45rem' }}>
+                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleCleanDuplicateTests}
+                    style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', fontWeight: 800, borderRadius: '0.65rem', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1.5px solid rgba(239, 68, 68, 0.25)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    title="Kitap içerisindeki mükerrer/çift kayıtlı testleri bulup veritabanından temizler"
+                  >
+                    🧹 Mükerrerleri Temizle
+                  </button>
                   <button
                     type="button"
                     onClick={async () => {
