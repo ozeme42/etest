@@ -688,16 +688,24 @@ export default function StudentDashboard() {
     const bookMap = {};
     const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
-    // 1. Process books assigned via homeworks
+    // 1. Add all standard / tracked books
+    (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
+      const normK = getNormKey(b);
+      if (!bookMap[normK]) {
+        bookMap[normK] = { ...b, assignedHomeworks: [] };
+      }
+    });
+
+    // 2. Process books assigned via homeworks
     bookAssignments.forEach(hw => {
-      let book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+      let book = books.find(b => (String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId)) && b.bookType !== 'exam');
       if (!book && hw.title) {
         book = books.find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
       }
       if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
         const matchedBt = bookTests.find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
         if (matchedBt) {
-          book = books.find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
+          book = books.find(b => (String(b.id) === String(matchedBt.bookId) || toUUID(b.id) === toUUID(matchedBt.bookId)) && b.bookType !== 'exam');
         }
       }
       if (!book) return;
@@ -711,39 +719,6 @@ export default function StudentDashboard() {
       if (hw.dueDate) {
         const dueDate = new Date(hw.dueDate);
         if (!bookMap[normK].targetDueDate || dueDate > bookMap[normK].targetDueDate) bookMap[normK].targetDueDate = dueDate;
-      }
-    });
-
-    // 2. Also include any non-exam book with solved tests
-    books.filter(b => b.bookType !== 'exam').forEach(book => {
-      const normK = getNormKey(book);
-      if (bookMap[normK]) return;
-      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id) || (toUUID(book.id) && String(bt.bookId) === String(toUUID(book.id))));
-      const hasSolvedTest = testsInBook.some(t => {
-        const tIdStr = String(t.id);
-        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
-        const tUuidStr = String(toUUID(t.id) || '');
-        return studentSubs.some(s => {
-          const matchFields = [
-            String(s.testId || ''),
-            String(s.realTestId || ''),
-            String(s.bookTestId || ''),
-            String(s.metadata?.realTestId || ''),
-            String(s.metadata?.bookTestId || ''),
-            String(s.metadata?.realId || '')
-          ];
-          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-            matchFields.push(...s.bookTestIds.map(String));
-          }
-          return matchFields.some(f => f && (
-            f === tIdStr || f === tCleanId || f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-            (tUuidStr && f === tUuidStr) || toUUID(f) === tIdStr || (tUuidStr && toUUID(f) === tUuidStr)
-          ));
-        });
-      });
-
-      if (hasSolvedTest) {
-        bookMap[normK] = { ...book, assignedHomeworks: [] };
       }
     });
 
@@ -1001,10 +976,6 @@ export default function StudentDashboard() {
 
       const studentHomeworks = (homeworks || []).filter(hw => {
         if (!selectedStudent || !hw) return false;
-        if (hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook') {
-          const hasBook = (books || []).some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId));
-          if (!hasBook) return false;
-        }
         return isHomeworkForStudent(hw, selectedStudent, gradesList);
       });
 
