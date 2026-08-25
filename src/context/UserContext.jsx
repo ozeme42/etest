@@ -1,4 +1,3 @@
-import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetUsers, dbAddUser, dbUpdateUser, dbDeleteUser } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
@@ -13,31 +12,16 @@ export function useUser() {
   return context;
 }
 
-const DEFAULT_FALLBACK_USERS = [
-  { id: 'admin_1', email: 'admin@test.com', name: 'Yönetici Admin', role: 'admin', password: 'admin', isApproved: true },
-  { id: 'teacher_1', email: 'ogretmen@test.com', name: 'Ayşe Öğretmen', role: 'teacher', password: '123', isApproved: true },
-  { id: 'u1', email: 'zeynep@test.com', name: 'Zeynep', role: 'student', gradeId: 'g1', teacherId: 'teacher_1', password: '123', isApproved: true }
-];
-
 export function UserProvider({ children }) {
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('eTestUsers');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
-    }
-    return DEFAULT_FALLBACK_USERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
     async function syncUsersFromSupabase() {
-      if (!isSupabaseConfigured()) return;
       const dbUsersList = await dbGetUsers();
       if (dbUsersList && dbUsersList.length > 0) {
-        const now = Date.now();
-        sessionStorage.setItem('eTestLastUsersSync', String(now));
         setUsers(prev => {
           const merged = dbUsersList.map(dbU => {
             const localU = prev.find(l => 

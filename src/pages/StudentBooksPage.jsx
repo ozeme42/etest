@@ -7,7 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import {
-  BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
+  BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
   ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList
 } from 'lucide-react';
@@ -180,139 +180,107 @@ export default function StudentBooksPage() {
     , [submissions, studentIdStr, studentUuidStr]);
 
   const assignedBooks = useMemo(() => {
-        const isExamBook = (b) => {
-      if (!b) return false;
-      const raw = b.raw_data || {};
-      if (b.id === 'tb_07kzdf_1787267196768') return true;
-      if (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher)) return true;
-      if (b.bookType === 'exam' || b.book_type === 'exam' || raw.bookType === 'exam' || b.type === 'exam') return true;
-      return false;
-    };
     const bookMap = {};
 
-    // 1. Add all standard / mixed books
-    (books || []).filter(b => b && !isExamBook(b)).forEach(b => {
-      bookMap[b.id] = { ...b, assignedHomeworks: [] };
-    });
-
-    // 2. Attach any homework assignments from all homeworks (or bookAssignments)
-    (homeworks || []).forEach(hw => {
-      const raw = hw.raw_data || {};
-      const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.title?.includes('Kitap');
-      if (!isBookHw) return;
-
-      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && !isExamBook(b));
+    bookAssignments.forEach(hw => {
+      let book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
       if (!book && hw.title) {
-        const cleanHwTitle = hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
-        book = (books || []).find(b => {
-          const bT = String(b.title).toLowerCase().trim();
-          return !isExamBook(b) && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
-        });
+        book = books.find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
       }
-      if (book) {
-        if (!bookMap[book.id]) {
-          bookMap[book.id] = { ...book, assignedHomeworks: [] };
+      if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
+        const matchedBt = bookTests.find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
+        if (matchedBt) {
+          book = books.find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
         }
-        bookMap[book.id].assignedHomeworks.push(hw);
-        if (hw.dueDate) {
-          const dueDate = new Date(hw.dueDate);
-          if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) {
-            bookMap[book.id].targetDueDate = dueDate;
-          }
-        }
+      }
+      if (!book) return;
+
+      if (!bookMap[book.id]) {
+        bookMap[book.id] = { ...book, assignedHomeworks: [] };
+      }
+
+      bookMap[book.id].assignedHomeworks.push(hw);
+
+      if (hw.dueDate) {
+        const dueDate = new Date(hw.dueDate);
+        if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) bookMap[book.id].targetDueDate = dueDate;
       }
     });
 
-    // 3. Compute stats for each book with multi-level submission matching
     Object.values(bookMap).forEach(b => {
-      const bId = String(b.id);
-      const bUuid = String(toUUID(b.id) || '');
-      const bTitle = String(b.title || '').toLowerCase().trim();
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(b.id));
+      const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || 1);
 
-      const testsInBook = (bookTests || []).filter(bt => 
-        String(bt.bookId) === bId || 
-        String(bt.book_id) === bId || 
-        (bUuid && String(bt.bookId) === bUuid)
-      );
-
-      // Check all assigned homeworks for total test arrays
-      let maxHwTests = 0;
-      (b.assignedHomeworks || []).forEach(hw => {
-        const raw = hw.raw_data || {};
-        const testsLen = Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(raw.tests) ? raw.tests.length : 0);
-        if (testsLen > maxHwTests) maxHwTests = testsLen;
-      });
-
-      // Find all submissions associated with this book
-      const matchedSubs = studentSubmissions.filter(s => {
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const sBookId = String(s.bookId || s.book_id || meta?.bookId || '');
-        const sBookTitle = String(s.bookTitle || meta?.bookTitle || s.book_title || '').toLowerCase().trim();
-        const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
-        const sTestId = String(s.bookTestId || s.testId || meta?.realTestId || meta?.bookTestId || '');
-
-        if (sBookId && (sBookId === bId || (bUuid && sBookId === bUuid) || sBookId.includes(bId))) return true;
-        if (sBookTitle && (sBookTitle === bTitle || sBookTitle.includes(bTitle) || bTitle.includes(sBookTitle))) return true;
-        if (sTitle && bTitle && (sTitle.startsWith(bTitle) || sTitle.includes(bTitle))) return true;
-        if (testsInBook.some(t => String(t.id) === sTestId || (toUUID(t.id) && String(toUUID(t.id)) === sTestId))) return true;
-
-        return false;
-      });
-
-      // Calculate total test count in book
-      const subjects = b.raw_data?.subjects || b.subjects || [];
-      let countFromSubjects = 0;
-      if (Array.isArray(subjects)) {
-        subjects.forEach(sb => {
-          if (sb.tests && Array.isArray(sb.tests)) countFromSubjects += sb.tests.length;
-          else if (sb.topics && Array.isArray(sb.topics)) {
-            sb.topics.forEach(tp => {
-              if (tp.tests && Array.isArray(tp.tests)) countFromSubjects += tp.tests.length;
-              else countFromSubjects += 1;
-            });
-          } else {
-            countFromSubjects += (sb.testCount || 1);
-          }
-        });
+      if (b.targetDueDate) {
+        const diff = b.targetDueDate.getTime() - new Date().getTime();
+        b.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
       }
-
-      const totalBookTests = Math.max(
-        maxHwTests,
-        testsInBook.length,
-        countFromSubjects,
-        matchedSubs.length,
-        b.total_tests || b.totalTests || 0,
-        1
-      );
 
       let totalCorrect = 0;
       let totalWrong = 0;
       let totalBlank = 0;
       let totalSolvedTests = 0;
 
-      // Group submissions by test (taking best score per test)
-      const testSubsMap = {};
-      matchedSubs.forEach(s => {
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const testKey = String(s.bookTestId || s.testId || meta?.realTestId || s.title || s.id);
-        const existing = testSubsMap[testKey];
-        const score = Number(s.score || s.computedScore || s.correctCount || 0);
-        if (!existing || score > Number(existing.score || existing.computedScore || existing.correctCount || 0)) {
-          testSubsMap[testKey] = s;
+      testsInBook.forEach(t => {
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(t.id) || '');
+
+        const solvedSubs = studentSubmissions.filter(s => {
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
+          }
+
+          return matchFields.some(f => f && (
+            f === tIdStr ||
+            f === tCleanId ||
+            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+            (tUuidStr && f === tUuidStr) ||
+            toUUID(f) === tIdStr ||
+            (tUuidStr && toUUID(f) === tUuidStr)
+          ));
+        });
+
+        let hwSub = null;
+        for (const hw of homeworks) {
+          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
+          const match = hw.submissions.find(s => {
+            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+          });
+          if (match) {
+            hwSub = match;
+            break;
+          }
+        }
+
+        const isCompleted = solvedSubs.length > 0 || !!hwSub;
+        if (isCompleted) {
+          totalSolvedTests++;
+          let bestSub = null;
+          if (solvedSubs.length > 0) {
+            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
+          } else if (hwSub) {
+            bestSub = hwSub;
+          }
+
+          if (bestSub) {
+            totalCorrect += bestSub.correctCount || 0;
+            totalWrong += bestSub.wrongCount || 0;
+            totalBlank += bestSub.blankCount || 0;
+          }
         }
       });
-
-      Object.values(testSubsMap).forEach(s => {
-        totalSolvedTests++;
-        totalCorrect += Number(s.correctCount ?? s.correct ?? 0);
-        totalWrong += Number(s.wrongCount ?? s.wrong ?? 0);
-        totalBlank += Number(s.blankCount ?? s.emptyCount ?? 0);
-      });
-
-      if (b.targetDueDate) {
-        const diff = b.targetDueDate.getTime() - new Date().getTime();
-        b.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
-      }
 
       b.totalAssignedTests = totalBookTests;
       b.totalBookTests = totalBookTests;
@@ -323,7 +291,7 @@ export default function StudentBooksPage() {
 
       const totalQuestions = totalCorrect + totalWrong + totalBlank;
       b.successRate = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-      b.progressPct = totalBookTests > 0 ? Math.min(100, Math.round((totalSolvedTests / totalBookTests) * 100)) : 0;
+      b.progressPct = totalBookTests > 0 ? Math.round((totalSolvedTests / totalBookTests) * 100) : 0;
     });
 
     return Object.values(bookMap);
@@ -667,7 +635,7 @@ export default function StudentBooksPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
-              <MapIcon size={14} color="#3b82f6" />
+              <Map size={14} color="#3b82f6" />
               <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
             </div>
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>

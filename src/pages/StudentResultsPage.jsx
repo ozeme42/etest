@@ -33,7 +33,6 @@ import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/util
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
 import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
-import { extractItemDate } from '../utils/dateHelpers';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
@@ -551,19 +550,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     return getMockExamsForStudent(selectedStudent.id) || [];
   }, [selectedStudent, getMockExamsForStudent]);
 
-  const effectiveStudent = selectedStudent || initialStudent || (isStudentRole ? currentUser : studentMembers[0]);
-
   const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
     return computeStudentAnalyticsData({
-      studentId: effectiveStudent?.id,
-      targetStudent: effectiveStudent,
+      studentId: selectedStudent?.id,
+      targetStudent: selectedStudent,
       submissions,
       homeworks,
       books,
       bookTests,
       studentMockExams
     });
-  }, [effectiveStudent, submissions, homeworks, books, bookTests, studentMockExams]);
+  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   const [activeTab, setActiveTab] = useState('overview');
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -605,15 +602,14 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   /* ── Build studentSubmissions ─── */
   const studentSubmissions = useMemo(() => {
-    const currentTargetStudent = selectedStudent || effectiveStudent;
-    if (!currentTargetStudent) return [];
+    if (!selectedStudent) return [];
 
-    const studentIdStr = String(currentTargetStudent.id || '');
-    const studentUuidStr = String(toUUID(studentIdStr) || '');
+    const studentIdStr = String(selectedStudent.id || '');
+    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
     const activeHws = (homeworks || []).filter(hw => {
       if (!hw || !hw.id) return false;
-      return isHomeworkForStudent(hw, currentTargetStudent, curData?.grades);
+      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
     });
 
     const isEval = (sub, isOpenEnded = false) => {
@@ -641,7 +637,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         const hasEvaluatedAnswers = sub.answers.some(a => 
-          a.evaluatedAt || 
+a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
           a.feedback || 
@@ -692,30 +688,26 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     // 1. Process Homework Submissions (Both regular and book assignments)
     (homeworks || []).forEach(hw => {
       if (!hw || !hw.id) return;
+      if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
 
       const isBookHw = isBookHomework(hw);
-      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
-        ? hw.submissions
-        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
-
       const allMatchingSubs = [
-        ...hwSubList.filter(isMatchStudent),
+        ...(hw.submissions || []).filter(isMatchStudent),
         ...(submissions || []).filter(s => isMatchStudent(s) && (
           String(s.hwId) === String(hw.id) ||
           String(s.homeworkId) === String(hw.id) ||
           String(s.testId) === String(hw.id) ||
           String(s.id) === String(hw.id) ||
-          String(s.id) === `hw_sub_${hw.id}_${studentIdStr}`
+          String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`
         ))
       ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
 
       if (allMatchingSubs.length === 0) return;
 
       // Group matching submissions (in case multi-test or retakes exist)
-      allMatchingSubs.forEach((sub, subIdx) => {
+      allMatchingSubs.forEach(sub => {
         if (!sub) return;
-        const testIdent = sub.id || sub.submissionId || sub.realId || sub.realTestId || sub.bookTestId || sub.testId || sub.test_id || sub.testName || `idx_${subIdx}`;
-        const subIdStr = String(sub.id || sub.submissionId || `${hw.id}_${studentIdStr}_${testIdent}`);
+        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${selectedStudent.id}`);
         if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
         if (sub.status === 'in_progress' || sub.status === 'draft') return;
         const raw = sub.raw_data || {};
@@ -727,24 +719,21 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         if (sub.submissionId) processedTestKeys.add(String(sub.submissionId));
         if (sub.supabaseId) processedTestKeys.add(String(sub.supabaseId));
 
-        const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a.type === 'metadata') : (sub.metadata || {});
-        const realTId = String(meta?.realTestId || meta?.bookTestId || sub.realTestId || sub.bookTestId || sub.testId || sub.test_id || hw.id || '');
-
-        let testObj = (bookTests || []).find(bt => String(bt.id) === realTId || (toUUID(bt.id) && String(toUUID(bt.id)) === realTId));
-        let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || hw.bookId || testObj?.bookId || testObj?.book_id) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || hw.bookId || testObj?.bookId || testObj?.book_id)));
+        let testObj = (bookTests || []).find(bt => String(bt.id) === String(sub.bookTestId || sub.testId || hw.id) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(sub.bookTestId || sub.testId || hw.id)));
+        let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || hw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || hw.bookId || testObj?.bookId)));
 
         if (!testObj && books && Array.isArray(books)) {
           for (const b of books) {
             if (b.subjects && Array.isArray(b.subjects)) {
               for (const s of b.subjects) {
                 if (s.tests && Array.isArray(s.tests)) {
-                  const ft = s.tests.find(t => String(t.id) === realTId || (toUUID(t.id) && String(toUUID(t.id)) === realTId));
+                  const ft = s.tests.find(t => String(t.id) === String(sub.bookTestId || sub.testId || hw.id));
                   if (ft) { testObj = { ...ft, bookId: b.id, subjectId: s.id }; if (!bookObj) bookObj = b; break; }
                 }
                 if (s.topics && Array.isArray(s.topics)) {
                   for (const tp of s.topics) {
                     if (tp.tests && Array.isArray(tp.tests)) {
-                      const ft = tp.tests.find(t => String(t.id) === realTId || (toUUID(t.id) && String(toUUID(t.id)) === realTId));
+                      const ft = tp.tests.find(t => String(t.id) === String(sub.bookTestId || sub.testId || hw.id));
                       if (ft) { testObj = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id }; if (!bookObj) bookObj = b; break; }
                     }
                   }
@@ -755,16 +744,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           }
         }
 
-        const rawBookTitle = sub.bookTitle || raw.bookTitle || meta?.bookTitle || bookObj?.title || (isBookHw ? hw.title : '') || '';
+        const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || (isBookHw ? hw.title : '') || '';
         const cleanBookTitle = rawBookTitle ? rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim() : '';
 
-        const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId || testObj?.subject_id)) || (books || []).flatMap(b => b.subjects || []).find(s => String(s.id) === String(testObj?.subjectId || testObj?.subject_id));
-        const subjectName = subjObj?.name || meta?.subjectName || sub.subject || raw.subject || hw.subject || bookObj?.subject || 'Genel';
+        const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
+        const subjectName = sub.subject || raw.subject || subjObj?.name || hw.subject || bookObj?.subject || 'Genel';
+        const testName = sub.testTitle || raw.testTitle || sub.title || testObj?.name || hw.title || 'Ödev Testi';
 
-        const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || testObj?.topic_id || raw.topicId)) || (books || []).flatMap(b => (b.subjects || []).flatMap(s => s.topics || [])).find(tp => String(tp.id) === String(testObj?.topicId || testObj?.topic_id));
-        const topicName = topicObj?.name || meta?.unitTopic || sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || testObj?.topicName || testObj?.unit || raw.topic || raw.unit || '';
-
-        const testName = testObj?.name || meta?.testName || sub.testTitle || raw.testTitle || sub.title || hw.title || 'Ödev Testi';
+        const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
+        const topicName = sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || testObj?.topicName || testObj?.unit || raw.topic || raw.unit || '';
 
         const fullTestTitle = cleanBookTitle
           ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
@@ -872,8 +860,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           totalQuestions: total,
           computedScore: score,
           totalNet: calcNet,
-          submittedAt: extractItemDate(sub.submittedAt || sub.submitted_at || sub.completedAt || raw.submittedAt || meta?.submittedAt || (hw?.testDueDates && testObj?.id ? hw.testDueDates[testObj.id] : null) || sub.date || sub),
-          date: extractItemDate(sub.submittedAt || sub.submitted_at || sub.completedAt || raw.submittedAt || meta?.submittedAt || (hw?.testDueDates && testObj?.id ? hw.testDueDates[testObj.id] : null) || sub.date || sub)
+          submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
         });
       });
     });
@@ -894,8 +881,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (sub.submissionId && processedTestKeys.has(String(sub.submissionId))) return;
       if (sub.supabaseId && processedTestKeys.has(String(sub.supabaseId))) return;
 
-      const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a.type === 'metadata') : (sub.metadata || {});
-      const bTestId = String(meta?.realTestId || meta?.bookTestId || sub.realTestId || sub.bookTestId || sub.testId || sub.test_id || raw.realTestId || raw.bookTestId || raw.testId || '');
+      const bTestId = String(sub.bookTestId || sub.testId || sub.realTestId || raw.bookTestId || raw.testId || '');
       let correct = sub.correctCount ?? raw.correctCount ?? 0;
       let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
       let blank = sub.blankCount ?? raw.blankCount ?? 0;
@@ -956,7 +942,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       );
 
       let testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
-      let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId || testObj?.book_id) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || testObj?.bookId || testObj?.book_id)));
+      let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || raw.bookId || testObj?.bookId)));
 
       if (!testObj && books && Array.isArray(books)) {
         for (const b of books) {
@@ -983,18 +969,18 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const curInfo = allCurTestsMap.get(bTestId) || {};
       const bankQ = (allBankQuestions || []).find(q => String(q.id) === bTestId || (toUUID(q.id) && String(toUUID(q.id)) === bTestId));
 
-      const rawBookTitle = sub.bookTitle || raw.bookTitle || meta?.bookTitle || bookObj?.title || '';
+      const rawBookTitle = sub.bookTitle || raw.bookTitle || bookObj?.title || '';
       let cleanBookTitle = rawBookTitle ? rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim() : '';
 
-      const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId || testObj?.subject_id)) || (books || []).flatMap(b => b.subjects || []).find(s => String(s.id) === String(testObj?.subjectId || testObj?.subject_id));
-      let subjectName = subjObj?.name || meta?.subjectName || sub.subject || raw.subject || bookObj?.subject || bankQ?.subject || curInfo?.subject || 'Genel';
-      let testName = testObj?.name || meta?.testName || sub.testTitle || raw.testTitle || sub.title || bankQ?.title || bankQ?.name || curInfo?.title || 'Test';
+      const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
+      let subjectName = sub.subject || raw.subject || subjObj?.name || bookObj?.subject || bankQ?.subject || curInfo?.subject || 'Genel';
+      let testName = testObj?.name || sub.testTitle || raw.testTitle || sub.title || bankQ?.title || bankQ?.name || curInfo?.title || 'Test';
 
-      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || testObj?.topic_id || raw.topicId)) || (books || []).flatMap(b => (b.subjects || []).flatMap(s => s.topics || [])).find(tp => String(tp.id) === String(testObj?.topicId || testObj?.topic_id));
-      let topicName = topicObj?.name || meta?.unitTopic || sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || testObj?.topicName || testObj?.unit || testObj?.unitName || raw.topic || raw.unit || '';
+      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
+      let topicName = sub.unitTopic || sub.topic || sub.unit || sub.topicName || sub.unitName || topicObj?.name || testObj?.topicName || testObj?.unit || testObj?.unitName || raw.topic || raw.unit || '';
 
       let fullTestTitle = sub.testTitle || raw.testTitle || '';
-      if (!fullTestTitle || fullTestTitle === 'Test' || fullTestTitle.includes('—')) {
+      if (!fullTestTitle || fullTestTitle === 'Test') {
         fullTestTitle = cleanBookTitle
           ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
           : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
@@ -1094,8 +1080,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         totalQuestions: total,
         computedScore: scorePct,
         totalNet: calcNet,
-        submittedAt: extractItemDate(sub.submittedAt || sub.submitted_at || sub.completedAt || raw.submittedAt || meta?.submittedAt || sub.date || sub),
-        date: extractItemDate(sub.submittedAt || sub.submitted_at || sub.completedAt || raw.submittedAt || meta?.submittedAt || sub.date || sub)
+        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
       });
     });
 
@@ -1336,10 +1321,13 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
       return;
     }
-    const navTargetId = s.testId || s.realTestId || s.bookTestId || s.supabaseId || s.submissionId || s.realId || s.hwId || s.id;
-    navigate(`/review/${navTargetId}?studentId=${selectedStudent?.id || ''}&hwId=${s.hwId || ''}`, {
-      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s, hwId: s.hwId }
-    });
+    const isBook = s.sourceType === 'bookTest' || s.typeKey === 'bookTest' || s.isBookTest || Boolean(s.bookTestId) || (s.bookId && s.testId);
+    const bTestId = s.bookTestId || s.realTestId || s.testId;
+    if (isBook && bTestId) {
+      navigate(`/book-quiz/${bTestId}?studentId=${selectedStudent?.id || ''}`);
+      return;
+    }
+    navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`);
   };
 
   return (
@@ -1724,7 +1712,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         {activeTab === 'periodic' && (
           <div className="sr-anim">
             <PeriodicQuestionAnalytics
-              homeworkSubmissions={studentSubmissions && studentSubmissions.length > 0 ? studentSubmissions : otherHomeworkSubmissions}
+              homeworkSubmissions={otherHomeworkSubmissions}
               mockExams={generalTrialExams}
               studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
             />

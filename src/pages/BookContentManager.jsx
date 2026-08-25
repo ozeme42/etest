@@ -5,7 +5,6 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { supabase } from '../lib/supabase';
 import { 
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, CheckCircle2,
   ChevronDown, ChevronRight, ChevronUp, Plus, Edit, Trash2, 
@@ -20,7 +19,7 @@ import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/bo
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
+  const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
   const { submissions, refreshSubmissions, isSyncing: isEvaluationSyncing, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
@@ -36,91 +35,9 @@ export default function BookContentManager() {
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
-  const [localLiveBook, setLocalLiveBook] = useState(null);
-  const [localLiveTests, setLocalLiveTests] = useState(null);
-  const [isLiveLoading, setIsLiveLoading] = useState(false);
-
-  const fetchLiveDirect = async () => {
-    if (!id) return;
-    setIsLiveLoading(true);
-    try {
-      const [bRes, tRes] = await Promise.all([
-        supabase.from('tracked_books').select('*').eq('id', String(id)).maybeSingle(),
-        supabase.from('tracked_book_tests').select('*').eq('book_id', String(id)).order('created_at', { ascending: true })
-      ]);
-
-      if (bRes.data) {
-        const b = bRes.data;
-        const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
-          ? b.subjects
-          : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
-        setLocalLiveBook({
-          id: String(b.id),
-          title: b.title || b.raw_data?.title || '',
-          publisher: b.publisher || b.raw_data?.publisher || '',
-          bookType: b.book_type || b.bookType || b.raw_data?.bookType || 'standard',
-          optionCount: Number(b.option_count || b.raw_data?.optionCount) || 5,
-          pdfUrl: b.pdf_url || b.raw_data?.pdfUrl || '',
-          subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
-          raw_data: b.raw_data || {}
-        });
-      }
-
-      if (tRes.data) {
-        const mapped = tRes.data.map(t => ({
-          id: String(t.id),
-          bookId: String(t.book_id),
-          subjectId: t.subject_id ? String(t.subject_id) : null,
-          topicId: t.topic_id ? String(t.topic_id) : null,
-          name: t.name,
-          questionCount: t.question_count || 20,
-          answerKey: t.answer_key || {},
-          optionCount: Number(t.option_count || t.optionCount) || undefined,
-          pdfUrl: t.pdf_url || '',
-          createdAt: t.created_at
-        }));
-        setLocalLiveTests(mapped);
-      }
-    } catch (err) {
-      console.warn('[DirectLiveFetch] Error:', err);
-    } finally {
-      setIsLiveLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchLiveDirect();
-  }, [id]);
-
-  const book = useMemo(() => {
-    const found = (books || []).find(b => String(b.id) === String(id) || toUUID(b.id) === toUUID(id));
-    if (!found) return null;
-    const subjects = (Array.isArray(found.subjects) && found.subjects.length > 0)
-      ? found.subjects
-      : (Array.isArray(found.raw_data?.subjects) ? found.raw_data.subjects : []);
-    const mergedBook = localLiveBook || {
-      ...found,
-      subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
-    };
-    return mergedBook;
-  }, [books, id]);
-  const tests = useMemo(() => {
-    if (localLiveTests && localLiveTests.length > 0) return localLiveTests;
-    return (bookTests || []).filter(t => {
-      const tBookId = String(t.bookId || t.book_id || '');
-      const isIdMatch = tBookId === String(id) || 
-        (toUUID(id) && tBookId === String(toUUID(id))) ||
-        (toUUID(tBookId) && String(toUUID(tBookId)) === String(id));
-      if (isIdMatch) return true;
-      if (book?.title && t.bookTitle && String(t.bookTitle).toLowerCase().trim() === String(book.title).toLowerCase().trim()) return true;
-      return false;
-    });
-  }, [bookTests, id, book, localLiveTests]);
+  const book = books.find(b => b.id === id);
+  const tests = useMemo(() => bookTests.filter(t => t.bookId === id), [bookTests, id]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
-
-  React.useEffect(() => {
-    if (refreshTrackedBooks) refreshTrackedBooks();
-  }, []);
 
   // Book Settings Dialog State
   const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
@@ -617,7 +534,7 @@ export default function BookContentManager() {
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === true ? false : true }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === false ? true : false }));
   const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === false ? true : false }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
   const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
@@ -1397,18 +1314,6 @@ export default function BookContentManager() {
                 <div style={{ display: 'flex', gap: '0.45rem' }}>
                   <button
                     type="button"
-                    onClick={async () => {
-                      await fetchLiveDirect();
-                      if (refreshTrackedBooks) {
-                        await refreshTrackedBooks();
-                      }
-                    }}
-                    style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', fontWeight: 800, borderRadius: '0.65rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1.5px solid rgba(99, 102, 241, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <RefreshCw size={13} /> Verileri Yenile
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => {
                       const allOpenSubj = {};
                       const allOpenTop = {};
@@ -1443,17 +1348,10 @@ export default function BookContentManager() {
               </div>
 
               {book.subjects.map(subject => {
+                const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id))));
                 const topicsList = subject.topics || [];
-                const directTests = sortTestsNaturally(tests.filter(t => {
-                  const sIdMatch = String(t.subjectId || t.subject_id || '') === String(subject.id) ||
-                    String(t.subjectId || t.subject_id || t.subject || '').toLowerCase().trim() === String(subject.name || '').toLowerCase().trim();
-                  if (!sIdMatch) return false;
-                  if (topicsList.length === 0) return true;
-                  const tTopicId = String(t.topicId || t.topic_id || '');
-                  return !tTopicId || tTopicId === 'direct' || tTopicId === String(subject.id) || tTopicId === 'null' || tTopicId === 'undefined';
-                }));
                 // Closed by default unless explicitly toggled to false
-                const isExpanded = collapsedSubjects[subject.id] !== true;
+                const isExpanded = collapsedSubjects[subject.id] === false;
 
                 return (
                   <div key={subject.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -1469,8 +1367,8 @@ export default function BookContentManager() {
                           <Layers size={18} style={{ color: '#6366f1' }} /> {subject.name}
                         </h3>
                         <span style={{ marginLeft: '0.75rem', fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.2rem 0.65rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #3b82f6' }}>
-                          {topicsList.length > 0 ? `${topicsList.length} Konu • ${tests.filter(t => topicsList.some(tp => String(tp.id) === String(t.topicId || t.topic_id))).length} Test` : ''} 
-                          {topicsList.length === 0 && directTests.length > 0 ? `${directTests.length} Test` : ''}
+                          {topicsList.length > 0 ? `${topicsList.length} Konu` : ''} 
+                          {directTests.length > 0 ? `${topicsList.length > 0 ? ' • ' : ''}${directTests.length} Direkt Test` : ''}
                           {topicsList.length === 0 && directTests.length === 0 ? 'İçerik Yok' : ''}
                         </span>
                       </div>
@@ -1537,14 +1435,9 @@ export default function BookContentManager() {
 
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
-                          const topicTests = sortTestsNaturally(tests.filter(t => {
-                            const tTopId = String(t.topicId || t.topic_id || '');
-                            if (tTopId === String(topic.id)) return true;
-                            if (topic.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(topic.name).toLowerCase().trim()) return true;
-                            return false;
-                          }));
+                          const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
                           // Closed by default unless explicitly toggled to false
-                          const isTopicExpanded = collapsedTopics[topic.id] !== true;
+                          const isTopicExpanded = collapsedTopics[topic.id] === false;
 
                           return (
                             <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', margin: '0.5rem 0.25rem 1.25rem 0.25rem', paddingLeft: '1rem' }}>
@@ -1872,7 +1765,7 @@ export default function BookContentManager() {
                           <button 
                             onClick={() => {
                               setScheduleModalHw(hw);
-                              setScheduleDates(hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {});
+                              setScheduleDates(hw.testDueDates || {});
                               setAutoStartDate(new Date().toISOString().split('T')[0]);
                               setScheduleSelectedTestIds([]);
                               setBulkApplyDate('');
@@ -3227,27 +3120,15 @@ export default function BookContentManager() {
           const tUuid = toUUID(testId);
           const matchedSubs = (submissions || []).filter(s => {
             if (s.status === 'in_progress' || s.status === 'draft') return false;
-            const sStdId = String(s.studentId || s.student_id || '');
             const isMatchingStudent = (modalTargetStudents || []).some(st => {
               const stId = st.id;
               const stUuid = toUUID(stId);
-              return sStdId === String(stId) || (stUuid && sStdId === String(stUuid)) || (stUuid && toUUID(sStdId) === String(stUuid));
+              return String(s.studentId) === String(stId) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
             });
             if (!isMatchingStudent && modalTargetStudents.length > 0) return false;
 
-            const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-            const candidateFields = [
-              s.testId, s.test_id, s.bookTestId, s.realTestId,
-              ...(s.bookTestIds || []),
-              meta?.realTestId, meta?.bookTestId, meta?.realId
-            ].filter(Boolean).map(String);
-
-            return candidateFields.some(cid => 
-              cid === String(testId) || 
-              (tUuid && cid === String(tUuid)) || 
-              (tUuid && toUUID(cid) === String(tUuid)) || 
-              toUUID(cid) === String(testId)
-            );
+            const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+            return candidateFields.some(cid => cid === String(testId) || (tUuid && cid === String(tUuid)) || (tUuid && toUUID(cid) === String(tUuid)) || toUUID(cid) === String(testId));
           });
 
           return matchedSubs;
@@ -3343,7 +3224,7 @@ export default function BookContentManager() {
                                 testCounter++;
                               });
                               topicsList.forEach(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
                                 topicTests.forEach(t => {
                                   if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
                                   datesMap[t.id] = currDate.toISOString().split('T')[0];
@@ -3572,14 +3453,15 @@ export default function BookContentManager() {
                                               {isSolved ? (
                                                 modalTargetStudents.length === 1 ? (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    {(() => {
-                                                      const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
-                                                      const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
-                                                      const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
-                                                      const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
-                                                      const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                      return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
-                                                    })()}
+                                                    ✅ Çözüldü (%{(() => {
+                                                      const c = primarySub?.correctCount ?? primarySub?.correct ?? 0;
+                                                      const w = primarySub?.wrongCount ?? primarySub?.wrong ?? 0;
+                                                      const b = primarySub?.emptyCount ?? primarySub?.blank ?? 0;
+                                                      const q = primarySub?.totalQuestions || (c + w + b);
+                                                      return q > 0 && (c > 0 || w > 0 || b > 0)
+                                                        ? Math.min(100, Math.max(0, Math.round((c / q) * 100)))
+                                                        : Math.round(primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                    })()} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
                                                   </span>
                                                 ) : (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
@@ -3611,7 +3493,7 @@ export default function BookContentManager() {
                             {/* Topics / Units List (Ders > Ünite / Konu > Testler) */}
                             {topicsList.length > 0 ? (
                               topicsList.map(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
                                 if (topicTests.length === 0) return null;
 
                                 // Default to collapsed (true) if undefined
@@ -3704,14 +3586,15 @@ export default function BookContentManager() {
                                                     {isSolved ? (
                                                       modalTargetStudents.length === 1 ? (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                          {(() => {
-                                                            const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
-                                                            const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
-                                                            const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
-                                                            const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
-                                                            const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                            return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
-                                                          })()}
+                                                          ✅ Çözüldü (%{(() => {
+                                                      const c = primarySub?.correctCount ?? primarySub?.correct ?? 0;
+                                                      const w = primarySub?.wrongCount ?? primarySub?.wrong ?? 0;
+                                                      const b = primarySub?.emptyCount ?? primarySub?.blank ?? 0;
+                                                      const q = primarySub?.totalQuestions || (c + w + b);
+                                                      return q > 0 && (c > 0 || w > 0 || b > 0)
+                                                        ? Math.min(100, Math.max(0, Math.round((c / q) * 100)))
+                                                        : Math.round(primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                    })()} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
                                                         </span>
                                                       ) : (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>

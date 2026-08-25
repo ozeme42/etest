@@ -619,30 +619,34 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             const qObj = questions[qIdx] || {};
                             const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
 
-                            const rawUserAns = ansObj.userAnswer ?? submission?.studentAnswers?.[qNo] ?? submission?.studentAnswers?.[String(qNo)] ?? null;
-                            const userAnsIndex = getAnsIndex(rawUserAns);
-                            const userAnsLetter = (rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '')
-                              ? (typeof rawUserAns === 'string' ? rawUserAns.toUpperCase() : String.fromCharCode(65 + rawUserAns))
+                            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
+                            const userAnsLetter = (ansObj.userAnswer !== null && ansObj.userAnswer !== undefined && ansObj.userAnswer !== '')
+                              ? (typeof ansObj.userAnswer === 'string' ? ansObj.userAnswer.toUpperCase() : String.fromCharCode(65 + ansObj.userAnswer))
                               : null;
                             const textAns = ansObj.userAnswerText;
 
                             // Answer Key Resolution
-                            const rawAk = test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey || {};
-                            const rawKeyVal = ansObj.correctAnswer ?? ansObj.correctAnswerLetter ?? qObj.correctAnswer ?? qObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[qIdx] : (rawAk[qNo] || rawAk[String(qNo)] || rawAk[qIdx]));
-                            const correctAnsIndex = getAnsIndex(rawKeyVal);
-                            const correctLetter = (typeof rawKeyVal === 'string' && rawKeyVal.length === 1) ? rawKeyVal.toUpperCase() : (correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '');
+                            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+                            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+                            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+                            if (correctAnsIndex === null && (test?.answerKey || resolvedBook?.answerKey)) {
+                              const ak = test?.answerKey || resolvedBook?.answerKey;
+                              const keyVal = Array.isArray(ak) ? ak[qIdx] : (ak[qNo] || ak[String(qNo)] || ak[qIdx]);
+                              correctAnsIndex = getAnsIndex(keyVal);
+                            }
 
                             let isCorrect = ansObj.isCorrect;
                             if (isCorrect === null || isCorrect === undefined) {
-                              if (userAnsLetter && correctLetter) {
-                                isCorrect = userAnsLetter.toUpperCase() === correctLetter.toUpperCase();
-                              } else if (userAnsIndex !== null && correctAnsIndex !== null) {
+                              if (userAnsIndex !== null && correctAnsIndex !== null) {
                                 isCorrect = userAnsIndex === correctAnsIndex;
+                              } else if (userAnsLetter && correctAnsIndex !== null) {
+                                isCorrect = userAnsLetter === String.fromCharCode(65 + correctAnsIndex);
                               }
                             }
 
                             const isWrong = isCorrect === false && (userAnsIndex !== null || userAnsLetter !== null);
                             const isBlank = userAnsIndex === null && !userAnsLetter && !textAns;
+                            const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
 
                             return (
                               <div

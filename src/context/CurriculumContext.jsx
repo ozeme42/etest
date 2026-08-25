@@ -1,4 +1,3 @@
-import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
   dbGetCurriculum,
@@ -42,62 +41,41 @@ export const naturalSort = (a, b) => {
 const generateUniqueId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
 export function CurriculumProvider({ children }) {
-  const [data, setData] = useState(() => {
-    try {
-      const savedLs = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
-      if (savedLs) {
-        const p = JSON.parse(savedLs);
-        if (p && Array.isArray(p.grades) && p.grades.length > 0) {
-          return {
-            grades: (p.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
-            subjects: (p.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
-            units: (p.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
-            topics: (p.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
-            tests: (p.tests || []).filter(t => !MOCK_IDS.has(t.id))
-          };
-        }
-      }
-    } catch {}
-    return INITIAL_DATA;
-  });
+  const [data, setData] = useState(INITIAL_DATA);
 
   useEffect(() => {
     async function initCurriculum() {
-      // 1. Try to load from localStorage or IndexedDB cache
-      let curCache = null;
+      // 1. Try to load from IndexedDB cache for fast initial render
       try {
-        const lsVal = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
-        if (lsVal) curCache = JSON.parse(lsVal);
-        if (!curCache) {
-          const idbVal = await idbGetPayload('eTestCurriculum_Cache');
-          if (idbVal) curCache = JSON.parse(idbVal);
-        }
-      } catch (err) {
-        console.warn('Cache load failed', err);
-      }
-
-      if (curCache && curCache.grades && curCache.grades.length > 0) {
-        setData({
-          grades: (curCache.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
-          subjects: (curCache.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
-          units: (curCache.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
-          topics: (curCache.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
-          tests: (curCache.tests || []).filter(t => !MOCK_IDS.has(t.id))
-        });
-      }
-
-      // 2. Fetch latest from Supabase if configured
-      if (isSupabaseConfigured()) {
-        const dbCurData = await dbGetCurriculum();
-        if (dbCurData && dbCurData.grades && dbCurData.grades.length > 0) {
-          setData({
-            grades: (dbCurData.grades || []).sort(naturalSort),
-            subjects: (dbCurData.subjects || []).sort(naturalSort),
-            units: (dbCurData.units || []).sort(naturalSort),
-            topics: (dbCurData.topics || []).sort(naturalSort),
-            tests: dbCurData.tests || []
+        const saved = await idbGetPayload('eTestCurriculum_Cache');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setData(prev => {
+            // Only use cache if data hasn't been fetched from DB yet
+            if (prev.grades.length > 0) return prev;
+            return {
+              grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
+              subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
+              units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
+              topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
+              tests: (parsed.tests || []).filter(t => !MOCK_IDS.has(t.id))
+            };
           });
         }
+      } catch (err) {
+        console.warn('IDB cache load failed', err);
+      }
+
+      // 2. Fetch latest from Supabase
+      const dbCurData = await dbGetCurriculum();
+      if (dbCurData && dbCurData.grades.length > 0) {
+        setData({
+          grades: (dbCurData.grades || []).sort(naturalSort),
+          subjects: (dbCurData.subjects || []).sort(naturalSort),
+          units: (dbCurData.units || []).sort(naturalSort),
+          topics: (dbCurData.topics || []).sort(naturalSort),
+          tests: dbCurData.tests || []
+        });
       }
     }
     initCurriculum();
@@ -105,10 +83,6 @@ export function CurriculumProvider({ children }) {
 
   useEffect(() => {
     if (data.grades.length > 0) {
-      try {
-        localStorage.setItem('eTestCurriculum', JSON.stringify(data));
-        localStorage.setItem('curriculumData', JSON.stringify(data));
-      } catch {}
       idbSetPayload('eTestCurriculum_Cache', JSON.stringify(data)).catch(e => console.warn('IDB save failed:', e));
     }
   }, [data]);
