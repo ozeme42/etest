@@ -1340,47 +1340,6 @@ export default function StudentDashboard() {
             };
           };
 
-          if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
-              if (!tDateStr) return;
-              const tYMD = String(tDateStr).split('T')[0];
-              if (dayYMD === tYMD) {
-                const info = resolveBookTestInfo(testId);
-                const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
-                  (submissions || []).some(s => isMatchHwSub(s, hw, testId));
-                const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
-
-                const exists = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && m.testId === testId));
-                if (!exists) {
-                  autoHwItems.push({
-                    id: autoId,
-                    hwId: hw.id,
-                    testId: testId,
-                    bookTestId: testId,
-                    bookId: hw.bookId || info.currentBook?.id,
-                    isAutoHomework: true,
-                    isBookTask: true,
-                    taskType: 'kitap',
-                    subject: info.subjectName,
-                    unitTopic: info.topicName,
-                    bookTitle: info.cleanBookTitle,
-                    testName: info.testName,
-                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                    questionCount: `${info.qCount} soru`,
-                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                    done: isTestSolved
-                  });
-                }
-              }
-            });
-            return;
-          }
-
-          const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
-          const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
-          const startTime = startYMD ? new Date(startYMD).getTime() : null;
-          const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
-
           const studentIdStr = String(studentId || '');
           const studentUuidStr = String(toUUID(studentId) || '');
           const isMatchStudent = (s) => {
@@ -1436,6 +1395,47 @@ export default function StudentDashboard() {
 
             return false;
           };
+
+          if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+              if (!tDateStr) return;
+              const tYMD = extractItemYMD(tDateStr);
+              if (dayYMD === tYMD) {
+                const info = resolveBookTestInfo(testId);
+                const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
+                  (submissions || []).some(s => isMatchHwSub(s, hw, testId));
+                const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
+
+                const exists = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && m.testId === testId));
+                if (!exists) {
+                  autoHwItems.push({
+                    id: autoId,
+                    hwId: hw.id,
+                    testId: testId,
+                    bookTestId: testId,
+                    bookId: hw.bookId || info.currentBook?.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    subject: info.subjectName,
+                    unitTopic: info.topicName,
+                    bookTitle: info.cleanBookTitle,
+                    testName: info.testName,
+                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                    questionCount: `${info.qCount} soru`,
+                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                    done: isTestSolved
+                  });
+                }
+              }
+            });
+            return;
+          }
+
+          const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
+          const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
+          const startTime = startYMD ? new Date(startYMD).getTime() : null;
+          const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
           // A.2) Genel Ödev / Kitap Teslim Tarihi
           const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw)) ||
