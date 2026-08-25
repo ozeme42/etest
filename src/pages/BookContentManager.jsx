@@ -408,6 +408,54 @@ export default function BookContentManager() {
     });
   }, [allHomeworks, id, tests]);
 
+  // Combined submissions from context + embedded in homeworks
+  const allCombinedSubmissions = useMemo(() => {
+    const list = [...(submissions || [])];
+    const seen = new Set();
+    list.forEach(s => {
+      if (s.id) seen.add(String(s.id));
+      if (s.supabaseId) seen.add(String(s.supabaseId));
+      if (s.studentId && s.testId) seen.add(`${s.studentId}_${s.testId}`);
+      if (s.studentId && s.bookTestId) seen.add(`${s.studentId}_${s.bookTestId}`);
+      if (s.studentId && s.realTestId) seen.add(`${s.studentId}_${s.realTestId}`);
+    });
+
+    (bookHomeworks || []).forEach(hw => {
+      const embedded = hw.submissions || hw.raw_data?.submissions || hw.results || hw.raw_data?.results || [];
+      if (Array.isArray(embedded)) {
+        embedded.forEach(item => {
+          if (!item) return;
+          const tId = item.testId || item.test_id;
+          const stId = item.studentId || item.student_id;
+          if (!tId || !stId) return;
+          const key1 = `${stId}_${tId}`;
+          if (seen.has(key1)) return;
+          seen.add(key1);
+
+          list.push({
+            id: item.id || `sub_emb_${hw.id}_${tId}_${stId}`,
+            studentId: stId,
+            testId: tId,
+            realTestId: tId,
+            bookTestId: tId,
+            hwId: hw.id,
+            homeworkId: hw.id,
+            status: item.status || 'completed',
+            score: item.score,
+            correctCount: item.correctCount,
+            wrongCount: item.wrongCount,
+            emptyCount: item.emptyCount || item.blankCount || 0,
+            blankCount: item.blankCount || item.emptyCount || 0,
+            title: item.title || item.testTitle || hw.title,
+            answers: item.studentAnswers ? Object.entries(item.studentAnswers).map(([k, v]) => ({ questionNo: Number(k), userAnswer: v, isCorrect: true })) : [],
+            createdAt: item.completedAt || item.submittedAt || new Date().toISOString()
+          });
+        });
+      }
+    });
+    return list;
+  }, [submissions, bookHomeworks]);
+
   // Helper functions for matching submissions to book tests
   const getCandidateSubmissionFields = (s) => {
     if (!s) return [];
@@ -470,7 +518,7 @@ export default function BookContentManager() {
         totalAssignedTestSlots += hwTests.length;
         const stUuid = toUUID(st.id);
 
-        const solved = (submissions || []).filter(s => {
+        const solved = (allCombinedSubmissions || []).filter(s => {
           const isMatchStudent = String(s.studentId) === String(st.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
           if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
 
@@ -483,6 +531,7 @@ export default function BookContentManager() {
           const candidateFields = getCandidateSubmissionFields(s);
           const matched = hwTests.find(tid => isCandidateMatch(candidateFields, tid));
           if (matched) uniqueSolved.add(String(matched));
+          else if (s.testId) uniqueSolved.add(String(s.testId));
         });
 
         totalSolvedTestSlots += uniqueSolved.size;
@@ -497,7 +546,7 @@ export default function BookContentManager() {
       : (totalTargetStudents > 0 ? Math.round((completedCount / totalTargetStudents) * 100) : 0);
 
     return { totalAssigned, totalTargetStudents, completedCount, completionRate, totalSolvedTestSlots, totalAssignedTestSlots };
-  }, [bookHomeworks, students, submissions, tests]);
+  }, [bookHomeworks, students, allCombinedSubmissions, tests]);
 
   // --- PARSE TEXT LINES FOR BULK WIZARD ---
   const parsedBulkStructure = useMemo(() => {
@@ -575,10 +624,11 @@ export default function BookContentManager() {
   // --- MISTAKE ANALYSIS LOGIC ---
   const mistakeList = useMemo(() => {
     const mistakesBySubject = {};
-    const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId || t.id === s.bookTestId) && s.status === 'completed');
+    const solvedSubmissions = (allCombinedSubmissions || []).filter(s => tests.some(t => t.id === s.testId || t.id === s.bookTestId || isCandidateMatch(getCandidateSubmissionFields(s), t.id)) && s.status !== 'in_progress' && s.status !== 'draft');
 
     for (const sub of solvedSubmissions) {
-      const testDef = tests.find(t => t.id === sub.testId || t.id === sub.bookTestId);
+      const candidateFields = getCandidateSubmissionFields(sub);
+      const testDef = tests.find(t => t.id === sub.testId || t.id === sub.bookTestId || isCandidateMatch(candidateFields, t.id));
       if (!testDef) continue;
       
       const subject = book?.subjects?.find(s => String(s.id) === String(testDef.subjectId));
@@ -586,7 +636,7 @@ export default function BookContentManager() {
 
       const subjName = subject?.name || 'Genel';
       const topName = topic?.name || 'Direkt Testler';
-      const stName = students.find(st => String(st.id) === String(sub.studentId))?.name || sub.studentName || 'Öğrenci';
+      const stName = students.find(st => String(st.id) === String(sub.studentId) || toUUID(st.id) === toUUID(sub.studentId))?.name || sub.studentName || 'Öğrenci';
 
       const answersArr = Array.isArray(sub.answers) ? sub.answers : [];
       answersArr.forEach((ans, ansIdx) => {
@@ -610,7 +660,7 @@ export default function BookContentManager() {
       });
     }
     return mistakesBySubject;
-  }, [submissions, tests, book, students]);
+  }, [allCombinedSubmissions, tests, book, students]);
 
   const { filteredMistakes, subjectOptions, topicOptions, studentOptions } = useMemo(() => {
     const flatList = [];
@@ -671,7 +721,7 @@ export default function BookContentManager() {
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === true ? false : true }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === false ? true : false }));
   const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === false ? true : false }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
   const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
@@ -1506,8 +1556,8 @@ export default function BookContentManager() {
                   const tTopicId = String(t.topicId || t.topic_id || '');
                   return !tTopicId || tTopicId === 'direct' || tTopicId === String(subject.id) || tTopicId === 'null' || tTopicId === 'undefined';
                 }));
-                // Closed by default unless explicitly toggled to false
-                const isExpanded = collapsedSubjects[subject.id] !== true;
+                // Closed by default unless explicitly toggled to false (open)
+                const isExpanded = collapsedSubjects[subject.id] === false;
 
                 return (
                   <div key={subject.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -1597,8 +1647,8 @@ export default function BookContentManager() {
                             if (topic.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(topic.name).toLowerCase().trim()) return true;
                             return false;
                           }));
-                          // Closed by default unless explicitly toggled to false
-                          const isTopicExpanded = collapsedTopics[topic.id] !== true;
+                          // Closed by default unless explicitly toggled to false (open)
+                          const isTopicExpanded = collapsedTopics[topic.id] === false;
 
                           return (
                             <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', margin: '0.5rem 0.25rem 1.25rem 0.25rem', paddingLeft: '1rem' }}>
@@ -1825,7 +1875,7 @@ export default function BookContentManager() {
                     if (!st) return null;
                     const stId = st.id;
                     const stUuid = toUUID(stId);
-                    const solvedSubmissions = (submissions || []).filter(s => {
+                    const solvedSubmissions = (allCombinedSubmissions || []).filter(s => {
                       const isMatchStudent = String(s.studentId) === String(stId) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
                       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
 
@@ -1841,6 +1891,8 @@ export default function BookContentManager() {
                       const candidateFields = getCandidateSubmissionFields(s);
                       const matchedId = hwTests.find(tid => isCandidateMatch(candidateFields, tid));
                       if (matchedId) uniqueSolvedTests.add(String(matchedId));
+                      else if (s.testId) uniqueSolvedTests.add(String(s.testId));
+                      else if (s.id) uniqueSolvedTests.add(String(s.id));
                     });
 
                     const solvedCount = uniqueSolvedTests.size;
@@ -1994,7 +2046,7 @@ export default function BookContentManager() {
                                 const topicName = testDef.topicName || parentTopic?.name || '';
                                 const stUuid = toUUID(item.student?.id);
 
-                                const testSub = (submissions || []).find(s => {
+                                const testSub = (allCombinedSubmissions || []).find(s => {
                                   const isMatchStudent = String(s.studentId) === String(item.student?.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
                                   if (!isMatchStudent) return false;
 
@@ -3300,7 +3352,7 @@ export default function BookContentManager() {
         // Helper to retrieve solved submissions for a specific test
         const getTestSolveDetails = (testId) => {
           const tUuid = toUUID(testId);
-          const matchedSubs = (submissions || []).filter(s => {
+          const matchedSubs = (allCombinedSubmissions || []).filter(s => {
             if (s.status === 'in_progress' || s.status === 'draft') return false;
             const sStdId = String(s.studentId || s.student_id || '');
             const isMatchingStudent = (modalTargetStudents || []).some(st => {
