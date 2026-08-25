@@ -127,8 +127,22 @@ export function TrackedBookProvider({ children }) {
   };
 
   const deleteTrackedBook = async (id) => {
-    setBooks(prev => prev.filter(book => book.id !== id));
-    setBookTests(prev => prev.filter(test => test.bookId !== id));
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+
+    setBooks(prev => {
+      const next = prev.filter(b => !(String(b.id) === idStr || (idUuid && String(b.id) === idUuid) || (toUUID(b.id) && String(toUUID(b.id)) === idUuid)));
+      safeSetItem('eTestTrackedBooks', JSON.stringify(next));
+      return next;
+    });
+
+    setBookTests(prev => {
+      const next = prev.filter(t => !(String(t.bookId) === idStr || (idUuid && String(t.bookId) === idUuid) || (toUUID(t.bookId) && String(toUUID(t.bookId)) === idUuid)));
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
+      return next;
+    });
+
     await dbDeleteTrackedBook(id);
   };
 
@@ -190,7 +204,16 @@ export function TrackedBookProvider({ children }) {
   };
 
   const deleteTrackedBookTest = async (id) => {
-    setBookTests(prev => prev.filter(test => test.id !== id));
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+
+    setBookTests(prev => {
+      const next = prev.filter(t => !(String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid)));
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
+      return next;
+    });
+
     await dbDeleteTrackedBookTest(id);
   };
 

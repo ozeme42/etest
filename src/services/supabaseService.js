@@ -1888,10 +1888,23 @@ export async function dbUpdateTrackedBook(bookId, updates) {
 }
 
 export async function dbDeleteTrackedBook(bookId) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !bookId) return null;
   try {
-    const safeId = toUUID(bookId);
-    await supabase.from('tracked_books').delete().eq('id', safeId);
+    const candidateIds = Array.from(new Set([String(bookId), toUUID(bookId)].filter(Boolean)));
+    
+    // 1. Delete associated tests first to avoid FK constraint blocks
+    for (const cid of candidateIds) {
+      try {
+        await supabase.from('tracked_book_tests').delete().eq('book_id', cid);
+      } catch {}
+    }
+
+    // 2. Delete the book itself across all candidate IDs
+    for (const cid of candidateIds) {
+      try {
+        await supabase.from('tracked_books').delete().eq('id', cid);
+      } catch {}
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteTrackedBook error:', err.message);
@@ -1986,10 +1999,14 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
 }
 
 export async function dbDeleteTrackedBookTest(testId) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !testId) return null;
   try {
-    const { error } = await supabase.from('tracked_book_tests').delete().eq('id', String(testId));
-    if (error) throw error;
+    const candidateIds = Array.from(new Set([String(testId), toUUID(testId)].filter(Boolean)));
+    for (const cid of candidateIds) {
+      try {
+        await supabase.from('tracked_book_tests').delete().eq('id', cid);
+      } catch {}
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteTrackedBookTest error:', err.message);
