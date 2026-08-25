@@ -48,6 +48,50 @@ const unmarkIdAsDeleted = (id) => {
   } catch {}
 };
 
+const deduplicateSubmissions = (list) => {
+  if (!Array.isArray(list)) return [];
+  const map = new Map();
+  const seenIdentities = new Set();
+
+  list.forEach(sub => {
+    if (!sub) return;
+    const sStudentId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '').trim();
+    const sTestId = String(sub.testId || sub.realTestId || sub.bookTestId || sub.test_id || sub.title || '').trim();
+    const sTitle = String(sub.title || sub.testTitle || sub.test_title || '').trim().toLowerCase();
+    
+    const id1 = String(sub.id || '').trim();
+    const id2 = String(sub.supabaseId || '').trim();
+    const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a.type === 'metadata') : (sub.metadata || {});
+    const id3 = String(meta?.realId || meta?.submissionId || sub.originalSubmissionId || '').trim();
+
+    const cleanTId = sTestId.replace(/^bt_/, '').replace(/^q_/, '').toLowerCase();
+    const corr = sub.correctCount ?? sub.correct ?? 0;
+    const wrg = sub.wrongCount ?? sub.wrong ?? 0;
+    const dateStr = sub.submittedAt || sub.date || sub.createdAt || '';
+    const dateYMD = String(dateStr).slice(0, 10);
+
+    const logicalKey = `${sStudentId}___${cleanTId || sTitle}___${corr}_${wrg}_${dateYMD}`;
+
+    // Check if seen by any ID or by logical match
+    const isIdDuplicate = (id1 && seenIdentities.has(id1)) || (id2 && seenIdentities.has(id2)) || (id3 && seenIdentities.has(id3));
+    const isLogicalDuplicate = seenIdentities.has(logicalKey);
+
+    if (isIdDuplicate || isLogicalDuplicate) {
+      return; // Skip duplicate!
+    }
+
+    if (id1) seenIdentities.add(id1);
+    if (id2) seenIdentities.add(id2);
+    if (id3) seenIdentities.add(id3);
+    seenIdentities.add(logicalKey);
+
+    const primaryKey = id1 || id2 || logicalKey || `sub_${map.size}`;
+    map.set(primaryKey, sub);
+  });
+
+  return Array.from(map.values());
+};
+
 export function EvaluationProvider({ children }) {
   const [submissions, setSubmissions] = useState(() => {
     const deletedIds = getDeletedIds();
@@ -56,7 +100,7 @@ export function EvaluationProvider({ children }) {
       try {
         const parsed = JSON.parse(saved);
         return Array.isArray(parsed)
-          ? parsed.filter(s => s && !String(s.id).startsWith('sub_sample') && !deletedIds.has(String(s.id)) && !deletedIds.has(String(s.supabaseId)))
+          ? deduplicateSubmissions(parsed.filter(s => s && !String(s.id).startsWith('sub_sample') && !deletedIds.has(String(s.id)) && !deletedIds.has(String(s.supabaseId))))
           : [];
       } catch (e) {}
     }
@@ -138,10 +182,10 @@ export function EvaluationProvider({ children }) {
             if (!lId && !lSuId) return false;
             if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
             if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
-            return true; // Preserve all local submissions!
+            return true;
           });
 
-          // Also check localStorage backups for any submissions saved across tabs or sessions
+          // Also check localStorage backups
           let lsSubs = [];
           try {
             const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
@@ -159,7 +203,7 @@ export function EvaluationProvider({ children }) {
             return true;
           });
 
-          const mergedList = [...updatedSubs, ...localOnly, ...lsOnly];
+          const mergedList = deduplicateSubmissions([...updatedSubs, ...localOnly, ...lsOnly]);
           try {
             localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
             localStorage.setItem('etest_submissions', JSON.stringify(mergedList));

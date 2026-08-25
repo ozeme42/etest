@@ -1082,10 +1082,25 @@ export function computeStudentAnalyticsData({
   const seen = new Set();
   const all = [];
   [...manualExams, ...onlineEval, ...hwSubmissions].forEach(item => {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      all.push(item);
+    if (!item) return;
+    const cleanTitle = String(item.title || '').trim().toLowerCase();
+    const cleanSubj = String(item.subject || '').trim().toLowerCase();
+    const origId = String(item.originalSubmissionId || item.id || '');
+    const dateStr = String(item.date || '');
+    
+    // Multi-criteria uniqueness keys
+    const primaryKey = item.id;
+    const logicalKey = `${cleanSubj}___${cleanTitle}___${item.correctCount}_${item.wrongCount}_${dateStr}`;
+    const origKey = origId ? `orig_${origId}` : null;
+
+    if (seen.has(primaryKey) || seen.has(logicalKey) || (origKey && seen.has(origKey))) {
+      return; // Duplicate!
     }
+
+    seen.add(primaryKey);
+    seen.add(logicalKey);
+    if (origKey) seen.add(origKey);
+    all.push(item);
   });
 
   const trials = [];
