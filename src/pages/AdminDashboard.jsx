@@ -4,6 +4,8 @@ import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
 import { migrateAllLocalDataToSupabase } from '../services/migrationService';
+import { createFullBackup, restoreFullBackup } from '../services/backupService';
+import { Download, Upload, FileCheck, CheckCheck } from 'lucide-react';
 import { UploadCloud, Database, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users,
@@ -23,6 +25,42 @@ export default function AdminDashboard() {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [migrationLogs, setMigrationLogs] = useState([]);
   const [migrationStatus, setMigrationStatus] = useState('idle'); // 'idle', 'running', 'success', 'error'
+
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [restoreModalInfo, setRestoreModalInfo] = useState(null); // { stats } or null
+  const [restoreError, setRestoreError] = useState(null);
+
+  const handleDownloadBackup = async () => {
+    setIsBackingUp(true);
+    try {
+      const stats = await createFullBackup();
+      alert(`✅ Tam Yedek Başarıyla İndirildi!\n\n📊 İçerik Özeti:\n• ${stats.submissionCount} Sınav ve Test Sonucu\n• ${stats.userCount} Kullanıcı Hesabı\n• ${stats.questionCount} Soru Bankası Sorusu\n• ${stats.homeworkCount} Ödev & Görev\n• ${stats.bookCount} Kitap Takibi`);
+    } catch (err) {
+      alert(`❌ Yedek indirilirken hata oluştu: ${err.message}`);
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const stats = await restoreFullBackup(text);
+        setRestoreModalInfo({ stats, fileName: file.name });
+        setRestoreError(null);
+      } catch (err) {
+        setRestoreError(err.message);
+        setRestoreModalInfo(null);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset file input
+  };
 
   const handleStartMigration = async () => {
     setIsMigrating(true);
@@ -112,8 +150,58 @@ export default function AdminDashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
+              onClick={handleDownloadBackup}
+              disabled={isBackingUp}
+              title="Tüm verilerin (66 sınav, sorular, kullanıcılar, ödevler) eksiksiz .json yedeğini bilgisayara indirir"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0.55rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: isBackingUp ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Download size={15} /> {isBackingUp ? 'İndiriliyor...' : '📥 Tam Yedeği İndir (.JSON)'}
+            </button>
+
+            <label
+              title="Daha önce indirilen .json yedeğini sisteme eksiksiz geri yükler"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0.55rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+                color: '#fff',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Upload size={15} /> 📤 Yedeği Geri Yükle
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleRestoreFile}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            <button
               onClick={handleStartMigration}
               disabled={isMigrating}
+              title="Tüm yerel verileri yeni Supabase veritabanına otomatik aktarır"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -296,6 +384,103 @@ export default function AdminDashboard() {
           {activeTab === 'homeworks' && <AdminHomeworkTracker />}
         </div>
 
+
+        
+        {/* ══════════ RESTORE RESULT MODAL ══════════ */}
+        {restoreModalInfo && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          }}>
+            <div style={{
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
+              borderRadius: '1.5rem', width: '100%', maxWidth: '520px',
+              padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '1rem',
+                  background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <CheckCheck size={26} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    Yedek Başarıyla Geri Yüklendi!
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                    Dosya: <strong>{restoreModalInfo.fileName}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--color-surface-hover, #f8fafc)',
+                border: '1px solid var(--color-border, #e2e8f0)',
+                borderRadius: '1rem', padding: '1rem',
+                display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem'
+              }}>
+                <div style={{ padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'block' }}>Sınav & Testler</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#10b981' }}>{restoreModalInfo.stats.submissionCount} Adet</strong>
+                </div>
+                <div style={{ padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'block' }}>Kullanıcı Hesapları</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#3b82f6' }}>{restoreModalInfo.stats.userCount} Kişi</strong>
+                </div>
+                <div style={{ padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'block' }}>Soru Bankası</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#8b5cf6' }}>{restoreModalInfo.stats.questionCount} Soru</strong>
+                </div>
+                <div style={{ padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '0.6rem', border: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'block' }}>Ödevler & Kitaplar</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#f59e0b' }}>{restoreModalInfo.stats.homeworkCount + restoreModalInfo.stats.bookCount} Adet</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{
+                    padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
+                    border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  🔄 Sayfayı Yenile & Verileri Gör
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {restoreError && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          }}>
+            <div style={{
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid #ef4444', borderRadius: '1.5rem',
+              width: '100%', maxWidth: '450px', padding: '1.5rem',
+              display: 'flex', flexDirection: 'column', gap: '1rem'
+            }}>
+              <h3 style={{ margin: 0, color: '#ef4444', fontWeight: 900 }}>Geri Yükleme Hatası</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text)' }}>{restoreError}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => setRestoreError(null)} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#ef4444', color: '#fff', border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+                  Kapat
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ══════════ MIGRATION PROGRESS MODAL ══════════ */}
         {showMigrationModal && (
