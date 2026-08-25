@@ -591,19 +591,28 @@ export default function ModularQuizReviewPage() {
     (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
-  // STRICTLY for standalone paper book tests that have NO digital questions, NO question texts, NO images, NO payload
-  const isPhysical = Boolean(
-    !String(targetId || '').startsWith('hw_') &&
-    !String(test.id || '').startsWith('hw_') &&
-    !String(submission?.hwId || '').startsWith('hw_') &&
-    (
-      test.sourceFormat === 'physical' ||
-      test.formatType === 'physical' ||
-      test.questionType === 'optik_form' ||
-      test.type === 'optik_form' ||
-      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
-    )
+  // Paper book tests, optical form tests, and tracked book tests (including those assigned via homeworks)
+  const isBookOrOptical = Boolean(
+    test.sourceFormat === 'physical' ||
+    test.formatType === 'physical' ||
+    test.questionType === 'optik_form' ||
+    test.type === 'optik_form' ||
+    test.sourceType === 'trackedBook' ||
+    test.sourceType === 'bookTest' ||
+    test.isBookAssignment ||
+    test.isPhysical ||
+    Boolean(test.bookId) ||
+    Boolean(test.bookTestId) ||
+    Boolean(submission?.bookId) ||
+    Boolean(submission?.bookTestId) ||
+    submission?.sourceType === 'trackedBook' ||
+    submission?.sourceType === 'bookTest' ||
+    submission?.sourceType === 'optik' ||
+    (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)'))) ||
+    (!test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
   );
+
+  const isPhysical = !isHtml && !isImageTest && isBookOrOptical;
 
   const hasMultipleDistinctSections = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||

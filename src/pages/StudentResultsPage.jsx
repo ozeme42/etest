@@ -1335,13 +1335,10 @@ a.evaluatedAt ||
       navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
       return;
     }
-    const isBook = s.sourceType === 'bookTest' || s.typeKey === 'bookTest' || s.isBookTest || Boolean(s.bookTestId) || (s.bookId && s.testId);
-    const bTestId = s.bookTestId || s.realTestId || s.testId;
-    if (isBook && bTestId) {
-      navigate(`/book-quiz/${bTestId}?studentId=${selectedStudent?.id || ''}`);
-      return;
-    }
-    navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`);
+    const targetSubId = s.id || s.supabaseId || s.submissionId || s.realId || s.bookTestId || s.testId || s.hwId;
+    navigate(`/review/${targetSubId}?studentId=${selectedStudent?.id || ''}`, {
+      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}` }
+    });
   };
 
   return (
