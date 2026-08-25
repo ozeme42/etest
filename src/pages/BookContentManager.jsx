@@ -3227,15 +3227,27 @@ export default function BookContentManager() {
           const tUuid = toUUID(testId);
           const matchedSubs = (submissions || []).filter(s => {
             if (s.status === 'in_progress' || s.status === 'draft') return false;
+            const sStdId = String(s.studentId || s.student_id || '');
             const isMatchingStudent = (modalTargetStudents || []).some(st => {
               const stId = st.id;
               const stUuid = toUUID(stId);
-              return String(s.studentId) === String(stId) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
+              return sStdId === String(stId) || (stUuid && sStdId === String(stUuid)) || (stUuid && toUUID(sStdId) === String(stUuid));
             });
             if (!isMatchingStudent && modalTargetStudents.length > 0) return false;
 
-            const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
-            return candidateFields.some(cid => cid === String(testId) || (tUuid && cid === String(tUuid)) || (tUuid && toUUID(cid) === String(tUuid)) || toUUID(cid) === String(testId));
+            const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+            const candidateFields = [
+              s.testId, s.test_id, s.bookTestId, s.realTestId,
+              ...(s.bookTestIds || []),
+              meta?.realTestId, meta?.bookTestId, meta?.realId
+            ].filter(Boolean).map(String);
+
+            return candidateFields.some(cid => 
+              cid === String(testId) || 
+              (tUuid && cid === String(tUuid)) || 
+              (tUuid && toUUID(cid) === String(tUuid)) || 
+              toUUID(cid) === String(testId)
+            );
           });
 
           return matchedSubs;
@@ -3560,15 +3572,14 @@ export default function BookContentManager() {
                                               {isSolved ? (
                                                 modalTargetStudents.length === 1 ? (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    ✅ Çözüldü (%{(() => {
-                                                      const c = primarySub?.correctCount ?? primarySub?.correct ?? 0;
-                                                      const w = primarySub?.wrongCount ?? primarySub?.wrong ?? 0;
-                                                      const b = primarySub?.emptyCount ?? primarySub?.blank ?? 0;
-                                                      const q = primarySub?.totalQuestions || (c + w + b);
-                                                      return q > 0 && (c > 0 || w > 0 || b > 0)
-                                                        ? Math.min(100, Math.max(0, Math.round((c / q) * 100)))
-                                                        : Math.round(primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                    })()} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                    {(() => {
+                                                      const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
+                                                      const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
+                                                      const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
+                                                      const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
+                                                      const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                      return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
+                                                    })()}
                                                   </span>
                                                 ) : (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
@@ -3693,15 +3704,14 @@ export default function BookContentManager() {
                                                     {isSolved ? (
                                                       modalTargetStudents.length === 1 ? (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                          ✅ Çözüldü (%{(() => {
-                                                      const c = primarySub?.correctCount ?? primarySub?.correct ?? 0;
-                                                      const w = primarySub?.wrongCount ?? primarySub?.wrong ?? 0;
-                                                      const b = primarySub?.emptyCount ?? primarySub?.blank ?? 0;
-                                                      const q = primarySub?.totalQuestions || (c + w + b);
-                                                      return q > 0 && (c > 0 || w > 0 || b > 0)
-                                                        ? Math.min(100, Math.max(0, Math.round((c / q) * 100)))
-                                                        : Math.round(primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                    })()} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                          {(() => {
+                                                            const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
+                                                            const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
+                                                            const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
+                                                            const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
+                                                            const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                            return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
+                                                          })()}
                                                         </span>
                                                       ) : (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
