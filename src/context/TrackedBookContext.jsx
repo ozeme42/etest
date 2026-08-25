@@ -19,14 +19,58 @@ export function useTrackedBooks() {
 }
 
 export function TrackedBookProvider({ children }) {
+  const deduplicateBooks = (list) => {
+    if (!Array.isArray(list)) return [];
+    const map = new Map();
+    list.forEach(b => {
+      if (!b) return;
+      const titleNorm = String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const pubNorm = String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const key = `${titleNorm}___${pubNorm}`;
+      if (!map.has(key)) {
+        map.set(key, b);
+      } else {
+        const existing = map.get(key);
+        if ((b.subjects || []).length > (existing.subjects || []).length) {
+          map.set(key, { ...existing, ...b, id: existing.id });
+        }
+      }
+    });
+    return Array.from(map.values());
+  };
+
+  const deduplicateTests = (list) => {
+    if (!Array.isArray(list)) return [];
+    const map = new Map();
+    list.forEach(t => {
+      if (!t) return;
+      const bKey = String(t.bookId || t.book_id || '');
+      const sKey = String(t.subjectId || t.subject_id || '');
+      const topKey = String(t.topicId || t.topic_id || '');
+      const nameKey = String(t.name || '').trim().toLowerCase();
+      const key = `${bKey}___${sKey}___${topKey}___${nameKey}`;
+      if (!map.has(key)) {
+        map.set(key, t);
+      } else {
+        const existing = map.get(key);
+        const existingAns = Object.keys(existing.answerKey || {}).length;
+        const newAns = Object.keys(t.answerKey || {}).length;
+        if (newAns > existingAns) {
+          map.set(key, t);
+        }
+      }
+    });
+    return Array.from(map.values());
+  };
+
   const [books, setBooks] = useState(() => {
     const saved = localStorage.getItem('eTestTrackedBooks');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? deduplicateBooks(JSON.parse(saved)) : [];
   });
 
   const [bookTests, setBookTests] = useState(() => {
     const saved = localStorage.getItem('eTestTrackedBookTests');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? deduplicateTests(JSON.parse(saved)) : [];
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -53,9 +97,9 @@ export function TrackedBookProvider({ children }) {
             ...b,
             bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
           }));
-          setBooks(cleanBooks);
+          setBooks(deduplicateBooks(cleanBooks));
         }
-        if (res.bookTests) setBookTests(res.bookTests);
+        if (res.bookTests) setBookTests(deduplicateTests(res.bookTests));
       }
       return res;
     } finally {

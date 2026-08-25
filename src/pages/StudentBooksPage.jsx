@@ -189,10 +189,14 @@ export default function StudentBooksPage() {
       return false;
     };
     const bookMap = {};
+    const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
     // 1. Add all standard / mixed books
     (books || []).filter(b => b && !isExamBook(b)).forEach(b => {
-      bookMap[b.id] = { ...b, assignedHomeworks: [] };
+      const normK = getNormKey(b);
+      if (!bookMap[normK]) {
+        bookMap[normK] = { ...b, assignedHomeworks: [] };
+      }
     });
 
     // 2. Attach any homework assignments from all homeworks (or bookAssignments)
@@ -210,14 +214,15 @@ export default function StudentBooksPage() {
         });
       }
       if (book) {
-        if (!bookMap[book.id]) {
-          bookMap[book.id] = { ...book, assignedHomeworks: [] };
+        const normK = getNormKey(book);
+        if (!bookMap[normK]) {
+          bookMap[normK] = { ...book, assignedHomeworks: [] };
         }
-        bookMap[book.id].assignedHomeworks.push(hw);
+        bookMap[normK].assignedHomeworks.push(hw);
         if (hw.dueDate) {
           const dueDate = new Date(hw.dueDate);
-          if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) {
-            bookMap[book.id].targetDueDate = dueDate;
+          if (!bookMap[normK].targetDueDate || dueDate > bookMap[normK].targetDueDate) {
+            bookMap[normK].targetDueDate = dueDate;
           }
         }
       }
@@ -229,11 +234,22 @@ export default function StudentBooksPage() {
       const bUuid = String(toUUID(b.id) || '');
       const bTitle = String(b.title || '').toLowerCase().trim();
 
-      const testsInBook = (bookTests || []).filter(bt => 
+      const testsInBookRaw = (bookTests || []).filter(bt => 
         String(bt.bookId) === bId || 
         String(bt.book_id) === bId || 
-        (bUuid && String(bt.bookId) === bUuid)
+        (bUuid && String(bt.bookId) === bUuid) ||
+        (bUuid && toUUID(bt.bookId) === bUuid)
       );
+
+      const testsInBook = [];
+      const seenTestKeys = new Set();
+      testsInBookRaw.forEach(t => {
+        const tKey = `${String(t.subjectId || '')}_${String(t.topicId || '')}_${String(t.name || '').trim().toLowerCase()}`;
+        if (!seenTestKeys.has(tKey)) {
+          seenTestKeys.add(tKey);
+          testsInBook.push(t);
+        }
+      });
 
       // Check all assigned homeworks for total test arrays
       let maxHwTests = 0;

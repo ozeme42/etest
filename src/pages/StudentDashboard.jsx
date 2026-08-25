@@ -686,6 +686,7 @@ export default function StudentDashboard() {
     });
 
     const bookMap = {};
+    const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
     // 1. Process books assigned via homeworks
     bookAssignments.forEach(hw => {
@@ -701,21 +702,23 @@ export default function StudentDashboard() {
       }
       if (!book) return;
 
-      if (!bookMap[book.id]) {
-        bookMap[book.id] = { ...book, assignedHomeworks: [] };
+      const normK = getNormKey(book);
+      if (!bookMap[normK]) {
+        bookMap[normK] = { ...book, assignedHomeworks: [] };
       }
-      bookMap[book.id].assignedHomeworks.push(hw);
+      bookMap[normK].assignedHomeworks.push(hw);
 
       if (hw.dueDate) {
         const dueDate = new Date(hw.dueDate);
-        if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) bookMap[book.id].targetDueDate = dueDate;
+        if (!bookMap[normK].targetDueDate || dueDate > bookMap[normK].targetDueDate) bookMap[normK].targetDueDate = dueDate;
       }
     });
 
     // 2. Also include any non-exam book with solved tests
     books.filter(b => b.bookType !== 'exam').forEach(book => {
-      if (bookMap[book.id]) return;
-      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+      const normK = getNormKey(book);
+      if (bookMap[normK]) return;
+      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id) || (toUUID(book.id) && String(bt.bookId) === String(toUUID(book.id))));
       const hasSolvedTest = testsInBook.some(t => {
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
@@ -740,13 +743,31 @@ export default function StudentDashboard() {
       });
 
       if (hasSolvedTest) {
-        bookMap[book.id] = { ...book, assignedHomeworks: [] };
+        bookMap[normK] = { ...book, assignedHomeworks: [] };
       }
     });
 
     // Compute statistics for each book
     const list = Object.values(bookMap).map((book, idx) => {
-      const testsInBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+      const bId = String(book.id);
+      const bUuid = toUUID(bId);
+      const testsInBookRaw = (bookTests || []).filter(bt => 
+        String(bt.bookId) === bId || 
+        String(bt.book_id) === bId || 
+        (bUuid && String(bt.bookId) === bUuid) ||
+        (bUuid && toUUID(bt.bookId) === bUuid)
+      );
+
+      // Deduplicate tests by subject + topic + name
+      const testsInBook = [];
+      const seenTestKeys = new Set();
+      testsInBookRaw.forEach(t => {
+        const tKey = `${String(t.subjectId || '')}_${String(t.topicId || '')}_${String(t.name || '').trim().toLowerCase()}`;
+        if (!seenTestKeys.has(tKey)) {
+          seenTestKeys.add(tKey);
+          testsInBook.push(t);
+        }
+      });
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (book.totalTests || 1);
 
       let totalCorrect = 0;
