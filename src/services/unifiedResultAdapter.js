@@ -143,7 +143,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     raw.testId || raw.realTestId || rawSub.id || ''
   );
 
-  const matchedBookTest = (bookTests || []).find(bt =>
+  let matchedBookTest = (bookTests || []).find(bt =>
     String(bt.id) === testIdCandidate ||
     toUUID(bt.id) === testIdCandidate ||
     (bt.id && testIdCandidate.includes(String(bt.id)))
@@ -159,28 +159,63 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     rawSub.bookId || raw.bookId || matchedHw?.bookId || ''
   );
 
-  const matchedBook = (books || []).find(b =>
+  let matchedBook = (books || []).find(b =>
     String(b.id) === bookId ||
     toUUID(b.id) === bookId ||
     (matchedHw?.title && b.title && matchedHw.title.toLowerCase().includes(b.title.toLowerCase()))
   );
 
-  // 2. Identify Subject & Topic
-  const matchedSubject = (matchedBook?.subjects || []).find(s =>
+  let matchedSubject = (matchedBook?.subjects || []).find(s =>
     String(s.id) === String(matchedBookTest?.subject_id || matchedBookTest?.subjectId)
   ) || (books || []).flatMap(b => b.subjects || []).find(s =>
     String(s.id) === String(matchedBookTest?.subject_id || matchedBookTest?.subjectId)
   );
 
-  const matchedTopic = (matchedSubject?.topics || []).find(t =>
+  let matchedTopic = (matchedSubject?.topics || []).find(t =>
     String(t.id) === String(matchedBookTest?.topic_id || matchedBookTest?.topicId)
   );
 
+  // Deep search in books tree if not found
+  if (books && Array.isArray(books)) {
+    for (const b of books) {
+      if (!b.subjects || !Array.isArray(b.subjects)) continue;
+      for (const s of b.subjects) {
+        if (s.tests && Array.isArray(s.tests)) {
+          const ft = s.tests.find(t => String(t.id) === testIdCandidate || testIdCandidate.includes(String(t.id)));
+          if (ft) {
+            if (!matchedBookTest) matchedBookTest = { ...ft, bookId: b.id, subjectId: s.id };
+            if (!matchedBook) matchedBook = b;
+            if (!matchedSubject) matchedSubject = s;
+            break;
+          }
+        }
+        if (s.topics && Array.isArray(s.topics)) {
+          for (const tp of s.topics) {
+            if (tp.tests && Array.isArray(tp.tests)) {
+              const ft = tp.tests.find(t => String(t.id) === testIdCandidate || testIdCandidate.includes(String(t.id)));
+              if (ft) {
+                if (!matchedBookTest) matchedBookTest = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id };
+                if (!matchedBook) matchedBook = b;
+                if (!matchedSubject) matchedSubject = s;
+                if (!matchedTopic) matchedTopic = tp;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (matchedBookTest) break;
+    }
+  }
+
   const subjectName = matchedSubject?.name || meta.subjectName || rawSub.subject || matchedHw?.subject || matchedBook?.subject || 'Genel';
   const topicName = matchedTopic?.name || meta.topicName || rawSub.topic || matchedBookTest?.topicName || 'Genel Konu';
-  const testTitle = matchedBookTest?.name || rawSub.testTitle || rawSub.title || matchedHw?.title || 'Konu Testi';
-  const cleanBookTitle = matchedBook?.title || rawSub.bookTitle || '';
-  const fullTitle = cleanBookTitle ? `${cleanBookTitle} - ${subjectName} (${testTitle})` : `${subjectName} - ${testTitle}`;
+  const testName = matchedBookTest?.name || rawSub.testName || rawSub.name || rawSub.testTitle || rawSub.title || matchedHw?.title || 'Test';
+  const rawBookTitle = matchedBook?.title || rawSub.bookTitle || '';
+  const cleanBookTitle = rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+  const fullTitle = cleanBookTitle
+    ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
+    : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
 
   // 3. Question Count & Answer Key
   const rawAnswerKey = matchedBookTest?.answer_key || matchedBookTest?.answerKey || rawSub.answerKey || rawSub.answer_key || matchedHw?.answerKey || {};
@@ -283,15 +318,19 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     testId: realTestId,
     bookTestId: realTestId,
     realTestId,
-    testTitle,
+    testName,
+    testTitle: fullTitle,
+    title: testName,
     fullTitle,
     bookId: bookId || null,
     bookTitle: cleanBookTitle,
     subjectId: matchedSubject?.id || null,
     subjectName,
+    subject: subjectName,
     subjectKey: calculatedSubjectKey,
     topicId: matchedTopic?.id || null,
     topicName,
+    unitTopic: topicName,
     
     studentId,
     date: dateVal,
@@ -301,11 +340,14 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     correctCount,
     wrongCount,
     blankCount,
+    emptyCount: blankCount,
     scorePercentage,
     score: scorePercentage,
     computedScore: scorePercentage,
+    pct: scorePercentage,
     netScore,
     totalNet: netScore,
+    net: netScore,
     
     answerKey,
     studentAnswersMap,
