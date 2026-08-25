@@ -50,6 +50,17 @@ const StudentSummaryPage = lazy(() => import('./pages/StudentSummaryPage'));
 const StudentHomeworksPage = lazy(() => import('./pages/StudentHomeworksPage'));
 const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
 
+// One-time automatic cache bust for clean database sync
+const APP_CACHE_VERSION = 'v2026_08_25_master_sync_v5';
+try {
+  if (localStorage.getItem('eTestAppCacheVersion') !== APP_CACHE_VERSION) {
+    localStorage.removeItem('eTestTrackedBooks');
+    localStorage.removeItem('eTestTrackedBookTests');
+    localStorage.removeItem('eTestHomeworks');
+    localStorage.setItem('eTestAppCacheVersion', APP_CACHE_VERSION);
+  }
+} catch {}
+
 function PageLoader() {
   return (
     <div style={{

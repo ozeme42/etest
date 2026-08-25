@@ -357,6 +357,7 @@ export function HomeworkProvider({ children }) {
     <HomeworkContext.Provider value={{
       homeworks,
       isLoading,
+      refreshHomeworks,
       addHomework,
       updateHomework,
       deleteHomework,
