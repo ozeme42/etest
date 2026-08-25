@@ -1643,7 +1643,7 @@ export async function dbGetTrackedBooks() {
         id: String(b.id),
         title: b.title,
         publisher: b.publisher,
-        bookType: b.book_type || b.bookType || 'standard',
+        bookType: b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard'),
         optionCount: Number(optCount) || 5,
         pdfUrl: b.pdf_url || b.pdfUrl || '',
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),

@@ -40,7 +40,13 @@ export function TrackedBookProvider({ children }) {
       try {
         const res = await dbGetTrackedBooks();
         if (res) {
-          if (res.books) setBooks(res.books);
+          if (res.books) {
+            const cleanBooks = res.books.map(b => ({
+              ...b,
+              bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
+            }));
+            setBooks(cleanBooks);
+          }
           if (res.bookTests) setBookTests(res.bookTests);
         }
       } finally {

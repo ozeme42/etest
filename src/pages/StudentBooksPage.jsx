@@ -180,9 +180,13 @@ export default function StudentBooksPage() {
     , [submissions, studentIdStr, studentUuidStr]);
 
   const assignedBooks = useMemo(() => {
-    const isExamBook = (b) => {
+        const isExamBook = (b) => {
       if (!b) return false;
-      return b.bookType === 'exam' || b.book_type === 'exam' || b.raw_data?.bookType === 'exam' || b.type === 'exam';
+      const raw = b.raw_data || {};
+      if (b.id === 'tb_07kzdf_1787267196768') return true;
+      if (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher)) return true;
+      if (b.bookType === 'exam' || b.book_type === 'exam' || raw.bookType === 'exam' || b.type === 'exam') return true;
+      return false;
     };
     const bookMap = {};
 
