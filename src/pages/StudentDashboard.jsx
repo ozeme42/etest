@@ -2959,7 +2959,6 @@ export default function StudentDashboard() {
                   state: { from: '/student' }
                 });
               }}
-              onDeleteTest={handleDeleteRecentTest}
               selectedStudent={selectedStudent}
             />
 

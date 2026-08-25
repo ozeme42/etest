@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, ChevronRight, CheckCircle2, Award, Trash2 } from 'lucide-react';
+import { Plus, ChevronRight, CheckCircle2, Award } from 'lucide-react';
 
 export default function DashboardRecentSolvedCard({
   isMobile,
@@ -7,7 +7,6 @@ export default function DashboardRecentSolvedCard({
   onOpenManualModal,
   onNavigateResults,
   onReviewTest,
-  onDeleteTest,
   selectedStudent
 }) {
   return (
@@ -223,8 +222,8 @@ export default function DashboardRecentSolvedCard({
                   </div>
                 </div>
 
-                {/* Sağ Taraf: Skor Rozeti, Silme Butonu ve İnceleme Oku */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {/* Sağ Taraf: Skor Rozeti ve İnceleme Oku */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                   {scoreRate !== null && !test.isManualPending && !test.isPendingEvaluation && (
                     <span style={{
                       fontSize: isMobile ? '0.68rem' : '0.75rem',
@@ -240,33 +239,6 @@ export default function DashboardRecentSolvedCard({
                     }}>
                       %{scoreRate}
                     </span>
-                  )}
-                  {onDeleteTest && (
-                    <button
-                      type="button"
-                      title="Test Sonucunu Sil"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteTest(test);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        padding: isMobile ? 3 : 4,
-                        borderRadius: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: 0.7,
-                        transition: 'opacity 0.15s'
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
-                    >
-                      <Trash2 size={isMobile ? 13 : 15} />
-                    </button>
                   )}
                   <ChevronRight size={isMobile ? 14 : 16} color="var(--color-text-muted)" />
                 </div>
