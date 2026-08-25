@@ -1678,7 +1678,11 @@ export async function dbGetTrackedBooks() {
       _trackedBooksColumnsCache = new Set(Object.keys(bRes.data[0]));
     }
 
-    const books = (bRes.data || []).map(b => {
+    // 1. Deduplicate Books and build alias map
+    const idAliasMap = new Map();
+    const deduplicatedBooksMap = new Map();
+
+    (bRes.data || []).forEach(b => {
       const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
         ? b.subjects
         : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
@@ -1695,11 +1699,13 @@ export async function dbGetTrackedBooks() {
 
       const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
       const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
+      const title = b.title || metaObj?.title || b.raw_data?.title || '';
+      const pub = b.publisher || metaObj?.publisher || b.raw_data?.publisher || '';
 
-      return {
+      const bookObj = {
         id: String(b.id),
-        title: b.title || b.raw_data?.title || '',
-        publisher: b.publisher || b.raw_data?.publisher || '',
+        title: title,
+        publisher: pub,
         bookType: bType,
         optionCount: Number(optCount) || 5,
         pdfUrl: pdf,
@@ -1707,19 +1713,48 @@ export async function dbGetTrackedBooks() {
         raw_data: b.raw_data || {},
         createdAt: b.created_at
       };
+
+      const titleNorm = title.trim().toLowerCase().replace(/\s+/g, ' ');
+      const pubNorm = pub.trim().toLowerCase().replace(/\s+/g, ' ');
+      const normKey = `${titleNorm}___${pubNorm}`;
+
+      if (!deduplicatedBooksMap.has(normKey)) {
+        deduplicatedBooksMap.set(normKey, bookObj);
+        idAliasMap.set(String(b.id), String(b.id));
+        const bUuid = toUUID(b.id);
+        if (bUuid) idAliasMap.set(bUuid, String(b.id));
+      } else {
+        const canonical = deduplicatedBooksMap.get(normKey);
+        idAliasMap.set(String(b.id), String(canonical.id));
+        const bUuid = toUUID(b.id);
+        if (bUuid) idAliasMap.set(bUuid, String(canonical.id));
+        if ((bookObj.subjects || []).length > (canonical.subjects || []).length) {
+          canonical.subjects = bookObj.subjects;
+        }
+      }
     });
 
-    const bookTests = (tRes.data || []).map(t => {
+    const books = Array.from(deduplicatedBooksMap.values());
+
+    // 2. Map and deduplicate tests
+    const deduplicatedTestsMap = new Map();
+    (tRes.data || []).forEach(t => {
+      const tBookIdStr = String(t.book_id || '');
+      const canonicalBookId = idAliasMap.get(tBookIdStr) || (toUUID(tBookIdStr) ? idAliasMap.get(toUUID(tBookIdStr)) : null) || tBookIdStr;
       const ansKey = t.answer_key || {};
       const ansMeta = ansKey.__meta || {};
       const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
       const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
-      return {
+      const sId = t.subject_id ? String(t.subject_id) : null;
+      const topId = t.topic_id ? String(t.topic_id) : null;
+      const name = String(t.name || 'Test').trim();
+
+      const testObj = {
         id: String(t.id),
-        bookId: String(t.book_id),
-        subjectId: t.subject_id ? String(t.subject_id) : null,
-        topicId: t.topic_id ? String(t.topic_id) : null,
-        name: t.name,
+        bookId: canonicalBookId,
+        subjectId: sId,
+        topicId: topId,
+        name: name,
         questionCount: t.question_count || 20,
         answerKey: ansKey,
         isOpenEnded: isOe,
@@ -1728,8 +1763,21 @@ export async function dbGetTrackedBooks() {
         pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
         createdAt: t.created_at
       };
+
+      const testKey = `${canonicalBookId}___${sId || ''}___${topId || ''}___${name.toLowerCase()}`;
+      if (!deduplicatedTestsMap.has(testKey)) {
+        deduplicatedTestsMap.set(testKey, testObj);
+      } else {
+        const existing = deduplicatedTestsMap.get(testKey);
+        const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
+        const newAnsCount = Object.keys(testObj.answerKey || {}).filter(k => k !== '__meta').length;
+        if (newAnsCount > existingAnsCount) {
+          deduplicatedTestsMap.set(testKey, testObj);
+        }
+      }
     });
 
+    const bookTests = Array.from(deduplicatedTestsMap.values());
     return { books, bookTests };
   } catch (err) {
     console.warn('[Supabase] dbGetTrackedBooks error:', err.message);
@@ -1739,7 +1787,9 @@ export async function dbGetTrackedBooks() {
 
 async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = false) {
   if (!isSupabaseConfigured()) return null;
-  const safeId = toUUID(bookId);
+  const idStr = String(bookId || '');
+  const idUuid = toUUID(idStr);
+  const candidateIds = Array.from(new Set([idStr, idUuid].filter(Boolean)));
 
   const availableCols = await getTrackedBooksColumns();
   
@@ -1759,21 +1809,20 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
     };
   }
 
-  if (isUpsert) payload.id = safeId;
-
   try {
-    const query = isUpsert
-      ? supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle()
-      : supabase.from('tracked_books').update(payload).eq('id', safeId).select().maybeSingle();
+    // 1. Check if row already exists in Supabase under any candidate ID
+    const { data: existingRows } = await supabase.from('tracked_books').select('id').in('id', candidateIds);
+    const existingId = existingRows && existingRows.length > 0 ? existingRows[0].id : null;
 
-    const { data, error } = await query;
-    if (!error && data) {
-      return data;
-    }
-    if (error && !isUpsert) {
-      payload.id = safeId;
-      const upRes = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
-      if (!upRes.error && upRes.data) return upRes.data;
+    if (existingId) {
+      // Row exists! Update in-place to prevent duplication
+      const { data, error } = await supabase.from('tracked_books').update(payload).eq('id', existingId).select().maybeSingle();
+      if (!error && data) return data;
+    } else {
+      // New row! Insert with primary id
+      payload.id = idStr;
+      const { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
+      if (!error && data) return data;
     }
   } catch (err) {
     console.warn('[Supabase] resilientTrackedBookMutation error:', err);
