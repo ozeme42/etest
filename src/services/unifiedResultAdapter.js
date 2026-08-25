@@ -380,6 +380,37 @@ export function getAllUnifiedStudentSubmissions({
     return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
   };
 
+  let deletedIds = new Set();
+  try {
+    const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
+    if (savedDeleted) {
+      const parsed = JSON.parse(savedDeleted);
+      if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+    }
+  } catch {}
+
+  const isDeletedItem = (s) => {
+    if (!s) return true;
+    const candidates = [
+      s.id,
+      s.submissionId,
+      s.supabaseId,
+      s.testId,
+      s.realTestId,
+      s.bookTestId,
+      s.metadata?.realTestId,
+      s.metadata?.bookTestId,
+      s.metadata?.testId
+    ];
+    return candidates.some(c => {
+      if (!c) return false;
+      const str = String(c);
+      const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+      const u = toUUID(str);
+      return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+    });
+  };
+
   const results = [];
   const processedTestIds = new Set();
   const processedKeys = new Set();
@@ -398,12 +429,12 @@ export function getAllUnifiedStudentSubmissions({
         String(s.homeworkId) === String(hw.id) ||
         String(s.testId) === String(hw.id)
       ))
-    ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
+    ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft' && !isDeletedItem(s));
 
     matchingSubs.forEach((sub, subIdx) => {
       const subWithHw = { ...sub, hwId: hw.id, homeworkTitle: hw.title };
       const normalized = normalizeUnifiedSubmission(subWithHw, { books, bookTests, homeworks });
-      if (!normalized) return;
+      if (!normalized || isDeletedItem(normalized)) return;
 
       const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
       if (processedTestIds.has(testKey)) return;
@@ -418,7 +449,7 @@ export function getAllUnifiedStudentSubmissions({
 
   // 2. Process Standalone Submissions (Book Tests, Study Room, Free Quizzes)
   (submissions || []).forEach(sub => {
-    if (!sub || !isMatchStudent(sub)) return;
+    if (!sub || !isMatchStudent(sub) || isDeletedItem(sub)) return;
     if (sub.status === 'in_progress' || sub.status === 'draft') return;
     const rawSubId = String(sub.id || sub.submissionId || '');
     if (rawSubId.startsWith('draft_') || rawSubId.startsWith('64726166')) return;
@@ -426,7 +457,7 @@ export function getAllUnifiedStudentSubmissions({
     if (sub.submissionId && processedKeys.has(String(sub.submissionId))) return;
 
     const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
-    if (!normalized) return;
+    if (!normalized || isDeletedItem(normalized)) return;
 
     const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
     if (processedTestIds.has(testKey)) return;

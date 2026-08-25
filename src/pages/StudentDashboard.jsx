@@ -374,8 +374,8 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks } = useHomework();
-  const { submissions } = useEvaluation();
+  const { homeworks, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
@@ -865,6 +865,32 @@ export default function StudentDashboard() {
     return allSubs.slice(0, 5);
   }, [selectedStudent?.id, submissions, homeworks, books, bookTests]);
 
+  const handleDeleteRecentTest = async (testItem) => {
+    if (!testItem || !window.confirm(`"${testItem.title || 'Bu test'}" sonucunu silmek istediğinize emin misiniz? Tüm kaydı ve istatistikleri sıfırlanacaktır.`)) return;
+    try {
+      const allTestIdentifiers = [
+        testItem.testId,
+        testItem.bookTestId,
+        testItem.realTestId,
+        testItem.id,
+        testItem.submissionId,
+        testItem.supabaseId
+      ].filter(Boolean);
+
+      if (testItem.id) await deleteSubmission(testItem.id);
+      if (testItem.supabaseId) await deleteSubmission(testItem.supabaseId);
+      if (testItem.testId) await deleteSubmissionsByTestId(testItem.testId);
+      if (testItem.hwId && testItem.hwId !== testItem.testId) await deleteSubmissionsByTestId(testItem.hwId);
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(selectedStudent?.id, testItem.hwId, testItem.bookId, allTestIdentifiers);
+      }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(testItem.hwId, selectedStudent?.id, testItem.bookId, allTestIdentifiers);
+      }
+    } catch (e) {
+      console.error("Delete test from dashboard error:", e);
+    }
+  };
 
   /* ─── Pending Tasks ─── */
   const pendingTasks = useMemo(() => {
@@ -2933,6 +2959,7 @@ export default function StudentDashboard() {
                   state: { from: '/student' }
                 });
               }}
+              onDeleteTest={handleDeleteRecentTest}
               selectedStudent={selectedStudent}
             />
 
