@@ -1,15 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import { safeSetItem, cleanupLocalStorage } from '../utils/storageUtils';
 
-const NEW_SUPABASE_URL = 'https://nvizichancilyhgmivlj.supabase.co';
-const NEW_SUPABASE_KEY = 'sb_publishable_nelqUJSnXNfmiTXchT3igQ_KCjlK2LG';
+export const CURRENT_SUPABASE_URL = 'https://nvizichancilyhgmivlj.supabase.co';
+export const CURRENT_SUPABASE_KEY = 'sb_publishable_nelqUJSnXNfmiTXchT3igQ_KCjlK2LG';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// If old blocked project is used in environment variables, automatically redirect to new project
-const supabaseUrl = (rawUrl && !rawUrl.includes('oocwiitwxrungkbevhry')) ? rawUrl : NEW_SUPABASE_URL;
-const supabaseAnonKey = (rawKey && !rawUrl.includes('oocwiitwxrungkbevhry')) ? rawKey : NEW_SUPABASE_KEY;
+// Clean up any stale tokens from the old blocked project
+try {
+  Object.keys(localStorage).forEach(k => {
+    if (k.includes('oocwiitwxrungkbevhry')) {
+      localStorage.removeItem(k);
+    }
+  });
+} catch {}
+
+const isOldProject = Boolean(
+  (rawUrl && rawUrl.includes('oocwiitwxrungkbevhry')) ||
+  (rawKey && (rawKey.includes('oocwiitwxrungkbevhry') || rawKey.includes('HdO8o8rM2U6FkbR03NfAnL_bE3YRSzG8AXGefydqU-s')))
+);
+
+export const supabaseUrl = (!isOldProject && rawUrl && rawUrl.startsWith('http')) ? rawUrl : CURRENT_SUPABASE_URL;
+export const supabaseAnonKey = (!isOldProject && rawKey && rawKey.length > 20) ? rawKey : CURRENT_SUPABASE_KEY;
 
 let quotaExceededDetected = false;
 
