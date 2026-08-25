@@ -3,29 +3,30 @@ import { idbSetPayload, idbGetPayload } from './indexedDbService';
 
 /**
  * Creates and downloads a 100% complete, uncompressed JSON backup of ALL application data
- * including localStorage items, roadmaps, book progress, wrong answers, and IndexedDB payloads.
+ * including curriculum, users, all 66 test submissions, tracked books, book tests, roadmaps,
+ * question payloads, and teacher evaluations.
  */
 export async function createFullBackup() {
   const backup = {
-    version: '3.0',
+    version: '3.5',
     platform: 'e-Test Professional',
     exportDate: new Date().toISOString(),
     exportDateFormatted: new Date().toLocaleString('tr-TR'),
     data: {}
   };
 
-  // 1. Dynamic Universal Key Scanner: Collect ALL relevant keys from localStorage
+  // 1. Dynamic Scanner: Collect ALL relevant keys from localStorage
   const prefixes = [
-    'eTest', 'curriculum', 'tracked', 'study_', 'program_', 'mistake_reasons_',
+    'eTest', 'etest', 'curriculum', 'tracked', 'study_', 'program_', 'mistake_reasons_',
     'student_', 'teacher_note_', 'theme_', 'gemini_', 'scale_', 'draft_'
   ];
 
   const explicitKeys = [
     'eTestUsers', 'eTestCurriculum', 'curriculumData', 'eTestHomeworks',
     'eTestSubmissions', 'etest_submissions', 'eTestQuestions', 'eTestTrackedBooks',
-    'trackedBooks', 'eTestStudyPlans', 'eTestMockExams', 'eTestCoachingMeetings',
-    'eTestCoachingProfiles', 'etest_coaching_profiles', 'eTestGoals', 'eTestSchedules',
-    'eTestSummaries', 'eTestScales', 'eTestAuthUser'
+    'trackedBooks', 'eTestTrackedBookTests', 'eTestStudyPlans', 'eTestMockExams',
+    'eTestCoachingMeetings', 'eTestCoachingProfiles', 'etest_coaching_profiles',
+    'eTestGoals', 'eTestSchedules', 'eTestSummaries', 'eTestScales', 'eTestAuthUser'
   ];
 
   const allKeys = new Set(explicitKeys);
@@ -44,7 +45,7 @@ export async function createFullBackup() {
   allKeys.forEach(key => {
     try {
       const val = localStorage.getItem(key);
-      if (val !== null) {
+      if (val !== null && val !== undefined && val !== '') {
         try {
           backup.data[key] = JSON.parse(val);
         } catch {
@@ -56,7 +57,18 @@ export async function createFullBackup() {
     }
   });
 
-  // 3. Fetch full question payloads from IndexedDB if stored there
+  // 3. Fallback: If curriculum is in IndexedDB but not in localStorage, fetch from IDB!
+  if (!backup.data['eTestCurriculum'] && !backup.data['curriculumData']) {
+    try {
+      const idbCur = await idbGetPayload('eTestCurriculum_Cache');
+      if (idbCur) {
+        backup.data['eTestCurriculum'] = JSON.parse(idbCur);
+        backup.data['curriculumData'] = JSON.parse(idbCur);
+      }
+    } catch {}
+  }
+
+  // 4. Fetch full question payloads from IndexedDB if stored there
   const questions = backup.data['eTestQuestions'] || [];
   if (Array.isArray(questions)) {
     const fullQuestions = await Promise.all(questions.map(async (q) => {
@@ -71,13 +83,14 @@ export async function createFullBackup() {
     backup.data['eTestQuestions'] = fullQuestions;
   }
 
-  // 4. Detailed statistics for user confirmation
+  // 5. Detailed statistics for user confirmation
   const submissionsList = backup.data['eTestSubmissions'] || backup.data['etest_submissions'] || [];
   const booksList = backup.data['eTestTrackedBooks'] || backup.data['trackedBooks'] || [];
+  const bookTestsList = backup.data['eTestTrackedBookTests'] || [];
   const usersList = backup.data['eTestUsers'] || [];
   const homeworksList = backup.data['eTestHomeworks'] || [];
   const questionsList = backup.data['eTestQuestions'] || [];
-  const studyPlansList = backup.data['eTestStudyPlans'] || [];
+  const curData = backup.data['eTestCurriculum'] || backup.data['curriculumData'] || {};
 
   const stats = {
     submissionCount: submissionsList.length,
@@ -85,12 +98,16 @@ export async function createFullBackup() {
     homeworkCount: homeworksList.length,
     questionCount: questionsList.length,
     bookCount: booksList.length,
-    studyPlanCount: studyPlansList.length,
+    bookTestCount: bookTestsList.length,
+    gradeCount: (curData.grades || []).length,
+    subjectCount: (curData.subjects || []).length,
+    unitCount: (curData.units || []).length,
+    topicCount: (curData.topics || []).length,
     totalKeys: Object.keys(backup.data).length
   };
   backup.stats = stats;
 
-  // 5. Trigger browser file download
+  // 6. Trigger browser file download
   const jsonStr = JSON.stringify(backup, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -118,7 +135,7 @@ export async function restoreFullBackup(jsonInput) {
   }
 
   if (!parsed || !parsed.data) {
-    throw new Error('Geçersiz veya bozuk yedek dosyası!');
+    throw new Error('Geçersiz veya bozuk yedek dosyası formatı!');
   }
 
   const data = parsed.data;
@@ -128,10 +145,27 @@ export async function restoreFullBackup(jsonInput) {
     homeworkCount: 0,
     questionCount: 0,
     bookCount: 0,
-    studyPlanCount: 0
+    gradeCount: 0,
+    subjectCount: 0
   };
 
-  // 1. Restore questions and separate heavy payloads to IndexedDB
+  // Clear any tombstoned deleted ids to allow full restoration
+  try {
+    localStorage.removeItem('eTestDeletedSubmissions');
+  } catch {}
+
+  // 1. Restore Curriculum to both localStorage and IndexedDB
+  const cur = data['eTestCurriculum'] || data['curriculumData'];
+  if (cur) {
+    const curStr = typeof cur === 'string' ? cur : JSON.stringify(cur);
+    safeSetItem('eTestCurriculum', curStr);
+    safeSetItem('curriculumData', curStr);
+    await idbSetPayload('eTestCurriculum_Cache', curStr).catch(() => {});
+    if (cur.grades) restoredStats.gradeCount = cur.grades.length;
+    if (cur.subjects) restoredStats.subjectCount = cur.subjects.length;
+  }
+
+  // 2. Restore questions and separate heavy payloads to IndexedDB
   if (Array.isArray(data['eTestQuestions'])) {
     const qs = data['eTestQuestions'];
     restoredStats.questionCount = qs.length;
@@ -142,7 +176,6 @@ export async function restoreFullBackup(jsonInput) {
       }
     }
 
-    // Save metadata-only in LocalStorage to preserve quota
     const sanitizedQs = qs.map(q => {
       if (q && typeof q.contentPayload === 'string' && q.contentPayload.length > 500 && !q.contentPayload.startsWith('http')) {
         return { ...q, contentPayload: '[STORED_IN_INDEXEDDB]' };
@@ -152,9 +185,9 @@ export async function restoreFullBackup(jsonInput) {
     safeSetItem('eTestQuestions', JSON.stringify(sanitizedQs));
   }
 
-  // 2. Restore all other keys
+  // 3. Restore all other keys
   Object.keys(data).forEach(key => {
-    if (key === 'eTestQuestions') return; // already processed
+    if (key === 'eTestQuestions' || key === 'eTestCurriculum' || key === 'curriculumData') return;
     try {
       const val = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
       safeSetItem(key, val);
@@ -170,7 +203,6 @@ export async function restoreFullBackup(jsonInput) {
   if (data['eTestHomeworks']) restoredStats.homeworkCount = data['eTestHomeworks'].length;
   if (data['eTestTrackedBooks']) restoredStats.bookCount = data['eTestTrackedBooks'].length;
   else if (data['trackedBooks']) restoredStats.bookCount = data['trackedBooks'].length;
-  if (data['eTestStudyPlans']) restoredStats.studyPlanCount = data['eTestStudyPlans'].length;
 
   return restoredStats;
 }
