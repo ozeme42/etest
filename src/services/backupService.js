@@ -2,51 +2,61 @@ import { safeSetItem } from '../utils/storageUtils';
 import { idbSetPayload, idbGetPayload } from './indexedDbService';
 
 /**
- * Creates and downloads a 100% complete, uncompressed JSON backup of all application data
- * including localStorage items and IndexedDB binary/image question payloads.
+ * Creates and downloads a 100% complete, uncompressed JSON backup of ALL application data
+ * including localStorage items, roadmaps, book progress, wrong answers, and IndexedDB payloads.
  */
 export async function createFullBackup() {
   const backup = {
-    version: '2.0',
+    version: '3.0',
+    platform: 'e-Test Professional',
     exportDate: new Date().toISOString(),
     exportDateFormatted: new Date().toLocaleString('tr-TR'),
     data: {}
   };
 
-  // 1. Collect all localStorage keys
-  const keysToBackup = [
-    'eTestUsers',
-    'eTestCurriculum',
-    'curriculumData',
-    'eTestHomeworks',
-    'eTestSubmissions',
-    'etest_submissions',
-    'eTestQuestions',
-    'eTestTrackedBooks',
-    'trackedBooks',
-    'eTestStudyPlans',
-    'eTestMockExams',
-    'eTestCoachingMeetings',
-    'eTestCoachingProfiles',
-    'eTestGoals',
-    'eTestSchedules',
-    'eTestSummaries',
-    'eTestScales'
+  // 1. Dynamic Universal Key Scanner: Collect ALL relevant keys from localStorage
+  const prefixes = [
+    'eTest', 'curriculum', 'tracked', 'study_', 'program_', 'mistake_reasons_',
+    'student_', 'teacher_note_', 'theme_', 'gemini_', 'scale_', 'draft_'
   ];
 
-  keysToBackup.forEach(key => {
+  const explicitKeys = [
+    'eTestUsers', 'eTestCurriculum', 'curriculumData', 'eTestHomeworks',
+    'eTestSubmissions', 'etest_submissions', 'eTestQuestions', 'eTestTrackedBooks',
+    'trackedBooks', 'eTestStudyPlans', 'eTestMockExams', 'eTestCoachingMeetings',
+    'eTestCoachingProfiles', 'etest_coaching_profiles', 'eTestGoals', 'eTestSchedules',
+    'eTestSummaries', 'eTestScales', 'eTestAuthUser'
+  ];
+
+  const allKeys = new Set(explicitKeys);
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && prefixes.some(p => k.startsWith(p))) {
+        allKeys.add(k);
+      }
+    }
+  } catch (e) {
+    console.warn('[Backup] Error iterating localStorage keys:', e);
+  }
+
+  // 2. Extract and parse data for each key
+  allKeys.forEach(key => {
     try {
       const val = localStorage.getItem(key);
       if (val !== null) {
-        backup.data[key] = JSON.parse(val);
+        try {
+          backup.data[key] = JSON.parse(val);
+        } catch {
+          backup.data[key] = val;
+        }
       }
     } catch (e) {
-      console.warn(`[Backup] Could not parse ${key}:`, e);
-      backup.data[key] = localStorage.getItem(key);
+      console.warn(`[Backup] Error reading ${key}:`, e);
     }
   });
 
-  // 2. Fetch full question payloads from IndexedDB if stored there
+  // 3. Fetch full question payloads from IndexedDB if stored there
   const questions = backup.data['eTestQuestions'] || [];
   if (Array.isArray(questions)) {
     const fullQuestions = await Promise.all(questions.map(async (q) => {
@@ -61,18 +71,26 @@ export async function createFullBackup() {
     backup.data['eTestQuestions'] = fullQuestions;
   }
 
-  // 3. Stats for notification
+  // 4. Detailed statistics for user confirmation
+  const submissionsList = backup.data['eTestSubmissions'] || backup.data['etest_submissions'] || [];
+  const booksList = backup.data['eTestTrackedBooks'] || backup.data['trackedBooks'] || [];
+  const usersList = backup.data['eTestUsers'] || [];
+  const homeworksList = backup.data['eTestHomeworks'] || [];
+  const questionsList = backup.data['eTestQuestions'] || [];
+  const studyPlansList = backup.data['eTestStudyPlans'] || [];
+
   const stats = {
-    userCount: (backup.data['eTestUsers'] || []).length,
-    submissionCount: (backup.data['eTestSubmissions'] || backup.data['etest_submissions'] || []).length,
-    homeworkCount: (backup.data['eTestHomeworks'] || []).length,
-    questionCount: (backup.data['eTestQuestions'] || []).length,
-    bookCount: (backup.data['eTestTrackedBooks'] || backup.data['trackedBooks'] || []).length,
-    examCount: (backup.data['eTestMockExams'] || []).length
+    submissionCount: submissionsList.length,
+    userCount: usersList.length,
+    homeworkCount: homeworksList.length,
+    questionCount: questionsList.length,
+    bookCount: booksList.length,
+    studyPlanCount: studyPlansList.length,
+    totalKeys: Object.keys(backup.data).length
   };
   backup.stats = stats;
 
-  // 4. Trigger browser download
+  // 5. Trigger browser file download
   const jsonStr = JSON.stringify(backup, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -89,7 +107,7 @@ export async function createFullBackup() {
 }
 
 /**
- * Restores all data from a provided backup JSON object or string
+ * Restores ALL data from a provided backup JSON object or string
  */
 export async function restoreFullBackup(jsonInput) {
   let parsed;
@@ -100,7 +118,7 @@ export async function restoreFullBackup(jsonInput) {
   }
 
   if (!parsed || !parsed.data) {
-    throw new Error('Geçersiz yedek dosyası formatı!');
+    throw new Error('Geçersiz veya bozuk yedek dosyası!');
   }
 
   const data = parsed.data;
@@ -109,7 +127,8 @@ export async function restoreFullBackup(jsonInput) {
     submissionCount: 0,
     homeworkCount: 0,
     questionCount: 0,
-    bookCount: 0
+    bookCount: 0,
+    studyPlanCount: 0
   };
 
   // 1. Restore questions and separate heavy payloads to IndexedDB
@@ -135,7 +154,7 @@ export async function restoreFullBackup(jsonInput) {
 
   // 2. Restore all other keys
   Object.keys(data).forEach(key => {
-    if (key === 'eTestQuestions') return; // already processed above
+    if (key === 'eTestQuestions') return; // already processed
     try {
       const val = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
       safeSetItem(key, val);
@@ -151,6 +170,7 @@ export async function restoreFullBackup(jsonInput) {
   if (data['eTestHomeworks']) restoredStats.homeworkCount = data['eTestHomeworks'].length;
   if (data['eTestTrackedBooks']) restoredStats.bookCount = data['eTestTrackedBooks'].length;
   else if (data['trackedBooks']) restoredStats.bookCount = data['trackedBooks'].length;
+  if (data['eTestStudyPlans']) restoredStats.studyPlanCount = data['eTestStudyPlans'].length;
 
   return restoredStats;
 }
