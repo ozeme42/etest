@@ -1524,12 +1524,22 @@ export async function dbGetStudyPlans() {
 
     if (pRes.error || aRes.error) return null;
 
-    const plans = (pRes.data || []).map(p => ({
-      id: String(p.id),
-      title: p.title,
-      subjects: p.subjects || [],
-      createdAt: p.created_at
-    }));
+    const plans = (pRes.data || []).map(p => {
+      let subjects = [];
+      if (Array.isArray(p.subjects) && p.subjects.length > 0) {
+        subjects = p.subjects;
+      } else if (p.raw_data && Array.isArray(p.raw_data.subjects)) {
+        subjects = p.raw_data.subjects;
+      } else if (Array.isArray(p.raw_data)) {
+        subjects = p.raw_data;
+      }
+      return {
+        id: String(p.id),
+        title: p.title,
+        subjects,
+        createdAt: p.created_at
+      };
+    });
 
     const assignments = (aRes.data || []).map(a => {
       let completedTopics = [];
@@ -1558,7 +1568,7 @@ export async function dbAddStudyPlan(plan) {
     const payload = {
       id: String(plan.id || `plan_${Date.now()}`),
       title: plan.title,
-      subjects: plan.subjects || []
+      raw_data: { subjects: plan.subjects || [] }
     };
     const { data, error } = await supabase.from('study_plans').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
