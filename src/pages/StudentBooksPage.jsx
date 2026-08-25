@@ -180,10 +180,14 @@ export default function StudentBooksPage() {
     , [submissions, studentIdStr, studentUuidStr]);
 
   const assignedBooks = useMemo(() => {
+    const isExamBook = (b) => {
+      if (!b) return false;
+      return b.bookType === 'exam' || b.book_type === 'exam' || b.raw_data?.bookType === 'exam' || b.type === 'exam';
+    };
     const bookMap = {};
 
     // 1. Add all standard / mixed books
-    (books || []).filter(b => b.bookType !== 'exam').forEach(b => {
+    (books || []).filter(b => b && !isExamBook(b)).forEach(b => {
       bookMap[b.id] = { ...b, assignedHomeworks: [] };
     });
 
@@ -193,12 +197,12 @@ export default function StudentBooksPage() {
       const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.title?.includes('Kitap');
       if (!isBookHw) return;
 
-      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && b.bookType !== 'exam');
+      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && !isExamBook(b));
       if (!book && hw.title) {
         const cleanHwTitle = hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
         book = (books || []).find(b => {
           const bT = String(b.title).toLowerCase().trim();
-          return b.bookType !== 'exam' && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
+          return !isExamBook(b) && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
         });
       }
       if (book) {
