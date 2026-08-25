@@ -13,7 +13,7 @@ export default memo(function DashboardTodayTasks({
   onTaskClick,
   getRowTheme
 }) {
-  const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(true);
+  const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(false);
 
   const headerGradient = dayProgramInfo.isToday
     ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
