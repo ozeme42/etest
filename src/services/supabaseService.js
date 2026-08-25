@@ -384,6 +384,7 @@ export async function dbSaveSummary(summary, allSummaries = []) {
       const storePayload = {
         id: 'global_summaries_store',
         student_id: 'system_summaries',
+        teacher_id: 'teacher_1',
         extra_data: JSON.stringify(allSummaries)
       };
       await supabase.from('coaching_profiles').upsert([storePayload], { onConflict: 'id' });
