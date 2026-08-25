@@ -862,7 +862,8 @@ a.evaluatedAt ||
           totalQuestions: total,
           computedScore: score,
           totalNet: calcNet,
-          submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
+          submittedAt: extractItemDate(sub.submittedAt || sub.completedAt || raw.submittedAt || sub.date || sub),
+          date: extractItemDate(sub.submittedAt || sub.completedAt || raw.submittedAt || sub.date || sub)
         });
       });
     });
@@ -1082,7 +1083,8 @@ a.evaluatedAt ||
         totalQuestions: total,
         computedScore: scorePct,
         totalNet: calcNet,
-        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
+        submittedAt: extractItemDate(sub.submittedAt || sub.completedAt || raw.submittedAt || sub.date || sub),
+        date: extractItemDate(sub.submittedAt || sub.completedAt || raw.submittedAt || sub.date || sub)
       });
     });
 
@@ -1714,7 +1716,7 @@ a.evaluatedAt ||
         {activeTab === 'periodic' && (
           <div className="sr-anim">
             <PeriodicQuestionAnalytics
-              homeworkSubmissions={otherHomeworkSubmissions}
+              homeworkSubmissions={computedResults && computedResults.length > 0 ? computedResults : otherHomeworkSubmissions}
               mockExams={generalTrialExams}
               studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
             />

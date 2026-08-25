@@ -954,7 +954,7 @@ export function computeStudentAnalyticsData({
     if (allMatching.length === 0) return;
     const sub = allMatching[0];
 
-    const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
+    const sDate = extractItemDate(sub.submittedAt || sub.completedAt || sub.date || sub);
     if (!sDate) return;
 
     if (sub.id) processedKeys.add(String(sub.id));

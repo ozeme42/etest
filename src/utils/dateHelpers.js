@@ -161,41 +161,67 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
  */
 export const extractItemDate = (s) => {
   if (!s) return getTurkeyToday();
-  if (typeof s === 'string' || typeof s === 'number') return getTurkeyYMD(s);
+  const todayYMD = getTurkeyToday();
 
-  const raw = s.raw_data || {};
-  const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
+  const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
+  const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
 
-  // 1. Explicit dates
-  const explicit = s.submittedAt || s.completedAt || s.date || meta?.submittedAt || meta?.date || meta?.completedAt || raw.submittedAt || raw.completedAt || raw.date;
-  if (explicit && String(explicit).trim()) {
-    return getTurkeyYMD(explicit);
-  }
+  // Embedded timestamp check helper
+  const getEmbeddedTsDate = () => {
+    const idCandidates = [
+      String(meta?.realId || ''),
+      String(s.realId || ''),
+      String(s.id || ''),
+      String(s.supabaseId || ''),
+      String(s.bookTestId || ''),
+      String(meta?.bookTestId || ''),
+      String(s.testId || ''),
+      String(meta?.realTestId || ''),
+      String(s.test_id || ''),
+      String(s.hwId || '')
+    ];
 
-  // 2. Extract embedded millisecond timestamp from id strings
-  const idCandidates = [
-    String(s.realId || ''),
-    String(meta?.realId || ''),
-    String(s.id || ''),
-    String(s.supabaseId || ''),
-    String(s.bookTestId || ''),
-    String(meta?.bookTestId || ''),
-    String(s.testId || ''),
-    String(meta?.realTestId || ''),
-    String(s.hwId || '')
-  ];
-
-  for (const idStr of idCandidates) {
-    const matchTs = idStr.match(/(\d{12,13})/);
-    if (matchTs) {
-      const tsNum = Number(matchTs[1]);
-      if (tsNum > 1600000000000 && tsNum < 2000000000000) {
-        return getTurkeyYMD(new Date(tsNum));
+    for (const idStr of idCandidates) {
+      const matchTs = idStr.match(/(\d{12,13})/);
+      if (matchTs) {
+        const tsNum = Number(matchTs[1]);
+        if (tsNum > 1600000000000 && tsNum < 2000000000000) {
+          return getTurkeyYMD(new Date(tsNum));
+        }
       }
+    }
+    return null;
+  };
+
+  const embedded = (typeof s === 'object') ? getEmbeddedTsDate() : null;
+
+  const explicit = (typeof s === 'object')
+    ? (s.submittedAt || s.completedAt || s.date || meta?.submittedAt || meta?.date || meta?.completedAt || raw.submittedAt || raw.completedAt || raw.date)
+    : String(s);
+
+  if (explicit && String(explicit).trim()) {
+    const expStr = String(explicit).trim();
+    const expYMD = getTurkeyYMD(expStr);
+
+    if (expYMD) {
+      // If expYMD is today and we have an embedded older timestamp from original solve, prefer original solve date!
+      if (expYMD === todayYMD && embedded && embedded !== todayYMD) {
+        return embedded;
+      }
+      return expYMD;
     }
   }
 
-  // 3. Fallback to createdAt or today
+  if (embedded) return embedded;
+
   const fallback = s.createdAt || s.created_at || meta?.createdAt || raw.createdAt;
-  return getTurkeyYMD(fallback || new Date());
+  if (fallback) {
+    const fYMD = getTurkeyYMD(fallback);
+    if (fYMD === todayYMD && embedded && embedded !== todayYMD) {
+      return embedded;
+    }
+    return fYMD;
+  }
+
+  return todayYMD;
 };
