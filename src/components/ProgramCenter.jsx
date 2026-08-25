@@ -1804,19 +1804,146 @@ export function MonthlyListPanel({
 
         const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
 
+        // Helper to resolve accurate subject, unit/topic, and test names
+        const resolveBookTestInfo = (testId) => {
+          const tIdStr = String(testId || '');
+          const tUuidStr = String(toUUID(tIdStr) || '');
+          const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+
+          let currentBook = bookObj || (allTrackedBooks || []).find(b => 
+            String(b?.id) === String(hw?.bookId) || 
+            (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId)))
+          );
+
+          let tObj = (bookTests || []).find(b => {
+            const bId = String(b?.id || '');
+            return bId === tIdStr || 
+              (tUuidStr && bId === tUuidStr) || 
+              (tUuidStr && toUUID(bId) === tUuidStr) || 
+              bId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId;
+          });
+
+          let subjObj = null;
+          let topicObj = null;
+
+          if (currentBook && currentBook.subjects) {
+            for (const s of currentBook.subjects) {
+              if (s.tests && Array.isArray(s.tests)) {
+                const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                if (found) {
+                  if (!tObj) tObj = found;
+                  subjObj = s;
+                  break;
+                }
+              }
+              if (s.topics && Array.isArray(s.topics)) {
+                for (const tp of s.topics) {
+                  if (tp.tests && Array.isArray(tp.tests)) {
+                    const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                    if (found) {
+                      if (!tObj) tObj = found;
+                      subjObj = s;
+                      topicObj = tp;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (subjObj) break;
+            }
+          }
+
+          if (!subjObj && (!tObj || !tObj.subjectId)) {
+            for (const b of (allTrackedBooks || [])) {
+              if (!b.subjects) continue;
+              for (const s of b.subjects) {
+                if (s.tests) {
+                  const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                  if (found) {
+                    if (!tObj) tObj = found;
+                    subjObj = s;
+                    if (!currentBook) currentBook = b;
+                    break;
+                  }
+                }
+                if (s.topics) {
+                  for (const tp of s.topics) {
+                    if (tp.tests) {
+                      const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                      if (found) {
+                        if (!tObj) tObj = found;
+                        subjObj = s;
+                        topicObj = tp;
+                        if (!currentBook) currentBook = b;
+                        break;
+                      }
+                    }
+                  }
+                }
+                if (subjObj) break;
+              }
+              if (subjObj) break;
+            }
+          }
+
+          if (tObj && !subjObj && currentBook) {
+            subjObj = (currentBook.subjects || []).find(s => 
+              String(s.id) === String(tObj.subjectId) || 
+              (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId)) || 
+              (s.name && tObj.subjectName && String(s.name).toLowerCase().trim() === String(tObj.subjectName).toLowerCase().trim())
+            );
+            topicObj = (subjObj?.topics || []).find(tp => 
+              String(tp.id) === String(tObj.topicId) || 
+              (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId)) || 
+              (tp.name && tObj.topicName && String(tp.name).toLowerCase().trim() === String(tObj.topicName).toLowerCase().trim())
+            );
+          }
+
+          let subjectName = subjObj?.name || tObj?.subjectName || tObj?.subject;
+          if (!subjectName || subjectName === 'Atlı Karınca' || subjectName === 'CUSTOM') {
+            const rawToCheck = `${hw?.title || ''} ${hw?.subject || ''} ${currentBook?.title || ''}`;
+            if (/matematik/i.test(rawToCheck)) subjectName = 'Matematik';
+            else if (/turkce|türkçe|paragraf/i.test(rawToCheck)) subjectName = 'Türkçe';
+            else if (/sosyal/i.test(rawToCheck)) subjectName = 'Sosyal Bilgiler';
+            else if (/fen/i.test(rawToCheck)) subjectName = 'Fen Bilimleri';
+            else if (/ingilizce/i.test(rawToCheck)) subjectName = 'İngilizce';
+            else if (/din/i.test(rawToCheck)) subjectName = 'Din Kültürü';
+            else subjectName = currentBook?.title ? currentBook.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim() : 'Kitap Takibi';
+          }
+
+          const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
+          const testName = tObj?.name || 'Test';
+          const qCount = tObj?.questionCount || 12;
+          const cleanTitle = (currentBook?.title || hw?.title || 'Kitap')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+            .trim();
+
+          return {
+            tObj,
+            subjObj,
+            topicObj,
+            subjectName,
+            topicName,
+            testName,
+            qCount,
+            cleanBookTitle: cleanTitle,
+            currentBook
+          };
+        };
+
         if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
             const tYMD = tDateStr.split('T')[0];
             if (ymd === tYMD) {
-              const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
-              const testName = tObj?.name || 'Test';
-              const qCount = tObj?.questionCount || 20;
-
-              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
-              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
-              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
-              const topicName = topicObj?.name || tObj?.topicName || '';
+              const info = resolveBookTestInfo(testId);
+              const testName = info.testName;
+              const qCount = info.qCount;
+              const subjectName = info.subjectName;
+              const topicName = info.topicName;
+              const cleanBookTitle = info.cleanBookTitle;
 
               const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
               const displaySub = `${cleanBookTitle} — ${testName}`;
@@ -1833,6 +1960,8 @@ export function MonthlyListPanel({
                   id: `book_test_${hw.id}_${testId}_${ymd}`,
                   hwId: hw.id,
                   testId: testId,
+                  bookTestId: testId,
+                  bookId: hw.bookId || info.currentBook?.id || null,
                   isAutoHomework: true,
                   taskType: 'kitap',
                   subject: displayHeader,
@@ -3379,18 +3508,145 @@ export default function ProgramCenter({
         const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
 
         if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          // Helper to resolve accurate subject, unit/topic, and test names
+          const resolveBookTestInfo = (testId) => {
+            const tIdStr = String(testId || '');
+            const tUuidStr = String(toUUID(tIdStr) || '');
+            const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+
+            let currentBook = bookObj || (allTrackedBooks || []).find(b => 
+              String(b?.id) === String(hw?.bookId) || 
+              (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId)))
+            );
+
+            let tObj = (bookTests || []).find(b => {
+              const bId = String(b?.id || '');
+              return bId === tIdStr || 
+                (tUuidStr && bId === tUuidStr) || 
+                (tUuidStr && toUUID(bId) === tUuidStr) || 
+                bId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId;
+            });
+
+            let subjObj = null;
+            let topicObj = null;
+
+            if (currentBook && currentBook.subjects) {
+              for (const s of currentBook.subjects) {
+                if (s.tests && Array.isArray(s.tests)) {
+                  const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                  if (found) {
+                    if (!tObj) tObj = found;
+                    subjObj = s;
+                    break;
+                  }
+                }
+                if (s.topics && Array.isArray(s.topics)) {
+                  for (const tp of s.topics) {
+                    if (tp.tests && Array.isArray(tp.tests)) {
+                      const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                      if (found) {
+                        if (!tObj) tObj = found;
+                        subjObj = s;
+                        topicObj = tp;
+                        break;
+                      }
+                    }
+                  }
+                }
+                if (subjObj) break;
+              }
+            }
+
+            if (!subjObj && (!tObj || !tObj.subjectId)) {
+              for (const b of (allTrackedBooks || [])) {
+                if (!b.subjects) continue;
+                for (const s of b.subjects) {
+                  if (s.tests) {
+                    const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                    if (found) {
+                      if (!tObj) tObj = found;
+                      subjObj = s;
+                      if (!currentBook) currentBook = b;
+                      break;
+                    }
+                  }
+                  if (s.topics) {
+                    for (const tp of s.topics) {
+                      if (tp.tests) {
+                        const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                        if (found) {
+                          if (!tObj) tObj = found;
+                          subjObj = s;
+                          topicObj = tp;
+                          if (!currentBook) currentBook = b;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  if (subjObj) break;
+                }
+                if (subjObj) break;
+              }
+            }
+
+            if (tObj && !subjObj && currentBook) {
+              subjObj = (currentBook.subjects || []).find(s => 
+                String(s.id) === String(tObj.subjectId) || 
+                (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId)) || 
+                (s.name && tObj.subjectName && String(s.name).toLowerCase().trim() === String(tObj.subjectName).toLowerCase().trim())
+              );
+              topicObj = (subjObj?.topics || []).find(tp => 
+                String(tp.id) === String(tObj.topicId) || 
+                (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId)) || 
+                (tp.name && tObj.topicName && String(tp.name).toLowerCase().trim() === String(tObj.topicName).toLowerCase().trim())
+              );
+            }
+
+            let subjectName = subjObj?.name || tObj?.subjectName || tObj?.subject;
+            if (!subjectName || subjectName === 'Atlı Karınca' || subjectName === 'CUSTOM') {
+              const rawToCheck = `${hw?.title || ''} ${hw?.subject || ''} ${currentBook?.title || ''}`;
+              if (/matematik/i.test(rawToCheck)) subjectName = 'Matematik';
+              else if (/turkce|türkçe|paragraf/i.test(rawToCheck)) subjectName = 'Türkçe';
+              else if (/sosyal/i.test(rawToCheck)) subjectName = 'Sosyal Bilgiler';
+              else if (/fen/i.test(rawToCheck)) subjectName = 'Fen Bilimleri';
+              else if (/ingilizce/i.test(rawToCheck)) subjectName = 'İngilizce';
+              else if (/din/i.test(rawToCheck)) subjectName = 'Din Kültürü';
+              else subjectName = currentBook?.title ? currentBook.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim() : 'Kitap Takibi';
+            }
+
+            const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
+            const testName = tObj?.name || 'Test';
+            const qCount = tObj?.questionCount || 12;
+            const cleanTitle = (currentBook?.title || hw?.title || 'Kitap')
+              .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+              .replace(/\s*\(Tüm Kitap\)/gi, '')
+              .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+              .trim();
+
+            return {
+              tObj,
+              subjObj,
+              topicObj,
+              subjectName,
+              topicName,
+              testName,
+              qCount,
+              cleanBookTitle: cleanTitle,
+              currentBook
+            };
+          };
+
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
             const tYMD = tDateStr.split('T')[0];
             if (dayInfo.ymd === tYMD) {
-              const tObj = bookTests.find(b => String(b.id) === String(testId));
-              const testName = tObj?.name || 'Test';
-              const qCount = tObj?.questionCount || 20;
-
-              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
-              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
-              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
-              const topicName = topicObj?.name || tObj?.topicName || '';
+              const info = resolveBookTestInfo(testId);
+              const testName = info.testName;
+              const qCount = info.qCount;
+              const subjectName = info.subjectName;
+              const topicName = info.topicName;
+              const cleanBookTitle = info.cleanBookTitle;
 
               const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
               const displaySub = `${cleanBookTitle} — ${testName}`;
@@ -3408,12 +3664,12 @@ export default function ProgramCenter({
                   hwId: hw.id,
                   testId: testId,
                   bookTestId: testId,
-                  bookId: hw.bookId || bookObj?.id || null,
+                  bookId: hw.bookId || info.currentBook?.id || null,
                   isAutoHomework: true,
                   isBookAssignment: true,
                   taskType: 'kitap',
                   subject: subjectName,
-                  unit: topicName || tObj?.unit || tObj?.unitName || '',
+                  unit: topicName || info.tObj?.unit || info.tObj?.unitName || '',
                   testName: testName,
                   bookName: cleanBookTitle,
                   bookTitle: cleanBookTitle,
