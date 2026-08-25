@@ -41,45 +41,18 @@ export default function PeriodicQuestionAnalytics({
   // 1. Tüm Test ve Deneme Kayıtlarını Tek Bir Temiz Listede Birleştir (Türkiye Saati Uyumlu)
   const unifiedItems = useMemo(() => {
     const list = [];
+    const seenUnifiedKeys = new Set();
 
-    // Ödevler ve Konu Testleri
-    const seenHwKeys = new Set();
-    (homeworkSubmissions || []).forEach(h => {
-      if (!h) return;
-      const subKey = String(h.originalSubmissionId || h.id || h.supabaseId || `${h.testId || h.title}_${h.date}`);
-      if (seenHwKeys.has(subKey)) return;
-      seenHwKeys.add(subKey);
-
-      const d = h.correctCount ?? h.correct ?? h.totalCorrect ?? 0;
-      const y = h.wrongCount ?? h.wrong ?? h.totalWrong ?? 0;
-      const b = h.emptyCount ?? h.blankCount ?? h.empty ?? h.totalEmpty ?? 0;
-      const q = d + y + b || h.totalQuestions || 0;
-      if (q === 0) return;
-
-      const dateStr = extractItemDate(h);
-      list.push({
-        id: h.id || `hw_${Math.random()}`,
-        title: h.title || 'Konu Testi',
-        subject: h.subject || h.subjectName || 'Genel',
-        date: dateStr,
-        d, y, b, q,
-        type: 'test',
-        net: parseFloat(h.totalNet || h.net || 0),
-        scores: h.scores || {}
-      });
-    });
-
-    // Deneme Sınavları
-    (mockExams || []).forEach(m => {
-      if (!m) return;
-      let d = m.totalCorrect ?? m.correctCount ?? m.correct ?? 0;
-      let y = m.totalWrong ?? m.wrongCount ?? m.wrong ?? 0;
-      let b = m.totalEmpty ?? m.emptyCount ?? m.blankCount ?? m.empty ?? 0;
+    const processItem = (it, type) => {
+      if (!it) return;
+      let d = it.correctCount ?? it.correct ?? it.totalCorrect ?? 0;
+      let y = it.wrongCount ?? it.wrong ?? it.totalWrong ?? 0;
+      let b = it.emptyCount ?? it.blankCount ?? it.empty ?? it.totalEmpty ?? 0;
 
       // Extract from scores dictionary if available
-      if (m.scores && typeof m.scores === 'object' && Object.keys(m.scores).length > 0) {
+      if (it.scores && typeof it.scores === 'object' && Object.keys(it.scores).length > 0) {
         let scoreD = 0, scoreY = 0, scoreB = 0;
-        Object.values(m.scores).forEach(sc => {
+        Object.values(it.scores).forEach(sc => {
           if (sc && typeof sc === 'object') {
             scoreD += Number(sc.d || sc.correct || 0);
             scoreY += Number(sc.y || sc.wrong || 0);
@@ -93,21 +66,43 @@ export default function PeriodicQuestionAnalytics({
         }
       }
 
-      const q = d + y + b || Number(m.totalQuestions || m.questionCount || 0);
+      const q = d + y + b || it.totalQuestions || 0;
       if (q === 0) return;
 
-      const dateStr = extractItemDate(m);
+      const dateStr = extractItemDate(it);
+
+      let rawTitle = String(it.title || it.examName || 'Test').trim().toLowerCase();
+      if (rawTitle.includes('—')) rawTitle = rawTitle.split('—').pop().trim();
+      else if (rawTitle.includes(' - ')) rawTitle = rawTitle.split(' - ').pop().trim();
+      rawTitle = rawTitle.replace(/\s*\(tüm kitap.*?\)/g, '').replace(/\s*\(kendi eklediğim.*?\)/g, '').trim();
+
+      const rawSubj = String(it.subject || it.subjectName || 'Genel').trim().toLowerCase();
+      const primaryKey = String(it.id || it.originalSubmissionId || '');
+      const logicalKey = `${rawSubj}___${rawTitle}___${d}_${y}`;
+      const origKey = it.originalSubmissionId ? `orig_${it.originalSubmissionId}` : null;
+
+      if ((primaryKey && seenUnifiedKeys.has(primaryKey)) || (logicalKey && seenUnifiedKeys.has(logicalKey)) || (origKey && seenUnifiedKeys.has(origKey))) {
+        return; // Duplicate!
+      }
+
+      if (primaryKey) seenUnifiedKeys.add(primaryKey);
+      if (logicalKey) seenUnifiedKeys.add(logicalKey);
+      if (origKey) seenUnifiedKeys.add(origKey);
+
       list.push({
-        id: m.id || `mock_${Math.random()}`,
-        title: m.title || m.examName || 'Deneme Sınavı',
-        subject: m.subject || 'Deneme Sınavı',
+        id: it.id || `item_${list.length}`,
+        title: it.title || it.examName || 'Test',
+        subject: it.subject || it.subjectName || 'Genel',
         date: dateStr,
         d, y, b, q,
-        type: 'trial',
-        net: parseFloat(m.totalNet || m.net || 0),
-        scores: m.scores || {}
+        type: type,
+        net: parseFloat(it.totalNet || it.net || 0),
+        scores: it.scores || {}
       });
-    });
+    };
+
+    (homeworkSubmissions || []).forEach(h => processItem(h, 'test'));
+    (mockExams || []).forEach(m => processItem(m, 'trial'));
 
     return list;
   }, [homeworkSubmissions, mockExams]);

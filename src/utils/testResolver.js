@@ -1083,22 +1083,30 @@ export function computeStudentAnalyticsData({
   const all = [];
   [...manualExams, ...onlineEval, ...hwSubmissions].forEach(item => {
     if (!item) return;
-    const cleanTitle = String(item.title || '').trim().toLowerCase();
+    
+    // Normalize title: strip any book prefix like "Kitap Adı — " or "Kitap Adı - "
+    let rawTitle = String(item.title || '').trim().toLowerCase();
+    if (rawTitle.includes('—')) {
+      rawTitle = rawTitle.split('—').pop().trim();
+    } else if (rawTitle.includes(' - ')) {
+      rawTitle = rawTitle.split(' - ').pop().trim();
+    }
+    rawTitle = rawTitle.replace(/\s*\(tüm kitap.*?\)/g, '').replace(/\s*\(kendi eklediğim.*?\)/g, '').trim();
+
     const cleanSubj = String(item.subject || '').trim().toLowerCase();
     const origId = String(item.originalSubmissionId || item.id || '');
-    const dateStr = String(item.date || '');
     
     // Multi-criteria uniqueness keys
-    const primaryKey = item.id;
-    const logicalKey = `${cleanSubj}___${cleanTitle}___${item.correctCount}_${item.wrongCount}_${dateStr}`;
+    const primaryKey = String(item.id || '');
+    const logicalKey = `${cleanSubj}___${rawTitle}___${item.correctCount}_${item.wrongCount}`;
     const origKey = origId ? `orig_${origId}` : null;
 
-    if (seen.has(primaryKey) || seen.has(logicalKey) || (origKey && seen.has(origKey))) {
+    if ((primaryKey && seen.has(primaryKey)) || (logicalKey && seen.has(logicalKey)) || (origKey && seen.has(origKey))) {
       return; // Duplicate!
     }
 
-    seen.add(primaryKey);
-    seen.add(logicalKey);
+    if (primaryKey) seen.add(primaryKey);
+    if (logicalKey) seen.add(logicalKey);
     if (origKey) seen.add(origKey);
     all.push(item);
   });
