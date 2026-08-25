@@ -18,9 +18,7 @@ export function HomeworkProvider({ children }) {
 
   useEffect(() => {
     async function syncHomeworksFromSupabase() {
-      const lastSync = sessionStorage.getItem('eTestLastHwSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 10 * 60 * 1000 && homeworks.length > 0) {
+      if (!isSupabaseConfigured()) {
         setIsLoading(false);
         return;
       }

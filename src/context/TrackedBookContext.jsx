@@ -31,6 +31,10 @@ export function TrackedBookProvider({ children }) {
 
   useEffect(() => {
     async function syncTrackedBooksFromSupabase() {
+      if (!isSupabaseConfigured()) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const res = await dbGetTrackedBooks();

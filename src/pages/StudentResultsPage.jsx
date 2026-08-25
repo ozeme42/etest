@@ -550,17 +550,19 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     return getMockExamsForStudent(selectedStudent.id) || [];
   }, [selectedStudent, getMockExamsForStudent]);
 
+  const effectiveStudent = selectedStudent || initialStudent || (isStudentRole ? currentUser : studentMembers[0]);
+
   const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
     return computeStudentAnalyticsData({
-      studentId: selectedStudent?.id,
-      targetStudent: selectedStudent,
+      studentId: effectiveStudent?.id,
+      targetStudent: effectiveStudent,
       submissions,
       homeworks,
       books,
       bookTests,
       studentMockExams
     });
-  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
+  }, [effectiveStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   const [activeTab, setActiveTab] = useState('overview');
   const isMobile = useMediaQuery('(max-width: 768px)');

@@ -175,16 +175,8 @@ export function EvaluationProvider({ children }) {
   };
 
   useEffect(() => {
-    // Only perform initial sync if Supabase is configured and not throttled
     if (isSupabaseConfigured()) {
-      const lastSync = sessionStorage.getItem('eTestLastSubSync');
-      const now = Date.now();
-      if (!lastSync || now - Number(lastSync) > 10 * 60 * 1000 || submissions.length === 0) {
-        sessionStorage.setItem('eTestLastSubSync', String(now));
-        syncFromSupabase(false);
-      } else {
-        setIsSyncing(false);
-      }
+      syncFromSupabase(true);
     } else {
       setIsSyncing(false);
     }
