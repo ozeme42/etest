@@ -396,6 +396,19 @@ export default function ModularQuizPage() {
         const sections = targetBookTests.map((bt, secIdx) => {
           const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || foundTest.totalQuestions || foundTest.questionCount || 20;
           const ansKey = bt.answerKey || foundTest.answerKey || {};
+          const ansMeta = ansKey.__meta || {};
+          const isOe = Boolean(
+            bt.isOpenEnded === true ||
+            bt.is_open_ended === true ||
+            ansMeta.isOpenEnded === true ||
+            bt.questionType === 'acik_uclu' ||
+            bt.question_type === 'acik_uclu' ||
+            ansMeta.questionType === 'acik_uclu' ||
+            (bt.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(bt.name)) ||
+            (bt.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(bt.title))
+          );
+          const qType = isOe ? 'acik_uclu' : (bt.questionType || bt.question_type || ansMeta.questionType || 'coktan_secmeli');
+
           const secQs = [];
 
           for (let i = 1; i <= qCount; i++) {
@@ -437,7 +450,11 @@ export default function ModularQuizPage() {
               questionText: `${bt.name || bt.title || foundTest.title || 'Test'} - Soru ${i}`,
               questionCount: 1,
               correctAnswer: idxAns,
-              correctAnswerLetter: letterAns
+              correctAnswerLetter: letterAns,
+              isOpenEnded: isOe,
+              is_open_ended: isOe,
+              type: qType,
+              questionType: qType
             });
           }
 
@@ -445,6 +462,10 @@ export default function ModularQuizPage() {
             id: bt.id || `sec_${secIdx}`,
             title: bt.name || bt.title || foundTest.title || `Bölüm ${secIdx + 1}`,
             questionCount: qCount,
+            isOpenEnded: isOe,
+            is_open_ended: isOe,
+            type: qType,
+            questionType: qType,
             questions: secQs
           };
         });
@@ -462,6 +483,17 @@ export default function ModularQuizPage() {
 
         const totalQFallback = foundTest.totalQuestions || foundTest.questionCount || foundTest.questionsCount || allResolvedQs.length || 20;
         if (allResolvedQs.length === 0 && totalQFallback) {
+          const ansKey = foundTest.answerKey || {};
+          const ansMeta = ansKey.__meta || {};
+          const isFallbackOe = Boolean(
+            foundTest.isOpenEnded === true ||
+            foundTest.is_open_ended === true ||
+            foundTest.questionType === 'acik_uclu' ||
+            ansMeta.isOpenEnded === true ||
+            ansMeta.questionType === 'acik_uclu' ||
+            (foundTest.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.title)) ||
+            (foundTest.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.name))
+          );
           for (let i = 1; i <= totalQFallback; i++) {
             allResolvedQs.push({
               id: `hw_q${i}`,
@@ -470,15 +502,34 @@ export default function ModularQuizPage() {
               questionText: `Soru ${i}`,
               questionCount: 1,
               correctAnswer: null,
-              correctAnswerLetter: null
+              correctAnswerLetter: null,
+              isOpenEnded: isFallbackOe,
+              is_open_ended: isFallbackOe,
+              type: isFallbackOe ? 'acik_uclu' : 'coktan_secmeli',
+              questionType: isFallbackOe ? 'acik_uclu' : 'coktan_secmeli'
             });
           }
         }
+
+        const isFoundTestOe = Boolean(
+          foundTest.isOpenEnded === true ||
+          foundTest.is_open_ended === true ||
+          foundTest.questionType === 'acik_uclu' ||
+          foundTest.type === 'acik_uclu' ||
+          foundTest.answerKey?.__meta?.isOpenEnded === true ||
+          foundTest.answerKey?.__meta?.questionType === 'acik_uclu' ||
+          sections.some(s => s.isOpenEnded) ||
+          (foundTest.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.title)) ||
+          (foundTest.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.name))
+        );
 
         setTest({
           ...foundTest,
           title: foundTest.title || foundTest.name || 'Kitap Testi',
           sourceType: 'trackedBook',
+          isOpenEnded: isFoundTestOe,
+          is_open_ended: isFoundTestOe,
+          questionType: isFoundTestOe ? 'acik_uclu' : (foundTest.questionType || 'coktan_secmeli'),
           sections
         });
         setQuestions(allResolvedQs);
@@ -858,8 +909,14 @@ export default function ModularQuizPage() {
     test.contentType === 'acik_uclu' ||
     test.sourceFormat === 'yazili' ||
     test.formatType === 'yazili' ||
-    test.isOpenEnded ||
-    (questions && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu'))
+    test.isOpenEnded === true ||
+    test.is_open_ended === true ||
+    test.answerKey?.__meta?.isOpenEnded === true ||
+    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name)) ||
+    (test.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.title)) ||
+    (questions && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded === true || q.is_open_ended === true)) ||
+    (test.sections && Array.isArray(test.sections) && test.sections.some(s => s.isOpenEnded || s.is_open_ended || s.questionType === 'acik_uclu' || s.type === 'acik_uclu'))
   );
 
 

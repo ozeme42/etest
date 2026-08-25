@@ -26,6 +26,10 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     sec?.isOpenEnded === true ||
     sec?.is_open_ended === true ||
     sec?.openEnded === true ||
+    sec?.answerKey?.__meta?.isOpenEnded === true ||
+    sec?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    (sec?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(sec.name)) ||
+    (sec?.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(sec.title)) ||
     bankQ?.type === 'acik_uclu' ||
     bankQ?.questionType === 'acik_uclu' ||
     bankQ?.formatType === 'yazili' ||
@@ -38,12 +42,14 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     bankQ?.questionType === 'gorsel_klasik' ||
     bankQ?.isOpenEnded === true ||
     bankQ?.is_open_ended === true ||
-    bankQ?.openEnded === true
+    bankQ?.openEnded === true ||
+    bankQ?.answerKey?.__meta?.isOpenEnded === true ||
+    bankQ?.answerKey?.__meta?.questionType === 'acik_uclu'
   ) {
     return true;
   }
 
-  // 2. Explicit Multiple-Choice Flags on Section or Bank Question
+  // 2. Explicit Multiple-Choice Flags on Section or Bank Question (unless explicitly overridden by open-ended name or meta)
   if (
     sec?.type === 'coktan_secmeli' ||
     sec?.questionType === 'coktan_secmeli' ||
@@ -71,7 +77,11 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
       test?.sourceFormat === 'gorsel_klasik' ||
       test?.isOpenEnded === true ||
       test?.openEnded === true ||
-      test?.is_open_ended === true
+      test?.is_open_ended === true ||
+      test?.answerKey?.__meta?.isOpenEnded === true ||
+      test?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      (test?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name)) ||
+      (test?.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.title))
     ) {
       return true;
     }
