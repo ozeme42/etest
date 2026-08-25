@@ -43,8 +43,13 @@ export default function PeriodicQuestionAnalytics({
     const list = [];
 
     // Ödevler ve Konu Testleri
+    const seenHwKeys = new Set();
     (homeworkSubmissions || []).forEach(h => {
       if (!h) return;
+      const subKey = String(h.originalSubmissionId || h.id || h.supabaseId || `${h.testId || h.title}_${h.date}`);
+      if (seenHwKeys.has(subKey)) return;
+      seenHwKeys.add(subKey);
+
       const d = h.correctCount ?? h.correct ?? h.totalCorrect ?? 0;
       const y = h.wrongCount ?? h.wrong ?? h.totalWrong ?? 0;
       const b = h.emptyCount ?? h.blankCount ?? h.empty ?? h.totalEmpty ?? 0;

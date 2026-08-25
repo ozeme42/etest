@@ -157,7 +157,8 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
 
 /**
  * Intelligently extracts the accurate historical completion date of any submission or test item.
- * Automatically recovers timestamps embedded in IDs (e.g. sub_1787430618712) when migration dates default to today.
+ * Automatically recovers timestamps embedded in IDs (e.g. sub_1787430618712 or sub_manual_1786523912000)
+ * when migration dates default to today.
  */
 export const extractItemDate = (s) => {
   if (!s) return getTurkeyToday();
@@ -166,18 +167,21 @@ export const extractItemDate = (s) => {
   const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
   const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
 
-  // Embedded timestamp check helper (ONLY check submission IDs, never test or book IDs)
+  // 1. Helper to extract embedded epoch timestamp from submission ID / meta.realId / meta.submissionId
   const getEmbeddedTsDate = () => {
     const idCandidates = [
+      String(meta?.realId || ''),
       String(meta?.submissionId || ''),
+      String(s.originalSubmissionId || ''),
       String(s.submissionId || ''),
       String(s.id || ''),
-      String(s.supabaseId || '')
+      String(s.supabaseId || ''),
+      String(raw.id || '')
     ];
 
     for (const idStr of idCandidates) {
       if (idStr.startsWith('tbt_') || idStr.startsWith('tb_') || idStr.startsWith('hw_')) continue;
-      const matchTs = idStr.match(/sub_(\d{12,13})/i) || idStr.match(/(\d{12,13})/);
+      const matchTs = idStr.match(/sub_(?:manual_)?(\d{12,13})/i) || idStr.match(/(\d{12,13})/);
       if (matchTs) {
         const tsNum = Number(matchTs[1]);
         if (tsNum > 1600000000000 && tsNum < 2000000000000) {
@@ -188,23 +192,45 @@ export const extractItemDate = (s) => {
     return null;
   };
 
-  const explicit = (typeof s === 'object')
-    ? (s.submittedAt || s.submitted_at || s.completedAt || s.date || meta?.submittedAt || meta?.date || meta?.completedAt || raw.submittedAt || raw.submitted_at || raw.completedAt || raw.date)
-    : String(s);
+  // 2. Explicit date candidates
+  const explicitCandidates = [
+    meta?.submittedAt,
+    meta?.completedAt,
+    meta?.date,
+    meta?.createdAt,
+    s.submittedAt,
+    s.submitted_at,
+    s.completedAt,
+    s.completed_at,
+    raw.submittedAt,
+    raw.submitted_at,
+    raw.completedAt,
+    raw.date
+  ];
 
-  if (explicit && String(explicit).trim()) {
-    const expStr = String(explicit).trim();
-    const expYMD = getTurkeyYMD(expStr);
-
-    if (expYMD) {
-      return expYMD;
+  // Check if any explicit date has a distinct historical date (not today)
+  for (const exp of explicitCandidates) {
+    if (exp && String(exp).trim()) {
+      const expYMD = getTurkeyYMD(String(exp).trim());
+      if (expYMD && expYMD !== todayYMD) {
+        return expYMD;
+      }
     }
   }
 
+  // If explicit date was today (or missing), check if an older embedded timestamp exists in ID
   const embedded = (typeof s === 'object') ? getEmbeddedTsDate() : null;
   if (embedded) return embedded;
 
-  const fallback = s.createdAt || s.created_at || meta?.createdAt || raw.createdAt;
+  // If no embedded timestamp, use the explicit date (including today)
+  for (const exp of explicitCandidates) {
+    if (exp && String(exp).trim()) {
+      const expYMD = getTurkeyYMD(String(exp).trim());
+      if (expYMD) return expYMD;
+    }
+  }
+
+  const fallback = s.date || s.createdAt || s.created_at || raw.createdAt;
   if (fallback) {
     const fYMD = getTurkeyYMD(fallback);
     return fYMD || todayYMD;
