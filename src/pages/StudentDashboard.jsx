@@ -1180,7 +1180,17 @@ export default function StudentDashboard() {
             return;
           }
 
-          const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
+          const isBook = Boolean(
+            hw.isBookAssignment ||
+            hw.sourceType === 'trackedBook' ||
+            hw.bookId ||
+            hw.book_id ||
+            hw.raw_data?.bookId ||
+            hw.raw_data?.isBookAssignment ||
+            (hw.testDueDates && Object.keys(hw.testDueDates).length > 0) ||
+            (hw.scheduleDates && Object.keys(hw.scheduleDates).length > 0) ||
+            (hw.title && /kitap|seti|soru bankası|paragraf|atlı karınca|artıbir/i.test(hw.title))
+          );
 
           // Helper to resolve accurate subject, unit/topic, and test names
           const resolveBookTestInfo = (testId) => {
@@ -1189,8 +1199,10 @@ export default function StudentDashboard() {
             const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
 
             let currentBook = bookObj || (books || []).find(b => 
-              String(b?.id) === String(hw?.bookId) || 
-              (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId)))
+              String(b?.id) === String(hw?.bookId || hw?.book_id) || 
+              (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId || hw?.book_id))) ||
+              (hw?.title && String(b?.title).toLowerCase().trim().includes(String(hw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
+              (hw?.title && String(hw?.title).toLowerCase().trim().includes(String(b?.title).toLowerCase().trim()))
             );
 
             let tObj = (bookTests || []).find(b => {
@@ -1278,7 +1290,7 @@ export default function StudentDashboard() {
             }
 
             let subjectName = subjObj?.name || tObj?.subjectName || tObj?.subject;
-            if (!subjectName || subjectName === 'Atlı Karınca' || subjectName === 'CUSTOM') {
+            if (!subjectName || subjectName === 'Atlı Karınca' || subjectName === 'Artıbir' || subjectName === 'CUSTOM') {
               const rawToCheck = `${hw?.title || ''} ${hw?.subject || ''} ${currentBook?.title || ''}`;
               if (/matematik/i.test(rawToCheck)) subjectName = 'Matematik';
               else if (/turkce|türkçe|paragraf/i.test(rawToCheck)) subjectName = 'Türkçe';
@@ -1367,8 +1379,9 @@ export default function StudentDashboard() {
             return false;
           };
 
-          if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+          const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
+          if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
+            Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
               if (!tDateStr) return;
               const tYMD = extractItemYMD(tDateStr);
               if (dayYMD === tYMD) {
@@ -1384,7 +1397,7 @@ export default function StudentDashboard() {
                     hwId: hw.id,
                     testId: testId,
                     bookTestId: testId,
-                    bookId: hw.bookId || info.currentBook?.id,
+                    bookId: hw.bookId || hw.book_id || info.currentBook?.id,
                     isAutoHomework: true,
                     isBookTask: true,
                     taskType: 'kitap',
@@ -1485,14 +1498,7 @@ export default function StudentDashboard() {
         });
 
         // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
-        (books || []).forEach(b => {
-          if (!b) return;
-          const isAssigned = (studentHomeworks || []).some(hw => String(hw.bookId) === String(b.id) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(b.id))) ||
-            (b.targetStudents && Array.isArray(b.targetStudents) && b.targetStudents.some(sId => String(sId) === String(studentId) || (toUUID(sId) && toUUID(sId) === toUUID(studentId)))) ||
-            !b.targetStudents || b.targetStudents.length === 0;
-
-          if (!isAssigned) return;
-
+        (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
           const cleanBookTitle = (b.title || 'Kitap')
             .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
             .replace(/\s*\(Tüm Kitap\)/gi, '')
@@ -1503,7 +1509,7 @@ export default function StudentDashboard() {
             const subjName = subj.name || 'Genel';
             
             (subj.tests || []).forEach(t => {
-              const tDue = t.dueDate || t.testDueDate || t.due_date;
+              const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
               if (!tDue) return;
               const tYMD = extractItemYMD(tDue);
               if (tYMD === dayYMD) {
@@ -1534,7 +1540,7 @@ export default function StudentDashboard() {
             (subj.topics || []).forEach(tp => {
               const tpName = tp.name || '';
               (tp.tests || []).forEach(t => {
-                const tDue = t.dueDate || t.testDueDate || t.due_date;
+                const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
                 if (!tDue) return;
                 const tYMD = extractItemYMD(tDue);
                 if (tYMD === dayYMD) {
@@ -1563,6 +1569,49 @@ export default function StudentDashboard() {
               });
             });
           });
+        });
+
+        // A.4) bookTests içinde tarihi olan tüm testler (Supabase tracked_book_tests)
+        (bookTests || []).forEach(bt => {
+          if (!bt) return;
+          const tDue = bt.dueDate || bt.testDueDate || bt.due_date || bt.date;
+          if (!tDue) return;
+          const tYMD = extractItemYMD(tDue);
+          if (tYMD === dayYMD) {
+            const bId = String(bt.bookId || bt.book_id || '');
+            const currentBook = (books || []).find(b => String(b.id) === bId || (toUUID(b.id) && toUUID(b.id) === toUUID(bId)));
+            const cleanBookTitle = (currentBook?.title || 'Kitap')
+              .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+              .replace(/\s*\(Tüm Kitap\)/gi, '')
+              .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+              .trim();
+
+            const autoId = `book_test_bt_${bt.id}_${dayYMD}`;
+            const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) ||
+              autoHwItems.some(a => a.testId === bt.id || a.bookTestId === bt.id);
+
+            if (!isAlreadyPresent) {
+              const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, bt.id));
+              const info = resolveBookTestInfo(bt.id);
+              autoHwItems.push({
+                id: autoId,
+                testId: bt.id,
+                bookTestId: bt.id,
+                bookId: bId,
+                isAutoHomework: true,
+                isBookTask: true,
+                taskType: 'kitap',
+                subject: info.subjectName || bt.subject || 'Kitap Testi',
+                unitTopic: info.topicName || bt.topic || '',
+                bookTitle: cleanBookTitle,
+                testName: info.testName || bt.name || 'Test',
+                title: `${info.testName || bt.name || 'Test'}${info.topicName ? ` (${info.topicName})` : ''}`,
+                questionCount: `${bt.questionCount || info.qCount || 12} soru`,
+                time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                done: isSolved
+              });
+            }
+          }
         });
 
         (studyAssignments || []).filter(a => String(a?.studentId) === String(studentId)).forEach(assignment => {
