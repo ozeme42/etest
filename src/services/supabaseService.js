@@ -1631,8 +1631,10 @@ export async function dbGetTrackedBooks() {
     if (bRes.error || tRes.error) return null;
 
     const books = (bRes.data || []).map(b => {
-      const rawSubjects = Array.isArray(b.subjects) ? b.subjects : [];
-      let optCount = b.option_count || b.optionCount || b.options_count;
+      const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
+        ? b.subjects
+        : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+      let optCount = b.option_count || b.optionCount || b.options_count || b.raw_data?.optionCount;
       if (optCount === undefined || optCount === null) {
         const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
         if (metaObj && metaObj.optionCount) {
@@ -1641,12 +1643,13 @@ export async function dbGetTrackedBooks() {
       }
       return {
         id: String(b.id),
-        title: b.title,
-        publisher: b.publisher,
+        title: b.title || b.raw_data?.title || '',
+        publisher: b.publisher || b.raw_data?.publisher || '',
         bookType: b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard'),
         optionCount: Number(optCount) || 5,
-        pdfUrl: b.pdf_url || b.pdfUrl || '',
+        pdfUrl: b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '',
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
+        raw_data: b.raw_data || {},
         createdAt: b.created_at
       };
     });
