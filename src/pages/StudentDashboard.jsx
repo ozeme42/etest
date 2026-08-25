@@ -2453,6 +2453,32 @@ export default function StudentDashboard() {
                 }}>
                   <span>🎓</span><span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
                 </div>
+                {catchUpTasks.length > 0 && (
+                  <div
+                    onClick={() => {
+                      const el = document.getElementById('today-tasks-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.32), rgba(220, 38, 38, 0.22))',
+                      backdropFilter: 'blur(16px)',
+                      border: '1.5px solid rgba(239, 68, 68, 0.65)',
+                      borderRadius: 999,
+                      padding: isMobile ? '2px 8px' : '5px 15px',
+                      fontSize: isMobile ? '0.62rem' : '0.78rem',
+                      fontWeight: 900,
+                      color: '#fecaca',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 10px rgba(239,68,68,0.35)'
+                    }}
+                    title="Geciken / Telafi Havuzundaki Görevleri Görüntüle"
+                  >
+                    <span>🔥</span><span>{catchUpTasks.length} Telafi Görevi</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2558,7 +2584,7 @@ export default function StudentDashboard() {
             { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.55)',   route:'/student/homeworks' },
             { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.55)',  route:'/student/results' },
             { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.55)',  route:'/student/homeworks' },
-            { label:'GECİKTİ',   value: taskStats.overdueCount,         emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.55)',   route:'/student/homeworks' },
+            { label:'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.55)',   route:'/student/homeworks' },
             { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.55)', route:'/student/results' },
           ].map((kpi) => (
             <div
@@ -2626,8 +2652,8 @@ export default function StudentDashboard() {
               icon: ClipboardList,
               gradient: 'linear-gradient(135deg, #f43f5e, #e11d48)',
               shadow: 'rgba(244, 63, 94, 0.35)',
-              badge: pendingCount > 0 ? pendingCount : null,
-              badgeBg: '#e11d48',
+              badge: catchUpTasks.length > 0 ? `${catchUpTasks.length} Telafi` : (pendingCount > 0 ? pendingCount : null),
+              badgeBg: catchUpTasks.length > 0 ? '#ef4444' : '#e11d48',
               onClick: () => navigate('/student/homeworks')
             },
             ...(!isMobile ? [{

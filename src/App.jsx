@@ -92,6 +92,9 @@ function PageLoader() {
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import { useEvaluation } from './context/EvaluationContext';
+import { useHomework } from './context/HomeworkContext';
+import { isHomeworkForStudent } from './utils/testResolver';
+import { toUUID } from './services/supabaseService';
 import './App.css';
 
 // Route guards: redirects to '/' if user is not logged in or doesn't have the required role
@@ -142,6 +145,61 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
       return next;
     });
   };
+
+  const { homeworks = [] } = useHomework();
+
+  const studentOverdueBadgeCount = React.useMemo(() => {
+    if (!currentUser || currentUser.role !== 'student') return 0;
+    const studentId = String(currentUser.id);
+    const studentUuid = String(toUUID(currentUser.id) || '');
+    const nowZero = new Date();
+    nowZero.setHours(0, 0, 0, 0);
+
+    const isTestSolved = (tId, hId) => {
+      const tIdStr = tId ? String(tId) : null;
+      const tCleanId = tIdStr ? tIdStr.replace(/^bt_/, '').replace(/^q_/, '') : null;
+      return (submissions || []).some(s => {
+        const sid = String(s.studentId || s.userId || '');
+        if (sid !== studentId && (studentUuid && sid !== studentUuid) && (studentUuid && toUUID(sid) !== studentUuid)) return false;
+        if (s.status === 'in_progress' || s.status === 'draft') return false;
+        if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected')) return false;
+        const sTestId = String(s.testId || s.realTestId || s.bookTestId || '');
+        if (tIdStr && (sTestId === tIdStr || sTestId === tCleanId || sTestId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId)) return true;
+        if (hId && (String(s.homeworkId) === String(hId) || String(s.hwId) === String(hId))) return true;
+        return false;
+      });
+    };
+
+    let count = 0;
+    const seen = new Set();
+
+    (homeworks || []).forEach(hw => {
+      if (!hw || !isHomeworkForStudent(hw, currentUser, [])) return;
+
+      if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+        hw.tests.forEach(t => {
+          const tDate = t.dueDate || hw.dueDate;
+          if (!tDate) return;
+          const dObj = new Date(tDate);
+          if (isNaN(dObj.getTime()) || dObj >= nowZero) return;
+          const tId = t.testId || t.id;
+          if (!tId || isTestSolved(tId, hw.id)) return;
+          const k = `t_${tId}`;
+          if (!seen.has(k)) { seen.add(k); count++; }
+        });
+      } else {
+        const dObj = hw.dueDate ? new Date(hw.dueDate) : null;
+        if (!dObj || isNaN(dObj.getTime()) || dObj >= nowZero) return;
+        const hwKey = `hw_${hw.id}`;
+        if (!seen.has(hwKey) && !isTestSolved(hw.id, hw.id)) {
+          seen.add(hwKey);
+          count++;
+        }
+      }
+    });
+
+    return count;
+  }, [currentUser, homeworks, submissions]);
 
   const pendingApprovalsCount = React.useMemo(() => {
     if (!currentUser || (currentUser.role !== 'teacher' && currentUser.role !== 'admin')) return 0;
@@ -345,6 +403,11 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                   <BookMarked size={16} color="white" />
                 </div>
                 <span>Ödevlerim</span>
+                {studentOverdueBadgeCount > 0 && (
+                  <span className="nav-hot-badge" style={{ background: '#ef4444', color: 'white', fontWeight: 900 }}>
+                    🔥 {studentOverdueBadgeCount}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/my-program" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #9333ea, #c084fc)', boxShadow: '0 2px 10px rgba(147,51,234,0.35)' }}>
