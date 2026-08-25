@@ -13,7 +13,7 @@ import './BookManager.css';
 export default function BookManager() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { books, bookTests, addTrackedBook, updateTrackedBook, deleteTrackedBook, addTrackedBookTest } = useTrackedBooks();
+  const { books, bookTests, addTrackedBook, updateTrackedBook, deleteTrackedBook, addTrackedBookTest, batchSaveTrackedBookTests } = useTrackedBooks();
   const { submissions } = useEvaluation();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +88,58 @@ export default function BookManager() {
       };
     });
   }, [books, bookTests, submissions, currentUser]);
+
+  const showToast = (title, type = 'success') => {
+    alert(`${type === 'success' ? '✅' : '❌'} ${title}`);
+  };
+
+  const handleAddOrUpdateBook = async () => {
+    if (!newBook.title.trim() || !newBook.publisher.trim()) {
+      showToast("Lütfen tüm alanları doldurun!", "error");
+      return;
+    }
+
+    try {
+      if (editingBook) {
+        await updateTrackedBook(editingBook.id, newBook);
+        showToast("Kitap başarıyla güncellendi!");
+      } else {
+        await addTrackedBook({
+          ...newBook,
+          createdBy: currentUser?.id,
+          teacherId: currentUser?.id
+        });
+        showToast("Kitap başarıyla eklendi!");
+      }
+      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
+      setIsDialogOpen(false);
+      setEditingBook(null);
+    } catch (error) {
+      showToast("İşlem sırasında bir hata oluştu!", "error");
+    }
+  };
+
+  const handleDeleteBook = async (id) => {
+    if (window.confirm("Bu kitabı ve tüm testlerini silmek istediğinize emin misiniz?")) {
+      try {
+        await deleteTrackedBook(id);
+        showToast("Kitap silindi!", "success");
+        setActiveDropdown(null);
+      } catch (err) {
+        showToast("Silme işleminde hata oluştu.", "error");
+      }
+    }
+  };
+
+  const handleManageBook = (bookId) => {
+    navigate(`/books/${bookId}`);
+  };
+  
+  const openDialog = (book) => {
+    setEditingBook(book);
+    setIsDialogOpen(true);
+    setActiveDropdown(null);
+  };
 
   const handleImportJson = async () => {
     if (!importModal.book || !jsonInput.trim()) return;
