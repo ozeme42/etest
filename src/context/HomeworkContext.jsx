@@ -17,25 +17,27 @@ export function HomeworkProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function syncHomeworksFromSupabase() {
-      if (!isSupabaseConfigured()) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const dbHws = await dbGetHomeworks();
-        if (dbHws) {
-          const now = Date.now();
-          sessionStorage.setItem('eTestLastHwSync', String(now));
-          setHomeworks(dbHws);
-        }
-      } finally {
-        setIsLoading(false);
-      }
+  const refreshHomeworks = async () => {
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false);
+      return null;
     }
-    syncHomeworksFromSupabase();
+    setIsLoading(true);
+    try {
+      const dbHws = await dbGetHomeworks();
+      if (dbHws) {
+        const now = Date.now();
+        sessionStorage.setItem('eTestLastHwSync', String(now));
+        setHomeworks(dbHws);
+      }
+      return dbHws;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshHomeworks();
   }, []);
 
   useEffect(() => {
@@ -119,7 +121,6 @@ export function HomeworkProvider({ children }) {
       }
     }
   }, [homeworks]);
-
 
   const { currentUser } = useAuth();
   const user = currentUser;
