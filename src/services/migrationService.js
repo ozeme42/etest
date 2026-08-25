@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured, resetSupabaseQuotaStatus } from '../lib/supabase';
-import { toUUID } from './supabaseService';
+import { toUUID, dbAddTrackedBook, dbBatchUpsertTrackedBookTests } from './supabaseService';
 import { idbGetPayload } from './indexedDbService';
 
 export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
@@ -90,34 +90,21 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
     } catch {}
 
     if (localBooks.length > 0) {
-      const bookRows = localBooks.map(b => ({
-        id: String(b.id),
-        title: b.title || 'Kitap',
-        publisher: b.publisher || '',
-        book_type: b.bookType || b.book_type || 'standard',
-        subjects: Array.isArray(b.subjects) ? b.subjects : []
-      }));
-      const { error: bErr } = await supabase.from('tracked_books').upsert(bookRows, { onConflict: 'id' });
-      if (bErr) log(`⚠️ Kitaplar uyarısı: ${bErr.message}`);
-      else log(`✅ ${bookRows.length} Kitap tanımı yüklendi.`);
+      let savedCount = 0;
+      for (const b of localBooks) {
+        try {
+          await dbAddTrackedBook(b);
+          savedCount++;
+        } catch (err) {
+          log(`⚠️ Kitap aktarım uyarısı (${b.title}): ${err.message}`);
+        }
+      }
+      log(`✅ ${savedCount} Kitap tanımı başarıyla yüklendi.`);
     }
 
     if (localBookTests.length > 0) {
-      const testRows = localBookTests.map(t => ({
-        id: String(t.id),
-        book_id: String(t.bookId || t.book_id),
-        subject_id: t.subjectId ? String(t.subjectId) : null,
-        topic_id: t.topicId ? String(t.topicId) : null,
-        name: t.name || 'Test',
-        question_count: Number(t.questionCount || 20),
-        answer_key: t.answerKey || {}
-      }));
-
-      for (let i = 0; i < testRows.length; i += 50) {
-        const chunk = testRows.slice(i, i + 50);
-        await supabase.from('tracked_book_tests').upsert(chunk, { onConflict: 'id' });
-      }
-      log(`✅ ${testRows.length} Kitap testi yüklendi.`);
+      await dbBatchUpsertTrackedBookTests(localBookTests);
+      log(`✅ ${localBookTests.length} Kitap testi başarıyla yüklendi.`);
     }
 
     // 4. ÖDEVLER (HOMEWORKS)
