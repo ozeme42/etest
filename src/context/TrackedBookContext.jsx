@@ -30,30 +30,32 @@ export function TrackedBookProvider({ children }) {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function syncTrackedBooksFromSupabase() {
-      if (!isSupabaseConfigured()) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const res = await dbGetTrackedBooks();
-        if (res) {
-          if (res.books) {
-            const cleanBooks = res.books.map(b => ({
-              ...b,
-              bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
-            }));
-            setBooks(cleanBooks);
-          }
-          if (res.bookTests) setBookTests(res.bookTests);
-        }
-      } finally {
-        setIsLoading(false);
-      }
+  const refreshTrackedBooks = async () => {
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false);
+      return null;
     }
-    syncTrackedBooksFromSupabase();
+    setIsLoading(true);
+    try {
+      const res = await dbGetTrackedBooks();
+      if (res) {
+        if (res.books) {
+          const cleanBooks = res.books.map(b => ({
+            ...b,
+            bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
+          }));
+          setBooks(cleanBooks);
+        }
+        if (res.bookTests) setBookTests(res.bookTests);
+      }
+      return res;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshTrackedBooks();
   }, []);
 
   useEffect(() => {
@@ -164,6 +166,7 @@ export function TrackedBookProvider({ children }) {
       books,
       bookTests,
       isLoading,
+      refreshTrackedBooks,
       addTrackedBook,
       updateTrackedBook,
       deleteTrackedBook,

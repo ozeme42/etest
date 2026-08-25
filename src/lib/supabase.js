@@ -48,7 +48,7 @@ export const isSupabaseConfigured = () => {
       return false;
     }
   } catch {}
-  return Boolean(rawUrl && rawKey && rawUrl !== 'https://demo-project.supabase.co');
+  return Boolean(supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://demo-project.supabase.co');
 };
 
 // Custom memory fallback storage if LocalStorage quota is completely full or disabled

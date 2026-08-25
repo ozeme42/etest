@@ -19,7 +19,7 @@ import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/bo
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
+  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
   const { submissions, refreshSubmissions, isSyncing: isEvaluationSyncing, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
@@ -48,6 +48,10 @@ export default function BookContentManager() {
   }, [books, id]);
   const tests = useMemo(() => (bookTests || []).filter(t => String(t.bookId || t.book_id) === String(id) || (toUUID(id) && String(t.bookId || t.book_id) === String(toUUID(id)))), [bookTests, id]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+
+  React.useEffect(() => {
+    if (refreshTrackedBooks) refreshTrackedBooks();
+  }, []);
 
   // Book Settings Dialog State
   const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
