@@ -33,6 +33,7 @@ import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/util
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
 import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
+import { extractItemDate } from '../utils/dateHelpers';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
