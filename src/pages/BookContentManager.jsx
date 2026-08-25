@@ -14,6 +14,7 @@ import {
   Search, Eye, Copy, AlertCircle
 } from 'lucide-react';
 import './BookManager.css';
+import ManualTestModal from '../components/ManualTestModal';
 
 import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/book-management/constants/bookHelpers';
 
@@ -36,9 +37,35 @@ export default function BookContentManager() {
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
+  const [manualModalData, setManualModalData] = useState({ isOpen: false, data: null });
   const [localLiveBook, setLocalLiveBook] = useState(null);
   const [localLiveTests, setLocalLiveTests] = useState(null);
   const [isLiveLoading, setIsLiveLoading] = useState(false);
+
+  const handleOpenManualTestForStudent = (student, testItem, hw) => {
+    const testDef = testItem.testDef || (bookTests || []).find(bt => String(bt.id) === String(testItem.id)) || {};
+    const parentSubject = book?.subjects?.find(s => s.id === testDef.subjectId || s.topics?.some(tp => tp.id === testDef.topicId));
+    const parentTopic = parentSubject?.topics?.find(tp => tp.id === testDef.topicId);
+
+    setManualModalData({
+      isOpen: true,
+      data: {
+        studentId: student?.id,
+        bookId: book?.id,
+        bookTitle: book?.title,
+        testId: testItem.id,
+        testName: testDef.name || testItem.id,
+        subject: parentSubject?.name || testItem.subjName || 'Genel',
+        unitTopic: parentTopic?.name || testItem.topicName || '',
+        totalQuestions: testDef.questionCount || testItem.questionCount || 12,
+        correctCount: testItem.testSub?.correctCount || 0,
+        wrongCount: testItem.testSub?.wrongCount || 0,
+        emptyCount: testItem.testSub?.emptyCount ?? Math.max(0, (testDef.questionCount || 12) - ((testItem.testSub?.correctCount || 0) + (testItem.testSub?.wrongCount || 0))),
+        hwId: hw?.id,
+        submissionId: testItem.testSub?.id
+      }
+    });
+  };
 
   const fetchLiveDirect = async () => {
     if (!id) return;
@@ -2235,31 +2262,56 @@ export default function BookContentManager() {
                                                         <strong style={{ color: '#10b981' }}>{t.testSub?.correctCount ?? 0}D</strong> • <strong style={{ color: '#ef4444' }}>{t.testSub?.wrongCount ?? 0}Y</strong> • <strong style={{ color: 'var(--color-text-muted)' }}>{t.testSub?.emptyCount ?? 0}B</strong>
                                                       </div>
                                                     </div>
-
                                                     <button
-                                                      onClick={() => navigate(`/review/${t.testSub.id}`)}
-                                                      style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1.5px solid rgba(59, 130, 246, 0.3)', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                                      title="Bu testin optik ve cevap detaylarını incele"
-                                                    >
-                                                      <Eye size={12} /> İncele
-                                                    </button>
+                                                       onClick={() => handleOpenManualTestForStudent(item.student, t, hw)}
+                                                       style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1.5px solid var(--color-border-input)', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                       title="Test sonucunu düzenle"
+                                                     >
+                                                       <Edit size={11} /> Düzenle
+                                                     </button>
 
-                                                    <button
-                                                      onClick={() => handleResetSingleBookTestForStudent(hw, item.student.id, t.id, t.testDef?.name, item.student.name, t.testSub?.id)}
-                                                      style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1.5px solid rgba(239, 68, 68, 0.3)', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                                      title="Sadece bu testin yanıtını sıfırla"
-                                                    >
-                                                      <RotateCcw size={11} /> Sıfırla
-                                                    </button>
+                                                     <button
+                                                       onClick={() => navigate(`/review/${t.testSub.id}`)}
+                                                       style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1.5px solid rgba(59, 130, 246, 0.3)', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                       title="Bu testin optik ve cevap detaylarını incele"
+                                                     >
+                                                       <Eye size={12} /> İncele
+                                                     </button>
+
+                                                     <button
+                                                       onClick={() => handleResetSingleBookTestForStudent(hw, item.student.id, t.id, t.testDef?.name, item.student.name, t.testSub?.id)}
+                                                       style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1.5px solid rgba(239, 68, 68, 0.3)', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                       title="Sadece bu testin yanıtını sıfırla"
+                                                     >
+                                                       <RotateCcw size={11} /> Sıfırla
+                                                     </button>
                                                   </>
                                                 ) : t.isDraft ? (
-                                                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.45rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                                                    🔄 Devam Ediyor
-                                                  </span>
+                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                     <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.45rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                                                       🔄 Devam Ediyor
+                                                     </span>
+                                                     <button
+                                                       onClick={() => handleOpenManualTestForStudent(item.student, t, hw)}
+                                                       style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '0.28rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', boxShadow: '0 2px 6px rgba(16,185,129,0.25)' }}
+                                                       title="Öğrenci adına test sonucunu gir / tamamla"
+                                                     >
+                                                       <Plus size={12} /> Sonuç Gir
+                                                     </button>
+                                                   </div>
                                                 ) : (
-                                                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.45rem', background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
-                                                    ⏳ Çözülmedi
-                                                  </span>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.45rem', background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
+                                                      ⏳ Çözülmedi
+                                                    </span>
+                                                    <button
+                                                      onClick={() => handleOpenManualTestForStudent(item.student, t, hw)}
+                                                      style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '0.28rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', boxShadow: '0 2px 6px rgba(16,185,129,0.25)' }}
+                                                      title="Bu test için öğrencinin sonucunu (Doğru/Yanlış/Boş) gir"
+                                                    >
+                                                      <Plus size={12} /> Sonuç Gir
+                                                    </button>
+                                                  </div>
                                                 )}
                                               </div>
                                             </div>
@@ -3978,6 +4030,13 @@ export default function BookContentManager() {
           </div>
         </div>
       )}
+
+      {/* Manual Test Score Entry Modal */}
+      <ManualTestModal
+        isOpen={manualModalData.isOpen}
+        initialData={manualModalData.data}
+        onClose={() => setManualModalData({ isOpen: false, data: null })}
+      />
     </div>
   );
 }
