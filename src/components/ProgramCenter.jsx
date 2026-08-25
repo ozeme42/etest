@@ -2044,6 +2044,81 @@ export function MonthlyListPanel({
         }
       });
 
+      // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
+      (books || []).forEach(b => {
+        if (!b) return;
+        const isAssigned = (studentHomeworks || []).some(hw => String(hw.bookId) === String(b.id) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(b.id))) ||
+          (b.targetStudents && Array.isArray(b.targetStudents) && b.targetStudents.some(sId => String(sId) === String(studentId) || (toUUID(sId) && toUUID(sId) === toUUID(studentId)))) ||
+          !b.targetStudents || b.targetStudents.length === 0;
+
+        if (!isAssigned) return;
+
+        const cleanBookTitle = (b.title || 'Kitap')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+          .trim();
+
+        (b.subjects || []).forEach(subj => {
+          const subjName = subj.name || 'Genel';
+          
+          (subj.tests || []).forEach(t => {
+            const tDue = t.dueDate || t.testDueDate || t.due_date;
+            if (!tDue) return;
+            const tYMD = String(tDue).split('T')[0];
+            if (tYMD === ymd) {
+              const autoId = `book_test_direct_${b.id}_${t.id}_${ymd}`;
+              if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments);
+                autoHwItems.push({
+                  id: autoId,
+                  testId: t.id,
+                  bookTestId: t.id,
+                  bookId: b.id,
+                  isAutoHomework: true,
+                  isBookTask: true,
+                  taskType: 'kitap',
+                  subject: subjName,
+                  topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
+                  questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
+                  time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                  done: isSolved
+                });
+              }
+            }
+          });
+
+          (subj.topics || []).forEach(tp => {
+            const tpName = tp.name || '';
+            (tp.tests || []).forEach(t => {
+              const tDue = t.dueDate || t.testDueDate || t.due_date;
+              if (!tDue) return;
+              const tYMD = String(tDue).split('T')[0];
+              if (tYMD === ymd) {
+                const autoId = `book_test_direct_${b.id}_${t.id}_${ymd}`;
+                if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments);
+                  autoHwItems.push({
+                    id: autoId,
+                    testId: t.id,
+                    bookTestId: t.id,
+                    bookId: b.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    subject: tpName ? `${subjName} • ${tpName}` : subjName,
+                    topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
+                    questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
+                    time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                    done: isSolved
+                  });
+                }
+              }
+            });
+          });
+        });
+      });
+
       // B) Roadmap / Study Plan items with target dates (dueDate)
       const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
       studentAssignments.forEach(assignment => {
@@ -3761,6 +3836,91 @@ export default function ProgramCenter({
             });
           }
         }
+      });
+
+      // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
+      (books || []).forEach(b => {
+        if (!b) return;
+        const isAssigned = (studentHomeworks || []).some(hw => String(hw.bookId) === String(b.id) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(b.id))) ||
+          (b.targetStudents && Array.isArray(b.targetStudents) && b.targetStudents.some(sId => String(sId) === String(studentId) || (toUUID(sId) && toUUID(sId) === toUUID(studentId)))) ||
+          !b.targetStudents || b.targetStudents.length === 0;
+
+        if (!isAssigned) return;
+
+        const cleanBookTitle = (b.title || 'Kitap')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+          .trim();
+
+        (b.subjects || []).forEach(subj => {
+          const subjName = subj.name || 'Genel';
+          
+          (subj.tests || []).forEach(t => {
+            const tDue = t.dueDate || t.testDueDate || t.due_date;
+            if (!tDue) return;
+            const tYMD = String(tDue).split('T')[0];
+            if (tYMD === dayInfo.ymd) {
+              const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
+              if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                autoHwItems.push({
+                  id: autoId,
+                  hwId: null,
+                  testId: t.id,
+                  bookTestId: t.id,
+                  bookId: b.id,
+                  isAutoHomework: true,
+                  isBookAssignment: true,
+                  taskType: 'kitap',
+                  subject: subjName,
+                  unit: '',
+                  testName: t.name || 'Test',
+                  bookName: cleanBookTitle,
+                  bookTitle: cleanBookTitle,
+                  topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
+                  questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
+                  time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                  done: isSolved
+                });
+              }
+            }
+          });
+
+          (subj.topics || []).forEach(tp => {
+            const tpName = tp.name || '';
+            (tp.tests || []).forEach(t => {
+              const tDue = t.dueDate || t.testDueDate || t.due_date;
+              if (!tDue) return;
+              const tYMD = String(tDue).split('T')[0];
+              if (tYMD === dayInfo.ymd) {
+                const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
+                if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                  autoHwItems.push({
+                    id: autoId,
+                    hwId: null,
+                    testId: t.id,
+                    bookTestId: t.id,
+                    bookId: b.id,
+                    isAutoHomework: true,
+                    isBookAssignment: true,
+                    taskType: 'kitap',
+                    subject: subjName,
+                    unit: tpName,
+                    testName: t.name || 'Test',
+                    bookName: cleanBookTitle,
+                    bookTitle: cleanBookTitle,
+                    topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
+                    questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
+                    time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                    done: isSolved
+                  });
+                }
+              }
+            });
+          });
+        });
       });
 
       // B) Roadmap / Study Plan items with target dates (dueDate)

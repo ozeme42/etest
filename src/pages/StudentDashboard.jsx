@@ -1513,6 +1513,87 @@ export default function StudentDashboard() {
           }
         });
 
+        // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
+        (books || []).forEach(b => {
+          if (!b) return;
+          const isAssigned = (studentHomeworks || []).some(hw => String(hw.bookId) === String(b.id) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(b.id))) ||
+            (b.targetStudents && Array.isArray(b.targetStudents) && b.targetStudents.some(sId => String(sId) === String(studentId) || (toUUID(sId) && toUUID(sId) === toUUID(studentId)))) ||
+            !b.targetStudents || b.targetStudents.length === 0;
+
+          if (!isAssigned) return;
+
+          const cleanBookTitle = (b.title || 'Kitap')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+            .trim();
+
+          (b.subjects || []).forEach(subj => {
+            const subjName = subj.name || 'Genel';
+            
+            (subj.tests || []).forEach(t => {
+              const tDue = t.dueDate || t.testDueDate || t.due_date;
+              if (!tDue) return;
+              const tYMD = extractItemYMD(tDue);
+              if (tYMD === dayYMD) {
+                const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
+                if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                  const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
+                  autoHwItems.push({
+                    id: autoId,
+                    testId: t.id,
+                    bookTestId: t.id,
+                    bookId: b.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    subject: subjName,
+                    unitTopic: '',
+                    bookTitle: cleanBookTitle,
+                    testName: t.name || 'Test',
+                    title: t.name || 'Test',
+                    questionCount: `${t.questionCount || 12} soru`,
+                    time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                    done: isSolved
+                  });
+                }
+              }
+            });
+
+            (subj.topics || []).forEach(tp => {
+              const tpName = tp.name || '';
+              (tp.tests || []).forEach(t => {
+                const tDue = t.dueDate || t.testDueDate || t.due_date;
+                if (!tDue) return;
+                const tYMD = extractItemYMD(tDue);
+                if (tYMD === dayYMD) {
+                  const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
+                  if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                    const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
+                    autoHwItems.push({
+                      id: autoId,
+                      testId: t.id,
+                      bookTestId: t.id,
+                      bookId: b.id,
+                      isAutoHomework: true,
+                      isBookTask: true,
+                      taskType: 'kitap',
+                      subject: subjName,
+                      unitTopic: tpName,
+                      bookTitle: cleanBookTitle,
+                      testName: t.name || 'Test',
+                      title: `${t.name || 'Test'}${tpName ? ` (${tpName})` : ''}`,
+                      questionCount: `${t.questionCount || 12} soru`,
+                      time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+                      done: isSolved
+                    });
+                  }
+                }
+              });
+            });
+          });
+        });
+
         (studyAssignments || []).filter(a => String(a?.studentId) === String(studentId)).forEach(assignment => {
           if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
           const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
