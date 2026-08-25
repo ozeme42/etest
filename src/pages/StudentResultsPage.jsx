@@ -478,7 +478,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const { isDark } = useTheme();
   const { submissions, deleteSubmission, deleteSubmissionsByTestId, clearSubmissionsForStudent } = useEvaluation();
   const { users } = useUser();
-  const { homeworks } = useHomework();
+  const { homeworks, clearHomeworkSubmissionsForStudent } = useHomework();
   const { data: curData } = useCurriculum();
   const { books, bookTests } = useTrackedBooks();
   const { questions: allBankQuestions } = useQuestionBank();
@@ -502,6 +502,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       }
       if (subObj.hwId && subObj.hwId !== subObj.testId) {
         await deleteSubmissionsByTestId(subObj.hwId);
+      }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(subObj.hwId, subObj.studentId, subObj.bookId, [subObj.testId, subObj.bookTestId, subObj.realTestId].filter(Boolean));
       }
     } catch (err) {
       console.error('Delete error:', err);
