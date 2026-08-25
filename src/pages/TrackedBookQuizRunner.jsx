@@ -78,44 +78,72 @@ export default function TrackedBookQuizRunner() {
     if (!cleanId) return { resolvedTest: null, resolvedBook: null, resolvedHw: null };
 
     // 1. Composite ID (e.g. bt_hw_123_tbt_456 or bt_123_456)
-    if (cleanId.startsWith('bt_')) {
+    if (cleanId.startsWith('bt_') || cleanId.includes('_tbt_') || cleanId.includes('_bt_')) {
       const parts = cleanId.split('_');
-      // Candidate test ID is usually at the end
       const candidateTestId = parts.slice(2).join('_') || parts[parts.length - 1];
       t = (bookTests || []).find(test => 
         String(test.id) === candidateTestId || 
         toUUID(test.id) === candidateTestId ||
+        toUUID(test.id) === toUUID(candidateTestId) ||
         cleanId.endsWith(String(test.id)) ||
         cleanId.endsWith(toUUID(test.id))
       );
-      // Matching homework
       h = (homeworks || []).find(hw => cleanId.includes(String(hw.id)) || cleanId.includes(toUUID(hw.id)));
     }
 
     // 2. Direct match in bookTests
-    if (!t) {
-      t = (bookTests || []).find(test => 
+    if (!t && bookTests && bookTests.length > 0) {
+      t = bookTests.find(test => 
         String(test.id) === cleanId || 
         toUUID(test.id) === cleanId ||
-        String(test.id).replace(/-/g, '') === cleanId.replace(/-/g, '')
+        toUUID(test.id) === toUUID(cleanId) ||
+        String(test.id).replace(/[^a-zA-Z0-9]/g, '') === cleanId.replace(/[^a-zA-Z0-9]/g, '')
       );
     }
 
-    // 3. Match from homeworks list
-    if (!t) {
-      const hwMatch = (homeworks || []).find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId);
+    // 3. Match from embedded subjects/topics in books
+    if (!t && books && books.length > 0) {
+      for (const book of books) {
+        for (const subj of (book.subjects || [])) {
+          for (const st of (subj.tests || [])) {
+            if (String(st.id) === cleanId || toUUID(st.id) === cleanId || toUUID(st.id) === toUUID(cleanId)) {
+              t = { ...st, bookId: book.id, subjectId: subj.id };
+              b = book;
+              break;
+            }
+          }
+          if (t) break;
+          for (const top of (subj.topics || [])) {
+            for (const tt of (top.tests || [])) {
+              if (String(tt.id) === cleanId || toUUID(tt.id) === cleanId || toUUID(tt.id) === toUUID(cleanId)) {
+                t = { ...tt, bookId: book.id, subjectId: subj.id, topicId: top.id };
+                b = book;
+                break;
+              }
+            }
+            if (t) break;
+          }
+          if (t) break;
+        }
+        if (t) break;
+      }
+    }
+
+    // 4. Match from homeworks list only if cleanId matches homework ID
+    if (!t && homeworks && homeworks.length > 0) {
+      const hwMatch = homeworks.find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId || toUUID(hw.id) === toUUID(cleanId));
       if (hwMatch) {
         h = hwMatch;
         if (hwMatch.tests && hwMatch.tests.length > 0) {
           const firstId = hwMatch.tests[0];
-          t = (bookTests || []).find(test => String(test.id) === String(firstId) || toUUID(test.id) === String(firstId));
+          t = (bookTests || []).find(test => String(test.id) === String(firstId) || toUUID(test.id) === toUUID(firstId));
         }
       }
     }
 
-    // 4. Match from books list (first test of the book)
-    if (!t) {
-      const bookMatch = (books || []).find(book => String(book.id) === cleanId || toUUID(book.id) === cleanId);
+    // 5. Match from books list (first test of the book only if cleanId is actually a book ID)
+    if (!t && books && books.length > 0) {
+      const bookMatch = books.find(book => String(book.id) === cleanId || toUUID(book.id) === cleanId || toUUID(book.id) === toUUID(cleanId));
       if (bookMatch) {
         b = bookMatch;
         const testsForBook = (bookTests || []).filter(test => String(test.bookId) === String(bookMatch.id) || toUUID(test.bookId) === toUUID(bookMatch.id));

@@ -3007,24 +3007,20 @@ export default function StudentDashboard() {
                     return;
                   }
 
+                  const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
+                    (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null);
+
                   const isBook = Boolean(
                     task.isBookTask ||
                     task.taskType === 'kitap' ||
                     task.sourceType === 'trackedBook' ||
                     hwObj?.isBookAssignment ||
-                    (task.bookTestId && String(task.bookTestId).startsWith('tbt_')) ||
-                    (task.testId && String(task.testId).startsWith('tbt_'))
+                    targetBookTestId
                   );
 
-                  if (isBook) {
-                    const targetBookTestId = (task.bookTestId && String(task.bookTestId).startsWith('tbt_') ? task.bookTestId : null) ||
-                      (task.testId && String(task.testId).startsWith('tbt_') ? task.testId : null) ||
-                      (hwObj?.tests && hwObj.tests.length > 0 ? hwObj.tests[0] : null) ||
-                      task.bookTestId || task.testId;
-                    if (targetBookTestId) {
-                      navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`);
-                      return;
-                    }
+                  if (targetBookTestId) {
+                    navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`);
+                    return;
                   }
 
                   // Normal Homework Quiz
