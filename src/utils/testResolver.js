@@ -1,5 +1,5 @@
 import { toUUID } from '../services/supabaseService';
-import { getTurkeyYMD } from './dateHelpers';
+import { getTurkeyYMD, extractItemDate } from './dateHelpers';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 
@@ -902,7 +902,7 @@ export function computeStudentAnalyticsData({
       else subject = 'Genel / Diğer';
     }
 
-    const cleanDate = getTurkeyYMD(subDate || s.submittedAt || s.completedAt || s.createdAt || s.date);
+    const cleanDate = extractItemDate(subDate || s);
 
     return {
       id: s.id || `sub_${Date.now()}_${Math.random()}`,
@@ -987,7 +987,7 @@ export function computeStudentAnalyticsData({
       if (!isApproved) return;
     }
 
-    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt || s.date;
+    const subDate = extractItemDate(s);
     if (!subDate) return;
 
     const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');

@@ -672,6 +672,8 @@ export async function dbGetSubmissions(studentId) {
         imageUrl: s.image_url || null,
         imageUrls: s.image_urls || [],
         contentType: s.content_type || null,
+        submittedAt: meta?.submittedAt || meta?.date || s.created_at,
+        date: meta?.date || meta?.submittedAt || s.created_at,
         createdAt: s.created_at
       };
     });

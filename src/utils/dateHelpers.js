@@ -153,3 +153,49 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
     return { isOverdue: false, isDueToday: false, diffDays: null, dueLabel: '' };
   }
 };
+
+
+/**
+ * Intelligently extracts the accurate historical completion date of any submission or test item.
+ * Automatically recovers timestamps embedded in IDs (e.g. sub_1787430618712) when migration dates default to today.
+ */
+export const extractItemDate = (s) => {
+  if (!s) return getTurkeyToday();
+  if (typeof s === 'string' || typeof s === 'number') return getTurkeyYMD(s);
+
+  const raw = s.raw_data || {};
+  const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
+
+  // 1. Explicit dates
+  const explicit = s.submittedAt || s.completedAt || s.date || meta?.submittedAt || meta?.date || meta?.completedAt || raw.submittedAt || raw.completedAt || raw.date;
+  if (explicit && String(explicit).trim()) {
+    return getTurkeyYMD(explicit);
+  }
+
+  // 2. Extract embedded millisecond timestamp from id strings
+  const idCandidates = [
+    String(s.realId || ''),
+    String(meta?.realId || ''),
+    String(s.id || ''),
+    String(s.supabaseId || ''),
+    String(s.bookTestId || ''),
+    String(meta?.bookTestId || ''),
+    String(s.testId || ''),
+    String(meta?.realTestId || ''),
+    String(s.hwId || '')
+  ];
+
+  for (const idStr of idCandidates) {
+    const matchTs = idStr.match(/(\d{12,13})/);
+    if (matchTs) {
+      const tsNum = Number(matchTs[1]);
+      if (tsNum > 1600000000000 && tsNum < 2000000000000) {
+        return getTurkeyYMD(new Date(tsNum));
+      }
+    }
+  }
+
+  // 3. Fallback to createdAt or today
+  const fallback = s.createdAt || s.created_at || meta?.createdAt || raw.createdAt;
+  return getTurkeyYMD(fallback || new Date());
+};
