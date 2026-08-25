@@ -282,19 +282,7 @@ export default function StudentBookDetailsPage() {
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
-          if (isDirectMatch) return true;
-
-          const sBookId = String(s.bookId || s.book_id || meta?.bookId || '');
-          const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
-          const isSameBook = sBookId === bId || (bTitle && sTitle.includes(bTitle));
-          if (isSameBook && t.name) {
-            const tNameClean = String(t.name || '').trim().toLowerCase();
-            if (sTitle.includes(tNameClean)) {
-              return true;
-            }
-          }
-
-          return false;
+          return isDirectMatch;
         });
 
         let hwSub = null;
