@@ -21,7 +21,7 @@ import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/bo
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
+  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, batchSaveTrackedBookTests, updateTrackedBookTest } = useTrackedBooks();
   const { submissions, refreshSubmissions, isSyncing: isEvaluationSyncing, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
@@ -94,18 +94,26 @@ export default function BookContentManager() {
       }
 
       if (tRes.data) {
-        const mapped = tRes.data.map(t => ({
-          id: String(t.id),
-          bookId: String(t.book_id),
-          subjectId: t.subject_id ? String(t.subject_id) : null,
-          topicId: t.topic_id ? String(t.topic_id) : null,
-          name: t.name,
-          questionCount: t.question_count || 20,
-          answerKey: t.answer_key || {},
-          optionCount: Number(t.option_count || t.optionCount) || undefined,
-          pdfUrl: t.pdf_url || '',
-          createdAt: t.created_at
-        }));
+        const mapped = tRes.data.map(t => {
+          const ansKey = t.answer_key || {};
+          const ansMeta = ansKey.__meta || {};
+          const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
+          const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
+          return {
+            id: String(t.id),
+            bookId: String(t.book_id),
+            subjectId: t.subject_id ? String(t.subject_id) : null,
+            topicId: t.topic_id ? String(t.topic_id) : null,
+            name: t.name,
+            questionCount: t.question_count || 20,
+            answerKey: ansKey,
+            isOpenEnded: isOe,
+            questionType: qType,
+            optionCount: Number(t.option_count || t.optionCount || ansMeta.optionCount) || undefined,
+            pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
+            createdAt: t.created_at
+          };
+        });
         setLocalLiveTests(mapped);
       }
     } catch (err) {
@@ -152,7 +160,7 @@ export default function BookContentManager() {
 
   // Book Settings Dialog State
   const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
-  const [bookSettingsForm, setBookSettingsForm] = useState({ title: '', publisher: '', optionCount: 5, pdfUrl: '' });
+  const [bookSettingsForm, setBookSettingsForm] = useState({ title: '', publisher: '', bookType: 'standard', optionCount: 5, pdfUrl: '' });
 
   // Extract classes from curriculum & students
   const availableClasses = useMemo(() => {
@@ -815,6 +823,9 @@ export default function BookContentManager() {
     const targetSubjectId = currentSubject?.id || currentTest?.subjectId || null;
     const targetTopicId = currentTopic ? String(currentTopic.id) : (currentTest?.topicId || null);
 
+    const isOe = testFormData.isOpenEnded === true || testFormData.questionType === 'acik_uclu';
+    const qType = isOe ? 'acik_uclu' : 'coktan_secmeli';
+
     const testPayload = {
       bookId: String(book.id),
       subjectId: targetSubjectId ? String(targetSubjectId) : null,
@@ -822,20 +833,30 @@ export default function BookContentManager() {
       name: testFormData.name.trim(),
       questionCount: Number(testFormData.questionCount) || 20,
       pdfUrl: testFormData.pdfUrl || '',
-      isOpenEnded: testFormData.isOpenEnded || false,
-      questionType: testFormData.questionType || 'coktan_secmeli',
-      // Cevap anahtarını her zaman sakla (açık uçlu için sayısal cevaplar da tutulur)
+      isOpenEnded: isOe,
+      questionType: qType,
       answerKey: testFormData.answerKey || {},
     };
 
     try {
       if (currentTest) {
+        setLocalLiveTests(prev => (prev || []).map(t => String(t.id) === String(currentTest.id) ? { ...t, ...testPayload } : t));
         await updateTrackedBookTest(currentTest.id, testPayload);
         showToast('Test başarıyla güncellendi.', 'success');
       } else {
-        await addTrackedBookTest(book.id, testPayload);
+        const added = await addTrackedBookTest(book.id, testPayload);
+        if (added) {
+          setLocalLiveTests(prev => [...(prev || []), added]);
+        }
         showToast('Yeni test başarıyla eklendi.', 'success');
       }
+
+      // If test is open-ended and book was standard, automatically update book to mixed
+      if (isOe && book.bookType === 'standard') {
+        setLocalLiveBook(prev => prev ? ({ ...prev, bookType: 'mixed' }) : prev);
+        await updateTrackedBook(book.id, { bookType: 'mixed' });
+      }
+
       setIsTestDialogOpen(false);
     } catch (err) {
       console.error(err);
@@ -843,8 +864,45 @@ export default function BookContentManager() {
     }
   };
 
+  const handleBulkChangeSubjectTestType = async (subject, targetType) => {
+    const isOe = targetType === 'acik_uclu';
+    const typeLabel = isOe ? 'Açık Uçlu / Sayısal' : 'Çoktan Seçmeli';
+    const subjTests = tests.filter(t => {
+      const sIdMatch = String(t.subjectId || t.subject_id || '') === String(subject.id) ||
+        String(t.subjectId || t.subject_id || t.subject || '').toLowerCase().trim() === String(subject.name || '').toLowerCase().trim();
+      return sIdMatch;
+    });
+
+    if (subjTests.length === 0) {
+      showToast(`"${subject.name}" dersinde test bulunmuyor.`, 'error');
+      return;
+    }
+
+    if (!window.confirm(`"${subject.name}" dersindeki toplam ${subjTests.length} adet testin tipini "${typeLabel}" yapmak istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    const updatedSubjTests = subjTests.map(t => ({
+      ...t,
+      isOpenEnded: isOe,
+      questionType: targetType
+    }));
+
+    const subjTestIdSet = new Set(subjTests.map(t => String(t.id)));
+    setLocalLiveTests(prev => (prev || []).map(t => subjTestIdSet.has(String(t.id)) ? { ...t, isOpenEnded: isOe, questionType: targetType } : t));
+
+    await batchSaveTrackedBookTests(updatedSubjTests);
+
+    if (isOe && book.bookType === 'standard') {
+      setLocalLiveBook(prev => prev ? ({ ...prev, bookType: 'mixed' }) : prev);
+      await updateTrackedBook(book.id, { bookType: 'mixed' });
+    }
+
+    showToast(`"${subject.name}" dersindeki ${subjTests.length} test başarıyla "${typeLabel}" olarak güncellendi! 🎉`);
+  };
+
   // --- BULK WIZARD EXECUTION ---
-  const handleExecuteBulkText = () => {
+  const handleExecuteBulkText = async () => {
     const { subjectsMap, totalTests } = parsedBulkStructure;
     if (totalTests === 0) {
       showToast("Lütfen geçerli içerik satırları giriniz.", "error");
@@ -852,6 +910,8 @@ export default function BookContentManager() {
     }
 
     const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
+    const testsToBatch = [];
+    const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
 
     Object.entries(subjectsMap).forEach(([sName, sData]) => {
       let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === sName.toLocaleLowerCase('tr-TR'));
@@ -880,7 +940,9 @@ export default function BookContentManager() {
           }
         }
 
-        addTrackedBookTest(book.id, {
+        testsToBatch.push({
+          id: genId("tbt"),
+          bookId: String(book.id),
           subjectId: String(subject.id),
           topicId: null,
           name: testName,
@@ -917,7 +979,9 @@ export default function BookContentManager() {
             }
           }
 
-          addTrackedBookTest(book.id, {
+          testsToBatch.push({
+            id: genId("tbt"),
+            bookId: String(book.id),
             subjectId: String(subject.id),
             topicId: String(topic.id),
             name: testName,
@@ -930,13 +994,20 @@ export default function BookContentManager() {
       });
     });
 
-    updateTrackedBook(book.id, { subjects: updatedSubjects });
-    showToast(`${totalTests} test ve içerik yapısı başarıyla eklendi!`);
+    setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects }) : prev);
+    await updateTrackedBook(book.id, { subjects: updatedSubjects });
+
+    if (testsToBatch.length > 0) {
+      setLocalLiveTests(prev => [...(prev || []), ...testsToBatch]);
+      await batchSaveTrackedBookTests(testsToBatch);
+    }
+
+    showToast(`${totalTests} test ve içerik yapısı başarıyla eklendi! 🎉`);
     setIsBulkWizardOpen(false);
     setBulkTextInput("");
   };
 
-  const handleExecuteBulkSeries = () => {
+  const handleExecuteBulkSeries = async () => {
     const { subjectName, topicName, isDirectSubject, prefix, testCount, questionCount, rawAnswerKey, testType } = bulkSeriesData;
     if (!subjectName.trim() || testCount <= 0) {
       showToast("Lütfen ders adı ve geçerli test sayısı giriniz.", "error");
@@ -976,10 +1047,13 @@ export default function BookContentManager() {
       topicId = String(topic.id);
     }
 
-    updateTrackedBook(book.id, { subjects: updatedSubjects });
+    const testsToBatch = [];
+    const genId = (prefixStr) => prefixStr + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
 
     for (let i = 1; i <= testCount; i++) {
-      addTrackedBookTest(book.id, {
+      testsToBatch.push({
+        id: genId("tbt"),
+        bookId: String(book.id),
         subjectId: String(subject.id),
         topicId: topicId,
         name: `${prefix || 'Test'} ${i}`,
@@ -990,11 +1064,19 @@ export default function BookContentManager() {
       });
     }
 
-    showToast(`${testCount} adet test başarıyla eklendi!`);
+    setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects }) : prev);
+    await updateTrackedBook(book.id, { subjects: updatedSubjects });
+
+    if (testsToBatch.length > 0) {
+      setLocalLiveTests(prev => [...(prev || []), ...testsToBatch]);
+      await batchSaveTrackedBookTests(testsToBatch);
+    }
+
+    showToast(`${testCount} adet test başarıyla eklendi! 🎉`);
     setIsBulkWizardOpen(false);
   };
 
-  const handleExecuteJsonImport = () => {
+  const handleExecuteJsonImport = async () => {
     if (!jsonInput.trim() || !book) return;
     try {
       const parsedData = JSON.parse(jsonInput);
@@ -1006,7 +1088,8 @@ export default function BookContentManager() {
 
       const existingSubjects = book.subjects || [];
       const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects));
-      const testsToCreate = [];
+      const existingTestsList = [...(tests || [])];
+      const allTestsToSave = [];
 
       const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
 
@@ -1018,6 +1101,9 @@ export default function BookContentManager() {
           });
         }
       });
+
+      let hasAnyOpenEnded = false;
+      let hasAnyMultipleChoice = false;
 
       const formatTestPayload = (testData, subjectId, topicId = null) => {
         const testIsOpenEnded =
@@ -1031,15 +1117,32 @@ export default function BookContentManager() {
         const questionType = testData.questionType ||
           (testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
 
+        if (testIsOpenEnded || questionType === 'acik_uclu') hasAnyOpenEnded = true;
+        else hasAnyMultipleChoice = true;
+
+        const testNameClean = String(testData.name || "İsimsiz Test").trim();
+
+        // Check if a test already exists in this subject & topic with the same name
+        const existingTest = existingTestsList.find(t => {
+          const sMatch = String(t.subjectId || '') === String(subjectId);
+          const topMatch = topicId ? String(t.topicId || '') === String(topicId) : (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subjectId));
+          const nameMatch = String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
+          return sMatch && topMatch && nameMatch;
+        });
+
+        const testId = existingTest ? String(existingTest.id) : genId("tbt");
+
         const testPayload = {
+          id: testId,
+          bookId: String(book.id),
           subjectId: String(subjectId),
           topicId: topicId ? String(topicId) : null,
-          name: String(testData.name || "İsimsiz Test"),
-          questionCount: Number(testData.questionCount) || 20,
+          name: testNameClean,
+          questionCount: Number(testData.questionCount) || (existingTest?.questionCount || 20),
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
-          pdfUrl: testData.pdfUrl || ''
+          pdfUrl: testData.pdfUrl || existingTest?.pdfUrl || ''
         };
 
         if (testData.answerKey) {
@@ -1051,14 +1154,17 @@ export default function BookContentManager() {
             });
           } else if (typeof testData.answerKey === 'object') {
             Object.entries(testData.answerKey).forEach(([k, v]) => {
-              if (v !== undefined && v !== null && v !== "") {
+              if (v !== undefined && v !== null && v !== "" && k !== '__meta') {
                 testPayload.answerKey[String(k)] = String(v);
               }
             });
           } else if (typeof testData.answerKey === 'string') {
             testPayload.answerKey = parseAnswerKeyString(testData.answerKey, testPayload.questionCount);
           }
+        } else if (existingTest?.answerKey) {
+          testPayload.answerKey = { ...existingTest.answerKey };
         }
+
         return testPayload;
       };
 
@@ -1079,7 +1185,7 @@ export default function BookContentManager() {
         // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
           for (const testData of subjData.tests) {
-            testsToCreate.push(formatTestPayload(testData, subject.id, null));
+            allTestsToSave.push(formatTestPayload(testData, subject.id, null));
           }
         }
 
@@ -1099,26 +1205,43 @@ export default function BookContentManager() {
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
-                testsToCreate.push(formatTestPayload(testData, subject.id, topic.id));
+                allTestsToSave.push(formatTestPayload(testData, subject.id, topic.id));
               }
             }
           }
         }
       }
 
-      updateTrackedBook(book.id, { subjects: updatedSubjects });
-
-      if (testsToCreate.length > 0) {
-        for (const testPayload of testsToCreate) {
-          addTrackedBookTest(book.id, testPayload);
-        }
+      let newBookType = book.bookType || 'standard';
+      if (parsedData.bookType) {
+        newBookType = parsedData.bookType;
+      } else if (hasAnyOpenEnded && hasAnyMultipleChoice) {
+        newBookType = 'mixed';
+      } else if (hasAnyOpenEnded && !hasAnyMultipleChoice) {
+        newBookType = 'open_ended';
       }
 
-      showToast(`${book.title} kitabına ${testsToCreate.length} test başarıyla eklendi!`);
+      setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects, bookType: newBookType }) : prev);
+      await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType });
+
+      if (allTestsToSave.length > 0) {
+        setLocalLiveTests(prev => {
+          const map = new Map((prev || []).map(t => [String(t.id), t]));
+          allTestsToSave.forEach(t => {
+            const idStr = String(t.id);
+            map.set(idStr, { ...(map.get(idStr) || {}), ...t });
+          });
+          return Array.from(map.values());
+        });
+        await batchSaveTrackedBookTests(allTestsToSave);
+      }
+
+      showToast(`${book.title} kitabına ${allTestsToSave.length} test başarıyla güncellendi/eklendi! 🎉`);
       setJsonInput("");
       setIsBulkWizardOpen(false);
     } catch (error) {
-      showToast("Geçersiz JSON formatı. Lütfen verilen örnekleri inceleyin.", "error");
+      console.error(error);
+      showToast("Geçersiz JSON formatı: " + (error.message || "Lütfen verilen örnekleri inceleyin."), "error");
     }
   };
 
@@ -1395,9 +1518,14 @@ export default function BookContentManager() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{book.title}</h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #3b82f6' }}>
-                {book.optionCount === 4 ? '🎯 4 Şık Optik (Ortaokul / LGS)' : '🎯 5 Şık Optik (Lise / YKS)'}
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: book.bookType === 'mixed' ? 'rgba(8,145,178,0.15)' : book.bookType === 'open_ended' ? 'rgba(139,92,246,0.15)' : 'rgba(99,102,241,0.12)', color: book.bookType === 'mixed' ? '#0891b2' : book.bookType === 'open_ended' ? '#8b5cf6' : '#6366f1', padding: '0.2rem 0.65rem', borderRadius: '999px', border: `1.5px solid ${book.bookType === 'mixed' ? '#0891b2' : book.bookType === 'open_ended' ? '#8b5cf6' : '#6366f1'}` }}>
+                {book.bookType === 'open_ended' ? '✍️ Açık Uçlu Kitap' : book.bookType === 'mixed' ? '🔀 Karma Kitap' : '🔘 Standart Soru Bankası'}
               </span>
+              {book.bookType !== 'open_ended' && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #3b82f6' }}>
+                  {book.optionCount === 4 ? '🎯 4 Şık Optik (Ortaokul / LGS)' : '🎯 5 Şık Optik (Lise / YKS)'}
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.25rem' }}>
               <span style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
@@ -1410,7 +1538,7 @@ export default function BookContentManager() {
         {/* Header Action Buttons */}
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button 
-            onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
+            onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, bookType: book.bookType || 'standard', optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
             style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <Settings size={17} /> Kitap Ayarları
@@ -1579,7 +1707,13 @@ export default function BookContentManager() {
                         </span>
                       </div>
                       
-                      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={(e) => { e.stopPropagation(); handleBulkChangeSubjectTestType(subject, 'acik_uclu'); }} style={{ padding: '0.4rem 0.75rem', background: 'rgba(139, 92, 246, 0.12)', border: '1.5px solid rgba(139, 92, 246, 0.35)', borderRadius: '0.6rem', color: '#a78bfa', cursor: 'pointer', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} title="Bu dersteki tüm testleri Açık Uçlu / Sayısal yap">
+                          ✍️ Açık Uçlu Yap
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleBulkChangeSubjectTestType(subject, 'coktan_secmeli'); }} style={{ padding: '0.4rem 0.75rem', background: 'rgba(99, 102, 241, 0.12)', border: '1.5px solid rgba(99, 102, 241, 0.35)', borderRadius: '0.6rem', color: '#818cf8', cursor: 'pointer', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} title="Bu dersteki tüm testleri Çoktan Seçmeli yap">
+                          🔘 Çoktan Seçmeli Yap
+                        </button>
                         <button onClick={(e) => { e.stopPropagation(); handleAssignSubject(subject); }} style={{ padding: '0.4rem 0.85rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', borderRadius: '0.6rem', color: '#ffffff', cursor: 'pointer', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 8px rgba(245,158,11,0.25)' }} title="Tüm Dersi Ödev Olarak Ata">
                           <BookOpen size={14} /> Dersi Ata
                         </button>
@@ -1614,10 +1748,19 @@ export default function BookContentManager() {
                                     />
                                     <div>
                                       <h5 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--color-text)', fontWeight: 800 }}>{test.name}</h5>
-                                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
-                                        {test.questionCount} Soru
-                                        {test.answerKey && Object.keys(test.answerKey).length > 0 && (
-                                          <span style={{ marginLeft: '0.5rem', color: '#10b981', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                        <span>{test.questionCount} Soru</span>
+                                        {test.isOpenEnded || test.questionType === 'acik_uclu' ? (
+                                          <span style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)', padding: '0.05rem 0.4rem', borderRadius: '0.35rem', fontWeight: 800, border: '1px solid rgba(139,92,246,0.25)', fontSize: '0.72rem' }}>
+                                            ✍️ Açık Uçlu
+                                          </span>
+                                        ) : (
+                                          <span style={{ color: '#6366f1', background: 'rgba(99,102,241,0.08)', padding: '0.05rem 0.4rem', borderRadius: '0.35rem', fontWeight: 800, fontSize: '0.72rem' }}>
+                                            🔘 Çoktan Seçmeli
+                                          </span>
+                                        )}
+                                        {test.answerKey && Object.keys(test.answerKey).filter(k => k !== '__meta').length > 0 && (
+                                          <span style={{ color: '#10b981', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).filter(k => k !== '__meta').length})</span>
                                         )}
                                       </div>
                                     </div>
@@ -1688,10 +1831,19 @@ export default function BookContentManager() {
                                             />
                                             <div>
                                               <h5 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--color-text)', fontWeight: 800 }}>{test.name}</h5>
-                                              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
-                                                {test.questionCount} Soru
-                                                {test.answerKey && Object.keys(test.answerKey).length > 0 && (
-                                                  <span style={{ marginLeft: '0.5rem', color: '#10b981', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
+                                              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                                <span>{test.questionCount} Soru</span>
+                                                {test.isOpenEnded || test.questionType === 'acik_uclu' ? (
+                                                  <span style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)', padding: '0.05rem 0.4rem', borderRadius: '0.35rem', fontWeight: 800, border: '1px solid rgba(139,92,246,0.25)', fontSize: '0.72rem' }}>
+                                                    ✍️ Açık Uçlu
+                                                  </span>
+                                                ) : (
+                                                  <span style={{ color: '#6366f1', background: 'rgba(99,102,241,0.08)', padding: '0.05rem 0.4rem', borderRadius: '0.35rem', fontWeight: 800, fontSize: '0.72rem' }}>
+                                                    🔘 Çoktan Seçmeli
+                                                  </span>
+                                                )}
+                                                {test.answerKey && Object.keys(test.answerKey).filter(k => k !== '__meta').length > 0 && (
+                                                  <span style={{ color: '#10b981', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).filter(k => k !== '__meta').length})</span>
                                                 )}
                                               </div>
                                             </div>
@@ -1710,7 +1862,9 @@ export default function BookContentManager() {
                                         </div>
                                       ))
                                     ) : (
-                                      <p style={{ fontSize: '0.85rem', fontStyle: 'italic', margin: 0, color: 'var(--color-text-muted)' }}>Bu konuda henüz test bulunmuyor.</p>
+                                      <div style={{ gridColumn: '1 / -1', padding: '1rem', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '0.5rem', border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                                        Bu konuda henüz test bulunmuyor.
+                                      </div>
                                     )}
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -2933,30 +3087,28 @@ export default function BookContentManager() {
               />
             </div>
 
-            {/* ── Test Tipi Seçimi (Karma kitaplar için) ── */}
-            {(book.bookType === 'mixed' || book.bookType === 'open_ended' || testFormData.isOpenEnded) && (
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Tipi</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${!testFormData.isOpenEnded ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: !testFormData.isOpenEnded ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
-                    <input type="radio" name="testType" value="coktan_secmeli"
-                      checked={!testFormData.isOpenEnded}
-                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: false, questionType: 'coktan_secmeli' }))}
-                      style={{ accentColor: '#6366f1' }}
-                    />
-                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${testFormData.isOpenEnded ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: testFormData.isOpenEnded ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
-                    <input type="radio" name="testType" value="acik_uclu"
-                      checked={testFormData.isOpenEnded}
-                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: true, questionType: 'acik_uclu', answerKey: {} }))}
-                      style={{ accentColor: '#8b5cf6' }}
-                    />
-                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu/Sayısal</span>
-                  </label>
-                </div>
+            {/* ── Test Tipi Seçimi ── */}
+            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Tipi</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${!testFormData.isOpenEnded ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: !testFormData.isOpenEnded ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                  <input type="radio" name="testType" value="coktan_secmeli"
+                    checked={!testFormData.isOpenEnded}
+                    onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: false, questionType: 'coktan_secmeli' }))}
+                    style={{ accentColor: '#6366f1' }}
+                  />
+                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${testFormData.isOpenEnded ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: testFormData.isOpenEnded ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                  <input type="radio" name="testType" value="acik_uclu"
+                    checked={testFormData.isOpenEnded}
+                    onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: true, questionType: 'acik_uclu' }))}
+                    style={{ accentColor: '#8b5cf6' }}
+                  />
+                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu/Sayısal</span>
+                </label>
               </div>
-            )}
+            </div>
 
             {/* ── Cevap Anahtarı ── */}
             {testFormData.isOpenEnded ? (
@@ -4021,38 +4173,90 @@ export default function BookContentManager() {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Optik Form Seçenek Sayısı (Seviye)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 4 ? '#10b981' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 4 ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-hover)' }}>
-                  <input
-                    type="radio"
-                    name="bookSettingOptionCount"
-                    value={4}
-                    checked={bookSettingsForm.optionCount === 4}
-                    onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 4 })}
-                    style={{ accentColor: '#10b981' }}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Ortaokul / LGS</div>
+              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Kitap Türü (Formatı)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'standard' ? 'rgba(99, 102, 241, 0.12)' : 'var(--color-surface-hover)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <input
+                      type="radio"
+                      name="bookSettingBookType"
+                      value="standard"
+                      checked={bookSettingsForm.bookType === 'standard'}
+                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'standard' })}
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔘 Standart</span>
                   </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Çoktan Seçmeli</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 5 ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
-                  <input
-                    type="radio"
-                    name="bookSettingOptionCount"
-                    value={5}
-                    checked={bookSettingsForm.optionCount === 5}
-                    onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 5 })}
-                    style={{ accentColor: '#8b5cf6' }}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'open_ended' ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <input
+                      type="radio"
+                      name="bookSettingBookType"
+                      value="open_ended"
+                      checked={bookSettingsForm.bookType === 'open_ended'}
+                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'open_ended' })}
+                      style={{ accentColor: '#8b5cf6' }}
+                    />
+                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu</span>
                   </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Klasik / Sayısal</span>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'mixed' ? 'rgba(8, 145, 178, 0.12)' : 'var(--color-surface-hover)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <input
+                      type="radio"
+                      name="bookSettingBookType"
+                      value="mixed"
+                      checked={bookSettingsForm.bookType === 'mixed'}
+                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'mixed' })}
+                      style={{ accentColor: '#0891b2' }}
+                    />
+                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔀 Karma</span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>ÇS + Açık Uçlu</span>
                 </label>
               </div>
             </div>
+
+            {bookSettingsForm.bookType !== 'open_ended' && (
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Optik Form Seçenek Sayısı (Seviye)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 4 ? '#10b981' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 4 ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-hover)' }}>
+                    <input
+                      type="radio"
+                      name="bookSettingOptionCount"
+                      value={4}
+                      checked={bookSettingsForm.optionCount === 4}
+                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 4 })}
+                      style={{ accentColor: '#10b981' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>İlkokul / Ortaokul / LGS</div>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 5 ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
+                    <input
+                      type="radio"
+                      name="bookSettingOptionCount"
+                      value={5}
+                      checked={bookSettingsForm.optionCount === 5}
+                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 5 })}
+                      style={{ accentColor: '#8b5cf6' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
@@ -4069,10 +4273,11 @@ export default function BookContentManager() {
               <button className="btn btn-outline" onClick={() => setIsBookSettingsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
               <button
                 className="btn btn-primary"
-                onClick={() => {
-                  updateTrackedBook(book.id, bookSettingsForm);
+                onClick={async () => {
+                  setLocalLiveBook(prev => prev ? ({ ...prev, ...bookSettingsForm }) : prev);
+                  await updateTrackedBook(book.id, bookSettingsForm);
                   setIsBookSettingsDialogOpen(false);
-                  showToast("Kitap ayarları başarıyla güncellendi.");
+                  showToast("Kitap ayarları başarıyla güncellendi. 🎉");
                 }}
                 style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.5rem', color: 'white' }}
               >

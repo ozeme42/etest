@@ -6,6 +6,7 @@ import {
   dbUpdateTrackedBook,
   dbDeleteTrackedBook,
   dbAddTrackedBookTest,
+  dbBatchUpsertTrackedBookTests,
   dbDeleteTrackedBookTest,
   toUUID
 } from '../services/supabaseService';
@@ -108,7 +109,7 @@ export function TrackedBookProvider({ children }) {
   };
 
   const updateTrackedBook = async (id, updates) => {
-    setBooks(prev => prev.map(book => book.id === id ? { ...book, ...updates } : book));
+    setBooks(prev => prev.map(book => (book.id === id || toUUID(book.id) === toUUID(id)) ? { ...book, ...updates } : book));
     if (updates.optionCount !== undefined) {
       setBookTests(prev => prev.map(t => (t.bookId === id || toUUID(t.bookId) === toUUID(id)) ? { ...t, optionCount: updates.optionCount } : t));
     }
@@ -131,6 +132,20 @@ export function TrackedBookProvider({ children }) {
     setBookTests(prev => [...prev, newTest]);
     await dbAddTrackedBookTest(newTest);
     return newTest;
+  };
+
+  const batchSaveTrackedBookTests = async (testsList) => {
+    if (!Array.isArray(testsList) || testsList.length === 0) return;
+    setBookTests(prev => {
+      const map = new Map(prev.map(t => [String(t.id), t]));
+      testsList.forEach(t => {
+        const idStr = String(t.id);
+        const existing = map.get(idStr);
+        map.set(idStr, { ...(existing || {}), ...t, id: idStr });
+      });
+      return Array.from(map.values());
+    });
+    await dbBatchUpsertTrackedBookTests(testsList);
   };
 
   const updateTrackedBookTest = async (id, updates) => {
@@ -179,6 +194,7 @@ export function TrackedBookProvider({ children }) {
       updateTrackedBook,
       deleteTrackedBook,
       addTrackedBookTest,
+      batchSaveTrackedBookTests,
       updateTrackedBookTest,
       deleteTrackedBookTest
     }}>

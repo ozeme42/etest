@@ -1682,18 +1682,26 @@ export async function dbGetTrackedBooks() {
       };
     });
 
-    const bookTests = (tRes.data || []).map(t => ({
-      id: String(t.id),
-      bookId: String(t.book_id),
-      subjectId: t.subject_id ? String(t.subject_id) : null,
-      topicId: t.topic_id ? String(t.topic_id) : null,
-      name: t.name,
-      questionCount: t.question_count || 20,
-      answerKey: t.answer_key || {},
-      optionCount: Number(t.option_count || t.optionCount) || undefined,
-      pdfUrl: t.pdf_url || '',
-      createdAt: t.created_at
-    }));
+    const bookTests = (tRes.data || []).map(t => {
+      const ansKey = t.answer_key || {};
+      const ansMeta = ansKey.__meta || {};
+      const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
+      const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
+      return {
+        id: String(t.id),
+        bookId: String(t.book_id),
+        subjectId: t.subject_id ? String(t.subject_id) : null,
+        topicId: t.topic_id ? String(t.topic_id) : null,
+        name: t.name,
+        questionCount: t.question_count || 20,
+        answerKey: ansKey,
+        isOpenEnded: isOe,
+        questionType: qType,
+        optionCount: Number(t.option_count || t.optionCount || ansMeta.optionCount) || undefined,
+        pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
+        createdAt: t.created_at
+      };
+    });
 
     return { books, bookTests };
   } catch (err) {
@@ -1788,6 +1796,21 @@ export async function dbAddTrackedBookTest(test) {
   if (!isSupabaseConfigured() || !test) return null;
   try {
     const bId = test.bookId || test.book_id || null;
+    const rawAnsKey = test.answerKey || test.answer_key || {};
+    const qType = test.questionType || (test.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
+    const isOe = test.isOpenEnded === true || qType === 'acik_uclu';
+
+    const enrichedAnswerKey = {
+      ...rawAnsKey,
+      __meta: {
+        ...(rawAnsKey.__meta || {}),
+        questionType: qType,
+        isOpenEnded: isOe,
+        optionCount: test.optionCount,
+        pdfUrl: test.pdfUrl || test.pdf_url || ''
+      }
+    };
+
     const payload = {
       id: String(test.id || `tbt_${Date.now()}`),
       book_id: bId ? String(bId) : null,
@@ -1795,7 +1818,7 @@ export async function dbAddTrackedBookTest(test) {
       topic_id: (test.topicId || test.topic_id) ? String(test.topicId || test.topic_id) : null,
       name: test.name,
       question_count: Number(test.questionCount || test.question_count) || 20,
-      answer_key: test.answerKey || test.answer_key || {},
+      answer_key: enrichedAnswerKey,
       pdf_url: test.pdfUrl || test.pdf_url || ''
     };
     const { data, error } = await supabase.from('tracked_book_tests').upsert([payload], { onConflict: 'id' }).select().single();
@@ -1804,6 +1827,50 @@ export async function dbAddTrackedBookTest(test) {
   } catch (err) {
     console.warn('[Supabase] dbAddTrackedBookTest error:', err.message);
     return null;
+  }
+}
+
+export async function dbBatchUpsertTrackedBookTests(testList) {
+  if (!isSupabaseConfigured() || !Array.isArray(testList) || testList.length === 0) return true;
+  try {
+    const rows = testList.map(t => {
+      const bId = t.bookId || t.book_id || null;
+      const rawAnsKey = t.answerKey || t.answer_key || {};
+      const qType = t.questionType || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
+      const isOe = t.isOpenEnded === true || qType === 'acik_uclu';
+
+      const enrichedAnswerKey = {
+        ...rawAnsKey,
+        __meta: {
+          ...(rawAnsKey.__meta || {}),
+          questionType: qType,
+          isOpenEnded: isOe,
+          optionCount: t.optionCount,
+          pdfUrl: t.pdfUrl || t.pdf_url || ''
+        }
+      };
+
+      return {
+        id: String(t.id || `tbt_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`),
+        book_id: bId ? String(bId) : null,
+        subject_id: (t.subjectId || t.subject_id) ? String(t.subjectId || t.subject_id) : null,
+        topic_id: (t.topicId || t.topic_id) ? String(t.topicId || t.topic_id) : null,
+        name: t.name || 'Test',
+        question_count: Number(t.questionCount || t.question_count) || 20,
+        answer_key: enrichedAnswerKey,
+        pdf_url: t.pdfUrl || t.pdf_url || ''
+      };
+    });
+
+    for (let i = 0; i < rows.length; i += 50) {
+      const chunk = rows.slice(i, i + 50);
+      const { error } = await supabase.from('tracked_book_tests').upsert(chunk, { onConflict: 'id' });
+      if (error) throw error;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbBatchUpsertTrackedBookTests error:', err.message);
+    return false;
   }
 }
 

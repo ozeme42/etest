@@ -89,55 +89,7 @@ export default function BookManager() {
     });
   }, [books, bookTests, submissions, currentUser]);
 
-  const showToast = (title, type = 'success') => {
-    alert(`${type === 'success' ? '✅' : '❌'} ${title}`);
-  };
-
-  const handleAddOrUpdateBook = () => {
-    if (!newBook.title.trim() || !newBook.publisher.trim()) {
-      showToast("Lütfen tüm alanları doldurun!", "error");
-      return;
-    }
-
-    try {
-      if (editingBook) {
-        updateTrackedBook(editingBook.id, newBook);
-        showToast("Kitap başarıyla güncellendi!");
-      } else {
-        addTrackedBook({
-          ...newBook,
-          createdBy: currentUser?.id,
-          teacherId: currentUser?.id
-        });
-        showToast("Kitap başarıyla eklendi!");
-      }
-      setNewBook({ title: "", publisher: "", bookType: "standard" });
-      setIsDialogOpen(false);
-      setEditingBook(null);
-    } catch (error) {
-      showToast("İşlem sırasında bir hata oluştu!", "error");
-    }
-  };
-
-  const handleDeleteBook = (id) => {
-    if (window.confirm("Bu kitabı silmek istediğinize emin misiniz?")) {
-      deleteTrackedBook(id);
-      showToast("Kitap silindi!", "success");
-      setActiveDropdown(null);
-    }
-  };
-
-  const handleManageBook = (bookId) => {
-    navigate(`/books/${bookId}`);
-  };
-  
-  const openDialog = (book) => {
-    setEditingBook(book);
-    setIsDialogOpen(true);
-    setActiveDropdown(null);
-  };
-
-  const handleImportJson = () => {
+  const handleImportJson = async () => {
     if (!importModal.book || !jsonInput.trim()) return;
     const targetBook = importModal.book;
     
@@ -151,7 +103,8 @@ export default function BookManager() {
 
       const existingSubjects = targetBook.subjects || [];
       const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects)); 
-      const testsToCreate = [];
+      const existingTestsList = (bookTests || []).filter(t => String(t.bookId) === String(targetBook.id) || String(t.book_id) === String(targetBook.id));
+      const allTestsToSave = [];
 
       const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
 
@@ -163,6 +116,69 @@ export default function BookManager() {
           });
         }
       });
+
+      let hasAnyOpenEnded = false;
+      let hasAnyMultipleChoice = false;
+
+      const formatTestPayload = (testData, subjectId, topicId = null) => {
+        const testIsOpenEnded =
+          testData.isOpenEnded === true ||
+          testData.questionType === 'acik_uclu' ||
+          (targetBook.bookType === 'open_ended' && testData.questionType !== 'coktan_secmeli') ||
+          String(testData.name || '').toLowerCase().includes('açık uçlu') ||
+          String(testData.name || '').toLowerCase().includes('acik uclu') ||
+          String(testData.name || '').toLowerCase().includes('klasik');
+
+        const questionType = testData.questionType ||
+          (testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
+
+        if (testIsOpenEnded || questionType === 'acik_uclu') hasAnyOpenEnded = true;
+        else hasAnyMultipleChoice = true;
+
+        const testNameClean = String(testData.name || 'İsimsiz Test').trim();
+
+        const existingTest = existingTestsList.find(t => {
+          const sMatch = String(t.subjectId || '') === String(subjectId);
+          const topMatch = topicId ? String(t.topicId || '') === String(topicId) : (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subjectId));
+          const nameMatch = String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
+          return sMatch && topMatch && nameMatch;
+        });
+
+        const testId = existingTest ? String(existingTest.id) : genId("tbt");
+
+        const testPayload = {
+          id: testId,
+          bookId: String(targetBook.id),
+          subjectId: String(subjectId),
+          topicId: topicId ? String(topicId) : null,
+          name: testNameClean,
+          questionCount: Number(testData.questionCount) || (existingTest?.questionCount || 20),
+          answerKey: {},
+          isOpenEnded: testIsOpenEnded,
+          questionType,
+          pdfUrl: testData.pdfUrl || existingTest?.pdfUrl || ''
+        };
+
+        if (testData.answerKey) {
+          if (Array.isArray(testData.answerKey)) {
+            testData.answerKey.forEach((ans, idx) => {
+              if (ans !== undefined && ans !== null && ans !== '') {
+                testPayload.answerKey[String(idx + 1)] = String(ans);
+              }
+            });
+          } else if (typeof testData.answerKey === 'object') {
+            Object.entries(testData.answerKey).forEach(([k, v]) => {
+              if (v !== undefined && v !== null && v !== '' && k !== '__meta') {
+                testPayload.answerKey[String(k)] = String(v);
+              }
+            });
+          }
+        } else if (existingTest?.answerKey) {
+          testPayload.answerKey = { ...existingTest.answerKey };
+        }
+
+        return testPayload;
+      };
 
       for (const subjData of subjectsList) {
         if (!subjData.name) continue;
@@ -178,49 +194,10 @@ export default function BookManager() {
         }
         if (!subject.topics) subject.topics = [];
 
-        const formatTestPayload = (testData, topicId = null) => {
-          // Test başına tip tespiti: JSON'daki alan > kitap tipi > varsayılan
-          const testIsOpenEnded =
-            testData.isOpenEnded === true ||
-            testData.questionType === 'acik_uclu' ||
-            (targetBook.bookType === 'open_ended' && testData.questionType !== 'coktan_secmeli');
-
-          const questionType = testData.questionType ||
-            (targetBook.bookType === 'open_ended' ? 'acik_uclu' : 'coktan_secmeli');
-
-          const testPayload = {
-            subjectId: String(subject.id),
-            topicId: topicId ? String(topicId) : null,
-            name: String(testData.name || 'İsimsiz Test'),
-            questionCount: Number(testData.questionCount) || 20,
-            answerKey: {},
-            isOpenEnded: testIsOpenEnded,
-            questionType
-          };
-
-          // Cevap anahtarını işle
-          if (testData.answerKey) {
-            if (Array.isArray(testData.answerKey)) {
-              testData.answerKey.forEach((ans, idx) => {
-                if (ans !== undefined && ans !== null && ans !== '') {
-                  testPayload.answerKey[String(idx + 1)] = String(ans);
-                }
-              });
-            } else if (typeof testData.answerKey === 'object') {
-              Object.entries(testData.answerKey).forEach(([k, v]) => {
-                if (v !== undefined && v !== null && v !== '') {
-                  testPayload.answerKey[k] = String(v);
-                }
-              });
-            }
-          }
-          return testPayload;
-        };
-
         // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
           for (const testData of subjData.tests) {
-            testsToCreate.push(formatTestPayload(testData, null));
+            allTestsToSave.push(formatTestPayload(testData, subject.id, null));
           }
         }
 
@@ -240,26 +217,34 @@ export default function BookManager() {
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
-                testsToCreate.push(formatTestPayload(testData, topic.id));
+                allTestsToSave.push(formatTestPayload(testData, subject.id, topic.id));
               }
             }
           }
         }
       }
 
-      updateTrackedBook(targetBook.id, { subjects: updatedSubjects });
+      let newBookType = targetBook.bookType || 'standard';
+      if (parsedData.bookType) {
+        newBookType = parsedData.bookType;
+      } else if (hasAnyOpenEnded && hasAnyMultipleChoice) {
+        newBookType = 'mixed';
+      } else if (hasAnyOpenEnded && !hasAnyMultipleChoice) {
+        newBookType = 'open_ended';
+      }
+
+      await updateTrackedBook(targetBook.id, { subjects: updatedSubjects, bookType: newBookType });
       
-      if (testsToCreate.length > 0) {
-        for (const testPayload of testsToCreate) {
-          addTrackedBookTest(targetBook.id, testPayload);
-        }
+      if (allTestsToSave.length > 0) {
+        await batchSaveTrackedBookTests(allTestsToSave);
       }
       
-      showToast(`${targetBook.title} kitabına ${testsToCreate.length} test başarıyla eklendi!`);
+      showToast(`${targetBook.title} kitabına ${allTestsToSave.length} test başarıyla güncellendi/eklendi! 🎉`);
       setJsonInput("");
       setImportModal({ isOpen: false, book: null });
     } catch (error) {
-      showToast("Geçersiz JSON formatı. Lütfen verilen örnekleri inceleyin.", "error");
+      console.error(error);
+      showToast("Geçersiz JSON formatı: " + (error.message || "Lütfen verilen örnekleri inceleyin."), "error");
     }
   };
 
