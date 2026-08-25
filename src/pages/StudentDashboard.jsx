@@ -3430,21 +3430,48 @@ export default function StudentDashboard() {
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}
                 onTaskClick={(task) => {
-                  if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
-                  if (task.isExamTask || task.taskType === 'deneme') {
-                    navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
+                  if (!task) return;
+                  if (task.roadmapAssignmentId) {
+                    navigate(`/student/study-plan/${task.roadmapAssignmentId}`);
                     return;
                   }
-                  if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
-                  if (task.hwId) {
-                    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
-                    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId) || toUUID(b.id) === toUUID(hwObj?.bookId));
-                    const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical || task.isExamTask || (hwObj?.title && hwObj.title.toLowerCase().includes('deneme'));
-                    if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
-                    else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
-                    else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
+                  
+                  const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+                  const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
+                  const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                  
+                  if (isExam) {
+                    navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`);
                     return;
                   }
+
+                  const isBook = Boolean(
+                    task.isBookTask ||
+                    task.taskType === 'kitap' ||
+                    task.sourceType === 'trackedBook' ||
+                    hwObj?.isBookAssignment ||
+                    (task.bookTestId && String(task.bookTestId).startsWith('tbt_')) ||
+                    (task.testId && String(task.testId).startsWith('tbt_'))
+                  );
+
+                  if (isBook) {
+                    const targetBookTestId = (task.bookTestId && String(task.bookTestId).startsWith('tbt_') ? task.bookTestId : null) ||
+                      (task.testId && String(task.testId).startsWith('tbt_') ? task.testId : null) ||
+                      (hwObj?.tests && hwObj.tests.length > 0 ? hwObj.tests[0] : null) ||
+                      task.bookTestId || task.testId;
+                    if (targetBookTestId) {
+                      navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`);
+                      return;
+                    }
+                  }
+
+                  // Normal Homework Quiz
+                  const quizTargetId = task.realTestId || task.hwId || task.id || task.testId;
+                  if (quizTargetId) {
+                    navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent.id}`);
+                    return;
+                  }
+
                   handleToggleTask(task);
                 }}
                 getRowTheme={getRowTheme}
