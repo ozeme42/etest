@@ -71,13 +71,37 @@ export default function BookContentManager() {
     if (!id) return;
     setIsLiveLoading(true);
     try {
-      const [bRes, tRes] = await Promise.all([
-        supabase.from('tracked_books').select('*').eq('id', String(id)).maybeSingle(),
-        supabase.from('tracked_book_tests').select('*').eq('book_id', String(id)).order('created_at', { ascending: true })
-      ]);
+      let bData = null;
+      let tData = null;
 
-      if (bRes.data) {
-        const b = bRes.data;
+      const candidateIds = [String(id), toUUID(id)].filter(Boolean);
+
+      // Fetch Book
+      for (const cid of candidateIds) {
+        try {
+          const bRes = await supabase.from('tracked_books').select('*').eq('id', cid).maybeSingle();
+          if (bRes.data) {
+            bData = bRes.data;
+            break;
+          }
+        } catch {}
+      }
+
+      // Fetch Book Tests
+      for (const cid of candidateIds) {
+        try {
+          const tRes = await supabase.from('tracked_book_tests').select('*').eq('book_id', cid).order('created_at', { ascending: true });
+          if (tRes.data && tRes.data.length > 0) {
+            tData = tRes.data;
+            break;
+          } else if (tRes.data) {
+            tData = tRes.data;
+          }
+        } catch {}
+      }
+
+      if (bData) {
+        const b = bData;
         const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
           ? b.subjects
           : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
@@ -92,12 +116,13 @@ export default function BookContentManager() {
               : (b.raw_data?.optionCount !== undefined ? Number(b.raw_data.optionCount) : 5)));
 
         const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
+        const pub = metaObj?.publisher || b.publisher || b.raw_data?.publisher || '';
         const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
 
         setLocalLiveBook({
           id: String(b.id),
-          title: b.title || b.raw_data?.title || '',
-          publisher: b.publisher || b.raw_data?.publisher || '',
+          title: b.title || metaObj?.title || b.raw_data?.title || '',
+          publisher: pub,
           bookType: bType,
           optionCount: Number(optCount) || 5,
           pdfUrl: pdf,
@@ -106,8 +131,8 @@ export default function BookContentManager() {
         });
       }
 
-      if (tRes.data) {
-        const mapped = tRes.data.map(t => {
+      if (tData) {
+        const mapped = tData.map(t => {
           const ansKey = t.answer_key || {};
           const ansMeta = ansKey.__meta || {};
           const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
