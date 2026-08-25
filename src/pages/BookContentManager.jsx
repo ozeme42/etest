@@ -1872,7 +1872,7 @@ export default function BookContentManager() {
                           <button 
                             onClick={() => {
                               setScheduleModalHw(hw);
-                              setScheduleDates(hw.testDueDates || {});
+                              setScheduleDates(hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {});
                               setAutoStartDate(new Date().toISOString().split('T')[0]);
                               setScheduleSelectedTestIds([]);
                               setBulkApplyDate('');
