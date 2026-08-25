@@ -46,7 +46,7 @@ export default function BookContentManager() {
       subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
     };
   }, [books, id]);
-  const tests = useMemo(() => bookTests.filter(t => t.bookId === id), [bookTests, id]);
+  const tests = useMemo(() => (bookTests || []).filter(t => String(t.bookId || t.book_id) === String(id) || (toUUID(id) && String(t.bookId || t.book_id) === String(toUUID(id)))), [bookTests, id]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   // Book Settings Dialog State
@@ -1358,7 +1358,7 @@ export default function BookContentManager() {
               </div>
 
               {book.subjects.map(subject => {
-                const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id))));
+                const directTests = sortTestsNaturally(tests.filter(t => (String(t.subjectId || t.subject_id) === String(subject.id)) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !t.topic_id || t.topic_id === 'direct' || String(t.topic_id) === String(subject.id))));
                 const topicsList = subject.topics || [];
                 // Closed by default unless explicitly toggled to false
                 const isExpanded = collapsedSubjects[subject.id] === false;
@@ -1445,7 +1445,7 @@ export default function BookContentManager() {
 
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
-                          const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
+                          const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
                           // Closed by default unless explicitly toggled to false
                           const isTopicExpanded = collapsedTopics[topic.id] === false;
 
@@ -3234,7 +3234,7 @@ export default function BookContentManager() {
                                 testCounter++;
                               });
                               topicsList.forEach(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
+                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
                                 topicTests.forEach(t => {
                                   if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
                                   datesMap[t.id] = currDate.toISOString().split('T')[0];
@@ -3503,7 +3503,7 @@ export default function BookContentManager() {
                             {/* Topics / Units List (Ders > Ünite / Konu > Testler) */}
                             {topicsList.length > 0 ? (
                               topicsList.map(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
+                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
                                 if (topicTests.length === 0) return null;
 
                                 // Default to collapsed (true) if undefined
