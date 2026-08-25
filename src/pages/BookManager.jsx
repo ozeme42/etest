@@ -101,11 +101,16 @@ export default function BookManager() {
 
     try {
       if (editingBook) {
-        await updateTrackedBook(editingBook.id, newBook);
+        await updateTrackedBook(editingBook.id, {
+          ...editingBook,
+          ...newBook,
+          optionCount: Number(newBook.optionCount) || 5
+        });
         showToast("Kitap başarıyla güncellendi!");
       } else {
         await addTrackedBook({
           ...newBook,
+          optionCount: Number(newBook.optionCount) || 5,
           createdBy: currentUser?.id,
           teacherId: currentUser?.id
         });

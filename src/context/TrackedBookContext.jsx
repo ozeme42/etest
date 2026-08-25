@@ -109,9 +109,19 @@ export function TrackedBookProvider({ children }) {
   };
 
   const updateTrackedBook = async (id, updates) => {
-    setBooks(prev => prev.map(book => (book.id === id || toUUID(book.id) === toUUID(id)) ? { ...book, ...updates } : book));
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+    setBooks(prev => prev.map(book => {
+      const isMatch = String(book.id) === idStr || (idUuid && String(book.id) === idUuid) || (toUUID(book.id) && String(toUUID(book.id)) === idUuid);
+      return isMatch ? { ...book, ...updates } : book;
+    }));
     if (updates.optionCount !== undefined) {
-      setBookTests(prev => prev.map(t => (t.bookId === id || toUUID(t.bookId) === toUUID(id)) ? { ...t, optionCount: updates.optionCount } : t));
+      const optCountNum = Number(updates.optionCount);
+      setBookTests(prev => prev.map(t => {
+        const isMatch = String(t.bookId) === idStr || (idUuid && String(t.bookId) === idUuid) || (toUUID(t.bookId) && String(toUUID(t.bookId)) === idUuid);
+        return isMatch ? { ...t, optionCount: optCountNum } : t;
+      }));
     }
     await dbUpdateTrackedBook(id, updates);
   };

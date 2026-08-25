@@ -1662,20 +1662,27 @@ export async function dbGetTrackedBooks() {
       const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
         ? b.subjects
         : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
-      let optCount = b.option_count || b.optionCount || b.options_count || b.raw_data?.optionCount;
-      if (optCount === undefined || optCount === null) {
-        const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
-        if (metaObj && metaObj.optionCount) {
-          optCount = Number(metaObj.optionCount);
-        }
-      }
+
+      const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
+      
+      const optCount = metaObj?.optionCount !== undefined
+        ? Number(metaObj.optionCount)
+        : (b.option_count !== undefined
+          ? Number(b.option_count)
+          : (b.optionCount !== undefined
+            ? Number(b.optionCount)
+            : (b.raw_data?.optionCount !== undefined ? Number(b.raw_data.optionCount) : 5)));
+
+      const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
+      const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
+
       return {
         id: String(b.id),
         title: b.title || b.raw_data?.title || '',
         publisher: b.publisher || b.raw_data?.publisher || '',
-        bookType: b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard'),
+        bookType: bType,
         optionCount: Number(optCount) || 5,
-        pdfUrl: b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '',
+        pdfUrl: pdf,
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
         raw_data: b.raw_data || {},
         createdAt: b.created_at
@@ -1714,26 +1721,67 @@ export async function dbAddTrackedBook(book) {
   if (!isSupabaseConfigured() || !book) return null;
   try {
     const optCount = Number(book.optionCount) || 5;
+    const bType = book.bookType || 'standard';
+    const pdf = book.pdfUrl || '';
     const rawSubjects = Array.isArray(book.subjects) ? book.subjects : [];
     const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
+    
+    const metaHeader = {
+      id: '__book_meta__',
+      __meta: true,
+      optionCount: optCount,
+      bookType: bType,
+      pdfUrl: pdf
+    };
+    const subjectsWithMeta = [metaHeader, ...cleanSubs];
+
     const rawData = {
       ...(book.raw_data || {}),
       subjects: cleanSubs,
       optionCount: optCount,
       title: book.title,
       publisher: book.publisher || '',
-      bookType: book.bookType || 'standard',
-      pdfUrl: book.pdfUrl || ''
+      bookType: bType,
+      pdfUrl: pdf
     };
-    const payload = {
-      id: String(book.id || `tb_${Date.now()}`),
+
+    const bookId = String(book.id || `tb_${Date.now()}`);
+
+    try {
+      const payload = {
+        id: bookId,
+        title: book.title,
+        publisher: book.publisher || '',
+        book_type: bType,
+        pdf_url: pdf,
+        subjects: subjectsWithMeta,
+        raw_data: rawData
+      };
+      let { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
+      if (!error && data) return data;
+    } catch {}
+
+    // Fallback 1: without raw_data & pdf_url
+    try {
+      const fbPayload = {
+        id: bookId,
+        title: book.title,
+        publisher: book.publisher || '',
+        book_type: bType,
+        subjects: subjectsWithMeta
+      };
+      let { data, error } = await supabase.from('tracked_books').upsert([fbPayload], { onConflict: 'id' }).select().single();
+      if (!error && data) return data;
+    } catch {}
+
+    // Fallback 2: minimal (id, title, publisher, subjects)
+    let { data, error } = await supabase.from('tracked_books').upsert([{
+      id: bookId,
       title: book.title,
       publisher: book.publisher || '',
-      book_type: book.bookType || 'standard',
-      pdf_url: book.pdfUrl || '',
-      raw_data: rawData
-    };
-    let { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
+      subjects: subjectsWithMeta
+    }], { onConflict: 'id' }).select().single();
+
     if (error) throw error;
     return data;
   } catch (err) {
@@ -1745,33 +1793,84 @@ export async function dbAddTrackedBook(book) {
 export async function dbUpdateTrackedBook(bookId, updates) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
-    let currentRawData = {};
+    let currentBook = null;
     try {
-      const { data: existing } = await supabase.from('tracked_books').select('raw_data').eq('id', String(bookId)).maybeSingle();
-      if (existing?.raw_data) currentRawData = existing.raw_data;
+      const { data: existing } = await supabase.from('tracked_books').select('*').eq('id', String(bookId)).maybeSingle();
+      if (existing) currentBook = existing;
     } catch {}
 
-    const payload = {};
-    if (updates.title !== undefined) payload.title = updates.title;
-    if (updates.publisher !== undefined) payload.publisher = updates.publisher;
-    if (updates.bookType !== undefined) payload.book_type = updates.bookType;
-    if (updates.pdfUrl !== undefined) payload.pdf_url = updates.pdfUrl;
+    const rawSubjects = (updates.subjects !== undefined)
+      ? (Array.isArray(updates.subjects) ? updates.subjects : [])
+      : (Array.isArray(currentBook?.subjects) ? currentBook.subjects : (Array.isArray(currentBook?.raw_data?.subjects) ? currentBook.raw_data.subjects : []));
 
-    let subs = updates.subjects;
-    if (subs === undefined) {
-      subs = currentRawData.subjects || [];
-    }
-    const cleanSubs = Array.isArray(subs) ? subs.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))) : [];
-    const optCount = updates.optionCount !== undefined ? Number(updates.optionCount) : (currentRawData.optionCount || 5);
+    const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
+    
+    const existingMeta = Array.isArray(rawSubjects) ? rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__')) : null;
 
-    payload.raw_data = {
+    const optCount = updates.optionCount !== undefined
+      ? Number(updates.optionCount)
+      : (existingMeta?.optionCount !== undefined
+        ? Number(existingMeta.optionCount)
+        : Number(currentBook?.option_count || currentBook?.raw_data?.optionCount || 5));
+
+    const bType = updates.bookType || updates.book_type || existingMeta?.bookType || currentBook?.book_type || currentBook?.raw_data?.bookType || 'standard';
+    const pdf = (updates.pdfUrl !== undefined) ? updates.pdfUrl : (existingMeta?.pdfUrl || currentBook?.pdf_url || currentBook?.raw_data?.pdfUrl || '');
+
+    const metaHeader = {
+      id: '__book_meta__',
+      __meta: true,
+      optionCount: optCount,
+      bookType: bType,
+      pdfUrl: pdf
+    };
+    const subjectsWithMeta = [metaHeader, ...cleanSubs];
+
+    const currentRawData = currentBook?.raw_data || {};
+    const rawData = {
       ...currentRawData,
       ...updates,
       subjects: cleanSubs,
-      optionCount: optCount
+      optionCount: optCount,
+      bookType: bType,
+      pdfUrl: pdf
     };
 
-    let { data, error } = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
+    const targetTitle = updates.title !== undefined ? updates.title : currentBook?.title;
+    const targetPublisher = updates.publisher !== undefined ? updates.publisher : currentBook?.publisher;
+
+    // 1. Try full update
+    try {
+      const fullPayload = {
+        title: targetTitle,
+        publisher: targetPublisher,
+        book_type: bType,
+        pdf_url: pdf,
+        subjects: subjectsWithMeta,
+        raw_data: rawData
+      };
+      let { data, error } = await supabase.from('tracked_books').update(fullPayload).eq('id', String(bookId)).select();
+      if (!error && data) return data;
+    } catch {}
+
+    // 2. Fallback without raw_data and pdf_url
+    try {
+      const fbPayload = {
+        title: targetTitle,
+        publisher: targetPublisher,
+        book_type: bType,
+        subjects: subjectsWithMeta
+      };
+      let { data, error } = await supabase.from('tracked_books').update(fbPayload).eq('id', String(bookId)).select();
+      if (!error && data) return data;
+    } catch {}
+
+    // 3. Fallback without book_type
+    let { data, error } = await supabase.from('tracked_books').update({
+      title: targetTitle,
+      publisher: targetPublisher,
+      subjects: subjectsWithMeta
+    }).eq('id', String(bookId)).select();
+
     if (error) throw error;
     return data;
   } catch (err) {

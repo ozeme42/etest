@@ -81,13 +81,26 @@ export default function BookContentManager() {
         const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
           ? b.subjects
           : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+        const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
+        
+        const optCount = metaObj?.optionCount !== undefined
+          ? Number(metaObj.optionCount)
+          : (b.option_count !== undefined
+            ? Number(b.option_count)
+            : (b.optionCount !== undefined
+              ? Number(b.optionCount)
+              : (b.raw_data?.optionCount !== undefined ? Number(b.raw_data.optionCount) : 5)));
+
+        const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
+        const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
+
         setLocalLiveBook({
           id: String(b.id),
           title: b.title || b.raw_data?.title || '',
           publisher: b.publisher || b.raw_data?.publisher || '',
-          bookType: b.book_type || b.bookType || b.raw_data?.bookType || 'standard',
-          optionCount: Number(b.option_count || b.raw_data?.optionCount) || 5,
-          pdfUrl: b.pdf_url || b.raw_data?.pdfUrl || '',
+          bookType: bType,
+          optionCount: Number(optCount) || 5,
+          pdfUrl: pdf,
           subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
           raw_data: b.raw_data || {}
         });
@@ -4274,8 +4287,12 @@ export default function BookContentManager() {
               <button
                 className="btn btn-primary"
                 onClick={async () => {
-                  setLocalLiveBook(prev => prev ? ({ ...prev, ...bookSettingsForm }) : prev);
-                  await updateTrackedBook(book.id, bookSettingsForm);
+                  const updatedData = {
+                    ...bookSettingsForm,
+                    optionCount: Number(bookSettingsForm.optionCount) || 5
+                  };
+                  setLocalLiveBook(prev => prev ? ({ ...prev, ...updatedData }) : prev);
+                  await updateTrackedBook(book.id, updatedData);
                   setIsBookSettingsDialogOpen(false);
                   showToast("Kitap ayarları başarıyla güncellendi. 🎉");
                 }}
