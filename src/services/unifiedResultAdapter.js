@@ -381,6 +381,7 @@ export function getAllUnifiedStudentSubmissions({
   };
 
   const results = [];
+  const processedTestIds = new Set();
   const processedKeys = new Set();
 
   // 1. Process Homework Submissions (including Whole-Book Tasks)
@@ -404,10 +405,10 @@ export function getAllUnifiedStudentSubmissions({
       const normalized = normalizeUnifiedSubmission(subWithHw, { books, bookTests, homeworks });
       if (!normalized) return;
 
-      const dedupeKey = `${normalized.testId}_${normalized.date}_${normalized.correctCount}_${normalized.wrongCount}`;
-      if (processedKeys.has(dedupeKey) || processedKeys.has(normalized.id)) return;
-      processedKeys.add(dedupeKey);
-      processedKeys.add(normalized.id);
+      const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
+      if (processedTestIds.has(testKey)) return;
+      processedTestIds.add(testKey);
+      if (normalized.id) processedKeys.add(String(normalized.id));
       if (sub.id) processedKeys.add(String(sub.id));
       if (sub.submissionId) processedKeys.add(String(sub.submissionId));
 
@@ -419,22 +420,28 @@ export function getAllUnifiedStudentSubmissions({
   (submissions || []).forEach(sub => {
     if (!sub || !isMatchStudent(sub)) return;
     if (sub.status === 'in_progress' || sub.status === 'draft') return;
+    const rawSubId = String(sub.id || sub.submissionId || '');
+    if (rawSubId.startsWith('draft_') || rawSubId.startsWith('64726166')) return;
     if (sub.id && processedKeys.has(String(sub.id))) return;
     if (sub.submissionId && processedKeys.has(String(sub.submissionId))) return;
 
     const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
     if (!normalized) return;
 
-    const dedupeKey = `${normalized.testId}_${normalized.date}_${normalized.correctCount}_${normalized.wrongCount}`;
-    if (processedKeys.has(dedupeKey) || processedKeys.has(normalized.id)) return;
-    processedKeys.add(dedupeKey);
-    processedKeys.add(normalized.id);
+    const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
+    if (processedTestIds.has(testKey)) return;
+    processedTestIds.add(testKey);
+    processedKeys.add(String(normalized.id));
 
     results.push(normalized);
   });
 
-  // Sort newest first
-  results.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  // Sort newest first by exact timestamp
+  results.sort((a, b) => {
+    const timeB = new Date(b.submittedAt || b.date || 0).getTime();
+    const timeA = new Date(a.submittedAt || a.date || 0).getTime();
+    return timeB - timeA;
+  });
 
   return results;
 }
