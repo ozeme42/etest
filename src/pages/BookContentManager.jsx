@@ -451,14 +451,23 @@ export default function BookContentManager() {
 
   // --- BOOK ASSIGNED HOMEWORKS ---
   const bookHomeworks = useMemo(() => {
+    const idStr = String(id || '');
+    const idUuid = toUUID(idStr);
+    const bookTitleClean = (book?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
+
     return allHomeworks.filter(hw => {
-      if (hw.bookId === id) return true;
+      const hwBId = String(hw.bookId || '');
+      if (hwBId && (hwBId === idStr || (idUuid && hwBId === idUuid) || (idUuid && toUUID(hwBId) === idUuid))) return true;
+
+      const hwTitleClean = (hw.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
+      if (bookTitleClean && hwTitleClean && (hwTitleClean.includes(bookTitleClean) || bookTitleClean.includes(hwTitleClean))) return true;
+
       if (hw.tests && hw.tests.length > 0) {
-        return tests.some(t => hw.tests.includes(t.id));
+        return tests.some(t => hw.tests.includes(t.id) || (toUUID(t.id) && hw.tests.includes(toUUID(t.id))));
       }
       return false;
     });
-  }, [allHomeworks, id, tests]);
+  }, [allHomeworks, id, tests, book]);
 
   // Combined submissions from context + embedded in homeworks
   const allCombinedSubmissions = useMemo(() => {
@@ -540,6 +549,35 @@ export default function BookContentManager() {
     ));
   };
 
+  const isSubmissionMatchForTest = (s, targetTestOrId) => {
+    if (!s) return false;
+    const targetId = typeof targetTestOrId === 'object' ? targetTestOrId?.id : targetTestOrId;
+    const testObj = typeof targetTestOrId === 'object' && targetTestOrId !== null
+      ? targetTestOrId
+      : tests.find(t => String(t.id) === String(targetId) || (toUUID(t.id) && toUUID(t.id) === toUUID(targetId)));
+
+    // 1. Direct ID / UUID match via fields
+    const fields = getCandidateSubmissionFields(s);
+    if (targetId && isCandidateMatch(fields, targetId)) return true;
+
+    // 2. Match by test name & subject/topic if testObj exists
+    if (testObj) {
+      const testName = String(testObj.name || '').toLowerCase().trim();
+      const sTestName = String(s.testTitle || s.testName || s.title || '').toLowerCase().trim();
+      
+      if (testName && sTestName) {
+        if (sTestName === testName || sTestName.includes(testName) || testName.includes(sTestName)) {
+          const sSubj = String(s.subject || s.extra_data?.subject || '').toLowerCase().trim();
+          const targetSubj = String(testObj.subjectName || testObj.subject || '').toLowerCase().trim();
+          if (!sSubj || !targetSubj || sSubj === targetSubj || sSubj.includes(targetSubj) || targetSubj.includes(sSubj)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
   // Homework Analytics
   const homeworkAnalytics = useMemo(() => {
     let totalAssigned = bookHomeworks.length;
@@ -574,16 +612,16 @@ export default function BookContentManager() {
           const isMatchStudent = String(s.studentId) === String(st.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
           if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
 
-          const candidateFields = getCandidateSubmissionFields(s);
-          return hwTests.some(tid => isCandidateMatch(candidateFields, tid));
+          return hwTests.some(tid => isSubmissionMatchForTest(s, tid));
         });
 
         const uniqueSolved = new Set();
         solved.forEach(s => {
-          const candidateFields = getCandidateSubmissionFields(s);
-          const matched = hwTests.find(tid => isCandidateMatch(candidateFields, tid));
+          const matched = hwTests.find(tid => isSubmissionMatchForTest(s, tid));
           if (matched) uniqueSolved.add(String(matched));
           else if (s.testId) uniqueSolved.add(String(s.testId));
+          else if (s.realTestId) uniqueSolved.add(String(s.realTestId));
+          else if (s.id) uniqueSolved.add(String(s.id));
         });
 
         totalSolvedTestSlots += uniqueSolved.size;
@@ -2114,8 +2152,7 @@ export default function BookContentManager() {
                       const isMatchStudent = String(s.studentId) === String(stId) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
                       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
 
-                      const candidateFields = getCandidateSubmissionFields(s);
-                      const isMatchingTest = hwTests.some(tid => isCandidateMatch(candidateFields, tid));
+                      const isMatchingTest = hwTests.some(tid => isSubmissionMatchForTest(s, tid));
                       const isMatchingHw = String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || (toUUID(hw.id) && String(s.hwId) === String(toUUID(hw.id)));
 
                       return isMatchingTest || isMatchingHw;
@@ -2123,10 +2160,10 @@ export default function BookContentManager() {
                     
                     const uniqueSolvedTests = new Set();
                     solvedSubmissions.forEach(s => {
-                      const candidateFields = getCandidateSubmissionFields(s);
-                      const matchedId = hwTests.find(tid => isCandidateMatch(candidateFields, tid));
+                      const matchedId = hwTests.find(tid => isSubmissionMatchForTest(s, tid));
                       if (matchedId) uniqueSolvedTests.add(String(matchedId));
                       else if (s.testId) uniqueSolvedTests.add(String(s.testId));
+                      else if (s.realTestId) uniqueSolvedTests.add(String(s.realTestId));
                       else if (s.id) uniqueSolvedTests.add(String(s.id));
                     });
 
@@ -2285,8 +2322,7 @@ export default function BookContentManager() {
                                   const isMatchStudent = String(s.studentId) === String(item.student?.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
                                   if (!isMatchStudent) return false;
 
-                                  const candidateFields = getCandidateSubmissionFields(s);
-                                  return isCandidateMatch(candidateFields, tId);
+                                  return isSubmissionMatchForTest(s, testDef || tId);
                                 });
 
                                 const isSolved = Boolean(testSub && testSub.status !== 'in_progress' && testSub.status !== 'draft');
@@ -3584,7 +3620,6 @@ export default function BookContentManager() {
 
         // Helper to retrieve solved submissions for a specific test
         const getTestSolveDetails = (testId) => {
-          const tUuid = toUUID(testId);
           const matchedSubs = (allCombinedSubmissions || []).filter(s => {
             if (s.status === 'in_progress' || s.status === 'draft') return false;
             const sStdId = String(s.studentId || s.student_id || '');
@@ -3595,19 +3630,7 @@ export default function BookContentManager() {
             });
             if (!isMatchingStudent && modalTargetStudents.length > 0) return false;
 
-            const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-            const candidateFields = [
-              s.testId, s.test_id, s.bookTestId, s.realTestId,
-              ...(s.bookTestIds || []),
-              meta?.realTestId, meta?.bookTestId, meta?.realId
-            ].filter(Boolean).map(String);
-
-            return candidateFields.some(cid => 
-              cid === String(testId) || 
-              (tUuid && cid === String(tUuid)) || 
-              (tUuid && toUUID(cid) === String(tUuid)) || 
-              toUUID(cid) === String(testId)
-            );
+            return isSubmissionMatchForTest(s, testId);
           });
 
           return matchedSubs;
