@@ -35,7 +35,17 @@ export default function BookContentManager() {
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
-  const book = books.find(b => b.id === id);
+  const book = useMemo(() => {
+    const found = (books || []).find(b => String(b.id) === String(id) || toUUID(b.id) === toUUID(id));
+    if (!found) return null;
+    const subjects = (Array.isArray(found.subjects) && found.subjects.length > 0)
+      ? found.subjects
+      : (Array.isArray(found.raw_data?.subjects) ? found.raw_data.subjects : []);
+    return {
+      ...found,
+      subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
+    };
+  }, [books, id]);
   const tests = useMemo(() => bookTests.filter(t => t.bookId === id), [bookTests, id]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
