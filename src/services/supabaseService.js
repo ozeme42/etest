@@ -1647,6 +1647,22 @@ export async function dbUpdateStudyAssignment(aId, updates) {
 
 // ==========================================
 // 7. KİTAP TAKİBİ (TRACKED BOOKS & TESTS)
+let _trackedBooksColumnsCache = null;
+
+async function getTrackedBooksColumns() {
+  if (_trackedBooksColumnsCache && _trackedBooksColumnsCache.size > 0) {
+    return _trackedBooksColumnsCache;
+  }
+  try {
+    const { data, error } = await supabase.from('tracked_books').select('*').limit(1);
+    if (!error && data && data.length > 0) {
+      _trackedBooksColumnsCache = new Set(Object.keys(data[0]));
+      return _trackedBooksColumnsCache;
+    }
+  } catch {}
+  return null;
+}
+
 // ==========================================
 export async function dbGetTrackedBooks() {
   if (!isSupabaseConfigured()) return null;
@@ -1657,6 +1673,10 @@ export async function dbGetTrackedBooks() {
     ]);
 
     if (bRes.error || tRes.error) return null;
+
+    if (bRes.data && bRes.data.length > 0) {
+      _trackedBooksColumnsCache = new Set(Object.keys(bRes.data[0]));
+    }
 
     const books = (bRes.data || []).map(b => {
       const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
@@ -1721,29 +1741,42 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
   if (!isSupabaseConfigured()) return null;
   const safeId = toUUID(bookId);
 
-  const payloadsToTry = [
-    // 1. Core guaranteed columns: title and subjects (contains __book_meta__)
-    { title: initialPayload.title || 'Kitap', subjects: initialPayload.subjects || [] },
-    // 2. Minimal subjects only
-    { subjects: initialPayload.subjects || [] },
-    // 3. Extended payload if table has all columns
-    { ...initialPayload }
-  ];
-
-  for (const p of payloadsToTry) {
-    try {
-      const payload = { ...p };
-      if (isUpsert) payload.id = safeId;
-
-      const query = isUpsert
-        ? supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle()
-        : supabase.from('tracked_books').update(payload).eq('id', safeId).select().maybeSingle();
-
-      const { data, error } = await query;
-      if (!error && data) {
-        return data;
+  const availableCols = await getTrackedBooksColumns();
+  
+  let payload = {};
+  if (availableCols && availableCols.size > 0) {
+    for (const [key, value] of Object.entries(initialPayload)) {
+      if (availableCols.has(key)) {
+        payload[key] = value;
       }
-    } catch {}
+    }
+    if (initialPayload.bookType && availableCols.has('book_type')) payload.book_type = initialPayload.bookType;
+    if (initialPayload.pdfUrl && availableCols.has('pdf_url')) payload.pdf_url = initialPayload.pdfUrl;
+  } else {
+    payload = {
+      title: initialPayload.title || 'Kitap',
+      subjects: initialPayload.subjects || []
+    };
+  }
+
+  if (isUpsert) payload.id = safeId;
+
+  try {
+    const query = isUpsert
+      ? supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle()
+      : supabase.from('tracked_books').update(payload).eq('id', safeId).select().maybeSingle();
+
+    const { data, error } = await query;
+    if (!error && data) {
+      return data;
+    }
+    if (error && !isUpsert) {
+      payload.id = safeId;
+      const upRes = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
+      if (!upRes.error && upRes.data) return upRes.data;
+    }
+  } catch (err) {
+    console.warn('[Supabase] resilientTrackedBookMutation error:', err);
   }
   return null;
 }
