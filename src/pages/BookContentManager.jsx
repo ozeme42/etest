@@ -642,10 +642,33 @@ export default function BookContentManager() {
         }
       }
 
-      const matchedTestId = matchedTest ? String(matchedTest.id) : (s.testId ? String(s.testId) : String(s.id));
-      stSet.add(matchedTestId);
-      submissionMap.set(`${stId}_${matchedTestId}`, s);
-      if (stUuid) submissionMap.set(`${stUuid}_${matchedTestId}`, s);
+      // Collect all key aliases for this test to guarantee 100% matching
+      const testKeys = new Set();
+      if (matchedTest) {
+        testKeys.add(String(matchedTest.id));
+        const mUuid = toUUID(matchedTest.id);
+        if (mUuid) testKeys.add(mUuid);
+        testKeys.add(String(matchedTest.id).replace(/^bt_/, '').replace(/^q_/, ''));
+        if (matchedTest.name) {
+          testKeys.add(`name_${String(matchedTest.name).toLowerCase().trim()}`);
+        }
+      }
+      fields.forEach(f => {
+        if (f) {
+          testKeys.add(f);
+          const fUuid = toUUID(f);
+          if (fUuid) testKeys.add(fUuid);
+          testKeys.add(f.replace(/^bt_/, '').replace(/^q_/, ''));
+        }
+      });
+      if (s.testId) testKeys.add(String(s.testId));
+      if (s.id) testKeys.add(String(s.id));
+
+      testKeys.forEach(k => {
+        stSet.add(k);
+        submissionMap.set(`${stId}_${k}`, s);
+        if (stUuid) submissionMap.set(`${stUuid}_${k}`, s);
+      });
     });
 
     return { solvedMap, submissionMap };
@@ -3750,13 +3773,37 @@ export default function BookContentManager() {
         }
 
         // Helper to retrieve solved submissions for a specific test
-        const getTestSolveDetails = (testId) => {
-          const tIdStr = String(testId);
+        const getTestSolveDetails = (testIdOrObj) => {
+          const tObj = typeof testIdOrObj === 'object' ? testIdOrObj : (testLookup.byId.get(String(testIdOrObj)) || { id: testIdOrObj });
+          const tIdStr = String(tObj?.id || testIdOrObj || '');
+          const tUuidStr = String(toUUID(tIdStr) || '');
+          const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+          const tName = String(tObj?.name || '').toLowerCase().trim();
+
           const list = [];
           (modalTargetStudents || []).forEach(st => {
             const stId = String(st.id);
-            const sub = studentSolvedIndex.submissionMap.get(`${stId}_${tIdStr}`);
-            if (sub) list.push(sub);
+            const stUuid = String(toUUID(st.id) || '');
+
+            const sub = 
+              studentSolvedIndex.submissionMap.get(`${stId}_${tIdStr}`) ||
+              (tUuidStr && studentSolvedIndex.submissionMap.get(`${stId}_${tUuidStr}`)) ||
+              studentSolvedIndex.submissionMap.get(`${stId}_${tCleanId}`) ||
+              (tName && studentSolvedIndex.submissionMap.get(`${stId}_name_${tName}`)) ||
+              (stUuid && studentSolvedIndex.submissionMap.get(`${stUuid}_${tIdStr}`)) ||
+              (stUuid && tUuidStr && studentSolvedIndex.submissionMap.get(`${stUuid}_${tUuidStr}`)) ||
+              (stUuid && studentSolvedIndex.submissionMap.get(`${stUuid}_${tCleanId}`)) ||
+              (stUuid && tName && studentSolvedIndex.submissionMap.get(`${stUuid}_name_${tName}`)) ||
+              null;
+
+            if (sub) {
+              list.push(sub);
+            } else {
+              const stSet = studentSolvedIndex.solvedMap.get(stId) || (stUuid ? studentSolvedIndex.solvedMap.get(stUuid) : null);
+              if (stSet && (stSet.has(tIdStr) || (tUuidStr && stSet.has(tUuidStr)) || stSet.has(tCleanId) || (tName && stSet.has(`name_${tName}`)))) {
+                list.push({ isSolved: true, status: 'completed' });
+              }
+            }
           });
           return list;
         };
