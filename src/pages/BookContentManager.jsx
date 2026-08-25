@@ -72,14 +72,34 @@ export default function BookContentManager() {
     setIsLiveLoading(true);
     try {
       const safeBookId = toUUID(id);
+      const candidateBookIds = Array.from(new Set([safeBookId, String(id)].filter(Boolean)));
 
-      const [bRes, tRes] = await Promise.all([
-        supabase.from('tracked_books').select('*').eq('id', safeBookId).maybeSingle(),
-        supabase.from('tracked_book_tests').select('*').eq('book_id', safeBookId).order('created_at', { ascending: true })
-      ]);
+      let bData = null;
+      for (const cBid of candidateBookIds) {
+        try {
+          const bRes = await supabase.from('tracked_books').select('*').eq('id', cBid).maybeSingle();
+          if (bRes.data) {
+            bData = bRes.data;
+            break;
+          }
+        } catch {}
+      }
 
-      if (bRes.data) {
-        const b = bRes.data;
+      let tRows = [];
+      for (const cBid of candidateBookIds) {
+        try {
+          const tRes = await supabase.from('tracked_book_tests').select('*').eq('book_id', cBid).order('created_at', { ascending: true });
+          if (tRes.data && tRes.data.length > 0) {
+            tRows = tRes.data;
+            break;
+          } else if (tRes.data) {
+            tRows = tRes.data;
+          }
+        } catch {}
+      }
+
+      if (bData) {
+        const b = bData;
         const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
           ? b.subjects
           : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
@@ -110,17 +130,19 @@ export default function BookContentManager() {
         });
       }
 
-      if (tRes.data) {
-        const mapped = tRes.data.map(t => {
+      if (tRows && tRows.length > 0) {
+        const mapped = tRows.map(t => {
           const ansKey = t.answer_key || {};
           const ansMeta = ansKey.__meta || {};
           const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
           const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
+          const sId = t.subject_id || ansMeta.subjectId || null;
+          const topId = t.topic_id || ansMeta.topicId || null;
           return {
             id: String(t.id),
-            bookId: String(t.book_id),
-            subjectId: t.subject_id ? String(t.subject_id) : null,
-            topicId: t.topic_id ? String(t.topic_id) : null,
+            bookId: String(t.book_id || ''),
+            subjectId: sId ? String(sId) : null,
+            topicId: topId ? String(topId) : null,
             name: t.name,
             questionCount: t.question_count || 20,
             answerKey: ansKey,
@@ -158,12 +180,17 @@ export default function BookContentManager() {
   }, [books, id, localLiveBook]);
 
   const tests = useMemo(() => {
-    if (localLiveTests && localLiveTests.length > 0) return localLiveTests;
-    return (bookTests || []).filter(t => {
+    const list = (localLiveTests && localLiveTests.length > 0) ? localLiveTests : (bookTests || []);
+    const idStr = String(id || '');
+    const idUuid = toUUID(idStr);
+
+    return list.filter(t => {
       const tBookId = String(t.bookId || t.book_id || '');
-      const isIdMatch = tBookId === String(id) || 
-        (toUUID(id) && tBookId === String(toUUID(id))) ||
-        (toUUID(tBookId) && String(toUUID(tBookId)) === String(id));
+      if (!tBookId) return false;
+      const isIdMatch = tBookId === idStr || 
+        (idUuid && tBookId === idUuid) ||
+        (toUUID(tBookId) && toUUID(tBookId) === idUuid) ||
+        (toUUID(tBookId) && toUUID(tBookId) === idStr);
       if (isIdMatch) return true;
       if (book?.title && t.bookTitle && String(t.bookTitle).toLowerCase().trim() === String(book.title).toLowerCase().trim()) return true;
       return false;
@@ -1701,14 +1728,39 @@ export default function BookContentManager() {
 
               {book.subjects.map(subject => {
                 const topicsList = subject.topics || [];
+                const sId = String(subject.id || '');
+                const sIdUuid = toUUID(sId);
+                const sName = String(subject.name || '').toLowerCase().trim();
+
                 const directTests = sortTestsNaturally(tests.filter(t => {
-                  const sIdMatch = String(t.subjectId || t.subject_id || '') === String(subject.id) ||
-                    String(t.subjectId || t.subject_id || t.subject || '').toLowerCase().trim() === String(subject.name || '').toLowerCase().trim();
+                  const tSubId = String(t.subjectId || t.subject_id || '');
+                  const sIdMatch = (tSubId && (tSubId === sId || (sIdUuid && toUUID(tSubId) === sIdUuid))) ||
+                    String(t.subjectId || t.subject_id || t.subject || t.subjectName || '').toLowerCase().trim() === sName;
                   if (!sIdMatch) return false;
                   if (topicsList.length === 0) return true;
                   const tTopicId = String(t.topicId || t.topic_id || '');
-                  return !tTopicId || tTopicId === 'direct' || tTopicId === String(subject.id) || tTopicId === 'null' || tTopicId === 'undefined';
+                  if (!tTopicId || tTopicId === 'direct' || tTopicId === sId || tTopicId === 'null' || tTopicId === 'undefined') return true;
+                  const matchesAnyTopic = topicsList.some(tp => {
+                    const tpId = String(tp.id || '');
+                    return tTopicId === tpId || (tpId && toUUID(tTopicId) === toUUID(tpId)) ||
+                      (tp.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(tp.name).toLowerCase().trim());
+                  });
+                  return !matchesAnyTopic;
                 }));
+
+                const totalSubjectTopicTests = tests.filter(t => {
+                  const tSubId = String(t.subjectId || t.subject_id || '');
+                  const sIdMatch = (tSubId && (tSubId === sId || (sIdUuid && toUUID(tSubId) === sIdUuid))) ||
+                    String(t.subjectId || t.subject_id || t.subject || t.subjectName || '').toLowerCase().trim() === sName;
+                  if (!sIdMatch) return false;
+                  const tTopicId = String(t.topicId || t.topic_id || '');
+                  return topicsList.some(tp => {
+                    const tpId = String(tp.id || '');
+                    return tTopicId === tpId || (tpId && toUUID(tTopicId) === toUUID(tpId)) ||
+                      (tp.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(tp.name).toLowerCase().trim());
+                  });
+                }).length;
+
                 // Closed by default unless explicitly toggled to false (open)
                 const isExpanded = collapsedSubjects[subject.id] === false;
 
@@ -1726,7 +1778,7 @@ export default function BookContentManager() {
                           <Layers size={18} style={{ color: '#6366f1' }} /> {subject.name}
                         </h3>
                         <span style={{ marginLeft: '0.75rem', fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.2rem 0.65rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #3b82f6' }}>
-                          {topicsList.length > 0 ? `${topicsList.length} Konu • ${tests.filter(t => topicsList.some(tp => String(tp.id) === String(t.topicId || t.topic_id))).length} Test` : ''} 
+                          {topicsList.length > 0 ? `${topicsList.length} Konu • ${totalSubjectTopicTests + directTests.length} Test` : ''} 
                           {topicsList.length === 0 && directTests.length > 0 ? `${directTests.length} Test` : ''}
                           {topicsList.length === 0 && directTests.length === 0 ? 'İçerik Yok' : ''}
                         </span>
@@ -1809,10 +1861,14 @@ export default function BookContentManager() {
 
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
+                          const topId = String(topic.id || '');
+                          const topIdUuid = toUUID(topId);
+                          const topName = String(topic.name || '').toLowerCase().trim();
+
                           const topicTests = sortTestsNaturally(tests.filter(t => {
                             const tTopId = String(t.topicId || t.topic_id || '');
-                            if (tTopId === String(topic.id)) return true;
-                            if (topic.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(topic.name).toLowerCase().trim()) return true;
+                            if (tTopId && (tTopId === topId || (topIdUuid && toUUID(tTopId) === topIdUuid))) return true;
+                            if (topName && String(t.topic || t.topicName || '').toLowerCase().trim() === topName) return true;
                             return false;
                           }));
                           // Closed by default unless explicitly toggled to false (open)
@@ -3776,11 +3832,31 @@ export default function BookContentManager() {
                   </div>
 
                   {book.subjects?.map(subj => {
-                    const allSubjTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id)));
+                    const sId = String(subj.id || '');
+                    const sIdUuid = toUUID(sId);
+                    const sName = String(subj.name || '').toLowerCase().trim();
+                    const isSubjMatch = (t) => {
+                      const tSubId = String(t.subjectId || t.subject_id || '');
+                      return (tSubId && (tSubId === sId || (sIdUuid && toUUID(tSubId) === sIdUuid))) ||
+                        String(t.subjectId || t.subject_id || t.subject || t.subjectName || '').toLowerCase().trim() === sName;
+                    };
+
+                    const allSubjTests = sortTestsNaturally(tests.filter(t => isSubjMatch(t)));
                     if (allSubjTests.length === 0) return null;
 
-                    const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subj.id))));
                     const topicsList = subj.topics || [];
+                    const directTests = sortTestsNaturally(tests.filter(t => {
+                      if (!isSubjMatch(t)) return false;
+                      if (topicsList.length === 0) return true;
+                      const tTopicId = String(t.topicId || t.topic_id || '');
+                      if (!tTopicId || tTopicId === 'direct' || tTopicId === sId || tTopicId === 'null' || tTopicId === 'undefined') return true;
+                      const matchesAnyTopic = topicsList.some(tp => {
+                        const tpId = String(tp.id || '');
+                        return tTopicId === tpId || (tpId && toUUID(tTopicId) === toUUID(tpId)) ||
+                          (tp.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(tp.name).toLowerCase().trim());
+                      });
+                      return !matchesAnyTopic;
+                    }));
                     const allSubjSelected = allSubjTests.every(t => scheduleSelectedTestIds.includes(t.id));
                     
                     // Default to collapsed (true) if undefined

@@ -1934,6 +1934,9 @@ export async function dbAddTrackedBookTest(test) {
     const qType = test.questionType || (test.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
     const isOe = test.isOpenEnded === true || qType === 'acik_uclu';
 
+    const sId = test.subjectId || test.subject_id || null;
+    const topId = test.topicId || test.topic_id || null;
+
     const enrichedAnswerKey = {
       ...rawAnsKey,
       __meta: {
@@ -1941,15 +1944,17 @@ export async function dbAddTrackedBookTest(test) {
         questionType: qType,
         isOpenEnded: isOe,
         optionCount: test.optionCount,
-        pdfUrl: test.pdfUrl || test.pdf_url || ''
+        pdfUrl: test.pdfUrl || test.pdf_url || '',
+        subjectId: sId ? String(sId) : '',
+        topicId: topId ? String(topId) : ''
       }
     };
 
     const payload = {
       id: safeTestId,
       book_id: safeBookId,
-      subject_id: (test.subjectId || test.subject_id) ? toUUID(test.subjectId || test.subject_id) : null,
-      topic_id: (test.topicId || test.topic_id) ? toUUID(test.topicId || test.topic_id) : null,
+      subject_id: sId ? String(sId) : null,
+      topic_id: topId ? String(topId) : null,
       name: test.name || 'Test',
       question_count: Number(test.questionCount || test.question_count) || 20,
       answer_key: enrichedAnswerKey
@@ -1983,6 +1988,9 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
       const qType = t.questionType || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
       const isOe = t.isOpenEnded === true || qType === 'acik_uclu';
 
+      const sId = t.subjectId || t.subject_id || null;
+      const topId = t.topicId || t.topic_id || null;
+
       const enrichedAnswerKey = {
         ...rawAnsKey,
         __meta: {
@@ -1990,15 +1998,17 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
           questionType: qType,
           isOpenEnded: isOe,
           optionCount: t.optionCount,
-          pdfUrl: t.pdfUrl || t.pdf_url || ''
+          pdfUrl: t.pdfUrl || t.pdf_url || '',
+          subjectId: sId ? String(sId) : '',
+          topicId: topId ? String(topId) : ''
         }
       };
 
       rows.push({
         id: safeTestId,
         book_id: safeBookId,
-        subject_id: (t.subjectId || t.subject_id) ? toUUID(t.subjectId || t.subject_id) : null,
-        topic_id: (t.topicId || t.topic_id) ? toUUID(t.topicId || t.topic_id) : null,
+        subject_id: sId ? String(sId) : null,
+        topic_id: topId ? String(topId) : null,
         name: t.name || 'Test',
         question_count: Number(t.questionCount || t.question_count) || 20,
         answer_key: enrichedAnswerKey
