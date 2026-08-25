@@ -28,9 +28,19 @@ export function sortTestsNaturally(testsArray) {
   });
 }
 
-export function toUUID(val) {
-  if (!val) return null;
-  const s = String(val);
-  if (s.length === 36 && s.includes('-')) return s;
-  return null;
+export function toUUID(id) {
+  if (!id) return null;
+  const str = String(id);
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(str)) return str.toLowerCase();
+
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16);
+  }
+  while (hex.length < 32) {
+    hex += '0';
+  }
+  hex = hex.substring(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
 }
