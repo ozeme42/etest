@@ -605,14 +605,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   /* ── Build studentSubmissions ─── */
   const studentSubmissions = useMemo(() => {
-    if (!selectedStudent) return [];
+    const currentTargetStudent = selectedStudent || effectiveStudent;
+    if (!currentTargetStudent) return [];
 
-    const studentIdStr = String(selectedStudent.id || '');
-    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+    const studentIdStr = String(currentTargetStudent.id || '');
+    const studentUuidStr = String(toUUID(studentIdStr) || '');
 
     const activeHws = (homeworks || []).filter(hw => {
       if (!hw || !hw.id) return false;
-      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
+      return isHomeworkForStudent(hw, currentTargetStudent, curData?.grades);
     });
 
     const isEval = (sub, isOpenEnded = false) => {
@@ -640,7 +641,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         const hasEvaluatedAnswers = sub.answers.some(a => 
-a.evaluatedAt || 
+          a.evaluatedAt || 
           a.teacherNote || 
           a.teacher_note || 
           a.feedback || 
@@ -691,7 +692,7 @@ a.evaluatedAt ||
     // 1. Process Homework Submissions (Both regular and book assignments)
     (homeworks || []).forEach(hw => {
       if (!hw || !hw.id) return;
-      if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
+      if (curData?.grades && !isHomeworkForStudent(hw, currentTargetStudent, curData.grades)) return;
 
       const isBookHw = isBookHomework(hw);
       const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
@@ -705,7 +706,7 @@ a.evaluatedAt ||
           String(s.homeworkId) === String(hw.id) ||
           String(s.testId) === String(hw.id) ||
           String(s.id) === String(hw.id) ||
-          String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`
+          String(s.id) === `hw_sub_${hw.id}_${studentIdStr}`
         ))
       ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
 
@@ -714,7 +715,7 @@ a.evaluatedAt ||
       // Group matching submissions (in case multi-test or retakes exist)
       allMatchingSubs.forEach(sub => {
         if (!sub) return;
-        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${selectedStudent.id}`);
+        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${studentIdStr}`);
         if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
         if (sub.status === 'in_progress' || sub.status === 'draft') return;
         const raw = sub.raw_data || {};
