@@ -29,6 +29,9 @@ export default function AdminDashboard() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [restoreModalInfo, setRestoreModalInfo] = useState(null); // { stats } or null
   const [restoreError, setRestoreError] = useState(null);
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pastedJsonText, setPastedJsonText] = useState('');
+  const [isPastingRestore, setIsPastingRestore] = useState(false);
 
   const handleDownloadBackup = async () => {
     setIsBackingUp(true);
@@ -39,6 +42,22 @@ export default function AdminDashboard() {
       alert(`❌ Yedek indirilirken hata oluştu: ${err.message}`);
     } finally {
       setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreFromPastedText = async () => {
+    if (!pastedJsonText.trim()) return;
+    setIsPastingRestore(true);
+    setRestoreError(null);
+    try {
+      const stats = await restoreFullBackup(pastedJsonText.trim());
+      setRestoreModalInfo({ stats, fileName: 'Panodan Yapıştırılan Yedek' });
+      setShowPasteModal(false);
+      setPastedJsonText('');
+    } catch (err) {
+      setRestoreError(err.message);
+    } finally {
+      setIsPastingRestore(false);
     }
   };
 
@@ -189,7 +208,7 @@ export default function AdminDashboard() {
                 transition: 'all 0.2s'
               }}
             >
-              <Upload size={15} /> 📤 Yedeği Geri Yükle
+              <Upload size={15} /> 📤 Dosya Yükle (.JSON)
               <input
                 type="file"
                 accept=".json"
@@ -197,6 +216,28 @@ export default function AdminDashboard() {
                 style={{ display: 'none' }}
               />
             </label>
+
+            <button
+              onClick={() => { setShowPasteModal(true); setRestoreError(null); }}
+              title="Kopyalanan JSON çıktısını direkt yapıştırarak geri yükler"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0.55rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <ClipboardCheck size={15} /> 📋 JSON Yapıştır & Yükle
+            </button>
 
             <button
               onClick={handleStartMigration}
@@ -387,7 +428,118 @@ export default function AdminDashboard() {
 
         
         {/* ══════════ RESTORE RESULT MODAL ══════════ */}
-        {restoreModalInfo && (
+        {/* PASTE JSON MODAL */}
+      {showPasteModal && (
+        <div id="paste-json-modal" style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            border: '2px solid #0ea5e9',
+            borderRadius: '1.5rem',
+            width: '100%',
+            maxWidth: '650px',
+            padding: '2rem',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '1rem', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClipboardCheck size={24} color="#0ea5e9" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    JSON Metnini Yapıştırarak Geri Yükle
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                    Supabase'den veya başka bir kaynaktan kopyaladığınız JSON metnini buraya yapıştırın.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPasteModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {restoreError && (
+              <div style={{ padding: '0.85rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '0.85rem', fontWeight: 700 }}>
+                ⚠️ {restoreError}
+              </div>
+            )}
+
+            <textarea
+              placeholder='Kopyaladığınız JSON metnini buraya yapıştırın (Ctrl + V)...'
+              value={pastedJsonText}
+              onChange={(e) => setPastedJsonText(e.target.value)}
+              rows={10}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                borderRadius: '0.85rem',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowPasteModal(false)}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '0.75rem',
+                  background: 'var(--color-surface-hover)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleRestoreFromPastedText}
+                disabled={isPastingRestore || !pastedJsonText.trim()}
+                style={{
+                  padding: '0.65rem 1.5rem',
+                  borderRadius: '0.75rem',
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.88rem',
+                  cursor: (isPastingRestore || !pastedJsonText.trim()) ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
+                }}
+              >
+                {isPastingRestore ? 'Yükleniyor...' : '📥 Verileri Yükle & Uygula'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoreModalInfo && (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
             background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',

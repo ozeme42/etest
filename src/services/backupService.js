@@ -3,8 +3,6 @@ import { idbSetPayload, idbGetPayload } from './indexedDbService';
 
 /**
  * Creates and downloads a 100% complete, uncompressed JSON backup of ALL application data
- * including curriculum, users, all 66 test submissions, tracked books, book tests, roadmaps,
- * question payloads, and teacher evaluations.
  */
 export async function createFullBackup() {
   const backup = {
@@ -15,7 +13,6 @@ export async function createFullBackup() {
     data: {}
   };
 
-  // 1. Dynamic Scanner: Collect ALL relevant keys from localStorage
   const prefixes = [
     'eTest', 'etest', 'curriculum', 'tracked', 'study_', 'program_', 'mistake_reasons_',
     'student_', 'teacher_note_', 'theme_', 'gemini_', 'scale_', 'draft_'
@@ -41,7 +38,6 @@ export async function createFullBackup() {
     console.warn('[Backup] Error iterating localStorage keys:', e);
   }
 
-  // 2. Extract and parse data for each key
   allKeys.forEach(key => {
     try {
       const val = localStorage.getItem(key);
@@ -57,7 +53,6 @@ export async function createFullBackup() {
     }
   });
 
-  // 3. Fallback: If curriculum is in IndexedDB but not in localStorage, fetch from IDB!
   if (!backup.data['eTestCurriculum'] && !backup.data['curriculumData']) {
     try {
       const idbCur = await idbGetPayload('eTestCurriculum_Cache');
@@ -68,7 +63,6 @@ export async function createFullBackup() {
     } catch {}
   }
 
-  // 4. Fetch full question payloads from IndexedDB if stored there
   const questions = backup.data['eTestQuestions'] || [];
   if (Array.isArray(questions)) {
     const fullQuestions = await Promise.all(questions.map(async (q) => {
@@ -83,7 +77,6 @@ export async function createFullBackup() {
     backup.data['eTestQuestions'] = fullQuestions;
   }
 
-  // 5. Detailed statistics for user confirmation
   const submissionsList = backup.data['eTestSubmissions'] || backup.data['etest_submissions'] || [];
   const booksList = backup.data['eTestTrackedBooks'] || backup.data['trackedBooks'] || [];
   const bookTestsList = backup.data['eTestTrackedBookTests'] || [];
@@ -107,7 +100,6 @@ export async function createFullBackup() {
   };
   backup.stats = stats;
 
-  // 6. Trigger browser file download
   const jsonStr = JSON.stringify(backup, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -124,59 +116,98 @@ export async function createFullBackup() {
 }
 
 /**
+ * Robust JSON parser supporting Supabase SQL output, CSV wrapper, and direct JSON
+ */
+function cleanAndParseJson(raw) {
+  if (typeof raw === 'object' && raw !== null) return raw;
+  let text = String(raw || '').trim();
+
+  // If pasted from CSV export (e.g. header full_backup_data)
+  if (text.startsWith('"full_backup_data"') || text.startsWith('full_backup_data')) {
+    const lines = text.split('\n');
+    lines.shift(); // Remove header line
+    text = lines.join('\n').trim();
+  }
+
+  // If wrapped in outer quotes (CSV string escape)
+  if (text.startsWith('"') && text.endsWith('"')) {
+    text = text.slice(1, -1).replace(/""/g, '"').replace(/\\"/g, '"');
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (e1) {
+    // Try unescaping
+    try {
+      const unescaped = text.replace(/\\"/g, '"').replace(/\\n/g, '');
+      return JSON.parse(unescaped);
+    } catch (e2) {
+      throw new Error('Yapıştırılan metin geçerli bir JSON formatında değil! Lütfen Supabase çıktısını eksiksiz kopyaladığınızdan emin olun.');
+    }
+  }
+}
+
+/**
  * Restores ALL data from a provided backup JSON object or string
  */
 export async function restoreFullBackup(jsonInput) {
-  let parsed;
-  if (typeof jsonInput === 'string') {
-    parsed = JSON.parse(jsonInput);
-  } else {
-    parsed = jsonInput;
+  const parsed = cleanAndParseJson(jsonInput);
+
+  // Extract actual data dictionary from various wrapper formats
+  let data = null;
+  if (parsed.data && typeof parsed.data === 'object') {
+    data = parsed.data;
+  } else if (parsed.full_backup_data && typeof parsed.full_backup_data === 'object') {
+    data = parsed.full_backup_data;
+  } else if (Array.isArray(parsed) && parsed[0]?.full_backup_data) {
+    data = parsed[0].full_backup_data;
+  } else if (typeof parsed === 'object') {
+    data = parsed;
   }
 
-  if (!parsed || !parsed.data) {
-    throw new Error('Geçersiz veya bozuk yedek dosyası formatı!');
+  if (!data || typeof data !== 'object') {
+    throw new Error('Geçersiz veya bozuk yedek verisi formatı!');
   }
 
-  const data = parsed.data;
   let restoredStats = {
     userCount: 0,
     submissionCount: 0,
     homeworkCount: 0,
     questionCount: 0,
     bookCount: 0,
+    bookTestCount: 0,
     gradeCount: 0,
     subjectCount: 0
   };
 
-  // Clear any tombstoned deleted ids to allow full restoration
   try {
     localStorage.removeItem('eTestDeletedSubmissions');
   } catch {}
 
   // 1. Restore Curriculum to both localStorage and IndexedDB
-  const cur = data['eTestCurriculum'] || data['curriculumData'];
+  const cur = data['eTestCurriculum'] || data['curriculumData'] || data['curriculum'];
   if (cur) {
     const curStr = typeof cur === 'string' ? cur : JSON.stringify(cur);
     safeSetItem('eTestCurriculum', curStr);
     safeSetItem('curriculumData', curStr);
     await idbSetPayload('eTestCurriculum_Cache', curStr).catch(() => {});
-    if (cur.grades) restoredStats.gradeCount = cur.grades.length;
-    if (cur.subjects) restoredStats.subjectCount = cur.subjects.length;
+    const curObj = typeof cur === 'string' ? JSON.parse(cur) : cur;
+    if (curObj.grades) restoredStats.gradeCount = curObj.grades.length;
+    if (curObj.subjects) restoredStats.subjectCount = curObj.subjects.length;
   }
 
   // 2. Restore questions and separate heavy payloads to IndexedDB
-  if (Array.isArray(data['eTestQuestions'])) {
-    const qs = data['eTestQuestions'];
-    restoredStats.questionCount = qs.length;
+  const questions = data['eTestQuestions'] || data['questions'];
+  if (Array.isArray(questions)) {
+    restoredStats.questionCount = questions.length;
 
-    for (const q of qs) {
+    for (const q of questions) {
       if (q && q.id && q.contentPayload && typeof q.contentPayload === 'string' && q.contentPayload.length > 500) {
         await idbSetPayload(q.id, q.contentPayload);
       }
     }
 
-    const sanitizedQs = qs.map(q => {
+    const sanitizedQs = questions.map(q => {
       if (q && typeof q.contentPayload === 'string' && q.contentPayload.length > 500 && !q.contentPayload.startsWith('http')) {
         return { ...q, contentPayload: '[STORED_IN_INDEXEDDB]' };
       }
@@ -187,22 +218,32 @@ export async function restoreFullBackup(jsonInput) {
 
   // 3. Restore all other keys
   Object.keys(data).forEach(key => {
-    if (key === 'eTestQuestions' || key === 'eTestCurriculum' || key === 'curriculumData') return;
+    if (key === 'eTestQuestions' || key === 'eTestCurriculum' || key === 'curriculumData' || key === 'questions' || key === 'curriculum') return;
     try {
       const val = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
       safeSetItem(key, val);
+      if (key === 'eTestTrackedBooks') safeSetItem('trackedBooks', val);
+      if (key === 'eTestSubmissions') safeSetItem('etest_submissions', val);
     } catch (e) {
       console.warn(`[Restore] Error writing ${key}:`, e);
     }
   });
 
   // Calculate restored stats
-  if (data['eTestUsers']) restoredStats.userCount = data['eTestUsers'].length;
-  if (data['eTestSubmissions']) restoredStats.submissionCount = data['eTestSubmissions'].length;
-  else if (data['etest_submissions']) restoredStats.submissionCount = data['etest_submissions'].length;
-  if (data['eTestHomeworks']) restoredStats.homeworkCount = data['eTestHomeworks'].length;
-  if (data['eTestTrackedBooks']) restoredStats.bookCount = data['eTestTrackedBooks'].length;
-  else if (data['trackedBooks']) restoredStats.bookCount = data['trackedBooks'].length;
+  const users = data['eTestUsers'] || data['users'];
+  if (Array.isArray(users)) restoredStats.userCount = users.length;
+
+  const subs = data['eTestSubmissions'] || data['etest_submissions'] || data['submissions'];
+  if (Array.isArray(subs)) restoredStats.submissionCount = subs.length;
+
+  const hws = data['eTestHomeworks'] || data['homeworks'];
+  if (Array.isArray(hws)) restoredStats.homeworkCount = hws.length;
+
+  const books = data['eTestTrackedBooks'] || data['trackedBooks'] || data['tracked_books'];
+  if (Array.isArray(books)) restoredStats.bookCount = books.length;
+
+  const bTests = data['eTestTrackedBookTests'] || data['tracked_book_tests'];
+  if (Array.isArray(bTests)) restoredStats.bookTestCount = bTests.length;
 
   return restoredStats;
 }
