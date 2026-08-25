@@ -7,7 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import {
-  BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target,
+  BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
   ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList
 } from 'lucide-react';
@@ -272,18 +272,18 @@ export default function StudentBooksPage() {
       let totalSolvedTests = 0;
 
       // Group submissions by test (taking best score per test)
-      const testSubsMap = new Map();
+      const testSubsMap = {};
       matchedSubs.forEach(s => {
         const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
         const testKey = String(s.bookTestId || s.testId || meta?.realTestId || s.title || s.id);
-        const existing = testSubsMap.get(testKey);
+        const existing = testSubsMap[testKey];
         const score = Number(s.score || s.computedScore || s.correctCount || 0);
         if (!existing || score > Number(existing.score || existing.computedScore || existing.correctCount || 0)) {
-          testSubsMap.set(testKey, s);
+          testSubsMap[testKey] = s;
         }
       });
 
-      testSubsMap.forEach(s => {
+      Object.values(testSubsMap).forEach(s => {
         totalSolvedTests++;
         totalCorrect += Number(s.correctCount ?? s.correct ?? 0);
         totalWrong += Number(s.wrongCount ?? s.wrong ?? 0);
@@ -648,7 +648,7 @@ export default function StudentBooksPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
-              <Map size={14} color="#3b82f6" />
+              <MapIcon size={14} color="#3b82f6" />
               <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
             </div>
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
