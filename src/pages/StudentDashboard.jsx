@@ -1680,7 +1680,7 @@ export default function StudentDashboard() {
             seenIds.set(key, item);
           }
         });
-        const allItems = Array.from(seenIds.values());
+        const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests);
         const completedItems = allItems.filter(i => i.done);
 
         resultMap[dayMeta.key] = {

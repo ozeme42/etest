@@ -482,23 +482,96 @@ export function isHomeworkForStudent(hw, student, grades = []) {
 export function sortItemsByBookOrder(items, books = [], bookTests = []) {
   if (!Array.isArray(items) || items.length <= 1) return items || [];
 
+  // 1. Map Books and build strict sequential order of all tests as defined in the book's subjects & topics
   const bookMap = new Map();
-  (books || []).forEach((b, idx) => {
-    if (b?.id) {
-      bookMap.set(String(b.id), { index: idx, book: b });
-      const bUuid = String(b.id).replace(/-/g, '');
-      if (bUuid) bookMap.set(bUuid, { index: idx, book: b });
-    }
+  const bookTestSequentialIndexMap = new Map();
+  let globalSeq = 0;
+
+  (books || []).forEach((b, bIdx) => {
+    if (!b?.id) return;
+    const bId = String(b.id);
+    const bUuid = String(b.id).replace(/-/g, '');
+    bookMap.set(bId, { index: bIdx, book: b });
+    if (bUuid) bookMap.set(bUuid, { index: bIdx, book: b });
+
+    // Traverse subjects -> tests and subjects -> topics -> tests in exact book order
+    (b.subjects || []).forEach((subj, sIdx) => {
+      (subj.tests || []).forEach((t, tIdx) => {
+        if (t?.id) {
+          const tId = String(t.id);
+          const tUuid = String(t.id).replace(/-/g, '');
+          const info = {
+            bookIndex: bIdx,
+            subjectIndex: sIdx,
+            topicIndex: -1,
+            testIndex: tIdx,
+            seq: globalSeq++
+          };
+          bookTestSequentialIndexMap.set(tId, info);
+          if (tUuid) bookTestSequentialIndexMap.set(tUuid, info);
+        }
+      });
+      (subj.topics || []).forEach((tp, tpIdx) => {
+        (tp.tests || []).forEach((t, tIdx) => {
+          if (t?.id) {
+            const tId = String(t.id);
+            const tUuid = String(t.id).replace(/-/g, '');
+            const info = {
+              bookIndex: bIdx,
+              subjectIndex: sIdx,
+              topicIndex: tpIdx,
+              testIndex: tIdx,
+              seq: globalSeq++
+            };
+            bookTestSequentialIndexMap.set(tId, info);
+            if (tUuid) bookTestSequentialIndexMap.set(tUuid, info);
+          }
+        });
+      });
+    });
   });
 
   const testMap = new Map();
-  (bookTests || []).forEach((t, idx) => {
+  (bookTests || []).forEach(t => {
     if (t?.id) {
-      testMap.set(String(t.id), { index: idx, test: t });
+      testMap.set(String(t.id), t);
       const tUuid = String(t.id).replace(/-/g, '');
-      if (tUuid) testMap.set(tUuid, { index: idx, test: t });
+      if (tUuid) testMap.set(tUuid, t);
     }
   });
+
+  // Helper to extract starting page number from title/name (e.g. "45-46. Sayfa..." -> 45, "s. 13" -> 13)
+  const extractPageNo = (str) => {
+    if (!str) return null;
+    const m = String(str).match(/(?:(\d+)\s*[-–]\s*\d+|\b(\d+))\s*\.?\s*sayfa|sayfa\s*(\d+)|s\.\s*(\d+)/i);
+    if (m) {
+      const num = parseInt(m[1] || m[2] || m[3] || m[4], 10);
+      if (!isNaN(num)) return num;
+    }
+    return null;
+  };
+
+  // Helper to extract unit number from title/name (e.g. "2. Ünite" -> 2)
+  const extractUnitNo = (str) => {
+    if (!str) return null;
+    const m = String(str).match(/(\d+)\s*\.\s*ünite/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) return num;
+    }
+    return null;
+  };
+
+  // Helper to extract test number from title/name (e.g. "TEST - 6" -> 6)
+  const extractTestNo = (str) => {
+    if (!str) return null;
+    const m = String(str).match(/test\s*[-–]?\s*(\d+)/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) return num;
+    }
+    return null;
+  };
 
   return [...items].sort((a, b) => {
     // 1. Task type priority: Book tests & Quizzes first, then Topics/Roadmaps, then Manual/Schedule
@@ -512,9 +585,9 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
     const prioB = getTypePriority(b);
     if (prioA !== prioB) return prioA - prioB;
 
-    // 2. Book Level Match
-    const tObjA = a.testId ? testMap.get(String(a.testId))?.test : null;
-    const tObjB = b.testId ? testMap.get(String(b.testId))?.test : null;
+    // 2. Book Order (Order of books in system)
+    const tObjA = a.testId ? testMap.get(String(a.testId)) : null;
+    const tObjB = b.testId ? testMap.get(String(b.testId)) : null;
 
     const bookIdA = a.bookId || tObjA?.bookId || (a.hwId && a.isAutoHomework ? a.bookId : null);
     const bookIdB = b.bookId || tObjB?.bookId || (b.hwId && b.isAutoHomework ? b.bookId : null);
@@ -524,47 +597,59 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
 
     const bookIndexA = bInfoA ? bInfoA.index : 9999;
     const bookIndexB = bInfoB ? bInfoB.index : 9999;
+    if (bookIndexA !== bookIndexB) return bookIndexA - bookIndexB;
 
-    if (bookIndexA !== bookIndexB) {
-      return bookIndexA - bookIndexB;
-    }
+    // 3. Subject Hierarchy Order (Türkçe -> Matematik -> Fen ...)
+    const subjNameA = (a.subject || tObjA?.subject || '').trim();
+    const subjNameB = (b.subject || tObjB?.subject || '').trim();
 
-    // Book Title alphabetical if indices are same
-    const bookTitleA = (a.bookTitle || bInfoA?.book?.title || a.subject || '').trim();
-    const bookTitleB = (b.bookTitle || bInfoB?.book?.title || b.subject || '').trim();
-    const bookTitleComp = bookTitleA.localeCompare(bookTitleB, 'tr', { sensitivity: 'base' });
-    if (bookTitleComp !== 0) return bookTitleComp;
-
-    // 3. Subject and Topic Hierarchy within the same Book
     const bookObj = bInfoA?.book || bInfoB?.book;
-    if (bookObj && Array.isArray(bookObj.subjects) && tObjA && tObjB) {
-      const sIdxA = bookObj.subjects.findIndex(s => String(s.id) === String(tObjA.subjectId));
-      const sIdxB = bookObj.subjects.findIndex(s => String(s.id) === String(tObjB.subjectId));
+    if (bookObj && Array.isArray(bookObj.subjects)) {
+      const sIdxA = bookObj.subjects.findIndex(s => 
+        (tObjA?.subjectId && String(s.id) === String(tObjA.subjectId)) ||
+        (subjNameA && s.name?.toLocaleLowerCase('tr-TR') === subjNameA.toLocaleLowerCase('tr-TR'))
+      );
+      const sIdxB = bookObj.subjects.findIndex(s => 
+        (tObjB?.subjectId && String(s.id) === String(tObjB.subjectId)) ||
+        (subjNameB && s.name?.toLocaleLowerCase('tr-TR') === subjNameB.toLocaleLowerCase('tr-TR'))
+      );
       if (sIdxA !== -1 && sIdxB !== -1 && sIdxA !== sIdxB) {
         return sIdxA - sIdxB;
       }
-      if (sIdxA !== -1) {
-        const subj = bookObj.subjects[sIdxA];
-        if (subj && Array.isArray(subj.topics)) {
-          const tpIdxA = subj.topics.findIndex(tp => String(tp.id) === String(tObjA.topicId));
-          const tpIdxB = subj.topics.findIndex(tp => String(tp.id) === String(tObjB.topicId));
-          if (tpIdxA !== -1 && tpIdxB !== -1 && tpIdxA !== tpIdxB) {
-            return tpIdxA - tpIdxB;
-          }
-        }
-      }
     }
 
-    // 4. Test Index in bookTests
-    const tIndexA = a.testId && testMap.has(String(a.testId)) ? testMap.get(String(a.testId)).index : 99999;
-    const tIndexB = b.testId && testMap.has(String(b.testId)) ? testMap.get(String(b.testId)).index : 99999;
-    if (tIndexA !== tIndexB && tIndexA !== 99999 && tIndexB !== 99999) {
-      return tIndexA - tIndexB;
+    // 4. Sequential Book Test Index if both tests exist in the book's internal structure
+    const seqA = a.testId && bookTestSequentialIndexMap.has(String(a.testId)) ? bookTestSequentialIndexMap.get(String(a.testId)).seq : 999999;
+    const seqB = b.testId && bookTestSequentialIndexMap.has(String(b.testId)) ? bookTestSequentialIndexMap.get(String(b.testId)).seq : 999999;
+    if (seqA !== seqB && seqA !== 999999 && seqB !== 999999) {
+      return seqA - seqB;
     }
 
-    // 5. Natural Alphanumeric Sorting by Test Name / Title (e.g. "Test 1" < "Test 2" < "Test 10")
+    // 5. Page Number Order (Sayfa Numarası Sırası: 9-10 < 13-14 < 17-18 ...)
     const titleA = a.testName || a.title || a.name || '';
     const titleB = b.testName || b.title || b.name || '';
+
+    const pageA = extractPageNo(titleA);
+    const pageB = extractPageNo(titleB);
+    if (pageA !== null && pageB !== null && pageA !== pageB) {
+      return pageA - pageB;
+    }
+
+    // 6. Unit Number Order (Ünite Numarası Sırası)
+    const unitA = extractUnitNo(titleA);
+    const unitB = extractUnitNo(titleB);
+    if (unitA !== null && unitB !== null && unitA !== unitB) {
+      return unitA - unitB;
+    }
+
+    // 7. Test Number Order (Test Numarası Sırası)
+    const testNoA = extractTestNo(titleA);
+    const testNoB = extractTestNo(titleB);
+    if (testNoA !== null && testNoB !== null && testNoA !== testNoB) {
+      return testNoA - testNoB;
+    }
+
+    // 8. Natural Alphanumeric Sorting by Test Name / Title
     return titleA.localeCompare(titleB, 'tr', { numeric: true, sensitivity: 'base' });
   });
 }
