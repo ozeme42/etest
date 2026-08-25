@@ -517,6 +517,21 @@ export default function BookContentManager() {
       ...(Array.isArray(s.bookTestIds) ? s.bookTestIds : [])
     ].filter(Boolean).map(String);
   };
+
+  const isCandidateMatch = (fields, targetId) => {
+    const tIdStr = String(targetId || '');
+    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+    const tUuidStr = String(toUUID(targetId) || '');
+    return fields.some(cid => (
+      cid === tIdStr ||
+      cid === tCleanId ||
+      cid.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
+      (tUuidStr && cid === tUuidStr) ||
+      toUUID(cid) === tIdStr ||
+      (tUuidStr && toUUID(cid) === tUuidStr)
+    ));
+  };
+
   // 1. Pre-index tests for O(1) instant lookup
   const testLookup = useMemo(() => {
     const byId = new Map();
@@ -767,11 +782,21 @@ export default function BookContentManager() {
   // --- MISTAKE ANALYSIS LOGIC ---
   const mistakeList = useMemo(() => {
     const mistakesBySubject = {};
-    const solvedSubmissions = (allCombinedSubmissions || []).filter(s => tests.some(t => t.id === s.testId || t.id === s.bookTestId || isCandidateMatch(getCandidateSubmissionFields(s), t.id)) && s.status !== 'in_progress' && s.status !== 'draft');
+    const solvedSubmissions = (allCombinedSubmissions || []).filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
 
     for (const sub of solvedSubmissions) {
       const candidateFields = getCandidateSubmissionFields(sub);
-      const testDef = tests.find(t => t.id === sub.testId || t.id === sub.bookTestId || isCandidateMatch(candidateFields, t.id));
+      let testDef = null;
+      for (const f of candidateFields) {
+        testDef = testLookup.byId.get(f) || testLookup.byCleanId.get(f.replace(/^bt_/, '').replace(/^q_/, ''));
+        if (testDef) break;
+      }
+      if (!testDef) {
+        const sTestName = String(sub.testTitle || sub.testName || sub.title || '').toLowerCase().trim();
+        if (sTestName && testLookup.byName.has(sTestName)) {
+          testDef = testLookup.byName.get(sTestName)[0];
+        }
+      }
       if (!testDef) continue;
       
       const subject = book?.subjects?.find(s => String(s.id) === String(testDef.subjectId));
