@@ -117,8 +117,17 @@ export default function BookContentManager() {
         const mapped = tRows.map(t => {
           const ansKey = t.answer_key || {};
           const ansMeta = ansKey.__meta || {};
-          const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
-          const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
+          const isOe = Boolean(
+            t.is_open_ended === true ||
+            t.isOpenEnded === true ||
+            ansMeta.isOpenEnded === true ||
+            t.question_type === 'acik_uclu' ||
+            t.questionType === 'acik_uclu' ||
+            ansMeta.questionType === 'acik_uclu' ||
+            (b?.bookType === 'open_ended') ||
+            (t.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(t.name))
+          );
+          const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
           const sId = t.subject_id || ansMeta.subjectId || null;
           const topId = t.topic_id || ansMeta.topicId || null;
           return {
@@ -1057,13 +1066,18 @@ export default function BookContentManager() {
     const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
 
     // Test bazında tip tespiti (karma kitaplar için)
-    const testIsOpenEnded =
+    const testIsOpenEnded = Boolean(
       test.isOpenEnded === true ||
+      test.is_open_ended === true ||
       test.questionType === 'acik_uclu' ||
-      (book?.bookType === 'open_ended' && test.questionType !== 'coktan_secmeli');
+      test.question_type === 'acik_uclu' ||
+      test.answerKey?.__meta?.isOpenEnded === true ||
+      test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      (book?.bookType === 'open_ended') ||
+      (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name))
+    );
 
-    const testQuestionType = test.questionType ||
-      (book?.bookType === 'open_ended' ? 'acik_uclu' : 'coktan_secmeli');
+    const testQuestionType = testIsOpenEnded ? 'acik_uclu' : (test.questionType || test.question_type || 'coktan_secmeli');
 
     setTestFormData({
       name: test.name || '',

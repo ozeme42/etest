@@ -1757,8 +1757,16 @@ export async function dbGetTrackedBooks() {
       const canonicalBookId = idAliasMap.get(tBookIdStr) || (toUUID(tBookIdStr) ? idAliasMap.get(toUUID(tBookIdStr)) : null) || tBookIdStr;
       const ansKey = t.answer_key || {};
       const ansMeta = ansKey.__meta || {};
-      const isOe = t.is_open_ended ?? ansMeta.isOpenEnded ?? (t.question_type === 'acik_uclu') ?? (ansMeta.questionType === 'acik_uclu') ?? false;
-      const qType = t.question_type || ansMeta.questionType || (isOe ? 'acik_uclu' : 'coktan_secmeli');
+      const isOe = Boolean(
+        t.is_open_ended === true ||
+        t.isOpenEnded === true ||
+        ansMeta.isOpenEnded === true ||
+        t.question_type === 'acik_uclu' ||
+        t.questionType === 'acik_uclu' ||
+        ansMeta.questionType === 'acik_uclu' ||
+        (t.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(t.name))
+      );
+      const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
       const sId = t.subject_id ? String(t.subject_id) : null;
       const topId = t.topic_id ? String(t.topic_id) : null;
       const name = String(t.name || 'Test').trim();
@@ -1990,8 +1998,17 @@ export async function dbAddTrackedBookTest(test) {
     const safeBookId = rawBId ? toUUID(rawBId) : null;
     const safeTestId = toUUID(test.id || `tbt_${Date.now()}`);
     const rawAnsKey = test.answerKey || test.answer_key || {};
-    const qType = test.questionType || (test.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
-    const isOe = test.isOpenEnded === true || qType === 'acik_uclu';
+    const ansMeta = rawAnsKey.__meta || {};
+    const isOe = Boolean(
+      test.isOpenEnded === true ||
+      test.is_open_ended === true ||
+      ansMeta.isOpenEnded === true ||
+      test.questionType === 'acik_uclu' ||
+      test.question_type === 'acik_uclu' ||
+      ansMeta.questionType === 'acik_uclu' ||
+      (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name))
+    );
+    const qType = isOe ? 'acik_uclu' : (test.questionType || test.question_type || ansMeta.questionType || 'coktan_secmeli');
 
     const sId = test.subjectId || test.subject_id || null;
     const topId = test.topicId || test.topic_id || null;
@@ -1999,7 +2016,7 @@ export async function dbAddTrackedBookTest(test) {
     const enrichedAnswerKey = {
       ...rawAnsKey,
       __meta: {
-        ...(rawAnsKey.__meta || {}),
+        ...ansMeta,
         questionType: qType,
         isOpenEnded: isOe,
         optionCount: test.optionCount,
@@ -2044,8 +2061,17 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
       seenIds.add(safeTestId);
 
       const rawAnsKey = t.answerKey || t.answer_key || {};
-      const qType = t.questionType || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
-      const isOe = t.isOpenEnded === true || qType === 'acik_uclu';
+      const ansMeta = rawAnsKey.__meta || {};
+      const isOe = Boolean(
+        t.isOpenEnded === true ||
+        t.is_open_ended === true ||
+        ansMeta.isOpenEnded === true ||
+        t.questionType === 'acik_uclu' ||
+        t.question_type === 'acik_uclu' ||
+        ansMeta.questionType === 'acik_uclu' ||
+        (t.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(t.name))
+      );
+      const qType = isOe ? 'acik_uclu' : (t.questionType || t.question_type || ansMeta.questionType || 'coktan_secmeli');
 
       const sId = t.subjectId || t.subject_id || null;
       const topId = t.topicId || t.topic_id || null;
@@ -2053,7 +2079,7 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
       const enrichedAnswerKey = {
         ...rawAnsKey,
         __meta: {
-          ...(rawAnsKey.__meta || {}),
+          ...ansMeta,
           questionType: qType,
           isOpenEnded: isOe,
           optionCount: t.optionCount,

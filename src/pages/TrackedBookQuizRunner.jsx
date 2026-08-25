@@ -307,10 +307,16 @@ export default function TrackedBookQuizRunner() {
   }, [showOptikForm, effectivePdfMode]);
 
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
-  const isOpenEnded = 
+  const isOpenEnded = Boolean(
     resolvedBook?.bookType === 'open_ended' ||
     resolvedTest?.isOpenEnded === true ||
-    resolvedTest?.questionType === 'acik_uclu';
+    resolvedTest?.is_open_ended === true ||
+    resolvedTest?.questionType === 'acik_uclu' ||
+    resolvedTest?.question_type === 'acik_uclu' ||
+    resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
+    resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    (resolvedTest?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(resolvedTest.name))
+  );
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
 
@@ -338,7 +344,16 @@ export default function TrackedBookQuizRunner() {
     const targetAnswers = answersToCalc || answers;
     const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
     const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
-    const testIsOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.isOpenEnded === true || resolvedTest?.questionType === 'acik_uclu';
+    const testIsOpenEnded = Boolean(
+      resolvedBook?.bookType === 'open_ended' ||
+      resolvedTest?.isOpenEnded === true ||
+      resolvedTest?.is_open_ended === true ||
+      resolvedTest?.questionType === 'acik_uclu' ||
+      resolvedTest?.question_type === 'acik_uclu' ||
+      resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
+      resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      (resolvedTest?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(resolvedTest.name))
+    );
 
     const toLetter = (val) => {
       if (val === null || val === undefined || val === '' || val === 'empty') return '';

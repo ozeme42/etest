@@ -71,7 +71,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
-  const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
+  const isOpenEndedMode = Boolean(
+    test.isOpenEnded === true ||
+    test.is_open_ended === true ||
+    test.questionType === 'acik_uclu' ||
+    test.question_type === 'acik_uclu' ||
+    test.answerKey?.__meta?.isOpenEnded === true ||
+    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name))
+  );
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
