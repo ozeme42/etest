@@ -713,9 +713,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       if (allMatchingSubs.length === 0) return;
 
       // Group matching submissions (in case multi-test or retakes exist)
-      allMatchingSubs.forEach(sub => {
+      allMatchingSubs.forEach((sub, subIdx) => {
         if (!sub) return;
-        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${studentIdStr}`);
+        const testIdent = sub.id || sub.submissionId || sub.realId || sub.realTestId || sub.bookTestId || sub.testId || sub.test_id || sub.testName || `idx_${subIdx}`;
+        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${studentIdStr}_${testIdent}`);
         if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
         if (sub.status === 'in_progress' || sub.status === 'draft') return;
         const raw = sub.raw_data || {};
