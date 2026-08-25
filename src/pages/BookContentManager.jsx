@@ -93,17 +93,18 @@ export default function BookContentManager() {
   }, [id]);
 
   const book = useMemo(() => {
+    if (localLiveBook) return localLiveBook;
     const found = (books || []).find(b => String(b.id) === String(id) || toUUID(b.id) === toUUID(id));
     if (!found) return null;
     const subjects = (Array.isArray(found.subjects) && found.subjects.length > 0)
       ? found.subjects
       : (Array.isArray(found.raw_data?.subjects) ? found.raw_data.subjects : []);
-    const mergedBook = localLiveBook || {
+    return {
       ...found,
       subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
     };
-    return mergedBook;
-  }, [books, id]);
+  }, [books, id, localLiveBook]);
+
   const tests = useMemo(() => {
     if (localLiveTests && localLiveTests.length > 0) return localLiveTests;
     return (bookTests || []).filter(t => {
@@ -119,7 +120,7 @@ export default function BookContentManager() {
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   React.useEffect(() => {
-    if (refreshTrackedBooks) refreshTrackedBooks();
+    if (refreshTrackedBooks) refreshTrackedBooks(true);
   }, []);
 
   // Book Settings Dialog State
