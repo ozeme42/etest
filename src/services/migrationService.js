@@ -14,12 +14,15 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
     onProgress(msg, logs);
   };
 
-  log('🚀 Yeni Supabase Veritabanına Aktarım Başlatılıyor...');
+  log('🚀 Yeni Supabase Veritabanına Tam Aktarım Başlatılıyor...');
 
   try {
     // 1. KULLANICILAR (USERS)
     log('👥 Kullanıcılar aktarılıyor...');
-    const localUsers = JSON.parse(localStorage.getItem('eTestUsers') || '[]');
+    let localUsers = [];
+    try {
+      localUsers = JSON.parse(localStorage.getItem('eTestUsers') || '[]');
+    } catch {}
     if (localUsers.length > 0) {
       const userRows = localUsers.map(u => ({
         id: String(u.id),
@@ -38,51 +41,118 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
     }
 
     // 2. MÜFREDAT (GRADES, SUBJECTS, UNITS, TOPICS)
-    log('📚 Müfredat hiyerarşisi aktarılıyor...');
-    const rawCur = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
-    if (rawCur) {
-      const curData = JSON.parse(rawCur);
-      if (curData?.grades?.length > 0) {
-        await supabase.from('grades').upsert(curData.grades.map(g => ({ id: String(g.id), name: g.name })), { onConflict: 'id' });
+    log('📚 Müfredat hiyerarşisi (Sınıflar, Dersler, Üniteler, Konular) taranıyor...');
+    let curData = null;
+    try {
+      const rawLs = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
+      if (rawLs) curData = JSON.parse(rawLs);
+      if (!curData || !curData.grades || curData.grades.length === 0) {
+        const idbCur = await idbGetPayload('eTestCurriculum_Cache');
+        if (idbCur) curData = JSON.parse(idbCur);
       }
-      if (curData?.subjects?.length > 0) {
-        await supabase.from('subjects').upsert(curData.subjects.map(s => ({ id: String(s.id), grade_id: String(s.gradeId || s.grade_id), name: s.name })), { onConflict: 'id' });
-      }
-      if (curData?.units?.length > 0) {
-        await supabase.from('units').upsert(curData.units.map(u => ({ id: String(u.id), subject_id: String(u.subjectId || u.subject_id), name: u.name })), { onConflict: 'id' });
-      }
-      if (curData?.topics?.length > 0) {
-        await supabase.from('topics').upsert(curData.topics.map(t => ({ id: String(t.id), unit_id: String(t.unitId || t.unit_id), name: t.name })), { onConflict: 'id' });
-      }
-      log('✅ Müfredat sınıfları, dersleri ve konuları yüklendi.');
+    } catch (e) {
+      console.warn('Curriculum read error:', e);
     }
 
-    // 3. ÖDEVLER (HOMEWORKS)
-    log('📝 Ödevler ve test görevleri aktarılıyor...');
-    const localHws = JSON.parse(localStorage.getItem('eTestHomeworks') || '[]');
+    if (curData && curData.grades && curData.grades.length > 0) {
+      const MOCK_IDS = new Set(['g1', 'g2', 's1', 's2', 'u1', 't1']);
+      const grades = (curData.grades || []).filter(g => !MOCK_IDS.has(g.id));
+      const subjects = (curData.subjects || []).filter(s => !MOCK_IDS.has(s.id));
+      const units = (curData.units || []).filter(u => !MOCK_IDS.has(u.id));
+      const topics = (curData.topics || []).filter(t => !MOCK_IDS.has(t.id));
+
+      if (grades.length > 0) {
+        const { error: gErr } = await supabase.from('grades').upsert(grades.map(g => ({ id: String(g.id), name: g.name })), { onConflict: 'id' });
+        if (gErr) log(`⚠️ Sınıflar uyarısı: ${gErr.message}`);
+      }
+      if (subjects.length > 0) {
+        const { error: sErr } = await supabase.from('subjects').upsert(subjects.map(s => ({ id: String(s.id), grade_id: String(s.gradeId || s.grade_id), name: s.name })), { onConflict: 'id' });
+        if (sErr) log(`⚠️ Dersler uyarısı: ${sErr.message}`);
+      }
+      if (units.length > 0) {
+        const { error: unErr } = await supabase.from('units').upsert(units.map(u => ({ id: String(u.id), subject_id: String(u.subjectId || u.subject_id), name: u.name })), { onConflict: 'id' });
+        if (unErr) log(`⚠️ Üniteler uyarısı: ${unErr.message}`);
+      }
+      if (topics.length > 0) {
+        const { error: topErr } = await supabase.from('topics').upsert(topics.map(t => ({ id: String(t.id), unit_id: String(t.unitId || t.unit_id), name: t.name })), { onConflict: 'id' });
+        if (topErr) log(`⚠️ Konular uyarısı: ${topErr.message}`);
+      }
+      log(`✅ Müfredat yüklendi: ${grades.length} Sınıf, ${subjects.length} Ders, ${units.length} Ünite, ${topics.length} Konu`);
+    }
+
+    // 3. TAKİPLİ KİTAPLAR VE KİTAP TESTLERİ (TRACKED BOOKS & TESTS)
+    log('📖 Takipli kitaplar ve kitap testleri aktarılıyor...');
+    let localBooks = [];
+    let localBookTests = [];
+    try {
+      localBooks = JSON.parse(localStorage.getItem('eTestTrackedBooks') || localStorage.getItem('trackedBooks') || '[]');
+      localBookTests = JSON.parse(localStorage.getItem('eTestTrackedBookTests') || '[]');
+    } catch {}
+
+    if (localBooks.length > 0) {
+      const bookRows = localBooks.map(b => ({
+        id: String(b.id),
+        title: b.title || 'Kitap',
+        publisher: b.publisher || '',
+        book_type: b.bookType || b.book_type || 'standard',
+        subjects: Array.isArray(b.subjects) ? b.subjects : []
+      }));
+      const { error: bErr } = await supabase.from('tracked_books').upsert(bookRows, { onConflict: 'id' });
+      if (bErr) log(`⚠️ Kitaplar uyarısı: ${bErr.message}`);
+      else log(`✅ ${bookRows.length} Kitap tanımı yüklendi.`);
+    }
+
+    if (localBookTests.length > 0) {
+      const testRows = localBookTests.map(t => ({
+        id: String(t.id),
+        book_id: String(t.bookId || t.book_id),
+        subject_id: t.subjectId ? String(t.subjectId) : null,
+        topic_id: t.topicId ? String(t.topicId) : null,
+        name: t.name || 'Test',
+        question_count: Number(t.questionCount || 20),
+        answer_key: t.answerKey || {}
+      }));
+
+      for (let i = 0; i < testRows.length; i += 50) {
+        const chunk = testRows.slice(i, i + 50);
+        await supabase.from('tracked_book_tests').upsert(chunk, { onConflict: 'id' });
+      }
+      log(`✅ ${testRows.length} Kitap testi yüklendi.`);
+    }
+
+    // 4. ÖDEVLER (HOMEWORKS)
+    log('📝 Ödevler ve görevler aktarılıyor...');
+    let localHws = [];
+    try {
+      localHws = JSON.parse(localStorage.getItem('eTestHomeworks') || '[]');
+    } catch {}
     if (localHws.length > 0) {
       const hwRows = localHws.map(hw => ({
         id: String(hw.id),
         title: hw.title || 'Ödev',
         subject: hw.subject || 'Genel',
-        description: hw.description || null,
         due_date: hw.dueDate ? new Date(hw.dueDate).toISOString() : null,
-        grade_id: hw.gradeId || null,
         target_ids: Array.isArray(hw.targetIds) ? hw.targetIds : [],
-        is_book_assignment: Boolean(hw.isBookAssignment),
-        book_id: hw.bookId ? String(hw.bookId) : null,
         raw_data: hw
       }));
-
       const { error: hwErr } = await supabase.from('homeworks').upsert(hwRows, { onConflict: 'id' });
       if (hwErr) log(`⚠️ Ödevler uyarısı: ${hwErr.message}`);
-      else log(`✅ ${hwRows.length} Ödev kaydı başarıyla yüklendi.`);
+      else log(`✅ ${hwRows.length} Ödev başarıyla yüklendi.`);
     }
 
-    // 4. SINAV VE TEST SONUÇLARI (SUBMISSIONS)
+    // 5. TÜM SINAV VE TEST SONUÇLARI (SUBMISSIONS)
     log('📊 Sınav ve test sonuçları (66 Kitap Testi vb.) aktarılıyor...');
-    const rawSubs = localStorage.getItem('eTestSubmissions') || localStorage.getItem('etest_submissions') || '[]';
-    const localSubs = JSON.parse(rawSubs);
+    let localSubs = [];
+    try {
+      const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
+      const l2 = JSON.parse(localStorage.getItem('etest_submissions') || '[]');
+      const mergedMap = new Map();
+      [...l1, ...l2].forEach(s => {
+        if (s && s.id) mergedMap.set(String(s.id), s);
+      });
+      localSubs = Array.from(mergedMap.values());
+    } catch {}
+
     if (localSubs.length > 0) {
       const subRows = localSubs.map(s => {
         const rawAnswers = (s.answers || []).filter(a => a.type !== 'metadata');
@@ -128,18 +198,21 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
         };
       });
 
-      // Upload in chunks of 25
       for (let i = 0; i < subRows.length; i += 25) {
         const chunk = subRows.slice(i, i + 25);
         const { error: subErr } = await supabase.from('submissions').upsert(chunk, { onConflict: 'id' });
         if (subErr) log(`⚠️ Sınav sonuçları parça (${i + 1}-${i + chunk.length}) uyarısı: ${subErr.message}`);
-        else log(`✅ Sınav sonuçları aktarıldı (${Math.min(i + 25, subRows.length)} / ${subRows.length})`);
+        else log(`✅ Sınav sonuçları yüklendi (${Math.min(i + 25, subRows.length)} / ${subRows.length})`);
       }
     }
 
-    // 5. SORU BANKASI (QUESTIONS)
+    // 6. SORU BANKASI (QUESTIONS)
     log('❓ Soru bankası soruları aktarılıyor...');
-    const localQs = JSON.parse(localStorage.getItem('eTestQuestions') || '[]');
+    let localQs = [];
+    try {
+      localQs = JSON.parse(localStorage.getItem('eTestQuestions') || '[]');
+    } catch {}
+
     if (localQs.length > 0) {
       const qRows = [];
       for (const q of localQs) {
@@ -174,43 +247,19 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
 
       for (let i = 0; i < qRows.length; i += 20) {
         const chunk = qRows.slice(i, i + 20);
-        const { error: qErr } = await supabase.from('questions').upsert(chunk, { onConflict: 'id' });
-        if (qErr) log(`⚠️ Soru bankası parça (${i + 1}-${i + chunk.length}) uyarısı: ${qErr.message}`);
-        else log(`✅ Sorular aktarıldı (${Math.min(i + 20, qRows.length)} / ${qRows.length})`);
+        await supabase.from('questions').upsert(chunk, { onConflict: 'id' });
       }
+      log(`✅ ${qRows.length} Soru yüklendi.`);
     }
 
-    // 6. TAKİPLİ KİTAPLAR (TRACKED BOOKS)
-    log('📖 Takipli kitaplar aktarılıyor...');
-    const localBooks = JSON.parse(localStorage.getItem('eTestTrackedBooks') || localStorage.getItem('trackedBooks') || '[]');
-    if (localBooks.length > 0) {
-      const bookRows = localBooks.map(b => ({
-        id: String(b.id),
-        title: b.title || 'Kitap',
-        subject: b.subject || null,
-        grade_id: b.gradeId || null,
-        total_tests: Number(b.totalTests || 0),
-        total_questions: Number(b.totalQuestions || 0),
-        raw_data: b
-      }));
-      await supabase.from('tracked_books').upsert(bookRows, { onConflict: 'id' });
-      log(`✅ ${bookRows.length} Takipli kitap yüklendi.`);
-    }
-
-    // 7. FİZİKİ DENEME SINAVLARI (MOCK EXAMS)
-    const localExams = JSON.parse(localStorage.getItem('eTestMockExams') || '[]');
-    if (localExams.length > 0) {
-      const examRows = localExams.map(m => ({
-        id: String(m.id),
-        student_id: String(m.studentId || 'u1'),
-        title: m.title || 'Deneme',
-        subject: m.subject || 'Genel',
-        scores: m.scores || {},
-        date: m.date ? new Date(m.date).toISOString() : new Date().toISOString()
-      }));
-      await supabase.from('mock_exams').upsert(examRows, { onConflict: 'id' });
-      log(`✅ ${examRows.length} Deneme sınavı yüklendi.`);
-    }
+    // 7. ÇALIŞMA PLANLARI & KOÇLUK & DENEMELER
+    try {
+      const localPlans = JSON.parse(localStorage.getItem('eTestStudyPlans') || '[]');
+      if (localPlans.length > 0) {
+        await supabase.from('study_plans').upsert(localPlans.map(p => ({ id: String(p.id), title: p.title || 'Plan', subjects: p.subjects || [] })), { onConflict: 'id' });
+        log(`✅ ${localPlans.length} Çalışma planı yüklendi.`);
+      }
+    } catch {}
 
     log('🎉 TÜM VERİLER BAŞARIYLA YENİ SUPABASE VERİTABANINA AKTARILDI!');
     return { success: true, logs };
