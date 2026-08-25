@@ -76,9 +76,31 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
     test.is_open_ended === true ||
     test.questionType === 'acik_uclu' ||
     test.question_type === 'acik_uclu' ||
+    test.type === 'acik_uclu' ||
+    test.type === 'yazili' ||
+    test.questionType === 'yazili' ||
     test.answerKey?.__meta?.isOpenEnded === true ||
     test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name))
+    (test.book && test.book.bookType === 'open_ended') ||
+    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name)) ||
+    (test.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.title)) ||
+    (questions && questions.length > 0 && questions.some(q => 
+      q.isOpenEnded === true || 
+      q.is_open_ended === true || 
+      q.questionType === 'acik_uclu' || 
+      q.type === 'acik_uclu' || 
+      q.questionType === 'yazili' || 
+      q.type === 'yazili' ||
+      (q.testName && /açık uçlu|acik uclu|klasik|yazılı/i.test(q.testName)) ||
+      (q.questionText && /açık uçlu|acik uclu|klasik|yazılı/i.test(q.questionText))
+    )) ||
+    (test.sections && Array.isArray(test.sections) && test.sections.some(s => 
+      s.isOpenEnded === true || 
+      s.is_open_ended === true || 
+      s.questionType === 'acik_uclu' || 
+      s.type === 'acik_uclu' ||
+      (s.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(s.title))
+    ))
   );
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
@@ -434,8 +456,8 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: showOptikForm ? 'linear-gradient(135deg, #059669, #10b981)' : 'var(--color-surface)',
-              border: `1.5px solid ${showOptikForm ? '#059669' : 'var(--color-border-input)'}`,
+              background: showOptikForm ? (isOpenEndedMode ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #059669, #10b981)') : 'var(--color-surface)',
+              border: `1.5px solid ${showOptikForm ? (isOpenEndedMode ? '#7c3aed' : '#059669') : 'var(--color-border-input)'}`,
               color: showOptikForm ? 'white' : 'var(--color-text)',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
@@ -443,12 +465,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: showOptikForm ? '0 2px 8px rgba(16,185,129,0.25)' : 'none'
+              boxShadow: showOptikForm ? (isOpenEndedMode ? '0 2px 8px rgba(124,58,237,0.25)' : '0 2px 8px rgba(16,185,129,0.25)') : 'none'
             }}
-            title={showOptikForm ? "Optik Gizle (Yüzen İkona Geç)" : "Optik Ekranda Göster"}
+            title={showOptikForm ? (isOpenEndedMode ? "Cevap Formunu Gizle" : "Optik Gizle") : (isOpenEndedMode ? "Cevap Formunu Göster" : "Optik Ekranda Göster")}
           >
             {showOptikForm ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
-            <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
+            <span>{showOptikForm ? (isOpenEndedMode ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEndedMode ? 'Cevapları Göster' : 'Optik Göster')}</span>
           </button>
 
           <button
@@ -477,7 +499,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
               borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: isOpenEndedMode ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
@@ -486,12 +508,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 16px rgba(16,185,129,0.25)'
+              boxShadow: isOpenEndedMode ? '0 4px 16px rgba(124,58,237,0.25)' : '0 4px 16px rgba(16,185,129,0.25)'
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} /> 
-            {!isMobile && "Optik Formu Kaydet"}
-            {isMobile && "Kaydet"}
+            {!isMobile && (isOpenEndedMode ? "Sınavı Bitir ve Gönder" : "Optik Formu Kaydet")}
+            {isMobile && (isOpenEndedMode ? "Bitir" : "Kaydet")}
           </button>
         </div>
       </header>
@@ -520,23 +542,27 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           />
         )}
 
-        {/* RIGHT/BOTTOM: Optik Form — scrollable */}
+        {/* RIGHT/BOTTOM: Form — scrollable */}
         {showOptikForm && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: isOpenEndedMode ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: isOpenEndedMode ? '0 8px 24px rgba(124,58,237,0.2)' : '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <FileSpreadsheet size={26} />
+                {isOpenEndedMode ? <Pencil size={26} /> : <FileSpreadsheet size={26} />}
               </div>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>Dijital Optik Form Kodlama</h3>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>
+                  {isOpenEndedMode ? '✍️ Açık Uçlu / Yazılı Cevaplama Formu' : '📋 Dijital Optik Form Kodlama'}
+                </h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                  {hasPdf && pdfMode !== 'hidden' ? 'PDF’i okuyarak cevapları işaretleyin.' : 'Kağıt üzerinde çözdüğünüz sınavın cevaplarını işaretleyiniz.'}
+                  {isOpenEndedMode 
+                    ? 'Açık uçlu veya sayısal yanıtlarınızı aşağıdaki soru kutucuklarına yazınız.' 
+                    : (hasPdf && pdfMode !== 'hidden' ? 'PDF’i okuyarak cevapları işaretleyin.' : 'Kağıt üzerinde çözdüğünüz sınavın cevaplarını işaretleyiniz.')}
                 </p>
               </div>
             </div>
 
-            {/* Optik Grid Form */}
+            {/* Grid Form */}
             <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
               {Array.from({ length: qCount }).map((_, idx) => {
                 const qNo = idx + 1;
@@ -544,24 +570,36 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
                 const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
+                const isItemOE = Boolean(
+                  isOpenEndedMode ||
+                  qObj.isOpenEnded === true ||
+                  qObj.is_open_ended === true ||
+                  qObj.questionType === 'acik_uclu' ||
+                  qObj.type === 'acik_uclu' ||
+                  qObj.questionType === 'yazili' ||
+                  qObj.type === 'yazili' ||
+                  (qObj.testName && /açık uçlu|acik uclu|klasik|yazılı/i.test(qObj.testName)) ||
+                  (qObj.questionText && /açık uçlu|acik uclu|klasik|yazılı/i.test(qObj.questionText))
+                );
+
                 return (
                   <div key={qNo} style={{ background: 'var(--color-surface-hover)', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>
                       <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
-                      {selectedOpt !== undefined || textVal ? (
-                        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
+                      {(isItemOE ? Boolean(textVal && String(textVal).trim() !== '') : selectedOpt !== undefined) ? (
+                        <span style={{ fontSize: '0.72rem', color: isItemOE ? '#8b5cf6' : '#16a34a', fontWeight: 900 }}>✓ {isItemOE ? 'Yazıldı' : 'Kodlandı'}</span>
                       ) : (
                         <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>— Boş</span>
                       )}
                     </div>
 
-                    {isOpenEndedMode ? (
+                    {isItemOE ? (
                       <textarea
                         value={textVal}
                         onChange={(e) => handleTextChange(qNo, e.target.value)}
-                        placeholder={`Soru ${qNo} açık uçlu yanıt...`}
+                        placeholder={`Soru ${qNo} açık uçlu yanıtınızı yazınız...`}
                         rows={2}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                        style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.6rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'vertical' }}
                       />
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>

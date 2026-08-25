@@ -1078,15 +1078,15 @@ export default function TrackedBookQuizRunner() {
             </div>
           )}
 
-          {/* Optik Göster / Gizle Button */}
+          {/* Optik / Cevap Formu Göster / Gizle Button */}
           <button
             onClick={() => setShowOptikForm(!showOptikForm)}
             style={{
               padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
               borderRadius: '0.7rem',
-              background: showOptikForm ? 'rgba(37,99,235,0.15)' : 'var(--color-surface)',
-              border: `1.5px solid ${showOptikForm ? '#3b82f6' : 'var(--color-border)'}`,
-              color: showOptikForm ? '#60a5fa' : 'var(--color-text)',
+              background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
+              border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
+              color: showOptikForm ? (isOpenEnded ? '#a78bfa' : '#60a5fa') : 'var(--color-text)',
               fontWeight: 800,
               fontSize: isMobile ? '0.72rem' : '0.8rem',
               cursor: 'pointer',
@@ -1094,10 +1094,10 @@ export default function TrackedBookQuizRunner() {
               alignItems: 'center',
               gap: '0.4rem'
             }}
-            title={showOptikForm ? "Optik Alanı Gizle (PDF Tam Ekran)" : "Optik Alanı Göster"}
+            title={showOptikForm ? (isOpenEnded ? "Cevap Formunu Gizle" : "Optik Alanı Gizle") : (isOpenEnded ? "Cevap Formunu Göster" : "Optik Alanı Göster")}
           >
             {showOptikForm ? <EyeOff size={isMobile ? 13 : 15} /> : <Eye size={isMobile ? 13 : 15} />}
-            <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
+            <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
           </button>
 
           {/* Drawing Canvas Button */}
@@ -1335,9 +1335,9 @@ export default function TrackedBookQuizRunner() {
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb' }} />
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: isOpenEnded ? '#7c3aed' : '#2563eb' }} />
                     <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                      {resolvedUnit ? `${resolvedUnit} › ${resolvedTest.name}` : resolvedTest.name} — Optik Form
+                      {resolvedUnit ? `${resolvedUnit} › ${resolvedTest.name}` : resolvedTest.name} — {isOpenEnded ? '✍️ Açık Uçlu Yanıt Formu' : '📋 Optik Form'}
                     </h3>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
                       ({questionCount} Soru)
@@ -1345,8 +1345,8 @@ export default function TrackedBookQuizRunner() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                      {answeredCount}/{questionCount} Kodlandı (%{Math.round((answeredCount / (questionCount || 1)) * 100)})
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isOpenEnded ? '#7c3aed' : '#2563eb', background: isOpenEnded ? 'rgba(124,58,237,0.1)' : 'rgba(37,99,235,0.1)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                      {answeredCount}/{questionCount} {isOpenEnded ? 'Yanıtlandı' : 'Kodlandı'} (%{Math.round((answeredCount / (questionCount || 1)) * 100)})
                     </span>
                   </div>
                 </div>
