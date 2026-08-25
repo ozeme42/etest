@@ -1721,50 +1721,29 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
   if (!isSupabaseConfigured()) return null;
   const safeId = toUUID(bookId);
 
-  let payload = { ...initialPayload };
-  if (isUpsert) payload.id = safeId;
+  const payloadsToTry = [
+    // 1. Core guaranteed columns: title and subjects (contains __book_meta__)
+    { title: initialPayload.title || 'Kitap', subjects: initialPayload.subjects || [] },
+    // 2. Minimal subjects only
+    { subjects: initialPayload.subjects || [] },
+    // 3. Extended payload if table has all columns
+    { ...initialPayload }
+  ];
 
-  // Retry stripping missing columns
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (const p of payloadsToTry) {
     try {
-      let query;
-      if (isUpsert) {
-        query = supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
-      } else {
-        query = supabase.from('tracked_books').update(payload).eq('id', safeId).select().maybeSingle();
-      }
+      const payload = { ...p };
+      if (isUpsert) payload.id = safeId;
+
+      const query = isUpsert
+        ? supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle()
+        : supabase.from('tracked_books').update(payload).eq('id', safeId).select().maybeSingle();
+
       const { data, error } = await query;
       if (!error && data) {
         return data;
       }
-
-      if (error) {
-        const msg = error.message || '';
-        // Missing column pattern
-        const match = msg.match(/Could not find the '([^']+)' column/) || msg.match(/column "([^"]+)" of relation/);
-        if (match && match[1]) {
-          const col = match[1];
-          delete payload[col];
-          continue;
-        }
-        // Progressive strip
-        if ('raw_data' in payload) { delete payload.raw_data; continue; }
-        if ('pdf_url' in payload) { delete payload.pdf_url; continue; }
-        if ('book_type' in payload) { delete payload.book_type; continue; }
-        if ('publisher' in payload) { delete payload.publisher; continue; }
-        if ('title' in payload && Object.keys(payload).length > 2) {
-          payload = { title: payload.title, subjects: payload.subjects };
-          continue;
-        }
-        if (Object.keys(payload).length > 1 && 'subjects' in payload) {
-          payload = { subjects: payload.subjects };
-          continue;
-        }
-        break;
-      }
-    } catch (err) {
-      break;
-    }
+    } catch {}
   }
   return null;
 }
@@ -1954,10 +1933,19 @@ export async function dbAddTrackedBookTest(test) {
 export async function dbBatchUpsertTrackedBookTests(testList) {
   if (!isSupabaseConfigured() || !Array.isArray(testList) || testList.length === 0) return true;
   try {
-    const rows = testList.map(t => {
+    const seenIds = new Set();
+    const rows = [];
+
+    for (const t of testList) {
       const rawBId = t.bookId || t.book_id || null;
       const safeBookId = rawBId ? toUUID(rawBId) : null;
-      const safeTestId = toUUID(t.id || `tbt_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`);
+      
+      let safeTestId = toUUID(t.id || `tbt_${Date.now()}_${Math.random()}`);
+      if (seenIds.has(safeTestId)) {
+        safeTestId = toUUID(`tbt_${Date.now()}_${Math.random()}_${Math.random()}`);
+      }
+      seenIds.add(safeTestId);
+
       const rawAnsKey = t.answerKey || t.answer_key || {};
       const qType = t.questionType || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
       const isOe = t.isOpenEnded === true || qType === 'acik_uclu';
@@ -1973,7 +1961,7 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
         }
       };
 
-      return {
+      rows.push({
         id: safeTestId,
         book_id: safeBookId,
         subject_id: (t.subjectId || t.subject_id) ? toUUID(t.subjectId || t.subject_id) : null,
@@ -1981,14 +1969,20 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
         name: t.name || 'Test',
         question_count: Number(t.questionCount || t.question_count) || 20,
         answer_key: enrichedAnswerKey
-      };
-    });
+      });
+    }
 
     for (let i = 0; i < rows.length; i += 50) {
       const chunk = rows.slice(i, i + 50);
       const { error } = await supabase.from('tracked_book_tests').upsert(chunk, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase] dbBatchUpsertTrackedBookTests chunk error:', error.message);
+        // Fallback row-by-row
+        for (const row of chunk) {
+          try {
+            await supabase.from('tracked_book_tests').upsert([row], { onConflict: 'id' });
+          } catch {}
+        }
       }
     }
     return true;

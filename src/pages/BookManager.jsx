@@ -161,9 +161,10 @@ export default function BookManager() {
       const existingSubjects = targetBook.subjects || [];
       const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects)); 
       const existingTestsList = (bookTests || []).filter(t => String(t.bookId) === String(targetBook.id) || String(t.book_id) === String(targetBook.id));
+      const usedExistingTestIds = new Set();
       const allTestsToSave = [];
 
-      const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
+      const genId = (prefix) => prefix + "_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
 
       updatedSubjects.forEach(s => {
         if (!s.id) s.id = genId("s");
@@ -195,13 +196,20 @@ export default function BookManager() {
         const testNameClean = String(testData.name || 'İsimsiz Test').trim();
 
         const existingTest = existingTestsList.find(t => {
+          if (usedExistingTestIds.has(String(t.id))) return false;
           const sMatch = String(t.subjectId || '') === String(subjectId);
           const topMatch = topicId ? String(t.topicId || '') === String(topicId) : (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subjectId));
           const nameMatch = String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
           return sMatch && topMatch && nameMatch;
         });
 
-        const testId = existingTest ? String(existingTest.id) : genId("tbt");
+        let testId;
+        if (existingTest) {
+          testId = String(existingTest.id);
+          usedExistingTestIds.add(testId);
+        } else {
+          testId = genId("tbt");
+        }
 
         const testPayload = {
           id: testId,
