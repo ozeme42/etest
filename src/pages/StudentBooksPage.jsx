@@ -187,17 +187,19 @@ export default function StudentBooksPage() {
       bookMap[b.id] = { ...b, assignedHomeworks: [] };
     });
 
-    // 2. Attach any homework assignments
-    bookAssignments.forEach(hw => {
-      let book = (books || []).find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+    // 2. Attach any homework assignments from all homeworks (or bookAssignments)
+    (homeworks || []).forEach(hw => {
+      const raw = hw.raw_data || {};
+      const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.title?.includes('Kitap');
+      if (!isBookHw) return;
+
+      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && b.bookType !== 'exam');
       if (!book && hw.title) {
-        book = (books || []).find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
-      }
-      if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
-        const matchedBt = (bookTests || []).find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
-        if (matchedBt) {
-          book = (books || []).find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
-        }
+        const cleanHwTitle = hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
+        book = (books || []).find(b => {
+          const bT = String(b.title).toLowerCase().trim();
+          return b.bookType !== 'exam' && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
+        });
       }
       if (book) {
         if (!bookMap[book.id]) {
@@ -224,6 +226,14 @@ export default function StudentBooksPage() {
         String(bt.book_id) === bId || 
         (bUuid && String(bt.bookId) === bUuid)
       );
+
+      // Check all assigned homeworks for total test arrays
+      let maxHwTests = 0;
+      (b.assignedHomeworks || []).forEach(hw => {
+        const raw = hw.raw_data || {};
+        const testsLen = Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(raw.tests) ? raw.tests.length : 0);
+        if (testsLen > maxHwTests) maxHwTests = testsLen;
+      });
 
       // Find all submissions associated with this book
       const matchedSubs = studentSubmissions.filter(s => {
@@ -259,6 +269,7 @@ export default function StudentBooksPage() {
       }
 
       const totalBookTests = Math.max(
+        maxHwTests,
         testsInBook.length,
         countFromSubjects,
         matchedSubs.length,
