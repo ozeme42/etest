@@ -1,11 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { safeSetItem, cleanupLocalStorage } from '../utils/storageUtils';
 
+const NEW_SUPABASE_URL = 'https://nvizichancilyhgmivlj.supabase.co';
+const NEW_SUPABASE_KEY = 'sb_publishable_nelqUJSnXNfmiTXchT3igQ_KCjlK2LG';
+
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const supabaseUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : 'https://demo-project.supabase.co';
-const supabaseAnonKey = rawKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoyMDQ1MDM1MjAwfQ.demo';
+// If old blocked project is used in environment variables, automatically redirect to new project
+const supabaseUrl = (rawUrl && !rawUrl.includes('oocwiitwxrungkbevhry')) ? rawUrl : NEW_SUPABASE_URL;
+const supabaseAnonKey = (rawKey && !rawUrl.includes('oocwiitwxrungkbevhry')) ? rawKey : NEW_SUPABASE_KEY;
 
 let quotaExceededDetected = false;
 
