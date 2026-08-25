@@ -694,8 +694,12 @@ a.evaluatedAt ||
       if (curData?.grades && !isHomeworkForStudent(hw, selectedStudent, curData.grades)) return;
 
       const isBookHw = isBookHomework(hw);
+      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+
       const allMatchingSubs = [
-        ...(hw.submissions || []).filter(isMatchStudent),
+        ...hwSubList.filter(isMatchStudent),
         ...(submissions || []).filter(s => isMatchStudent(s) && (
           String(s.hwId) === String(hw.id) ||
           String(s.homeworkId) === String(hw.id) ||
