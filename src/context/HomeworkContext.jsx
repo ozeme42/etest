@@ -34,7 +34,17 @@ export function HomeworkProvider({ children }) {
       const dbHws = await dbGetHomeworks();
       if (dbHws) {
         sessionStorage.setItem('eTestLastHwSync', String(now));
-        setHomeworks(dbHws);
+        setHomeworks(prev => {
+          const map = new Map();
+          dbHws.forEach(h => map.set(String(h.id), h));
+          (prev || []).forEach(localHw => {
+            const k = String(localHw.id);
+            if (!map.has(k) && !map.has(String(toUUID(k)))) {
+              map.set(k, localHw);
+            }
+          });
+          return Array.from(map.values());
+        });
       }
       return dbHws;
     } finally {

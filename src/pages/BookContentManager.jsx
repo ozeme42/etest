@@ -461,14 +461,14 @@ export default function BookContentManager() {
     const bookTitleClean = (book?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
 
     return allHomeworks.filter(hw => {
-      const hwBId = String(hw.bookId || '');
-      if (hwBId && (hwBId === idStr || (idUuid && hwBId === idUuid) || (idUuid && toUUID(hwBId) === idUuid))) return true;
+      const hwBId = String(hw.bookId || hw.book_id || hw.raw_data?.bookId || '');
+      if (hwBId && (hwBId === idStr || (idUuid && hwBId === idUuid) || (idUuid && toUUID(hwBId) === idUuid) || toUUID(hwBId) === idStr)) return true;
 
       const hwTitleClean = (hw.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
       if (bookTitleClean && hwTitleClean && (hwTitleClean.includes(bookTitleClean) || bookTitleClean.includes(hwTitleClean))) return true;
 
       if (hw.tests && hw.tests.length > 0) {
-        return tests.some(t => hw.tests.includes(t.id) || (toUUID(t.id) && hw.tests.includes(toUUID(t.id))));
+        return tests.some(t => hw.tests.includes(t.id) || (toUUID(t.id) && hw.tests.includes(toUUID(t.id))) || hw.tests.includes(String(t.id)));
       }
       return false;
     });
@@ -1532,7 +1532,7 @@ export default function BookContentManager() {
     );
   };
 
-  const handleAssignSelectedTestsSubmit = () => {
+  const handleAssignSelectedTestsSubmit = async () => {
     if (selectedTests.length === 0 || assignSelectedTargetIds.length === 0) {
       showToast("Lütfen en az bir hedef kitle (Sınıf veya Öğrenci) seçiniz.", "error");
       return;
@@ -1549,7 +1549,7 @@ export default function BookContentManager() {
       dueDueDate.setDate(dueDueDate.getDate() + (assignDueDateDays || 7));
     }
 
-    addHomework({
+    await addHomework({
       title: assignCustomTitle || `${book.title} - ${selectedTests.length} Test`,
       description: `${book.title} fiziki kitaptan ${selectedTestObjs.map(t => t.name).join(', ')} testleri çözülecektir.`,
       targetType: assignTargetMode, // 'class' or 'student'

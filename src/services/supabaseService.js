@@ -1360,7 +1360,7 @@ export async function dbDeleteQuestion(q) {
 export async function dbGetHomeworks() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false }).limit(50);
+    const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false }).limit(500);
     if (error) throw error;
     return data.map(h => {
       let raw = {};
@@ -1369,8 +1369,10 @@ export async function dbGetHomeworks() {
       }
       const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : (raw.tests || []));
       const bId = h.book_id || raw.bookId || raw.book_id || null;
+      const canonicalId = raw.stringId || String(h.id);
       return {
-        id: String(h.id),
+        id: canonicalId,
+        supabaseId: String(h.id),
         title: h.title || raw.title || '',
         subject: h.subject || raw.subject || 'Genel',
         dueDate: h.due_date || raw.dueDate,
@@ -1387,6 +1389,7 @@ export async function dbGetHomeworks() {
         isBookAssignment: Boolean(h.is_book_assignment || raw.isBookAssignment || bId),
         testDueDates: raw.testDueDates || h.test_due_dates || {},
         ...raw,
+        id: canonicalId,
         // Override with canonical fields so raw cannot accidentally set bookId to undefined
         ...(bId ? { bookId: bId, isBookAssignment: true } : {})
       };
@@ -1479,8 +1482,9 @@ export async function dbAddHomework(hw) {
     }
     delete safeRaw.raw_data;
 
+    const hwId = String(processedHw.id || `hw_${Date.now()}`);
     const payload = {
-      id: String(processedHw.id || `hw_${Date.now()}`),
+      id: hwId,
       title: processedHw.title,
       subject: processedHw.subject || 'Genel',
       due_date: processedHw.dueDate,
@@ -1493,10 +1497,22 @@ export async function dbAddHomework(hw) {
       time: processedHw.time || 20,
       raw_data: safeRaw
     };
+
     let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
+      const uuidId = toUUID(hwId);
+      const uuidPayload = {
+        ...payload,
+        id: uuidId,
+        raw_data: { ...safeRaw, stringId: hwId }
+      };
+      const uuidRes = await supabase.from('homeworks').upsert([uuidPayload], { onConflict: 'id' }).select();
+      if (!uuidRes.error) {
+        return uuidRes.data;
+      }
+
       const fallbackPayload = {
-        id: String(processedHw.id || `hw_${Date.now()}`),
+        id: uuidId || hwId,
         title: processedHw.title,
         subject: processedHw.subject || 'Genel',
         due_date: processedHw.dueDate,
