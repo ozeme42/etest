@@ -2439,44 +2439,20 @@ export default function StudentDashboard() {
                 }}>
                   <span>🗓</span><span>{heroDateStr}</span>
                 </div>
-                <div style={{
-                  background: hasCoach ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.1)',
-                  backdropFilter:'blur(16px)',
-                  border: hasCoach ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.2)',
-                  borderRadius:999,
-                  padding: isMobile ? '2px 7px' : '5px 15px',
-                  fontSize: isMobile ? '0.62rem' : '0.78rem',
-                  fontWeight:800,
-                  color: hasCoach ? '#86efac' : 'rgba(255,255,255,0.9)',
-                  display:'inline-flex', alignItems:'center', gap:4,
-                  boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
-                }}>
-                  <span>🎓</span><span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
-                </div>
-                {catchUpTasks.length > 0 && (
-                  <div
-                    onClick={() => {
-                      const el = document.getElementById('today-tasks-section');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.32), rgba(220, 38, 38, 0.22))',
-                      backdropFilter: 'blur(16px)',
-                      border: '1.5px solid rgba(239, 68, 68, 0.65)',
-                      borderRadius: 999,
-                      padding: isMobile ? '2px 8px' : '5px 15px',
-                      fontSize: isMobile ? '0.62rem' : '0.78rem',
-                      fontWeight: 900,
-                      color: '#fecaca',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 10px rgba(239,68,68,0.35)'
-                    }}
-                    title="Geciken / Telafi Havuzundaki Görevleri Görüntüle"
-                  >
-                    <span>🔥</span><span>{catchUpTasks.length} Telafi Görevi</span>
+                {Boolean(gradeLabel) && (
+                  <div style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    backdropFilter:'blur(16px)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius:999,
+                    padding: isMobile ? '2px 7px' : '5px 15px',
+                    fontSize: isMobile ? '0.62rem' : '0.78rem',
+                    fontWeight:800,
+                    color: 'rgba(255,255,255,0.9)',
+                    display:'inline-flex', alignItems:'center', gap:4,
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
+                  }}>
+                    <span>🎓</span><span>{gradeLabel}</span>
                   </div>
                 )}
               </div>
