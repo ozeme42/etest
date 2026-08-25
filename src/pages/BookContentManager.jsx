@@ -46,7 +46,17 @@ export default function BookContentManager() {
       subjects: subjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')))
     };
   }, [books, id]);
-  const tests = useMemo(() => (bookTests || []).filter(t => String(t.bookId || t.book_id) === String(id) || (toUUID(id) && String(t.bookId || t.book_id) === String(toUUID(id)))), [bookTests, id]);
+  const tests = useMemo(() => {
+    return (bookTests || []).filter(t => {
+      const tBookId = String(t.bookId || t.book_id || '');
+      const isIdMatch = tBookId === String(id) || 
+        (toUUID(id) && tBookId === String(toUUID(id))) ||
+        (toUUID(tBookId) && String(toUUID(tBookId)) === String(id));
+      if (isIdMatch) return true;
+      if (book?.title && t.bookTitle && String(t.bookTitle).toLowerCase().trim() === String(book.title).toLowerCase().trim()) return true;
+      return false;
+    });
+  }, [bookTests, id, book]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   React.useEffect(() => {
@@ -1328,6 +1338,17 @@ export default function BookContentManager() {
                 <div style={{ display: 'flex', gap: '0.45rem' }}>
                   <button
                     type="button"
+                    onClick={async () => {
+                      if (refreshTrackedBooks) {
+                        await refreshTrackedBooks();
+                      }
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', fontWeight: 800, borderRadius: '0.65rem', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', border: '1.5px solid rgba(99, 102, 241, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <RefreshCw size={13} /> Verileri Yenile
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       const allOpenSubj = {};
                       const allOpenTop = {};
@@ -1362,8 +1383,15 @@ export default function BookContentManager() {
               </div>
 
               {book.subjects.map(subject => {
-                const directTests = sortTestsNaturally(tests.filter(t => (String(t.subjectId || t.subject_id) === String(subject.id)) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !t.topic_id || t.topic_id === 'direct' || String(t.topic_id) === String(subject.id))));
                 const topicsList = subject.topics || [];
+                const directTests = sortTestsNaturally(tests.filter(t => {
+                  const sIdMatch = String(t.subjectId || t.subject_id || '') === String(subject.id) ||
+                    String(t.subjectId || t.subject_id || t.subject || '').toLowerCase().trim() === String(subject.name || '').toLowerCase().trim();
+                  if (!sIdMatch) return false;
+                  if (topicsList.length === 0) return true;
+                  const tTopicId = String(t.topicId || t.topic_id || '');
+                  return !tTopicId || tTopicId === 'direct' || tTopicId === String(subject.id) || tTopicId === 'null' || tTopicId === 'undefined';
+                }));
                 // Closed by default unless explicitly toggled to false
                 const isExpanded = collapsedSubjects[subject.id] !== true;
 
@@ -1449,7 +1477,12 @@ export default function BookContentManager() {
 
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
-                          const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                          const topicTests = sortTestsNaturally(tests.filter(t => {
+                            const tTopId = String(t.topicId || t.topic_id || '');
+                            if (tTopId === String(topic.id)) return true;
+                            if (topic.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(topic.name).toLowerCase().trim()) return true;
+                            return false;
+                          }));
                           // Closed by default unless explicitly toggled to false
                           const isTopicExpanded = collapsedTopics[topic.id] !== true;
 
