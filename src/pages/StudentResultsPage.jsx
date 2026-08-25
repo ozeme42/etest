@@ -1336,9 +1336,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
       return;
     }
-    const targetSubId = s.id || s.supabaseId || s.submissionId || s.realId || s.bookTestId || s.testId || s.hwId;
+    const targetSubId = s.supabaseId || s.submissionId || s.realId || s.id || s.bookTestId || s.testId || s.hwId;
     navigate(`/review/${targetSubId}?studentId=${selectedStudent?.id || ''}`, {
-      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}` }
+      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }
     });
   };
 
