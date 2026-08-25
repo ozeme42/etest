@@ -51,9 +51,15 @@ export function QuestionBankProvider({ children }) {
         return Array.from(mergedMap.values());
       });
 
-      // 2. Safely merge from Supabase database without creating duplicate cards
+      // 2. Safely merge from Supabase database only if cache expired
+      const lastSync = sessionStorage.getItem('eTestLastQBSync');
+      const now = Date.now();
+      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && currentQs.length > 0) {
+        return;
+      }
       const dbQs = await dbGetQuestions();
       if (dbQs && dbQs.length > 0) {
+        sessionStorage.setItem('eTestLastQBSync', String(now));
         setQuestions(prev => {
           const mergedMap = new Map();
           (prev || []).forEach(q => mergedMap.set(String(q.id), q));
