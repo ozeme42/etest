@@ -1,3 +1,4 @@
+import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
   dbGetCurriculum,

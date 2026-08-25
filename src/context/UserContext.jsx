@@ -1,3 +1,4 @@
+import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetUsers, dbAddUser, dbUpdateUser, dbDeleteUser } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';

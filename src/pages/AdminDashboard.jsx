@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import {
+  ClipboardCheck, useState, useMemo } from 'react';
 import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
