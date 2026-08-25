@@ -91,6 +91,7 @@ export default function ModularQuizReviewPage() {
     if (homeworks && Array.isArray(homeworks)) {
       for (const hw of homeworks) {
         if (Array.isArray(hw.submissions)) allCandidatePool.push(...hw.submissions);
+        if (Array.isArray(hw.raw_data?.submissions)) allCandidatePool.push(...hw.raw_data.submissions);
         if (hw.submission) allCandidatePool.push(hw.submission);
       }
     }
