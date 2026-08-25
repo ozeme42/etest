@@ -3,6 +3,8 @@ import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
+import { migrateAllLocalDataToSupabase } from '../services/migrationService';
+import { UploadCloud, Database, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users,
   GraduationCap, ShieldCheck, FileJson, Search, BookOpen, Sparkles, CheckCircle2,
@@ -16,7 +18,30 @@ import { Award } from 'lucide-react';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum', 'users', 'matrix', 'summaries', 'homeworks'
+  const [activeTab, setActiveTab] = useState('curriculum');
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrationLogs, setMigrationLogs] = useState([]);
+  const [migrationStatus, setMigrationStatus] = useState('idle'); // 'idle', 'running', 'success', 'error'
+
+  const handleStartMigration = async () => {
+    setIsMigrating(true);
+    setMigrationStatus('running');
+    setShowMigrationModal(true);
+    setMigrationLogs([]);
+
+    try {
+      await migrateAllLocalDataToSupabase((msg, logs) => {
+        setMigrationLogs([...logs]);
+      });
+      setMigrationStatus('success');
+    } catch (err) {
+      setMigrationStatus('error');
+      setMigrationLogs(prev => [...prev, `❌ Hata: ${err.message}`]);
+    } finally {
+      setIsMigrating(false);
+    }
+  }; // 'curriculum', 'users', 'matrix', 'summaries', 'homeworks'
   const { data: curData } = useCurriculum();
   const { users } = useUser();
   const { submissions = [] } = useEvaluation();
@@ -86,6 +111,27 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleStartMigration}
+              disabled={isMigrating}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '0.55rem 1.15rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: isMigrating ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <UploadCloud size={16} /> {isMigrating ? 'Aktarılıyor...' : '🚀 Yeni Supabase’e Aktar'}
+            </button>
             {pendingTeachers.length > 0 && (
               <button
                 onClick={() => setActiveTab('users')}
@@ -249,6 +295,96 @@ export default function AdminDashboard() {
           )}
           {activeTab === 'homeworks' && <AdminHomeworkTracker />}
         </div>
+
+
+        {/* ══════════ MIGRATION PROGRESS MODAL ══════════ */}
+        {showMigrationModal && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          }}>
+            <div style={{
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
+              borderRadius: '1.5rem', width: '100%', maxWidth: '600px',
+              padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: '0.75rem',
+                    background: migrationStatus === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                    color: migrationStatus === 'success' ? '#10b981' : '#6366f1',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {migrationStatus === 'success' ? <CheckCircle size={22} /> : <UploadCloud size={22} />}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      {migrationStatus === 'success' ? 'Aktarım Başarıyla Tamamlandı!' : 'Yeni Supabase’e Veri Aktarımı'}
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      Tarayıcınızdaki yerel veriler yeni veritabanına eşitleniyor
+                    </p>
+                  </div>
+                </div>
+                {!isMigrating && (
+                  <button onClick={() => setShowMigrationModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                    <X size={20} />
+                  </button>
+                )}
+              </div>
+
+              {/* Progress Console */}
+              <div style={{
+                background: '#0f172a', borderRadius: '1rem', padding: '1rem',
+                maxHeight: '260px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.78rem',
+                color: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.4rem'
+              }}>
+                {migrationLogs.map((l, i) => (
+                  <div key={i} style={{ color: l.includes('❌') ? '#f87171' : l.includes('✅') ? '#4ade80' : l.includes('⚠️') ? '#fbbf24' : '#94a3b8' }}>
+                    {l}
+                  </div>
+                ))}
+                {isMigrating && (
+                  <div style={{ color: '#818cf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <RefreshCw size={13} className="spin" /> İşleniyor, lütfen bekleyin...
+                  </div>
+                )}
+              </div>
+
+              {/* Modal footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginTop: '0.5rem' }}>
+                {migrationStatus === 'error' && (
+                  <button
+                    onClick={handleStartMigration}
+                    style={{
+                      padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
+                      border: 'none', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
+                    }}
+                  >
+                    Tekrar Dene
+                  </button>
+                )}
+                {!isMigrating && (
+                  <button
+                    onClick={() => setShowMigrationModal(false)}
+                    style={{
+                      padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
+                      background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text)',
+                      border: '1px solid var(--color-border)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer'
+                    }}
+                  >
+                    Kapat
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

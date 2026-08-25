@@ -7,7 +7,30 @@ const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabaseUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : 'https://demo-project.supabase.co';
 const supabaseAnonKey = rawKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoyMDQ1MDM1MjAwfQ.demo';
 
+let quotaExceededDetected = false;
+
+export const setSupabaseQuotaExceeded = () => {
+  quotaExceededDetected = true;
+  try {
+    sessionStorage.setItem('eTestSupabaseQuotaExceeded', 'true');
+  } catch {}
+};
+
+export const resetSupabaseQuotaStatus = () => {
+  quotaExceededDetected = false;
+  try {
+    sessionStorage.removeItem('eTestSupabaseQuotaExceeded');
+  } catch {}
+};
+
 export const isSupabaseConfigured = () => {
+  if (quotaExceededDetected) return false;
+  try {
+    if (sessionStorage.getItem('eTestSupabaseQuotaExceeded') === 'true') {
+      quotaExceededDetected = true;
+      return false;
+    }
+  } catch {}
   return Boolean(rawUrl && rawKey && rawUrl !== 'https://demo-project.supabase.co');
 };
 
