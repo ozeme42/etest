@@ -62,7 +62,26 @@ export default function ModularQuizReviewPage() {
     const tbtMatch = String(targetId || '').match(/tbt_[a-zA-Z0-9_]+/);
     const extractedTbtId = tbtMatch ? tbtMatch[0] : null;
     const hwMatch = String(targetId || '').match(/hw_[a-zA-Z0-9_]+/);
-    const extractedHwId = hwMatch ? hwMatch[0] : null;
+    const extractedHwId = searchParams.get('hwId') || location.state?.hwId || (hwMatch ? hwMatch[0] : null);
+
+    // Direct lookup in bookTests
+    const directBtCandidate = extractedTbtId || targetId;
+    if (!foundTest && bookTests) {
+      const bTest = bookTests.find(bt => String(bt.id) === String(directBtCandidate) || toUUID(bt.id) === String(directBtCandidate));
+      if (bTest) {
+        foundTest = bTest;
+        if (!foundSubmission && homeworks) {
+          for (const hw of homeworks) {
+            const subs = hw.submissions || hw.raw_data?.submissions || [];
+            const match = subs.find(s => String(s.testId || s.realTestId || s.bookTestId) === String(bTest.id) && (!studentId || String(s.studentId || s.userId) === String(studentId)));
+            if (match) {
+              foundSubmission = { ...match, hwId: hw.id };
+              break;
+            }
+          }
+        }
+      }
+    }
 
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
     const cleanTargetId = normalizeId(targetId);

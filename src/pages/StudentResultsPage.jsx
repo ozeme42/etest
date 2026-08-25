@@ -715,7 +715,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       allMatchingSubs.forEach((sub, subIdx) => {
         if (!sub) return;
         const testIdent = sub.id || sub.submissionId || sub.realId || sub.realTestId || sub.bookTestId || sub.testId || sub.test_id || sub.testName || `idx_${subIdx}`;
-        const subIdStr = String(sub.id || sub.submissionId || `hw_${hw.id}_${studentIdStr}_${testIdent}`);
+        const subIdStr = String(sub.id || sub.submissionId || `${hw.id}_${studentIdStr}_${testIdent}`);
         if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
         if (sub.status === 'in_progress' || sub.status === 'draft') return;
         const raw = sub.raw_data || {};
@@ -1336,9 +1336,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
       return;
     }
-    const targetSubId = s.supabaseId || s.submissionId || s.realId || s.id || s.bookTestId || s.testId || s.hwId;
-    navigate(`/review/${targetSubId}?studentId=${selectedStudent?.id || ''}`, {
-      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }
+    const navTargetId = s.testId || s.realTestId || s.bookTestId || s.supabaseId || s.submissionId || s.realId || s.hwId || s.id;
+    navigate(`/review/${navTargetId}?studentId=${selectedStudent?.id || ''}&hwId=${s.hwId || ''}`, {
+      state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s, hwId: s.hwId }
     });
   };
 
