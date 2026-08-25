@@ -500,13 +500,19 @@ export default function ModularQuizReviewPage() {
     if (foundSubmission) {
       if ((!foundSubmission.answers || foundSubmission.answers.length === 0) && (foundSubmission.studentAnswers || foundSubmission.answersMap)) {
         const sAnswers = foundSubmission.studentAnswers || foundSubmission.answersMap || {};
-        const ak = foundTest?.answerKey || foundTest?.answers || {};
-        const qCount = foundTest?.questionCount || Object.keys(sAnswers).length || 12;
+        const candidateBookTestId = foundSubmission.testId || foundSubmission.realTestId || foundSubmission.bookTestId || extractedTbtId;
+        const realBookTest = (bookTests || []).find(bt => String(bt.id) === String(candidateBookTestId) || toUUID(bt.id) === String(candidateBookTestId));
+        
+        const ak = realBookTest?.answer_key || realBookTest?.answerKey || foundTest?.answer_key || foundTest?.answerKey || foundTest?.answers || {};
+        const qCount = realBookTest?.question_count || realBookTest?.questionCount || foundTest?.question_count || foundTest?.questionCount || Object.keys(sAnswers).length || 12;
         const generatedAnswers = [];
+        
         for (let i = 1; i <= qCount; i++) {
           const uAns = sAnswers[i] ?? sAnswers[String(i)] ?? null;
           const cAns = ak[i] ?? ak[String(i)] ?? (Array.isArray(ak) ? ak[i - 1] : null);
-          const isCorr = (uAns && cAns) ? String(uAns).trim().toUpperCase() === String(cAns).trim().toUpperCase() : null;
+          const isCorr = (uAns && cAns)
+            ? (String(uAns).trim().toUpperCase() === String(cAns).trim().toUpperCase())
+            : (uAns ? false : null);
           generatedAnswers.push({
             questionNo: i,
             userAnswer: uAns,
@@ -514,7 +520,26 @@ export default function ModularQuizReviewPage() {
             isCorrect: isCorr
           });
         }
-        foundSubmission = { ...foundSubmission, answers: generatedAnswers };
+
+        const calculatedCorrect = generatedAnswers.filter(a => a.isCorrect === true).length;
+        const scorePct = Math.round((calculatedCorrect / (qCount || 1)) * 100);
+
+        foundSubmission = {
+          ...foundSubmission,
+          answers: generatedAnswers,
+          scorePercentage: scorePct,
+          score: scorePct,
+          totalQuestions: qCount
+        };
+
+        if (realBookTest && foundTest) {
+          foundTest = {
+            ...foundTest,
+            ...realBookTest,
+            title: realBookTest.name || realBookTest.title || foundTest.title || 'Kitap Testi'
+          };
+          setTest(foundTest);
+        }
       }
       setSubmission(foundSubmission);
     }
