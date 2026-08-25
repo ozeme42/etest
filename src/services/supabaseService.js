@@ -1680,25 +1680,24 @@ export async function dbAddTrackedBook(book) {
     const optCount = Number(book.optionCount) || 5;
     const rawSubjects = Array.isArray(book.subjects) ? book.subjects : [];
     const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
+    const rawData = {
+      ...(book.raw_data || {}),
+      subjects: cleanSubs,
+      optionCount: optCount,
+      title: book.title,
+      publisher: book.publisher || '',
+      bookType: book.bookType || 'standard',
+      pdfUrl: book.pdfUrl || ''
+    };
     const payload = {
       id: String(book.id || `tb_${Date.now()}`),
       title: book.title,
       publisher: book.publisher || '',
       book_type: book.bookType || 'standard',
       pdf_url: book.pdfUrl || '',
-      subjects: [
-        ...cleanSubs,
-        { id: '__book_meta__', __meta: true, optionCount: optCount }
-      ]
+      raw_data: rawData
     };
-    try { payload.option_count = optCount; } catch {}
     let { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error && (error.message.includes('option_count') || error.code === 'PGRST204')) {
-      delete payload.option_count;
-      const retry = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
-      if (retry.error) throw retry.error;
-      return retry.data;
-    }
     if (error) throw error;
     return data;
   } catch (err) {
@@ -1710,6 +1709,12 @@ export async function dbAddTrackedBook(book) {
 export async function dbUpdateTrackedBook(bookId, updates) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
+    let currentRawData = {};
+    try {
+      const { data: existing } = await supabase.from('tracked_books').select('raw_data').eq('id', String(bookId)).maybeSingle();
+      if (existing?.raw_data) currentRawData = existing.raw_data;
+    } catch {}
+
     const payload = {};
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.publisher !== undefined) payload.publisher = updates.publisher;
@@ -1717,32 +1722,20 @@ export async function dbUpdateTrackedBook(bookId, updates) {
     if (updates.pdfUrl !== undefined) payload.pdf_url = updates.pdfUrl;
 
     let subs = updates.subjects;
-    if (!subs) {
-      try {
-        const localBooks = JSON.parse(localStorage.getItem('eTestTrackedBooks') || '[]');
-        const currentBook = localBooks.find(b => String(b.id) === String(bookId));
-        subs = currentBook?.subjects || [];
-      } catch {
-        subs = [];
-      }
+    if (subs === undefined) {
+      subs = currentRawData.subjects || [];
     }
     const cleanSubs = Array.isArray(subs) ? subs.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))) : [];
-    const optCount = updates.optionCount !== undefined ? Number(updates.optionCount) : 5;
+    const optCount = updates.optionCount !== undefined ? Number(updates.optionCount) : (currentRawData.optionCount || 5);
 
-    payload.subjects = [
-      ...cleanSubs,
-      { id: '__book_meta__', __meta: true, optionCount: optCount }
-    ];
-
-    try { payload.option_count = optCount; } catch {}
+    payload.raw_data = {
+      ...currentRawData,
+      ...updates,
+      subjects: cleanSubs,
+      optionCount: optCount
+    };
 
     let { data, error } = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
-    if (error && (error.message.includes('option_count') || error.code === 'PGRST204')) {
-      delete payload.option_count;
-      const retry = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
-      if (retry.error) throw retry.error;
-      return retry.data;
-    }
     if (error) throw error;
     return data;
   } catch (err) {
