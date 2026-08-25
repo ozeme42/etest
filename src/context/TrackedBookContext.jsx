@@ -31,9 +31,7 @@ export function TrackedBookProvider({ children }) {
         map.set(key, b);
       } else {
         const existing = map.get(key);
-        if ((b.subjects || []).length > (existing.subjects || []).length) {
-          map.set(key, { ...existing, ...b, id: existing.id });
-        }
+        map.set(key, { ...existing, ...b, id: existing.id || b.id });
       }
     });
     return Array.from(map.values());
@@ -53,11 +51,7 @@ export function TrackedBookProvider({ children }) {
         map.set(key, t);
       } else {
         const existing = map.get(key);
-        const existingAns = Object.keys(existing.answerKey || {}).length;
-        const newAns = Object.keys(t.answerKey || {}).length;
-        if (newAns > existingAns) {
-          map.set(key, t);
-        }
+        map.set(key, { ...existing, ...t });
       }
     });
     return Array.from(map.values());
@@ -204,6 +198,7 @@ export function TrackedBookProvider({ children }) {
 
   const batchSaveTrackedBookTests = async (testsList) => {
     if (!Array.isArray(testsList) || testsList.length === 0) return;
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
     setBookTests(prev => {
       const map = new Map(prev.map(t => [String(t.id), t]));
       testsList.forEach(t => {
@@ -211,7 +206,9 @@ export function TrackedBookProvider({ children }) {
         const existing = map.get(idStr);
         map.set(idStr, { ...(existing || {}), ...t, id: idStr });
       });
-      return Array.from(map.values());
+      const next = Array.from(map.values());
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
+      return next;
     });
     await dbBatchUpsertTrackedBookTests(testsList);
   };

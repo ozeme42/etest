@@ -1685,7 +1685,7 @@ export async function dbGetTrackedBooks() {
   try {
     const [bRes, tRes] = await Promise.all([
       supabase.from('tracked_books').select('*').order('created_at', { ascending: false }),
-      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: true })
+      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false })
     ]);
 
     if (bRes.error || tRes.error) return null;
@@ -1744,9 +1744,7 @@ export async function dbGetTrackedBooks() {
         idAliasMap.set(String(b.id), String(canonical.id));
         const bUuid = toUUID(b.id);
         if (bUuid) idAliasMap.set(bUuid, String(canonical.id));
-        if ((bookObj.subjects || []).length > (canonical.subjects || []).length) {
-          canonical.subjects = bookObj.subjects;
-        }
+        canonical.subjects = bookObj.subjects || canonical.subjects;
       }
     });
 
@@ -1785,11 +1783,7 @@ export async function dbGetTrackedBooks() {
         deduplicatedTestsMap.set(testKey, testObj);
       } else {
         const existing = deduplicatedTestsMap.get(testKey);
-        const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
-        const newAnsCount = Object.keys(testObj.answerKey || {}).filter(k => k !== '__meta').length;
-        if (newAnsCount > existingAnsCount) {
-          deduplicatedTestsMap.set(testKey, testObj);
-        }
+        deduplicatedTestsMap.set(testKey, { ...existing, ...testObj });
       }
     });
 

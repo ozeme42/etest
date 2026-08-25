@@ -1349,21 +1349,13 @@ export default function BookContentManager() {
       }
 
       const existingSubjects = book.subjects || [];
-      const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects));
       const existingTestsList = [...(tests || [])];
       const usedExistingTestIds = new Set();
       const allTestsToSave = [];
 
       const genId = (prefix) => prefix + "_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
 
-      updatedSubjects.forEach(s => {
-        if (!s.id) s.id = genId("s");
-        if (s.topics && Array.isArray(s.topics)) {
-          s.topics.forEach(t => {
-            if (!t.id) t.id = genId("t");
-          });
-        }
-      });
+      const updatedSubjects = [];
 
       let hasAnyOpenEnded = false;
       let hasAnyMultipleChoice = false;
@@ -1385,18 +1377,34 @@ export default function BookContentManager() {
 
         const testNameClean = String(testData.name || "İsimsiz Test").trim();
 
-        // Check if an unused test already exists in this subject & topic with the same name
-        const existingTest = existingTestsList.find(t => {
-          if (usedExistingTestIds.has(String(t.id))) return false;
-          const sMatch = String(t.subjectId || '') === String(subjectId);
-          const topMatch = topicId ? String(t.topicId || '') === String(topicId) : (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subjectId));
-          const nameMatch = String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
-          return sMatch && topMatch && nameMatch;
-        });
+        // 1. Check if test already exists in this subject/topic or book with matching name or ID
+        let existingTest = null;
+        if (testData.id) {
+          existingTest = existingTestsList.find(t => String(t.id) === String(testData.id));
+        }
+        if (!existingTest) {
+          existingTest = existingTestsList.find(t => {
+            if (usedExistingTestIds.has(String(t.id))) return false;
+            const nameMatch = String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
+            if (!nameMatch) return false;
+            const sMatch = String(t.subjectId || '') === String(subjectId);
+            const topMatch = topicId ? String(t.topicId || '') === String(topicId) : (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subjectId));
+            return sMatch && topMatch;
+          });
+        }
+        if (!existingTest) {
+          existingTest = existingTestsList.find(t => {
+            if (usedExistingTestIds.has(String(t.id))) return false;
+            return String(t.name || '').trim().toLowerCase() === testNameClean.toLowerCase();
+          });
+        }
 
         let testId;
         if (existingTest) {
           testId = String(existingTest.id);
+          usedExistingTestIds.add(testId);
+        } else if (testData.id) {
+          testId = String(testData.id);
           usedExistingTestIds.add(testId);
         } else {
           testId = genId("tbt");
@@ -1408,28 +1416,30 @@ export default function BookContentManager() {
           subjectId: String(subjectId),
           topicId: topicId ? String(topicId) : null,
           name: testNameClean,
-          questionCount: Number(testData.questionCount) || (existingTest?.questionCount || 20),
+          questionCount: Number(testData.questionCount || testData.question_count) || (existingTest?.questionCount || 20),
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
-          pdfUrl: testData.pdfUrl || existingTest?.pdfUrl || ''
+          pdfUrl: testData.pdfUrl || existingTest?.pdfUrl || '',
+          updatedAt: new Date().toISOString()
         };
 
-        if (testData.answerKey) {
-          if (Array.isArray(testData.answerKey)) {
-            testData.answerKey.forEach((ans, idx) => {
+        if (testData.answerKey || testData.answer_key) {
+          const rawAns = testData.answerKey || testData.answer_key;
+          if (Array.isArray(rawAns)) {
+            rawAns.forEach((ans, idx) => {
               if (ans !== undefined && ans !== null && ans !== "") {
                 testPayload.answerKey[String(idx + 1)] = String(ans);
               }
             });
-          } else if (typeof testData.answerKey === 'object') {
-            Object.entries(testData.answerKey).forEach(([k, v]) => {
+          } else if (typeof rawAns === 'object') {
+            Object.entries(rawAns).forEach(([k, v]) => {
               if (v !== undefined && v !== null && v !== "" && k !== '__meta') {
                 testPayload.answerKey[String(k)] = String(v);
               }
             });
-          } else if (typeof testData.answerKey === 'string') {
-            testPayload.answerKey = parseAnswerKeyString(testData.answerKey, testPayload.questionCount);
+          } else if (typeof rawAns === 'string') {
+            testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount);
           }
         } else if (existingTest?.answerKey) {
           testPayload.answerKey = { ...existingTest.answerKey };
@@ -1441,16 +1451,13 @@ export default function BookContentManager() {
       for (const subjData of subjectsList) {
         if (!subjData.name) continue;
 
-        let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
-        if (!subject) {
-          subject = {
-            id: genId("s"),
-            name: subjData.name,
-            topics: []
-          };
-          updatedSubjects.push(subject);
-        }
-        if (!subject.topics) subject.topics = [];
+        const existingSub = existingSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
+        const subject = {
+          id: existingSub?.id || genId("s"),
+          name: subjData.name,
+          topics: []
+        };
+        updatedSubjects.push(subject);
 
         // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
@@ -1464,14 +1471,12 @@ export default function BookContentManager() {
           for (const topicData of subjData.topics) {
             if (!topicData.name) continue;
 
-            let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
-            if (!topic) {
-              topic = {
-                id: genId("t"),
-                name: topicData.name
-              };
-              subject.topics.push(topic);
-            }
+            const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
+            const topic = {
+              id: existingTop?.id || genId("t"),
+              name: topicData.name
+            };
+            subject.topics.push(topic);
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
@@ -1492,7 +1497,7 @@ export default function BookContentManager() {
       }
 
       setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects, bookType: newBookType }) : prev);
-      await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType });
+      await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType, updatedAt: new Date().toISOString() });
 
       if (allTestsToSave.length > 0) {
         setLocalLiveTests(prev => {
