@@ -692,7 +692,6 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     // 1. Process Homework Submissions (Both regular and book assignments)
     (homeworks || []).forEach(hw => {
       if (!hw || !hw.id) return;
-      if (curData?.grades && !isHomeworkForStudent(hw, currentTargetStudent, curData.grades)) return;
 
       const isBookHw = isBookHomework(hw);
       const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
