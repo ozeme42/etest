@@ -207,10 +207,22 @@ export default function StudentBookDetailsPage() {
   const subjectProgress = useMemo(() => {
     if (!book) return [];
 
-    return (book.subjects || []).map(subject => {
-      // Find all tests in this subject
-      const allSubjectTests = bookTests.filter(t => String(t.subjectId) === String(subject.id));
-      
+    const rawSubjects = (book.subjects && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []);
+
+    return rawSubjects.map(subject => {
+      const sId = String(subject.id || '');
+      const bId = String(book.id || '');
+      const bUuid = String(toUUID(book.id) || '');
+
+      // Find all tests in bookTests matching this subject OR book
+      let allSubjectTests = (bookTests || []).filter(t => {
+        const isMatchingBook = String(t.bookId) === bId || String(t.book_id) === bId || (bUuid && String(t.bookId) === bUuid);
+        if (!isMatchingBook) return false;
+        if (String(t.subjectId || t.subject_id) === sId) return true;
+        if (subject.topics && Array.isArray(subject.topics) && subject.topics.some(tp => String(tp.id) === String(t.topicId || t.topic_id))) return true;
+        return false;
+      });
+
       // Keep ALL tests in the subject (sorted naturally by test name and number)
       const subjTests = (allSubjectTests || [])
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
@@ -218,7 +230,6 @@ export default function StudentBookDetailsPage() {
       if (subjTests.length === 0) return null;
 
       const testsWithStatus = subjTests.map((t, index) => {
-        // Is it solved? Check submissions strictly matching this test ID
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
@@ -231,13 +242,14 @@ export default function StudentBookDetailsPage() {
           if (s.status === 'in_progress' || s.status === 'draft') return false;
           if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
 
+          const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
           const matchFields = [
             String(s.testId || ''),
             String(s.realTestId || ''),
             String(s.bookTestId || ''),
-            String(s.metadata?.realTestId || ''),
-            String(s.metadata?.bookTestId || ''),
-            String(s.metadata?.realId || '')
+            String(meta?.realTestId || ''),
+            String(meta?.bookTestId || ''),
+            String(meta?.realId || '')
           ];
           if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
             matchFields.push(...s.bookTestIds.map(String));
@@ -253,7 +265,7 @@ export default function StudentBookDetailsPage() {
           ));
           if (isDirectMatch) return true;
 
-          const isSameBook = String(s.bookId || '') === String(book?.id) || (s.bookTitle && book?.title && (s.bookTitle.includes(book.title) || book.title.includes(s.bookTitle)));
+          const isSameBook = String(s.bookId || '') === bId || (s.bookTitle && book.title && (s.bookTitle.includes(book.title) || book.title.includes(s.bookTitle)));
           if (isSameBook && t.name) {
             const subTitleClean = String(s.testTitle || s.title || s.topic || s.unit || '').trim().toLowerCase();
             const tNameClean = String(t.name || '').trim().toLowerCase();
@@ -265,30 +277,6 @@ export default function StudentBookDetailsPage() {
           return false;
         });
 
-        const pendingManualSub = submissions.find(s => {
-          const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
-          if (!isMatchStudent) return false;
-          if (!s.isManual && s.sourceType !== 'manual_test') return false;
-          const isPending = s.approvalStatus === 'pending' || s.status === 'pending_approval' || (s.isApproved === false && s.approvalStatus !== 'rejected');
-          if (!isPending) return false;
-
-          const matchFields = [
-            String(s.testId || ''),
-            String(s.realTestId || ''),
-            String(s.bookTestId || ''),
-            String(s.metadata?.realTestId || ''),
-            String(s.metadata?.bookTestId || ''),
-            String(s.metadata?.realId || '')
-          ];
-          return matchFields.some(f => f && (
-            f === tIdStr ||
-            f === tCleanId ||
-            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-            (tUuidStr && f === tUuidStr)
-          ));
-        });
-
-        // Also check if any homework submission explicitly belongs to this test ID
         let hwSub = null;
         for (const hw of homeworks) {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
@@ -310,14 +298,14 @@ export default function StudentBookDetailsPage() {
         let bestSub = null;
         if (solvedSubs.length > 0) {
           bestScore = Math.max(...solvedSubs.map(s => s.score || 0));
-          bestSub = solvedSubs[solvedSubs.length - 1]; // get the latest one
+          bestSub = solvedSubs[solvedSubs.length - 1];
         } else if (hwSub) {
           bestScore = hwSub.score || 0;
           bestSub = hwSub;
         }
 
         let testDueDate = null;
-        const matchingHw = homeworks.find(hw => hw.isBookAssignment && String(hw.bookId) === String(bookId) && hw.testDueDates?.[t.id]);
+        const matchingHw = homeworks.find(hw => hw.isBookAssignment && String(hw.bookId) === bId && hw.testDueDates?.[t.id]);
         if (matchingHw?.testDueDates?.[t.id]) {
           testDueDate = matchingHw.testDueDates[t.id];
         }
@@ -328,8 +316,8 @@ export default function StudentBookDetailsPage() {
           ...t,
           index: index + 1,
           isCompleted,
-          isPendingApproval: Boolean(pendingManualSub),
-          pendingManualSub: pendingManualSub || null,
+          isPendingApproval: false,
+          pendingManualSub: null,
           isLocked: false,
           isAssignedHomework,
           bestScore,
@@ -344,7 +332,7 @@ export default function StudentBookDetailsPage() {
       const topicsList = subject.topics || [];
       const topicsWithTests = topicsList.map(topic => {
         const topicTests = testsWithStatus
-          .filter(t => String(t.topicId) === String(topic.id))
+          .filter(t => String(t.topicId || t.topic_id) === String(topic.id))
           .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
         return {
           ...topic,
