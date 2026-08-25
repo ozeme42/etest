@@ -48,6 +48,9 @@ export default function ModularQuizReviewPage() {
       return;
     }
 
+    let foundSubmission = null;
+    let foundTest = null;
+
     // -1. Direct check from navigation state
     if (location.state?.submission && (Array.isArray(location.state.submission.answers) || location.state.submission.studentAnswers || location.state.submission.correctCount !== undefined)) {
       foundSubmission = location.state.submission;
