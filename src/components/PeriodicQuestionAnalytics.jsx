@@ -14,7 +14,8 @@ import {
   getTurkeyYMD,
   getTurkeyToday,
   getTurkeyWeekRange,
-  getTurkeyMonthRange
+  getTurkeyMonthRange,
+  extractItemDate
 } from '../utils/dateHelpers';
 
 export default function PeriodicQuestionAnalytics({
@@ -50,7 +51,7 @@ export default function PeriodicQuestionAnalytics({
       const q = d + y + b || h.totalQuestions || 0;
       if (q === 0) return;
 
-      const dateStr = getTurkeyYMD(h.date || h.submittedAt || h.createdAt || h.completedAt);
+      const dateStr = extractItemDate(h);
       list.push({
         id: h.id || `hw_${Math.random()}`,
         title: h.title || 'Konu Testi',
@@ -90,7 +91,7 @@ export default function PeriodicQuestionAnalytics({
       const q = d + y + b || Number(m.totalQuestions || m.questionCount || 0);
       if (q === 0) return;
 
-      const dateStr = getTurkeyYMD(m.date || m.createdAt || m.submittedAt);
+      const dateStr = extractItemDate(m);
       list.push({
         id: m.id || `mock_${Math.random()}`,
         title: m.title || m.examName || 'Deneme Sınavı',

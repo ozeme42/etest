@@ -384,6 +384,7 @@ export async function dbSaveSummary(summary, allSummaries = []) {
       const storePayload = {
         id: 'global_summaries_store',
         student_id: 'system_summaries',
+        teacher_id: 'teacher_1',
         extra_data: JSON.stringify(allSummaries)
       };
       await supabase.from('coaching_profiles').upsert([storePayload], { onConflict: 'id' });
@@ -671,6 +672,8 @@ export async function dbGetSubmissions(studentId) {
         imageUrl: s.image_url || null,
         imageUrls: s.image_urls || [],
         contentType: s.content_type || null,
+        submittedAt: meta?.submittedAt || meta?.date || s.created_at,
+        date: meta?.date || meta?.submittedAt || s.created_at,
         createdAt: s.created_at
       };
     });
@@ -1521,12 +1524,22 @@ export async function dbGetStudyPlans() {
 
     if (pRes.error || aRes.error) return null;
 
-    const plans = (pRes.data || []).map(p => ({
-      id: String(p.id),
-      title: p.title,
-      subjects: p.subjects || [],
-      createdAt: p.created_at
-    }));
+    const plans = (pRes.data || []).map(p => {
+      let subjects = [];
+      if (Array.isArray(p.subjects) && p.subjects.length > 0) {
+        subjects = p.subjects;
+      } else if (p.raw_data && Array.isArray(p.raw_data.subjects)) {
+        subjects = p.raw_data.subjects;
+      } else if (Array.isArray(p.raw_data)) {
+        subjects = p.raw_data;
+      }
+      return {
+        id: String(p.id),
+        title: p.title,
+        subjects,
+        createdAt: p.created_at
+      };
+    });
 
     const assignments = (aRes.data || []).map(a => {
       let completedTopics = [];
@@ -1555,7 +1568,7 @@ export async function dbAddStudyPlan(plan) {
     const payload = {
       id: String(plan.id || `plan_${Date.now()}`),
       title: plan.title,
-      subjects: plan.subjects || []
+      raw_data: { subjects: plan.subjects || [] }
     };
     const { data, error } = await supabase.from('study_plans').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
@@ -1628,8 +1641,10 @@ export async function dbGetTrackedBooks() {
     if (bRes.error || tRes.error) return null;
 
     const books = (bRes.data || []).map(b => {
-      const rawSubjects = Array.isArray(b.subjects) ? b.subjects : [];
-      let optCount = b.option_count || b.optionCount || b.options_count;
+      const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
+        ? b.subjects
+        : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+      let optCount = b.option_count || b.optionCount || b.options_count || b.raw_data?.optionCount;
       if (optCount === undefined || optCount === null) {
         const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
         if (metaObj && metaObj.optionCount) {
@@ -1638,12 +1653,13 @@ export async function dbGetTrackedBooks() {
       }
       return {
         id: String(b.id),
-        title: b.title,
-        publisher: b.publisher,
-        bookType: b.book_type || b.bookType || 'standard',
+        title: b.title || b.raw_data?.title || '',
+        publisher: b.publisher || b.raw_data?.publisher || '',
+        bookType: b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard'),
         optionCount: Number(optCount) || 5,
-        pdfUrl: b.pdf_url || b.pdfUrl || '',
+        pdfUrl: b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '',
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
+        raw_data: b.raw_data || {},
         createdAt: b.created_at
       };
     });
@@ -1674,25 +1690,24 @@ export async function dbAddTrackedBook(book) {
     const optCount = Number(book.optionCount) || 5;
     const rawSubjects = Array.isArray(book.subjects) ? book.subjects : [];
     const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
+    const rawData = {
+      ...(book.raw_data || {}),
+      subjects: cleanSubs,
+      optionCount: optCount,
+      title: book.title,
+      publisher: book.publisher || '',
+      bookType: book.bookType || 'standard',
+      pdfUrl: book.pdfUrl || ''
+    };
     const payload = {
       id: String(book.id || `tb_${Date.now()}`),
       title: book.title,
       publisher: book.publisher || '',
       book_type: book.bookType || 'standard',
       pdf_url: book.pdfUrl || '',
-      subjects: [
-        ...cleanSubs,
-        { id: '__book_meta__', __meta: true, optionCount: optCount }
-      ]
+      raw_data: rawData
     };
-    try { payload.option_count = optCount; } catch {}
     let { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error && (error.message.includes('option_count') || error.code === 'PGRST204')) {
-      delete payload.option_count;
-      const retry = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
-      if (retry.error) throw retry.error;
-      return retry.data;
-    }
     if (error) throw error;
     return data;
   } catch (err) {
@@ -1704,6 +1719,12 @@ export async function dbAddTrackedBook(book) {
 export async function dbUpdateTrackedBook(bookId, updates) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
+    let currentRawData = {};
+    try {
+      const { data: existing } = await supabase.from('tracked_books').select('raw_data').eq('id', String(bookId)).maybeSingle();
+      if (existing?.raw_data) currentRawData = existing.raw_data;
+    } catch {}
+
     const payload = {};
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.publisher !== undefined) payload.publisher = updates.publisher;
@@ -1711,32 +1732,20 @@ export async function dbUpdateTrackedBook(bookId, updates) {
     if (updates.pdfUrl !== undefined) payload.pdf_url = updates.pdfUrl;
 
     let subs = updates.subjects;
-    if (!subs) {
-      try {
-        const localBooks = JSON.parse(localStorage.getItem('eTestTrackedBooks') || '[]');
-        const currentBook = localBooks.find(b => String(b.id) === String(bookId));
-        subs = currentBook?.subjects || [];
-      } catch {
-        subs = [];
-      }
+    if (subs === undefined) {
+      subs = currentRawData.subjects || [];
     }
     const cleanSubs = Array.isArray(subs) ? subs.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))) : [];
-    const optCount = updates.optionCount !== undefined ? Number(updates.optionCount) : 5;
+    const optCount = updates.optionCount !== undefined ? Number(updates.optionCount) : (currentRawData.optionCount || 5);
 
-    payload.subjects = [
-      ...cleanSubs,
-      { id: '__book_meta__', __meta: true, optionCount: optCount }
-    ];
-
-    try { payload.option_count = optCount; } catch {}
+    payload.raw_data = {
+      ...currentRawData,
+      ...updates,
+      subjects: cleanSubs,
+      optionCount: optCount
+    };
 
     let { data, error } = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
-    if (error && (error.message.includes('option_count') || error.code === 'PGRST204')) {
-      delete payload.option_count;
-      const retry = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
-      if (retry.error) throw retry.error;
-      return retry.data;
-    }
     if (error) throw error;
     return data;
   } catch (err) {

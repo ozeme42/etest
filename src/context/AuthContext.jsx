@@ -18,6 +18,9 @@ export function translateAuthError(msg) {
   if (!msg) return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   const str = String(msg).toLowerCase();
 
+  if (str.includes('exceed_egress_quota') || str.includes('restricted') || str.includes('payment required')) {
+    return '❌ E-posta adresi veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.';
+  }
   if (str.includes('user already registered') || str.includes('already exists') || str.includes('already registered')) {
     return '⚠️ Bu e-posta adresiyle zaten kayıtlı bir hesap var! Lütfen "Giriş Yap" sekmesinden giriş yapın.';
   }

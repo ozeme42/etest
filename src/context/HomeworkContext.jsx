@@ -1,3 +1,4 @@
+import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -16,19 +17,27 @@ export function HomeworkProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function syncHomeworksFromSupabase() {
-      setIsLoading(true);
-      try {
-        const dbHws = await dbGetHomeworks();
-        if (dbHws) {
-          setHomeworks(dbHws);
-        }
-      } finally {
-        setIsLoading(false);
-      }
+  const refreshHomeworks = async () => {
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false);
+      return null;
     }
-    syncHomeworksFromSupabase();
+    setIsLoading(true);
+    try {
+      const dbHws = await dbGetHomeworks();
+      if (dbHws) {
+        const now = Date.now();
+        sessionStorage.setItem('eTestLastHwSync', String(now));
+        setHomeworks(dbHws);
+      }
+      return dbHws;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshHomeworks();
   }, []);
 
   useEffect(() => {
@@ -112,7 +121,6 @@ export function HomeworkProvider({ children }) {
       }
     }
   }, [homeworks]);
-
 
   const { currentUser } = useAuth();
   const user = currentUser;
@@ -350,6 +358,7 @@ export function HomeworkProvider({ children }) {
     <HomeworkContext.Provider value={{
       homeworks,
       isLoading,
+      refreshHomeworks,
       addHomework,
       updateHomework,
       deleteHomework,

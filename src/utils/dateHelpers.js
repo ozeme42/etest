@@ -153,3 +153,62 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
     return { isOverdue: false, isDueToday: false, diffDays: null, dueLabel: '' };
   }
 };
+
+
+/**
+ * Intelligently extracts the accurate historical completion date of any submission or test item.
+ * Automatically recovers timestamps embedded in IDs (e.g. sub_1787430618712) when migration dates default to today.
+ */
+export const extractItemDate = (s) => {
+  if (!s) return getTurkeyToday();
+  const todayYMD = getTurkeyToday();
+
+  const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
+  const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
+
+  // Embedded timestamp check helper (ONLY check submission IDs, never test or book IDs)
+  const getEmbeddedTsDate = () => {
+    const idCandidates = [
+      String(meta?.submissionId || ''),
+      String(s.submissionId || ''),
+      String(s.id || ''),
+      String(s.supabaseId || '')
+    ];
+
+    for (const idStr of idCandidates) {
+      if (idStr.startsWith('tbt_') || idStr.startsWith('tb_') || idStr.startsWith('hw_')) continue;
+      const matchTs = idStr.match(/sub_(\d{12,13})/i) || idStr.match(/(\d{12,13})/);
+      if (matchTs) {
+        const tsNum = Number(matchTs[1]);
+        if (tsNum > 1600000000000 && tsNum < 2000000000000) {
+          return getTurkeyYMD(new Date(tsNum));
+        }
+      }
+    }
+    return null;
+  };
+
+  const explicit = (typeof s === 'object')
+    ? (s.submittedAt || s.submitted_at || s.completedAt || s.date || meta?.submittedAt || meta?.date || meta?.completedAt || raw.submittedAt || raw.submitted_at || raw.completedAt || raw.date)
+    : String(s);
+
+  if (explicit && String(explicit).trim()) {
+    const expStr = String(explicit).trim();
+    const expYMD = getTurkeyYMD(expStr);
+
+    if (expYMD) {
+      return expYMD;
+    }
+  }
+
+  const embedded = (typeof s === 'object') ? getEmbeddedTsDate() : null;
+  if (embedded) return embedded;
+
+  const fallback = s.createdAt || s.created_at || meta?.createdAt || raw.createdAt;
+  if (fallback) {
+    const fYMD = getTurkeyYMD(fallback);
+    return fYMD || todayYMD;
+  }
+
+  return todayYMD;
+};

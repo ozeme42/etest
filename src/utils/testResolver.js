@@ -1,5 +1,5 @@
 import { toUUID } from '../services/supabaseService';
-import { getTurkeyYMD } from './dateHelpers';
+import { getTurkeyYMD, extractItemDate } from './dateHelpers';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 
@@ -902,7 +902,7 @@ export function computeStudentAnalyticsData({
       else subject = 'Genel / Diğer';
     }
 
-    const cleanDate = getTurkeyYMD(subDate || s.submittedAt || s.completedAt || s.createdAt || s.date);
+    const cleanDate = extractItemDate(subDate || s);
 
     return {
       id: s.id || `sub_${Date.now()}_${Math.random()}`,
@@ -936,12 +936,12 @@ export function computeStudentAnalyticsData({
     if (hw.type === 'physicalExam' && !books.some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId))) {
       return; // Deleted physical exam!
     }
-    if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)')) {
-      return;
-    }
+    const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
+      ? hw.submissions
+      : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
 
     const allMatching = [
-      ...(hw.submissions || []).filter(isStudentMatch),
+      ...hwSubList.filter(isStudentMatch),
       ...(submissions || []).filter(s => isStudentMatch(s) && (
         String(s.hwId) === String(hw.id) ||
         String(s.homeworkId) === String(hw.id) ||
@@ -952,15 +952,23 @@ export function computeStudentAnalyticsData({
     ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
 
     if (allMatching.length === 0) return;
-    const sub = allMatching[0];
 
-    const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
-    if (!sDate) return;
+    allMatching.forEach(sub => {
+      const sDate = extractItemDate(sub.submittedAt || sub.completedAt || sub.date || sub);
+      if (!sDate) return;
 
-    if (sub.id) processedKeys.add(String(sub.id));
-    if (sub.supabaseId) processedKeys.add(String(sub.supabaseId));
+      const subKey = String(sub.id || sub.submissionId || `${hw.id}_${sub.bookTestId || sub.testId || ''}_${sDate}`);
+      if (processedKeys.has(subKey)) return;
+      processedKeys.add(subKey);
+      if (sub.id) processedKeys.add(String(sub.id));
+      if (sub.supabaseId) processedKeys.add(String(sub.supabaseId));
 
-    hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate));
+      const bTestId = String(sub.bookTestId || sub.testId || hw.id || '');
+      let testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+      let bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || hw.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(sub.bookId || hw.bookId || testObj?.bookId)));
+
+      hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate, testObj, bookObj));
+    });
   });
 
   // 2. Online Sınavlar & Kitap Testleri (Standalone submissions)
@@ -987,7 +995,7 @@ export function computeStudentAnalyticsData({
       if (!isApproved) return;
     }
 
-    const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt || s.date;
+    const subDate = extractItemDate(s);
     if (!subDate) return;
 
     const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');

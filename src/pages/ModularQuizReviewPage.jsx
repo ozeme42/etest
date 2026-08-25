@@ -51,6 +51,19 @@ export default function ModularQuizReviewPage() {
     let foundSubmission = null;
     let foundTest = null;
 
+    // -1. Direct check from navigation state
+    if (location.state?.submission && (Array.isArray(location.state.submission.answers) || location.state.submission.studentAnswers || location.state.submission.correctCount !== undefined)) {
+      foundSubmission = location.state.submission;
+    }
+    if (location.state?.test) {
+      foundTest = location.state.test;
+    }
+
+    const tbtMatch = String(targetId || '').match(/tbt_[a-zA-Z0-9_]+/);
+    const extractedTbtId = tbtMatch ? tbtMatch[0] : null;
+    const hwMatch = String(targetId || '').match(/hw_[a-zA-Z0-9_]+/);
+    const extractedHwId = hwMatch ? hwMatch[0] : null;
+
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
     const cleanTargetId = normalizeId(targetId);
 
@@ -59,10 +72,12 @@ export default function ModularQuizReviewPage() {
     const cleanSubCandidate = subCandidateLocal ? normalizeId(subCandidateLocal) : null;
 
     // 0. Check immediate local storage backups and add to pool
+    const allCandidatePool = [];
     try {
       const backupKeys = [
         `sub_latest_${targetId}`,
         `sub_latest_${cleanTargetId}`,
+        extractedTbtId ? `sub_latest_${extractedTbtId}` : null,
         subCandidateLocal ? `sub_latest_${subCandidateLocal}` : null,
         cleanSubCandidate ? `sub_latest_${cleanSubCandidate}` : null
       ].filter(Boolean);
@@ -79,7 +94,6 @@ export default function ModularQuizReviewPage() {
     } catch {}
 
     // Gather all submission sources
-    const allCandidatePool = [];
     if (submissions && Array.isArray(submissions)) allCandidatePool.push(...submissions);
     try {
       const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
@@ -91,6 +105,7 @@ export default function ModularQuizReviewPage() {
     if (homeworks && Array.isArray(homeworks)) {
       for (const hw of homeworks) {
         if (Array.isArray(hw.submissions)) allCandidatePool.push(...hw.submissions);
+        if (Array.isArray(hw.raw_data?.submissions)) allCandidatePool.push(...hw.raw_data.submissions);
         if (hw.submission) allCandidatePool.push(hw.submission);
       }
     }
@@ -98,7 +113,7 @@ export default function ModularQuizReviewPage() {
     const submissionIdParam = searchParams.get('submissionId');
 
     // 1. Search in all candidates pool
-    if (allCandidatePool.length > 0) {
+    if (!foundSubmission && allCandidatePool.length > 0) {
       const candidates = allCandidatePool.filter(s => {
         if (!s) return false;
         if (submissionIdParam && (String(s.id) === String(submissionIdParam) || String(s.submissionId) === String(submissionIdParam))) return true;
@@ -117,6 +132,7 @@ export default function ModularQuizReviewPage() {
         if (allIds.includes(String(targetId))) return true;
         if (toUUID(targetId) && allIds.map(toUUID).includes(toUUID(targetId))) return true;
         if (allCleanIds.includes(cleanTargetId)) return true;
+        if (extractedTbtId && (allIds.includes(extractedTbtId) || allCleanIds.includes(normalizeId(extractedTbtId)))) return true;
         if (cleanSubCandidate && allCleanIds.includes(cleanSubCandidate)) return true;
         if (subCandidateLocal && (allIds.includes(subCandidateLocal) || allCleanIds.includes(normalizeId(subCandidateLocal)))) return true;
 
@@ -125,10 +141,17 @@ export default function ModularQuizReviewPage() {
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
-          const aExact = String(a.id) === String(targetId) || String(a.submissionId) === String(targetId);
-          const bExact = String(b.id) === String(targetId) || String(b.submissionId) === String(targetId);
-          if (aExact && !bExact) return -1;
-          if (!aExact && bExact) return 1;
+          const aAnswers = Array.isArray(a.answers) ? a.answers.filter(x => x && x.type !== 'metadata') : [];
+          const bAnswers = Array.isArray(b.answers) ? b.answers.filter(x => x && x.type !== 'metadata') : [];
+          
+          const aHasRealAnswers = aAnswers.length > 0;
+          const bHasRealAnswers = bAnswers.length > 0;
+          if (aHasRealAnswers && !bHasRealAnswers) return -1;
+          if (!aHasRealAnswers && bHasRealAnswers) return 1;
+
+          const aAnsCount = aAnswers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length;
+          const bAnsCount = bAnswers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length;
+          if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount;
 
           if (submissionIdParam) {
             const aMatch = String(a.id) === String(submissionIdParam) || String(a.submissionId) === String(submissionIdParam);
@@ -137,18 +160,10 @@ export default function ModularQuizReviewPage() {
             if (!aMatch && bMatch) return 1;
           }
 
-          const aAnsCount = (Array.isArray(a.answers) ? a.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
-          const bAnsCount = (Array.isArray(b.answers) ? b.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
-          if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount; // More answered questions first!
-
-          const aLen = Array.isArray(a.answers) ? a.answers.length : 0;
-          const bLen = Array.isArray(b.answers) ? b.answers.length : 0;
-          if (aLen !== bLen) return bLen - aLen;
-
-          const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
-          const bEval = Boolean(b.isEvaluatedByTeacher || b.status === 'evaluated' || b.status === 'graded' || b.teacherFeedback);
-          if (aEval && !bEval) return -1;
-          if (!aEval && bEval) return 1;
+          const aExact = String(a.id) === String(targetId) || String(a.submissionId) === String(targetId);
+          const bExact = String(b.id) === String(targetId) || String(b.submissionId) === String(targetId);
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
 
           return new Date(b.submittedAt || b.evaluatedAt || 0) - new Date(a.submittedAt || a.evaluatedAt || 0);
         });
@@ -156,23 +171,21 @@ export default function ModularQuizReviewPage() {
       }
     }
 
-    // 2. Search in HomeworkContext (homeworks[].submissions) only if not found
-    if (!foundSubmission && homeworks && Array.isArray(homeworks)) {
-      for (const hw of homeworks) {
-        if (String(hw.id) === String(targetId) || cleanTargetId === normalizeId(hw.id) || (hw.submissions && hw.submissions.some(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId)))) {
-          if (hw.submissions && Array.isArray(hw.submissions) && hw.submissions.length > 0) {
-            const matched = hw.submissions.find(s =>
-              String(s.id) === String(targetId) ||
-              String(s.submissionId) === String(targetId) ||
-              (studentId && String(s.studentId) === String(studentId) && (!s.testId || String(s.testId) === String(targetId)))
-            ) || hw.submissions[hw.submissions.length - 1];
-
-            if (matched) {
-              foundSubmission = { ...matched, testId: matched.testId || hw.id };
-              foundTest = hw;
-              break;
-            }
-          }
+    // 2. Search in HomeworkContext (homeworks[].submissions)
+    if (!foundSubmission && extractedHwId && homeworks && Array.isArray(homeworks)) {
+      const parentHw = homeworks.find(h => String(h.id) === extractedHwId || toUUID(h.id) === extractedHwId || normalizeId(h.id) === normalizeId(extractedHwId));
+      if (parentHw) {
+        const hwSubs = parentHw.submissions || parentHw.raw_data?.submissions || [];
+        const matchSub = hwSubs.find(s => {
+          const sid = String(s.studentId || s.student_id || s.userId || '');
+          const matchStudent = !studentId || sid === String(studentId) || (toUUID(studentId) && toUUID(sid) === toUUID(studentId));
+          const tid = String(s.testId || s.realTestId || s.bookTestId || '');
+          const matchTest = !extractedTbtId || tid === extractedTbtId || (toUUID(extractedTbtId) && toUUID(tid) === toUUID(extractedTbtId));
+          return matchStudent && matchTest;
+        }) || hwSubs.find(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId));
+        if (matchSub) {
+          foundSubmission = { ...matchSub, hwId: parentHw.id };
+          if (!foundTest) foundTest = parentHw;
         }
       }
     }
@@ -460,9 +473,49 @@ export default function ModularQuizReviewPage() {
 
       setTest(foundTest);
       setQuestions(testQs || []);
+    } else if (foundSubmission && !foundTest) {
+      const candidateTestId = foundSubmission.testId || foundSubmission.realTestId || foundSubmission.bookTestId || extractedTbtId || extractedHwId || targetId;
+      const resolvedT = (bookTests || []).find(bt => String(bt.id) === String(candidateTestId) || toUUID(bt.id) === String(candidateTestId)) ||
+                        (homeworks || []).find(h => String(h.id) === String(candidateTestId) || toUUID(h.id) === String(candidateTestId)) || {
+                          id: candidateTestId,
+                          title: foundSubmission.testTitle || foundSubmission.title || 'İnceleme Testi',
+                          questionCount: foundSubmission.totalQuestions || (Array.isArray(foundSubmission.answers) ? foundSubmission.answers.length : 12),
+                          type: 'optik_form',
+                          sourceFormat: 'physical'
+                        };
+      setTest(resolvedT);
+      setQuestions([]);
+      foundTest = resolvedT;
+    } else if (!foundSubmission && foundTest) {
+      foundSubmission = {
+        id: targetId,
+        testId: foundTest.id,
+        testTitle: foundTest.title || foundTest.name || 'Test İnceleme',
+        studentId: studentId || currentUser?.id,
+        answers: [],
+        totalQuestions: foundTest.questionCount || 12
+      };
     }
 
-    if (foundSubmission && foundTest) {
+    if (foundSubmission) {
+      if ((!foundSubmission.answers || foundSubmission.answers.length === 0) && (foundSubmission.studentAnswers || foundSubmission.answersMap)) {
+        const sAnswers = foundSubmission.studentAnswers || foundSubmission.answersMap || {};
+        const ak = foundTest?.answerKey || foundTest?.answers || {};
+        const qCount = foundTest?.questionCount || Object.keys(sAnswers).length || 12;
+        const generatedAnswers = [];
+        for (let i = 1; i <= qCount; i++) {
+          const uAns = sAnswers[i] ?? sAnswers[String(i)] ?? null;
+          const cAns = ak[i] ?? ak[String(i)] ?? (Array.isArray(ak) ? ak[i - 1] : null);
+          const isCorr = (uAns && cAns) ? String(uAns).trim().toUpperCase() === String(cAns).trim().toUpperCase() : null;
+          generatedAnswers.push({
+            questionNo: i,
+            userAnswer: uAns,
+            correctAnswer: cAns,
+            isCorrect: isCorr
+          });
+        }
+        foundSubmission = { ...foundSubmission, answers: generatedAnswers };
+      }
       setSubmission(foundSubmission);
     }
 
@@ -591,19 +644,28 @@ export default function ModularQuizReviewPage() {
     (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
-  // STRICTLY for standalone paper book tests that have NO digital questions, NO question texts, NO images, NO payload
-  const isPhysical = Boolean(
-    !String(targetId || '').startsWith('hw_') &&
-    !String(test.id || '').startsWith('hw_') &&
-    !String(submission?.hwId || '').startsWith('hw_') &&
-    (
-      test.sourceFormat === 'physical' ||
-      test.formatType === 'physical' ||
-      test.questionType === 'optik_form' ||
-      test.type === 'optik_form' ||
-      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
-    )
+  // Paper book tests, optical form tests, and tracked book tests (including those assigned via homeworks)
+  const isBookOrOptical = Boolean(
+    test.sourceFormat === 'physical' ||
+    test.formatType === 'physical' ||
+    test.questionType === 'optik_form' ||
+    test.type === 'optik_form' ||
+    test.sourceType === 'trackedBook' ||
+    test.sourceType === 'bookTest' ||
+    test.isBookAssignment ||
+    test.isPhysical ||
+    Boolean(test.bookId) ||
+    Boolean(test.bookTestId) ||
+    Boolean(submission?.bookId) ||
+    Boolean(submission?.bookTestId) ||
+    submission?.sourceType === 'trackedBook' ||
+    submission?.sourceType === 'bookTest' ||
+    submission?.sourceType === 'optik' ||
+    (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)'))) ||
+    (!test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
   );
+
+  const isPhysical = !isHtml && !isImageTest && isBookOrOptical;
 
   const hasMultipleDistinctSections = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||

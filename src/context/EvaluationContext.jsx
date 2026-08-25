@@ -175,48 +175,11 @@ export function EvaluationProvider({ children }) {
   };
 
   useEffect(() => {
-    syncFromSupabase(true);
-
-    // 1. Periodic background polling silently
-    const interval = setInterval(() => {
-      syncFromSupabase(false);
-    }, 30000);
-
-    // 2. Refresh on window focus and tab visibility silently
-    const handleFocus = () => {
-      syncFromSupabase(false);
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncFromSupabase(false);
-      }
-    };
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // 3. Supabase Realtime subscription on submissions table silently
-    let channel = null;
     if (isSupabaseConfigured()) {
-      try {
-        channel = supabase
-          .channel('public_submissions_realtime')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
-            syncFromSupabase(false);
-          })
-          .subscribe();
-      } catch (err) {
-        console.warn('[Supabase] Realtime subscription error:', err);
-      }
+      syncFromSupabase(true);
+    } else {
+      setIsSyncing(false);
     }
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
   }, []);
 
   useEffect(() => {
