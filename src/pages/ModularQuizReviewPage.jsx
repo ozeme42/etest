@@ -126,10 +126,17 @@ export default function ModularQuizReviewPage() {
 
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
-          const aExact = String(a.id) === String(targetId) || String(a.submissionId) === String(targetId);
-          const bExact = String(b.id) === String(targetId) || String(b.submissionId) === String(targetId);
-          if (aExact && !bExact) return -1;
-          if (!aExact && bExact) return 1;
+          const aAnswers = Array.isArray(a.answers) ? a.answers.filter(x => x && x.type !== 'metadata') : [];
+          const bAnswers = Array.isArray(b.answers) ? b.answers.filter(x => x && x.type !== 'metadata') : [];
+          
+          const aHasRealAnswers = aAnswers.length > 0;
+          const bHasRealAnswers = bAnswers.length > 0;
+          if (aHasRealAnswers && !bHasRealAnswers) return -1;
+          if (!aHasRealAnswers && bHasRealAnswers) return 1;
+
+          const aAnsCount = aAnswers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length;
+          const bAnsCount = bAnswers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length;
+          if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount;
 
           if (submissionIdParam) {
             const aMatch = String(a.id) === String(submissionIdParam) || String(a.submissionId) === String(submissionIdParam);
@@ -138,18 +145,10 @@ export default function ModularQuizReviewPage() {
             if (!aMatch && bMatch) return 1;
           }
 
-          const aAnsCount = (Array.isArray(a.answers) ? a.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
-          const bAnsCount = (Array.isArray(b.answers) ? b.answers.filter(x => (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') || (x.userAnswerText && String(x.userAnswerText).trim() !== '')).length : 0);
-          if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount; // More answered questions first!
-
-          const aLen = Array.isArray(a.answers) ? a.answers.length : 0;
-          const bLen = Array.isArray(b.answers) ? b.answers.length : 0;
-          if (aLen !== bLen) return bLen - aLen;
-
-          const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
-          const bEval = Boolean(b.isEvaluatedByTeacher || b.status === 'evaluated' || b.status === 'graded' || b.teacherFeedback);
-          if (aEval && !bEval) return -1;
-          if (!aEval && bEval) return 1;
+          const aExact = String(a.id) === String(targetId) || String(a.submissionId) === String(targetId);
+          const bExact = String(b.id) === String(targetId) || String(b.submissionId) === String(targetId);
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
 
           return new Date(b.submittedAt || b.evaluatedAt || 0) - new Date(a.submittedAt || a.evaluatedAt || 0);
         });
