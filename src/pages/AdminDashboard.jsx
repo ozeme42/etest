@@ -1,12 +1,11 @@
-import {
-  ClipboardCheck, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
 import { migrateAllLocalDataToSupabase } from '../services/migrationService';
 import { createFullBackup, restoreFullBackup } from '../services/backupService';
-import { Download, Upload, FileCheck, CheckCheck } from 'lucide-react';
+import { ClipboardCheck, Download, Upload, FileCheck, CheckCheck } from 'lucide-react';
 import { UploadCloud, Database, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users,

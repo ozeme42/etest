@@ -27,6 +27,7 @@ export function HomeworkProvider({ children }) {
       try {
         const dbHws = await dbGetHomeworks();
         if (dbHws) {
+          const now = Date.now();
           sessionStorage.setItem('eTestLastHwSync', String(now));
           setHomeworks(dbHws);
         }

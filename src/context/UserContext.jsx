@@ -36,6 +36,7 @@ export function UserProvider({ children }) {
       if (!isSupabaseConfigured()) return;
       const dbUsersList = await dbGetUsers();
       if (dbUsersList && dbUsersList.length > 0) {
+        const now = Date.now();
         sessionStorage.setItem('eTestLastUsersSync', String(now));
         setUsers(prev => {
           const merged = dbUsersList.map(dbU => {
