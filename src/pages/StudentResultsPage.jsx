@@ -1725,7 +1725,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         {activeTab === 'periodic' && (
           <div className="sr-anim">
             <PeriodicQuestionAnalytics
-              homeworkSubmissions={computedResults && computedResults.length > 0 ? computedResults : otherHomeworkSubmissions}
+              homeworkSubmissions={studentSubmissions && studentSubmissions.length > 0 ? studentSubmissions : otherHomeworkSubmissions}
               mockExams={generalTrialExams}
               studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
             />
