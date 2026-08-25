@@ -19,6 +19,7 @@ import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomew
 import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
+import { findUnifiedSubmissionOrTest, normalizeUnifiedSubmission } from '../services/unifiedResultAdapter';
 
 export default function ModularQuizReviewPage() {
   const params = useParams();
@@ -26,7 +27,7 @@ export default function ModularQuizReviewPage() {
 
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const studentId = searchParams.get('studentId');
+  const studentId = searchParams.get('studentId') || location.state?.studentId;
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { currentUser } = useAuth();
@@ -48,21 +49,26 @@ export default function ModularQuizReviewPage() {
       return;
     }
 
-    let foundSubmission = null;
-    let foundTest = null;
+    // 0. Single Source of Truth Resolution via Unified Result Adapter
+    const effectiveStudentId = studentId || location.state?.submission?.studentId || currentUser?.id;
+    const { submission: unifiedSub, test: unifiedTest } = findUnifiedSubmissionOrTest(targetId, {
+      studentId: effectiveStudentId,
+      submissions,
+      homeworks,
+      books,
+      bookTests
+    });
 
-    // -1. Direct check from navigation state
-    if (location.state?.submission && (Array.isArray(location.state.submission.answers) || location.state.submission.studentAnswers || location.state.submission.correctCount !== undefined)) {
-      foundSubmission = location.state.submission;
-    }
-    if (location.state?.test) {
-      foundTest = location.state.test;
-    }
+    let foundSubmission = location.state?.submission
+      ? normalizeUnifiedSubmission(location.state.submission, { books, bookTests, homeworks })
+      : unifiedSub;
+
+    let foundTest = unifiedTest || location.state?.test;
 
     const tbtMatch = String(targetId || '').match(/tbt_[a-zA-Z0-9_]+/);
     const extractedTbtId = tbtMatch ? tbtMatch[0] : null;
     const hwMatch = String(targetId || '').match(/hw_[a-zA-Z0-9_]+/);
-    const extractedHwId = hwMatch ? hwMatch[0] : null;
+    const extractedHwId = searchParams.get('hwId') || location.state?.hwId || (hwMatch ? hwMatch[0] : null);
 
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
     const cleanTargetId = normalizeId(targetId);
