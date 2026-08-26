@@ -2,71 +2,51 @@ import { dbGetUserAiApiKey, dbGetSystemAiApiKey } from './supabaseService';
 
 export const GEMINI_AVAILABLE_MODELS = [
   {
-    id: 'gemini-3.7-flash',
-    name: 'Gemini 3.7 Flash',
-    tag: '⭐ En Yeni & En Zeki (Önerilen)',
-    desc: "Google'ın en güncel ve en zeki modeli. Çok adımlı MEB soru çözümü, şekilli/görselli sorular ve pedagojik koçluk için 1 numara.",
-    badge: 'Yeni Nesil',
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    tag: '⚡ En Hızlı & En Kararlı (Önerilen)',
+    desc: "Yapay zeka ile şekilli soru çözümü, fotoğraf tanıma ve adım adım çözüm için en hızlı ve yüksek başarımlı model.",
+    badge: 'Önerilen',
     color: '#7c3aed',
     bg: 'rgba(124, 58, 237, 0.12)',
     border: '#c084fc'
   },
   {
-    id: 'gemini-3.5-flash',
-    name: 'Gemini 3.5 Flash',
-    tag: '⚡ Hızlı & Yüksek Akıl Yürütme',
-    desc: 'Hızlı yanıt süresi, güçlü görsel anlama ve yüksek akıl yürütme kabiliyeti.',
-    badge: 'Performans',
+    id: 'gemini-3.7-flash',
+    name: 'Gemini 3.7 Flash',
+    tag: '⭐ En Yeni Nesil',
+    desc: "Google'ın en yeni nesil akıl yürütme modeli.",
+    badge: 'Yeni Nesil',
     color: '#6366f1',
     bg: 'rgba(99, 102, 241, 0.12)',
     border: '#a5b4fc'
   },
   {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash-Lite',
-    tag: '🚀 Ultra Hızlı & Düşük Gecikme',
-    desc: 'En hafif, düşük gecikmeli ve anında çözüm üreten ekonomik model.',
-    badge: 'Ultra Hızlı',
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    tag: '🚀 Hızlı Muhakeme',
+    desc: 'Hızlı yanıt süresi, güçlü görsel anlama ve yüksek akıl yürütme kabiliyeti.',
+    badge: 'Performans',
     color: '#0284c7',
     bg: 'rgba(2, 132, 199, 0.12)',
     border: '#7dd3fc'
   },
   {
-    id: 'gemini-3.1-pro',
-    name: 'Gemini 3.1 Pro',
-    tag: '🧠 Üst Düzey Derin Muhakeme',
-    desc: 'Karmaşık olimpiyat, LGS ve YKS zor soruları için en derin muhakeme modeli.',
-    badge: 'Amiral Gemisi',
-    color: '#d97706',
-    bg: 'rgba(217, 119, 6, 0.12)',
-    border: '#fcd34d'
-  },
-  {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    tag: '🛡️ Kararlı & Hızlı',
-    desc: 'Yüksek kararlılık ve düşük gecikme sağlayan kanıtlanmış Flash modeli.',
-    badge: 'Kararlı',
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash-Lite',
+    tag: '⚡ Ultra Düşük Gecikme',
+    desc: 'Hafif ve ekonomik çözüm modeli.',
+    badge: 'Ultra Hızlı',
     color: '#10b981',
     bg: 'rgba(16, 185, 129, 0.12)',
     border: '#86efac'
   },
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    tag: '🔬 Kararlı Pro Muhakeme',
-    desc: '1 Milyon token bağlam pencereli derin analiz ve açıklama modeli.',
-    badge: 'Kararlı Pro',
-    color: '#8b5cf6',
-    bg: 'rgba(139, 92, 246, 0.12)',
-    border: '#c4b5fd'
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash (Klasik)',
-    tag: '📦 Geniş Uyumluluk',
-    desc: 'Geriye dönük klasik Flash modeli.',
-    badge: 'Klasik',
+    id: 'gemini-flash-latest',
+    name: 'Gemini Flash Latest',
+    tag: '📦 Otomatik En Güncel',
+    desc: 'Google tarafından sürekli güncellenen en son Flash sürümü.',
+    badge: 'Otomatik',
     color: '#64748b',
     bg: 'rgba(100, 116, 139, 0.12)',
     border: '#cbd5e1'
@@ -285,20 +265,29 @@ Kurallar:
   let responseData = null;
   let lastError = null;
 
-  const preferredModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.7-flash';
+  const preferredModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.6-flash';
   const prioritizedModels = [
     preferredModel,
-    ...GEMINI_SOLVER_MODELS.filter(m => m !== preferredModel)
-  ];
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.7-flash'
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
   for (const model of prioritizedModels) {
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 14000);
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const errorJson = await res.json().catch(() => ({}));
@@ -306,7 +295,9 @@ Kurallar:
       }
 
       responseData = await res.json();
-      if (responseData) break;
+      if (responseData && responseData.candidates?.[0]?.content?.parts?.[0]?.text) {
+        break;
+      }
     } catch (err) {
       console.warn(`[aiSolutionService] Model ${model} failed:`, err.message);
       lastError = err;
