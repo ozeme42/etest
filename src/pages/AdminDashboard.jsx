@@ -123,9 +123,12 @@ export default function AdminDashboard() {
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         color: 'var(--color-text)',
         padding: '1.5rem 1rem 5rem 1rem',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden'
       }}>
-      <div style={{ width: '100%', maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ width: '100%', maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, boxSizing: 'border-box' }}>
         
         {/* TOP CONTROL CENTER HEADER */}
         <div style={{
@@ -869,7 +872,7 @@ function CurriculumManager() {
       </div>
 
       {/* 4-COLUMN MILLER HIERARCHY GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem', alignItems: 'start', width: '100%', minWidth: 0 }}>
         
         {/* COLUMN 1: GRADES */}
         <div style={{
