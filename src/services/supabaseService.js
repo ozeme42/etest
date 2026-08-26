@@ -1364,13 +1364,27 @@ export async function dbGetHomeworks() {
     if (error) throw error;
     return data.map(h => {
       let raw = {};
-      if (h.raw_data && typeof h.raw_data === 'object') {
-        raw = h.raw_data;
+      if (h.raw_data) {
+        if (typeof h.raw_data === 'object') raw = h.raw_data;
+        else if (typeof h.raw_data === 'string') {
+          try { raw = JSON.parse(h.raw_data); } catch {}
+        }
+      } else if (h.data) {
+        if (typeof h.data === 'object') raw = h.data;
+        else if (typeof h.data === 'string') {
+          try { raw = JSON.parse(h.data); } catch {}
+        }
+      } else if (h.extra_data) {
+        if (typeof h.extra_data === 'object') raw = h.extra_data;
+        else if (typeof h.extra_data === 'string') {
+          try { raw = JSON.parse(h.extra_data); } catch {}
+        }
       }
+
       const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : (raw.tests || []));
       const bId = h.book_id || raw.bookId || raw.book_id || null;
       const canonicalId = raw.stringId || String(h.id);
-      const testDueDates = raw.testDueDates || h.test_due_dates || raw.scheduleDates || h.schedule_dates || {};
+      const testDueDates = raw.testDueDates || h.test_due_dates || raw.scheduleDates || h.schedule_dates || raw.testDates || {};
 
       return {
         ...raw,
@@ -1453,13 +1467,31 @@ export async function dbAddHomework(hw) {
     }
 
     const qIds = processedHw.questionIds || processedHw.tests || [];
+    
+    // Compute max dueDate from testDueDates if present
+    let calculatedDueDate = processedHw.dueDate;
+    const testDatesObj = processedHw.testDueDates || processedHw.scheduleDates || {};
+    if (testDatesObj && typeof testDatesObj === 'object') {
+      const dates = Object.values(testDatesObj).filter(Boolean);
+      if (dates.length > 0) {
+        dates.sort();
+        const maxDateStr = dates[dates.length - 1];
+        if (maxDateStr) {
+          const maxDateObj = new Date(maxDateStr);
+          maxDateObj.setHours(23, 59, 59, 999);
+          calculatedDueDate = maxDateObj.toISOString();
+        }
+      }
+    }
+
     const fullRaw = {
       ...processedHw,
       questionIds: qIds,
       tests: qIds,
       bookId: processedHw.bookId || null,
       isBookAssignment: Boolean(processedHw.isBookAssignment || processedHw.bookId),
-      testDueDates: processedHw.testDueDates || {}
+      testDueDates: testDatesObj,
+      dueDate: calculatedDueDate
     };
 
     // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
@@ -1487,7 +1519,7 @@ export async function dbAddHomework(hw) {
       id: hwId,
       title: processedHw.title,
       subject: processedHw.subject || 'Genel',
-      due_date: processedHw.dueDate,
+      due_date: calculatedDueDate,
       target_type: processedHw.targetType || 'grade',
       target_ids: processedHw.targetIds || [],
       tests: qIds,
@@ -1530,7 +1562,7 @@ export async function dbAddHomework(hw) {
         id: uuidId || hwId,
         title: processedHw.title,
         subject: processedHw.subject || 'Genel',
-        due_date: processedHw.dueDate,
+        due_date: calculatedDueDate,
         target_type: processedHw.targetType || 'grade',
         target_ids: processedHw.targetIds || [],
         tests: qIds,
