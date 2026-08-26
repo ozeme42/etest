@@ -1515,62 +1515,41 @@ export async function dbAddHomework(hw) {
 
     const hwId = String(processedHw.id || `hw_${Date.now()}`);
     const uuidId = toUUID(hwId);
-    const payload = {
+    const safePayload = {
       id: hwId,
-      title: processedHw.title,
+      title: processedHw.title || 'Ödev',
       subject: processedHw.subject || 'Genel',
       due_date: calculatedDueDate,
-      target_type: processedHw.targetType || 'grade',
-      target_ids: processedHw.targetIds || [],
-      tests: qIds,
-      question_ids: qIds,
-      total_questions: processedHw.totalQuestions || qIds.length || 0,
-      time_per_question: processedHw.timePerQuestion || 2,
-      time: processedHw.time || 20,
       raw_data: safeRaw
     };
 
     // 1. If supabaseId exists, update by supabaseId
     if (processedHw.supabaseId) {
       try {
-        await supabase.from('homeworks').update(payload).eq('id', processedHw.supabaseId);
+        await supabase.from('homeworks').update(safePayload).eq('id', processedHw.supabaseId);
       } catch {}
     }
 
     // 2. Also try updating by hwId and uuidId
     try {
-      await supabase.from('homeworks').update(payload).eq('id', hwId);
+      await supabase.from('homeworks').update(safePayload).eq('id', hwId);
       if (uuidId && uuidId !== hwId) {
-        await supabase.from('homeworks').update(payload).eq('id', uuidId);
+        await supabase.from('homeworks').update(safePayload).eq('id', uuidId);
       }
     } catch {}
 
     // 3. Upsert to ensure record is saved
-    let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
+    let { data, error } = await supabase.from('homeworks').upsert([safePayload], { onConflict: 'id' }).select();
     if (error) {
       const uuidPayload = {
-        ...payload,
-        id: uuidId,
+        ...safePayload,
+        id: uuidId || hwId,
         raw_data: { ...safeRaw, stringId: hwId }
       };
       const uuidRes = await supabase.from('homeworks').upsert([uuidPayload], { onConflict: 'id' }).select();
       if (!uuidRes.error) {
         return uuidRes.data;
       }
-
-      const fallbackPayload = {
-        id: uuidId || hwId,
-        title: processedHw.title,
-        subject: processedHw.subject || 'Genel',
-        due_date: calculatedDueDate,
-        target_type: processedHw.targetType || 'grade',
-        target_ids: processedHw.targetIds || [],
-        tests: qIds,
-        raw_data: safeRaw
-      };
-      const res = await supabase.from('homeworks').upsert([fallbackPayload], { onConflict: 'id' }).select();
-      if (res.error) throw res.error;
-      data = res.data;
     }
     return data;
   } catch (err) {
@@ -1580,11 +1559,17 @@ export async function dbAddHomework(hw) {
 }
 
 export async function dbDeleteHomework(hwId) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !hwId) return null;
   try {
-    await supabase.from('submissions').delete().eq('test_id', String(hwId));
-      const { error } = await supabase.from('homeworks').delete().eq('id', String(hwId));
-    if (error) throw error;
+    const candidateIds = Array.from(new Set([String(hwId), toUUID(hwId)].filter(Boolean)));
+    for (const cid of candidateIds) {
+      try {
+        await supabase.from('submissions').delete().eq('test_id', cid);
+      } catch {}
+      try {
+        await supabase.from('homeworks').delete().eq('id', cid);
+      } catch {}
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteHomework error:', err.message);
@@ -2154,8 +2139,17 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
       });
     }
 
-    for (let i = 0; i < rows.length; i += 50) {
-      const chunk = rows.slice(i, i + 50);
+    // Deduplicate rows by id before sending to prevent PostgreSQL "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const uniqueMap = new Map();
+    rows.forEach(r => {
+      if (r && r.id) {
+        uniqueMap.set(String(r.id), r);
+      }
+    });
+    const uniqueRows = Array.from(uniqueMap.values());
+
+    for (let i = 0; i < uniqueRows.length; i += 50) {
+      const chunk = uniqueRows.slice(i, i + 50);
       const { error } = await supabase.from('tracked_book_tests').upsert(chunk, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase] dbBatchUpsertTrackedBookTests chunk error:', error.message);
