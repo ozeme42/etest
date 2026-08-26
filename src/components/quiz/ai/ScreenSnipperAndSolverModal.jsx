@@ -115,11 +115,7 @@ export default function ScreenSnipperAndSolverModal({
       });
     } catch (err) {
       if (err.message === 'API_KEY_REQUIRED') {
-        if (currentUser?.role === 'admin' || currentUser?.role === 'teacher') {
-          setApiKeyModalOpen(true);
-        } else {
-          setError('Yapay zeka soru çözümü için sistem API anahtarı henüz veritabanında bulunamadı. Lütfen yöneticiniz veya öğretmeniniz ile iletişime geçiniz.');
-        }
+        setApiKeyModalOpen(true);
       } else {
         setError(err.message || 'Çözüm oluşturulurken bir hata oluştu.');
       }
