@@ -77,18 +77,21 @@ export default function TrackedBookQuizRunner() {
 
     if (!cleanId) return { resolvedTest: null, resolvedBook: null, resolvedHw: null };
 
-    // 1. Composite ID (e.g. bt_hw_123_tbt_456 or bt_123_456)
-    if (cleanId.startsWith('bt_') || cleanId.includes('_tbt_') || cleanId.includes('_bt_')) {
+    // 1. Composite ID (e.g. auto_hw_123_456_date or book_test_123_456 or bt_123_456)
+    if (cleanId.startsWith('auto_hw_') || cleanId.startsWith('book_test_') || cleanId.startsWith('bt_') || cleanId.includes('_tbt_') || cleanId.includes('_bt_')) {
       const parts = cleanId.split('_');
-      const candidateTestId = parts.slice(2).join('_') || parts[parts.length - 1];
-      t = (bookTests || []).find(test => 
-        String(test.id) === candidateTestId || 
-        toUUID(test.id) === candidateTestId ||
-        toUUID(test.id) === toUUID(candidateTestId) ||
-        cleanId.endsWith(String(test.id)) ||
-        cleanId.endsWith(toUUID(test.id))
-      );
-      h = (homeworks || []).find(hw => cleanId.includes(String(hw.id)) || cleanId.includes(toUUID(hw.id)));
+      const candidateTestIds = parts.slice(2);
+      for (const cand of candidateTestIds) {
+        if (!t && cand) {
+          t = (bookTests || []).find(test => 
+            String(test.id) === cand || 
+            toUUID(test.id) === cand ||
+            toUUID(test.id) === toUUID(cand) ||
+            String(test.id).replace(/^bt_/, '').replace(/^q_/, '') === cand.replace(/^bt_/, '').replace(/^q_/, '')
+          );
+        }
+      }
+      h = (homeworks || []).find(hw => cleanId.includes(String(hw.id)) || (toUUID(hw.id) && cleanId.includes(toUUID(hw.id))));
     }
 
     // 2. Direct match in bookTests
@@ -106,7 +109,7 @@ export default function TrackedBookQuizRunner() {
       for (const book of books) {
         for (const subj of (book.subjects || [])) {
           for (const st of (subj.tests || [])) {
-            if (String(st.id) === cleanId || toUUID(st.id) === cleanId || toUUID(st.id) === toUUID(cleanId)) {
+            if (String(st.id) === cleanId || toUUID(st.id) === cleanId || toUUID(st.id) === toUUID(cleanId) || String(st.id).replace(/^bt_/, '').replace(/^q_/, '') === cleanId.replace(/^bt_/, '').replace(/^q_/, '')) {
               t = { ...st, bookId: book.id, subjectId: subj.id };
               b = book;
               break;
@@ -115,7 +118,7 @@ export default function TrackedBookQuizRunner() {
           if (t) break;
           for (const top of (subj.topics || [])) {
             for (const tt of (top.tests || [])) {
-              if (String(tt.id) === cleanId || toUUID(tt.id) === cleanId || toUUID(tt.id) === toUUID(cleanId)) {
+              if (String(tt.id) === cleanId || toUUID(tt.id) === cleanId || toUUID(tt.id) === toUUID(cleanId) || String(tt.id).replace(/^bt_/, '').replace(/^q_/, '') === cleanId.replace(/^bt_/, '').replace(/^q_/, '')) {
                 t = { ...tt, bookId: book.id, subjectId: subj.id, topicId: top.id };
                 b = book;
                 break;
@@ -185,13 +188,21 @@ export default function TrackedBookQuizRunner() {
     return { resolvedTest: t, resolvedBook: b, resolvedHw: h };
   }, [cleanId, bookTests, books, homeworks]);
 
-  // If this is actually a full physical exam (bookType === 'exam'), redirect safely to /physical-exam/:id
+  // If this is actually a full physical exam (bookType === 'exam') or regular quiz, redirect safely
   useEffect(() => {
     if (resolvedBook?.bookType === 'exam' || resolvedHw?.type === 'physicalExam') {
       const targetId = resolvedHw?.id || resolvedBook?.id || cleanId;
       navigate(`/physical-exam/${targetId}?studentId=${studentId || ''}`, { replace: true });
+      return;
     }
-  }, [resolvedBook, resolvedHw, cleanId, studentId, navigate]);
+    // If not a tracked book test but a normal homework/quiz, redirect to /quiz/:id
+    if (!resolvedTest && !booksLoading && !hwLoading && homeworks?.length > 0) {
+      const cleanHwMatch = homeworks.find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId || cleanId.includes(String(hw.id)));
+      if (cleanHwMatch && !cleanHwMatch.isBookAssignment) {
+        navigate(`/quiz/${cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true });
+      }
+    }
+  }, [resolvedBook, resolvedHw, resolvedTest, booksLoading, hwLoading, homeworks, cleanId, studentId, navigate]);
 
   const pdfUrl = resolvedTest?.pdfUrl || resolvedBook?.pdfUrl || resolvedHw?.pdfUrl || '';
   const hasPdf = Boolean(pdfUrl);

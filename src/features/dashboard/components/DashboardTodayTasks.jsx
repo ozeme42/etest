@@ -438,7 +438,15 @@ export default memo(function DashboardTodayTasks({
                   const isLast = cIdx === catchUpTasks.length - 1;
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                   const rawTitle = task.title || task.testName || task.topic || 'Telafi Görevi';
+                  const rowTheme = getRowTheme ? getRowTheme(task.subject, cIdx) : {};
                   const catBadge = getCatchUpCategoryBadge(task);
+
+                  const rawBook = task.bookTitle || '';
+                  let displayTitle = rawTitle;
+                  if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                    displayTitle = displayTitle.replace(rawBook, '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                    if (!displayTitle) displayTitle = task.testName || rawTitle;
+                  }
 
                   return (
                     <div
@@ -453,7 +461,7 @@ export default memo(function DashboardTodayTasks({
                         gap: isMobile ? '0.65rem' : '0.9rem',
                         borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
                         background: 'var(--color-surface)',
-                        borderLeft: '5px solid #f59e0b',
+                        borderLeft: `5px solid ${rowTheme.accent || '#f59e0b'}`,
                         cursor: 'pointer',
                         transition: 'background 0.15s ease'
                       }}
@@ -466,7 +474,7 @@ export default memo(function DashboardTodayTasks({
                             width: isMobile ? 26 : 28,
                             height: isMobile ? 26 : 28,
                             borderRadius: '50%',
-                            border: '2px solid rgba(245, 158, 11, 0.6)',
+                            border: `2px solid ${rowTheme.border || 'rgba(245, 158, 11, 0.6)'}`,
                             background: 'transparent',
                             display: 'flex',
                             alignItems: 'center',
@@ -482,50 +490,57 @@ export default memo(function DashboardTodayTasks({
 
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{
-                              fontSize: '0.64rem',
-                              fontWeight: 900,
-                              color: catBadge.color,
-                              background: catBadge.bg,
-                              border: `1px solid ${catBadge.border}`,
-                              padding: '1px 6px',
-                              borderRadius: 6,
-                              flexShrink: 0
-                            }}>
-                              {catBadge.label}
-                            </span>
                             {task.subject && (
                               <span style={{
                                 fontSize: '0.64rem',
-                                fontWeight: 800,
-                                color: 'var(--color-text-muted)',
-                                background: 'var(--color-surface-hover)',
-                                border: '1px solid var(--color-border)',
-                                padding: '1px 5px',
-                                borderRadius: 5,
+                                fontWeight: 900,
+                                color: rowTheme.text || '#6366f1',
+                                background: rowTheme.badgeBg || 'rgba(99, 102, 241, 0.12)',
+                                border: `1px solid ${rowTheme.border || 'rgba(165, 180, 252, 0.35)'}`,
+                                padding: '1px 6px',
+                                borderRadius: 6,
                                 flexShrink: 0
                               }}>
                                 {task.subject}
                               </span>
                             )}
                             <span style={{
-                              fontSize: isMobile ? '0.84rem' : '0.88rem',
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              color: '#dc2626',
+                              background: '#fef2f2',
+                              border: '1px solid #fecdd3',
+                              padding: '1px 6px',
+                              borderRadius: 6,
+                              flexShrink: 0
+                            }}>
+                              ⚠️ Gecikti
+                            </span>
+                            <span style={{
+                              fontSize: isMobile ? '0.84rem' : '0.9rem',
                               fontWeight: 800,
                               color: 'var(--color-text)',
                               wordBreak: 'break-word',
                               lineHeight: 1.3
                             }}>
-                              {rawTitle}
+                              {displayTitle}
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', fontWeight: 700 }}>
-                            <span style={{ color: '#ef4444' }}>⚠️ {task.reason || 'Geciken görev'}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
                             {task.bookTitle && (
-                              <span style={{ color: 'var(--color-text-muted)' }}>• 📖 {task.bookTitle}</span>
+                              <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 180 : 280 }}>
+                                📖 {task.bookTitle}
+                              </span>
+                            )}
+                            {task.unitTopic && !task.bookTitle && (
+                              <span>📌 {task.unitTopic}</span>
                             )}
                             {task.questionCount && (
-                              <span style={{ color: 'var(--color-text-muted)' }}>• {task.questionCount} Soru</span>
+                              <span>• {task.questionCount}</span>
+                            )}
+                            {(task.time || task.dueDateStr) && (
+                              <span>• ⏰ {task.time || `Hedef: ${task.dueDateStr}`}</span>
                             )}
                           </div>
                         </div>
@@ -558,7 +573,7 @@ export default memo(function DashboardTodayTasks({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                             style={{
-                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                               color: '#ffffff',
                               border: 'none',
                               borderRadius: 8,
@@ -569,10 +584,10 @@ export default memo(function DashboardTodayTasks({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 4,
-                              boxShadow: '0 3px 10px rgba(245, 158, 11, 0.3)'
+                              boxShadow: '0 3px 10px rgba(99, 102, 241, 0.3)'
                             }}
                           >
-                            <PlayCircle size={13} /> Telafi Et
+                            <PlayCircle size={13} /> Çözmeye Başla
                           </button>
                         ) : (
                           <button
