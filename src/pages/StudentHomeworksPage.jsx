@@ -468,10 +468,11 @@ export default function StudentHomeworksPage() {
   };
 
   const handleReviewTask = (task) => {
+    const sId = selectedStudent?.id || '';
     if (task.submissionId) {
-      navigate(`/review/${task.submissionId}`);
-    } else if (task.bookTestId || task.realTestId) {
-      navigate(`/quiz-review/${task.bookTestId || task.realTestId}`);
+      navigate(`/review/${task.submissionId}?studentId=${sId}`);
+    } else if (task.bookTestId || task.realTestId || task.hwId || task.id) {
+      navigate(`/quiz-review/${task.bookTestId || task.realTestId || task.hwId || task.id}?studentId=${sId}`);
     } else {
       navigate('/student-results');
     }

@@ -481,16 +481,34 @@ export default function ModularQuizReviewPage() {
       setQuestions(testQs || []);
     } else if (foundSubmission && !foundTest) {
       const candidateTestId = foundSubmission.testId || foundSubmission.realTestId || foundSubmission.bookTestId || extractedTbtId || extractedHwId || targetId;
-      const resolvedT = (bookTests || []).find(bt => String(bt.id) === String(candidateTestId) || toUUID(bt.id) === String(candidateTestId)) ||
-                        (homeworks || []).find(h => String(h.id) === String(candidateTestId) || toUUID(h.id) === String(candidateTestId)) || {
+      const isSubWritten = Boolean(
+        foundSubmission.isOpenEnded ||
+        foundSubmission.questionType === 'yazili' ||
+        foundSubmission.questionType === 'acik_uclu' ||
+        foundSubmission.type === 'yazili' ||
+        foundSubmission.type === 'acik_uclu' ||
+        foundSubmission.sourceFormat === 'yazili' ||
+        foundSubmission.formatType === 'yazili' ||
+        foundSubmission.openEndedText ||
+        foundSubmission.openEndedAnswers ||
+        (foundSubmission.testTitle && (foundSubmission.testTitle.toLowerCase().includes('yazılı') || foundSubmission.testTitle.toLowerCase().includes('açık uçlu') || foundSubmission.testTitle.toLowerCase().includes('acik uclu'))) ||
+        (Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => a.isOpenEnded || a.userAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2)))
+      );
+
+      const resolvedT = (allBankQuestions || []).find(q => String(q.id) === String(candidateTestId) || toUUID(q.id) === String(candidateTestId) || normalizeId(q.id) === normalizeId(candidateTestId)) ||
+                        (homeworks || []).find(h => String(h.id) === String(candidateTestId) || toUUID(h.id) === String(candidateTestId) || normalizeId(h.id) === normalizeId(candidateTestId)) ||
+                        (bookTests || []).find(bt => String(bt.id) === String(candidateTestId) || toUUID(bt.id) === String(candidateTestId) || normalizeId(bt.id) === normalizeId(candidateTestId)) || {
                           id: candidateTestId,
                           title: foundSubmission.testTitle || foundSubmission.title || 'İnceleme Testi',
                           questionCount: foundSubmission.totalQuestions || (Array.isArray(foundSubmission.answers) ? foundSubmission.answers.length : 12),
-                          type: 'optik_form',
-                          sourceFormat: 'physical'
+                          type: isSubWritten ? 'acik_uclu' : (foundSubmission.sourceType === 'questionBank' ? 'coktan_secmeli' : (foundSubmission.sourceType === 'optik' ? 'optik_form' : 'coktan_secmeli')),
+                          questionType: isSubWritten ? 'acik_uclu' : (foundSubmission.sourceType === 'questionBank' ? 'coktan_secmeli' : (foundSubmission.sourceType === 'optik' ? 'optik_form' : 'coktan_secmeli')),
+                          sourceFormat: isSubWritten ? 'yazili' : (foundSubmission.sourceType === 'questionBank' ? 'digital' : (foundSubmission.sourceType === 'optik' ? 'physical' : 'digital')),
+                          isOpenEnded: isSubWritten
                         };
       setTest(resolvedT);
-      setQuestions([]);
+      const fallbackQs = resolveTestQuestions(resolvedT, allBankQuestions);
+      setQuestions(fallbackQs || []);
       foundTest = resolvedT;
     } else if (!foundSubmission && foundTest) {
       foundSubmission = {
@@ -560,6 +578,14 @@ export default function ModularQuizReviewPage() {
     test.formatType === 'yazili' ||
     test.isOpenEnded ||
     submission?.isOpenEnded ||
+    submission?.questionType === 'yazili' ||
+    submission?.questionType === 'acik_uclu' ||
+    submission?.type === 'yazili' ||
+    submission?.type === 'acik_uclu' ||
+    submission?.contentType === 'yazili' ||
+    submission?.contentType === 'acik_uclu' ||
+    submission?.openEndedText ||
+    submission?.openEndedAnswers ||
     (test.title && (
       test.title.toLowerCase().includes('açık uçlu') ||
       test.title.toLowerCase().includes('acik uclu') ||
@@ -650,8 +676,8 @@ export default function ModularQuizReviewPage() {
     (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
-  // Paper book tests, optical form tests, and tracked book tests (including those assigned via homeworks)
-  const isBookOrOptical = Boolean(
+  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended)
+  const isBookOrOptical = !isWritten && !isSectionOpenEnded(test) && Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
@@ -660,18 +686,14 @@ export default function ModularQuizReviewPage() {
     test.sourceType === 'bookTest' ||
     test.isBookAssignment ||
     test.isPhysical ||
-    Boolean(test.bookId) ||
-    Boolean(test.bookTestId) ||
-    Boolean(submission?.bookId) ||
-    Boolean(submission?.bookTestId) ||
+    (Boolean(test.bookId || test.bookTestId || submission?.bookId || submission?.bookTestId) && !test.questions?.length && (!questions || questions.length === 0)) ||
     submission?.sourceType === 'trackedBook' ||
     submission?.sourceType === 'bookTest' ||
     submission?.sourceType === 'optik' ||
-    (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)'))) ||
-    (!test.contentType && !test.contentPayload && !test.sections?.length && !test.questionsList?.length && (!questions || questions.length === 0 || !questions[0]?.text || questions[0]?.text.startsWith('Soru ')))
+    (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)')))
   );
 
-  const isPhysical = !isHtml && !isImageTest && isBookOrOptical;
+  const isPhysical = !isHtml && !isPdf && !isImageTest && !isWritten && !isSectionOpenEnded(test) && isBookOrOptical;
 
   const hasMultipleDistinctSections = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
