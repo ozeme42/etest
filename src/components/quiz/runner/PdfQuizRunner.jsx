@@ -6,6 +6,7 @@ import { Pencil, CheckCircle2, Clock, FileText, ArrowLeft, Sun, Moon } from 'luc
 import { idbGetPayload, idbSetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from './QuizPanelLayout';
+import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 import { isSectionOpenEnded, isMultipleChoice } from '../utils/quizTypeDetector';
@@ -348,14 +349,32 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
     return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
   };
 
+  const isExplicitFive = useMemo(() => {
+    const explicitOpt = Number(test?.optionCount || test?.optionsCount || test?.book?.optionCount);
+    if (explicitOpt === 5) return true;
+    if (explicitOpt === 4) return false;
+    return Boolean(
+      Number(test?.optionCount) === 5 ||
+      Number(test?.optionsCount) === 5 ||
+      Number(test?.book?.optionCount) === 5 ||
+      String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+      test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
+      test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
+      Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
+      Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+    );
+  }, [test]);
+
   const handleOptionSelect = (qNo, optionIdx) => {
     setAnswers(prev => {
       const currentAns = prev[qNo];
       const updated = { ...prev };
-      if (currentAns === optionIdx) {
+      if (optionIdx === null || optionIdx === undefined || currentAns === optionIdx) {
         delete updated[qNo];
+        delete updated[String(qNo)];
       } else {
         updated[qNo] = optionIdx;
+        updated[String(qNo)] = optionIdx;
       }
       triggerAutoSave(updated, openEndedText);
       return updated;
@@ -589,45 +608,43 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
           </div>
         }
         answerContent={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {Array.from({ length: qCount }).map((_, idx) => {
-              const qNo = idx + 1;
-              const q = (questions && questions[idx]) || {};
-              const selectedOpt = answers[qNo];
-              const textVal = openEndedText[qNo] || '';
-              const isAnswered = selectedOpt !== undefined || Boolean(textVal);
+          isOpenEndedMode ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', padding: '0.75rem' }}>
+              {Array.from({ length: qCount }).map((_, idx) => {
+                const qNo = idx + 1;
+                const textVal = openEndedText[qNo] || '';
+                const isAnswered = Boolean(textVal && String(textVal).trim() !== '');
 
-              return (
-                <div key={qNo} style={{
-                  background: 'var(--color-surface)',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '0.85rem',
-                  border: isAnswered ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
-                  boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.08)' : '0 1px 4px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s ease'
-                }}>
-                  <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: '0.45rem',
-                      background: isAnswered ? '#4f46e5' : 'var(--color-surface-hover)',
-                      color: isAnswered ? '#ffffff' : 'var(--color-text)',
-                      fontSize: '0.76rem',
-                      letterSpacing: '0.02em'
-                    }}>
-                      SORU {qNo}
-                    </span>
-                    {isAnswered ? (
-                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
-                        {isOpenEndedMode ? 'Yanıtlandı' : `Şık ${String.fromCharCode(65 + selectedOpt)}`}
+                return (
+                  <div key={qNo} style={{
+                    background: 'var(--color-surface)',
+                    padding: '0.85rem 1rem',
+                    borderRadius: '0.85rem',
+                    border: isAnswered ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                    boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.08)' : '0 1px 4px rgba(0,0,0,0.02)',
+                    transition: 'all 0.15s ease'
+                  }}>
+                    <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: '0.45rem',
+                        background: isAnswered ? '#4f46e5' : 'var(--color-surface-hover)',
+                        color: isAnswered ? '#ffffff' : 'var(--color-text)',
+                        fontSize: '0.76rem',
+                        letterSpacing: '0.02em'
+                      }}>
+                        SORU {qNo}
                       </span>
-                    ) : (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>○ Boş</span>
-                    )}
-                  </div>
+                      {isAnswered ? (
+                        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
+                          Yanıtlandı
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>○ Boş</span>
+                      )}
+                    </div>
 
-                  {isOpenEndedMode ? (
                     <textarea
                       value={textVal}
                       onChange={(e) => handleTextChange(qNo, e.target.value)}
@@ -648,58 +665,20 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                         resize: 'vertical'
                       }}
                     />
-                  ) : (
-                    <div style={{ display: 'flex', gap: '0.45rem' }}>
-                      {(() => {
-                        const targetObj = q || test || {};
-                        const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
-  const isExplicitFive = explicitOpt === 5 ? true : (explicitOpt === 4 ? false : Boolean(
-                          Number(test?.optionCount) === 5 ||
-                          Number(test?.optionsCount) === 5 ||
-                          Number(test?.book?.optionCount) === 5 ||
-                          String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
-                          test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-                          test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
-                          Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-                          Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
-                        ));
-                        const isFourOptions = !isExplicitFive;
-                        const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
-                        return optList.map((opt, optIdx) => {
-                          const isSelected = selectedOpt === optIdx;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => handleOptionSelect(qNo, optIdx)}
-                              style={{
-                                flex: 1,
-                                height: '36px',
-                                borderRadius: '0.6rem',
-                                border: isSelected ? 'none' : '1.5px solid var(--color-border-input)',
-                                background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--color-surface)',
-                                color: isSelected ? 'white' : 'var(--color-text)',
-                                fontWeight: 900,
-                                fontSize: '0.88rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                                boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.35)' : 'none'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <OpticalBubblePanel
+              qCount={qCount}
+              answers={answers}
+              onSelectOption={(qNo, optIdx) => handleOptionSelect(qNo, optIdx)}
+              optionsCount={isExplicitFive ? 5 : 4}
+              resolvedQuestions={questions}
+              hideHeader={true}
+            />
+          )
         }
       />
     </div>

@@ -18,7 +18,8 @@ export default memo(function OpticalBubblePanel({
   correctAnswers = [],
   isCorrectMap = {},
   submissionAnswers = [],
-  testCtx = {}
+  testCtx = {},
+  hideHeader = false
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const totalCount = Math.max(qCount, resolvedQuestions.length, Array.isArray(correctAnswers) ? correctAnswers.length : 0, 1);
@@ -97,52 +98,54 @@ export default memo(function OpticalBubblePanel({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)' }}>
       {/* Panel Header */}
-      <div style={{ padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isReviewMode ? '0.45rem' : 0 }}>
-          <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            📋 {isReviewMode ? 'Optik Değerlendirme' : 'Optik Cevap Kağıdı'}
-          </h4>
-          {!isReviewMode ? (
-            <span style={{
-              fontSize: '0.74rem',
-              fontWeight: 900,
-              background: answeredCount === totalCount ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.12)',
-              color: answeredCount === totalCount ? '#10b981' : '#6366f1',
-              padding: '0.2rem 0.55rem',
-              borderRadius: '0.4rem',
-              border: `1px solid ${answeredCount === totalCount ? 'rgba(16,185,129,0.3)' : 'rgba(99,102,241,0.3)'}`
-            }}>
-              {answeredCount} / {totalCount} Kodlandı
-            </span>
-          ) : (
-            <span style={{
-              fontSize: '0.78rem',
-              fontWeight: 900,
-              background: (reviewStats?.successRate || 0) >= 50 ? '#dcfce7' : '#fee2e2',
-              color: (reviewStats?.successRate || 0) >= 50 ? '#15803d' : '#b91c1c',
-              padding: '0.2rem 0.55rem',
-              borderRadius: '0.4rem'
-            }}>
-              %{reviewStats?.successRate || 0} Başarı
-            </span>
+      {!hideHeader && (
+        <div style={{ padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isReviewMode ? '0.45rem' : 0 }}>
+            <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              📋 {isReviewMode ? 'Optik Değerlendirme' : 'Optik Cevap Kağıdı'}
+            </h4>
+            {!isReviewMode ? (
+              <span style={{
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                background: answeredCount === totalCount ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.12)',
+                color: answeredCount === totalCount ? '#10b981' : '#6366f1',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '0.4rem',
+                border: `1px solid ${answeredCount === totalCount ? 'rgba(16,185,129,0.3)' : 'rgba(99,102,241,0.3)'}`
+              }}>
+                {answeredCount} / {totalCount} Kodlandı
+              </span>
+            ) : (
+              <span style={{
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                background: (reviewStats?.successRate || 0) >= 50 ? '#dcfce7' : '#fee2e2',
+                color: (reviewStats?.successRate || 0) >= 50 ? '#15803d' : '#b91c1c',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '0.4rem'
+              }}>
+                %{reviewStats?.successRate || 0} Başarı
+              </span>
+            )}
+          </div>
+
+          {/* Review summary badges in header */}
+          {isReviewMode && reviewStats && (
+            <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>
+              <span style={{ background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #86efac' }}>
+                {reviewStats.d} Doğru
+              </span>
+              <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #fca5a5' }}>
+                {reviewStats.y} Yanlış
+              </span>
+              <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid var(--color-border)' }}>
+                {reviewStats.b} Boş
+              </span>
+            </div>
           )}
         </div>
-
-        {/* Review summary badges in header */}
-        {isReviewMode && reviewStats && (
-          <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>
-            <span style={{ background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #86efac' }}>
-              {reviewStats.d} Doğru
-            </span>
-            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #fca5a5' }}>
-              {reviewStats.y} Yanlış
-            </span>
-            <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.45rem', borderRadius: '0.35rem', border: '1px solid var(--color-border)' }}>
-              {reviewStats.b} Boş
-            </span>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Optical Bubbles Grid */}
       <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.65rem' : '0.75rem' }}>
