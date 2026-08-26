@@ -276,7 +276,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   }, [mistakeReasons, wrongCount]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg, #f8fafc)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: isMobile ? 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)' : 0, boxSizing: 'border-box', background: 'var(--color-bg, #f8fafc)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
       
       {/* ════════════════════════════════════════════
           1. TOP NAVIGATION & SCORECARD HEADER
@@ -550,7 +550,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 24px) + 3rem) 0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
               
               {/* SCORECARD HERO BANNER */}
               <div style={{

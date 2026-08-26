@@ -263,6 +263,14 @@ html.ssp-in-fullscreen .sidebar {
     width: 100% !important;
     max-width: 100% !important;
   }
+
+  .app-container.no-sidebar .main-content,
+  .app-container.no-sidebar {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
   
   .sidebar {
     position: fixed !important;

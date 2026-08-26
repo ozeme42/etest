@@ -407,7 +407,7 @@ export default function StandardQuizRunner({ test, questions: initialQuestions, 
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}
     >
       <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
 
@@ -584,7 +584,7 @@ export default function StandardQuizRunner({ test, questions: initialQuestions, 
           </div>
 
           {/* Prev / Next Bottom Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 2rem)' }}>
             <button
               onClick={() => setCurrentIndex(p => Math.max(0, p - 1))}
               disabled={currentIndex === 0}
