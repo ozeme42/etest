@@ -455,6 +455,8 @@ export default memo(function DashboardTodayTasks({
                 {catchUpTasks.map((task, cIdx) => {
                   const isLast = cIdx === catchUpTasks.length - 1;
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                  const rowTheme = getRowTheme ? getRowTheme(task.subject, cIdx) : {};
+                  const catBadge = getCatchUpCategoryBadge(task);
                   const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
                   let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
                     .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')

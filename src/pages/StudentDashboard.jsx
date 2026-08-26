@@ -1185,6 +1185,48 @@ export default function StudentDashboard() {
         const dayYMD = dayInfo?.ymd || '';
         const dayTime = dayInfo?.time || 0;
 
+        const studentIdStr = String(studentId || '');
+        const studentUuidStr = String(toUUID(studentId) || '');
+        const isMatchStudent = (s) => {
+          if (!s) return false;
+          const subStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
+          return subStudentId === studentIdStr ||
+            (studentUuidStr && subStudentId === studentUuidStr) ||
+            toUUID(subStudentId) === studentIdStr ||
+            (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+        };
+
+        const isMatchHwSub = (s, targetHw = null, specificTestId = null) => {
+          if (!s || !isMatchStudent(s)) return false;
+          if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+          const hwIdStr = String(targetHw?.id || '');
+          const cleanHwId = hwIdStr.replace(/^hw_/, '');
+          const sHwId = String(s.hwId || s.homeworkId || '');
+          const sTestId = String(s.testId || '');
+          const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
+          const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
+          const sId = String(s.id || '');
+
+          if (specificTestId) {
+            const specStr = String(specificTestId);
+            const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '');
+            const specUuid = String(toUUID(specificTestId) || '');
+            if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
+            if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
+            if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
+            if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+            return false;
+          }
+
+          if (targetHw) {
+            if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || (toUUID(hwIdStr) && sHwId === toUUID(hwIdStr)))) return true;
+            if (sTestId && (sTestId === hwIdStr || sTestId === cleanHwId || (toUUID(hwIdStr) && sTestId === toUUID(hwIdStr)))) return true;
+            if (sId && (sId === hwIdStr || sId === cleanHwId || (toUUID(hwIdStr) && sId === toUUID(hwIdStr)))) return true;
+          }
+          return false;
+        };
+
         let dayManualItems = [];
         if (Array.isArray(rawProg)) {
           const found = rawProg.find(r => r?.day === dayMeta.key);
