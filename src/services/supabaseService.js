@@ -1146,9 +1146,8 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
       });
 
     if (error) {
-      if (error.message && (error.message.includes('Bucket not found') || error.message.includes('not found') || error.statusCode === '404' || error.status === 404)) {
-        isQuestionFilesBucketAvailable = false;
-      }
+      // Disable further storage requests immediately on any RLS or bucket error to keep console clean
+      isQuestionFilesBucketAvailable = false;
       return null;
     }
 
@@ -1158,15 +1157,13 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
 
     return publicUrlData?.publicUrl || null;
   } catch (err) {
-    if (err.message && err.message.includes('Bucket not found')) {
-      isQuestionFilesBucketAvailable = false;
-    }
+    isQuestionFilesBucketAvailable = false;
     return null;
   }
 }
 
 export async function dbAddQuestion(q) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !q) return null;
   try {
     const qId = q.id || `q_${Date.now()}`;
     const dbId = toUUID(qId);
@@ -1183,14 +1180,16 @@ export async function dbAddQuestion(q) {
       );
     };
 
-    // Helper to upload to storage OR preserve within PostgreSQL TEXT columns
+    // Helper to upload to storage OR preserve directly within PostgreSQL TEXT columns
     const processBase64String = async (val, suffix) => {
       if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
-        if (val.length > 50000 && isQuestionFilesBucketAvailable) {
+        // Optimized WebP images are lightweight (~50-150KB) and store directly in DB with 0 network latency.
+        // Only attempt storage upload for very large files (> 2MB).
+        if (val.length > 2000000 && isQuestionFilesBucketAvailable) {
           const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
           if (publicUrl) return publicUrl;
         }
-        // Fallback: If bucket is not found or storage upload not configured, safely keep in DB if under 3MB
+        // Keep in PostgreSQL if under 3MB
         if (val.length < 3000000) {
           return val;
         }
