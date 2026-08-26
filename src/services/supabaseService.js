@@ -1325,14 +1325,20 @@ export async function dbDeleteQuestion(q) {
   if (!isSupabaseConfigured() || !q) return null;
   try {
     const qId = typeof q === 'object' ? q.id : q;
-    const dbId = toUUID(qId);
     const rawIdStr = String(qId);
+    const validUuids = ensureUUIDs([
+      rawIdStr,
+      rawIdStr.replace(/^q_?/, ''),
+      rawIdStr.replace(/^hw_?/, '')
+    ]);
 
     // 1. Fetch question record to extract storage URLs if only ID was passed
     let questionObj = typeof q === 'object' ? q : null;
-    if (!questionObj) {
-      const { data } = await supabase.from('questions').select('*').or(`id.eq.${dbId},id.eq.${rawIdStr}`).maybeSingle();
-      if (data) questionObj = data;
+    if (!questionObj && validUuids.length > 0) {
+      try {
+        const { data } = await supabase.from('questions').select('*').in('id', validUuids).maybeSingle();
+        if (data) questionObj = data;
+      } catch (fetchErr) {}
     }
 
     // 2. Extract and delete any uploaded files from Supabase Storage ('question_files' bucket)
@@ -1368,19 +1374,12 @@ export async function dbDeleteQuestion(q) {
       }
     }
 
-    // 3. Delete row from Supabase database - try all ID variations
-    const idsToDelete = [
-      dbId,
-      rawIdStr,
-      rawIdStr.replace(/^q_?/, ''),
-      rawIdStr.replace(/^hw_?/, ''),
-      `q_${rawIdStr}`,
-      `q${rawIdStr}`
-    ].filter(Boolean);
-    const uniqueIds = [...new Set(idsToDelete)];
-
-    for (const targetId of uniqueIds) {
-      await supabase.from('questions').delete().eq('id', targetId);
+    // 3. Delete row from Supabase database - ONLY using valid UUIDs to prevent 400 Bad Request
+    if (validUuids.length > 0) {
+      const { error } = await supabase.from('questions').delete().in('id', validUuids);
+      if (error) {
+        console.warn('[Supabase] dbDeleteQuestion delete error:', error.message);
+      }
     }
     return true;
   } catch (err) {
@@ -1589,7 +1588,7 @@ export async function dbDeleteHomework(hwId) {
   if (!isSupabaseConfigured() || !hwId) return null;
   try {
     const hwStr = String(hwId);
-    const validSubTestUuids = ensureUUIDs([hwStr]);
+    const validSubTestUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
 
     if (validSubTestUuids.length > 0) {
       try {
@@ -1600,11 +1599,11 @@ export async function dbDeleteHomework(hwId) {
       await supabase.from('submissions').delete().eq('homework_id', hwStr);
     } catch (e) {}
 
-    // Delete from homeworks table (id can be string or uuid)
-    const hwCandidateIds = Array.from(new Set([hwStr, toUUID(hwStr)].filter(Boolean)));
-    for (const cid of hwCandidateIds) {
+    // Delete from homeworks table using valid UUIDs
+    const validHwUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
+    if (validHwUuids.length > 0) {
       try {
-        await supabase.from('homeworks').delete().eq('id', cid);
+        await supabase.from('homeworks').delete().in('id', validHwUuids);
       } catch (e) {}
     }
     return true;
@@ -2043,19 +2042,15 @@ export async function dbUpdateTrackedBook(bookId, updates) {
 export async function dbDeleteTrackedBook(bookId) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
-    const candidateIds = Array.from(new Set([String(bookId), toUUID(bookId)].filter(Boolean)));
+    const validBookUuids = ensureUUIDs([String(bookId), String(bookId).replace(/^book_?/, '')]);
     
     // 1. Delete associated tests first to avoid FK constraint blocks
-    for (const cid of candidateIds) {
+    if (validBookUuids.length > 0) {
       try {
-        await supabase.from('tracked_book_tests').delete().eq('book_id', cid);
+        await supabase.from('tracked_book_tests').delete().in('book_id', validBookUuids);
       } catch {}
-    }
-
-    // 2. Delete the book itself across all candidate IDs
-    for (const cid of candidateIds) {
       try {
-        await supabase.from('tracked_books').delete().eq('id', cid);
+        await supabase.from('tracked_books').delete().in('id', validBookUuids);
       } catch {}
     }
     return true;
@@ -2208,11 +2203,9 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
 export async function dbDeleteTrackedBookTest(testId) {
   if (!isSupabaseConfigured() || !testId) return null;
   try {
-    const candidateIds = Array.from(new Set([String(testId), toUUID(testId)].filter(Boolean)));
-    for (const cid of candidateIds) {
-      try {
-        await supabase.from('tracked_book_tests').delete().eq('id', cid);
-      } catch {}
+    const validTestUuids = ensureUUIDs([String(testId), String(testId).replace(/^test_?/, '')]);
+    if (validTestUuids.length > 0) {
+      await supabase.from('tracked_book_tests').delete().in('id', validTestUuids);
     }
     return true;
   } catch (err) {
