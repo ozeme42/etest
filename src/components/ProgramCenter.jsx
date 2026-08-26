@@ -5167,7 +5167,7 @@ export default function ProgramCenter({
                                           .replace(/\s*\(Kendi Eklediğim\)/gi, '')
                                           .trim();
 
-                                        const rawUnit = bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase())
+                                        const unitText = bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase())
                                           ? bookInfo.unit
                                           : null;
 
