@@ -4,6 +4,7 @@ import { extractQuestionText, extractQuestionOptions } from '../../../utils/test
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -276,6 +277,8 @@ export default function MultipleChoiceReview({
           <span style={{ padding: '0.22rem 0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.72rem' }}>
             🔘 Çoktan Seçmeli
           </span>
+
+          <AiUsageBadge testId={question?.testId || `mc_${qNo}`} questionNo={qNo} />
         </div>
 
         {!hasSelected ? (

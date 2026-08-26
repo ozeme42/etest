@@ -11,6 +11,7 @@ import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -712,9 +713,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           gap: '1.25rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a' }}>
-              Soru {currentQNo} İncelemesi
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a' }}>
+                Soru {currentQNo} İncelemesi
+              </h3>
+              <AiUsageBadge testId={testId} questionNo={currentQNo} />
+            </div>
             {isItemOE ? (
               (!isText || teacherSc === 'empty') ? (
                 <span style={{

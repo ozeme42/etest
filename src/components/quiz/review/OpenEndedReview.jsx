@@ -3,6 +3,7 @@ import { Award, CheckCircle, Clock, Edit3, Eye, MessageSquare, XCircle, Sparkles
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -271,6 +272,7 @@ export default function OpenEndedReview({
           }}>
             ✍️ Açık Uçlu / Yazılı
           </span>
+          <AiUsageBadge testId={question?.testId || `oe_${qNo}`} questionNo={qNo} />
         </div>
 
         {/* Status Badge */}

@@ -33,6 +33,7 @@ import { toUUID } from '../services/supabaseService';
 
 import { detectSubject, subjectThemes, QUICK_FEEDBACK_PRESETS, isItemOpenEnded } from '../features/evaluation/constants/evaluationConstants';
 import SmartEvaluationModal from '../features/evaluation/components/SmartEvaluationModal';
+import { getAiUsageMapForTest } from '../services/aiUsageLogService';
 
 export default function EvaluationManager() {
   const navigate = useNavigate();
@@ -796,6 +797,31 @@ export default function EvaluationManager() {
                     <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
                       {subConf.icon} {sub.subject}
                     </span>
+                    {(() => {
+                      const aiMap = getAiUsageMapForTest(sub.testId || sub.id, sub.studentId || sub.userId);
+                      const aiQuestionCount = Object.keys(aiMap).length;
+                      if (aiQuestionCount === 0) return null;
+                      return (
+                        <span
+                          title={`Öğrenci bu sınavda ${aiQuestionCount} soruda yapay zeka çözümü incelemiştir.`}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.12))',
+                            color: '#7c3aed',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '0.45rem',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            border: '1px solid #c084fc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}
+                        >
+                          <Sparkles size={11} color="#a855f7" />
+                          <span>✨ {aiQuestionCount} Soru AI</span>
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 

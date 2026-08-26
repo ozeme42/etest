@@ -7,6 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 import { toUUID } from '../../../services/supabaseService';
 
 function getAnsIndex(val) {
@@ -683,6 +684,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                                 <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)' }}>
                                   {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
                                 </span>
+                                <AiUsageBadge testId={testId} questionNo={qNo} compact />
                               </div>
 
                               {/* Bubble Options */}

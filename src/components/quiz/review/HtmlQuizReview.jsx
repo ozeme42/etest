@@ -11,6 +11,7 @@ import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -737,7 +738,10 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
+                      <AiUsageBadge testId={testId} questionNo={qNo} compact />
+                    </div>
                     {isItemOE ? (
                       (!isText || teacherSc === 'empty') ? (
                         <span style={{

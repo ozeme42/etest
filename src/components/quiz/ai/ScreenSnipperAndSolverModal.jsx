@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey } from '../../../services/supabaseService';
+import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -97,6 +98,18 @@ export default function ScreenSnipperAndSolverModal({
       });
 
       setSolution(res);
+
+      // Record AI usage log for teacher transparency
+      recordAiUsageLog({
+        studentId: currentUser?.id || 'anonymous',
+        studentName: currentUser?.name || currentUser?.username || 'Öğrenci',
+        testId: testId || 'test',
+        questionNo,
+        subject: subject || question?.subject || 'Genel',
+        topic: topic || question?.topic || '',
+        mistakeReason: mistakeReason || '',
+        actionType: overrideImage || croppedImage ? 'crop' : 'solve'
+      });
     } catch (err) {
       if (err.message === 'API_KEY_REQUIRED') {
         setApiKeyModalOpen(true);
