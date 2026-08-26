@@ -1535,54 +1535,97 @@ export default function StudentDashboard() {
             if (d && !testDueDatesMap[bt.id]) testDueDatesMap[bt.id] = d;
           });
 
-          // Merge dates from bookObj subjects/topics
-          (bookObj?.subjects || []).forEach(s => {
-            (s.tests || []).forEach(t => {
-              const d = t.dueDate || t.testDueDate || t.date;
-              if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
-            });
-            (s.topics || []).forEach(tp => {
-              (tp.tests || []).forEach(t => {
-                const d = t.dueDate || t.testDueDate || t.date;
-                if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
-              });
-            });
-          });
+          if (isBook) {
+            // Collect all genuine tests belonging to this book
+            const allGenuineTests = [];
+            const seenTestIds = new Set();
 
-          if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
-            Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
-              if (!tDateStr) return;
-              const tYMD = extractItemYMD(tDateStr);
-              if (dayYMD === tYMD) {
-                const info = resolveBookTestInfo(testId, hw, bookObj);
-                const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
-                  (submissions || []).some(s => isMatchHwSub(s, hw, testId));
-                const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
-
-                const exists = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && m.testId === testId));
-                if (!exists) {
-                  autoHwItems.push({
-                    id: autoId,
-                    hwId: hw.id,
-                    testId: testId,
-                    bookTestId: testId,
-                    bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
-                    isAutoHomework: true,
-                    isBookTask: true,
-                    taskType: 'kitap',
-                    subject: info.subjectName,
-                    unitTopic: info.topicName,
-                    bookTitle: info.cleanBookTitle,
-                    testName: info.testName,
-                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                    questionCount: `${info.qCount} soru`,
-                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                    done: isTestSolved
+            if (bookObj?.subjects && Array.isArray(bookObj.subjects)) {
+              bookObj.subjects.forEach(s => {
+                (s.tests || []).forEach(t => {
+                  const tid = String(t.id);
+                  if (!seenTestIds.has(tid)) {
+                    seenTestIds.add(tid);
+                    allGenuineTests.push({ ...t, subjectObj: s, topicObj: null });
+                  }
+                });
+                (s.topics || []).forEach(tp => {
+                  (tp.tests || []).forEach(t => {
+                    const tid = String(t.id);
+                    if (!seenTestIds.has(tid)) {
+                      seenTestIds.add(tid);
+                      allGenuineTests.push({ ...t, subjectObj: s, topicObj: tp });
+                    }
                   });
-                }
+                });
+              });
+            }
+
+            (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId || bookObj?.id) || toUUID(bt.bookId) === toUUID(hw.bookId || bookObj?.id)).forEach(bt => {
+              const tid = String(bt.id);
+              const cleanTid = tid.replace(/^bt_/, '');
+              if (!seenTestIds.has(tid) && !seenTestIds.has(cleanTid)) {
+                seenTestIds.add(tid);
+                allGenuineTests.push({ ...bt, isBookTest: true });
               }
             });
-            return;
+
+            if (allGenuineTests.length > 0 && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
+              allGenuineTests.forEach(testItem => {
+                const tidStr = String(testItem.id);
+                const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '');
+                const tidUuid = String(toUUID(tidStr) || '');
+
+                const tDateStr = testDueDatesMap[tidStr] ||
+                  (tidUuid && testDueDatesMap[tidUuid]) ||
+                  testDueDatesMap[tidClean] ||
+                  testDueDatesMap[`bt_${tidClean}`] ||
+                  testDueDatesMap[`bt_${tidStr}`] ||
+                  testItem.dueDate || testItem.testDueDate || testItem.date;
+
+                if (!tDateStr) return;
+                const tYMD = extractItemYMD(tDateStr);
+                if (dayYMD === tYMD) {
+                  const info = resolveBookTestInfo(testItem.id, hw, bookObj);
+                  if (!info || !info.testName || info.testName === 'Testi' || info.testName === info.cleanBookTitle) {
+                    if (testItem.name && testItem.name !== 'Test' && testItem.name !== 'Kitap Testi') {
+                      info.testName = testItem.name;
+                    } else {
+                      return; // Skip phantom/unnamed test
+                    }
+                  }
+
+                  const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id)) ||
+                    (submissions || []).some(s => isMatchHwSub(s, hw, testItem.id));
+                  const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
+
+                  const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
+                    autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (tidUuid && toUUID(a.testId) === tidUuid) || (a.testName === info.testName && a.subject === info.subjectName && a.bookTitle === info.cleanBookTitle));
+
+                  if (!isAlreadyPresent) {
+                    autoHwItems.push({
+                      id: autoId,
+                      hwId: hw.id,
+                      testId: testItem.id,
+                      bookTestId: testItem.id,
+                      bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
+                      isAutoHomework: true,
+                      isBookTask: true,
+                      taskType: 'kitap',
+                      subject: info.subjectName,
+                      unitTopic: info.topicName,
+                      bookTitle: info.cleanBookTitle,
+                      testName: info.testName,
+                      title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                      questionCount: `${info.qCount} soru`,
+                      time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                      done: isTestSolved
+                    });
+                  }
+                }
+              });
+              return;
+            }
           }
 
           const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
@@ -1610,53 +1653,27 @@ export default function StudentDashboard() {
             }
           }
 
-          if (isForThisDay) {
+          if (isForThisDay && !isBook) {
             const rawDue = hw.dueDate || hw.assignedDueDate;
             let formattedDue = '';
             if (rawDue) {
               try { formattedDue = `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}`; } catch {}
             }
 
-            if (isBook && Array.isArray(hw.tests) && hw.tests.length > 1) {
-              hw.tests.forEach((testId, idx) => {
-                const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
-                  (submissions || []).some(s => isMatchHwSub(s, hw, testId));
+            const isExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isExamTask || hw.isPhysical;
+            const autoId = `auto_hw_${hw.id}`;
+            const isAlreadyIn = dayManualItems.some(m => m.id === autoId || m.hwId === hw.id) ||
+              autoHwItems.some(a => a.hwId === hw.id || a.id === autoId);
 
-                const info = resolveBookTestInfo(testId, hw, bookObj);
-                const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}` || m.hwId === hw.id);
-                if (!exists) {
-                  autoHwItems.push({
-                    id: `auto_hw_${hw.id}_${testId}`,
-                    hwId: hw.id,
-                    testId: testId,
-                    bookTestId: testId,
-                    bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
-                    isAutoHomework: true,
-                    isBookTask: true,
-                    taskType: 'kitap',
-                    subject: info.subjectName || hw.subject || 'Kitap Takibi',
-                    unitTopic: info.topicName || '',
-                    bookTitle: info.cleanBookTitle,
-                    testName: info.testName || `Test ${idx + 1}`,
-                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                    questionCount: `${info.qCount} soru`,
-                    time: formattedDue || null,
-                    done: isTestSolved
-                  });
-                }
-              });
-              return;
-            }
-
-            const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
-            if (!exists) {
+            if (!isAlreadyIn) {
               autoHwItems.push({
-                id: `auto_hw_${hw.id}`,
+                id: autoId,
                 hwId: hw.id,
                 isAutoHomework: true,
-                taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
-                subject: hw.subject || 'Atanan Ödev',
-                title: hw.title || hw.name || 'Ödev Görevi',
+                isExamTask: isExam,
+                taskType: isExam ? 'deneme' : 'ödev',
+                subject: hw.subject || (isExam ? 'Deneme Sınavı' : 'Ödev'),
+                title: hw.title || 'Ödev Görevi',
                 questionCount: hw.totalQuestions ? `${hw.totalQuestions} soru` : null,
                 time: formattedDue || null,
                 done: isDone
@@ -1673,12 +1690,18 @@ export default function StudentDashboard() {
               if (!tDue) return;
               const tYMD = extractItemYMD(tDue);
               if (tYMD === dayYMD) {
-                const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
-                if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                const info = resolveBookTestInfo(t.id, null, b);
+                if (!info || !info.testName || info.testName === 'Testi' || info.testName === info.cleanBookTitle) return;
+
+                const tidStr = String(t.id);
+                const tidClean = tidStr.replace(/^bt_/, '');
+                const isAlreadyPresent = dayManualItems.some(m => m.testId === t.id || m.testId === tidClean) ||
+                  autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (a.testName === info.testName && a.subject === info.subjectName));
+
+                if (!isAlreadyPresent) {
                   const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
-                  const info = resolveBookTestInfo(t.id, null, b);
                   autoHwItems.push({
-                    id: autoId,
+                    id: `book_test_direct_${b.id}_${t.id}_${dayYMD}`,
                     testId: t.id,
                     bookTestId: t.id,
                     bookId: b.id,
@@ -1704,12 +1727,18 @@ export default function StudentDashboard() {
                 if (!tDue) return;
                 const tYMD = extractItemYMD(tDue);
                 if (tYMD === dayYMD) {
-                  const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
-                  if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
+                  const info = resolveBookTestInfo(t.id, null, b);
+                  if (!info || !info.testName || info.testName === 'Testi' || info.testName === info.cleanBookTitle) return;
+
+                  const tidStr = String(t.id);
+                  const tidClean = tidStr.replace(/^bt_/, '');
+                  const isAlreadyPresent = dayManualItems.some(m => m.testId === t.id || m.testId === tidClean) ||
+                    autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (a.testName === info.testName && a.subject === info.subjectName));
+
+                  if (!isAlreadyPresent) {
                     const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
-                    const info = resolveBookTestInfo(t.id, null, b);
                     autoHwItems.push({
-                      id: autoId,
+                      id: `book_test_direct_${b.id}_${t.id}_${dayYMD}`,
                       testId: t.id,
                       bookTestId: t.id,
                       bookId: b.id,
@@ -1741,16 +1770,18 @@ export default function StudentDashboard() {
           if (tYMD === dayYMD) {
             const bId = String(bt.bookId || bt.book_id || '');
             const currentBook = (books || []).find(b => String(b.id) === bId || (toUUID(b.id) && toUUID(b.id) === toUUID(bId)));
+            const info = resolveBookTestInfo(bt.id, null, currentBook);
+            if (!info || !info.testName || info.testName === 'Testi' || info.testName === info.cleanBookTitle) return;
 
-            const autoId = `book_test_bt_${bt.id}_${dayYMD}`;
-            const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) ||
-              autoHwItems.some(a => a.testId === bt.id || a.bookTestId === bt.id);
+            const tidStr = String(bt.id);
+            const tidClean = tidStr.replace(/^bt_/, '');
+            const isAlreadyPresent = dayManualItems.some(m => m.testId === bt.id || m.testId === tidClean || m.bookTestId === bt.id) ||
+              autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (a.testName === info.testName && a.subject === info.subjectName));
 
             if (!isAlreadyPresent) {
               const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, bt.id));
-              const info = resolveBookTestInfo(bt.id, null, currentBook);
               autoHwItems.push({
-                id: autoId,
+                id: `book_test_bt_${bt.id}_${dayYMD}`,
                 testId: bt.id,
                 bookTestId: bt.id,
                 bookId: bId || info.currentBook?.id,
