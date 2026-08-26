@@ -1,9 +1,11 @@
 {
   "appId": "com.etest.app",
-  "appName": "E-Test Platform",
+  "appName": "eTest",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
+    "url": "https://etest-azure.vercel.app/",
+    "cleartext": true,
     "androidScheme": "https"
   },
   "android": {
