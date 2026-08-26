@@ -375,7 +375,7 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { homeworks, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
@@ -544,7 +544,7 @@ export default function StudentDashboard() {
         }];
       }
 
-      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj) || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)');
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj) || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)') || (hw.title && /kitap|seti|soru bankası|paragraf|atlı karınca|artıbir/i.test(hw.title));
 
       if (isBook) {
         return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor
@@ -2006,6 +2006,45 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleDeleteTask = async (task) => {
+    if (!task) return;
+    const taskTitle = task.testName || task.title || 'görev';
+    if (!window.confirm(`"${taskTitle}" görevini silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      const targetHwId = task.hwId || (task.id && String(task.id).startsWith('hw_') ? String(task.id).replace(/^hw_/, '') : null);
+      if (targetHwId && typeof deleteHomework === 'function') {
+        await deleteHomework(targetHwId);
+      } else if (task.id && typeof deleteHomework === 'function') {
+        await deleteHomework(task.id);
+      }
+
+      if (task.isScheduleContextItem && typeof deleteSchedule === 'function') {
+        await deleteSchedule(task.id);
+      }
+
+      if (coachingProfile && Array.isArray(coachingProfile.weeklyProgram)) {
+        let modified = false;
+        const updated = coachingProfile.weeklyProgram.map(dayRow => {
+          const filtered = (dayRow.items || []).filter(item => item.id !== task.id && item.id !== task.hwId && item.hwId !== task.hwId);
+          if (filtered.length !== (dayRow.items || []).length) modified = true;
+          return { ...dayRow, items: filtered };
+        });
+        if (modified) {
+          await saveCoachingProfile({
+            ...coachingProfile,
+            studentId: selectedStudent.id,
+            weeklyProgram: updated
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    }
+  };
+
   const weekTasksCountMap = useMemo(() => {
     const map = {};
     DAYS_OF_WEEK.forEach(d => {
@@ -2967,6 +3006,7 @@ export default function StudentDashboard() {
                 showAllDayTasks={showAllDayTasks}
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}
+                onDeleteTask={handleDeleteTask}
                 onTaskClick={(task) => {
                   if (!task) return;
                   if (task.roadmapAssignmentId) {
