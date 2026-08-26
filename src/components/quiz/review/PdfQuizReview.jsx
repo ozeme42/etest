@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../../../utils/answerEvaluation';
@@ -10,6 +10,15 @@ import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
+import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+
+const MISTAKE_REASON_OPTIONS = [
+  { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+];
 
 export default function PdfQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
@@ -187,6 +196,45 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const [overallFeedback, setOverallFeedback] = useState(submission?.teacherFeedback || submission?.teacherNote || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [aiModalQuestionNo, setAiModalQuestionNo] = useState(null);
+
+  const studentId = submission?.studentId || currentUser?.id || 'u1';
+  const testId = test?.id || submission?.testId || submission?.bookTestId || 'test_1';
+  const testKey = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
+
+  const [mistakeReasons, setMistakeReasons] = useState(() => {
+    if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
+      return submission.mistakeReasons;
+    }
+    try {
+      const keysToTry = [
+        `mistake_reasons_${testId}_${studentId}`,
+        `mistake_reasons_bt_${testKey}_${studentId}`,
+        `mistake_reasons_${testKey}_${studentId}`,
+        `mistake_reasons_${testId}`
+      ];
+      for (const k of keysToTry) {
+        const saved = localStorage.getItem(k);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') return parsed;
+        }
+      }
+    } catch {}
+    return {};
+  });
+
+  const handleSetMistakeReason = (qNo, reason) => {
+    const next = { ...mistakeReasons, [qNo]: mistakeReasons[qNo] === reason ? null : reason };
+    setMistakeReasons(next);
+    try {
+      localStorage.setItem(`mistake_reasons_${testId}_${studentId}`, JSON.stringify(next));
+      localStorage.setItem(`mistake_reasons_${testKey}_${studentId}`, JSON.stringify(next));
+      if (submission?.id && updateSubmission) {
+        updateSubmission(submission.id, { mistakeReasons: next });
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -945,6 +993,81 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                       <strong>💬 Öğretmen Notu:</strong> {teacherNotes[qNo]}
                     </div>
                   )}
+
+                  {/* ════════════════════════════════════════════
+                      MISTAKE DIAGNOSTIC SELECTOR & AI CROP BUTTON
+                  ════════════════════════════════════════════ */}
+                  {(!isCorrect || isBlank) && (
+                    <div style={{
+                      marginTop: '0.65rem',
+                      paddingTop: '0.65rem',
+                      borderTop: !isCorrect ? '1px dashed #fecaca' : '1px dashed #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '0.4rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.66rem', fontWeight: 800, color: !isCorrect ? '#b91c1c' : '#64748b' }}>
+                          {!isCorrect ? '🤔 Hata Sebebi:' : '⚪ Boş Sebebi:'}
+                        </span>
+                        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                          {MISTAKE_REASON_OPTIONS.map(r => {
+                            const currentVal = mistakeReasons[qNo];
+                            const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
+                            return (
+                              <button
+                                key={r.label}
+                                type="button"
+                                onClick={() => handleSetMistakeReason(qNo, r.label)}
+                                style={{
+                                  padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
+                                  fontSize: isMobile ? '0.56rem' : '0.62rem',
+                                  fontWeight: 800,
+                                  borderRadius: 6,
+                                  border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                  background: isSelected ? r.color : r.bg,
+                                  color: isSelected ? '#ffffff' : r.color,
+                                  cursor: 'pointer',
+                                  boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                              >
+                                {r.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* ✂️ AI Soru Çözümü & Kırpma Butonu */}
+                      <button
+                        type="button"
+                        onClick={() => setAiModalQuestionNo(qNo)}
+                        style={{
+                          padding: isMobile ? '0.18rem 0.5rem' : '0.22rem 0.65rem',
+                          fontSize: isMobile ? '0.62rem' : '0.7rem',
+                          fontWeight: 900,
+                          borderRadius: 6,
+                          border: '1.5px solid #a855f7',
+                          background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                          color: '#7c3aed',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={`Soru ${qNo} için yapay zeka çözümü ve soru kırpma`}
+                      >
+                        <Sparkles size={12} color="#a855f7" />
+                        <span>✨ AI Çözüm & Kırp</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -978,6 +1101,27 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           </div>
         }
       />
+
+      {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
+      {aiModalQuestionNo && (
+        <ScreenSnipperAndSolverModal
+          isOpen={Boolean(aiModalQuestionNo)}
+          onClose={() => setAiModalQuestionNo(null)}
+          questionNo={aiModalQuestionNo}
+          question={questions[aiModalQuestionNo - 1] || {
+            questionNo: aiModalQuestionNo,
+            userAnswer: answers[aiModalQuestionNo - 1]?.userAnswer,
+            userAnswerText: answers[aiModalQuestionNo - 1]?.userAnswerText
+          }}
+          mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
+          onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
+          studentAnswer={answers[aiModalQuestionNo - 1]?.userAnswerText || (answers[aiModalQuestionNo - 1]?.userAnswer !== undefined ? (typeof answers[aiModalQuestionNo - 1]?.userAnswer === 'number' ? String.fromCharCode(65 + answers[aiModalQuestionNo - 1]?.userAnswer) : answers[aiModalQuestionNo - 1]?.userAnswer) : '')}
+          correctAnswer={formatAnswerLetter(resolveQuestionCorrectAnswer(aiModalQuestionNo, questions[aiModalQuestionNo - 1], test)) || ''}
+          subject={test?.subject || submission?.subject || 'Genel'}
+          topic={test?.topic || submission?.unitTopic || ''}
+          testId={testId}
+        />
+      )}
 
       {showResultModal && (
         <ReviewResultModal

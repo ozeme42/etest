@@ -3,6 +3,15 @@ import { Eye, Key, Check, X, HelpCircle, Lightbulb, Sparkles, BookOpen } from 'l
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
+import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+
+const MISTAKE_REASON_OPTIONS = [
+  { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+  { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
+];
 
 const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFullscreen }) {
   if (!src) return null;
@@ -75,6 +84,23 @@ export default function MultipleChoiceReview({
 }) {
   const [activeLightbox, setActiveLightbox] = useState(null);
   const [idbImage, setIdbImage] = useState(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [mistakeReason, setMistakeReason] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`mistake_mc_${question?.id || qNo}`);
+      return saved || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const handleSetMistakeReason = (reason) => {
+    const next = mistakeReason === reason ? '' : reason;
+    setMistakeReason(next);
+    try {
+      localStorage.setItem(`mistake_mc_${question?.id || qNo}`, next);
+    } catch {}
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -481,11 +507,107 @@ export default function MultipleChoiceReview({
         </div>
       )}
 
+      {/* ════════════════════════════════════════════
+          MISTAKE DIAGNOSTIC SELECTOR & AI SOLVE BUTTON
+      ════════════════════════════════════════════ */}
+      {(effectiveIsCorrect === false || !hasSelected) && (
+        <div style={{
+          marginTop: '0.75rem',
+          paddingTop: '0.75rem',
+          borderTop: '1px dashed #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: effectiveIsCorrect === false ? '#b91c1c' : '#64748b' }}>
+              {effectiveIsCorrect === false ? '🤔 Yanlış Sebebi:' : '⚪ Boş Sebebi:'}
+            </span>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {MISTAKE_REASON_OPTIONS.map(r => {
+                const isSelected = mistakeReason === r.label || (mistakeReason && String(mistakeReason).includes(r.label.slice(2).trim()));
+                return (
+                  <button
+                    key={r.label}
+                    type="button"
+                    onClick={() => handleSetMistakeReason(r.label)}
+                    style={{
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      borderRadius: 6,
+                      border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                      background: isSelected ? r.color : r.bg,
+                      color: isSelected ? '#ffffff' : r.color,
+                      cursor: 'pointer',
+                      boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ✂️ AI Soru Çözümü Butonu */}
+          <button
+            type="button"
+            onClick={() => setAiModalOpen(true)}
+            style={{
+              padding: '0.3rem 0.85rem',
+              fontSize: '0.78rem',
+              fontWeight: 900,
+              borderRadius: 8,
+              border: '1.5px solid #a855f7',
+              background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+              color: '#7c3aed',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+              transition: 'all 0.15s ease'
+            }}
+            title={`Soru ${qNo} için yapay zeka çözümü ve analizi`}
+          >
+            <Sparkles size={14} color="#a855f7" />
+            <span>✨ AI Soru Çözümü</span>
+          </button>
+        </div>
+      )}
+
       {activeLightbox && (
         <ImageLightbox
           isOpen={Boolean(activeLightbox)}
           src={activeLightbox}
           onClose={() => setActiveLightbox(null)}
+        />
+      )}
+
+      {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
+      {aiModalOpen && (
+        <ScreenSnipperAndSolverModal
+          isOpen={aiModalOpen}
+          onClose={() => setAiModalOpen(false)}
+          questionNo={qNo}
+          question={{
+            ...question,
+            questionText: parsedQuestionText || question?.questionText || '',
+            options: parsedOptions.length > 0 ? parsedOptions : (question?.options || [])
+          }}
+          existingImageUrl={activeImgSrc}
+          mistakeReason={mistakeReason || ''}
+          onMistakeReasonChange={handleSetMistakeReason}
+          studentAnswer={hasSelected ? optionLetters[normalizedUser] : 'Boş'}
+          correctAnswer={normalizedCorrect !== null ? optionLetters[normalizedCorrect] : (question?.correctAnswerLetter || '')}
+          subject={question?.subject || 'Genel'}
+          topic={question?.topic || ''}
+          testId={question?.testId || `mc_${qNo}`}
         />
       )}
     </div>

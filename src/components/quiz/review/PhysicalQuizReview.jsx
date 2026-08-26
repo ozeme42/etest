@@ -6,6 +6,7 @@ import { useEvaluation } from '../../../context/EvaluationContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
+import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
 import { toUUID } from '../../../services/supabaseService';
 
 function getAnsIndex(val) {
@@ -82,6 +83,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showMistakeSummary, setShowMistakeSummary] = useState(true);
   const [savedFeedbackToast, setSavedFeedbackToast] = useState(null);
+  const [aiModalQuestionNo, setAiModalQuestionNo] = useState(null);
 
   // ── Load Mistake Reasons State ──
   const [mistakeReasons, setMistakeReasons] = useState(() => {
@@ -745,49 +747,76 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             {/* ════════════════════════════════════════════
                                 MISTAKE DIAGNOSTIC SELECTOR (INTERACTIVE IN REVIEW)
                             ════════════════════════════════════════════ */}
-                            {isWrong && (
+                            {(isWrong || isBlank) && (
                               <div style={{
                                 width: '100%',
                                 marginTop: '0.35rem',
                                 paddingTop: '0.35rem',
-                                borderTop: '1px dashed #fecaca',
+                                borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #e2e8f0',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 flexWrap: 'wrap',
-                                gap: '0.3rem'
+                                gap: '0.35rem'
                               }}>
-                                <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 3 }}>
-                                  🤔 Yanlış Sebebi:
-                                </span>
-                                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                                  {MISTAKE_REASON_OPTIONS.map(r => {
-                                    const currentVal = mistakeReasons[qNo];
-                                    const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
-                                    return (
-                                      <button
-                                        key={r.label}
-                                        type="button"
-                                        onClick={() => handleSetMistakeReason(qNo, r.label)}
-                                        style={{
-                                          padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
-                                          fontSize: isMobile ? '0.56rem' : '0.62rem',
-                                          fontWeight: 800,
-                                          borderRadius: 6,
-                                          border: `1.5px solid ${isSelected ? r.color : r.border}`,
-                                          background: isSelected ? r.color : r.bg,
-                                          color: isSelected ? '#ffffff' : r.color,
-                                          cursor: 'pointer',
-                                          boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
-                                          transition: 'all 0.15s ease'
-                                        }}
-                                        title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
-                                      >
-                                        {r.label}
-                                      </button>
-                                    );
-                                  })}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#64748b', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    {isWrong ? '🤔 Yanlış Sebebi:' : '⚪ Boş Sebebi:'}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                    {MISTAKE_REASON_OPTIONS.map(r => {
+                                      const currentVal = mistakeReasons[qNo];
+                                      const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
+                                      return (
+                                        <button
+                                          key={r.label}
+                                          type="button"
+                                          onClick={() => handleSetMistakeReason(qNo, r.label)}
+                                          style={{
+                                            padding: isMobile ? '0.14rem 0.35rem' : '0.16rem 0.45rem',
+                                            fontSize: isMobile ? '0.56rem' : '0.62rem',
+                                            fontWeight: 800,
+                                            borderRadius: 6,
+                                            border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                            background: isSelected ? r.color : r.bg,
+                                            color: isSelected ? '#ffffff' : r.color,
+                                            cursor: 'pointer',
+                                            boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                          title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                                        >
+                                          {r.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
+
+                                {/* ✂️ AI Soru Çözümü & Kırpma Butonu */}
+                                <button
+                                  type="button"
+                                  onClick={() => setAiModalQuestionNo(qNo)}
+                                  style={{
+                                    padding: isMobile ? '0.16rem 0.45rem' : '0.2rem 0.6rem',
+                                    fontSize: isMobile ? '0.6rem' : '0.68rem',
+                                    fontWeight: 900,
+                                    borderRadius: 6,
+                                    border: '1.5px solid #a855f7',
+                                    background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                    color: '#7c3aed',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  title={`Soru ${qNo} için yapay zeka çözümü ve soru kırpma`}
+                                >
+                                  <Sparkles size={12} color="#a855f7" />
+                                  <span>✨ AI Çözüm & Kırp</span>
+                                </button>
                               </div>
                             )}
                           </div>
@@ -804,6 +833,27 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           </div>
         )}
       </div>
+
+      {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
+      {aiModalQuestionNo && (
+        <ScreenSnipperAndSolverModal
+          isOpen={Boolean(aiModalQuestionNo)}
+          onClose={() => setAiModalQuestionNo(null)}
+          questionNo={aiModalQuestionNo}
+          question={{
+            questionNo: aiModalQuestionNo,
+            userAnswer: answers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + answers[aiModalQuestionNo]) : null,
+            correctAnswerLetter: correctAnswers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + correctAnswers[aiModalQuestionNo]) : null
+          }}
+          mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
+          onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
+          studentAnswer={answers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + answers[aiModalQuestionNo]) : ''}
+          correctAnswer={correctAnswers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + correctAnswers[aiModalQuestionNo]) : ''}
+          subject={test?.subject || submission?.subject || 'Genel'}
+          topic={test?.topic || submission?.unitTopic || ''}
+          testId={testId}
+        />
+      )}
     </div>
   );
 }
