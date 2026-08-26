@@ -1102,8 +1102,12 @@ export async function dbGetQuestions() {
   }
 }
 
+let isQuestionFilesBucketAvailable = true;
+
 export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file', bucket = 'question_files') {
   if (!isSupabaseConfigured() || !fileOrDataUrl) return null;
+  if (!isQuestionFilesBucketAvailable && bucket === 'question_files') return null;
+
   try {
     let fileBlob = null;
     let fileExt = 'pdf';
@@ -1112,7 +1116,7 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
       const arr = fileOrDataUrl.split(',');
       const mimeMatch = arr[0].match(/:(.*?);/);
       const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
-      fileExt = mime.includes('pdf') ? 'pdf' : (mime.includes('html') ? 'html' : (mime.includes('image') ? 'png' : 'bin'));
+      fileExt = mime.includes('pdf') ? 'pdf' : (mime.includes('html') ? 'html' : (mime.includes('webp') ? 'webp' : (mime.includes('image') ? 'png' : 'bin')));
       const bstr = atob(arr[1]);
       let n = bstr.length;
       const u8arr = new Uint8Array(n);
@@ -1142,7 +1146,9 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
       });
 
     if (error) {
-      console.warn('[Supabase Storage] Upload error:', error.message);
+      if (error.message && (error.message.includes('Bucket not found') || error.message.includes('not found') || error.statusCode === '404' || error.status === 404)) {
+        isQuestionFilesBucketAvailable = false;
+      }
       return null;
     }
 
@@ -1152,7 +1158,9 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
 
     return publicUrlData?.publicUrl || null;
   } catch (err) {
-    console.warn('[Supabase Storage] dbUploadFileToStorage failed:', err.message);
+    if (err.message && err.message.includes('Bucket not found')) {
+      isQuestionFilesBucketAvailable = false;
+    }
     return null;
   }
 }
@@ -1175,14 +1183,18 @@ export async function dbAddQuestion(q) {
       );
     };
 
-    // Helper to upload or strip base64 or large HTML
+    // Helper to upload to storage OR preserve within PostgreSQL TEXT columns
     const processBase64String = async (val, suffix) => {
       if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
-        if (val.length > 50000) {
+        if (val.length > 50000 && isQuestionFilesBucketAvailable) {
           const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
-          return publicUrl || '[STORED_IN_INDEXEDDB]';
+          if (publicUrl) return publicUrl;
         }
-        return val;
+        // Fallback: If bucket is not found or storage upload not configured, safely keep in DB if under 3MB
+        if (val.length < 3000000) {
+          return val;
+        }
+        return '[STORED_IN_INDEXEDDB]';
       }
       return val;
     };
