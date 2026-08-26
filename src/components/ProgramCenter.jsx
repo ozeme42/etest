@@ -1661,6 +1661,16 @@ export function MonthlyListPanel({
 }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
+  const [expandedMonthDays, setExpandedMonthDays] = useState({});
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const MONTHS_TR = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -2838,344 +2848,362 @@ export function MonthlyListPanel({
                     <div style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontWeight: 600, fontStyle: 'italic', padding: '0.35rem 0' }}>
                       Programlanan ders görevi yok
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      {d.items.map((item, idx) => {
-                        const icon = taskIcons[item.taskType] || '📌';
-                        const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                        const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
-                        const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
-                        const bookInfo = resolveBookTestInfo(item, books, bookTests);
+                  ) : (() => {
+                    const isShowAllMonthTasks = !!expandedMonthDays[d.ymd] || !isMobile;
+                    const MAX_MONTH_ITEMS = 4;
+                    const shouldShowMoreBtn = isMobile && d.items.length > MAX_MONTH_ITEMS;
+                    const displayedMonthItems = (shouldShowMoreBtn && !isShowAllMonthTasks) ? d.items.slice(0, MAX_MONTH_ITEMS) : d.items;
 
-                        return (
-                          <div
-                            key={item.id || idx}
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.45rem',
-                              background: item.done ? (isDark ? 'rgba(5,150,105,0.18)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
-                              border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'),
-                              borderLeft: `4px solid ${itemAccent}`,
-                              borderRadius: '0.75rem',
-                              padding: '0.65rem 0.85rem',
-                              boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)'),
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {/* Top Row: Checkbox + Icon + Subject / Title */}
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%' }}>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onToggle) onToggle(d.dayKey, item.id);
-                                }}
-                                style={{
-                                  width: 22,
-                                  height: 22,
-                                  borderRadius: 6,
-                                  border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.35)' : '2px solid #cbd5e1'),
-                                  background: item.done ? '#22c55e' : 'transparent',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  flexShrink: 0,
-                                  marginTop: 2,
-                                  transition: 'all 0.15s ease'
-                                }}
-                                title={item.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamlandı olarak işaretle'}
-                              >
-                                {item.done && <Check size={14} color="white" strokeWidth={3} />}
-                              </button>
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                        {displayedMonthItems.map((item, idx) => {
+                          const icon = taskIcons[item.taskType] || '📌';
+                          const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                          const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
+                          const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
-                              <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                          // Deduplicate titles and extract page numbers
+                          let rawTitle = bookInfo?.testName || item.topic || (bookInfo?.isBookTest ? 'Konu Testi' : (item.bookName || item.subject || 'Görev'));
+                          let pageBadge = null;
+                          const pageMatch = rawTitle.match(/^(\d+(?:[-–]\d+)?\.\s*(?:Sayfa|s\.)|\s*s\.\s*\d+(?:[-–]\d+)?)\s*/i);
+                          if (pageMatch) {
+                            pageBadge = pageMatch[0].trim();
+                            rawTitle = rawTitle.substring(pageMatch[0].length).trim();
+                          }
 
-                              <div
-                                onClick={() => {
-                                  if (isClickable && onOpenResult) {
-                                    onOpenResult(item);
-                                  } else if (onToggle) {
-                                    onToggle(d.dayKey, item.id);
-                                  }
-                                }}
-                                style={{
-                                  flex: 1,
-                                  minWidth: 0,
-                                  cursor: isClickable || onToggle ? 'pointer' : 'default'
-                                }}
-                              >
-                                <div style={{
-                                  fontSize: '0.85rem',
-                                  fontWeight: 800,
-                                  lineHeight: 1.4,
-                                  color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                  textDecoration: item.done ? 'line-through' : 'none',
-                                  wordBreak: 'break-word',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  flexWrap: 'wrap',
-                                  gap: 6
-                                }}>
-                                  <span>📚 {bookInfo?.isBookTest ? bookInfo.subject : (item.bookName || item.subject || 'Ders Çalışması')}</span>
-                                  {bookInfo?.isBookTest && bookInfo.publisher && (
-                                    <span style={{
-                                      fontSize: '0.64rem',
-                                      fontWeight: 700,
-                                      color: isDark ? '#c7d2fe' : '#4f46e5',
-                                      background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
-                                      border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                                      borderRadius: 4,
-                                      padding: '1px 5px'
-                                    }}>
-                                      🏢 {bookInfo.publisher}
-                                    </span>
-                                  )}
-                                  {isClickable && (
-                                    <span style={{
-                                      fontSize: '0.62rem',
-                                      color: isDark ? '#a5b4fc' : '#4f46e5',
-                                      background: isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff',
-                                      border: isDark ? '1px solid rgba(165,180,252,0.35)' : '1px solid #c7d2fe',
-                                      padding: '1px 6px',
-                                      borderRadius: 4,
-                                      fontWeight: 800,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 2
-                                    }}>
-                                      <span>Görevi Aç</span> ↗
-                                    </span>
-                                  )}
-                                </div>
-                                {bookInfo?.isBookTest && bookInfo.bookTitle && (
-                                  <div style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.85)' : '#334155', fontWeight: 700, marginTop: 1 }}>
-                                    📖 {bookInfo.bookTitle}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                          const rawBook = (bookInfo?.bookTitle || item.bookName || '')
+                            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                            .replace(/\s*\(Tüm Kitap\)/gi, '')
+                            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                            .trim();
 
-                            {/* Middle Row: Ünite ve Test Adı (Kitap Testi) veya Standart Konu */}
-                            {bookInfo?.isBookTest ? (
-                              <div style={{ paddingLeft: 30, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                                {bookInfo.unit && (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontWeight: 700,
-                                    fontSize: '0.72rem',
-                                    color: isDark ? '#93c5fd' : '#1d4ed8',
-                                    background: isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff',
-                                    border: isDark ? '1px solid rgba(59,130,246,0.35)' : '1px solid #bfdbfe',
-                                    borderRadius: '0.35rem',
-                                    padding: '1px 6px'
-                                  }}>
-                                    📂 {bookInfo.unit}
-                                  </span>
-                                )}
-                                {bookInfo.testName && (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontWeight: 800,
-                                    fontSize: '0.72rem',
-                                    color: isDark ? '#c084fc' : '#6d28d9',
-                                    background: isDark ? 'rgba(124,58,237,0.2)' : '#f5f3ff',
-                                    border: isDark ? '1px solid rgba(168,85,247,0.35)' : '1px solid #ddd6fe',
-                                    borderRadius: '0.35rem',
-                                    padding: '1px 6px'
-                                  }}>
-                                    🎯 {bookInfo.testName}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              item.topic && item.subject && item.topic !== item.subject && (
-                                <div style={{
-                                  paddingLeft: 30,
-                                  fontSize: '0.75rem',
-                                  color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
-                                  fontWeight: 600,
-                                  lineHeight: 1.45,
-                                  wordBreak: 'break-word',
-                                  marginTop: 2
-                                }}>
-                                  {item.topic}
-                                </div>
-                              )
-                            )}
+                          const unitText = bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase())
+                            ? bookInfo.unit
+                            : null;
 
-                            {/* Bottom Row: Badges & Action Buttons */}
-                            <div style={{
-                              paddingLeft: 30,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              flexWrap: 'wrap',
-                              gap: 6,
-                              marginTop: 2,
-                              paddingTop: 4,
-                              borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                {(item.startTime || item.endTime || item.time || item.saat) && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: 800,
-                                    color: isDark ? '#c7d2fe' : '#4f46e5',
-                                    background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff',
-                                    border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: 99,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3
-                                  }}>
-                                    🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
-                                  </span>
-                                )}
+                          const subjectName = bookInfo?.subject || item.subject || 'Ders';
 
-                                {(bookInfo?.questionCount || item.questionCount) && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: 800,
-                                    color: '#0284c7',
-                                    background: isDark ? 'rgba(2,132,199,0.2)' : '#e0e7fe',
-                                    border: isDark ? '1px solid rgba(2,132,199,0.35)' : '1px solid #bae6fd',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: 99
-                                  }}>
-                                    ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
-                                  </span>
-                                )}
+                          // Subject-based theme
+                          const getSubjTheme = (sub) => {
+                            const s = (sub || '').toLowerCase();
+                            if (s.includes('türkçe') || s.includes('paragraf')) return { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', border: 'rgba(59,130,246,0.3)' };
+                            if (s.includes('matematik')) return { color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(245,158,11,0.3)' };
+                            if (s.includes('fen')) return { color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(16,185,129,0.3)' };
+                            if (s.includes('sosyal') || s.includes('tarih')) return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', border: 'rgba(139,92,246,0.3)' };
+                            if (s.includes('ingilizce') || s.includes('dil')) return { color: '#db2777', bg: 'rgba(219,39,119,0.12)', border: 'rgba(236,72,153,0.3)' };
+                            if (s.includes('din')) return { color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(6,182,212,0.3)' };
+                            return { color: '#4f46e5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(99,102,241,0.3)' };
+                          };
+                          const subjTheme = getSubjTheme(subjectName);
 
-                                {item.hours && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700,
-                                    color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b',
-                                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: 99
-                                  }}>
-                                    ⏱️ {item.hours} sa
-                                  </span>
-                                )}
-
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 900,
-                                  padding: '0.15rem 0.55rem',
-                                  borderRadius: 99,
-                                  background: item.done ? (isDark ? 'rgba(5,150,105,0.25)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
-                                  color: item.done ? (isDark ? '#4ade80' : '#15803d') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b')
-                                }}>
-                                  {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
-                                </span>
-                              </div>
-
-                              {/* Actions on right */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-                                {!item.isAutoHomework && onEditClick && (
-                                  <button
-                                    onClick={() => onEditClick(d.dayKey, item)}
-                                    style={{
-                                      background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b',
-                                      padding: '3px 8px',
-                                      borderRadius: 6,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 3,
-                                      fontSize: '0.65rem',
-                                      fontWeight: 700
-                                    }}
-                                    title="Görevi Düzenle"
-                                  >
-                                    <Edit3 size={12} /> Düzenle
-                                  </button>
-                                )}
-                                {!item.isAutoHomework && onDelete && (
-                                  <button
-                                    onClick={() => onDelete(d.dayKey, item.id)}
-                                    style={{
-                                      background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      color: isDark ? '#f87171' : '#dc2626',
-                                      padding: '3px 8px',
-                                      borderRadius: 6,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 3,
-                                      fontSize: '0.65rem',
-                                      fontWeight: 700
-                                    }}
-                                    title="Görevi Sil"
-                                  >
-                                    <Trash2 size={12} /> Sil
-                                  </button>
-                                )}
-                                {isClickable && onOpenResult && (
-                                  <button
-                                    onClick={() => onOpenResult(item)}
-                                    style={{
-                                      background: item.done ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      color: '#ffffff',
-                                      padding: '3px 10px',
-                                      borderRadius: 6,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 4,
-                                      fontSize: '0.68rem',
-                                      fontWeight: 900,
-                                      boxShadow: item.done ? '0 2px 6px rgba(16,185,129,0.3)' : '0 2px 6px rgba(79,70,229,0.3)'
-                                    }}
-                                    title={item.done ? 'Sınav Sonucunu İncele' : 'Sınavı Başlat'}
-                                  >
-                                    <span>{item.done ? 'Sonucu Gör' : 'Başlat'}</span>
-                                    <ArrowRight size={11} />
-                                  </button>
-                                )}
-                                {!item.done && onStartStudy && (
+                          return (
+                            <div
+                              key={item.id || idx}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.45rem',
+                                background: item.done ? (isDark ? 'rgba(5,150,105,0.12)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                                border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0'),
+                                borderLeft: `4px solid ${item.done ? '#10b981' : subjTheme.color}`,
+                                borderRadius: '0.75rem',
+                                padding: isMobile ? '0.65rem 0.75rem' : '0.65rem 0.85rem',
+                                boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)'),
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {/* Top Row: Checkbox + Badges + Title */}
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 }}>
                                   <button
                                     type="button"
-                                    onClick={() => onStartStudy(item)}
-                                    style={{
-                                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      color: '#ffffff',
-                                      padding: '3px 8px',
-                                      borderRadius: 6,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 3,
-                                      fontSize: '0.65rem',
-                                      fontWeight: 800,
-                                      boxShadow: '0 2px 6px rgba(245,158,11,0.3)'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onToggle) onToggle(d.dayKey, item.id);
                                     }}
-                                    title="Bu görevi Çalışma Odası'na aktar ve hazırla"
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: '50%',
+                                      border: item.done ? 'none' : (isDark ? '2px solid rgba(255,255,255,0.3)' : '2px solid #cbd5e1'),
+                                      background: item.done ? '#10b981' : 'transparent',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      flexShrink: 0,
+                                      marginTop: 1,
+                                      boxShadow: item.done ? '0 2px 6px rgba(16,185,129,0.3)' : 'none',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    title={item.done ? 'Tamamlandı' : 'Tamamla'}
                                   >
-                                    <Play size={10} fill="#ffffff" /> Odada Çalış
+                                    {item.done && <Check size={13} color="white" strokeWidth={3} />}
                                   </button>
-                                )}
+
+                                  <div
+                                    onClick={() => {
+                                      if (isClickable && onOpenResult) {
+                                        onOpenResult(item);
+                                      } else if (onToggle) {
+                                        onToggle(d.dayKey, item.id);
+                                      }
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 0,
+                                      cursor: isClickable || onToggle ? 'pointer' : 'default',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 3
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                      <span style={{
+                                        fontSize: '0.64rem',
+                                        fontWeight: 900,
+                                        color: subjTheme.color,
+                                        background: subjTheme.bg,
+                                        border: `1px solid ${subjTheme.border}`,
+                                        padding: '1px 6px',
+                                        borderRadius: 5,
+                                        flexShrink: 0
+                                      }}>
+                                        {subjectName}
+                                      </span>
+
+                                      {pageBadge && (
+                                        <span style={{
+                                          fontSize: '0.62rem',
+                                          fontWeight: 800,
+                                          color: isDark ? '#94a3b8' : '#475569',
+                                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+                                          padding: '1px 5px',
+                                          borderRadius: 5,
+                                          flexShrink: 0
+                                        }}>
+                                          📄 {pageBadge}
+                                        </span>
+                                      )}
+
+                                      <span style={{
+                                        fontSize: isMobile ? '0.82rem' : '0.86rem',
+                                        fontWeight: 800,
+                                        lineHeight: 1.3,
+                                        color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                        textDecoration: item.done ? 'line-through' : 'none',
+                                        wordBreak: 'break-word'
+                                      }}>
+                                        {rawTitle}
+                                      </span>
+                                    </div>
+
+                                    {/* Meta info: Book, Unit, Question count */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.68rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600 }}>
+                                      {rawBook && (
+                                        <span style={{
+                                          color: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
+                                          fontWeight: 700,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          maxWidth: isMobile ? 180 : 300,
+                                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
+                                          padding: '1px 5px',
+                                          borderRadius: 4,
+                                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                                        }}>
+                                          📖 {rawBook}
+                                        </span>
+                                      )}
+                                      {unitText && (
+                                        <span style={{ color: isDark ? '#93c5fd' : '#1d4ed8', fontWeight: 700 }}>
+                                          📌 {unitText}
+                                        </span>
+                                      )}
+                                      {(bookInfo?.questionCount || item.questionCount) && (
+                                        <span style={{ background: isDark ? 'rgba(2,132,199,0.15)' : '#f0f9ff', color: '#0284c7', padding: '1px 5px', borderRadius: 4, border: isDark ? '1px solid rgba(2,132,199,0.25)' : '1px solid #bae6fd', fontWeight: 700 }}>
+                                          {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
+                                        </span>
+                                      )}
+                                      {(item.startTime || item.endTime || item.time || item.saat) && (
+                                        <span style={{
+                                          fontSize: '0.64rem',
+                                          fontWeight: 800,
+                                          color: isDark ? '#c7d2fe' : '#4f46e5',
+                                          background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                          border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                          padding: '1px 5px',
+                                          borderRadius: 4
+                                        }}>
+                                          🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Actions on right */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                  {item.done ? (
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      fontWeight: 900,
+                                      padding: '0.15rem 0.5rem',
+                                      borderRadius: 6,
+                                      background: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)',
+                                      border: '1px solid rgba(16,185,129,0.3)',
+                                      color: '#10b981',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      ✓ Tamam
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {onStartStudy && (
+                                        <button
+                                          type="button"
+                                          onClick={() => onStartStudy(item)}
+                                          style={{
+                                            background: isDark ? 'rgba(245,158,11,0.18)' : '#fef3c7',
+                                            border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a',
+                                            cursor: 'pointer',
+                                            color: '#d97706',
+                                            padding: '0.3rem 0.5rem',
+                                            borderRadius: 6,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 3,
+                                            fontSize: '0.68rem',
+                                            fontWeight: 800,
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                          title="Çalışma Odası"
+                                        >
+                                          <Play size={10} fill="#d97706" /> Oda
+                                        </button>
+                                      )}
+
+                                      {isClickable && onOpenResult && (
+                                        <button
+                                          type="button"
+                                          onClick={() => onOpenResult(item)}
+                                          style={{
+                                            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: '#ffffff',
+                                            padding: '0.3rem 0.65rem',
+                                            borderRadius: 6,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 3,
+                                            fontSize: '0.72rem',
+                                            fontWeight: 900,
+                                            boxShadow: '0 2px 6px rgba(79,70,229,0.3)',
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                        >
+                                          <PlayCircle size={12} /> Çöz
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+
+                                  {!item.isAutoHomework && onEditClick && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onEditClick(d.dayKey, item)}
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8',
+                                        padding: 3,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                      title="Görevi Düzenle"
+                                    >
+                                      <Edit3 size={13} />
+                                    </button>
+                                  )}
+
+                                  {!item.isAutoHomework && onDelete && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onDelete(d.dayKey, item.id)}
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: isDark ? 'rgba(255,255,255,0.3)' : '#cbd5e1',
+                                        padding: 3,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                      title="Görevi Sil"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                          );
+                        })}
+
+                        {shouldShowMoreBtn && (
+                          <div style={{ padding: '0.25rem 0' }}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedMonthDays(prev => ({ ...prev, [d.ymd]: !prev[d.ymd] }))}
+                              style={{
+                                width: '100%',
+                                padding: '0.6rem 1rem',
+                                borderRadius: '0.8rem',
+                                background: isDark
+                                  ? (isShowAllMonthTasks ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.15)')
+                                  : (isShowAllMonthTasks ? '#f1f5f9' : 'rgba(99,102,241,0.08)'),
+                                border: isDark
+                                  ? '1px solid rgba(99,102,241,0.3)'
+                                  : (isShowAllMonthTasks ? '1px solid #cbd5e1' : '1.5px solid rgba(99,102,241,0.25)'),
+                                color: isDark ? '#a5b4fc' : '#4f46e5',
+                                fontWeight: 900,
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                                boxShadow: '0 2px 8px rgba(99,102,241,0.08)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {isShowAllMonthTasks ? (
+                                <>
+                                  <ChevronUp size={15} />
+                                  <span>Daha Az Göster (İlk 4 Görev)</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={15} />
+                                  <span>Diğer {d.items.length - MAX_MONTH_ITEMS} Görevi Göster</span>
+                                  <span style={{ fontSize: '0.68rem', background: '#6366f1', color: 'white', padding: '1px 6px', borderRadius: 99, fontWeight: 900 }}>
+                                    +{d.items.length - MAX_MONTH_ITEMS}
+                                  </span>
+                                </>
+                              )}
+                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
