@@ -644,28 +644,6 @@ export default memo(function DashboardTodayTasks({
                             Tamamla
                           </button>
                         )}
-
-                        {onDeleteTask && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
-                            title="Görevi Sil / Kaldır"
-                            style={{
-                              background: 'transparent',
-                              color: '#ef4444',
-                              border: '1px solid rgba(239, 68, 68, 0.25)',
-                              borderRadius: 8,
-                              padding: isMobile ? '0.35rem 0.45rem' : '0.45rem 0.55rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
