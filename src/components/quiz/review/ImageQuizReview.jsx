@@ -174,7 +174,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
           scores[i] = Number(a.score);
         } else {
-          scores[i] = 'empty';
+          scores[i] = 'pending';
         }
       } else {
         const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
@@ -191,6 +191,14 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     }
     return scores;
   });
+
+  const isTrulyEvaluated = useMemo(() => {
+    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+      return true;
+    }
+    const hasAnyGradedScore = Object.values(questionScores).some(s => s !== 'pending' && s !== 'empty' && typeof s === 'number');
+    return hasAnyGradedScore;
+  }, [submission, questionScores]);
 
   const [teacherNotes, setTeacherNotes] = useState(() => {
     const notes = {};
@@ -251,24 +259,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     let earned = 0;
     for (let i = 1; i <= qCount; i++) {
       const s = questionScores[i];
-      if (s !== undefined && s !== null && s !== 'empty' && !isNaN(Number(s))) {
+      if (s !== undefined && s !== null && s !== 'empty' && s !== 'pending' && !isNaN(Number(s))) {
         earned += Number(s);
       }
     }
     return earned;
   }, [qCount, questionScores]);
-
-  const isTrulyEvaluated = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
-      return (
-        totalEarnedScore > 0 ||
-        Boolean(submission.teacherFeedback || submission.teacherNote) ||
-        Object.values(teacherNotes).some(n => n && n.trim() !== '') ||
-        answers.some(a => a.evaluatedByTeacher === true && typeof a.score === 'number')
-      );
-    }
-    return false;
-  }, [submission, totalEarnedScore, teacherNotes, answers]);
 
   const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
@@ -392,25 +388,20 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const isItemOE = isOpenEndedMode || hasText || qObj.type === 'acik_uclu' || qObj.type === 'gorsel_klasik' || ansObj.isOpenEnded;
 
       if (isItemOE) {
-        const isExplicitEmpty = teacherSc === 'empty' || ansObj.evalStatus === 'empty' || ansObj.score === 'empty' || (!hasText && (teacherSc === undefined || teacherSc === null || teacherSc === 'empty' || (Number(teacherSc) === 0 && ansObj.isCorrect === null)));
-
-        if (isExplicitEmpty || !hasText) {
+        if (!hasText || teacherSc === 'empty') {
           bCount++;
-        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) {
+        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc))) {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
-        } else if (hasText) {
-          pCount++;
-          bCount++;
         } else {
-          bCount++;
+          pCount++;
         }
       } else {
         const hasOption = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
         if (!hasOption) {
           bCount++;
-        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) {
+        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc))) {
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
@@ -585,86 +576,88 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
         {/* Action & Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {/* Doğru Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            color: '#15803d',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <CheckCircle size={14} color="#16a34a" />
-            <span>{correctCount} D</span>
-          </div>
-
-          {/* Yanlış Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            color: '#b91c1c',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <XCircle size={14} color="#ef4444" />
-            <span>{wrongCount} Y</span>
-          </div>
-
-          {/* Boş Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-            borderRadius: '0.55rem',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#475569',
-            fontWeight: 800,
-            fontSize: isMobile ? '0.74rem' : '0.8rem'
-          }}>
-            <AlertCircle size={14} color="#64748b" />
-            <span>{blankCount} B</span>
-          </div>
-
-          {/* Başarı & Net Pill */}
-          <div style={{
-            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-            borderRadius: '0.55rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.76rem' : '0.84rem',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-          }}>
-            %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
-          </div>
-
-          {pendingCount > 0 && (
+          {(!isTrulyEvaluated && pendingCount > 0) ? (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
-              padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
-              borderRadius: '0.55rem',
-              background: '#f5f3ff',
-              border: '1px solid #ddd6fe',
-              color: '#7c3aed',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.74rem' : '0.8rem'
+              gap: '0.5rem',
+              padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.9rem',
+              borderRadius: '0.65rem',
+              background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+              color: '#ffffff',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              boxShadow: '0 3px 12px rgba(124, 58, 237, 0.3)'
             }}>
-              <Clock size={14} color="#7c3aed" />
-              <span>{pendingCount} Bekliyor</span>
+              <Clock size={15} color="#ffffff" />
+              <span>⏳ {pendingCount} Soru Değerlendirme Bekliyor</span>
             </div>
+          ) : (
+            <>
+              {/* Doğru Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                color: '#15803d',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <span>{correctCount} D</span>
+              </div>
+
+              {/* Yanlış Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                color: '#b91c1c',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <XCircle size={14} color="#ef4444" />
+                <span>{wrongCount} Y</span>
+              </div>
+
+              {/* Boş Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.65rem',
+                borderRadius: '0.55rem',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.74rem' : '0.8rem'
+              }}>
+                <AlertCircle size={14} color="#64748b" />
+                <span>{blankCount} B</span>
+              </div>
+
+              {/* Başarı & Net Pill */}
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                color: '#ffffff',
+                padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+                borderRadius: '0.55rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+              }}>
+                %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
+              </div>
+            </>
           )}
 
           {isTeacherMode && (
@@ -1011,7 +1004,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           {/* ════════════════════════════════════════════
               MISTAKE DIAGNOSTIC SELECTOR & AI CROP BUTTON
           ════════════════════════════════════════════ */}
-          {(!isCurrentCorrect || !hasAnswer) && (
+          {((!isItemOE && (!isCurrentCorrect || !hasAnswer)) || (isItemOE && (!isText || (hasGradedScore && !isCurrentCorrect)))) ? (
             <div style={{
               marginTop: '0.75rem',
               paddingTop: '0.75rem',
@@ -1077,11 +1070,49 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 }}
                 title={`Soru ${currentQNo} için yapay zeka çözümü ve soru kırpma`}
               >
-                <Sparkles size={14} color="#a855f7" />
+                <Sparkles size={13} color="#a855f7" />
                 <span>✨ AI Çözüm & Kırp</span>
               </button>
             </div>
-          )}
+          ) : isItemOE && isText && !hasGradedScore ? (
+            <div style={{
+              marginTop: '0.75rem',
+              paddingTop: '0.75rem',
+              borderTop: '1px dashed #ddd6fe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
+              <span style={{ fontSize: '0.76rem', color: '#7c3aed', fontWeight: 800 }}>
+                ⏳ Öğretmen değerlendirmesi bekleniyor
+              </span>
+              <button
+                type="button"
+                onClick={() => setAiModalQuestionNo(currentQNo)}
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 900,
+                  borderRadius: 6,
+                  border: '1.5px solid #a855f7',
+                  background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                  color: '#7c3aed',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                  transition: 'all 0.15s ease'
+                }}
+                title={`Soru ${currentQNo} için yapay zeka çözümü ve soru inceleme`}
+              >
+                <Sparkles size={13} color="#a855f7" />
+                <span>✨ AI Çözüm İncele</span>
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Overall Teacher Feedback Box */}
