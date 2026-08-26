@@ -138,26 +138,16 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
-  const isOE = (
-    qObj.type === 'acik_uclu' ||
-    qObj.type === 'yazili' ||
-    qObj.questionType === 'acik_uclu' ||
-    qObj.questionType === 'yazili' ||
-    qObj.isOpenEnded ||
-    testObj.type === 'acik_uclu' ||
-    testObj.type === 'yazili' ||
-    testObj.questionType === 'acik_uclu' ||
-    testObj.questionType === 'yazili' ||
-    testObj.contentType === 'acik_uclu' ||
-    testObj.contentType === 'yazili' ||
-    testObj.isOpenEnded ||
-    (testObj.title && (testObj.title.toLowerCase().includes('açık uçlu') || testObj.title.toLowerCase().includes('acik uclu') || testObj.title.toLowerCase().includes('yazılı') || testObj.title.toLowerCase().includes('yazili') || testObj.title.toLowerCase().includes('klasik')))
-  );
-  if (isOE) {
-    return [];
-  }
+  let rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || testObj.options || testObj.choices || testObj.secenekler;
 
-  const rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || testObj.options || testObj.choices || testObj.secenekler;
+  if (!rawOptions && typeof qObj.contentPayload === 'string') {
+    try {
+      const parsed = JSON.parse(qObj.contentPayload);
+      if (parsed && typeof parsed === 'object') {
+        rawOptions = parsed.options || parsed.choices || parsed.secenekler;
+      }
+    } catch {}
+  }
 
   let optArray = [];
 
@@ -219,10 +209,17 @@ export function extractQuestionOptions(qObj, testObj = {}) {
     return [];
   }
 
+  const cleanOptionPrefix = (str, idx) => {
+    if (!str || typeof str !== 'string') return str;
+    const letter = String.fromCharCode(65 + idx);
+    const regex = new RegExp(`^(?:\\(|\\[)?${letter}(?:\\)|\\.|\\:|\\]|-)\\s*`, 'i');
+    return str.replace(regex, '').trim();
+  };
+
   const mapped = optArray.map((opt, optIdx) => {
     const optLabel = String.fromCharCode(65 + optIdx);
     if (typeof opt === 'string') {
-      const trimmed = opt.trim();
+      const trimmed = cleanOptionPrefix(opt.trim(), optIdx);
       return trimmed || null;
     }
     if (opt && typeof opt === 'object') {
@@ -241,7 +238,7 @@ export function extractQuestionOptions(qObj, testObj = {}) {
         opt.label
       ].find(t => t && typeof t === 'string' && t.trim());
 
-      if (textCandidate) return textCandidate.trim();
+      if (textCandidate) return cleanOptionPrefix(textCandidate.trim(), optIdx);
     }
     return null;
   });
