@@ -72,6 +72,12 @@ export default function StudentHomeworksPage() {
     return studentMembers.length > 0 ? studentMembers[0] : null;
   });
 
+  const effectiveStudent = useMemo(() => {
+    if (!selectedStudent) return null;
+    const userMatch = (users || []).find(u => String(u.id) === String(selectedStudent.id) || (toUUID(u.id) && String(toUUID(u.id)) === String(toUUID(selectedStudent.id))));
+    return userMatch ? { ...selectedStudent, ...userMatch } : selectedStudent;
+  }, [selectedStudent, users]);
+
   // Keep selectedStudent synced with currentUser
   React.useEffect(() => {
     if (currentUser?.role === 'student') setSelectedStudent(currentUser);
@@ -80,11 +86,11 @@ export default function StudentHomeworksPage() {
 
   /* ─── Compute All Assigned Homeworks & Tests for Selected Student ─── */
   const allTests = useMemo(() => {
-    if (!selectedStudent) return [];
+    if (!effectiveStudent) return [];
     const gradesList = curData?.grades || [];
 
-    const studentIdStr = String(selectedStudent.id || '');
-    const studentUuidStr = String(toUUID(selectedStudent.id) || selectedStudent.uuid || '');
+    const studentIdStr = String(effectiveStudent.id || '');
+    const studentUuidStr = String(toUUID(effectiveStudent.id) || effectiveStudent.uuid || '');
     const isMatchStudent = (s) => {
       if (!s) return false;
       const sStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
@@ -109,7 +115,7 @@ export default function StudentHomeworksPage() {
 
       if (specificTestId) {
         const specStr = String(specificTestId);
-        const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '');
+        const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
         const specUuid = String(toUUID(specificTestId) || '');
         if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
         if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
@@ -123,31 +129,18 @@ export default function StudentHomeworksPage() {
       if (sTestId && (sTestId === hwIdStr || sTestId === cleanHwId || sTestId.replace(/^hw_/, '') === cleanHwId || sTestId.replace(/^q_/, '') === cleanHwId)) return true;
       if (sId && (sId === hwIdStr || sId === cleanHwId)) return true;
 
-      // 2. Question IDs / Sections / Tests match
-      const qIds = [
-        ...(Array.isArray(hw?.questionIds) ? hw.questionIds : []),
-        ...(Array.isArray(hw?.selectedQuestions) ? hw.selectedQuestions : []),
-        ...(Array.isArray(hw?.tests) ? hw.tests : []),
-        ...(Array.isArray(hw?.items) ? hw.items : []),
-        ...(Array.isArray(hw?.sections) ? hw.sections.map(sec => typeof sec === 'object' ? (sec.id || sec.questionId) : sec) : [])
-      ].map(String);
-
-      if (qIds.length > 0) {
-        if (sTestId && qIds.some(qid => qid === sTestId || qid.replace(/^q_/, '') === sTestId.replace(/^q_/, ''))) return true;
-        if (sRealTestId && qIds.some(qid => qid === sRealTestId || qid.replace(/^q_/, '') === sRealTestId.replace(/^q_/, ''))) return true;
-        if (sBookTestId && qIds.some(qid => qid === sBookTestId || qid.replace(/^q_/, '') === sBookTestId.replace(/^q_/, ''))) return true;
-        if (sHwId && qIds.some(qid => qid === sHwId || qid.replace(/^q_/, '') === sHwId.replace(/^q_/, ''))) return true;
+      // 2. Specific single test matching
+      if (hw.questionIds?.length === 1 || hw.selectedQuestions?.length === 1) {
+        const singleQId = String(hw.questionIds?.[0] || hw.selectedQuestions?.[0]);
+        if (sTestId === singleQId || sRealTestId === singleQId) return true;
       }
-
-      // 3. Book match
-      if (bookObj && (String(s.testId) === String(bookObj.id) || String(s.bookId) === String(bookObj.id))) return true;
 
       return false;
     };
 
     const hwTests = (homeworks || []).filter(hw => {
       if (!hw || hw.id === 'global_ai_config' || hw.subject === 'SYSTEM' || String(hw.title || '').includes('GLOBAL_AI_CONFIG')) return false;
-      return isHomeworkForStudent(hw, selectedStudent, gradesList);
+      return isHomeworkForStudent(hw, effectiveStudent, gradesList);
     }).flatMap(hw => {
       const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
       const isExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || bookObj?.bookType === 'exam' || hw.isPhysical;
@@ -178,7 +171,89 @@ export default function StudentHomeworksPage() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
       if (isBook) {
-        return []; // Kitap ödevleri zaten "Kitaplarım" sayfasında gösterildiği için burada gizliyoruz
+        const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
+          (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
+
+        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+          return hw.tests.map((tItem, tIdx) => {
+            const tId = typeof tItem === 'object' ? (tItem.id || tItem.testId) : tItem;
+            const bookTestObj = (bookTests || []).find(bt => String(bt.id) === String(tId) || normalizeId(bt.id) === normalizeId(tId));
+            const subForTest = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId)) ||
+              (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId));
+
+            const testTitle = (typeof tItem === 'object' ? (tItem.title || tItem.name) : null) || bookTestObj?.name || bookTestObj?.title || `${hw.title || 'Kitap Ödevi'} - Test ${tIdx + 1}`;
+            const qCount = (typeof tItem === 'object' ? (tItem.questionCount || tItem.qCount) : null) || bookTestObj?.question_count || bookTestObj?.questionCount || 12;
+
+            return {
+              ...hw,
+              id: `${hw.id}_${tId || tIdx}`,
+              realTestId: tId || hw.id,
+              bookTestId: tId,
+              testId: tId || hw.id,
+              hwId: hw.id,
+              title: `${hw.title || 'Kitap Ödevi'} › ${testTitle}`,
+              testName: testTitle,
+              status: subForTest ? 'Sonuçlandı' : 'Atandı',
+              isDone: !!subForTest,
+              questionCount: qCount,
+              totalScoreQuestions: qCount,
+              scorePct: subForTest ? (subForTest.scorePercentage !== undefined && subForTest.scorePercentage !== null ? Math.round(Number(subForTest.scorePercentage)) : (typeof subForTest.score === 'number' && subForTest.score <= 100 ? Math.round(subForTest.score) : null)) : null,
+              submissionId: subForTest?.id,
+              submittedAt: subForTest?.submittedAt || subForTest?.createdAt,
+              bookId: hw.bookId || bookObj?.id,
+              bookTitle: bookObj?.title || hw.bookTitle,
+              sourceType: 'trackedBook'
+            };
+          });
+        }
+
+        return [{
+          ...hw,
+          id: hw.id,
+          realTestId: hw.id,
+          testId: hw.id,
+          hwId: hw.id,
+          title: hw.title || hw.name || bookObj?.title || 'Kitap Ödevi',
+          status: sub ? 'Sonuçlandı' : 'Atandı',
+          isDone: !!sub,
+          questionCount: hw.totalQuestions || hw.questionCount || 12,
+          correctAnswers: sub?.correctCount || 0,
+          totalScoreQuestions: hw.totalQuestions || 12,
+          scorePct: sub ? (sub.scorePercentage !== undefined && sub.scorePercentage !== null ? Math.round(Number(sub.scorePercentage)) : (typeof sub.score === 'number' && sub.score <= 100 ? Math.round(sub.score) : null)) : null,
+          submissionId: sub?.id,
+          submittedAt: sub?.submittedAt || sub?.createdAt,
+          bookId: hw.bookId || (bookObj ? bookObj.id : undefined),
+          bookTitle: bookObj?.title || hw.bookTitle,
+          sourceType: 'trackedBook'
+        }];
+      }
+
+      if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+        return hw.tests.map((tItem, tIdx) => {
+          const tId = typeof tItem === 'object' ? (tItem.id || tItem.testId) : tItem;
+          const subForTest = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId)) ||
+            (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId));
+
+          const testTitle = (typeof tItem === 'object' ? (tItem.title || tItem.name) : null) || `${hw.title || 'Ödev'} - Test ${tIdx + 1}`;
+          const qCount = (typeof tItem === 'object' ? (tItem.questionCount || tItem.qCount) : null) || 12;
+
+          return {
+            ...hw,
+            id: `${hw.id}_${tId || tIdx}`,
+            realTestId: tId || hw.id,
+            testId: tId || hw.id,
+            hwId: hw.id,
+            title: `${hw.title || 'Ödev'} › ${testTitle}`,
+            testName: testTitle,
+            status: subForTest ? 'Sonuçlandı' : 'Atandı',
+            isDone: !!subForTest,
+            questionCount: qCount,
+            totalScoreQuestions: qCount,
+            scorePct: subForTest ? (subForTest.scorePercentage !== undefined && subForTest.scorePercentage !== null ? Math.round(Number(subForTest.scorePercentage)) : (typeof subForTest.score === 'number' && subForTest.score <= 100 ? Math.round(subForTest.score) : null)) : null,
+            submissionId: subForTest?.id,
+            submittedAt: subForTest?.submittedAt || subForTest?.createdAt
+          };
+        });
       }
 
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
@@ -249,7 +324,7 @@ export default function StudentHomeworksPage() {
     });
 
     return hwTests;
-  }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
+  }, [homeworks, submissions, effectiveStudent, curData, books, bookTests]);
 
   // Homework groups (by Book / Main Assignment)
   const homeworkGroups = useMemo(() => {
