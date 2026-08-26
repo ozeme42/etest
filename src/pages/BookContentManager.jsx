@@ -18,6 +18,31 @@ import ManualTestModal from '../components/ManualTestModal';
 
 import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/book-management/constants/bookHelpers';
 
+export function formatSafeInputYMD(val) {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (trimmed.includes('T')) return trimmed.split('T')[0];
+    if (trimmed.includes('.')) {
+      const parts = trimmed.split('.');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+  }
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  } catch {}
+  return '';
+}
+
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -2425,34 +2450,48 @@ export default function BookContentManager() {
                           <button 
                             onClick={() => {
                               setScheduleModalHw(hw);
-                              const initialDates = {
-                                ...(hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {})
+                              const initialDates = {};
+
+                              const addDateEntry = (tid, dVal) => {
+                                if (!tid || !dVal) return;
+                                const formatted = formatSafeInputYMD(dVal);
+                                if (!formatted) return;
+                                const sId = String(tid);
+                                const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                                const sUuid = String(toUUID(sId) || '');
+
+                                initialDates[sId] = formatted;
+                                if (sClean) initialDates[sClean] = formatted;
+                                if (sUuid) initialDates[sUuid] = formatted;
+                                initialDates[`bt_${sClean}`] = formatted;
                               };
 
-                              // 1. Merge dates from other homeworks matching this book
+                              // 1. From this homework
+                              const hwDates = hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {};
+                              Object.entries(hwDates).forEach(([tid, d]) => addDateEntry(tid, d));
+
+                              // 2. From other homeworks matching this book
                               (allHomeworks || []).filter(h => h.isBookAssignment && (String(h.bookId || h.book_id) === String(book?.id) || toUUID(h.bookId) === toUUID(book?.id))).forEach(h => {
                                 const hDueDates = h.testDueDates || h.raw_data?.testDueDates || h.scheduleDates || h.raw_data?.scheduleDates || {};
-                                Object.entries(hDueDates).forEach(([tid, d]) => {
-                                  if (d && !initialDates[tid]) initialDates[tid] = d;
-                                });
+                                Object.entries(hDueDates).forEach(([tid, d]) => addDateEntry(tid, d));
                               });
 
-                              // 2. Merge dates from bookTests
+                              // 3. From bookTests
                               (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(book?.id) || toUUID(bt.bookId) === toUUID(book?.id)).forEach(bt => {
                                 const d = bt.dueDate || bt.testDueDate || bt.date || bt.raw_data?.dueDate;
-                                if (d && !initialDates[bt.id]) initialDates[bt.id] = d;
+                                addDateEntry(bt.id, d);
                               });
 
-                              // 3. Merge dates from book.subjects & topics
+                              // 4. From book.subjects & topics
                               (book?.subjects || []).forEach(s => {
                                 (s.tests || []).forEach(t => {
                                   const d = t.dueDate || t.testDueDate || t.date;
-                                  if (d && !initialDates[t.id]) initialDates[t.id] = d;
+                                  addDateEntry(t.id, d);
                                 });
                                 (s.topics || []).forEach(tp => {
                                   (tp.tests || []).forEach(t => {
                                     const d = t.dueDate || t.testDueDate || t.date;
-                                    if (d && !initialDates[t.id]) initialDates[t.id] = d;
+                                    addDateEntry(t.id, d);
                                   });
                                 });
                               });
@@ -3863,6 +3902,38 @@ export default function BookContentManager() {
         const totalSolvedBookTests = tests.filter(t => getTestSolveDetails(t.id).length > 0).length;
         const bookSolvePct = totalBookTests > 0 ? Math.round((totalSolvedBookTests / totalBookTests) * 100) : 0;
 
+        const getScheduleDateVal = (tId) => {
+          if (!tId) return '';
+          const sId = String(tId);
+          const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+          const sUuid = String(toUUID(sId) || '');
+
+          const val = scheduleDates[sId] ||
+            (sUuid && scheduleDates[sUuid]) ||
+            scheduleDates[sClean] ||
+            scheduleDates[`bt_${sClean}`] ||
+            scheduleDates[`bt_${sId}`] ||
+            '';
+
+          return formatSafeInputYMD(val);
+        };
+
+        const setScheduleDateVal = (tId, dateVal) => {
+          if (!tId) return;
+          const formatted = formatSafeInputYMD(dateVal);
+          const sId = String(tId);
+          const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+          const sUuid = String(toUUID(sId) || '');
+
+          setScheduleDates(prev => {
+            const next = { ...prev, [sId]: formatted };
+            if (sClean) next[sClean] = formatted;
+            if (sUuid) next[sUuid] = formatted;
+            next[`bt_${sClean}`] = formatted;
+            return next;
+          });
+        };
+
         return (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
             <div className="modal-content" style={{ width: '96vw', maxWidth: '880px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
@@ -3945,14 +4016,28 @@ export default function BookContentManager() {
                             if (topicsList.length > 0) {
                               directTests.forEach(t => {
                                 if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
-                                datesMap[t.id] = currDate.toISOString().split('T')[0];
+                                const dStr = formatSafeInputYMD(currDate);
+                                const sId = String(t.id);
+                                const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                                const sUuid = String(toUUID(sId) || '');
+                                datesMap[sId] = dStr;
+                                if (sClean) datesMap[sClean] = dStr;
+                                if (sUuid) datesMap[sUuid] = dStr;
+                                datesMap[`bt_${sClean}`] = dStr;
                                 testCounter++;
                               });
                               topicsList.forEach(topic => {
                                 const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
                                 topicTests.forEach(t => {
                                   if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
-                                  datesMap[t.id] = currDate.toISOString().split('T')[0];
+                                  const dStr = formatSafeInputYMD(currDate);
+                                  const sId = String(t.id);
+                                  const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                                  const sUuid = String(toUUID(sId) || '');
+                                  datesMap[sId] = dStr;
+                                  if (sClean) datesMap[sClean] = dStr;
+                                  if (sUuid) datesMap[sUuid] = dStr;
+                                  datesMap[`bt_${sClean}`] = dStr;
                                   testCounter++;
                                 });
                               });
@@ -3960,7 +4045,14 @@ export default function BookContentManager() {
                               const subjTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id)));
                               subjTests.forEach(t => {
                                 if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
-                                datesMap[t.id] = currDate.toISOString().split('T')[0];
+                                const dStr = formatSafeInputYMD(currDate);
+                                const sId = String(t.id);
+                                const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                                const sUuid = String(toUUID(sId) || '');
+                                datesMap[sId] = dStr;
+                                if (sClean) datesMap[sClean] = dStr;
+                                if (sUuid) datesMap[sUuid] = dStr;
+                                datesMap[`bt_${sClean}`] = dStr;
                                 testCounter++;
                               });
                             }
@@ -3997,10 +4089,17 @@ export default function BookContentManager() {
                             showToast('Lütfen önce bir tarih seçiniz!', 'error');
                             return;
                           }
+                          const formattedBulk = formatSafeInputYMD(bulkApplyDate);
                           setScheduleDates(prev => {
                             const updated = { ...prev };
                             scheduleSelectedTestIds.forEach(tId => {
-                              updated[tId] = bulkApplyDate;
+                              const sId = String(tId);
+                              const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                              const sUuid = String(toUUID(sId) || '');
+                              updated[sId] = formattedBulk;
+                              if (sClean) updated[sClean] = formattedBulk;
+                              if (sUuid) updated[sUuid] = formattedBulk;
+                              updated[`bt_${sClean}`] = formattedBulk;
                             });
                             return updated;
                           });
@@ -4355,11 +4454,8 @@ export default function BookContentManager() {
 
                                               <input
                                                 type="date"
-                                                value={testVal}
-                                                onChange={(e) => {
-                                                  const v = e.target.value;
-                                                  setScheduleDates(p => ({ ...p, [t.id]: v }));
-                                                }}
+                                                value={getScheduleDateVal(t.id)}
+                                                onChange={(e) => setScheduleDateVal(t.id, e.target.value)}
                                                 style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
                                               />
                                             </div>
@@ -4443,11 +4539,8 @@ export default function BookContentManager() {
 
                                       <input
                                         type="date"
-                                        value={testVal}
-                                        onChange={(e) => {
-                                          const v = e.target.value;
-                                          setScheduleDates(p => ({ ...p, [t.id]: v }));
-                                        }}
+                                        value={getScheduleDateVal(t.id)}
+                                        onChange={(e) => setScheduleDateVal(t.id, e.target.value)}
                                         style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
                                       />
                                     </div>
@@ -4472,6 +4565,13 @@ export default function BookContentManager() {
                   className="btn btn-primary"
                   onClick={async () => {
                     try {
+                      const cleanedScheduleDates = {};
+                      Object.keys(scheduleDates).forEach((k) => {
+                         const v = getScheduleDateVal(k);
+                         const f = formatSafeInputYMD(v);
+                         if (f) cleanedScheduleDates[k] = f;
+                      });
+
                       // 1. Update homework in HomeworkContext (and Supabase homeworks table)
                       if (typeof updateHomework === 'function') {
                         const matchingHws = (allHomeworks || []).filter(h => 
@@ -4482,19 +4582,21 @@ export default function BookContentManager() {
                         if (matchingHws.length > 0) {
                           for (const h of matchingHws) {
                             await updateHomework(h.id, {
-                              testDueDates: scheduleDates
+                              testDueDates: cleanedScheduleDates,
+                              scheduleDates: cleanedScheduleDates
                             });
                           }
                         } else if (scheduleModalHw?.id) {
                           await updateHomework(scheduleModalHw.id, {
-                            testDueDates: scheduleDates
+                            testDueDates: cleanedScheduleDates,
+                            scheduleDates: cleanedScheduleDates
                           });
                         }
                       }
 
                       // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)
-                      if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(scheduleDates).length > 0) {
-                        const testsToUpdate = Object.entries(scheduleDates).map(([tId, dStr]) => {
+                      if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(cleanedScheduleDates).length > 0) {
+                        const testsToUpdate = Object.entries(cleanedScheduleDates).map(([tId, dStr]) => {
                           const existingTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
                           return {
                             ...(existingTest || {}),
@@ -4512,10 +4614,16 @@ export default function BookContentManager() {
                       if (typeof updateTrackedBook === 'function' && book?.id) {
                         const updatedSubjects = (book.subjects || []).map(s => ({
                           ...s,
-                          tests: (s.tests || []).map(t => scheduleDates[t.id] ? { ...t, dueDate: scheduleDates[t.id], testDueDate: scheduleDates[t.id] } : t),
+                          tests: (s.tests || []).map(t => {
+                            const d = getScheduleDateVal(t.id);
+                            return d ? { ...t, dueDate: d, testDueDate: d } : t;
+                          }),
                           topics: (s.topics || []).map(tp => ({
                             ...tp,
-                            tests: (tp.tests || []).map(t => scheduleDates[t.id] ? { ...t, dueDate: scheduleDates[t.id], testDueDate: scheduleDates[t.id] } : t)
+                            tests: (tp.tests || []).map(t => {
+                              const d = getScheduleDateVal(t.id);
+                              return d ? { ...t, dueDate: d, testDueDate: d } : t;
+                            })
                           }))
                         }));
                         await updateTrackedBook(book.id, { subjects: updatedSubjects });
