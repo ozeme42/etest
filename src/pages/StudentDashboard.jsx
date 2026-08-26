@@ -1846,7 +1846,7 @@ export default function StudentDashboard() {
     };
   }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
 
-  // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (KİTAP TAKİBİ, YOL HARİTASI, ÖDEVLER, SINAVLAR, PROGRAM) ──
+  // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (ÇALIŞMA PROGRAMINDA GÜNÜ GEÇMİŞ TÜM GÖREVLER) ──
   const catchUpTasks = useMemo(() => {
     if (!selectedStudent) return [];
     const list = [];
@@ -1855,184 +1855,36 @@ export default function StudentDashboard() {
     nowZero.setHours(0, 0, 0, 0);
     const nowTime = nowZero.getTime();
     const studentId = String(selectedStudent.id);
-    const studentUuid = String(toUUID(selectedStudent.id) || '');
 
-    // Pure Submissions Matcher for Books and Tests
-    const isTestSolvedByStudent = (targetTestId, targetHwId) => {
-      const tIdStr = targetTestId ? String(targetTestId) : null;
-      const tCleanId = tIdStr ? tIdStr.replace(/^bt_/, '').replace(/^q_/, '') : null;
-      const tUuidStr = tIdStr ? String(toUUID(tIdStr) || '') : null;
-      const hIdStr = targetHwId ? String(targetHwId) : null;
-
-      return (submissions || []).some(s => {
-        const isMatchStudent = String(s.studentId) === studentId || (studentUuid && String(s.studentId) === studentUuid) || (studentUuid && toUUID(s.studentId) === studentUuid);
-        if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-        if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
-
-        const matchFields = [
-          String(s.testId || ''),
-          String(s.realTestId || ''),
-          String(s.bookTestId || ''),
-          String(s.metadata?.realTestId || ''),
-          String(s.metadata?.bookTestId || ''),
-          String(s.metadata?.realId || '')
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String));
-        }
-
-        if (tIdStr && matchFields.some(f => f && (
-          f === tIdStr ||
-          f === tCleanId ||
-          f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-          (tUuidStr && f === tUuidStr) ||
-          toUUID(f) === tIdStr ||
-          (tUuidStr && toUUID(f) === tUuidStr)
-        ))) {
-          return true;
-        }
-
-        const sHwId = String(s.homeworkId || s.hwId || '');
-        if (hIdStr && sHwId === hIdStr) return true;
-
-        return false;
-      });
-    };
-
-    // ══════════════════════════════════════════════════════════
-    // 1. KİTAP TAKİBİ (/student/books) TÜM TARİHLİ EKSİK TESTLER
-    // ══════════════════════════════════════════════════════════
-    const studentBookHws = (homeworks || []).filter(hw => {
-      const isBook = hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook' || (Array.isArray(hw.tests) && hw.tests.length > 0);
-      if (!isBook) return false;
-      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
-    });
-
-    studentBookHws.forEach(hw => {
-      // Find matched book object
-      let bookObj = (books || []).find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
-      if (!bookObj && hw.title) {
-        bookObj = (books || []).find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim())));
-      }
-      if (!bookObj && Array.isArray(hw.tests) && hw.tests.length > 0) {
-        const matchedBt = (bookTests || []).find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
-        if (matchedBt) {
-          bookObj = (books || []).find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
-        }
-      }
-      const cleanBookTitle = bookObj?.title || hw.title?.replace(/\s*\(Tüm Kitap Görevi\)/gi, '')?.replace(/\s*\(Kendi Eklediğim\)/gi, '')?.trim() || 'Takip Kitabı';
-
-      // A) Bireysel Test Tarihleri Haritası (hw.testDueDates + bookTests + book.subjects)
-      const testDueDatesMap = {
-        ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
-      };
-
-      // Also pull test dates from bookTests if matching this book
-      (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId) || toUUID(bt.bookId) === toUUID(hw.bookId)).forEach(bt => {
-        const d = bt.dueDate || bt.testDueDate || bt.date;
-        if (d && !testDueDatesMap[bt.id]) testDueDatesMap[bt.id] = d;
-      });
-
-      // Also pull test dates from bookObj
-      (bookObj?.subjects || []).forEach(s => {
-        (s.tests || []).forEach(t => {
-          const d = t.dueDate || t.testDueDate || t.date;
-          if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
-        });
-        (s.topics || []).forEach(tp => {
-          (tp.tests || []).forEach(t => {
-            const d = t.dueDate || t.testDueDate || t.date;
-            if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
-          });
-        });
-      });
-
-      const hasIndividualDates = Object.keys(testDueDatesMap).length > 0;
-
-      if (hasIndividualDates) {
-        Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
-          if (!tDateStr) return;
-          const targetDateObj = parseSafeDate(tDateStr);
-          // ONLY add to overdue catch-up IF date is strictly in the past (< today)
-          if (targetDateObj && targetDateObj.getTime() < nowTime) {
-            const isSolved = isTestSolvedByStudent(testId, hw.id);
-            if (!isSolved) {
-              const key = `book_test_${hw.id}_${testId}`;
-              if (!seen.has(key)) {
-                seen.add(key);
-                const info = resolveBookTestInfo(testId, hw, bookObj);
-                list.push({
-                  id: key,
-                  hwId: hw.id,
-                  testId: testId,
-                  realTestId: testId,
-                  bookTestId: testId,
-                  bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
-                  isAutoHomework: true,
-                  isBookTask: true,
-                  taskType: 'kitap',
-                  categoryType: 'kitap',
-                  subject: info.subjectName || 'Türkçe',
-                  unitTopic: info.topicName || '',
-                  testName: info.testName || 'Test',
-                  bookTitle: info.cleanBookTitle,
-                  title: `${info.testName}${info.topicName && !info.testName.includes(info.topicName) ? ` (${info.topicName})` : ''}`,
-                  questionCount: `${info.qCount} soru`,
-                  dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
-                  dueDateObj: targetDateObj,
-                  time: `Hedef: ${targetDateObj.toLocaleDateString('tr-TR')}`,
-                  isCatchUp: true,
-                  reason: `Hedef: ${targetDateObj.toLocaleDateString('tr-TR')}`
-                });
-              }
+    // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ TÜM GÖREVLER
+    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
+    DAYS_OF_WEEK.forEach((d, idx) => {
+      if (idx < todayIdx) {
+        const dData = fullProcessedWeekMap[d.key];
+        (dData?.items || []).forEach(item => {
+          if (!item.done) {
+            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
+            const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
+            const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
+            if (!alreadyIn) {
+              seen.add(key);
+              list.push({
+                ...item,
+                categoryType: item.categoryType || (item.isBookTask ? 'kitap' : (item.isExamTask ? 'deneme' : 'program')),
+                sourceDayName: d.name,
+                sourceDayKey: d.key,
+                isCatchUp: true,
+                time: item.time || `Hedef: ${d.name}`,
+                dueDateStr: item.dueDateStr || dData.dateLabel || d.name,
+                reason: `${d.name} gününden kalan görev`
+              });
             }
           }
         });
       }
     });
 
-    // 1.1) Tekil / Normal Ödevler İçin Tarihi Geçmiş Kontrolü
-    const regularHws = (homeworks || []).filter(hw => {
-      const isBook = hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook';
-      if (isBook) return false;
-      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
-    });
-
-    regularHws.forEach(hw => {
-      const rawDue = hw.dueDate || hw.assignedDueDate;
-      const dueDateObj = parseSafeDate(rawDue);
-      if (dueDateObj && dueDateObj.getTime() < nowTime) {
-        const isSolved = isTestSolvedByStudent(null, hw.id);
-        if (!isSolved) {
-          const key = `hw_${hw.id}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            list.push({
-              id: key,
-              hwId: hw.id,
-              isAutoHomework: true,
-              taskType: 'odev',
-              categoryType: 'odev',
-              subject: hw.subject || 'Genel',
-              unitTopic: '',
-              testName: hw.title,
-              title: hw.title,
-              bookTitle: '',
-              questionCount: `${hw.totalQuestions || hw.questionCount || 10} soru`,
-              dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
-              dueDateObj,
-              time: `Son: ${dueDateObj.toLocaleDateString('tr-TR')}`,
-              isCatchUp: true,
-              reason: `Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')}`
-            });
-          }
-        }
-      }
-    });
-
-    // ══════════════════════════════════════════════════════════
     // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
-    // ══════════════════════════════════════════════════════════
     (studyAssignments || []).filter(a => String(a?.studentId) === studentId).forEach(assignment => {
       if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
       const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
@@ -2051,13 +1903,9 @@ export default function StudentDashboard() {
           if (isCompleted) return;
 
           let targetDateObj = null;
-          if (topic?.dueDate) {
-            targetDateObj = parseSafeDate(topic.dueDate);
-          } else if (subject?.dueDate) {
-            targetDateObj = parseSafeDate(subject.dueDate);
-          } else if (assignment?.dueDate) {
-            targetDateObj = parseSafeDate(assignment.dueDate);
-          }
+          if (topic?.dueDate) targetDateObj = parseSafeDate(topic.dueDate);
+          else if (subject?.dueDate) targetDateObj = parseSafeDate(subject.dueDate);
+          else if (assignment?.dueDate) targetDateObj = parseSafeDate(assignment.dueDate);
 
           if (targetDateObj && targetDateObj.getTime() < nowTime) {
             const key = `roadmap_${assignment.id}_${topic.id}`;
@@ -2073,8 +1921,10 @@ export default function StudentDashboard() {
                 subject: subject.name || 'Yol Haritası',
                 bookTitle: plan.title,
                 title: topic.name,
+                unitTopic: topic.name,
                 dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
                 dueDateObj: targetDateObj,
+                time: `Hedef: ${targetDateObj.toLocaleDateString('tr-TR')}`,
                 isCatchUp: true,
                 reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
               });
@@ -2084,37 +1934,7 @@ export default function StudentDashboard() {
       });
     });
 
-    // ══════════════════════════════════════════════════════════
-    // 3. HAFTALIK PROGRAMDAN ÖNCEKİ GÜNLERDE KALAN TÜM GÖREVLER
-    // ══════════════════════════════════════════════════════════
-    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
-    DAYS_OF_WEEK.forEach((d, idx) => {
-      if (idx < todayIdx) {
-        const dData = fullProcessedWeekMap[d.key];
-        (dData?.items || []).forEach(item => {
-          if (!item.done) {
-            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
-            const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
-            const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
-            if (!alreadyIn) {
-              seen.add(key);
-              list.push({
-                ...item,
-                categoryType: item.taskType || 'program',
-                sourceDayName: d.name,
-                sourceDayKey: d.key,
-                isCatchUp: true,
-                reason: `${d.name} gününden kalan program görevi`
-              });
-            }
-          }
-        });
-      }
-    });
-
-    // ══════════════════════════════════════════════════════════
-    // 4. DİĞER TÜM GECİKEN ÖDEVLER & DENEME SINAVLARI
-    // ══════════════════════════════════════════════════════════
+    // 3. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
     (pendingTasks || []).forEach(task => {
       const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
       if (dueDateObj && dueDateObj.getTime() < nowTime) {
@@ -2138,7 +1958,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, homeworks, submissions, books, bookTests, pendingTasks, curData, todayDayKey]);
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
