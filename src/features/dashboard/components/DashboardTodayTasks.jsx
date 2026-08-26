@@ -220,14 +220,13 @@ export default memo(function DashboardTodayTasks({
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                            {task.bookTitle && (
+                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) ? (
                               <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 160 : 260 }}>
                                 📖 {task.bookTitle}
                               </span>
-                            )}
-                            {task.unitTopic && !task.bookTitle && (
+                            ) : task.unitTopic ? (
                               <span>📌 {task.unitTopic}</span>
-                            )}
+                            ) : null}
                             {task.questionCount && (
                               <span>• {task.questionCount}</span>
                             )}
@@ -528,14 +527,13 @@ export default memo(function DashboardTodayTasks({
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                            {task.bookTitle && (
+                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) ? (
                               <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 180 : 280 }}>
                                 📖 {task.bookTitle}
                               </span>
-                            )}
-                            {task.unitTopic && !task.bookTitle && (
+                            ) : task.unitTopic ? (
                               <span>📌 {task.unitTopic}</span>
-                            )}
+                            ) : null}
                             {task.questionCount && (
                               <span>• {task.questionCount}</span>
                             )}

@@ -974,13 +974,6 @@ export default function StudentDashboard() {
     const tUuidStr = String(toUUID(tIdStr) || '');
     const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
 
-    let currentBook = targetBookObj || (books || []).find(b => 
-      String(b?.id) === String(targetHw?.bookId || targetHw?.book_id) || 
-      (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(targetHw?.bookId || targetHw?.book_id))) ||
-      (targetHw?.title && String(b?.title).toLowerCase().trim().includes(String(targetHw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
-      (targetHw?.title && String(targetHw?.title).toLowerCase().trim().includes(String(b?.title).toLowerCase().trim()))
-    );
-
     let tObj = (bookTests || []).find(b => {
       const bId = String(b?.id || '');
       return bId === tIdStr || 
@@ -989,41 +982,23 @@ export default function StudentDashboard() {
         bId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId;
     });
 
+    let currentBook = targetBookObj;
     let subjObj = null;
     let topicObj = null;
 
-    if (currentBook && currentBook.subjects) {
-      for (const s of currentBook.subjects) {
-        if (s.tests && Array.isArray(s.tests)) {
-          const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
-          if (found) {
-            if (!tObj) tObj = found;
-            subjObj = s;
-            break;
-          }
-        }
-        if (s.topics && Array.isArray(s.topics)) {
-          for (const tp of s.topics) {
-            if (tp.tests && Array.isArray(tp.tests)) {
-              const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
-              if (found) {
-                if (!tObj) tObj = found;
-                subjObj = s;
-                topicObj = tp;
-                break;
-              }
-            }
-          }
-        }
-        if (subjObj) break;
+    // Search in all books & nested subjects & topics
+    for (const b of (books || [])) {
+      const bIdStr = String(b?.id || '');
+      const isBookMatch = bIdStr === String(tObj?.bookId || targetHw?.bookId || targetHw?.book_id) ||
+        (toUUID(bIdStr) && (toUUID(bIdStr) === toUUID(tObj?.bookId) || toUUID(bIdStr) === toUUID(targetHw?.bookId)));
+      
+      if (isBookMatch && !currentBook) {
+        currentBook = b;
       }
-    }
 
-    if (!subjObj && (!tObj || !tObj.subjectId)) {
-      for (const b of (books || [])) {
-        if (!b.subjects) continue;
+      if (b.subjects && Array.isArray(b.subjects)) {
         for (const s of b.subjects) {
-          if (s.tests) {
+          if (s.tests && Array.isArray(s.tests)) {
             const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
             if (found) {
               if (!tObj) tObj = found;
@@ -1032,9 +1007,9 @@ export default function StudentDashboard() {
               break;
             }
           }
-          if (s.topics) {
+          if (s.topics && Array.isArray(s.topics)) {
             for (const tp of s.topics) {
-              if (tp.tests) {
+              if (tp.tests && Array.isArray(tp.tests)) {
                 const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
                 if (found) {
                   if (!tObj) tObj = found;
@@ -1048,8 +1023,20 @@ export default function StudentDashboard() {
           }
           if (subjObj) break;
         }
-        if (subjObj) break;
       }
+    }
+
+    if (!currentBook) {
+      currentBook = (books || []).find(b => 
+        String(b?.id) === String(targetHw?.bookId || targetHw?.book_id || tObj?.bookId) || 
+        (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(targetHw?.bookId || targetHw?.book_id || tObj?.bookId))) ||
+        (targetHw?.title && String(b?.title).toLowerCase().trim().includes(String(targetHw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
+        (targetHw?.title && String(targetHw?.title).toLowerCase().trim().includes(String(b?.title).toLowerCase().trim()))
+      );
+    }
+
+    if (!currentBook && books && books.length === 1) {
+      currentBook = books[0];
     }
 
     if (tObj && !subjObj && currentBook) {
@@ -1080,11 +1067,31 @@ export default function StudentDashboard() {
     const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
     const testName = tObj?.name || 'Test';
     const qCount = tObj?.questionCount || 12;
-    const cleanTitle = (currentBook?.title || targetHw?.title || 'Kitap')
-      .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-      .replace(/\s*\(Tüm Kitap\)/gi, '')
-      .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-      .trim();
+
+    let cleanTitle = currentBook?.title ||
+      targetHw?.bookTitle ||
+      targetHw?.bookName ||
+      tObj?.bookTitle ||
+      tObj?.bookName ||
+      (targetHw?.title && !/^(ödev|test|sınav|görev)$/i.test(targetHw.title.trim()) ? targetHw.title : '') ||
+      '';
+
+    if (cleanTitle) {
+      cleanTitle = cleanTitle
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .trim();
+    }
+
+    if (!cleanTitle || cleanTitle.toLowerCase() === 'kitap' || cleanTitle.toLowerCase() === 'takip kitabı') {
+      const fb = (books || []).find(b => b.title && !b.title.toLowerCase().startsWith('kitap'));
+      if (fb?.title) {
+        cleanTitle = fb.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+      } else if (books?.[0]?.title) {
+        cleanTitle = books[0].title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+      }
+    }
 
     return {
       tObj,
@@ -1094,7 +1101,7 @@ export default function StudentDashboard() {
       topicName,
       testName,
       qCount,
-      cleanBookTitle: cleanTitle,
+      cleanBookTitle: cleanTitle || 'Takip Kitabı',
       currentBook
     };
   }, [books, bookTests]);
@@ -1386,7 +1393,7 @@ export default function StudentDashboard() {
               if (!tDateStr) return;
               const tYMD = extractItemYMD(tDateStr);
               if (dayYMD === tYMD) {
-                const info = resolveBookTestInfo(testId);
+                const info = resolveBookTestInfo(testId, hw, bookObj);
                 const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
                   (submissions || []).some(s => isMatchHwSub(s, hw, testId));
                 const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
@@ -1398,7 +1405,7 @@ export default function StudentDashboard() {
                     hwId: hw.id,
                     testId: testId,
                     bookTestId: testId,
-                    bookId: hw.bookId || hw.book_id || info.currentBook?.id,
+                    bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
                     isAutoHomework: true,
                     isBookTask: true,
                     taskType: 'kitap',
@@ -1454,10 +1461,7 @@ export default function StudentDashboard() {
                 const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testId)) ||
                   (submissions || []).some(s => isMatchHwSub(s, hw, testId));
 
-                const tObj = (bookTests || []).find(b => String(b?.id) === String(testId));
-                const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
-                const testTitle = tObj?.name || `Test ${idx + 1}`;
-                const cleanBookTitle = bookObj?.title || hw.title || 'Takip Kitabı';
+                const info = resolveBookTestInfo(testId, hw, bookObj);
                 const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}` || m.hwId === hw.id);
                 if (!exists) {
                   autoHwItems.push({
@@ -1465,14 +1469,16 @@ export default function StudentDashboard() {
                     hwId: hw.id,
                     testId: testId,
                     bookTestId: testId,
-                    bookId: hw.bookId || bookObj?.id,
+                    bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
                     isAutoHomework: true,
                     isBookTask: true,
                     taskType: 'kitap',
-                    subject: hw.subject || bookObj?.subject || 'Kitap Takibi',
-                    bookTitle: cleanBookTitle,
-                    title: `${cleanBookTitle} — ${testTitle}`,
-                    questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                    subject: info.subjectName || hw.subject || 'Kitap Takibi',
+                    unitTopic: info.topicName || '',
+                    bookTitle: info.cleanBookTitle,
+                    testName: info.testName || `Test ${idx + 1}`,
+                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                    questionCount: `${info.qCount} soru`,
                     time: formattedDue || null,
                     done: isTestSolved
                   });
@@ -1500,15 +1506,7 @@ export default function StudentDashboard() {
 
         // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
         (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
-          const cleanBookTitle = (b.title || 'Kitap')
-            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-            .replace(/\s*\(Tüm Kitap\)/gi, '')
-            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-            .trim();
-
           (b.subjects || []).forEach(subj => {
-            const subjName = subj.name || 'Genel';
-            
             (subj.tests || []).forEach(t => {
               const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
               if (!tDue) return;
@@ -1517,6 +1515,7 @@ export default function StudentDashboard() {
                 const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
                 if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
                   const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
+                  const info = resolveBookTestInfo(t.id, null, b);
                   autoHwItems.push({
                     id: autoId,
                     testId: t.id,
@@ -1525,12 +1524,12 @@ export default function StudentDashboard() {
                     isAutoHomework: true,
                     isBookTask: true,
                     taskType: 'kitap',
-                    subject: subjName,
-                    unitTopic: '',
-                    bookTitle: cleanBookTitle,
-                    testName: t.name || 'Test',
-                    title: t.name || 'Test',
-                    questionCount: `${t.questionCount || 12} soru`,
+                    subject: info.subjectName,
+                    unitTopic: info.topicName,
+                    bookTitle: info.cleanBookTitle,
+                    testName: info.testName,
+                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                    questionCount: `${info.qCount} soru`,
                     time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
                     done: isSolved
                   });
@@ -1539,7 +1538,6 @@ export default function StudentDashboard() {
             });
 
             (subj.topics || []).forEach(tp => {
-              const tpName = tp.name || '';
               (tp.tests || []).forEach(t => {
                 const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
                 if (!tDue) return;
@@ -1548,6 +1546,7 @@ export default function StudentDashboard() {
                   const autoId = `book_test_direct_${b.id}_${t.id}_${dayYMD}`;
                   if (!dayManualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
                     const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, t.id));
+                    const info = resolveBookTestInfo(t.id, null, b);
                     autoHwItems.push({
                       id: autoId,
                       testId: t.id,
@@ -1556,12 +1555,12 @@ export default function StudentDashboard() {
                       isAutoHomework: true,
                       isBookTask: true,
                       taskType: 'kitap',
-                      subject: subjName,
-                      unitTopic: tpName,
-                      bookTitle: cleanBookTitle,
-                      testName: t.name || 'Test',
-                      title: `${t.name || 'Test'}${tpName ? ` (${tpName})` : ''}`,
-                      questionCount: `${t.questionCount || 12} soru`,
+                      subject: info.subjectName,
+                      unitTopic: info.topicName,
+                      bookTitle: info.cleanBookTitle,
+                      testName: info.testName,
+                      title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                      questionCount: `${info.qCount} soru`,
                       time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
                       done: isSolved
                     });
@@ -1581,11 +1580,6 @@ export default function StudentDashboard() {
           if (tYMD === dayYMD) {
             const bId = String(bt.bookId || bt.book_id || '');
             const currentBook = (books || []).find(b => String(b.id) === bId || (toUUID(b.id) && toUUID(b.id) === toUUID(bId)));
-            const cleanBookTitle = (currentBook?.title || 'Kitap')
-              .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-              .replace(/\s*\(Tüm Kitap\)/gi, '')
-              .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-              .trim();
 
             const autoId = `book_test_bt_${bt.id}_${dayYMD}`;
             const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) ||
@@ -1593,21 +1587,21 @@ export default function StudentDashboard() {
 
             if (!isAlreadyPresent) {
               const isSolved = (submissions || []).some(s => isMatchHwSub(s, null, bt.id));
-              const info = resolveBookTestInfo(bt.id);
+              const info = resolveBookTestInfo(bt.id, null, currentBook);
               autoHwItems.push({
                 id: autoId,
                 testId: bt.id,
                 bookTestId: bt.id,
-                bookId: bId,
+                bookId: bId || info.currentBook?.id,
                 isAutoHomework: true,
                 isBookTask: true,
                 taskType: 'kitap',
-                subject: info.subjectName || bt.subject || 'Kitap Testi',
-                unitTopic: info.topicName || bt.topic || '',
-                bookTitle: cleanBookTitle,
-                testName: info.testName || bt.name || 'Test',
-                title: `${info.testName || bt.name || 'Test'}${info.topicName ? ` (${info.topicName})` : ''}`,
-                questionCount: `${bt.questionCount || info.qCount || 12} soru`,
+                subject: info.subjectName,
+                unitTopic: info.topicName,
+                bookTitle: info.cleanBookTitle,
+                testName: info.testName,
+                title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                questionCount: `${info.qCount} soru`,
                 time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
                 done: isSolved
               });
