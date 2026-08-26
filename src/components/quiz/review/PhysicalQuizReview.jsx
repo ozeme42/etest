@@ -284,24 +284,24 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       <header style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.65rem 1.5rem',
         background: 'var(--color-surface, #ffffff)',
-        borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
+        borderBottom: isMobile ? '1px solid var(--color-border, #e2e8f0)' : '1.5px solid var(--color-border, #e2e8f0)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexShrink: 0,
-        gap: isMobile ? '0.4rem' : '1rem',
+        gap: '0.75rem',
         minHeight: isMobile ? '48px' : '58px',
         boxSizing: 'border-box',
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
         zIndex: 20
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
             onClick={handleGoBack}
             style={{
-              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+              padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
-              background: 'var(--color-surface, #ffffff)',
+              background: 'var(--color-surface-hover, #f1f5f9)',
               border: '1.5px solid var(--color-border, #cbd5e1)',
               color: 'var(--color-text, #475569)',
               fontWeight: 800,
@@ -315,25 +315,25 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
             }}
             title="Geri Dön"
           >
-            <ArrowLeft size={isMobile ? 15 : 16} />
+            <ArrowLeft size={isMobile ? 16 : 16} />
             {!isMobile && "Geri Dön"}
           </button>
           
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
+              <span style={{ fontSize: isMobile ? '0.64rem' : '0.68rem', fontWeight: 900, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: '1px 6px', borderRadius: 4, flexShrink: 0 }}>
                 📖 KİTAP OPTİK İNCELEME
               </span>
               {resolvedBook?.title && (
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {resolvedBook.title}
+                <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  • {resolvedBook.title}
                 </span>
               )}
             </div>
             <h2 style={{
-              fontSize: isMobile ? '0.85rem' : '1.05rem',
+              fontSize: isMobile ? '0.9rem' : '1.05rem',
               fontWeight: 900,
-              margin: 0,
+              margin: '2px 0 0 0',
               color: 'var(--color-text, #0f172a)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -344,53 +344,150 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           </div>
         </div>
 
-        {/* METRICS ROW */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
+        {/* DESKTOP INLINE METRICS ROW */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {/* Net */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#eff6ff', padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#1d4ed8' }}>
+                {netScore} Net
+              </span>
+            </div>
+
+            {/* Doğru */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f0fdf4', padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
+              <CheckCircle2 size={14} color="#16a34a" />
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#15803d' }}>
+                {correctCount} D
+              </span>
+            </div>
+
+            {/* Yanlış */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#fef2f2', padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
+              <XCircle size={14} color="#dc2626" />
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#b91c1c' }}>
+                {wrongCount} Y
+              </span>
+            </div>
+
+            {/* Boş */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              <HelpCircle size={14} color="#64748b" />
+              <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#475569' }}>
+                {blankCount} B
+              </span>
+            </div>
+
+            {/* Başarı % */}
+            <div style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: 'white',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '0.5rem',
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
+            }}>
+              %{scorePct}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* MOBILE HIGH-END STATS STRIP */}
+      {isMobile && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '0.35rem',
+          padding: '0.45rem 0.65rem',
+          background: 'var(--color-surface, #ffffff)',
+          borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+          flexShrink: 0,
+          zIndex: 19
+        }}>
           {/* Net */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#eff6ff', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bfdbfe' }}>
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#1d4ed8' }}>
-              {netScore} Net
-            </span>
+          <div style={{
+            background: 'rgba(37, 99, 235, 0.08)',
+            padding: '0.35rem 0.2rem',
+            borderRadius: '0.55rem',
+            border: '1px solid rgba(37, 99, 235, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1.1 }}>{netScore}</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#3b82f6', marginTop: 2 }}>Net</span>
           </div>
 
           {/* Doğru */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f0fdf4', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
-            <CheckCircle2 size={isMobile ? 12 : 14} color="#16a34a" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#15803d' }}>
-              {correctCount} D
-            </span>
+          <div style={{
+            background: 'rgba(22, 163, 74, 0.08)',
+            padding: '0.35rem 0.2rem',
+            borderRadius: '0.55rem',
+            border: '1px solid rgba(22, 163, 74, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1 }}>{correctCount}</span>
+            </div>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#16a34a', marginTop: 2 }}>Doğru</span>
           </div>
 
           {/* Yanlış */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#fef2f2', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
-            <XCircle size={isMobile ? 12 : 14} color="#dc2626" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#b91c1c' }}>
-              {wrongCount} Y
-            </span>
+          <div style={{
+            background: 'rgba(220, 38, 38, 0.08)',
+            padding: '0.35rem 0.2rem',
+            borderRadius: '0.55rem',
+            border: '1px solid rgba(220, 38, 38, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1.1 }}>{wrongCount}</span>
+            </div>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#dc2626', marginTop: 2 }}>Yanlış</span>
           </div>
 
           {/* Boş */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-            <HelpCircle size={isMobile ? 12 : 14} color="#64748b" />
-            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.82rem', color: '#475569' }}>
-              {blankCount} B
-            </span>
+          <div style={{
+            background: 'var(--color-surface-hover, #f1f5f9)',
+            padding: '0.35rem 0.2rem',
+            borderRadius: '0.55rem',
+            border: '1px solid var(--color-border, #cbd5e1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', lineHeight: 1.1 }}>{blankCount}</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginTop: 2 }}>Boş</span>
           </div>
 
           {/* Başarı % */}
           <div style={{
             background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: 'white',
-            padding: isMobile ? '0.25rem 0.5rem' : '0.35rem 0.85rem',
-            borderRadius: '0.5rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.72rem' : '0.82rem',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
+            padding: '0.35rem 0.2rem',
+            borderRadius: '0.55rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)'
           }}>
-            %{scorePct}
+            <span style={{ fontSize: '0.88rem', fontWeight: 900, lineHeight: 1.1 }}>%{scorePct}</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>Başarı</span>
           </div>
         </div>
-      </header>
+      )}
 
       {/* FEEDBACK TOAST */}
       {savedFeedbackToast && (
