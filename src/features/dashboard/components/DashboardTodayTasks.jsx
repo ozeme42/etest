@@ -136,12 +136,28 @@ export default memo(function DashboardTodayTasks({
                   const rowTheme = getRowTheme ? getRowTheme(task.subject, idx) : {};
                   const isExamItem = task.isExamTask || task.taskType === 'deneme';
 
-                  const rawTitle = task.title || task.testName || task.topic || 'Ders Çalışması';
-                  const rawBook = task.bookTitle || '';
-                  let displayTitle = rawTitle;
+                  const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                  let displayTitle = (task.testName || task.title || task.topic || 'Ders Çalışması')
+                    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                    .replace(/\s*\(Tüm Kitap\)/gi, '')
+                    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                    .replace(/\s*\(Görev\)/gi, '')
+                    .trim();
+
                   if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
-                    displayTitle = displayTitle.replace(rawBook, '').replace(/^[\s\—\-\:\/]+/, '').trim();
-                    if (!displayTitle) displayTitle = task.testName || rawTitle;
+                    displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                  }
+
+                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim())) {
+                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim())) {
+                      displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                    } else if (task.unitTopic) {
+                      displayTitle = `${task.unitTopic} Testi`;
+                    } else if (task.subject) {
+                      displayTitle = `${task.subject} Testi`;
+                    } else {
+                      displayTitle = 'Konu Testi';
+                    }
                   }
 
                   return (
@@ -439,15 +455,28 @@ export default memo(function DashboardTodayTasks({
                 {catchUpTasks.map((task, cIdx) => {
                   const isLast = cIdx === catchUpTasks.length - 1;
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
-                  const rawTitle = task.title || task.testName || task.topic || 'Telafi Görevi';
-                  const rowTheme = getRowTheme ? getRowTheme(task.subject, cIdx) : {};
-                  const catBadge = getCatchUpCategoryBadge(task);
+                  const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                  let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
+                    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                    .replace(/\s*\(Tüm Kitap\)/gi, '')
+                    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                    .replace(/\s*\(Görev\)/gi, '')
+                    .trim();
 
-                  const rawBook = task.bookTitle || '';
-                  let displayTitle = rawTitle;
                   if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
-                    displayTitle = displayTitle.replace(rawBook, '').replace(/^[\s\—\-\:\/]+/, '').trim();
-                    if (!displayTitle) displayTitle = task.testName || rawTitle;
+                    displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                  }
+
+                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim())) {
+                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim())) {
+                      displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                    } else if (task.unitTopic) {
+                      displayTitle = `${task.unitTopic} Testi`;
+                    } else if (task.subject) {
+                      displayTitle = `${task.subject} Testi`;
+                    } else {
+                      displayTitle = 'Konu Testi';
+                    }
                   }
 
                   return (
