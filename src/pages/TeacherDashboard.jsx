@@ -23,6 +23,7 @@ import { computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
 import TeacherActionCenter from '../components/teacher/TeacherActionCenter';
+import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import TeacherClassPulseRadar from '../components/teacher/TeacherClassPulseRadar';
 import TeacherClassroomExplorer from '../components/teacher/TeacherClassroomExplorer';
 import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
@@ -617,7 +618,8 @@ export default function TeacherDashboard() {
   );
 
   return (
-    <div className="teacher-dashboard-container">
+    <SmartPullToRefresh>
+      <div className="teacher-dashboard-container">
       <div className="teacher-main-wrapper">
 
         {/* ═══════════════════════════════════════════════════
@@ -1632,7 +1634,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
       )}
-
-    </div>
+      </div>
+    </SmartPullToRefresh>
   );
 }

@@ -17,6 +17,7 @@ import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import SummaryManagerPage from './SummaryManagerPage';
 import StudentResultsPage from './StudentResultsPage';
 import AdminAiSettingsTab from '../components/admin/AdminAiSettingsTab';
+import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import { Award } from 'lucide-react';
 import './AdminDashboard.css';
 
@@ -115,14 +116,15 @@ export default function AdminDashboard() {
   const totalTopics = curData?.topics?.length || 0;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: 'var(--color-text)',
-      padding: '1.5rem 1rem 5rem 1rem',
-      boxSizing: 'border-box'
-    }}>
+    <SmartPullToRefresh>
+      <div style={{
+        minHeight: '100vh',
+        background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)',
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        color: 'var(--color-text)',
+        padding: '1.5rem 1rem 5rem 1rem',
+        boxSizing: 'border-box'
+      }}>
       <div style={{ width: '100%', maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         
         {/* TOP CONTROL CENTER HEADER */}
@@ -738,7 +740,8 @@ export default function AdminDashboard() {
         )}
 
       </div>
-    </div>
+      </div>
+    </SmartPullToRefresh>
   );
 }
 

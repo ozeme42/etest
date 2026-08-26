@@ -9,6 +9,7 @@ import { useUser } from '../context/UserContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
+import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import {
   BookMarked, CheckCircle2, Clock, PlayCircle, AlertCircle,
   Search, ArrowLeft, ChevronRight, Eye, Sparkles, Filter,
@@ -476,14 +477,15 @@ export default function StudentHomeworksPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--color-bg)',
-      color: 'var(--color-text)',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      padding: '1.25rem 1rem 5rem',
-      boxSizing: 'border-box'
-    }}>
+    <SmartPullToRefresh>
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        padding: '1.25rem 1rem 5rem',
+        boxSizing: 'border-box'
+      }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .hw-anim { animation: fadeIn 0.25s ease both; }
@@ -1116,8 +1118,8 @@ export default function StudentHomeworksPage() {
             ))}
           </div>
         )}
-
       </div>
-    </div>
+      </div>
+    </SmartPullToRefresh>
   );
 }

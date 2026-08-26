@@ -38,6 +38,7 @@ import DashboardBooksCard from '../features/dashboard/components/DashboardBooksC
 import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
 import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
+import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
 
@@ -2382,7 +2383,8 @@ export default function StudentDashboard() {
   }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats]);
 
   return (
-    <div className="student-dashboard-page" style={{ paddingBottom: isMobile ? 'calc(75px + env(safe-area-inset-bottom) + 20px)' : '0' }}>
+    <SmartPullToRefresh>
+      <div className="student-dashboard-page" style={{ paddingBottom: isMobile ? 'calc(75px + env(safe-area-inset-bottom) + 20px)' : '0' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         .student-dashboard-page {
@@ -3203,5 +3205,6 @@ export default function StudentDashboard() {
         onClose={() => setIsManualTestModalOpen(false)}
       />
     </div>
+    </SmartPullToRefresh>
   );
 }

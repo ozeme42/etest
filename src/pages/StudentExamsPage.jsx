@@ -19,6 +19,7 @@ import {
   ResponsiveContainer, BarChart, Bar, Legend, Cell
 } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 
 
 /* ── Constants ─── */
@@ -945,7 +946,8 @@ export default function StudentExamsPage() {
   const isEmpty = assignedBooks.length === 0 && studentMockExams.length === 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1.5rem 1.5rem', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
+    <SmartPullToRefresh>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '1.5rem 1.5rem', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
@@ -1955,6 +1957,7 @@ export default function StudentExamsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </SmartPullToRefresh>
   );
 }
