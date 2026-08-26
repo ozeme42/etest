@@ -58,6 +58,9 @@ export default function ScreenSnipperAndSolverModal({
   useEffect(() => {
     if (isOpen) {
       setError(null);
+      // Pre-warm API key from database into cache
+      getResolvedAiApiKey(currentUser?.id).catch(() => {});
+
       try {
         const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
         if (cached) {
@@ -73,7 +76,7 @@ export default function ScreenSnipperAndSolverModal({
         setActiveTab('image');
       }
     }
-  }, [isOpen, cacheKey, existingImageUrl]);
+  }, [isOpen, cacheKey, existingImageUrl, currentUser]);
 
   // Handle Solving with AI
   const handleSolve = async (overrideImage = null) => {
@@ -112,7 +115,11 @@ export default function ScreenSnipperAndSolverModal({
       });
     } catch (err) {
       if (err.message === 'API_KEY_REQUIRED') {
-        setApiKeyModalOpen(true);
+        if (currentUser?.role === 'admin' || currentUser?.role === 'teacher') {
+          setApiKeyModalOpen(true);
+        } else {
+          setError('Yapay zeka soru çözümü için sistem API anahtarı henüz veritabanında bulunamadı. Lütfen yöneticiniz veya öğretmeniniz ile iletişime geçiniz.');
+        }
       } else {
         setError(err.message || 'Çözüm oluşturulurken bir hata oluştu.');
       }

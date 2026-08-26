@@ -2559,31 +2559,77 @@ export async function dbGetSystemAiConfig() {
   }
 
   try {
-    const storeId = 'system_global_ai_config';
-    const { data, error } = await supabase
+    const storeIdStr = 'system_global_ai_config';
+    const storeIdUuid = toUUID(storeIdStr);
+
+    // 1. Check coaching_profiles table with UUID or string ID or student_id
+    const { data: cData } = await supabase
       .from('coaching_profiles')
       .select('*')
-      .eq('id', storeId)
-      .maybeSingle();
+      .or(`id.eq.${storeIdUuid},id.eq.${storeIdStr},student_id.eq.SYSTEM_GLOBAL`)
+      .limit(5);
 
-    if (error) {
-      console.warn('[Supabase] dbGetSystemAiConfig:', error.message);
-      return { apiKey: localKey || null, defaultModel: localModel };
+    if (Array.isArray(cData) && cData.length > 0) {
+      for (const row of cData) {
+        const extraRaw = row.extra_data || row.data || row.raw_data;
+        if (extraRaw) {
+          const parsed = typeof extraRaw === 'string' ? JSON.parse(extraRaw) : extraRaw;
+          const key = parsed?.apiKey || parsed?.gemini_api_key || parsed?.key || null;
+          const model = parsed?.defaultModel || parsed?.model || localModel || 'gemini-3.7-flash';
+          if (key && String(key).trim()) {
+            const cleanKey = String(key).trim();
+            localStorage.setItem('system_ai_api_key', cleanKey);
+            localStorage.setItem('gemini_api_key', cleanKey);
+            localStorage.setItem('eTestGeminiApiKey', cleanKey);
+            localStorage.setItem('system_ai_default_model', model);
+            return { apiKey: cleanKey, defaultModel: model };
+          }
+        }
+      }
     }
 
-    if (data) {
-      const extraRaw = data.extra_data || data.data;
-      if (extraRaw) {
-        const parsed = typeof extraRaw === 'string' ? JSON.parse(extraRaw) : extraRaw;
-        const key = parsed?.apiKey || localKey || null;
-        const model = parsed?.defaultModel || localModel || 'gemini-3.7-flash';
-        if (key) {
-          localStorage.setItem('system_ai_api_key', key);
-          localStorage.setItem('gemini_api_key', key);
-          localStorage.setItem('eTestGeminiApiKey', key);
-        }
+    // 2. Check summaries table as fallback
+    const { data: sData } = await supabase
+      .from('summaries')
+      .select('*')
+      .or(`id.eq.${storeIdUuid},target_id.eq.SYSTEM_GLOBAL`)
+      .limit(1)
+      .maybeSingle();
+
+    if (sData) {
+      const rawObj = sData.raw_data && typeof sData.raw_data === 'object' ? sData.raw_data : {};
+      const key = sData.content || rawObj.apiKey || rawObj.gemini_api_key || null;
+      const model = rawObj.defaultModel || localModel || 'gemini-3.7-flash';
+      if (key && String(key).trim()) {
+        const cleanKey = String(key).trim();
+        localStorage.setItem('system_ai_api_key', cleanKey);
+        localStorage.setItem('gemini_api_key', cleanKey);
+        localStorage.setItem('eTestGeminiApiKey', cleanKey);
         localStorage.setItem('system_ai_default_model', model);
-        return { apiKey: key, defaultModel: model };
+        return { apiKey: cleanKey, defaultModel: model };
+      }
+    }
+
+    // 3. Check users table (admin user raw_data)
+    const { data: uData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'admin')
+      .limit(5);
+
+    if (Array.isArray(uData) && uData.length > 0) {
+      for (const u of uData) {
+        const raw = u.raw_data || u.user_metadata || {};
+        const key = raw.systemAiApiKey || raw.gemini_api_key || raw.apiKey;
+        const model = raw.systemAiDefaultModel || raw.defaultModel || localModel || 'gemini-3.7-flash';
+        if (key && String(key).trim()) {
+          const cleanKey = String(key).trim();
+          localStorage.setItem('system_ai_api_key', cleanKey);
+          localStorage.setItem('gemini_api_key', cleanKey);
+          localStorage.setItem('eTestGeminiApiKey', cleanKey);
+          localStorage.setItem('system_ai_default_model', model);
+          return { apiKey: cleanKey, defaultModel: model };
+        }
       }
     }
   } catch (err) {
@@ -2622,30 +2668,69 @@ export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
   if (!isSupabaseConfigured()) return true;
 
   try {
-    const storeId = 'system_global_ai_config';
-    const payload = {
-      id: storeId,
+    const storeIdStr = 'system_global_ai_config';
+    const storeIdUuid = toUUID(storeIdStr);
+
+    const payloadJson = JSON.stringify({
+      apiKey: cleanKey,
+      defaultModel: modelToSave,
+      updatedBy: metadata.updatedBy || 'Admin',
+      updatedAt: new Date().toISOString()
+    });
+
+    // 1. Save to coaching_profiles with UUID id
+    const coachingPayloadUuid = {
+      id: storeIdUuid,
       student_id: 'SYSTEM_GLOBAL',
       target_school: 'SYSTEM_AI_SETTINGS',
       parent_notes: 'System-wide Google Gemini API Key and Model configuration for all students and teachers',
-      extra_data: JSON.stringify({
-        apiKey: cleanKey,
-        defaultModel: modelToSave,
-        updatedBy: metadata.updatedBy || 'Admin',
-        updatedAt: new Date().toISOString()
-      })
+      extra_data: payloadJson
     };
+    try {
+      await supabase.from('coaching_profiles').upsert([coachingPayloadUuid], { onConflict: 'id' });
+    } catch {}
 
-    const { error } = await supabase
-      .from('coaching_profiles')
-      .upsert([payload], { onConflict: 'id' });
+    // Also fallback with data column
+    try {
+      const fbPayload = { ...coachingPayloadUuid, data: payloadJson };
+      delete fbPayload.extra_data;
+      await supabase.from('coaching_profiles').upsert([fbPayload], { onConflict: 'id' });
+    } catch {}
 
-    if (error) {
-      // Fallback with data column
-      const fallbackPayload = { ...payload, data: payload.extra_data };
-      delete fallbackPayload.extra_data;
-      await supabase.from('coaching_profiles').upsert([fallbackPayload], { onConflict: 'id' });
-    }
+    // 2. Save to summaries table as redundant store
+    try {
+      const summaryPayload = {
+        id: storeIdUuid,
+        target_id: 'SYSTEM_GLOBAL',
+        title: 'System AI Settings',
+        content: cleanKey,
+        summary_type: 'SYSTEM_AI_CONFIG',
+        raw_data: {
+          apiKey: cleanKey,
+          defaultModel: modelToSave,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      await supabase.from('summaries').upsert([summaryPayload], { onConflict: 'id' });
+    } catch {}
+
+    // 3. Save to admin user rows in users table
+    try {
+      const { data: adminUsers } = await supabase.from('users').select('*').eq('role', 'admin');
+      if (Array.isArray(adminUsers) && adminUsers.length > 0) {
+        for (const adminU of adminUsers) {
+          const currentRaw = adminU.raw_data && typeof adminU.raw_data === 'object' ? adminU.raw_data : {};
+          const updatedRaw = {
+            ...currentRaw,
+            systemAiApiKey: cleanKey,
+            systemAiDefaultModel: modelToSave,
+            aiSettingsUpdatedAt: new Date().toISOString()
+          };
+          await supabase.from('users').update({ raw_data: updatedRaw }).eq('id', adminU.id);
+        }
+      }
+    } catch {}
+
     return true;
   } catch (err) {
     console.warn('[Supabase] dbSaveSystemAiApiKey error:', err.message);
