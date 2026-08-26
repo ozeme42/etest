@@ -375,7 +375,7 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { homeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
@@ -393,15 +393,42 @@ export default function StudentDashboard() {
   const [activeDayKey, setActiveDayKey] = useState(todayDayKey);
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
+
+  const [dismissedTaskKeys, setDismissedTaskKeys] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent?.id || 'default'}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const isTaskDismissed = useCallback((task) => {
+    if (!task || !Array.isArray(dismissedTaskKeys) || dismissedTaskKeys.length === 0) return false;
+    const keysToCheck = [
+      String(task.id || ''),
+      String(task.hwId || ''),
+      String(task.testId || ''),
+      String(task.realTestId || ''),
+      String(task.bookTestId || ''),
+      String(task.uniqueKey || ''),
+      String(task.title || '')
+    ].filter(Boolean);
+
+    return keysToCheck.some(k => dismissedTaskKeys.includes(k));
+  }, [dismissedTaskKeys]);
+
+  useEffect(() => {
+    if (selectedStudent?.id) {
+      try {
+        const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent.id}`);
+        if (stored) setDismissedTaskKeys(JSON.parse(stored));
+      } catch {}
+    }
+  }, [selectedStudent]);
 
   useEffect(() => {
     if (currentUser?.role === 'student') setSelectedStudent(currentUser);
@@ -1862,7 +1889,7 @@ export default function StudentDashboard() {
       if (idx < todayIdx) {
         const dData = fullProcessedWeekMap[d.key];
         (dData?.items || []).forEach(item => {
-          if (!item.done) {
+          if (!item.done && !isTaskDismissed(item)) {
             const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
             const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
             const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
@@ -1909,25 +1936,27 @@ export default function StudentDashboard() {
 
           if (targetDateObj && targetDateObj.getTime() < nowTime) {
             const key = `roadmap_${assignment.id}_${topic.id}`;
-            if (!seen.has(key)) {
+            const roadmapItem = {
+              id: key,
+              roadmapAssignmentId: assignment.id,
+              isAutoHomework: true,
+              isRoadmapTask: true,
+              taskType: 'yol_haritasi',
+              categoryType: 'yol_haritasi',
+              subject: subject.name || 'Yol Haritası',
+              bookTitle: plan.title,
+              title: topic.name,
+              unitTopic: topic.name,
+              dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
+              dueDateObj: targetDateObj,
+              time: `Hedef: ${targetDateObj.toLocaleDateString('tr-TR')}`,
+              isCatchUp: true,
+              reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
+            };
+
+            if (!seen.has(key) && !isTaskDismissed(roadmapItem)) {
               seen.add(key);
-              list.push({
-                id: key,
-                roadmapAssignmentId: assignment.id,
-                isAutoHomework: true,
-                isRoadmapTask: true,
-                taskType: 'yol_haritasi',
-                categoryType: 'yol_haritasi',
-                subject: subject.name || 'Yol Haritası',
-                bookTitle: plan.title,
-                title: topic.name,
-                unitTopic: topic.name,
-                dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
-                dueDateObj: targetDateObj,
-                time: `Hedef: ${targetDateObj.toLocaleDateString('tr-TR')}`,
-                isCatchUp: true,
-                reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
-              });
+              list.push(roadmapItem);
             }
           }
         });
@@ -1937,7 +1966,7 @@ export default function StudentDashboard() {
     // 3. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
     (pendingTasks || []).forEach(task => {
       const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
-      if (dueDateObj && dueDateObj.getTime() < nowTime) {
+      if (dueDateObj && dueDateObj.getTime() < nowTime && !isTaskDismissed(task)) {
         const key = String(task.id || task.hwId || task.testId);
         const hwCleanKey = key.replace(/^hw_/, '').replace(/^auto_hw_/, '').replace(/^book_test_/, '');
         const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(hwCleanKey));
@@ -1958,7 +1987,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey]);
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
@@ -2013,12 +2042,50 @@ export default function StudentDashboard() {
       return;
     }
 
+    // 1. Optimistic Instant Dismissal from UI & LocalStorage
+    const keysToAdd = [
+      String(task.id || ''),
+      String(task.hwId || ''),
+      String(task.testId || ''),
+      String(task.realTestId || ''),
+      String(task.bookTestId || ''),
+      String(task.uniqueKey || ''),
+      String(task.title || '')
+    ].filter(Boolean);
+
+    setDismissedTaskKeys(prev => {
+      const next = Array.from(new Set([...prev, ...keysToAdd]));
+      try {
+        localStorage.setItem(`dismissed_tasks_${selectedStudent?.id || 'default'}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 2. Database cleanup
     try {
       const targetHwId = task.hwId || (task.id && String(task.id).startsWith('hw_') ? String(task.id).replace(/^hw_/, '') : null);
       if (targetHwId && typeof deleteHomework === 'function') {
         await deleteHomework(targetHwId);
       } else if (task.id && typeof deleteHomework === 'function') {
         await deleteHomework(task.id);
+      }
+
+      // If test has due date inside any homework, delete the date from homework
+      if (task.testId && Array.isArray(homeworks)) {
+        const matchingHws = homeworks.filter(h => h.testDueDates?.[task.testId] || h.scheduleDates?.[task.testId]);
+        for (const mHw of matchingHws) {
+          const newTestDueDates = { ...mHw.testDueDates };
+          delete newTestDueDates[task.testId];
+          const newScheduleDates = { ...mHw.scheduleDates };
+          delete newScheduleDates[task.testId];
+          if (typeof updateHomework === 'function') {
+            await updateHomework(mHw.id, {
+              ...mHw,
+              testDueDates: newTestDueDates,
+              scheduleDates: newScheduleDates
+            });
+          }
+        }
       }
 
       if (task.isScheduleContextItem && typeof deleteSchedule === 'function') {
@@ -2028,11 +2095,16 @@ export default function StudentDashboard() {
       if (coachingProfile && Array.isArray(coachingProfile.weeklyProgram)) {
         let modified = false;
         const updated = coachingProfile.weeklyProgram.map(dayRow => {
-          const filtered = (dayRow.items || []).filter(item => item.id !== task.id && item.id !== task.hwId && item.hwId !== task.hwId);
+          const filtered = (dayRow.items || []).filter(item => 
+            item.id !== task.id && 
+            item.id !== task.hwId && 
+            item.hwId !== task.hwId &&
+            item.testId !== task.testId
+          );
           if (filtered.length !== (dayRow.items || []).length) modified = true;
           return { ...dayRow, items: filtered };
         });
-        if (modified) {
+        if (modified && typeof saveCoachingProfile === 'function') {
           await saveCoachingProfile({
             ...coachingProfile,
             studentId: selectedStudent.id,
