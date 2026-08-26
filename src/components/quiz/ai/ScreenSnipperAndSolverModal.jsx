@@ -36,6 +36,7 @@ export default function ScreenSnipperAndSolverModal({
 
   const [activeTab, setActiveTab] = useState(existingImageUrl ? 'image' : (question?.questionText ? 'auto' : 'crop')); // 'crop' | 'camera' | 'auto' | 'image'
   const [croppedImage, setCroppedImage] = useState(existingImageUrl || null);
+  const [capturedScreenImage, setCapturedScreenImage] = useState(null);
   const [isSnipping, setIsSnipping] = useState(false);
   const [snipRect, setSnipRect] = useState(null); // { startX, startY, currentX, currentY }
   const [isDragging, setIsDragging] = useState(false);
@@ -78,9 +79,70 @@ export default function ScreenSnipperAndSolverModal({
     }
   }, [isOpen, cacheKey, existingImageUrl, currentUser]);
 
+  // Global clipboard paste listener (Ctrl+V)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (!isOpen) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const base64 = event.target.result;
+              setCroppedImage(base64);
+              setActiveTab('image');
+              handleSolve(base64);
+            };
+            reader.readAsDataURL(blob);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isOpen]);
+
+  const handleClipboardPaste = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) {
+              const blob = await item.getType(type);
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const base64 = event.target.result;
+                setCroppedImage(base64);
+                setActiveTab('image');
+                handleSolve(base64);
+              };
+              reader.readAsDataURL(blob);
+              return;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Clipboard read failed:', err);
+    }
+    setError('Panoda görsel bulunamadı. Lütfen Win+Shift+S ile soruyu kopyaladıktan sonra buraya Ctrl+V tuşlarına basarak yapıştırınız.');
+  };
+
   // Handle Solving with AI
   const handleSolve = async (overrideImage = null) => {
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
+    const qText = question?.questionText || question?.title || '';
+
+    if (!imgToSend && !qText) {
+      setError('Lütfen çözülmesi istenen sorunun ekran görüntüsünü kırpın, fotoğrafını yükleyin veya Ctrl+V ile yapıştırın.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -88,7 +150,7 @@ export default function ScreenSnipperAndSolverModal({
       const res = await solveQuestionWithAi({
         userId: currentUser?.id,
         imageBase64: imgToSend,
-        questionText: question?.questionText || question?.title || '',
+        questionText: qText,
         options: question?.options || [],
         studentAnswer: studentAnswer || question?.userAnswer || '',
         correctAnswer: correctAnswer || question?.correctAnswerLetter || question?.correctAnswer || '',
@@ -158,6 +220,7 @@ export default function ScreenSnipperAndSolverModal({
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         setCroppedImage(dataUrl);
+        setActiveTab('image');
         handleSolve(dataUrl);
       };
       img.src = event.target.result;
@@ -172,6 +235,7 @@ export default function ScreenSnipperAndSolverModal({
         if (isSnipping) {
           setIsSnipping(false);
           setSnipRect(null);
+          setCapturedScreenImage(null);
         } else if (isOpen) {
           onClose();
         }
@@ -182,7 +246,42 @@ export default function ScreenSnipperAndSolverModal({
   }, [isSnipping, isOpen, onClose]);
 
   // ── Screen Snipping Tool Overlay Logic ──
-  const startSnippingMode = () => {
+  const startSnippingMode = async () => {
+    setError(null);
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: "browser", preferCurrentTab: true },
+          audio: false
+        });
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.playsInline = true;
+        await video.play();
+
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = video.videoWidth;
+        fullCanvas.height = video.videoHeight;
+        const ctx = fullCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        const fullScreenshotUrl = fullCanvas.toDataURL('image/jpeg', 0.95);
+        setCapturedScreenImage(fullScreenshotUrl);
+        setIsSnipping(true);
+        setSnipRect(null);
+        return;
+      } catch (err) {
+        if (err.name === 'NotAllowedError') {
+          return;
+        }
+        console.warn('getDisplayMedia fallback to overlay:', err);
+      }
+    }
+
+    setCapturedScreenImage(null);
     setIsSnipping(true);
     setSnipRect(null);
   };
@@ -217,14 +316,44 @@ export default function ScreenSnipperAndSolverModal({
     if (width < 20 || height < 20) {
       setIsSnipping(false);
       setSnipRect(null);
+      setCapturedScreenImage(null);
       return;
     }
 
     try {
-      // Create cropped in-memory canvas
       const cropCanvas = document.createElement('canvas');
 
-      // 1. Search for any canvas elements in the viewport (e.g. PDF canvas)
+      if (capturedScreenImage) {
+        const img = new Image();
+        img.onload = () => {
+          const viewW = window.innerWidth;
+          const viewH = window.innerHeight;
+          const scaleX = img.naturalWidth / viewW;
+          const scaleY = img.naturalHeight / viewH;
+
+          const srcX = Math.max(0, x1 * scaleX);
+          const srcY = Math.max(0, y1 * scaleY);
+          const srcW = Math.min(img.naturalWidth - srcX, width * scaleX);
+          const srcH = Math.min(img.naturalHeight - srcY, height * scaleY);
+
+          cropCanvas.width = srcW;
+          cropCanvas.height = srcH;
+          const ctx = cropCanvas.getContext('2d');
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+
+          const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.92);
+          setCroppedImage(croppedDataUrl);
+          setIsSnipping(false);
+          setSnipRect(null);
+          setCapturedScreenImage(null);
+          setActiveTab('image');
+          handleSolve(croppedDataUrl);
+        };
+        img.src = capturedScreenImage;
+        return;
+      }
+
+      // Fallback: Search for any canvas elements in the viewport (e.g. PDF canvas)
       const allCanvases = Array.from(document.querySelectorAll('canvas')).filter(c => {
         const r = c.getBoundingClientRect();
         return r.width > 20 && r.height > 20 &&
@@ -247,7 +376,6 @@ export default function ScreenSnipperAndSolverModal({
         const ctx = cropCanvas.getContext('2d');
         ctx.drawImage(targetCanvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
       } else {
-        // 2. Search for any <img> elements in the viewport
         const allImages = Array.from(document.querySelectorAll('img')).filter(img => {
           const r = img.getBoundingClientRect();
           return r.width > 20 && r.height > 20 &&
@@ -270,27 +398,26 @@ export default function ScreenSnipperAndSolverModal({
           const ctx = cropCanvas.getContext('2d');
           ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
         } else {
-          // 3. Fallback visual badge
-          cropCanvas.width = width;
-          cropCanvas.height = height;
-          const ctx = cropCanvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, width, height);
-          ctx.fillStyle = '#7c3aed';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.fillText(`Soru ${questionNo} Seçildi`, 15, 30);
+          setIsSnipping(false);
+          setSnipRect(null);
+          setCapturedScreenImage(null);
+          setError('Ekrandaki soru doğrudan yakalanamadı. Lütfen Windows Ekran Alıntısı (Win+Shift+S) ile soruyu kopyalayıp buraya Ctrl+V ile yapıştırınız.');
+          return;
         }
       }
 
-      const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
+      const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.92);
       setCroppedImage(croppedDataUrl);
       setIsSnipping(false);
       setSnipRect(null);
+      setCapturedScreenImage(null);
+      setActiveTab('image');
       handleSolve(croppedDataUrl);
     } catch (err) {
       console.warn('Crop error:', err);
       setIsSnipping(false);
       setSnipRect(null);
+      setCapturedScreenImage(null);
     }
   };
 
@@ -345,7 +472,11 @@ export default function ScreenSnipperAndSolverModal({
             inset: 0,
             zIndex: 99999,
             cursor: 'crosshair',
-            background: 'rgba(0, 0, 0, 0.45)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backgroundImage: capturedScreenImage ? `url(${capturedScreenImage})` : 'none',
+            backgroundSize: '100% 100%',
+            backgroundPosition: 'top left',
+            backgroundRepeat: 'no-repeat',
             userSelect: 'none'
           }}
         >
@@ -548,6 +679,28 @@ export default function ScreenSnipperAndSolverModal({
               >
                 <Camera size={15} color="#3b82f6" />
                 <span>📸 Fotoğraf Çek</span>
+              </button>
+
+              {/* Clipboard Paste (Ctrl+V) */}
+              <button
+                onClick={handleClipboardPaste}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '0.6rem',
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid #a855f7',
+                  color: '#a855f7',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+                title="Panodaki görseli yapıştır (Ctrl+V)"
+              >
+                <Copy size={14} />
+                <span>📋 Panodan Yapıştır (Ctrl+V)</span>
               </button>
 
               {/* File Upload */}
