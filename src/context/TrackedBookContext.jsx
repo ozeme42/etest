@@ -76,7 +76,7 @@ export function TrackedBookProvider({ children }) {
     }
     const lastSync = sessionStorage.getItem('eTestLastTrackedBooksSync');
     const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 10 * 60 * 1000 && books.length > 0) {
+    if (!force && lastSync && now - Number(lastSync) < 15 * 1000 && books.length > 0) {
       setIsLoading(false);
       return { books, bookTests };
     }
@@ -103,6 +103,13 @@ export function TrackedBookProvider({ children }) {
 
   useEffect(() => {
     refreshTrackedBooks();
+    const handleFocus = () => refreshTrackedBooks();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   useEffect(() => {

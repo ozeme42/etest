@@ -419,12 +419,24 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
 export function isHomeworkForStudent(hw, student, grades = []) {
   if (!hw || !student) return false;
   const studentObj = typeof student === 'string' ? { id: student } : student;
-  const studentId = String(studentObj.id || studentObj.studentId || '');
-  const targetIds = Array.isArray(hw.targetIds) ? hw.targetIds.map(String) : [];
+  const studentId = String(studentObj.id || studentObj.studentId || studentObj.userId || '');
+  const studentUuid = toUUID(studentId);
+  const rawTargetIds = hw.targetIds || hw.target_ids || hw.raw_data?.targetIds || hw.raw_data?.target_ids || [];
+  const targetIds = Array.isArray(rawTargetIds) ? rawTargetIds.map(String) : [];
 
-  // 1. Direct student target
-  if (hw.targetType === 'student') {
-    return targetIds.includes(studentId);
+  // Check if student is explicitly targeted by id or UUID
+  const isDirectlyTargeted = targetIds.some(tid => {
+    const tidStr = String(tid);
+    return tidStr === studentId ||
+      (studentUuid && tidStr === studentUuid) ||
+      toUUID(tidStr) === studentId ||
+      (studentUuid && toUUID(tidStr) === studentUuid);
+  });
+
+  if (isDirectlyTargeted) return true;
+
+  if (hw.targetType === 'student' || hw.targetType === 'individual' || hw.targetType === 'students' || hw.targetType === 'user') {
+    return isDirectlyTargeted;
   }
 
   // 2. Class / Grade target
@@ -434,6 +446,7 @@ export function isHomeworkForStudent(hw, student, grades = []) {
     // Gather all possible identifiers for the student
     const studentIdentifiers = new Set([
       studentId,
+      studentUuid,
       String(studentObj.gradeId || ''),
       String(studentObj.classId || ''),
       String(studentObj.grade || ''),
@@ -457,8 +470,9 @@ export function isHomeworkForStudent(hw, student, grades = []) {
 
     // Check if any targetId matches student's identifiers
     return targetIds.some(tid => {
-      if (studentIdentifiers.has(tid)) return true;
-      const matchedGrade = grades.find(g => String(g.id) === tid || String(g.name) === tid);
+      const tidStr = String(tid);
+      if (studentIdentifiers.has(tidStr)) return true;
+      const matchedGrade = grades.find(g => String(g.id) === tidStr || String(g.name) === tidStr);
       if (matchedGrade) {
         if (studentIdentifiers.has(String(matchedGrade.id)) || (matchedGrade.name && studentIdentifiers.has(String(matchedGrade.name)))) {
           return true;
@@ -468,7 +482,7 @@ export function isHomeworkForStudent(hw, student, grades = []) {
     });
   }
 
-  return targetIds.includes(studentId);
+  return isDirectlyTargeted;
 }
 
 /**

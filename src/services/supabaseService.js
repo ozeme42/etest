@@ -1370,7 +1370,10 @@ export async function dbGetHomeworks() {
       const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : (raw.tests || []));
       const bId = h.book_id || raw.bookId || raw.book_id || null;
       const canonicalId = raw.stringId || String(h.id);
+      const testDueDates = raw.testDueDates || h.test_due_dates || raw.scheduleDates || h.schedule_dates || {};
+
       return {
+        ...raw,
         id: canonicalId,
         supabaseId: String(h.id),
         title: h.title || raw.title || '',
@@ -1387,11 +1390,7 @@ export async function dbGetHomeworks() {
         submissions: h.submissions || raw.submissions || [],
         bookId: bId,
         isBookAssignment: Boolean(h.is_book_assignment || raw.isBookAssignment || bId),
-        testDueDates: raw.testDueDates || h.test_due_dates || {},
-        ...raw,
-        id: canonicalId,
-        // Override with canonical fields so raw cannot accidentally set bookId to undefined
-        ...(bId ? { bookId: bId, isBookAssignment: true } : {})
+        testDueDates: testDueDates
       };
     });
   } catch (err) {

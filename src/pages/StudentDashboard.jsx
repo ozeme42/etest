@@ -1214,8 +1214,14 @@ export default function StudentDashboard() {
 
         studentHomeworks.forEach(hw => {
           if (!hw) return;
-          const bookObj = (books || []).find(b => String(b?.id) === String(hw.bookId) || toUUID(b?.id) === toUUID(hw.bookId));
-          if ((hw.isBookAssignment || hw.bookId) && !bookObj) return;
+          const bookObj = (books || []).find(b =>
+            String(b?.id) === String(hw.bookId) ||
+            toUUID(b?.id) === toUUID(hw.bookId) ||
+            (b?.title && hw?.title && (
+              b.title.toLowerCase().trim() === hw.title.toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim() ||
+              hw.title.toLowerCase().includes(b.title.toLowerCase().trim())
+            ))
+          ) || ((hw.isBookAssignment || hw.bookId) ? { id: hw.bookId, title: hw.title || 'Kitap Takibi', subjects: [] } : null);
 
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
@@ -1230,7 +1236,6 @@ export default function StudentDashboard() {
 
           // ── DENEME & FİZİKSEL SINAV: TEK BİRLEŞİK GÖREV OLARAK GÖSTER ──
           if (isExam) {
-            if (hw.bookId && !bookObj) return;
             const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
             const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
             const startTime = startYMD ? new Date(startYMD).getTime() : null;
@@ -1387,7 +1392,30 @@ export default function StudentDashboard() {
             return false;
           };
 
-          const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
+          const testDueDatesMap = {
+            ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
+          };
+
+          // Merge dates from bookTests if matching this book
+          (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId) || toUUID(bt.bookId) === toUUID(hw.bookId)).forEach(bt => {
+            const d = bt.dueDate || bt.testDueDate || bt.date;
+            if (d && !testDueDatesMap[bt.id]) testDueDatesMap[bt.id] = d;
+          });
+
+          // Merge dates from bookObj subjects/topics
+          (bookObj?.subjects || []).forEach(s => {
+            (s.tests || []).forEach(t => {
+              const d = t.dueDate || t.testDueDate || t.date;
+              if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
+            });
+            (s.topics || []).forEach(tp => {
+              (tp.tests || []).forEach(t => {
+                const d = t.dueDate || t.testDueDate || t.date;
+                if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
+              });
+            });
+          });
+
           if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
             Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
               if (!tDateStr) return;

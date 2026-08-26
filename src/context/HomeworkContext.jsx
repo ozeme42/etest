@@ -24,7 +24,7 @@ export function HomeworkProvider({ children }) {
     }
     const lastSync = sessionStorage.getItem('eTestLastHwSync');
     const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 10 * 60 * 1000 && homeworks.length > 0) {
+    if (!force && lastSync && now - Number(lastSync) < 15 * 1000 && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -54,6 +54,13 @@ export function HomeworkProvider({ children }) {
 
   useEffect(() => {
     refreshHomeworks();
+    const handleFocus = () => refreshHomeworks();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   useEffect(() => {
