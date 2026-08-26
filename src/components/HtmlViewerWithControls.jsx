@@ -177,10 +177,30 @@ export default React.memo(function HtmlViewerWithControls(props) {
     }
   };
 
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const activeHtml = manualHtml || fetchedHtml;
   const iframeContent = activeHtml ? { src: undefined, srcDoc: wrapInStyledHtmlDocument(activeHtml, title) } : resolveIframeContent(activePayload, title);
-
   const isValidContent = Boolean(iframeContent.src || iframeContent.srcDoc);
+
+  const iframeElement = useMemo(() => {
+    if (!isValidContent) return null;
+    return (
+      <iframe
+        key={iframeContent.src || (iframeContent.srcDoc ? iframeContent.srcDoc.slice(0, 40) : 'html_frame')}
+        src={iframeContent.src}
+        srcDoc={iframeContent.srcDoc}
+        title="HTML Soru Dokümanı"
+        style={{
+          width: '100%',
+          height: '100%',
+          minWidth: '100%',
+          minHeight: '100%',
+          border: 'none',
+          background: 'white'
+        }}
+      />
+    );
+  }, [isValidContent, iframeContent.src, iframeContent.srcDoc]);
 
   if (!isValidContent) {
     return (
@@ -216,8 +236,6 @@ export default React.memo(function HtmlViewerWithControls(props) {
     );
   }
 
-  const isMobile = useMediaQuery('(max-width: 768px)');
-
   const containerStyle = {
     position: 'relative',
     width: '100%',
@@ -228,23 +246,6 @@ export default React.memo(function HtmlViewerWithControls(props) {
     flexDirection: 'column',
     overflow: 'hidden'
   };
-
-  const iframeElement = useMemo(() => (
-    <iframe
-      key={iframeContent.src || (iframeContent.srcDoc ? iframeContent.srcDoc.slice(0, 40) : 'html_frame')}
-      src={iframeContent.src}
-      srcDoc={iframeContent.srcDoc}
-      title="HTML Soru Dokümanı"
-      style={{
-        width: '100%',
-        height: '100%',
-        minWidth: '100%',
-        minHeight: '100%',
-        border: 'none',
-        background: 'white'
-      }}
-    />
-  ), [iframeContent.src, iframeContent.srcDoc]);
 
   return (
     <div ref={wrapperRef} style={containerStyle}>
