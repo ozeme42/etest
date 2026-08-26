@@ -4,7 +4,7 @@ import {
   BookOpen, Lightbulb, Key, HelpCircle, CheckCircle2, ChevronDown,
   ChevronUp, Copy, Eye, Upload, FileText, ArrowRight
 } from 'lucide-react';
-import { solveQuestionWithAi, getResolvedAiApiKey } from '../../../services/aiSolutionService';
+import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey } from '../../../services/supabaseService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -291,14 +291,14 @@ export default function ScreenSnipperAndSolverModal({
   const copySolutionText = () => {
     if (!solution) return;
     const text = [
-      `📌 Soru ${questionNo} - Doğru Cevap: ${solution.correctAnswer || ''}`,
-      `Özet: ${solution.summary || ''}`,
+      `📌 Soru ${questionNo} - Doğru Cevap: ${cleanAiMathText(solution.correctAnswer) || ''}`,
+      `Özet: ${cleanAiMathText(solution.summary) || ''}`,
       '',
       '📝 Adım Adım Çözüm:',
-      ...(solution.steps || []),
+      ...((solution.steps || []).map((s, idx) => `${idx + 1}. ${cleanAiMathText(s)}`)),
       '',
-      solution.goldenRule ? `💡 Altın Kural: ${solution.goldenRule}` : '',
-      solution.mistakeAdvice ? `🎯 Hata Koçluğu: ${solution.mistakeAdvice}` : ''
+      solution.goldenRule ? `💡 Altın Kural: ${cleanAiMathText(solution.goldenRule)}` : '',
+      solution.mistakeAdvice ? `🎯 Hata Koçluğu: ${cleanAiMathText(solution.mistakeAdvice)}` : ''
     ].filter(Boolean).join('\n');
 
     navigator.clipboard.writeText(text);
@@ -724,7 +724,7 @@ export default function ScreenSnipperAndSolverModal({
                     </div>
                     {solution.summary && (
                       <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-text)' }}>
-                        {solution.summary}
+                        {cleanAiMathText(solution.summary)}
                       </p>
                     )}
                   </div>
@@ -767,7 +767,7 @@ export default function ScreenSnipperAndSolverModal({
                         🎯 Hata Sebebi Koçluğu ({mistakeReason || 'Özel Analiz'})
                       </div>
                       <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-text)' }}>
-                        {solution.mistakeAdvice}
+                        {cleanAiMathText(solution.mistakeAdvice)}
                       </p>
                     </div>
                   </div>
@@ -790,7 +790,7 @@ export default function ScreenSnipperAndSolverModal({
                         💡 Altın Kural & Formül Özeti
                       </div>
                       <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-text)' }}>
-                        {solution.goldenRule}
+                        {cleanAiMathText(solution.goldenRule)}
                       </p>
                     </div>
                   </div>
@@ -834,12 +834,12 @@ export default function ScreenSnipperAndSolverModal({
                         }}>
                           {sIdx + 1}
                         </div>
-                        <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{step}</div>
+                        <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{cleanAiMathText(step)}</div>
                       </div>
                     ))
                   ) : (
                     <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', fontSize: '0.86rem', lineHeight: 1.55 }}>
-                      {solution.explanation || JSON.stringify(solution)}
+                      {cleanAiMathText(solution.explanation || JSON.stringify(solution))}
                     </div>
                   )}
                 </div>

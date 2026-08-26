@@ -33,6 +33,47 @@ export async function getResolvedAiApiKey(userId) {
 }
 
 /**
+ * Clean raw LaTeX and math tokens to human-readable Turkish math text
+ */
+export function cleanAiMathText(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  let res = str;
+
+  // 1. Remove duplicate step headings like "1. Adım:", "Adım 1:", "1. Adım -", "Adım 1 -" at the beginning
+  res = res.replace(/^(\d+[\.\)]\s*(?:Adım|Aşama)[:\-]?|\s*(?:Adım|Aşama)\s*\d+[:\-]?)\s*/i, '');
+
+  // 2. Clean LaTeX \text{...} -> ...
+  res = res.replace(/\\text\{([^}]+)\}/g, '$1');
+
+  // 3. Clean LaTeX \frac{a}{b} -> (a / b) or a / b
+  res = res.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 / $2');
+
+  // 4. Clean LaTeX math symbols
+  res = res.replace(/\\times/g, '×');
+  res = res.replace(/\\cdot/g, '·');
+  res = res.replace(/\\div/g, '÷');
+  res = res.replace(/\\pm/g, '±');
+  res = res.replace(/\\neq/g, '≠');
+  res = res.replace(/\\leq/g, '≤');
+  res = res.replace(/\\geq/g, '≥');
+  res = res.replace(/\\approx/g, '≈');
+  res = res.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
+  res = res.replace(/\\sqrt/g, '√');
+  res = res.replace(/\\pi/g, 'π');
+  res = res.replace(/\\degree/g, '°');
+  res = res.replace(/\\circ/g, '°');
+
+  // 5. Clean dollar signs used for inline math $x$ -> x
+  res = res.replace(/\$([^\$]+)\$/g, '$1');
+  res = res.replace(/\$/g, '');
+
+  // 6. Clean remaining backslashes before plain words
+  res = res.replace(/\\([a-zA-Z]+)/g, '$1');
+
+  return res.trim();
+}
+
+/**
  * Solve a single question using Gemini (Multimodal Vision / Text)
  * Zero database storage, processed strictly in-memory.
  */
@@ -78,14 +119,15 @@ Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım 
 
 Kurallar:
 1. Çözümü madde madde, adım adım ve net matematiksel/mantıksal akışla yaz.
-2. Matematik veya Fen formüllerinde LaTeX formatını kullan (örn: $x^2 + y^2 = z^2$, $\\frac{a}{b}$, $\\sqrt{x}$).
-3. Öğrencinin seçtiği HATA SEBEBİ (${cleanReason}) doğrultusunda:
+2. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX, kodlama etiketleri veya '$', '\\text', '\\frac', '\\times' gibi semboller KULLANMA. Tüm işlemleri günlük temiz Türkçe ve anlaşılır matematik sembolleriyle (örn: 2 L = 2000 mL, 2 × 1000 = 2000, 2500 / 250 = 10 bardak) doğal olarak yaz.
+3. ADIM BAŞLIKLARI: Her adımın başına '1. Adım:', 'Adım 1:' gibi ifadeler YAZMA. Doğrudan o adımda yapılan açıklamayı ve işlemi yaz. (Çünkü arayüz adım numaralarını otomatik olarak yan kutucukta göstermektedir).
+4. Öğrencinin seçtiği HATA SEBEBİ (${cleanReason}) doğrultusunda:
    - "İşlem Hatası" ise: En sık hata yapılan işlem adımını ve işlem sırasını vurgula.
    - "Formül / Bilgi Unutuldu" ise: Kullanılan ana formülü veya kuralı 'Altın Kural' kutusunda net ver.
    - "Konu Eksiği" ise: Sorunun ait olduğu konunun 2-3 cümlelik mini konu özetini ve püf noktasını ekle.
    - "Dikkat / Yanlış Okuma" ise: Sorudaki çeldiricileri, olumsuz kökleri (değildir, çıkarılamaz vb.) ve dikkat edilmesi gereken anahtar kelimeleri göster.
    - "Zaman Yetmedi" ise: Soruyu 30 saniyede çözebileceği pratik kısayol taktiğini açıkla.
-4. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`;
+5. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`;
 
   let prompt = `Aşağıdaki soruyu incele ve ayrıntılı çözümünü üret:\n\n`;
   if (subject) prompt += `Ders: ${subject}\n`;
