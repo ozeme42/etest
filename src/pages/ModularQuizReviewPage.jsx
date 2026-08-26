@@ -63,7 +63,7 @@ export default function ModularQuizReviewPage() {
       ? normalizeUnifiedSubmission(location.state.submission, { books, bookTests, homeworks })
       : unifiedSub;
 
-    let foundTest = unifiedTest || location.state?.test;
+    let foundTest = location.state?.test || null;
 
     const tbtMatch = String(targetId || '').match(/tbt_[a-zA-Z0-9_]+/);
     const extractedTbtId = tbtMatch ? tbtMatch[0] : null;
@@ -325,6 +325,10 @@ export default function ModularQuizReviewPage() {
       if (embedded && (embedded.sections || embedded.questions || embedded.contentPayload || embedded.pdfPayload || embedded.questionsList)) {
         foundTest = embedded;
       }
+    }
+
+    if (!foundTest && unifiedTest) {
+      foundTest = unifiedTest;
     }
 
     // 11. Synthetic test fallback if submission exists but test object was deleted/missing

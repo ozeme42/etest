@@ -315,9 +315,9 @@ export default function MultipleChoiceReview({
           />
         ))}
 
-        {qText && !qText.startsWith('Soru ') && (
+        {qText && (resolvedImages.length === 0 || !qText.startsWith('Soru ')) && (
           <div style={{
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.95rem' : '1.05rem',
             lineHeight: 1.7,
             color: '#0f172a',
             fontWeight: 600,
@@ -329,164 +329,116 @@ export default function MultipleChoiceReview({
       </div>
 
       {/* Options */}
-      {hasAnyOptionText ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
-          {optionsWithText.map((optObj, optIdx) => {
-            const isUserSelected = normalizedUser === optIdx;
-            const isKeyOption = normalizedCorrect === optIdx;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
+        {optionsWithText.map((optObj, optIdx) => {
+          const isUserSelected = normalizedUser === optIdx;
+          const isKeyOption = normalizedCorrect === optIdx;
 
-            let cardBg = '#ffffff';
-            let cardBorder = '1.5px solid #e2e8f0';
-            let circleBg = '#f1f5f9';
-            let circleColor = '#475569';
-            let textColor = '#1e293b';
+          let cardBg = '#ffffff';
+          let cardBorder = '1.5px solid #e2e8f0';
+          let circleBg = '#f1f5f9';
+          let circleColor = '#475569';
+          let textColor = '#1e293b';
 
-            if (isUserSelected) {
-              if (effectiveIsCorrect === true) {
-                cardBg = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
-                cardBorder = '2px solid #16a34a';
-                circleBg = '#16a34a';
-                circleColor = '#ffffff';
-                textColor = '#14532d';
-              } else {
-                cardBg = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
-                cardBorder = '2px solid #dc2626';
-                circleBg = '#dc2626';
-                circleColor = '#ffffff';
-                textColor = '#7f1d1d';
-              }
-            } else if (isKeyOption && !effectiveIsCorrect) {
-              cardBg = 'linear-gradient(135deg, #f0fdf4, #ecfdf5)';
+          if (isUserSelected) {
+            if (effectiveIsCorrect === true) {
+              cardBg = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
               cardBorder = '2px solid #16a34a';
               circleBg = '#16a34a';
               circleColor = '#ffffff';
               textColor = '#14532d';
+            } else {
+              cardBg = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+              cardBorder = '2px solid #dc2626';
+              circleBg = '#dc2626';
+              circleColor = '#ffffff';
+              textColor = '#7f1d1d';
             }
+          } else if (isKeyOption && !effectiveIsCorrect) {
+            cardBg = 'linear-gradient(135deg, #f0fdf4, #ecfdf5)';
+            cardBorder = '2px solid #16a34a';
+            circleBg = '#16a34a';
+            circleColor = '#ffffff';
+            textColor = '#14532d';
+          }
 
-            return (
-              <div
-                key={optIdx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
-                  borderRadius: '1rem',
-                  border: cardBorder,
-                  background: cardBg,
-                  color: textColor,
-                  fontWeight: isUserSelected || isKeyOption ? 800 : 500,
-                  fontSize: isMobile ? '0.92rem' : '0.98rem',
-                  boxShadow: (isUserSelected || isKeyOption) ? '0 4px 14px rgba(0,0,0,0.06)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '0.75rem',
-                  background: circleBg,
-                  color: circleColor,
-                  fontWeight: 900,
-                  fontSize: '0.92rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: (isUserSelected || isKeyOption) ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
-                }}>
-                  {optObj.letter}
-                </span>
-
-                <span style={{ flex: 1, lineHeight: 1.55 }}>
-                  {optObj.text}
-                </span>
-
-                {isKeyOption && (
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 900,
-                    color: '#15803d',
-                    background: '#dcfce7',
-                    border: '1px solid #86efac',
-                    padding: '0.3rem 0.75rem',
-                    borderRadius: '0.6rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: '0 2px 6px rgba(16,185,129,0.2)'
-                  }}>
-                    <Key size={13} /> DOĞRU CEVAP
-                  </span>
-                )}
-
-                {isUserSelected && !isKeyOption && (
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 900,
-                    color: '#b91c1c',
-                    background: '#fee2e2',
-                    border: '1px solid #fca5a5',
-                    padding: '0.3rem 0.75rem',
-                    borderRadius: '0.6rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}>
-                    <X size={13} /> SİZİN SEÇİMİNİZ
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.85rem',
-          background: '#f8fafc',
-          padding: isMobile ? '0.85rem 1.15rem' : '1.15rem 1.5rem',
-          borderRadius: '1.15rem',
-          border: '1.5px solid #e2e8f0'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#64748b' }}>SİZİN CEVABINIZ:</span>
+          return (
+            <div
+              key={optIdx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                borderRadius: '1rem',
+                border: cardBorder,
+                background: cardBg,
+                color: textColor,
+                fontWeight: isUserSelected || isKeyOption ? 800 : 500,
+                fontSize: isMobile ? '0.92rem' : '0.98rem',
+                boxShadow: (isUserSelected || isKeyOption) ? '0 4px 14px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
               <span style={{
-                fontSize: '0.88rem',
+                width: '36px',
+                height: '36px',
+                borderRadius: '0.75rem',
+                background: circleBg,
+                color: circleColor,
                 fontWeight: 900,
-                color: !hasSelected ? '#64748b' : effectiveIsCorrect === true ? '#15803d' : '#b91c1c',
-                background: !hasSelected ? '#e2e8f0' : effectiveIsCorrect === true ? '#dcfce7' : '#fee2e2',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '0.5rem'
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: (isUserSelected || isKeyOption) ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
               }}>
-                {hasSelected ? optionLetters[normalizedUser] : 'Boş'}
+                {optObj.letter}
               </span>
-            </div>
 
-            {normalizedCorrect !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#64748b' }}>DOĞRU CEVAP:</span>
+              <span style={{ flex: 1, lineHeight: 1.55 }}>
+                {optObj.hasText ? optObj.text : `${optObj.letter} Seçeneği`}
+              </span>
+
+              {isKeyOption && (
                 <span style={{
-                  fontSize: '0.88rem',
+                  fontSize: '0.75rem',
                   fontWeight: 900,
                   color: '#15803d',
                   background: '#dcfce7',
                   border: '1px solid #86efac',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '0.5rem',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: '0.6rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  boxShadow: '0 2px 6px rgba(16,185,129,0.2)'
+                }}>
+                  <Key size={13} /> DOĞRU CEVAP
+                </span>
+              )}
+
+              {isUserSelected && !isKeyOption && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 900,
+                  color: '#b91c1c',
+                  background: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: '0.6rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4
                 }}>
-                  <Key size={13} /> {optionLetters[normalizedCorrect]}
+                  <X size={13} /> SİZİN SEÇİMİNİZ
                 </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* Explanation */}
       {explanation && (
