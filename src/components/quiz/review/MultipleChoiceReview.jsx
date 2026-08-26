@@ -196,21 +196,40 @@ export default function MultipleChoiceReview({
     else setActiveLightbox(src);
   };
 
-  const optionsWithText = optionLetters.map((opt, optIdx) => {
-    const raw = rawOptions[optIdx];
-    let text = '';
-    if (typeof raw === 'string') text = raw;
-    else if (raw && typeof raw === 'object') {
-      text = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || '';
-    }
-    const cleanText = text.trim();
-    const isPlaceholder = !cleanText || cleanText.toLowerCase() === opt.toLowerCase() || cleanText.toLowerCase() === `şık ${opt.toLowerCase()}` || cleanText.toLowerCase() === `seçenek ${opt.toLowerCase()}`;
-    return {
-      letter: opt,
-      text: isPlaceholder ? '' : cleanText,
-      hasText: !isPlaceholder
+  const optionsWithText = useMemo(() => {
+    let opts = (Array.isArray(rawOptions) && rawOptions.length > 0) ? rawOptions : (
+      (Array.isArray(question?.options) && question.options.length > 0) ? question.options : (
+        (Array.isArray(question?.choices) && question.choices.length > 0) ? question.choices : (
+          (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : []
+        )
+      )
+    );
+
+    const cleanOptionPrefix = (str, idx) => {
+      if (!str || typeof str !== 'string') return str;
+      const letter = String.fromCharCode(65 + idx);
+      const regex = new RegExp(`^(?:\\(|\\[)?${letter}(?:\\)|\\.|\\:|\\]|-)\\s*`, 'i');
+      return str.replace(regex, '').trim();
     };
-  });
+
+    return optionLetters.map((opt, optIdx) => {
+      const raw = opts ? opts[optIdx] : null;
+      let text = '';
+      if (typeof raw === 'string') text = cleanOptionPrefix(raw.trim(), optIdx);
+      else if (raw && typeof raw === 'object') {
+        const rawT = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || raw.secenekText || '';
+        text = cleanOptionPrefix(String(rawT).trim(), optIdx);
+      }
+      const cleanText = text.trim();
+      const lower = cleanText.toLowerCase();
+      const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}` || lower === `seçenek ${opt.toLowerCase()}` || lower === `secenek ${opt.toLowerCase()}` || lower === `option ${opt.toLowerCase()}`;
+      return {
+        letter: opt,
+        text: isPlaceholder ? '' : cleanText,
+        hasText: !isPlaceholder
+      };
+    });
+  }, [rawOptions, question, optionLetters]);
 
   const hasAnyOptionText = optionsWithText.some(o => o.hasText);
 
@@ -552,10 +571,10 @@ export default function MultipleChoiceReview({
           questionNo={qNo}
           question={{
             ...question,
-            questionText: parsedQuestionText || question?.questionText || '',
-            options: parsedOptions.length > 0 ? parsedOptions : (question?.options || [])
+            questionText: qText || question?.questionText || '',
+            options: rawOptions.length > 0 ? rawOptions : (question?.options || [])
           }}
-          existingImageUrl={activeImgSrc}
+          existingImageUrl={resolvedImages[0] || null}
           mistakeReason={mistakeReason || ''}
           onMistakeReasonChange={handleSetMistakeReason}
           studentAnswer={hasSelected ? optionLetters[normalizedUser] : 'Boş'}
