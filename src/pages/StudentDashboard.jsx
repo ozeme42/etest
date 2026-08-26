@@ -1052,6 +1052,29 @@ export default function StudentDashboard() {
       );
     }
 
+    if (!tObj && currentBook?.subjects && Array.isArray(currentBook.subjects)) {
+      for (const s of currentBook.subjects) {
+        for (const t of (s.tests || [])) {
+          if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId) {
+            tObj = t;
+            subjObj = s;
+            break;
+          }
+        }
+        for (const tp of (s.topics || [])) {
+          for (const t of (tp.tests || [])) {
+            if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId) {
+              tObj = t;
+              subjObj = s;
+              topicObj = tp;
+              break;
+            }
+          }
+        }
+        if (tObj) break;
+      }
+    }
+
     let subjectName = subjObj?.name || tObj?.subjectName || tObj?.subject;
     if (!subjectName || subjectName === 'Atlı Karınca' || subjectName === 'Artıbir' || subjectName === 'CUSTOM') {
       const rawToCheck = `${targetHw?.title || ''} ${targetHw?.subject || ''} ${currentBook?.title || ''}`;
@@ -1065,7 +1088,12 @@ export default function StudentDashboard() {
     }
 
     const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
-    const testName = tObj?.name || 'Test';
+    let testName = tObj?.name;
+    if (!testName || testName === 'Test') {
+      if (tObj?.title) testName = tObj.title;
+      else if (topicName) testName = `${topicName} Testi`;
+      else testName = 'Kitap Testi';
+    }
     const qCount = tObj?.questionCount || 12;
 
     let cleanTitle = currentBook?.title ||

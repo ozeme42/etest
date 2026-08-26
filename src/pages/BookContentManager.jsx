@@ -4473,10 +4473,23 @@ export default function BookContentManager() {
                   onClick={async () => {
                     try {
                       // 1. Update homework in HomeworkContext (and Supabase homeworks table)
-                      if (typeof updateHomework === 'function' && scheduleModalHw?.id) {
-                        await updateHomework(scheduleModalHw.id, {
-                          testDueDates: scheduleDates
-                        });
+                      if (typeof updateHomework === 'function') {
+                        const matchingHws = (allHomeworks || []).filter(h => 
+                          h.id === scheduleModalHw?.id || 
+                          (scheduleModalHw?.id && toUUID(h.id) === toUUID(scheduleModalHw.id)) ||
+                          (h.isBookAssignment && (String(h.bookId) === String(book?.id) || toUUID(h.bookId) === toUUID(book?.id)))
+                        );
+                        if (matchingHws.length > 0) {
+                          for (const h of matchingHws) {
+                            await updateHomework(h.id, {
+                              testDueDates: scheduleDates
+                            });
+                          }
+                        } else if (scheduleModalHw?.id) {
+                          await updateHomework(scheduleModalHw.id, {
+                            testDueDates: scheduleDates
+                          });
+                        }
                       }
 
                       // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)

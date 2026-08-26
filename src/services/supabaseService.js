@@ -1482,6 +1482,7 @@ export async function dbAddHomework(hw) {
     delete safeRaw.raw_data;
 
     const hwId = String(processedHw.id || `hw_${Date.now()}`);
+    const uuidId = toUUID(hwId);
     const payload = {
       id: hwId,
       title: processedHw.title,
@@ -1497,9 +1498,24 @@ export async function dbAddHomework(hw) {
       raw_data: safeRaw
     };
 
+    // 1. If supabaseId exists, update by supabaseId
+    if (processedHw.supabaseId) {
+      try {
+        await supabase.from('homeworks').update(payload).eq('id', processedHw.supabaseId);
+      } catch {}
+    }
+
+    // 2. Also try updating by hwId and uuidId
+    try {
+      await supabase.from('homeworks').update(payload).eq('id', hwId);
+      if (uuidId && uuidId !== hwId) {
+        await supabase.from('homeworks').update(payload).eq('id', uuidId);
+      }
+    } catch {}
+
+    // 3. Upsert to ensure record is saved
     let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
-      const uuidId = toUUID(hwId);
       const uuidPayload = {
         ...payload,
         id: uuidId,
