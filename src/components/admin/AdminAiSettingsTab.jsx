@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Sparkles, Key, Save, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff,
   RefreshCw, Zap, ShieldCheck, ExternalLink, Activity, BookOpen, Clock,
-  Check, HelpCircle, BarChart3, Info
+  Check, HelpCircle, BarChart3, Info, Cpu, Layers, CheckCircle
 } from 'lucide-react';
-import { dbGetSystemAiApiKey, dbSaveSystemAiApiKey } from '../../services/supabaseService';
+import { dbGetSystemAiConfig, dbSaveSystemAiApiKey } from '../../services/supabaseService';
 import { getAiUsageSummary } from '../../services/aiUsageLogService';
-import { GEMINI_SOLVER_MODELS } from '../../services/aiSolutionService';
+import { GEMINI_AVAILABLE_MODELS } from '../../services/aiSolutionService';
 
 export default function AdminAiSettingsTab() {
   const [apiKey, setApiKey] = useState('');
@@ -17,27 +17,30 @@ export default function AdminAiSettingsTab() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null); // { success: boolean, message: string }
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
 
   // AI Usage Statistics
   const [usageStats, setUsageStats] = useState(() => getAiUsageSummary());
 
   useEffect(() => {
-    async function loadKey() {
+    async function loadConfig() {
       setLoading(true);
       try {
-        const cloudKey = await dbGetSystemAiApiKey();
-        if (cloudKey) {
-          setApiKey(cloudKey);
-          setSavedKey(cloudKey);
+        const config = await dbGetSystemAiConfig();
+        if (config?.apiKey) {
+          setApiKey(config.apiKey);
+          setSavedKey(config.apiKey);
+        }
+        if (config?.defaultModel) {
+          setSelectedModel(config.defaultModel);
         }
       } catch (err) {
-        console.warn('[AdminAiSettingsTab] loadKey error:', err);
+        console.warn('[AdminAiSettingsTab] loadConfig error:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadKey();
+    loadConfig();
     setUsageStats(getAiUsageSummary());
   }, []);
 
@@ -62,6 +65,19 @@ export default function AdminAiSettingsTab() {
       alert(`Hata: ${err.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSelectModel = async (modelId) => {
+    setSelectedModel(modelId);
+    if (savedKey) {
+      try {
+        await dbSaveSystemAiApiKey(savedKey, { defaultModel: modelId });
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
+      } catch (err) {
+        console.warn('Model update error:', err);
+      }
     }
   };
 
@@ -94,8 +110,8 @@ export default function AdminAiSettingsTab() {
     setTestResult(null);
 
     try {
-      // Test Gemini API with a simple prompt
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyToTest}`;
+      // Test Gemini API with the selected model (fallback to gemini-1.5-flash if needed)
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${keyToTest}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,14 +122,14 @@ export default function AdminAiSettingsTab() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        const msg = errorData?.error?.message || `HTTP ${res.status}: API anahtarı geçersiz veya yetkisiz.`;
+        const msg = errorData?.error?.message || `HTTP ${res.status}: API anahtarı veya model (${selectedModel}) yetkisiz.`;
         setTestResult({ success: false, message: msg });
       } else {
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Bağlantı Başarılı';
         setTestResult({
           success: true,
-          message: `✓ Google Gemini API Bağlantısı Başarılı! (Model Yanıtı: "${text.trim()}")`
+          message: `✓ ${selectedModel} Modeli ile Bağlantı Başarılı! (Model Yanıtı: "${text.trim()}")`
         });
       }
     } catch (err) {
@@ -380,6 +396,138 @@ export default function AdminAiSettingsTab() {
             <span>{testResult.message}</span>
           </div>
         )}
+      </div>
+
+      {/* ── GEMINI MODEL SELECTOR CARD ── */}
+      <div style={{
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
+        borderRadius: '1.5rem',
+        padding: '1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.25rem',
+        boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: '0.75rem',
+              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
+            }}>
+              <Cpu size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                Yapay Zeka (Gemini) Model Seçimi
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                Soru çözümlerinde ve hata koçluğunda varsayılan olarak çalışacak yapay zeka modelini belirleyin.
+              </p>
+            </div>
+          </div>
+
+          <span style={{
+            background: 'rgba(124, 58, 237, 0.12)',
+            color: '#7c3aed',
+            border: '1px solid #c084fc',
+            padding: '0.25rem 0.75rem',
+            borderRadius: 99,
+            fontWeight: 900,
+            fontSize: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
+          }}>
+            <Sparkles size={13} color="#a855f7" />
+            <span>Seçili Model: <strong>{selectedModel}</strong></span>
+          </span>
+        </div>
+
+        {/* Model Cards Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '0.85rem'
+        }}>
+          {GEMINI_AVAILABLE_MODELS.map((m) => {
+            const isSelected = selectedModel === m.id;
+            return (
+              <div
+                key={m.id}
+                onClick={() => handleSelectModel(m.id)}
+                style={{
+                  background: isSelected ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(99, 102, 241, 0.05))' : 'var(--color-surface-hover)',
+                  border: isSelected ? '2px solid #7c3aed' : '1.5px solid var(--color-border)',
+                  borderRadius: '1.15rem',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '0.65rem',
+                  boxShadow: isSelected ? '0 4px 16px -2px rgba(124, 58, 237, 0.25)' : 'none',
+                  transition: 'all 0.15s ease',
+                  position: 'relative',
+                  transform: isSelected ? 'scale(1.01)' : 'none'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        border: isSelected ? '5px solid #7c3aed' : '2px solid var(--color-border-input)',
+                        background: 'white',
+                        transition: 'all 0.15s ease'
+                      }} />
+                      <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isSelected ? '#7c3aed' : 'var(--color-text)' }}>
+                        {m.name}
+                      </span>
+                    </div>
+
+                    <span style={{
+                      background: m.bg,
+                      color: m.color,
+                      border: `1px solid ${m.border}`,
+                      fontSize: '0.66rem',
+                      fontWeight: 900,
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: 99
+                    }}>
+                      {m.badge}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: m.color, marginBottom: 4 }}>
+                    {m.tag}
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                    {m.desc}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
+                  <span>API ID: <strong>{m.id}</strong></span>
+                  {isSelected && (
+                    <span style={{ color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <CheckCircle2 size={13} /> Aktif
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── USAGE ANALYTICS & RECENT AI SOLVE LOGS ── */}

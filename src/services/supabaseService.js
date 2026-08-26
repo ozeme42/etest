@@ -2541,11 +2541,15 @@ export async function dbSaveUserAiApiKey(userId, apiKey, metadata = {}) {
 }
 
 /**
- * Get system-wide global Gemini API Key (set by Admin in Admin Dashboard)
+ * Get system-wide global Gemini AI Configuration (API Key & Default Model)
  */
-export async function dbGetSystemAiApiKey() {
-  const localVal = localStorage.getItem('system_ai_api_key') || localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
-  if (!isSupabaseConfigured()) return localVal || null;
+export async function dbGetSystemAiConfig() {
+  const localKey = localStorage.getItem('system_ai_api_key') || localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
+  const localModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.7-flash';
+  
+  if (!isSupabaseConfigured()) {
+    return { apiKey: localKey || null, defaultModel: localModel };
+  }
 
   try {
     const storeId = 'system_global_ai_config';
@@ -2556,33 +2560,47 @@ export async function dbGetSystemAiApiKey() {
       .maybeSingle();
 
     if (error) {
-      console.warn('[Supabase] dbGetSystemAiApiKey:', error.message);
-      return localVal || null;
+      console.warn('[Supabase] dbGetSystemAiConfig:', error.message);
+      return { apiKey: localKey || null, defaultModel: localModel };
     }
 
     if (data) {
       const extraRaw = data.extra_data || data.data;
       if (extraRaw) {
         const parsed = typeof extraRaw === 'string' ? JSON.parse(extraRaw) : extraRaw;
-        if (parsed?.apiKey) {
-          localStorage.setItem('system_ai_api_key', parsed.apiKey);
-          localStorage.setItem('gemini_api_key', parsed.apiKey);
-          localStorage.setItem('eTestGeminiApiKey', parsed.apiKey);
-          return parsed.apiKey;
+        const key = parsed?.apiKey || localKey || null;
+        const model = parsed?.defaultModel || localModel || 'gemini-3.7-flash';
+        if (key) {
+          localStorage.setItem('system_ai_api_key', key);
+          localStorage.setItem('gemini_api_key', key);
+          localStorage.setItem('eTestGeminiApiKey', key);
         }
+        localStorage.setItem('system_ai_default_model', model);
+        return { apiKey: key, defaultModel: model };
       }
     }
   } catch (err) {
-    console.warn('[Supabase] dbGetSystemAiApiKey error:', err.message);
+    console.warn('[Supabase] dbGetSystemAiConfig error:', err.message);
   }
-  return localVal || null;
+  return { apiKey: localKey || null, defaultModel: localModel };
 }
 
 /**
- * Save system-wide global Gemini API Key (by Admin) to Supabase database & localStorage
+ * Get system-wide global Gemini API Key (set by Admin in Admin Dashboard)
+ */
+export async function dbGetSystemAiApiKey() {
+  const config = await dbGetSystemAiConfig();
+  return config?.apiKey || null;
+}
+
+/**
+ * Save system-wide global Gemini API Key and default model (by Admin) to Supabase database & localStorage
  */
 export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
   const cleanKey = apiKey ? String(apiKey).trim() : '';
+  const modelToSave = metadata.defaultModel || localStorage.getItem('system_ai_default_model') || 'gemini-3.7-flash';
+
+  localStorage.setItem('system_ai_default_model', modelToSave);
 
   if (cleanKey) {
     localStorage.setItem('system_ai_api_key', cleanKey);
@@ -2602,10 +2620,10 @@ export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
       id: storeId,
       student_id: 'SYSTEM_GLOBAL',
       target_school: 'SYSTEM_AI_SETTINGS',
-      parent_notes: 'System-wide Google Gemini API Key configuration for all students and teachers',
+      parent_notes: 'System-wide Google Gemini API Key and Model configuration for all students and teachers',
       extra_data: JSON.stringify({
         apiKey: cleanKey,
-        defaultModel: metadata.defaultModel || 'gemini-3.7-flash',
+        defaultModel: modelToSave,
         updatedBy: metadata.updatedBy || 'Admin',
         updatedAt: new Date().toISOString()
       })
