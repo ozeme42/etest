@@ -9,6 +9,7 @@ import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, Sun, Moon } from 'lucide-react';
 import QuizPanelLayout from './QuizPanelLayout';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 function getSectionIcon(contentType, type) {
   if (contentType === 'pdf') return '📕';
@@ -35,57 +36,7 @@ function detectTestType(testObj, questionsList = []) {
 
 function checkIsOE(obj, questionsList = []) {
   if (!obj) return false;
-
-  // 1. Explicit Multiple Choice Flags / Options / AnswerKey
-  const hasOptions = Array.isArray(obj.options) && obj.options.length > 1;
-  const hasKey = (Array.isArray(obj.answerKey) && obj.answerKey.length > 0) ||
-                 (typeof obj.answerKey === 'string' && obj.answerKey.trim().length > 0) ||
-                 (typeof obj.answerKey === 'object' && obj.answerKey !== null && Object.keys(obj.answerKey).length > 0 && obj.answerKey.__meta?.isOpenEnded !== true);
-
-  if (
-    obj.questionType === 'coktan_secmeli' ||
-    obj.type === 'coktan_secmeli' ||
-    obj.formatType === 'coktan_secmeli' ||
-    hasOptions ||
-    hasKey
-  ) {
-    return false;
-  }
-
-  // 2. Explicit Open-Ended Flags
-  if (
-    obj.questionType === 'acik_uclu' ||
-    obj.type === 'acik_uclu' ||
-    obj.type === 'gorsel_klasik' ||
-    obj.questionType === 'gorsel_klasik' ||
-    obj.isOpenEnded === true ||
-    obj.is_open_ended === true
-  ) {
-    return true;
-  }
-
-  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
-  if (titleStr && (
-    titleStr.includes('açık uçlu') ||
-    titleStr.includes('acik uclu') ||
-    titleStr.includes('klasik soru') ||
-    titleStr.includes('yazılı klasik')
-  )) {
-    return true;
-  }
-
-  if (Array.isArray(questionsList) && questionsList.length > 0) {
-    const isAllWritten = questionsList.every(q => {
-      if (!q) return false;
-      if (q.questionType === 'coktan_secmeli' || q.type === 'coktan_secmeli' || (Array.isArray(q.options) && q.options.length > 1)) return false;
-      if (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) return true;
-      const qTitle = String(q.title || q.name || q.questionText || q.text || '').toLowerCase();
-      if (qTitle && (qTitle.includes('açık uçlu') || qTitle.includes('acik uclu') || qTitle.includes('klasik soru') || qTitle.includes('yazılı klasik'))) return true;
-      return false;
-    });
-    if (isAllWritten) return true;
-  }
-  return false;
+  return isSectionOpenEnded(obj);
 }
 
 // ─── INLINE OPTIK PANEL COMPONENT ─────────────────────────────────────────────

@@ -240,6 +240,8 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       if (sc !== undefined && sc !== null) {
         if (sc === 'empty') {
           bCount++;
+        } else if (sc === 'pending' || isNaN(Number(sc))) {
+          // Pending questions should not count towards wrongCount
         } else {
           const numSc = Number(sc);
           if (numSc >= 5) cCount++;
@@ -264,19 +266,24 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       const ans = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[i];
       if (ans) {
         const sc = questionScores[qNo];
+        const isPending = sc === 'pending' || (isOpenEnded && (sc === undefined || sc === null || sc === 'pending'));
         let isC = ans.isCorrect;
-        if (sc === 'empty') isC = null;
-        else if (sc !== undefined && sc !== null) isC = Number(sc) >= 5;
+        if (isPending || sc === 'empty') isC = null;
+        else if (sc !== undefined && sc !== null && !isNaN(Number(sc))) isC = Number(sc) >= 5;
 
         map[i] = {
           userAnswer: ans.userAnswer,
-          isCorrect: isC,
-          hasAnswer: ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== ''
+          userAnswerText: ans.userAnswerText,
+          isCorrect: isPending ? null : isC,
+          isPending: isPending,
+          score: sc,
+          isOpenEnded: isOpenEnded,
+          hasAnswer: (ans.userAnswer !== null && ans.userAnswer !== undefined && ans.userAnswer !== '') || Boolean(ans.userAnswerText)
         };
       }
     }
     return map;
-  }, [qCount, answers, questionScores]);
+  }, [qCount, answers, questionScores, isOpenEnded]);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;

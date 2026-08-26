@@ -571,7 +571,14 @@ export default function StudentDashboard() {
         }];
       }
 
-      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj) || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)') || (hw.title && /kitap|seti|soru bankası|paragraf|atlı karınca|artıbir/i.test(hw.title));
+      const isBook = Boolean(
+        hw.isBookAssignment ||
+        hw.sourceType === 'trackedBook' ||
+        (hw.bookId && bookObj) ||
+        hw.title?.includes('(Tüm Kitap Görevi)') ||
+        hw.title?.includes('(Tüm Kitap)') ||
+        hw.title?.includes('(Kendi Eklediğim)')
+      );
 
       if (isBook) {
         return []; // Kitap ödevleri Kitaplarım'da takip edildiğinden gösterilmiyor

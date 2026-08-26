@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ChevronRight, ChevronLeft, Layers, ArrowLeft } from 'lucide-react';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSave, submissionAnswers, onBack }) {
   const draftKey = useMemo(() => `draft_bulk_quiz_${test.id || 'test'}`, [test.id]);
@@ -133,21 +134,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
     return sections.reduce((sum, sec) => sum + (sec.questions?.length || sec.questionCount || sec.totalQuestions || 0), 0) || questions.length || 20;
   }, [sections, questions]);
 
-  const titleStr = String(test.title || test.name || '').toLowerCase();
-  const hasOptions = Array.isArray(test.options) && test.options.length > 1;
-  const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                 (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                 (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-  const isExplicitlyMultipleChoice = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || test.formatType === 'coktan_secmeli' || hasOptions || hasKey;
-
-  const isOpenEndedMode = Boolean(
-    test.questionType === 'acik_uclu' || 
-    test.isOpenEnded || 
-    test.is_open_ended ||
-    test.type === 'acik_uclu' ||
-    test.type === 'gorsel_klasik' ||
-    (titleStr && (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('klasik soru') || titleStr.includes('yazılı klasik')))
-  ) && !isExplicitlyMultipleChoice;
+  const isOpenEndedMode = isSectionOpenEnded(test);
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (totalQuestionsCount * perQuestionMins * 60) || 1200, [totalQuestionsCount, perQuestionMins]);
 

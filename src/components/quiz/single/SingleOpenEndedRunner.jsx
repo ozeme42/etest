@@ -6,6 +6,7 @@ import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
+import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { Clock, Send, ArrowLeft, Pencil, ChevronLeft, ChevronRight, Check, LayoutList, Square } from 'lucide-react';
 
@@ -61,23 +62,34 @@ export default function SingleOpenEndedRunner({
     let isMounted = true;
     async function loadIdbImages() {
       const payloadMap = {};
-      for (const q of questions) {
-        if (q?.id && (q.imageUrl === '[STORED_IN_INDEXEDDB]' || q.contentPayload === '[STORED_IN_INDEXEDDB]' || !q.imageUrl)) {
+      const allIds = [
+        test?.id,
+        test?.testId,
+        test?.hwId,
+        test?.sourceTestId,
+        test?.questionId,
+        ...(test?.questionIds || []),
+        ...questions.map(q => q?.id),
+        ...questions.map(q => q?.questionId)
+      ].filter(Boolean);
+
+      for (const id of allIds) {
+        const variants = [
+          id,
+          String(id).replace(/^q_|^hw_/, ''),
+          `q_${String(id).replace(/^q_|^hw_/, '')}`,
+          `hw_${String(id).replace(/^q_|^hw_/, '')}`
+        ];
+        for (const v of variants) {
           try {
-            const val = await idbGetPayload(q.id);
-            if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
-              payloadMap[q.id] = val;
+            const val = await idbGetPayload(v);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && val.length > 50 && isMounted) {
+              payloadMap[id] = val;
+              payloadMap[v] = val;
+              break;
             }
           } catch (e) {}
         }
-      }
-      if (test?.id && (!test.contentPayload || test.contentPayload === '[STORED_IN_INDEXEDDB]' || !test.imageUrl)) {
-        try {
-          const val = await idbGetPayload(test.id);
-          if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
-            payloadMap[test.id] = val;
-          }
-        } catch (e) {}
       }
       if (isMounted) setIdbPayloadMap(payloadMap);
     }
@@ -155,12 +167,39 @@ export default function SingleOpenEndedRunner({
   const answeredCount = Object.values(openEndedText).filter(v => typeof v === 'string' && v.trim() !== '').length;
 
   const getQuestionImages = (q, idx) => {
-    const qImage = idbPayloadMap[q?.id] || idbPayloadMap[test.id] || q?.imageUrl || (Array.isArray(q?.imageUrls) ? q.imageUrls[0] : null);
-    const qImgs = [];
-    if (qImage) qImgs.push(qImage);
-    if (Array.isArray(q?.imageUrls)) qImgs.push(...q.imageUrls);
-    if (Array.isArray(q?.images)) qImgs.push(...q.images);
-    return qImgs;
+    if (q?.imageUrl && isValidImageUrl(q.imageUrl)) return [normalizeImageUrl(q.imageUrl)];
+
+    const fromQ = extractImageUrls(q);
+    if (fromQ.length > 0) {
+      if (fromQ.length === totalQuestions && typeof idx === 'number' && fromQ[idx]) return [fromQ[idx]];
+      return fromQ;
+    }
+
+    const idbQ = idbPayloadMap[q?.id];
+    if (idbQ) {
+      const fromIdbQ = extractImageUrls(idbQ);
+      if (fromIdbQ.length > 0) {
+        if (fromIdbQ.length === totalQuestions && typeof idx === 'number' && fromIdbQ[idx]) return [fromIdbQ[idx]];
+        return fromIdbQ;
+      }
+    }
+
+    const idbTest = idbPayloadMap[test?.id];
+    if (idbTest) {
+      const fromIdbTest = extractImageUrls(idbTest);
+      if (fromIdbTest.length > 0) {
+        if (fromIdbTest.length === totalQuestions && typeof idx === 'number' && fromIdbTest[idx]) return [fromIdbTest[idx]];
+        return fromIdbTest;
+      }
+    }
+
+    const fromTest = extractImageUrls(test);
+    if (fromTest.length > 0) {
+      if (fromTest.length === totalQuestions && typeof idx === 'number' && fromTest[idx]) return [fromTest[idx]];
+      return fromTest;
+    }
+
+    return [];
   };
 
   const activeQuestion = questions[activeQIdx] || questions[0] || {};

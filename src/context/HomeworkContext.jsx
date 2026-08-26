@@ -2,7 +2,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
-import { idbSetPayload, idbDeletePayload } from '../services/indexedDbService';
+import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
 
 const HomeworkContext = createContext();
 
@@ -73,6 +73,60 @@ export function HomeworkProvider({ children }) {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
     };
+  }, []);
+
+  // Restore payloads from IndexedDB if stored as placeholder
+  useEffect(() => {
+    async function restoreLocalPayloads() {
+      const current = homeworks || [];
+      const hasPlaceholders = current.some(h => 
+        h.contentPayload === '[STORED_IN_INDEXEDDB]' ||
+        h.pdfPayload === '[STORED_IN_INDEXEDDB]' ||
+        h.imageUrl === '[STORED_IN_INDEXEDDB]' ||
+        (Array.isArray(h.sections) && h.sections.some(s => s.contentPayload === '[STORED_IN_INDEXEDDB]' || s.pdfPayload === '[STORED_IN_INDEXEDDB]'))
+      );
+      if (!hasPlaceholders) return;
+
+      const restored = await Promise.all(current.map(async (hw) => {
+        let p = hw.contentPayload;
+        let pdf = hw.pdfPayload;
+        let img = hw.imageUrl;
+        let secArr = hw.sections;
+
+        if (!p || p === '[STORED_IN_INDEXEDDB]' || p === '[LOCALSTORAGE_CACHE]') {
+          const val = await idbGetPayload(hw.id) || (hw.questionIds?.[0] ? await idbGetPayload(hw.questionIds[0]) : null);
+          if (val && !val.includes('[STORED_IN_INDEXEDDB]')) {
+            p = val;
+            if (val.startsWith('data:image/') || val.startsWith('http')) img = val;
+            if (val.startsWith('data:application/pdf') || val.startsWith('%PDF-')) pdf = val;
+          }
+        }
+
+        if (Array.isArray(secArr)) {
+          secArr = await Promise.all(secArr.map(async (sec) => {
+            if (sec.contentPayload === '[STORED_IN_INDEXEDDB]' || !sec.contentPayload) {
+              const sval = await idbGetPayload(sec.id) || (sec.questionId ? await idbGetPayload(sec.questionId) : null);
+              if (sval && !sval.includes('[STORED_IN_INDEXEDDB]')) {
+                return { ...sec, contentPayload: sval };
+              }
+            }
+            return sec;
+          }));
+        }
+
+        return {
+          ...hw,
+          contentPayload: p || hw.contentPayload,
+          pdfPayload: pdf || hw.pdfPayload,
+          imageUrl: img || hw.imageUrl,
+          sections: secArr || hw.sections
+        };
+      }));
+
+      setHomeworks(restored);
+    }
+
+    restoreLocalPayloads();
   }, []);
 
   useEffect(() => {
@@ -200,11 +254,35 @@ export function HomeworkProvider({ children }) {
       ...hwData
     };
 
-    const bigPayload = hwData.htmlPayload || hwData.pdfPayload || hwData.contentPayload;
-    if (bigPayload && typeof bigPayload === 'string' && bigPayload.length > 500 && !bigPayload.startsWith('http')) {
+    const bigPayload = hwData.htmlPayload || hwData.pdfPayload || hwData.contentPayload || hwData.imageUrl || (Array.isArray(hwData.imageUrls) ? hwData.imageUrls.filter(u => typeof u === 'string' && !u.includes('[STORED_IN_INDEXEDDB]')).join('\n\n') : null) || hwData.imagePayload;
+    if (bigPayload && typeof bigPayload === 'string' && bigPayload.length > 50 && !bigPayload.startsWith('http') && !bigPayload.includes('[STORED_IN_INDEXEDDB]')) {
       try {
         await idbSetPayload(newId, bigPayload);
+        await idbSetPayload(String(newId).replace(/^hw_/, ''), bigPayload);
+        if (Array.isArray(hwData.questionIds)) {
+          for (const qid of hwData.questionIds) {
+            const strQid = typeof qid === 'object' ? (qid.id || qid.questionId) : String(qid);
+            if (strQid) {
+              await idbSetPayload(strQid, bigPayload);
+              await idbSetPayload(strQid.replace(/^q_/, ''), bigPayload);
+            }
+          }
+        }
       } catch (e) {}
+    }
+
+    if (Array.isArray(hwData.sections)) {
+      for (const sec of hwData.sections) {
+        const secId = sec.id || sec.questionId;
+        const secPayload = sec.htmlPayload || sec.pdfPayload || sec.contentPayload || sec.imageUrl || (Array.isArray(sec.imageUrls) ? sec.imageUrls.filter(u => typeof u === 'string' && u.startsWith('data:')).join('\n\n') : null) || sec.imagePayload;
+        if (secId && secPayload && typeof secPayload === 'string' && secPayload.length > 50 && !secPayload.includes('[STORED_IN_INDEXEDDB]')) {
+          try {
+            await idbSetPayload(String(secId), secPayload);
+            await idbSetPayload(String(secId).replace(/^q_?/, ''), secPayload);
+            await idbSetPayload(String(secId).replace(/^q_?/, 'q_'), secPayload);
+          } catch (e) {}
+        }
+      }
     }
 
     setHomeworks(prev => [...prev, newHw]);
@@ -216,11 +294,35 @@ export function HomeworkProvider({ children }) {
     const idStr = String(id || '');
     const idUuid = toUUID(idStr);
 
-    const bigPayload = hwData.htmlPayload || hwData.pdfPayload || hwData.contentPayload;
-    if (bigPayload && typeof bigPayload === 'string' && bigPayload.length > 500 && !bigPayload.startsWith('http')) {
+    const bigPayload = hwData.htmlPayload || hwData.pdfPayload || hwData.contentPayload || hwData.imageUrl || (Array.isArray(hwData.imageUrls) ? hwData.imageUrls.filter(u => typeof u === 'string' && !u.includes('[STORED_IN_INDEXEDDB]')).join('\n\n') : null) || hwData.imagePayload;
+    if (bigPayload && typeof bigPayload === 'string' && bigPayload.length > 50 && !bigPayload.startsWith('http') && !bigPayload.includes('[STORED_IN_INDEXEDDB]')) {
       try {
         await idbSetPayload(idStr, bigPayload);
+        await idbSetPayload(idStr.replace(/^hw_/, ''), bigPayload);
+        if (Array.isArray(hwData.questionIds)) {
+          for (const qid of hwData.questionIds) {
+            const strQid = typeof qid === 'object' ? (qid.id || qid.questionId) : String(qid);
+            if (strQid) {
+              await idbSetPayload(strQid, bigPayload);
+              await idbSetPayload(strQid.replace(/^q_/, ''), bigPayload);
+            }
+          }
+        }
       } catch (e) {}
+    }
+
+    if (Array.isArray(hwData.sections)) {
+      for (const sec of hwData.sections) {
+        const secId = sec.id || sec.questionId;
+        const secPayload = sec.htmlPayload || sec.pdfPayload || sec.contentPayload || sec.imageUrl || (Array.isArray(sec.imageUrls) ? sec.imageUrls.filter(u => typeof u === 'string' && u.startsWith('data:')).join('\n\n') : null) || sec.imagePayload;
+        if (secId && secPayload && typeof secPayload === 'string' && secPayload.length > 50 && !secPayload.includes('[STORED_IN_INDEXEDDB]')) {
+          try {
+            await idbSetPayload(String(secId), secPayload);
+            await idbSetPayload(String(secId).replace(/^q_?/, ''), secPayload);
+            await idbSetPayload(String(secId).replace(/^q_?/, 'q_'), secPayload);
+          } catch (e) {}
+        }
+      }
     }
 
     let updatedTarget = null;
@@ -257,11 +359,6 @@ export function HomeworkProvider({ children }) {
     setHomeworks(prev => prev.filter(hw => hw.id !== id));
     await dbDeleteHomework(id);
     try {
-      await dbDeleteBookSubmissionsForEveryone([], id);
-      const idUuid = toUUID(id);
-      if (idUuid) {
-        await dbDeleteBookSubmissionsForEveryone([], idUuid);
-      }
       localStorage.removeItem(`quiz_draft_${id}`);
       localStorage.removeItem(`homework_sub_${id}`);
       localStorage.removeItem(`quiz_submission_${id}`);
@@ -279,9 +376,6 @@ export function HomeworkProvider({ children }) {
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
       try {
-        await dbDeleteBookSubmissionsForEveryone([], hw.id);
-        const hu = toUUID(hw.id);
-        if (hu) await dbDeleteBookSubmissionsForEveryone([], hu);
         localStorage.removeItem(`quiz_draft_${hw.id}`);
         localStorage.removeItem(`homework_sub_${hw.id}`);
         localStorage.removeItem(`quiz_submission_${hw.id}`);

@@ -18,11 +18,39 @@ function getQuestionReviewStatus(userAns) {
     return 'blank';
   }
 
-  if (userAns.isCorrect === true || userAns.is_correct === true || userAns.isRight === true || (typeof userAns.score === 'number' && userAns.score >= 5)) {
+  // 1. Explicit Pending flags
+  if (
+    userAns.isPending === true ||
+    userAns.status === 'pending' ||
+    userAns.evalStatus === 'pending' ||
+    userAns.eval_status === 'pending' ||
+    userAns.score === 'pending'
+  ) {
+    return 'pending';
+  }
+
+  // 2. Open-ended / written without confirmed grade
+  const isOE = Boolean(userAns.isOpenEnded || userAns.is_open_ended || userAns.type === 'acik_uclu' || txt.length > 0);
+  const isScoreNumeric = typeof userAns.score === 'number' && !isNaN(userAns.score);
+
+  if (isOE && !isScoreNumeric && userAns.isEvaluated !== true && userAns.evaluatedByTeacher !== true) {
+    return 'pending';
+  }
+
+  if (userAns.isCorrect === true || userAns.is_correct === true || userAns.isRight === true || (isScoreNumeric && userAns.score >= 5)) {
     return 'correct';
   }
-  if (userAns.isCorrect === false || userAns.is_correct === false || userAns.isRight === false || (typeof userAns.score === 'number' && userAns.score === 0)) {
+
+  if (userAns.isCorrect === false || userAns.is_correct === false || userAns.isRight === false || (isScoreNumeric && userAns.score === 0)) {
+    // Extra safety: if open-ended without actual teacher score, do not mark as wrong
+    if (isOE && !isScoreNumeric && userAns.isEvaluated !== true && userAns.evaluatedByTeacher !== true) {
+      return 'pending';
+    }
     return 'wrong';
+  }
+
+  if (isOE || !isRawEmpty) {
+    return 'pending';
   }
 
   return 'blank';
@@ -50,17 +78,20 @@ export default function QuestionGridNav({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 900, color: darkMode ? '#cbd5e1' : '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Soru Numaratörü ({currentIndex + 1} / {totalQuestions})
           </span>
           {isReviewMode && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#16a34a', background: darkMode ? 'rgba(34,197,94,0.15)' : '#dcfce7', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
                 ✓ Doğru
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#dc2626', background: darkMode ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
                 ✗ Yanlış
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#7c3aed', background: darkMode ? 'rgba(124,58,237,0.15)' : '#f5f3ff', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
+                ⏳ Bekliyor
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', color: '#64748b', background: darkMode ? 'rgba(100,116,139,0.15)' : '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '0.35rem' }}>
                 ○ Boş
@@ -146,6 +177,11 @@ export default function QuestionGridNav({
               textColor = darkMode ? '#f87171' : '#991b1b';
               borderColor = '#ef4444';
               badgeIcon = '✗';
+            } else if (status === 'pending') {
+              bgColor = darkMode ? 'rgba(124, 58, 237, 0.22)' : '#f5f3ff';
+              textColor = darkMode ? '#c4b5fd' : '#7c3aed';
+              borderColor = '#a78bfa';
+              badgeIcon = '⏳';
             } else {
               // Boş / Yanıtlanmadı
               bgColor = darkMode ? '#1e293b' : '#f1f5f9';

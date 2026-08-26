@@ -283,13 +283,19 @@ Kurallar:
     'gemini-3.1-flash-lite',
     'gemini-flash-latest',
     'gemini-3.7-flash'
-  ].filter((v, i, a) => a.indexOf(v) === i);
+  ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
   for (const model of prioritizedModels) {
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 14000);
+      const timeoutId = setTimeout(() => {
+        try {
+          controller.abort(new Error(`Timeout: ${model} 35 saniyede yanıt vermedi.`));
+        } catch {
+          controller.abort();
+        }
+      }, 35000);
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -301,7 +307,9 @@ Kurallar:
 
       if (!res.ok) {
         const errorJson = await res.json().catch(() => ({}));
-        throw new Error(errorJson.error?.message || `HTTP ${res.status}: ${res.statusText}`);
+        const errMsg = errorJson.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+        console.warn(`[aiSolutionService] Model ${model} returned HTTP ${res.status}:`, errMsg);
+        throw new Error(errMsg);
       }
 
       responseData = await res.json();
@@ -309,7 +317,7 @@ Kurallar:
         break;
       }
     } catch (err) {
-      console.warn(`[aiSolutionService] Model ${model} failed:`, err.message);
+      console.warn(`[aiSolutionService] Model ${model} failed, trying next model:`, err?.message || err);
       lastError = err;
     }
   }

@@ -4,6 +4,7 @@ import { useQuizState } from '../hooks/useQuizState';
 import { useQuizPayloads } from '../hooks/useQuizPayloads';
 import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
 
 import SectionTabBar from './navigation/SectionTabBar';
 import CompositeTopHeader from './navigation/CompositeTopHeader';
@@ -24,21 +25,24 @@ export default function CompositeHomeworkRunner({
   questions = [],
   onSubmit,
   onAutoSave,
-  draftAnswers = [],
+  draftAnswers = null,
   onExit
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // 1. Convert any test structure into unified standard schema
+  // 1. Standardize incoming test schema into unified multi-section model
   const unifiedTest = useMemo(() => {
     return normalizeUnifiedTest(test, questions);
   }, [test, questions]);
 
-  const rawSections = unifiedTest.sections;
+  const rawSections = (unifiedTest.sections && unifiedTest.sections.length > 0)
+    ? unifiedTest.sections
+    : (Array.isArray(test?.sections) && test.sections.length > 0 ? test.sections : (test?.tests || []));
+
   const [activeSecIdx, setActiveSecIdx] = useState(0);
   const activeSec = rawSections[activeSecIdx] || rawSections[0] || {};
 
-  // 2. Answers State & Timers
+  // 2. Centralized State Manager
   const {
     sectionAnswers,
     timeLeft,
@@ -46,12 +50,10 @@ export default function CompositeHomeworkRunner({
     handleTextChange,
     clearDraft
   } = useQuizState({
-    testId: unifiedTest.id,
+    test: unifiedTest,
     sections: rawSections,
     draftAnswers,
-    timePerQuestion: unifiedTest.timePerQuestion || 2,
-    onAutoSave,
-    isReviewMode: false
+    onAutoSave
   });
 
   // 3. Payload Loader for active section
@@ -63,8 +65,8 @@ export default function CompositeHomeworkRunner({
   const [sectionBreakdownStats, setSectionBreakdownStats] = useState([]);
   const [submissionPayload, setSubmissionPayload] = useState([]);
 
-  // Determine section format from unified schema
-  const isSecOE = activeSec.type === 'open_ended';
+  // Determine section format from unified schema & detector
+  const isSecOE = activeSec.type === 'open_ended' || activeSec.isOpenEnded === true || activeSec.is_open_ended === true || isSectionOpenEnded(activeSec, test);
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
 
@@ -84,7 +86,7 @@ export default function CompositeHomeworkRunner({
       const sa = sectionAnswers[sec.id] || {};
       const secQs = sec.questions || [];
       const count = secQs.length;
-      const isOE = sec.type === 'open_ended';
+      const isOE = sec.type === 'open_ended' || sec.isOpenEnded === true || sec.is_open_ended === true || isSectionOpenEnded(sec, test);
 
       let secDoğru = 0;
       let secYanlış = 0;
@@ -96,7 +98,7 @@ export default function CompositeHomeworkRunner({
         const qObj = secQs[i - 1] || {};
         const uAns = sa.answers?.[i] ?? sa.answers?.[String(i)];
         const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)];
-        const isQOE = isOE || qObj.type === 'open_ended';
+        const isQOE = isOE || qObj.type === 'open_ended' || qObj.isOpenEnded === true || isQuestionOpenEnded(qObj, sec, test);
 
         let isCorrect = null;
         if (!isQOE && uAns !== undefined && uAns !== null && uAns !== '' && uAns !== 'empty') {
@@ -178,7 +180,7 @@ export default function CompositeHomeworkRunner({
   };
 
   return (
-    <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div style={{ height: '100vh', maxHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       {/* Top Bar */}
       <CompositeTopHeader
         title={unifiedTest.title || 'Sınav'}
@@ -226,6 +228,7 @@ export default function CompositeHomeworkRunner({
         ) : isSecOE ? (
           <CompositeOpenEndedSection
             section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
+            payload={activePayload || activeSec.documentPayload}
             openEndedText={sectionAnswers[activeSec.id]?.openEndedText || {}}
             onTextChange={handleTextChange}
             onOpenDrawing={() => setIsDrawingOpen(true)}
@@ -234,6 +237,7 @@ export default function CompositeHomeworkRunner({
         ) : (
           <CompositeMultipleChoiceSection
             section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
+            payload={activePayload || activeSec.documentPayload}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             onSelectOption={handleSelectOption}
             onOpenDrawing={() => setIsDrawingOpen(true)}

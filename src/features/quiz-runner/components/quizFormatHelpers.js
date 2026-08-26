@@ -23,13 +23,28 @@ export function resolveTestContext(test = {}, sec = {}, bankQ = {}) {
 export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || test?.bankQ || {};
 
+  // 1. TOP PRIORITY: Explicit Multiple Choice Flags or Options
+  if (
+    sec?.type === 'coktan_secmeli' ||
+    sec?.questionType === 'coktan_secmeli' ||
+    sec?.formatType === 'coktan_secmeli' ||
+    sec?.sourceFormat === 'coktan_secmeli' ||
+    bankQ?.type === 'coktan_secmeli' ||
+    bankQ?.questionType === 'coktan_secmeli' ||
+    bankQ?.formatType === 'coktan_secmeli' ||
+    bankQ?.sourceFormat === 'coktan_secmeli' ||
+    (Array.isArray(sec?.options) && sec.options.length > 1) ||
+    (Array.isArray(bankQ?.options) && bankQ.options.length > 1) ||
+    (Array.isArray(sec?.questions) && sec.questions.length > 0 && sec.questions.every(q => (Array.isArray(q?.options) && q.options.length > 1) || q?.questionType === 'coktan_secmeli' || q?.type === 'coktan_secmeli')) ||
+    (Array.isArray(sec?.resolvedQuestions) && sec.resolvedQuestions.length > 0 && sec.resolvedQuestions.every(q => (Array.isArray(q?.options) && q.options.length > 1) || q?.questionType === 'coktan_secmeli' || q?.type === 'coktan_secmeli'))
+  ) {
+    return false;
+  }
+
+  // 2. Explicit Open-Ended Flags
   if (
     sec?.type === 'acik_uclu' ||
     sec?.questionType === 'acik_uclu' ||
-    sec?.formatType === 'yazili' ||
-    sec?.sourceFormat === 'yazili' ||
-    sec?.type === 'yazili' ||
-    sec?.questionType === 'yazili' ||
     sec?.formatType === 'gorsel_klasik' ||
     sec?.sourceFormat === 'gorsel_klasik' ||
     sec?.type === 'gorsel_klasik' ||
@@ -39,10 +54,6 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     sec?.openEnded === true ||
     bankQ?.type === 'acik_uclu' ||
     bankQ?.questionType === 'acik_uclu' ||
-    bankQ?.formatType === 'yazili' ||
-    bankQ?.sourceFormat === 'yazili' ||
-    bankQ?.type === 'yazili' ||
-    bankQ?.questionType === 'yazili' ||
     bankQ?.formatType === 'gorsel_klasik' ||
     bankQ?.sourceFormat === 'gorsel_klasik' ||
     bankQ?.type === 'gorsel_klasik' ||
@@ -54,28 +65,13 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  if (
-    sec?.type === 'coktan_secmeli' ||
-    sec?.questionType === 'coktan_secmeli' ||
-    sec?.formatType === 'coktan_secmeli' ||
-    sec?.sourceFormat === 'coktan_secmeli' ||
-    bankQ?.type === 'coktan_secmeli' ||
-    bankQ?.questionType === 'coktan_secmeli' ||
-    bankQ?.formatType === 'coktan_secmeli' ||
-    bankQ?.sourceFormat === 'coktan_secmeli'
-  ) {
-    return false;
-  }
-
   if (!sec?.id || sec?.id === test?.id || !test?.sections?.length) {
     if (
       test?.type === 'acik_uclu' ||
       test?.questionType === 'acik_uclu' ||
       test?.examType === 'acik_uclu' ||
-      test?.formatType === 'yazili' ||
-      test?.sourceFormat === 'yazili' ||
-      test?.type === 'yazili' ||
-      test?.questionType === 'yazili' ||
+      test?.formatType === 'gorsel_klasik' ||
+      test?.sourceFormat === 'gorsel_klasik' ||
       test?.isOpenEnded === true ||
       test?.is_open_ended === true ||
       test?.openEnded === true
@@ -88,8 +84,22 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
 }
 
 export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
+  if (!qObj) return isSectionOpenEnded(sec, test);
+
+  if (
+    qObj.type === 'coktan_secmeli' ||
+    qObj.questionType === 'coktan_secmeli' ||
+    qObj.formatType === 'coktan_secmeli' ||
+    qObj.sourceFormat === 'coktan_secmeli' ||
+    (Array.isArray(qObj.options) && qObj.options.length > 1) ||
+    qObj.correctAnswerLetter ||
+    typeof qObj.correctAnswer === 'number'
+  ) {
+    return false;
+  }
+
   if (userAnsObj && typeof userAnsObj === 'object') {
-    if (userAnsObj.isOpenEnded === true || userAnsObj.is_open_ended === true || userAnsObj.type === 'acik_uclu' || userAnsObj.type === 'yazili') {
+    if (userAnsObj.isOpenEnded === true || userAnsObj.is_open_ended === true || userAnsObj.type === 'acik_uclu') {
       return true;
     }
     if (userAnsObj.userAnswer && typeof userAnsObj.userAnswer === 'string' && userAnsObj.userAnswer.length > 2 && !/^[A-Ea-e]$/.test(userAnsObj.userAnswer.trim())) {
@@ -100,15 +110,9 @@ export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
     }
   }
 
-  if (!qObj) return isSectionOpenEnded(sec, test);
-
   if (
     qObj.type === 'acik_uclu' ||
     qObj.questionType === 'acik_uclu' ||
-    qObj.formatType === 'yazili' ||
-    qObj.sourceFormat === 'yazili' ||
-    qObj.type === 'yazili' ||
-    qObj.questionType === 'yazili' ||
     qObj.formatType === 'gorsel_klasik' ||
     qObj.sourceFormat === 'gorsel_klasik' ||
     qObj.type === 'gorsel_klasik' ||
@@ -118,19 +122,6 @@ export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
     qObj.openEnded === true
   ) {
     return true;
-  }
-
-  if (
-    qObj.type === 'coktan_secmeli' ||
-    qObj.questionType === 'coktan_secmeli' ||
-    qObj.formatType === 'coktan_secmeli' ||
-    qObj.sourceFormat === 'coktan_secmeli'
-  ) {
-    return false;
-  }
-
-  if (Array.isArray(qObj.options) && qObj.options.length > 0) {
-    return false;
   }
 
   return isSectionOpenEnded(sec, test);

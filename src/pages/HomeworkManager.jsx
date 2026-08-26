@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { idbGetPayload } from '../services/indexedDbService';
 import { toUUID } from '../services/supabaseService';
+import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 const subjectThemes = {
   'Matematik': { bg: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.4)' },
@@ -673,6 +674,11 @@ export default function HomeworkManager() {
         }
       }
 
+      const rawImgs = (Array.isArray(q.imageUrls) ? q.imageUrls : null) || (Array.isArray(q.images) ? q.images : null) || [];
+      const extractedImgs = contentPayload ? extractImageUrls(contentPayload) : [];
+      const combinedImgs = Array.from(new Set([...rawImgs, ...extractedImgs])).filter(u => u && !needsIdb(u));
+      const singleImg = q.imageUrl || q.image || (combinedImgs.length > 0 ? combinedImgs[0] : undefined);
+
       return {
         id: q.id,
         questionId: q.id,
@@ -680,10 +686,16 @@ export default function HomeworkManager() {
         contentType: q.contentType || q.type || q.formatType || q.sourceFormat,
         formatType: q.formatType || q.sourceFormat,
         sourceFormat: q.sourceFormat,
-        questionCount: q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1),
         questionType: q.questionType || q.type,
         // Bug 4 Fix: isOpenEnded was missing from sections — checkIsOE() needs it
-        isOpenEnded: q.isOpenEnded || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik' || q.questionType === 'acik_uclu',
+        isOpenEnded: Boolean(
+          (q.isOpenEnded || q.is_open_ended || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik' || q.questionType === 'acik_uclu' || q.formatType === 'gorsel_klasik' || q.sourceFormat === 'gorsel_klasik') &&
+          q.questionType !== 'coktan_secmeli' &&
+          q.type !== 'coktan_secmeli' &&
+          q.formatType !== 'coktan_secmeli' &&
+          q.sourceFormat !== 'coktan_secmeli' &&
+          (!Array.isArray(q.options) || q.options.length <= 1)
+        ),
         answerKey: q.answerKey,
         questionsList: q.questionsList,
         questions: q.questions,
@@ -694,7 +706,10 @@ export default function HomeworkManager() {
         // Bug 3 Fix: htmlPayload was missing from sections — StableHtmlViewer needs it in bundled mode
         htmlPayload: needsIdb(q.htmlPayload) ? undefined : q.htmlPayload,
         pdfUrl: q.pdfUrl,
-        imageUrls: q.imageUrls,
+        imageUrls: combinedImgs.length > 0 ? combinedImgs : q.imageUrls,
+        imageUrl: singleImg,
+        images: combinedImgs.length > 0 ? combinedImgs : q.images,
+        imagePayload: q.imagePayload
       };
 
     }));
@@ -702,8 +717,9 @@ export default function HomeworkManager() {
     if (selectedQuestionIds.length > 1 && assignmentMode === 'separate' && !editingHwId) {
       for (let i = 0; i < selectedQs.length; i++) {
         const q = selectedQs[i];
-        let pdfPayload = q.pdfPayload;
-        let contentPayload = q.contentPayload;
+        const secItem = sectionsWithPayloads[i] || {};
+        let pdfPayload = secItem.pdfPayload || q.pdfPayload;
+        let contentPayload = secItem.contentPayload || q.contentPayload;
         const needsIdb = (p) => !p || p === '[STORED_IN_INDEXEDDB]' || p === '[LOCALSTORAGE_CACHE]';
         if (needsIdb(pdfPayload) || needsIdb(contentPayload)) {
           const idVariants = [
@@ -727,7 +743,20 @@ export default function HomeworkManager() {
           }
         }
 
+        const rawImgs = (Array.isArray(q.imageUrls) ? q.imageUrls : null) || (Array.isArray(q.images) ? q.images : null) || [];
+        const extractedImgs = contentPayload ? extractImageUrls(contentPayload) : [];
+        const combinedImgs = Array.from(new Set([...rawImgs, ...extractedImgs])).filter(u => u && !needsIdb(u));
+        const singleImg = q.imageUrl || q.image || (combinedImgs.length > 0 ? combinedImgs[0] : undefined);
+
         const qCount = q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1);
+        const isQOpenEnded = Boolean(
+          (q.isOpenEnded || q.is_open_ended || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik' || q.questionType === 'acik_uclu' || q.formatType === 'gorsel_klasik' || q.sourceFormat === 'gorsel_klasik') &&
+          q.questionType !== 'coktan_secmeli' &&
+          q.type !== 'coktan_secmeli' &&
+          q.formatType !== 'coktan_secmeli' &&
+          q.sourceFormat !== 'coktan_secmeli' &&
+          (!Array.isArray(q.options) || q.options.length <= 1)
+        );
         const subHwData = {
           title: q.title || q.name || `${title} (${i + 1}. Test)`,
           dueDate,
@@ -744,17 +773,23 @@ export default function HomeworkManager() {
           assignedBy: currentUser?.id,
           type: q.contentType === 'physicalExam' ? 'physicalExam' : 'test',
           contentType: q.contentType || q.type || 'test',
-          contentPayload: needsIdb(contentPayload) ? undefined : contentPayload,
-          pdfPayload: needsIdb(pdfPayload) ? undefined : pdfPayload,
-          htmlPayload: q.htmlPayload,
-          pdfUrl: q.pdfUrl,
-          imageUrls: q.imageUrls,
+          formatType: q.formatType || q.sourceFormat,
+          sourceFormat: q.sourceFormat || q.formatType,
+          contentPayload: contentPayload || secItem.contentPayload || q.contentPayload,
+          pdfPayload: pdfPayload || secItem.pdfPayload || q.pdfPayload,
+          htmlPayload: q.htmlPayload || secItem.htmlPayload,
+          pdfUrl: q.pdfUrl || secItem.pdfUrl,
+          imageUrl: singleImg || q.imageUrl || (combinedImgs.length > 0 ? combinedImgs[0] : undefined),
+          imageUrls: combinedImgs.length > 0 ? combinedImgs : (q.imageUrls || (singleImg ? [singleImg] : undefined)),
+          images: combinedImgs.length > 0 ? combinedImgs : (q.images || (singleImg ? [singleImg] : undefined)),
+          imagePayload: q.imagePayload || secItem.imagePayload || contentPayload,
           questionType: q.questionType || q.type,
-          isOpenEnded: q.isOpenEnded || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik',
+          isOpenEnded: isQOpenEnded,
           answerKey: q.answerKey,
           subjects: q.subjects,
           penaltyRatio: q.penaltyRatio,
-          examType: q.examType
+          examType: q.examType,
+          sections: [secItem]
         };
         addHomework(subHwData);
       }
@@ -763,6 +798,15 @@ export default function HomeworkManager() {
       return;
     }
 
+    const firstSec = sectionsWithPayloads[0] || {};
+    const isFirstQOpenEnded = Boolean(
+      (firstQ.isOpenEnded || firstQ.is_open_ended || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu' || firstQ.contentType === 'gorsel_klasik' || firstQ.type === 'gorsel_klasik' || firstQ.questionType === 'acik_uclu' || firstQ.formatType === 'gorsel_klasik' || firstQ.sourceFormat === 'gorsel_klasik' || (sectionsWithPayloads && sectionsWithPayloads.some(s => s.isOpenEnded))) &&
+      firstQ.questionType !== 'coktan_secmeli' &&
+      firstQ.type !== 'coktan_secmeli' &&
+      firstQ.formatType !== 'coktan_secmeli' &&
+      firstQ.sourceFormat !== 'coktan_secmeli' &&
+      (!Array.isArray(firstQ.options) || firstQ.options.length <= 1)
+    );
     const hwData = {
       title, dueDate, timePerQuestion: parseInt(timePerQuestion, 10),
       totalQuestions: totalQCount, subject: firstSub,
@@ -773,16 +817,23 @@ export default function HomeworkManager() {
       options: firstQ.options,
       questionText: firstQ.questionText || firstQ.text,
       type: isPhysical ? 'physicalExam' : 'test',
-      contentType: isPhysical ? 'physicalExam' : (firstQ.contentType || firstQ.type || 'test'),
-      contentPayload: firstQ.contentPayload,
-      pdfPayload: firstQ.pdfPayload,
-      htmlPayload: firstQ.htmlPayload,
-      questionType: firstQ.questionType || firstQ.type,
-      isOpenEnded: firstQ.isOpenEnded || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu' || firstQ.contentType === 'gorsel_klasik' || firstQ.type === 'gorsel_klasik',
-      answerKey: isPhysical ? physicalExam.answerKey : undefined,
-      subjects: isPhysical ? physicalExam.subjects : undefined,
-      penaltyRatio: isPhysical ? physicalExam.penaltyRatio : undefined,
-      examType: isPhysical ? physicalExam.examType : undefined,
+      contentType: isPhysical ? 'physicalExam' : (firstSec.contentType || firstQ.contentType || firstQ.type || 'test'),
+      formatType: firstSec.formatType || firstQ.formatType || firstQ.sourceFormat,
+      sourceFormat: firstSec.sourceFormat || firstQ.sourceFormat || firstQ.formatType,
+      contentPayload: firstSec.contentPayload || firstQ.contentPayload,
+      pdfPayload: firstSec.pdfPayload || firstQ.pdfPayload,
+      htmlPayload: firstSec.htmlPayload || firstQ.htmlPayload,
+      pdfUrl: firstSec.pdfUrl || firstQ.pdfUrl,
+      imageUrl: firstSec.imageUrl || firstQ.imageUrl || (firstSec.imageUrls && firstSec.imageUrls[0]) || (firstQ.imageUrls && firstQ.imageUrls[0]),
+      imageUrls: firstSec.imageUrls || firstQ.imageUrls || firstQ.images,
+      images: firstSec.images || firstQ.images || firstQ.imageUrls,
+      imagePayload: firstSec.imagePayload || firstQ.imagePayload,
+      questionType: firstSec.questionType || firstQ.questionType || firstQ.type,
+      isOpenEnded: isFirstQOpenEnded,
+      answerKey: isPhysical ? physicalExam.answerKey : (firstSec.answerKey || firstQ.answerKey),
+      subjects: isPhysical ? physicalExam.subjects : firstQ.subjects,
+      penaltyRatio: isPhysical ? physicalExam.penaltyRatio : firstQ.penaltyRatio,
+      examType: isPhysical ? physicalExam.examType : firstQ.examType,
       sections: sectionsWithPayloads
     };
     if (editingHwId) { updateHomework(editingHwId, hwData); showToast('🎉 Ödev güncellendi!'); }

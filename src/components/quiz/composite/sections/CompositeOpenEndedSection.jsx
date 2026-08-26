@@ -5,6 +5,8 @@ import QuizPanelLayout from '../../runner/QuizPanelLayout';
 import { extractDirectImages } from '../../../../services/unifiedQuizAdapter';
 import { Check, ChevronLeft, ChevronRight, LayoutList, Square } from 'lucide-react';
 
+import { extractImageUrls, isValidImageUrl } from '../../common/ImageLightbox';
+
 /**
  * CompositeOpenEndedSection
  * Renders an Open-Ended (Written) section inside a composite homework.
@@ -12,6 +14,7 @@ import { Check, ChevronLeft, ChevronRight, LayoutList, Square } from 'lucide-rea
  */
 export default memo(function CompositeOpenEndedSection({
   section = {},
+  payload = null,
   openEndedText = {},
   onTextChange,
   onOpenDrawing,
@@ -29,8 +32,25 @@ export default memo(function CompositeOpenEndedSection({
   }, [section.id]);
 
   const sectionImages = useMemo(() => {
-    return extractDirectImages(section);
-  }, [section]);
+    const list = [];
+    if (payload) {
+      list.push(...extractImageUrls(payload));
+    }
+    if (Array.isArray(section.images) && section.images.length > 0) list.push(...section.images);
+    if (Array.isArray(section.imageUrls) && section.imageUrls.length > 0) list.push(...section.imageUrls);
+    if (section.imageUrl && typeof section.imageUrl === 'string') list.push(section.imageUrl);
+    if (section.image && typeof section.image === 'string') list.push(section.image);
+    if (section.contentPayload) {
+      list.push(...extractImageUrls(section.contentPayload));
+    }
+    if (section.bankQ?.contentPayload) {
+      list.push(...extractImageUrls(section.bankQ.contentPayload));
+    }
+    if (Array.isArray(section.bankQ?.imageUrls)) {
+      list.push(...section.bankQ.imageUrls);
+    }
+    return Array.from(new Set(list.filter(isValidImageUrl)));
+  }, [section, payload]);
 
   const answeredCount = useMemo(() => {
     return Object.values(openEndedText).filter(v => typeof v === 'string' && v.trim() !== '').length;
@@ -38,7 +58,15 @@ export default memo(function CompositeOpenEndedSection({
 
   // Resolve images for a given question
   const getQuestionImages = (q, idx) => {
-    const qImages = extractDirectImages(q);
+    const qImages = [];
+    if (Array.isArray(q.images) && q.images.length > 0) qImages.push(...q.images);
+    if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
+    if (q.imageUrl) qImages.push(q.imageUrl);
+    if (q.image) qImages.push(q.image);
+    if (q.contentPayload) {
+      qImages.push(...extractImageUrls(q.contentPayload));
+    }
+
     if (qImages.length === 0 && sectionImages.length > 0) {
       if (sectionImages.length === totalCount && sectionImages[idx]) {
         qImages.push(sectionImages[idx]);
@@ -48,7 +76,7 @@ export default memo(function CompositeOpenEndedSection({
         qImages.push(sectionImages[0]);
       }
     }
-    return qImages;
+    return qImages.filter(isValidImageUrl);
   };
 
   const activeQuestion = questions[activeQIdx] || questions[0] || {};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
+import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls, normalizeImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
 import AiUsageBadge from '../ai/AiUsageBadge';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -83,6 +84,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const loadedRef = useRef(null);
   const [idbPayload, setIdbPayload] = useState(null);
+  const [idbPayloadMap, setIdbPayloadMap] = useState({});
 
   const extractPayload = (obj) => {
     if (!obj) return null;
@@ -91,43 +93,106 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   };
 
   useEffect(() => {
-    const testId = test.id;
-    if (extractPayload(test)) return;
-    if (loadedRef.current === testId) return;
+    let isMounted = true;
 
     async function loadFromIdb() {
-      const ids = [testId, testId?.replace(/^q_/, ''), questions?.[0]?.id, test.questionsList?.[0]?.id].filter(Boolean);
-      let resolved = null;
-      for (const id of ids) {
-        const val = await idbGetPayload(id);
-        if (val && val !== '[STORED_IN_INDEXEDDB]') { resolved = val; break; }
-      }
-      if (!resolved && questions?.length > 0) {
+      const payloadMap = {};
+      const allFound = [];
+
+      // 1. Check all question IDs
+      if (Array.isArray(questions) && questions.length > 0) {
         for (const q of questions) {
-          const c = extractPayload(q);
-          if (c) { resolved = c; break; }
-          if (q.id) { const val = await idbGetPayload(q.id); if (val) { resolved = val; break; } }
+          if (q?.id) {
+            const variants = [
+              q.id,
+              `q_${q.id}`,
+              String(q.id).replace(/^q_/, ''),
+              String(q.id).replace(/^hw_/, ''),
+              `hw_${String(q.id).replace(/^q_|^hw_/, '')}`
+            ];
+            for (const v of variants) {
+              try {
+                const val = await idbGetPayload(v);
+                if (val && val !== '[STORED_IN_INDEXEDDB]' && val.length > 30) {
+                  payloadMap[q.id] = val;
+                  allFound.push(...extractImageUrls(val));
+                  break;
+                }
+              } catch {}
+            }
+          }
         }
       }
-      if (resolved) setIdbPayload(resolved);
-      loadedRef.current = testId;
+
+      // 2. Check test ID and related IDs
+      const testIds = [
+        test?.id,
+        test?.id?.replace(/^q_/, ''),
+        test?.id?.replace(/^hw_/, ''),
+        test?.sourceTestId,
+        test?.testId,
+        ...(test?.questionIds || []),
+        ...(test?.selectedQuestions || [])
+      ].filter(Boolean);
+
+      for (const tid of testIds) {
+        const rawId = typeof tid === 'object' ? (tid.id || tid.questionId) : tid;
+        if (!rawId) continue;
+        const variants = [
+          rawId,
+          `q_${rawId}`,
+          `hw_${rawId}`,
+          String(rawId).replace(/^q_|^hw_/, '')
+        ];
+        for (const v of variants) {
+          try {
+            const val = await idbGetPayload(v);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && val.length > 30) {
+              if (!payloadMap[rawId]) payloadMap[rawId] = val;
+              allFound.push(...extractImageUrls(val));
+            }
+          } catch {}
+        }
+      }
+
+      if (isMounted) {
+        setIdbPayloadMap(payloadMap);
+        if (allFound.length > 0) {
+          const uniqueImgs = Array.from(new Set(allFound));
+          setIdbPayload(uniqueImgs.join('\n\n'));
+        }
+      }
     }
+
     loadFromIdb();
+    return () => { isMounted = false; };
   }, [test, questions]);
 
   const allAvailableImages = useMemo(() => {
     const collected = [];
-    const directUrls = test.imageUrls || bundleQ.imageUrls;
-    if (Array.isArray(directUrls)) collected.push(...directUrls.filter(isValidImageUrl));
-    if (test.imageUrl && isValidImageUrl(test.imageUrl)) collected.push(test.imageUrl);
-    if (bundleQ.imageUrl && isValidImageUrl(bundleQ.imageUrl)) collected.push(bundleQ.imageUrl);
-    if (idbPayload && isValidImageUrl(idbPayload)) collected.push(idbPayload);
-    questions.forEach(q => {
-      if (q.imageUrl && isValidImageUrl(q.imageUrl)) collected.push(q.imageUrl);
-      if (Array.isArray(q.imageUrls)) collected.push(...q.imageUrls.filter(isValidImageUrl));
+
+    // 1. From questions array
+    if (Array.isArray(questions) && questions.length > 0) {
+      questions.forEach(q => {
+        if (q?.id && idbPayloadMap[q.id]) {
+          collected.push(...extractImageUrls(idbPayloadMap[q.id]));
+        }
+        collected.push(...extractImageUrls(q));
+      });
+    }
+
+    // 2. From test object
+    collected.push(...extractImageUrls(test));
+    collected.push(...extractImageUrls(bundleQ));
+
+    // 3. From idbPayload and idbPayloadMap
+    if (idbPayload) collected.push(...extractImageUrls(idbPayload));
+    Object.values(idbPayloadMap).forEach(v => {
+      collected.push(...extractImageUrls(v));
     });
-    return Array.from(new Set(collected));
-  }, [test, bundleQ, idbPayload, questions]);
+
+    return Array.from(new Set(collected.filter(isValidImageUrl).map(normalizeImageUrl)));
+  }, [test, bundleQ, idbPayload, idbPayloadMap, questions]);
 
   const qCount = useMemo(() => {
     const keyArray = test.answerKey || bundleQ.answerKey;
@@ -141,37 +206,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   }, [test, bundleQ, questions, allAvailableImages, answers]);
 
   const isOpenEndedMode = useMemo(() => {
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-    const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
-                       (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      test.formatType === 'coktan_secmeli' ||
-      hasKey ||
-      hasOptions
-    ) {
-      return false;
-    }
-
-    const hasOptionAnswers = answers.some(a => (
-      typeof a.userAnswer === 'number' ||
-      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
-    ));
-    if (hasOptionAnswers && !answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) {
-      return false;
-    }
-
-    return Boolean(
-      test.questionType === 'gorsel_klasik' || test.type === 'gorsel_klasik' || test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('klasik soru') || test.title.toLowerCase().includes('yazılı klasik'))) ||
-      questions.some(q => (q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded) && q.type !== 'coktan_secmeli' && q.questionType !== 'coktan_secmeli')
-    );
-  }, [test, questions, answers]);
+    return isSectionOpenEnded(test);
+  }, [test]);
 
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
@@ -192,7 +228,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       if (isQOE) {
         if (!hasText) {
           scores[i] = 'empty';
-        } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
+        } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && a?.score !== 'pending' && !isNaN(Number(a.score))) {
           scores[i] = Number(a.score);
         } else {
           scores[i] = 'pending';
@@ -200,7 +236,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       } else {
         const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
         const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
-        if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
+        if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && a?.score !== 'pending' && !isNaN(Number(a.score))) {
           scores[i] = Number(a.score);
         } else if (hasAns) {
           const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
@@ -451,16 +487,58 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
 
   const imageUrls = useMemo(() => {
-    const collected = [];
-    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) collected.push(activeQuestion.imageUrl);
-    if (Array.isArray(activeQuestion.imageUrls)) collected.push(...activeQuestion.imageUrls.filter(isValidImageUrl));
-    if (activeQuestion.contentPayload && isValidImageUrl(activeQuestion.contentPayload)) collected.push(activeQuestion.contentPayload);
-    if (collected.length === 0 && allAvailableImages.length > 0) {
-      if (allAvailableImages.length === qCount && allAvailableImages[currentIndex]) collected.push(allAvailableImages[currentIndex]);
-      else if (allAvailableImages[0]) collected.push(allAvailableImages[0]);
+    // 1. If questions array has multiple questions and the current question has a distinct image
+    if (Array.isArray(questions) && questions.length > 1 && questions[currentIndex]) {
+      const q = questions[currentIndex];
+      if (q?.id && idbPayloadMap[q.id]) {
+        const idbImgs = extractImageUrls(idbPayloadMap[q.id]);
+        if (idbImgs.length > 0) return [idbImgs[0]];
+      }
+      const qImgs = extractImageUrls(q);
+      if (qImgs.length > 0) {
+        return [qImgs[0]];
+      }
     }
-    return collected;
-  }, [activeQuestion, allAvailableImages, currentIndex, qCount]);
+
+    // 2. If allAvailableImages has multiple images matching questions (e.g. question set with 3 images)
+    if (allAvailableImages.length > 1) {
+      if (allAvailableImages[currentIndex]) {
+        return [allAvailableImages[currentIndex]];
+      }
+      return [allAvailableImages[allAvailableImages.length - 1]];
+    }
+
+    // 3. If activeQuestion has imageUrls array
+    if (Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 1) {
+      const list = activeQuestion.imageUrls.filter(isValidImageUrl).map(normalizeImageUrl);
+      if (list[currentIndex]) return [list[currentIndex]];
+      if (list.length > 0) return [list[0]];
+    }
+
+    // 4. If activeQuestion has a single valid imageUrl
+    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) {
+      const extracted = extractImageUrls(activeQuestion.imageUrl);
+      if (extracted.length > 1 && extracted[currentIndex]) return [extracted[currentIndex]];
+      if (extracted.length > 0) return [extracted[0]];
+      return [normalizeImageUrl(activeQuestion.imageUrl)];
+    }
+
+    // 5. If allAvailableImages has at least 1 image
+    if (allAvailableImages.length > 0) {
+      return [allAvailableImages[0]];
+    }
+
+    // 6. From activeQuestion contentPayload
+    if (activeQuestion.contentPayload && isValidImageUrl(activeQuestion.contentPayload)) {
+      const extracted = extractImageUrls(activeQuestion.contentPayload);
+      if (extracted.length > 0) {
+        if (extracted[currentIndex]) return [extracted[currentIndex]];
+        return [extracted[0]];
+      }
+    }
+
+    return [];
+  }, [activeQuestion, allAvailableImages, currentIndex, questions, idbPayloadMap]);
 
   const answersMap = useMemo(() => {
     const map = {};
@@ -471,19 +549,20 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       
       const rawAns = unwrapUserAnswer(ans?.userAnswer ?? ans);
       const userAns = typeof rawAns === 'number' ? rawAns : (rawAns || null);
-      const textAns = typeof ans?.userAnswerText === 'string' ? ans.userAnswerText.trim() : '';
+      const textAns = typeof ans?.userAnswerText === 'string' ? ans.userAnswerText.trim() : (submission?.openEndedText?.[qNo] || '');
       const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || textAns.length > 0;
       
+      const isItemOE = isOpenEndedMode || textAns.length > 0 || qObj?.type === 'acik_uclu' || qObj?.type === 'gorsel_klasik' || ans?.type === 'acik_uclu';
       const teacherSc = questionScores[qNo];
+      const isPending = teacherSc === 'pending' || (isItemOE && hasAns && (teacherSc === undefined || teacherSc === null || teacherSc === 'pending' || !isTrulyEvaluated));
+
       let isC = null;
-      if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty') {
-        isC = Number(teacherSc) >= 5;
-      } else if (hasAns) {
-        if (isOpenEndedMode) {
-          isC = null;
-        } else {
-          isC = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-        }
+      if (isPending) {
+        isC = null;
+      } else if (typeof teacherSc === 'number' && !isNaN(teacherSc)) {
+        isC = teacherSc >= 5;
+      } else if (!isItemOE && hasAns) {
+        isC = checkIsAnswerCorrect(userAns, qObj, test, qNo);
       } else {
         isC = null;
       }
@@ -492,20 +571,25 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         questionNo: qNo,
         userAnswer: userAns,
         userAnswerText: textAns,
-        isCorrect: hasAns ? isC : null,
-        hasAnswer: hasAns
+        isCorrect: isPending ? null : isC,
+        isPending: isPending,
+        status: isPending ? 'pending' : (isC === true ? 'correct' : (isC === false ? 'wrong' : 'empty')),
+        evalStatus: isPending ? 'pending' : (hasAns ? undefined : 'empty'),
+        score: teacherSc,
+        hasAnswer: hasAns,
+        isOpenEnded: isItemOE
       };
 
       map[qNo] = item;
       map[String(qNo)] = item;
     }
     return map;
-  }, [qCount, answers, questionScores, questions, bundleQ, test, isOpenEndedMode]);
+  }, [qCount, answers, questionScores, questions, bundleQ, test, isOpenEndedMode, isTrulyEvaluated, submission?.openEndedText]);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
   const currentQNo = currentIndex + 1;
   const teacherSc = questionScores[currentQNo];
-  const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
+  const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc)) && isTrulyEvaluated;
 
   const rawUserAns = unwrapUserAnswer(activeAnsObj);
   const userAns = typeof rawUserAns === 'number' ? rawUserAns : activeAnsObj.userAnswer;
@@ -717,8 +801,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         />
 
         <div style={{
-          background: isItemOE ? '#faf5ff' : (!hasAnswer ? '#ffffff' : (isCurrentCorrect === true ? '#f0fdf4' : '#fef2f2')),
-          border: `1.5px solid ${isItemOE ? '#e9d5ff' : (!hasAnswer ? '#e2e8f0' : (isCurrentCorrect === true ? '#bbf7d0' : '#fecaca'))}`,
+          background: isItemOE ? (hasGradedScore ? (isCurrentCorrect === true ? '#f0fdf4' : '#fef2f2') : (isText ? '#faf5ff' : '#ffffff')) : (!hasAnswer ? '#ffffff' : (isCurrentCorrect === true ? '#f0fdf4' : '#fef2f2')),
+          border: `1.5px solid ${isItemOE ? (hasGradedScore ? (isCurrentCorrect === true ? '#bbf7d0' : '#fecaca') : (isText ? '#ddd6fe' : '#e2e8f0')) : (!hasAnswer ? '#e2e8f0' : (isCurrentCorrect === true ? '#bbf7d0' : '#fecaca'))}`,
           borderRadius: '1.25rem',
           padding: '1.5rem',
           boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
@@ -746,7 +830,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 }}>
                   ○ BOŞ
                 </span>
-              ) : (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) ? (
+              ) : hasGradedScore ? (
                 Number(teacherSc) >= 5 ? (
                   <span style={{
                     color: '#15803d',
@@ -778,7 +862,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                     <XCircle size={16} color="#ef4444" /> YANLIŞ
                   </span>
                 )
-              ) : isText ? (
+              ) : (
                 <span style={{
                   color: '#7c3aed',
                   background: '#f5f3ff',
@@ -786,21 +870,12 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                   borderRadius: '0.45rem',
                   border: '1px solid #ddd6fe',
                   fontWeight: 900,
-                  fontSize: '0.82rem'
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}>
-                  ⏳ Değerlendirme Bekliyor
-                </span>
-              ) : (
-                <span style={{
-                  color: '#475569',
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '0.45rem',
-                  fontWeight: 900,
-                  fontSize: '0.85rem'
-                }}>
-                  ○ BOŞ
+                  <Clock size={15} color="#7c3aed" /> Değerlendirme Bekliyor
                 </span>
               )
             ) : (

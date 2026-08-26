@@ -109,63 +109,65 @@ export function detectSectionFormat(sec = {}, test = {}) {
 export function isItemOpenEnded(item = {}, parentTest = {}) {
   if (!item) return false;
 
-  // 1. Direct explicit Open-Ended markers on item
-  const itemType = String(item.questionType || item.type || item.contentType || '').toLowerCase();
+  const itemType = String(item.questionType || item.type || item.contentType || item.formatType || item.sourceFormat || '').toLowerCase();
+
+  // 1. If item is Multiple Choice (has options or is coktan_secmeli) -> NEVER Open-Ended
+  const hasMultipleChoiceType = (
+    itemType.includes('coktan_secmeli') ||
+    itemType.includes('multiple_choice') ||
+    itemType.includes('optic') ||
+    itemType.includes('optik')
+  );
+
+  const hasOptions = (
+    (Array.isArray(item.options) && item.options.filter(Boolean).length >= 2) ||
+    (Array.isArray(item.raw?.options) && item.raw.options.filter(Boolean).length >= 2) ||
+    (Array.isArray(item.bankQ?.options) && item.bankQ.options.filter(Boolean).length >= 2)
+  );
+
+  if (hasMultipleChoiceType || hasOptions) {
+    return false;
+  }
+
+  // 2. Direct explicit Open-Ended markers on item
   if (
     itemType.includes('acik_uclu') ||
-    itemType.includes('yazili') ||
-    itemType.includes('klasik') ||
     itemType.includes('open_ended') ||
-    item.isOpenEnded === true
+    itemType.includes('gorsel_klasik') ||
+    itemType === 'klasik' ||
+    item.isOpenEnded === true ||
+    item.is_open_ended === true ||
+    item.openEnded === true
   ) {
     return true;
   }
 
   const itemTitle = String(item.title || item.name || item.sectionTitle || item.testTitle || '').toLowerCase();
   if (
-    itemTitle.includes('açık uçlu') ||
-    itemTitle.includes('acik uclu') ||
-    itemTitle.includes('yazılı') ||
-    itemTitle.includes('yazili') ||
-    itemTitle.includes('klasik') ||
-    itemTitle.includes('acik') ||
-    itemTitle.endsWith('aç') ||
-    itemTitle.endsWith('ac')
+    (itemTitle.includes('açık uçlu') || itemTitle.includes('acik uclu') || itemTitle.includes('klasik soru') || itemTitle.includes('yazılı klasik')) &&
+    !itemTitle.includes('çoktan seçmeli') && !itemTitle.includes('coktan secmeli')
   ) {
     return true;
   }
 
-  // 2. Direct explicit Multiple Choice markers on item
-  if (
-    itemType.includes('coktan_secmeli') ||
-    itemType.includes('multiple_choice') ||
-    itemType.includes('optic') ||
-    itemType.includes('optik')
-  ) {
-    return false;
-  }
-
   // 3. If parent test is single-section (NOT multi-section) and has open-ended markers
-  const isMultiSectionParent = Array.isArray(parentTest.sections) && parentTest.sections.length > 1;
-  if (!isMultiSectionParent) {
+  const isMultiSectionParent = Array.isArray(parentTest?.sections) && parentTest.sections.length > 1;
+  if (!isMultiSectionParent && parentTest) {
     const parentType = String(parentTest.questionType || parentTest.type || parentTest.contentType || '').toLowerCase();
     if (
       parentType.includes('acik_uclu') ||
-      parentType.includes('yazili') ||
-      parentType.includes('klasik') ||
       parentType.includes('open_ended') ||
-      parentTest.isOpenEnded === true
+      parentType.includes('gorsel_klasik') ||
+      parentTest.isOpenEnded === true ||
+      parentTest.is_open_ended === true
     ) {
       return true;
     }
 
     const parentTitle = String(parentTest.title || parentTest.name || '').toLowerCase();
     if (
-      parentTitle.includes('açık uçlu') ||
-      parentTitle.includes('acik uclu') ||
-      parentTitle.includes('yazılı') ||
-      parentTitle.includes('yazili') ||
-      parentTitle.includes('klasik')
+      (parentTitle.includes('açık uçlu') || parentTitle.includes('acik uclu') || parentTitle.includes('klasik soru') || parentTitle.includes('yazılı klasik')) &&
+      !parentTitle.includes('çoktan seçmeli') && !parentTitle.includes('coktan secmeli')
     ) {
       return true;
     }

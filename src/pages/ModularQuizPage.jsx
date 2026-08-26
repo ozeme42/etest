@@ -22,6 +22,8 @@ import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { idbGetPayload } from '../services/indexedDbService';
+import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 export default function ModularQuizPage() {
   const { testId } = useParams();
@@ -562,6 +564,13 @@ export default function ModularQuizPage() {
             const title = (typeof item === 'object' ? (item.title || item.name) : null) || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`;
             const qCount = (typeof item === 'object' ? (item.questionCount || item.totalQuestions || item.qCount) : null) || bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
 
+            const qImages = (Array.isArray(bankQ?.imageUrls) ? bankQ.imageUrls : null) ||
+                            (Array.isArray(bankQ?.images) ? bankQ.images : null) ||
+                            (typeof item === 'object' && Array.isArray(item.imageUrls) ? item.imageUrls : null) ||
+                            (typeof item === 'object' && Array.isArray(item.images) ? item.images : null) ||
+                            [];
+            const qImg = bankQ?.imageUrl || bankQ?.image || (typeof item === 'object' ? item.imageUrl : null) || (typeof item === 'object' ? item.image : null) || null;
+
             return {
               ...(bankQ || {}),
               ...(typeof item === 'object' ? item : {}),
@@ -573,6 +582,10 @@ export default function ModularQuizPage() {
               contentPayload: bankQ?.contentPayload || (typeof item === 'object' ? item.contentPayload : null),
               pdfUrl: bankQ?.pdfUrl || (typeof item === 'object' ? item.pdfUrl : null),
               htmlPayload: bankQ?.htmlPayload || (typeof item === 'object' ? item.htmlPayload : null),
+              imageUrls: qImages.length > 0 ? qImages : (qImg ? [qImg] : undefined),
+              imageUrl: qImg,
+              images: qImages.length > 0 ? qImages : (qImg ? [qImg] : undefined),
+              imagePayload: bankQ?.imagePayload || (typeof item === 'object' ? item.imagePayload : null),
               contentType: (typeof item === 'object' ? item.contentType : null) || bankQ?.contentType,
               questionType: (typeof item === 'object' ? item.questionType : null) || bankQ?.questionType,
               questionCount: qCount,
@@ -607,22 +620,64 @@ export default function ModularQuizPage() {
           }
 
           if (bankQ) {
+            const isMergedOE = Boolean(
+              bankQ.type === 'acik_uclu' ||
+              bankQ.questionType === 'acik_uclu' ||
+              bankQ.type === 'yazili' ||
+              bankQ.questionType === 'yazili' ||
+              bankQ.type === 'gorsel_klasik' ||
+              bankQ.questionType === 'gorsel_klasik' ||
+              bankQ.isOpenEnded ||
+              foundTest.isOpenEnded ||
+              foundTest.questionType === 'acik_uclu' ||
+              foundTest.type === 'acik_uclu' ||
+              foundTest.questionType === 'yazili' ||
+              foundTest.type === 'yazili' ||
+              foundTest.questionType === 'gorsel_klasik' ||
+              foundTest.type === 'gorsel_klasik' ||
+              ((!foundTest.options || foundTest.options.length <= 1) && (!bankQ.options || bankQ.options.length <= 1) && (!foundTest.answerKey || foundTest.answerKey.length === 0) && (!bankQ.answerKey || bankQ.answerKey.length === 0))
+            );
+
+            const hasValidPayload = (p) => typeof p === 'string' && p.length > 20 && !p.includes('[STORED_IN_INDEXEDDB]') && !p.includes('[LOCALSTORAGE_CACHE]');
+
+            const resolvedContentPayload = hasValidPayload(foundTest.contentPayload) ? foundTest.contentPayload :
+              (hasValidPayload(bankQ.contentPayload) ? bankQ.contentPayload : (foundTest.contentPayload || bankQ.contentPayload));
+
+            const resolvedPdfPayload = hasValidPayload(foundTest.pdfPayload) ? foundTest.pdfPayload :
+              (hasValidPayload(bankQ.pdfPayload) ? bankQ.pdfPayload : (foundTest.pdfPayload || bankQ.pdfPayload));
+
+            const resolvedImageUrls = (Array.isArray(foundTest.imageUrls) && foundTest.imageUrls.length > 0 && hasValidPayload(foundTest.imageUrls[0])) ? foundTest.imageUrls :
+              ((Array.isArray(bankQ.imageUrls) && bankQ.imageUrls.length > 0) ? bankQ.imageUrls : (hasValidPayload(bankQ.imageUrl) ? [bankQ.imageUrl] : (foundTest.imageUrls || bankQ.imageUrls)));
+
+            const resolvedImageUrl = hasValidPayload(foundTest.imageUrl) ? foundTest.imageUrl :
+              (hasValidPayload(bankQ.imageUrl) ? bankQ.imageUrl : (foundTest.imageUrl || bankQ.imageUrl));
+
             const merged = {
               ...bankQ,
               ...foundTest,
+              questionType: isMergedOE ? 'acik_uclu' : (foundTest.questionType && foundTest.questionType !== 'test' ? foundTest.questionType : (bankQ.questionType || foundTest.type || bankQ.type)),
+              type: isMergedOE ? 'acik_uclu' : (foundTest.type && foundTest.type !== 'test' ? foundTest.type : (bankQ.type || 'test')),
+              contentType: foundTest.contentType || bankQ.contentType,
+              formatType: foundTest.formatType || bankQ.formatType,
+              sourceFormat: foundTest.sourceFormat || bankQ.sourceFormat,
               questionText: foundTest.questionText || bankQ.questionText || foundTest.text || bankQ.text,
               options: (foundTest.options && foundTest.options.length > 0) ? foundTest.options : bankQ.options,
               questionsList: (foundTest.questionsList && foundTest.questionsList.length > 0) ? foundTest.questionsList : bankQ.questionsList,
-              contentPayload: foundTest.contentPayload || bankQ.contentPayload,
-              pdfPayload: foundTest.pdfPayload || bankQ.pdfPayload,
+              contentPayload: resolvedContentPayload,
+              pdfPayload: resolvedPdfPayload,
               htmlPayload: foundTest.htmlPayload || bankQ.htmlPayload,
-              imageUrls: (foundTest.imageUrls && foundTest.imageUrls.length > 0) ? foundTest.imageUrls : bankQ.imageUrls,
-              imageUrl: foundTest.imageUrl || bankQ.imageUrl,
+              pdfUrl: foundTest.pdfUrl || bankQ.pdfUrl,
+              imageUrls: resolvedImageUrls,
+              imageUrl: resolvedImageUrl,
+              images: resolvedImageUrls,
+              imagePayload: foundTest.imagePayload || bankQ.imagePayload || resolvedContentPayload,
               correctAnswer: foundTest.correctAnswer !== undefined ? foundTest.correctAnswer : bankQ.correctAnswer,
               answerKey: foundTest.answerKey || bankQ.answerKey,
               questionCount: foundTest.questionCount || bankQ.questionCount || (bankQ.questionsList?.length) || (foundTest.questionsList?.length) || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
               totalQuestions: foundTest.totalQuestions || bankQ.totalQuestions || (bankQ.questionsList?.length) || (foundTest.questionsList?.length) || (Array.isArray(bankQ.answerKey) ? bankQ.answerKey.length : 1),
-              isOpenEnded: Boolean(foundTest.isOpenEnded || bankQ.isOpenEnded || bankQ.type === 'acik_uclu' || bankQ.contentType === 'acik_uclu')
+              isOpenEnded: isMergedOE,
+              is_open_ended: isMergedOE,
+              bankQ: bankQ
             };
             setTest(merged);
             const resolved = resolveTestQuestions(merged, allBankQuestions);
@@ -642,6 +697,71 @@ export default function ModularQuizPage() {
       }
     }
   }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, books, hwLoading, booksLoading, currLoading, qbLoading]);
+
+  // Restore payload from IndexedDB if stored as placeholder
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreTestPayload() {
+      if (!test) return;
+      const isMissingPayload = (
+        !test.contentPayload ||
+        test.contentPayload === '[STORED_IN_INDEXEDDB]' ||
+        test.contentPayload === '[LOCALSTORAGE_CACHE]' ||
+        test.pdfPayload === '[STORED_IN_INDEXEDDB]' ||
+        test.imageUrl === '[STORED_IN_INDEXEDDB]'
+      );
+
+      if (isMissingPayload) {
+        const candidateIds = [
+          test.id,
+          test.testId,
+          test.hwId,
+          test.sourceTestId,
+          test.sourceId,
+          test.questionId,
+          ...(test.questionIds || []),
+          ...(test.selectedQuestions || []),
+          ...(questions || []).map(q => q?.id),
+          ...(questions || []).map(q => q?.questionId)
+        ].filter(Boolean);
+
+        for (const cid of candidateIds) {
+          const strId = typeof cid === 'object' ? (cid.id || cid.questionId) : String(cid);
+          if (!strId) continue;
+          const variants = [
+            strId,
+            strId.replace(/^q_|^hw_/, ''),
+            `q_${strId.replace(/^q_|^hw_/, '')}`,
+            `hw_${strId.replace(/^q_|^hw_/, '')}`
+          ];
+
+          for (const v of variants) {
+            try {
+              const val = await idbGetPayload(v);
+              if (val && typeof val === 'string' && val.length > 20 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+                setTest(prev => {
+                  if (!prev) return prev;
+                  const isPdfData = val.startsWith('data:application/pdf') || val.startsWith('%PDF-');
+                  const isImgData = val.startsWith('data:image/') || val.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(val);
+                  return {
+                    ...prev,
+                    contentPayload: val,
+                    pdfPayload: isPdfData ? val : prev.pdfPayload,
+                    imageUrl: isImgData ? val : prev.imageUrl,
+                    imageUrls: isImgData ? (prev.imageUrls?.length > 1 ? prev.imageUrls : [val]) : prev.imageUrls
+                  };
+                });
+                return;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    }
+
+    restoreTestPayload();
+    return () => { isMounted = false; };
+  }, [test?.id, test?.contentPayload]);
 
   // If this is a physical exam (from ExamManager or TrackedBook with bookType: 'exam'), redirect directly to /physical-exam/:id
   useEffect(() => {
@@ -716,16 +836,24 @@ export default function ModularQuizPage() {
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
       const isQExplicitOE = Boolean(
+        isSectionOpenEnded(effectiveTest) ||
+        isSectionOpenEnded(test) ||
+        options.isOpenEnded ||
         qObj.type === 'acik_uclu' ||
         qObj.type === 'yazili' ||
+        qObj.type === 'gorsel_klasik' ||
         qObj.questionType === 'acik_uclu' ||
         qObj.questionType === 'yazili' ||
+        qObj.questionType === 'gorsel_klasik' ||
         test.questionType === 'acik_uclu' ||
         test.type === 'acik_uclu' ||
+        test.type === 'gorsel_klasik' ||
+        test.isOpenEnded ||
         ans.isOpenEnded ||
-        ans.is_open_ended ||
-        (textVal && String(textVal).trim() !== '')
+        ans.is_open_ended
       );
+
+      const hasTextVal = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
 
       let isCorrect = ans.isCorrect;
       if (isQExplicitOE) {
@@ -749,8 +877,13 @@ export default function ModularQuizPage() {
 
       if (isCorrect === true) correctCount++;
       else if (isCorrect === false && (userAns !== null && userAns !== undefined && userAns !== '')) wrongCount++;
-      else if (isQExplicitOE) pendingCount++;
-      else blankCount++;
+      else if (isQExplicitOE) {
+        if (hasTextVal) {
+          pendingCount++;
+        } else {
+          blankCount++;
+        }
+      } else blankCount++;
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
       const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
@@ -771,18 +904,8 @@ export default function ModularQuizPage() {
     const totalScored = correctCount + wrongCount + blankCount;
     const totalQ = totalScored + pendingCount;
     const score = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-    const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
-                       (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
-    const hasOptionAnswers = formattedAnswers.some(a => (
-      typeof a.userAnswer === 'number' ||
-      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
-    ));
-    const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || test.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !formattedAnswers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
 
-    const isAcikUclu = !isExplicitMC && Boolean(
+    const isAcikUclu = isSectionOpenEnded(effectiveTest) || isSectionOpenEnded(test) || Boolean(
       test.questionType === 'acik_uclu' ||
       test.type === 'acik_uclu' ||
       test.type === 'gorsel_klasik' ||
@@ -793,6 +916,17 @@ export default function ModularQuizPage() {
     );
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;
+
+    const derivedOpenEndedText = {
+      ...(options.openEndedText || {}),
+    };
+    formattedAnswers.forEach(a => {
+      const qNo = a.questionNoInSection || a.questionNo;
+      if (qNo && a.userAnswerText) {
+        derivedOpenEndedText[qNo] = a.userAnswerText;
+        derivedOpenEndedText[String(qNo)] = a.userAnswerText;
+      }
+    });
 
     const effectiveHwId = activeHomework ? activeHomework.id : (String(testId || '').startsWith('hw_') ? testId : null);
     const submissionData = {
@@ -807,6 +941,7 @@ export default function ModularQuizPage() {
       bookId: test.bookId || null,
       bookTestId: test.id,
       bookTestIds: test.tests || [test.id],
+      openEndedText: derivedOpenEndedText,
       questionsList: questions.map(q => ({
         id: q.id,
         text: q.questionText || q.text || '',
@@ -874,17 +1009,31 @@ export default function ModularQuizPage() {
   };
 
   const handleAutoSave = (formattedAnswers) => {
+    const isAcikUclu = isSectionOpenEnded(effectiveTest) || isSectionOpenEnded(test) || Boolean(
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.type === 'gorsel_klasik' ||
+      test.isOpenEnded === true ||
+      test.is_open_ended === true
+    );
+
+    const derivedOpenEndedText = {};
     const evaluatedAnswers = formattedAnswers.map((ans, idx) => {
       const qObj = questions[idx] || {};
       const userAns = ans.userAnswer;
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNo || (idx + 1);
 
+      if (textVal) {
+        derivedOpenEndedText[qNo] = textVal;
+        derivedOpenEndedText[String(qNo)] = textVal;
+      }
+
       let isCorrect = ans.isCorrect;
-      if (userAns !== null && userAns !== undefined && userAns !== '') {
-        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-      } else if (textVal) {
+      if (isAcikUclu) {
         isCorrect = null;
+      } else if (userAns !== null && userAns !== undefined && userAns !== '') {
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
       } else {
         isCorrect = null;
       }
@@ -892,12 +1041,12 @@ export default function ModularQuizPage() {
       return {
         ...ans,
         isCorrect,
+        isOpenEnded: isAcikUclu,
         correctAnswer: ans.correctAnswerLetter || ans.correctAnswer || qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null)
       };
     });
 
     const totalQ = questions.length || test.questionCount || test.totalQuestions || formattedAnswers.length || 1;
-    const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu';
 
     const draftData = {
       testId: test.id,
@@ -910,6 +1059,7 @@ export default function ModularQuizPage() {
       bookTestId: test.id,
       bookTestIds: test.tests || [test.id],
       isOpenEnded: isAcikUclu,
+      openEndedText: derivedOpenEndedText,
       answers: evaluatedAnswers,
       totalQuestions: totalQ,
       status: 'in_progress',
@@ -925,30 +1075,7 @@ export default function ModularQuizPage() {
     }
   };
 
-  // Determine Source Format Mode (Only Open-Ended if not multiple choice)
-  const isExplicitMultipleChoice = Boolean(
-    test.questionType === 'coktan_secmeli' ||
-    test.type === 'coktan_secmeli' ||
-    test.formatType === 'coktan_secmeli' ||
-    (Array.isArray(test.options) && test.options.length > 1) ||
-    (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-    (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-    (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true)
-  );
-
-  const isWritten = !isExplicitMultipleChoice && Boolean(
-    test.questionType === 'acik_uclu' ||
-    test.type === 'acik_uclu' ||
-    test.type === 'gorsel_klasik' ||
-    test.isOpenEnded === true ||
-    test.is_open_ended === true ||
-    test.answerKey?.__meta?.isOpenEnded === true ||
-    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name)) ||
-    (test.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.title)) ||
-    (questions && questions.some(q => (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) && q.type !== 'coktan_secmeli' && q.questionType !== 'coktan_secmeli')) ||
-    (test.sections && Array.isArray(test.sections) && test.sections.some(s => (s.isOpenEnded || s.is_open_ended || s.questionType === 'acik_uclu') && s.questionType !== 'coktan_secmeli'))
-  );
+  const isWritten = isSectionOpenEnded(effectiveTest);
 
 
   const isRealStandardQuiz = Boolean(
@@ -1008,7 +1135,9 @@ export default function ModularQuizPage() {
     test.sourceFormat === 'image' || test.formatType === 'image' ||
     test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions ||
     Boolean(test.imageUrl || (test.imageUrls && test.imageUrls.length > 0)) ||
-    (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
+    extractImageUrls(test).length > 0 ||
+    (questions && questions.some(q => extractImageUrls(q).length > 0)) ||
+    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:image') || test.contentPayload.startsWith('http') || test.contentPayload.includes('.png') || test.contentPayload.includes('.jpg')))
   );
 
   const hasMultipleDistinctSections = Boolean(
@@ -1070,10 +1199,10 @@ export default function ModularQuizPage() {
       );
     }
 
-    // 4. Single Image
-    if (isImageTest) {
+    // 4. Single Open-Ended / Written
+    if (isSingleOE) {
       return (
-        <ImageQuizRunner
+        <SingleOpenEndedRunner
           test={effectiveTest}
           questions={questions}
           onSubmit={handleSubmit}
@@ -1084,10 +1213,10 @@ export default function ModularQuizPage() {
       );
     }
 
-    // 5. Single Open-Ended / Written
-    if (isSingleOE) {
+    // 5. Single Image
+    if (isImageTest) {
       return (
-        <SingleOpenEndedRunner
+        <ImageQuizRunner
           test={effectiveTest}
           questions={questions}
           onSubmit={handleSubmit}
@@ -1676,8 +1805,11 @@ export default function ModularQuizPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}`, {
-                      state: { from: submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student' }
+                    navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}&submissionId=${submittedResult.id}`, {
+                      state: {
+                        submission: submittedResult,
+                        from: submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student'
+                      }
                     });
                   }}
                   style={{

@@ -47,14 +47,28 @@ export function resolveTestContext(test = {}, sec = {}, bankQ = {}) {
 export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || test?.bankQ || {};
 
-  // 1. TOP PRIORITY: Explicit Open-Ended Flags on Section or Bank Question
+  // 1. If section, bankQ, or test is Multiple Choice -> NEVER Open-Ended
+  const isSecMC = (
+    sec?.type === 'coktan_secmeli' ||
+    sec?.questionType === 'coktan_secmeli' ||
+    sec?.formatType === 'coktan_secmeli' ||
+    sec?.sourceFormat === 'coktan_secmeli' ||
+    bankQ?.type === 'coktan_secmeli' ||
+    bankQ?.questionType === 'coktan_secmeli' ||
+    bankQ?.formatType === 'coktan_secmeli' ||
+    bankQ?.sourceFormat === 'coktan_secmeli' ||
+    (Array.isArray(sec?.options) && sec.options.filter(Boolean).length >= 2) ||
+    (Array.isArray(bankQ?.options) && bankQ.options.filter(Boolean).length >= 2)
+  );
+
+  if (isSecMC) {
+    return false;
+  }
+
+  // 2. Explicit Open-Ended Flags on Section or Bank Question
   if (
     sec?.type === 'acik_uclu' ||
     sec?.questionType === 'acik_uclu' ||
-    sec?.formatType === 'yazili' ||
-    sec?.sourceFormat === 'yazili' ||
-    sec?.type === 'yazili' ||
-    sec?.questionType === 'yazili' ||
     sec?.formatType === 'gorsel_klasik' ||
     sec?.sourceFormat === 'gorsel_klasik' ||
     sec?.type === 'gorsel_klasik' ||
@@ -64,10 +78,6 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     sec?.openEnded === true ||
     bankQ?.type === 'acik_uclu' ||
     bankQ?.questionType === 'acik_uclu' ||
-    bankQ?.formatType === 'yazili' ||
-    bankQ?.sourceFormat === 'yazili' ||
-    bankQ?.type === 'yazili' ||
-    bankQ?.questionType === 'yazili' ||
     bankQ?.formatType === 'gorsel_klasik' ||
     bankQ?.sourceFormat === 'gorsel_klasik' ||
     bankQ?.type === 'gorsel_klasik' ||
@@ -79,30 +89,21 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  // 2. Explicit Multiple-Choice Flags on Section or Bank Question
+  // 3. Title & Name Keyword Detection
+  const titleStr = String(sec?.title || sec?.name || bankQ?.title || bankQ?.name || test?.title || test?.name || '').toLowerCase();
   if (
-    sec?.type === 'coktan_secmeli' ||
-    sec?.questionType === 'coktan_secmeli' ||
-    sec?.formatType === 'coktan_secmeli' ||
-    sec?.sourceFormat === 'coktan_secmeli' ||
-    bankQ?.type === 'coktan_secmeli' ||
-    bankQ?.questionType === 'coktan_secmeli' ||
-    bankQ?.formatType === 'coktan_secmeli' ||
-    bankQ?.sourceFormat === 'coktan_secmeli'
+    (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('klasik soru') || titleStr.includes('yazılı klasik')) &&
+    !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli')
   ) {
-    return false;
+    return true;
   }
 
-  // 3. Test-level flags for single-test assignments (where test IS the section)
+  // 4. Test-level flags for single-test assignments (where test IS the section)
   if (!sec?.id || sec?.id === test?.id || !test?.sections?.length) {
     if (
       test?.type === 'acik_uclu' ||
       test?.questionType === 'acik_uclu' ||
       test?.examType === 'acik_uclu' ||
-      test?.formatType === 'yazili' ||
-      test?.sourceFormat === 'yazili' ||
-      test?.type === 'yazili' ||
-      test?.questionType === 'yazili' ||
       test?.formatType === 'gorsel_klasik' ||
       test?.sourceFormat === 'gorsel_klasik' ||
       test?.isOpenEnded === true ||
@@ -113,7 +114,7 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     }
   }
 
-  // 4. Check resolved questions for any explicit open-ended question
+  // 5. Check resolved questions for any explicit open-ended question
   const resQs = Array.isArray(sec?.resolvedQuestions) && sec.resolvedQuestions.length > 0
     ? sec.resolvedQuestions
     : (Array.isArray(test?.questions) ? test.questions : []);
@@ -121,9 +122,8 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
   if (resQs.length > 0 && resQs.some(q => (
     q?.type === 'acik_uclu' ||
     q?.questionType === 'acik_uclu' ||
-    q?.contentType === 'acik_uclu' ||
-    q?.type === 'yazili' ||
-    q?.questionType === 'yazili' ||
+    q?.type === 'gorsel_klasik' ||
+    q?.questionType === 'gorsel_klasik' ||
     q?.isOpenEnded === true
   ))) {
     return true;
@@ -133,38 +133,35 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
 }
 
 export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
-  const bankQ = sec?.bankQ || test?.bankQ || {};
+  if (!qObj) return false;
 
-  // 1. HIGHEST PRIORITY: If question, section, bank question, or single-test container is marked as Open-Ended
-  const isSectionOE = isSectionOpenEnded(sec, test);
-  const isQExplicitOE = Boolean(
-    qObj?.type === 'acik_uclu' ||
-    qObj?.questionType === 'acik_uclu' ||
-    qObj?.contentType === 'acik_uclu' ||
-    qObj?.type === 'yazili' ||
-    qObj?.questionType === 'yazili' ||
-    qObj?.contentType === 'yazili' ||
-    qObj?.type === 'gorsel_klasik' ||
-    qObj?.questionType === 'gorsel_klasik' ||
-    qObj?.isOpenEnded === true ||
-    qObj?.openEnded === true ||
-    qObj?.is_open_ended === true
+  // 1. If question has Multiple Choice options or is coktan_secmeli -> NEVER Open-Ended
+  const isQMC = (
+    qObj.type === 'coktan_secmeli' ||
+    qObj.questionType === 'coktan_secmeli' ||
+    qObj.formatType === 'coktan_secmeli' ||
+    (Array.isArray(qObj.options) && qObj.options.filter(Boolean).length >= 2) ||
+    qObj.correctAnswerLetter !== undefined ||
+    (typeof qObj.correctAnswer === 'number' && qObj.correctAnswer >= 0)
   );
 
-  if (isSectionOE || isQExplicitOE) {
-    return true;
+  if (isQMC) {
+    return false;
   }
 
-  // 2. Explicit Multiple-Choice Flags
-  if (
-    qObj?.type === 'coktan_secmeli' ||
-    qObj?.questionType === 'coktan_secmeli' ||
-    qObj?.contentType === 'coktan_secmeli' ||
-    sec?.type === 'coktan_secmeli' ||
-    sec?.questionType === 'coktan_secmeli' ||
-    bankQ?.type === 'coktan_secmeli'
-  ) {
-    return false;
+  // 2. If question is explicitly Open-Ended
+  const isQExplicitOE = Boolean(
+    qObj.type === 'acik_uclu' ||
+    qObj.questionType === 'acik_uclu' ||
+    qObj.type === 'gorsel_klasik' ||
+    qObj.questionType === 'gorsel_klasik' ||
+    qObj.isOpenEnded === true ||
+    qObj.openEnded === true ||
+    qObj.is_open_ended === true
+  );
+
+  if (isQExplicitOE) {
+    return true;
   }
 
   // 3. Fallback: If student wrote open-ended answer text
@@ -172,7 +169,7 @@ export function isQuestionOE(qObj, sec = {}, test = {}, userAnsObj = null) {
     return true;
   }
 
-  return false;
+  return isSectionOpenEnded(sec, test);
 }
 
 function checkIsOE(obj) {

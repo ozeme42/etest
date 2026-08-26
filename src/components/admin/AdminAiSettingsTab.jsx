@@ -17,7 +17,7 @@ export default function AdminAiSettingsTab() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null); // { success: boolean, message: string }
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.6-flash');
 
   // AI Usage Statistics
   const [usageStats, setUsageStats] = useState(() => getAiUsageSummary());

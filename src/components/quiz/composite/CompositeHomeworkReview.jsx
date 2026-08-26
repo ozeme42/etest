@@ -6,6 +6,8 @@ import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../../../servi
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../../../utils/answerEvaluation';
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../utils/quizTypeDetector';
 
+import { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
+
 import SectionTabBar from './navigation/SectionTabBar';
 import MultipleChoiceReview from '../review/MultipleChoiceReview';
 import OpenEndedReview from '../review/OpenEndedReview';
@@ -89,9 +91,52 @@ export default function CompositeHomeworkReview({
                             { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
   const currentSecQuestions = activeSec.questions || [];
 
-  const isSecOE = activeSec.type === 'open_ended' || isSectionOpenEnded(activeSec, test);
+  const isSecOE = activeSec.type === 'open_ended' || activeSec.isOpenEnded === true || activeSec.is_open_ended === true || isSectionOpenEnded(activeSec, test);
   const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
   const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
+
+  const sectionImages = useMemo(() => {
+    const list = [];
+    if (activePayload) {
+      list.push(...extractImageUrls(activePayload));
+    }
+    if (Array.isArray(activeSec.images) && activeSec.images.length > 0) list.push(...activeSec.images);
+    if (Array.isArray(activeSec.imageUrls) && activeSec.imageUrls.length > 0) list.push(...activeSec.imageUrls);
+    if (activeSec.imageUrl && typeof activeSec.imageUrl === 'string') list.push(activeSec.imageUrl);
+    if (activeSec.image && typeof activeSec.image === 'string') list.push(activeSec.image);
+    if (activeSec.contentPayload) {
+      list.push(...extractImageUrls(activeSec.contentPayload));
+    }
+    if (activeSec.bankQ?.contentPayload) {
+      list.push(...extractImageUrls(activeSec.bankQ.contentPayload));
+    }
+    if (Array.isArray(activeSec.bankQ?.imageUrls)) {
+      list.push(...activeSec.bankQ.imageUrls);
+    }
+    return Array.from(new Set(list.filter(isValidImageUrl)));
+  }, [activeSec, activePayload]);
+
+  const getQuestionImages = (q, idx) => {
+    const qImages = [];
+    if (Array.isArray(q.images) && q.images.length > 0) qImages.push(...q.images);
+    if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
+    if (q.imageUrl) qImages.push(q.imageUrl);
+    if (q.image) qImages.push(q.image);
+    if (q.contentPayload) {
+      qImages.push(...extractImageUrls(q.contentPayload));
+    }
+
+    if (qImages.length === 0 && sectionImages.length > 0) {
+      if (sectionImages.length === currentSecQuestions.length && sectionImages[idx]) {
+        qImages.push(sectionImages[idx]);
+      } else if (sectionImages[idx]) {
+        qImages.push(sectionImages[idx]);
+      } else if (sectionImages[0]) {
+        qImages.push(sectionImages[0]);
+      }
+    }
+    return qImages.filter(isValidImageUrl);
+  };
 
   // 4. Overall stats — computed directly from raw submission data.
   //    MC sections: userAnswer vs correctAnswer per question.
@@ -129,7 +174,7 @@ export default function CompositeHomeworkReview({
       const secQs  = sec.questions || sec.resolvedQuestions || [];
       const count  = sec.qCount || secQs.length || 1;
       const rawId  = sec.raw?.id || sec.raw?.questionId || sec.id;
-      const isSecOE = sec.type === 'open_ended' || isSectionOpenEnded(sec, test);
+      const isSecOE = sec.type === 'open_ended' || sec.isOpenEnded === true || sec.is_open_ended === true || isSectionOpenEnded(sec, test);
       const secStart = secOffsets[sIdx] || 0;
 
       const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
@@ -221,7 +266,7 @@ export default function CompositeHomeworkReview({
   };
 
   return (
-    <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div style={{ height: '100vh', maxHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       {/* Top Header */}
       <div style={{
         background: 'var(--color-surface)',
@@ -596,7 +641,7 @@ export default function CompositeHomeworkReview({
                           question={q}
                           qNo={qNo}
                           totalQuestions={currentSecQuestions.length}
-                          imageUrls={q.images || []}
+                          imageUrls={getQuestionImages(q, activeQIdx)}
                           userAnswerText={text}
                           teacherScore={score}
                           teacherNote={note}
@@ -684,7 +729,7 @@ export default function CompositeHomeworkReview({
                         question={q}
                         qNo={qNo}
                         totalQuestions={currentSecQuestions.length}
-                        imageUrls={q.images || []}
+                        imageUrls={getQuestionImages(q, idx)}
                         userAnswerText={text}
                         teacherScore={score}
                         teacherNote={note}
@@ -805,7 +850,7 @@ export default function CompositeHomeworkReview({
                           question={q}
                           qNo={qNo}
                           totalQuestions={currentSecQuestions.length}
-                          imageUrls={q.images || []}
+                          imageUrls={getQuestionImages(q, activeQIdx)}
                           userAnswer={uAns}
                           correctAnswer={cAns}
                           isCorrect={isCorrect}
@@ -890,7 +935,7 @@ export default function CompositeHomeworkReview({
                         question={q}
                         qNo={qNo}
                         totalQuestions={currentSecQuestions.length}
-                        imageUrls={q.images || []}
+                        imageUrls={getQuestionImages(q, idx)}
                         userAnswer={uAns}
                         correctAnswer={cAns}
                         isCorrect={isCorrect}

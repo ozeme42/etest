@@ -6,6 +6,7 @@ import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
+import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import {
@@ -56,6 +57,21 @@ export default function SingleMultipleChoiceRunner({
     ? unifiedTest.sections[0].questions
     : ((questions && questions.length > 0) ? questions : [test]);
   const totalQuestions = activeQuestions.length || 1;
+
+  const getQImages = (q, idx) => {
+    if (q?.imageUrl && isValidImageUrl(q.imageUrl)) return [normalizeImageUrl(q.imageUrl)];
+    const extracted = extractImageUrls(q);
+    if (extracted.length > 0) {
+      if (extracted.length === totalQuestions && typeof idx === 'number' && extracted[idx]) return [extracted[idx]];
+      return extracted;
+    }
+    const testImgs = extractImageUrls(test);
+    if (testImgs.length > 0) {
+      if (testImgs.length === totalQuestions && typeof idx === 'number' && testImgs[idx]) return [testImgs[idx]];
+      return testImgs;
+    }
+    return [];
+  };
 
   const [answers, setAnswers] = useState(() => {
     const init = {};
@@ -448,7 +464,7 @@ export default function SingleMultipleChoiceRunner({
                       question={activeQuestion}
                       qNo={activeQIdx + 1}
                       totalQuestions={totalQuestions}
-                      imageUrls={activeQuestion.images || activeQuestion.imageUrls || (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : [])}
+                      imageUrls={getQImages(activeQuestion, activeQIdx)}
                       selectedOption={answers[activeQIdx + 1]}
                       onSelectOption={(optIdx) => handleSelectOption(activeQIdx + 1, optIdx)}
                       onOpenDrawing={() => setIsDrawingOpen(true)}
@@ -532,7 +548,7 @@ export default function SingleMultipleChoiceRunner({
                         question={q}
                         qNo={idx + 1}
                         totalQuestions={totalQuestions}
-                        imageUrls={q.images || q.imageUrls || (q.imageUrl ? [q.imageUrl] : [])}
+                        imageUrls={getQImages(q, idx)}
                         selectedOption={answers[idx + 1]}
                         onSelectOption={(optIdx) => handleSelectOption(idx + 1, optIdx)}
                         onOpenDrawing={() => setIsDrawingOpen(true)}

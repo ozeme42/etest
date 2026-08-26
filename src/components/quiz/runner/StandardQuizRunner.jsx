@@ -5,6 +5,7 @@ import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon } from 'lucide-react';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 export default function StandardQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId }) {
   const { isDark, toggleTheme } = useTheme();
@@ -91,55 +92,8 @@ export default function StandardQuizRunner({ test, questions: initialQuestions, 
   }, [test.questionCount, resolvedQuestions.length]);
 
   const isOpenEndedMode = useMemo(() => {
-    const hasOptions = (activeQuestion && Array.isArray(activeQuestion.options) && activeQuestion.options.length > 1) ||
-                       (Array.isArray(test.options) && test.options.length > 1);
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      test.formatType === 'coktan_secmeli' ||
-      (activeQuestion && (activeQuestion.type === 'coktan_secmeli' || activeQuestion.questionType === 'coktan_secmeli')) ||
-      hasOptions ||
-      hasKey
-    ) {
-      return false;
-    }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'gorsel_klasik' ||
-      test.isOpenEnded === true ||
-      test.is_open_ended === true
-    ) {
-      return true;
-    }
-
-    if (activeQuestion && (
-      activeQuestion.type === 'acik_uclu' ||
-      activeQuestion.type === 'gorsel_klasik' ||
-      activeQuestion.questionType === 'acik_uclu' ||
-      activeQuestion.isOpenEnded === true
-    )) {
-      return true;
-    }
-
-    const titleStr = String(test.title || test.name || '').toLowerCase();
-    if (titleStr && (
-      titleStr.includes('açık uçlu') ||
-      titleStr.includes('acik uclu') ||
-      titleStr.includes('klasik soru') ||
-      titleStr.includes('yazılı klasik')
-    )) {
-      return true;
-    }
-    
-    return false;
-  }, [test, activeQuestion]);
+    return isSectionOpenEnded(test);
+  }, [test]);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);

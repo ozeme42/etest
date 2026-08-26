@@ -114,3 +114,33 @@ export async function idbGetAllKeys() {
     return [];
   }
 }
+
+export async function idbGetFirstAvailablePayload(candidateIds = []) {
+  if (!Array.isArray(candidateIds) || candidateIds.length === 0) return null;
+  const idsToTry = [];
+  candidateIds.filter(Boolean).forEach(id => {
+    const strId = typeof id === 'object' ? (id.id || id.questionId) : String(id);
+    if (strId) {
+      const clean = strId.replace(/^q_|^hw_|^test_|^sec_|^img_|^image_/, '');
+      idsToTry.push(strId);
+      idsToTry.push(clean);
+      idsToTry.push(`q_${clean}`);
+      idsToTry.push(`q${clean}`);
+      idsToTry.push(`hw_${clean}`);
+      idsToTry.push(`test_${clean}`);
+      idsToTry.push(`img_${clean}`);
+    }
+  });
+
+  const unique = [...new Set(idsToTry.filter(Boolean))];
+  for (const key of unique) {
+    try {
+      const val = await idbGetPayload(key);
+      if (val && typeof val === 'string' && val.length > 20 && !val.includes('[STORED_IN_INDEXEDDB]') && !val.includes('[LOCALSTORAGE_CACHE]')) {
+        return val;
+      }
+    } catch {}
+  }
+  return null;
+}
+

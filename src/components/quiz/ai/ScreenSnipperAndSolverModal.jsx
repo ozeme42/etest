@@ -52,41 +52,49 @@ export default function ScreenSnipperAndSolverModal({
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const solvingRef = useRef(false);
+  const autoSolvedRef = useRef(null);
 
   const cacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
 
   // Check cache or auto-solve on open
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-      getResolvedAiApiKey(currentUser?.id).catch(() => {});
+    if (!isOpen) {
+      autoSolvedRef.current = null;
+      return;
+    }
 
-      let cachedSolution = null;
-      try {
-        const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
-        if (cached) {
-          cachedSolution = JSON.parse(cached);
-          setSolution(cachedSolution);
-        } else {
-          setSolution(null);
-        }
-      } catch {
+    setError(null);
+    getResolvedAiApiKey(currentUser?.id).catch(() => {});
+
+    let cachedSolution = null;
+    try {
+      const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
+      if (cached) {
+        cachedSolution = JSON.parse(cached);
+        setSolution(cachedSolution);
+      } else {
         setSolution(null);
       }
+    } catch {
+      setSolution(null);
+    }
 
-      if (existingImageUrl) {
-        setCroppedImage(existingImageUrl);
-        setActiveTab('image');
-      }
+    if (existingImageUrl) {
+      setCroppedImage(existingImageUrl);
+      setActiveTab('image');
+    }
 
-      // If no cached solution, auto-solve if HTML document or question text or existing image exists
-      const effectiveHtml = htmlPayload || question?.htmlPayload;
-      const effectiveText = question?.questionText || question?.title;
-      if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
+    // If no cached solution, auto-solve if HTML document or question text or existing image exists
+    const effectiveHtml = htmlPayload || question?.htmlPayload;
+    const effectiveText = question?.questionText || question?.title;
+    if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
+      if (autoSolvedRef.current !== cacheKey) {
+        autoSolvedRef.current = cacheKey;
         handleSolve();
       }
     }
-  }, [isOpen, cacheKey, existingImageUrl, htmlPayload, question, currentUser]);
+  }, [isOpen, cacheKey, existingImageUrl, htmlPayload, question]);
 
   // Global clipboard paste listener (Ctrl+V)
   useEffect(() => {
@@ -144,6 +152,7 @@ export default function ScreenSnipperAndSolverModal({
 
   // Handle Solving with AI
   const handleSolve = async (overrideImage = null) => {
+    if (solvingRef.current) return;
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
     const qText = question?.questionText || question?.title || '';
     const htmlDoc = htmlPayload || question?.htmlPayload || '';
@@ -153,6 +162,7 @@ export default function ScreenSnipperAndSolverModal({
       return;
     }
 
+    solvingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -197,6 +207,7 @@ export default function ScreenSnipperAndSolverModal({
         setError(err.message || 'Çözüm oluşturulurken bir hata oluştu.');
       }
     } finally {
+      solvingRef.current = false;
       setLoading(false);
     }
   };

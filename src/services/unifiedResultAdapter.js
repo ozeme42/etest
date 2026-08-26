@@ -550,19 +550,44 @@ export function findUnifiedSubmissionOrTest(targetId, {
     return false;
   };
 
-  // Search in submissions
-  foundRawSub = (submissions || []).find(isMatch);
-
-  // Search in homeworks
-  if (!foundRawSub && homeworks) {
+  const allMatchingSubs = [];
+  (submissions || []).forEach(s => {
+    if (isMatch(s)) allMatchingSubs.push(s);
+  });
+  if (homeworks) {
     for (const hw of homeworks) {
       const subs = hw.submissions || hw.raw_data?.submissions || [];
-      const match = subs.find(isMatch);
-      if (match) {
-        foundRawSub = { ...match, hwId: hw.id };
-        break;
-      }
+      subs.forEach(s => {
+        if (isMatch(s)) allMatchingSubs.push({ ...s, hwId: hw.id });
+      });
     }
+  }
+
+  if (allMatchingSubs.length > 0) {
+    allMatchingSubs.sort((a, b) => {
+      const aDone = a.status !== 'in_progress' && a.status !== 'draft';
+      const bDone = b.status !== 'in_progress' && b.status !== 'draft';
+      if (aDone && !bDone) return -1;
+      if (!aDone && bDone) return 1;
+
+      const countAnswers = (sub) => {
+        if (Array.isArray(sub?.answers)) {
+          return sub.answers.filter(x => x && x.type !== 'metadata' && (
+            (x.userAnswer !== null && x.userAnswer !== undefined && x.userAnswer !== '' && x.userAnswer !== 'empty') ||
+            (x.userAnswerText && String(x.userAnswerText).trim() !== '')
+          )).length;
+        }
+        return 0;
+      };
+      const aCount = countAnswers(a);
+      const bCount = countAnswers(b);
+      if (aCount !== bCount) return bCount - aCount;
+
+      const timeB = new Date(b.submittedAt || b.evaluatedAt || b.updatedAt || b.date || b.createdAt || 0).getTime();
+      const timeA = new Date(a.submittedAt || a.evaluatedAt || a.updatedAt || a.date || a.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+    foundRawSub = allMatchingSubs[0];
   }
 
   // 3. Normalize

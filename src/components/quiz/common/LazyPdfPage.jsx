@@ -23,7 +23,12 @@ const LazyPdfPage = forwardRef(function LazyPdfPage({
     const isDrawing = Boolean(isDrawingMode || isDrawingOpen);
     
     const numWidth = typeof containerWidth === 'number' ? containerWidth : Number(containerWidth);
-    const effectiveWidth = (!isNaN(numWidth) && numWidth > 32) ? Math.round(numWidth - 32) : undefined;
+    const zoomMultiplier = (!isNaN(currentScale) && currentScale > 0) ? currentScale : 1;
+    
+    // Fit-to-width base calculation (leave comfortable margin inside container)
+    const margin = (numWidth && numWidth < 600) ? 16 : 32;
+    const baseWidth = (numWidth && numWidth > 100) ? Math.max(260, numWidth - margin) : 720;
+    const effectiveWidth = Math.round(baseWidth * zoomMultiplier);
 
     const [hasIntersected, setHasIntersected] = useState(pageNo <= 2);
     const containerRef = useRef(null);
@@ -41,26 +46,27 @@ const LazyPdfPage = forwardRef(function LazyPdfPage({
     }, [hasIntersected]);
 
     return (
-        <div ref={containerRef} style={{ 
+        <div id={`pdf-page-${pageNo}`} ref={containerRef} style={{ 
             position: 'relative', 
-            marginBottom: '1rem', 
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)', 
-            borderRadius: '4px', 
+            marginBottom: '1.25rem', 
+            boxShadow: '0 10px 25px rgba(0,0,0,0.25)', 
+            borderRadius: '6px', 
             background: 'white',
-            minHeight: '400px',
+            minHeight: '300px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'column',
             width: effectiveWidth ? `${effectiveWidth}px` : 'auto',
-            maxWidth: '100%'
+            maxWidth: zoomMultiplier <= 1 ? '100%' : 'none',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
         }}>
             {hasIntersected ? (
                 <>
                     <Page 
                         pageNumber={pageNo} 
                         width={effectiveWidth}
-                        scale={currentScale}
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
                     />

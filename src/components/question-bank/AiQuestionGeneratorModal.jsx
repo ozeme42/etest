@@ -40,7 +40,7 @@ export default function AiQuestionGeneratorModal({
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [keySaveSuccess, setKeySaveSuccess] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.6-flash');
   const [availableModelOptions, setAvailableModelOptions] = useState(DEFAULT_GEMINI_MODELS);
 
   // Curriculum State

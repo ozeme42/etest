@@ -1,6 +1,38 @@
 import React, { useState } from 'react';
 import { Maximize2, X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
+export function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (
+    trimmed.startsWith('[STORED_IN_') ||
+    trimmed.startsWith('[LOCALSTORAGE_') ||
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<html') ||
+    trimmed.startsWith('data:text/html') ||
+    trimmed.startsWith('data:application/pdf') ||
+    trimmed.startsWith('%PDF-')
+  ) {
+    return '';
+  }
+  if (trimmed.startsWith('data:image/') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/9j/')) {
+    return `data:image/jpeg;base64,${trimmed}`;
+  }
+  if (trimmed.startsWith('iVBORw0KGgo')) {
+    return `data:image/png;base64,${trimmed}`;
+  }
+  if (trimmed.startsWith('R0lGOD')) {
+    return `data:image/gif;base64,${trimmed}`;
+  }
+  if (trimmed.startsWith('UklGR')) {
+    return `data:image/webp;base64,${trimmed}`;
+  }
+  return trimmed;
+}
+
 export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
@@ -21,9 +53,14 @@ export function isValidImageUrl(url) {
     trimmed.startsWith('http://') ||
     trimmed.startsWith('https://') ||
     trimmed.startsWith('blob:') ||
-    trimmed.startsWith('/') ||
-    trimmed.startsWith('./')
+    trimmed.startsWith('iVBORw0KGgo') ||
+    (trimmed.startsWith('/9j/') && trimmed.length > 50) ||
+    trimmed.startsWith('R0lGOD') ||
+    trimmed.startsWith('UklGR')
   ) {
+    return true;
+  }
+  if (trimmed.startsWith('/') || trimmed.startsWith('./')) {
     return true;
   }
   if (/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(trimmed)) {
@@ -35,25 +72,37 @@ export function isValidImageUrl(url) {
 export function extractImageUrls(val) {
   if (!val) return [];
   if (Array.isArray(val)) {
-    const list = val.flatMap(item => extractImageUrls(item)).filter(isValidImageUrl);
+    const list = val.flatMap(item => extractImageUrls(item)).filter(isValidImageUrl).map(normalizeImageUrl);
     return Array.from(new Set(list));
   }
   if (typeof val === 'string') {
     const trimmed = val.trim();
     if (!trimmed || trimmed.includes('[STORED_IN_') || trimmed.includes('[LOCALSTORAGE_')) return [];
     if (trimmed.includes('|') || trimmed.includes('\n')) {
-      const parts = trimmed.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImageUrl);
+      const parts = trimmed.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImageUrl).map(normalizeImageUrl);
       return Array.from(new Set(parts));
     }
     if (isValidImageUrl(trimmed)) {
-      return [trimmed];
+      return [normalizeImageUrl(trimmed)];
     }
+  }
+  if (typeof val === 'object' && val !== null) {
+    const fromObj = [
+      val.imageUrl,
+      val.image,
+      val.imagePayload,
+      ...(Array.isArray(val.imageUrls) ? val.imageUrls : []),
+      ...(Array.isArray(val.images) ? val.images : []),
+      (val.contentType === 'gorsel' || val.type === 'gorsel' || val.type === 'gorsel_klasik' || val.questionType === 'gorsel_klasik' ? val.contentPayload : null)
+    ];
+    return extractImageUrls(fromObj);
   }
   return [];
 }
 
 export function StandardImageFrame({ src, alt, title, onOpenFullscreen }) {
-  if (!src || !isValidImageUrl(src)) return null;
+  const normSrc = normalizeImageUrl(src);
+  if (!normSrc || !isValidImageUrl(normSrc)) return null;
 
   return (
     <div
@@ -72,7 +121,7 @@ export function StandardImageFrame({ src, alt, title, onOpenFullscreen }) {
       }}
     >
       <img
-        src={src}
+        src={normSrc}
         alt={alt || "Soru Görseli"}
         style={{
           maxWidth: '100%',

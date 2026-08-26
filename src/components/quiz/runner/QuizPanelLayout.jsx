@@ -83,7 +83,7 @@ export default function QuizPanelLayout({
     <div ref={containerRef} style={{ display: 'flex', flexDirection: position === 'right' ? 'row' : 'column', flex: 1, overflow: 'hidden', background: 'var(--color-bg)', position: 'relative', height: '100%', minHeight: 0 }}>
       
       {/* ── MAIN: Document / Question Content ── */}
-      <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         {documentContent}
         
         {/* Desktop Floating Open Button when closed */}
@@ -113,7 +113,7 @@ export default function QuizPanelLayout({
             }}
           >
             {position === 'right' ? <ChevronLeft size={18} /> : <ChevronUp size={18} />}
-            <span>Optik Formu Aç</span>
+            <span>{panelTitle ? `${panelTitle} Aç` : 'Cevap Panelini Aç'}</span>
           </button>
         )}
       </div>
@@ -142,10 +142,10 @@ export default function QuizPanelLayout({
             backdropFilter: 'blur(8px)',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
-          aria-label="Optik Formu Aç"
+          aria-label={panelTitle ? `${panelTitle} Aç` : "Cevap Panelini Aç"}
         >
           <FileSpreadsheet size={18} />
-          <span>Optik Form</span>
+          <span>{panelTitle || 'Cevap Paneli'}</span>
         </button>
       )}
 

@@ -2,6 +2,7 @@ import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD, extractItemDate } from './dateHelpers';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
+import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 /**
  * Intelligently extracts option choices (A, B, C, D, E) from raw question text if present.
@@ -258,8 +259,30 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
   let rawQuestions = [];
   const normalizeId = (id) => String(id || '').replace(/^q_?/, '');
 
-  // 1. If test has questionsList array (e.g. JSON package, optic package, or multi-question package)
-  if (foundTest.questionsList && Array.isArray(foundTest.questionsList) && foundTest.questionsList.length > 0) {
+  // 1. If test has sections array
+  if (rawQuestions.length === 0 && foundTest.sections && Array.isArray(foundTest.sections) && foundTest.sections.length > 0) {
+    const unbundledSecs = [];
+    foundTest.sections.forEach((sec, sIdx) => {
+      if (sec.resolvedQuestions && Array.isArray(sec.resolvedQuestions) && sec.resolvedQuestions.length > 0) {
+        unbundledSecs.push(...sec.resolvedQuestions);
+      } else if (sec.questions && Array.isArray(sec.questions) && sec.questions.length > 0) {
+        unbundledSecs.push(...sec.questions);
+      } else {
+        const res = resolveTestQuestions(sec, allBankQuestions);
+        if (res && res.length > 0) {
+          unbundledSecs.push(...res);
+        } else {
+          unbundledSecs.push(sec);
+        }
+      }
+    });
+    if (unbundledSecs.length > 0) {
+      rawQuestions = unbundledSecs;
+    }
+  }
+
+  // 2. If test has questionsList array (e.g. JSON package, optic package, or multi-question package)
+  if (rawQuestions.length === 0 && foundTest.questionsList && Array.isArray(foundTest.questionsList) && foundTest.questionsList.length > 0) {
     rawQuestions = foundTest.questionsList.map((q, idx) => {
       if (typeof q === 'string') {
         const bankMatch = allBankQuestions.find(bq => String(bq.id) === String(q) || normalizeId(bq.id) === normalizeId(q));
@@ -272,8 +295,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       };
     });
   }
-  // 2. If contentPayload is a JSON string containing an array of questions or { questions: [...] }
-  else if (typeof foundTest.contentPayload === 'string' && (foundTest.contentPayload.trim().startsWith('[') || foundTest.contentPayload.trim().startsWith('{'))) {
+  // 3. If contentPayload is a JSON string containing an array of questions or { questions: [...] }
+  else if (rawQuestions.length === 0 && typeof foundTest.contentPayload === 'string' && (foundTest.contentPayload.trim().startsWith('[') || foundTest.contentPayload.trim().startsWith('{'))) {
     try {
       const parsed = JSON.parse(foundTest.contentPayload);
       const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.questionsList || parsed.items || null);
@@ -288,7 +311,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
     } catch {}
   }
 
-  // 3. If test has questionIds, selectedQuestions, tests, or items
+  // 4. If test has questionIds, selectedQuestions, tests, or items
   const candidateIdList = foundTest.questionIds || foundTest.selectedQuestions || foundTest.tests || foundTest.items || null;
   if (rawQuestions.length === 0 && Array.isArray(candidateIdList) && candidateIdList.length > 0) {
     const unbundled = [];
@@ -357,7 +380,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       rawQuestions = unbundled;
     }
   }
-  // 4. If test has questions array directly
+  // 5. If test has questions array directly
   else if (rawQuestions.length === 0 && foundTest.questions && Array.isArray(foundTest.questions) && foundTest.questions.length > 0) {
     rawQuestions = foundTest.questions.map((q, idx) => {
       if (typeof q === 'string') {
@@ -371,7 +394,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       };
     });
   }
-  // 5. Fallback: single item
+  // 6. Fallback: single item
   else if (rawQuestions.length === 0 && (foundTest.contentPayload || foundTest.htmlPayload || foundTest.pdfPayload || foundTest.type || foundTest.contentType || foundTest.imageUrl || foundTest.imageUrls)) {
     rawQuestions = [foundTest];
   }
@@ -379,33 +402,81 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
   // Unbundle multi-image question sets if single container with multiple images
   if (rawQuestions.length === 1) {
     const singleQ = rawQuestions[0];
-    let imgs = [];
-    if (Array.isArray(singleQ.imageUrls) && singleQ.imageUrls.length > 1) {
-      imgs = singleQ.imageUrls.filter(u => typeof u === 'string' && !u.startsWith('[STORED_IN_'));
-    } else if (typeof singleQ.contentPayload === 'string' && (singleQ.contentPayload.includes('\n\n') || singleQ.contentPayload.includes('|'))) {
-      imgs = singleQ.contentPayload.split(/\n\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image/') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
-    }
-    if (imgs.length > 1) {
-      rawQuestions = imgs.map((imgUrl, imgIdx) => ({
+    const extractedImgs = Array.from(new Set([
+      ...extractImageUrls(singleQ),
+      ...extractImageUrls(foundTest)
+    ]));
+
+    if (extractedImgs.length > 1) {
+      rawQuestions = extractedImgs.map((imgUrl, imgIdx) => ({
         ...singleQ,
         id: `${singleQ.id || 'q'}_sub_${imgIdx + 1}`,
         questionNo: imgIdx + 1,
         questionText: `Soru ${imgIdx + 1}`,
         imageUrl: imgUrl,
         imageUrls: [imgUrl],
+        images: [imgUrl],
+        contentPayload: imgUrl,
         options: singleQ.options || ['A', 'B', 'C', 'D', 'E']
       }));
+    } else if (extractedImgs.length === 1) {
+      rawQuestions = [{
+        ...singleQ,
+        imageUrl: extractedImgs[0],
+        imageUrls: [extractedImgs[0]],
+        images: [extractedImgs[0]],
+        contentPayload: extractedImgs[0]
+      }];
     }
   }
 
   // Final check: enrich items from allBankQuestions if needed
   const finalQuestions = rawQuestions.map((q, idx) => {
-    if (q.id && (!q.contentPayload && !q.htmlPayload && !q.pdfPayload && !q.questionText)) {
+    const isPayloadMissing = !q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || q.contentPayload === '[LOCALSTORAGE_CACHE]';
+    const isImageMissing = !q.imageUrl || q.imageUrl === '[STORED_IN_INDEXEDDB]' || q.imageUrl === '[LOCALSTORAGE_CACHE]';
+
+    if (q.id && (isPayloadMissing || isImageMissing || !q.questionText || !q.options || q.options.length === 0)) {
       const matched = allBankQuestions.find(bq => String(bq.id) === String(q.id) || normalizeId(bq.id) === normalizeId(q.id));
-      if (matched) return { ...matched, ...q };
+      if (matched) {
+        const matchedImgs = extractImageUrls(matched);
+        const currentImgs = extractImageUrls(q);
+        const resolvedImgs = currentImgs.length > 0 ? currentImgs : matchedImgs;
+        const targetImg = (rawQuestions.length > 1 && resolvedImgs.length >= rawQuestions.length)
+          ? resolvedImgs[idx]
+          : (resolvedImgs[0] || (!isImageMissing ? q.imageUrl : matched.imageUrl) || q.imageUrl);
+
+        return {
+          ...matched,
+          ...q,
+          contentPayload: targetImg || (!isPayloadMissing ? q.contentPayload : matched.contentPayload) || q.contentPayload,
+          imageUrl: targetImg || null,
+          imageUrls: targetImg ? [targetImg] : undefined,
+          images: targetImg ? [targetImg] : undefined,
+          options: (Array.isArray(q.options) && q.options.length > 0) ? q.options : matched.options,
+          questionText: extractQuestionText(q, foundTest, idx) || extractQuestionText(matched, foundTest, idx)
+        };
+      }
     }
+
+    const specificImg = q.imageUrl || (Array.isArray(q.imageUrls) && q.imageUrls.length === 1 ? q.imageUrls[0] : null);
+    if (specificImg) {
+      return {
+        ...q,
+        imageUrl: specificImg,
+        imageUrls: [specificImg],
+        images: [specificImg],
+        questionText: extractQuestionText(q, foundTest, idx),
+        options: extractQuestionOptions(q, foundTest)
+      };
+    }
+
+    const currentImgs = extractImageUrls(q);
+    const targetImg = (rawQuestions.length > 1 && currentImgs.length >= rawQuestions.length) ? currentImgs[idx] : (currentImgs[0] || q.imageUrl || null);
     return {
       ...q,
+      imageUrl: targetImg,
+      imageUrls: targetImg ? [targetImg] : undefined,
+      images: targetImg ? [targetImg] : undefined,
       questionText: extractQuestionText(q, foundTest, idx),
       options: extractQuestionOptions(q, foundTest)
     };

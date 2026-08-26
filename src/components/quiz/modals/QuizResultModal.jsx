@@ -1,6 +1,7 @@
 import React from 'react';
 import { Award, CheckCircle2, XCircle, Clock, Eye, X, Layers } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 /**
  * QuizResultModal
@@ -28,20 +29,13 @@ export default function QuizResultModal({
 
   const isMultiSection = Array.isArray(sectionBreakdown) && sectionBreakdown.length > 1;
 
-  const hasKey = (Array.isArray(test?.answerKey) && test.answerKey.length > 0) ||
-                 (typeof test?.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                 (typeof test?.answerKey === 'object' && test?.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-  const hasOptions = (Array.isArray(test?.options) && test.options.length > 1);
-  const hasOptionAnswers = Array.isArray(submission?.answers) && submission.answers.some(a => (
-    typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
-  ));
-
-  const isExplicitMC = test?.questionType === 'coktan_secmeli' || test?.type === 'coktan_secmeli' || test?.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !submission?.answers?.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
-
-  const isPureOpenEnded = !isExplicitMC && Boolean(
+  const isPureOpenEnded = Boolean(
     isOpenEnded ||
     submission?.isOpenEnded ||
     submission?.test?.isOpenEnded ||
+    isSectionOpenEnded(test) ||
+    submission?.openEndedText ||
+    submission?.openEndedAnswers ||
     test?.isOpenEnded ||
     test?.type === 'acik_uclu' ||
     test?.type === 'gorsel_klasik' ||
@@ -52,6 +46,12 @@ export default function QuizResultModal({
       test.title.toLowerCase().includes('acik uclu') ||
       test.title.toLowerCase().includes('klasik soru') ||
       test.title.toLowerCase().includes('yazılı klasik')
+    )) ||
+    (test?.name && (
+      test.name.toLowerCase().includes('açık uçlu') ||
+      test.name.toLowerCase().includes('acik uclu') ||
+      test.name.toLowerCase().includes('klasik soru') ||
+      test.name.toLowerCase().includes('yazılı klasik')
     )) ||
     (Array.isArray(sectionBreakdown) && sectionBreakdown.length > 0 && sectionBreakdown.every(s => s.isOE)) ||
     (submission?.answers && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) ||

@@ -5,6 +5,7 @@ import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, Pane
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -71,39 +72,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
-  const hasOptions = Array.isArray(test.options) && test.options.length > 1;
-  const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                 (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                 (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-  const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || hasOptions || hasKey;
-
-  const isOpenEndedMode = !isExplicitMC && Boolean(
-    test.isOpenEnded === true ||
-    test.is_open_ended === true ||
-    test.questionType === 'acik_uclu' ||
-    test.question_type === 'acik_uclu' ||
-    test.type === 'acik_uclu' ||
-    test.type === 'gorsel_klasik' ||
-    test.answerKey?.__meta?.isOpenEnded === true ||
-    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (test.book && test.book.bookType === 'open_ended') ||
-    (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name)) ||
-    (test.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.title)) ||
-    (questions && questions.length > 0 && questions.some(q => 
-      (q.isOpenEnded === true || 
-      q.is_open_ended === true || 
-      q.questionType === 'acik_uclu' || 
-      q.type === 'acik_uclu') &&
-      q.questionType !== 'coktan_secmeli' && q.type !== 'coktan_secmeli'
-    )) ||
-    (test.sections && Array.isArray(test.sections) && test.sections.some(s => 
-      (s.isOpenEnded === true || 
-      s.is_open_ended === true || 
-      s.questionType === 'acik_uclu' || 
-      s.type === 'acik_uclu') &&
-      s.questionType !== 'coktan_secmeli' && s.type !== 'coktan_secmeli'
-    ))
-  );
+  const isOpenEndedMode = isSectionOpenEnded(test);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);

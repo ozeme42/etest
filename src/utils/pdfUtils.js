@@ -3,18 +3,29 @@ export function dataURLtoBlob(dataurl) {
   if (!dataurl || typeof dataurl !== 'string') return null;
   if (!dataurl.startsWith('data:')) return null;
   try {
-    const arr = dataurl.split(',');
-    const mimeMatch = arr[0].match(/:(.*?);/);
+    const parts = dataurl.split(',');
+    if (parts.length < 2) return null;
+    const header = parts[0];
+    const rawData = parts.slice(1).join(',');
+    const mimeMatch = header.match(/:(.*?);/);
     const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+    const isBase64 = header.includes(';base64');
+    
+    if (isBase64) {
+      const cleanData = rawData.replace(/\s/g, '').replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)));
+      const padded = cleanData.padEnd(cleanData.length + (4 - (cleanData.length % 4)) % 4, '=');
+      const bstr = atob(padded);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } else {
+      const decoded = decodeURIComponent(rawData);
+      return new Blob([decoded], { type: mime });
     }
-    return new Blob([u8arr], { type: mime });
   } catch (e) {
-    console.warn('[PDF] Blob conversion failed:', e);
     return null;
   }
 }
@@ -35,6 +46,10 @@ export function getEmbeddablePdfUrl(url) {
 
   if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
     return url;
+  }
+
+  if (url.startsWith('JVBERi0')) {
+    url = `data:application/pdf;base64,${url.trim()}`;
   }
 
   if (url.startsWith('data:application/pdf') || url.startsWith('data:')) {

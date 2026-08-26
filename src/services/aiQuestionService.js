@@ -8,11 +8,11 @@ if (!pdfjs.GlobalWorkerOptions.workerSrc) {
 }
 
 export const DEFAULT_GEMINI_MODELS = [
-  { id: 'gemini-3.7-flash', name: '🔥 Gemini 3.7 Flash (En Yeni & Güçlü • Önerilen)' },
-  { id: 'gemini-3.5-flash', name: '⚡ Gemini 3.5 Flash (Yüksek Hızlı & Dengeli)' },
-  { id: 'gemini-3.5-flash-lite', name: '💡 Gemini 3.5 Flash-Lite (Ultra Hızlı)' },
-  { id: 'gemini-3.1-pro', name: '🧠 Gemini 3.1 Pro (Gelişmiş Akıl Yürütme)' },
-  { id: 'gemini-2.5-flash', name: '🛡️ Gemini 2.5 Flash' }
+  { id: 'gemini-3.6-flash', name: '⚡ Gemini 3.6 Flash (En Hızlı & En Kararlı • Önerilen)' },
+  { id: 'gemini-3.5-flash', name: '🚀 Gemini 3.5 Flash (Yüksek Muhakeme & Hızlı)' },
+  { id: 'gemini-3.7-flash', name: '⭐ Gemini 3.7 Flash (En Yeni Nesil Muhakeme)' },
+  { id: 'gemini-3.1-flash-lite', name: '💡 Gemini 3.1 Flash-Lite (Ultra Hızlı)' },
+  { id: 'gemini-flash-latest', name: '📦 Gemini Flash Latest (Otomatik Güncel)' }
 ];
 
 /**
@@ -39,10 +39,12 @@ export async function getAvailableGeminiModels(apiKey) {
 
       if (models.length > 0) {
         return models.sort((a, b) => {
-          if (a.id.includes('3.7')) return -1;
-          if (b.id.includes('3.7')) return 1;
+          if (a.id.includes('3.6')) return -1;
+          if (b.id.includes('3.6')) return 1;
           if (a.id.includes('3.5')) return -1;
           if (b.id.includes('3.5')) return 1;
+          if (a.id.includes('3.7')) return -1;
+          if (b.id.includes('3.7')) return 1;
           return a.id.localeCompare(b.id);
         });
       }
@@ -85,7 +87,7 @@ export async function extractTextFromPdf(file) {
  */
 export async function generateQuestionsWithGemini({
   apiKey,
-  model = 'gemini-3.7-flash',
+  model = 'gemini-3.6-flash',
   subject = 'Matematik',
   grade = '8. Sınıf',
   topic = '',
@@ -161,11 +163,11 @@ Kurallar:
 
   const modelsToTry = [
     model,
-    'gemini-3.7-flash',
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-pro',
-    'gemini-2.5-flash'
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.7-flash'
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   let lastError = null;

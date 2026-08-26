@@ -1,5 +1,9 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText, Loader2, Pencil, Eraser, Trash2, X } from 'lucide-react';
+import {
+  ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink,
+  FileText, Loader2, Pencil, Eraser, Trash2, X, ChevronLeft, ChevronRight,
+  BookOpen, Layers
+} from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { idbGetPayload } from '../services/indexedDbService';
@@ -28,12 +32,17 @@ export default function PdfViewerWithControls({
   onUploadFile,
   allowUpload = false,
   isDrawingOpen = false,
-  onToggleDrawing
+  onToggleDrawing,
+  initialPage = 1,
+  defaultPageViewMode = 'continuous'
 }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [numPages, setNumPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState(initialPage || 1);
+  const [pageViewMode, setPageViewMode] = useState(defaultPageViewMode); // 'continuous' | 'single'
   const wrapperRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   // Drawing states
@@ -45,6 +54,14 @@ export default function PdfViewerWithControls({
 
   const rawInput = payload || src || filePayload || pdfPayload || pdfUrl || url;
   const [idbLoadedPayload, setIdbLoadedPayload] = useState(null);
+
+  // Reset page when payload/id changes
+  useEffect(() => {
+    setCurrentPage(1);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [id, testId, rawInput]);
 
   useEffect(() => {
     let isMounted = true;
@@ -74,14 +91,36 @@ export default function PdfViewerWithControls({
   const activePayload = (rawInput && !rawInput.includes('[STORED_IN_INDEXEDDB]')) ? rawInput : (idbLoadedPayload || rawInput);
 
   useEffect(() => {
-    const updateWidth = () => {
-      if (wrapperRef.current) {
-        setContainerWidth(wrapperRef.current.clientWidth);
+    const target = scrollContainerRef.current || wrapperRef.current;
+    if (!target) return;
+
+    const updateSize = () => {
+      const el = scrollContainerRef.current || wrapperRef.current;
+      if (el && el.clientWidth > 50) {
+        setContainerWidth(el.clientWidth);
       }
     };
-    setTimeout(updateWidth, 100);
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+
+    updateSize();
+
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const w = entry.contentRect.width;
+          if (w > 50) {
+            setContainerWidth(Math.floor(w));
+          }
+        }
+      });
+      ro.observe(target);
+    }
+
+    window.addEventListener('resize', updateSize);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
   }, []);
 
   const embedUrl = useMemo(() => {
@@ -108,6 +147,31 @@ export default function PdfViewerWithControls({
   const handleResetZoom = (e) => {
     e.preventDefault();
     setZoomLevel(isMobile ? 80 : 100);
+  };
+
+  const scrollToPage = (targetPage) => {
+    if (pageViewMode === 'single') {
+      setCurrentPage(targetPage);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    } else {
+      setCurrentPage(targetPage);
+      const el = document.getElementById(`pdf-page-${targetPage}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  const handlePrevPage = () => {
+    const next = Math.max(1, currentPage - 1);
+    scrollToPage(next);
+  };
+
+  const handleNextPage = () => {
+    const next = Math.min(numPages || 1, currentPage + 1);
+    scrollToPage(next);
   };
   
   const toggleExpanded = (e) => {
@@ -191,7 +255,7 @@ export default function PdfViewerWithControls({
       {/* Top Toolbar */}
       <div style={toolbarStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '120px' : '220px' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '110px' : '200px' }}>
             {title}
           </span>
           {numPages && (
@@ -200,6 +264,58 @@ export default function PdfViewerWithControls({
             </span>
           )}
         </div>
+
+        {/* Page Navigation Controls (Works in both continuous scroll & single-page view) */}
+        {numPages && numPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#0f172a', padding: '2px 6px', borderRadius: '0.45rem', border: '1px solid #334155' }}>
+              <button
+                type="button"
+                onClick={handlePrevPage}
+                disabled={currentPage <= 1}
+                style={{ ...btnStyle, opacity: currentPage <= 1 ? 0.35 : 1, cursor: currentPage <= 1 ? 'not-allowed' : 'pointer', padding: '2px' }}
+                title="Önceki Sayfa"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f8fafc', padding: '0 4px', whiteSpace: 'nowrap' }}>
+                Sayfa {currentPage} / {numPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={currentPage >= numPages}
+                style={{ ...btnStyle, opacity: currentPage >= numPages ? 0.35 : 1, cursor: currentPage >= numPages ? 'not-allowed' : 'pointer', padding: '2px' }}
+                title="Sonraki Sayfa"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* View Mode Toggle: Akıcı Liste (Pencere İçi Kaydırma) vs Tek Sayfa */}
+            <button
+              type="button"
+              onClick={() => setPageViewMode(m => m === 'single' ? 'continuous' : 'single')}
+              style={{
+                ...btnStyle,
+                background: pageViewMode === 'continuous' ? '#334155' : '#475569',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '0.25rem 0.55rem',
+                borderRadius: '0.45rem',
+                gap: '0.3rem',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title={pageViewMode === 'continuous' ? "Tek tek sayfa göster" : "Tüm sayfaları pencere içinde alt alta kaydır"}
+            >
+              {pageViewMode === 'continuous' ? <Layers size={13} /> : <BookOpen size={13} />}
+              <span style={{ fontSize: '0.72rem' }}>{pageViewMode === 'continuous' ? 'Akıcı Liste' : 'Tek Sayfa'}</span>
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {/* Zoom Controls */}
@@ -296,17 +412,22 @@ export default function PdfViewerWithControls({
       )}
 
       {/* PDF View Container */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'auto',
-        background: '#334155',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '1rem',
-        gap: '1rem'
-      }}>
+      <div
+        ref={scrollContainerRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'auto',
+          background: '#334155',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '1rem',
+          gap: '1rem',
+          position: 'relative'
+        }}
+      >
         <Document
           file={embedUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -322,11 +443,12 @@ export default function PdfViewerWithControls({
             </div>
           }
         >
-          {Array.from(new Array(numPages || 0), (_, index) => (
+          {pageViewMode === 'single' ? (
+            /* Single Page View: renders only the selected page */
             <LazyPdfPage
-              key={`page_${index + 1}`}
-              index={index}
-              pageNumber={index + 1}
+              key={`page_${currentPage}`}
+              index={currentPage - 1}
+              pageNumber={currentPage}
               scale={zoomLevel / 100}
               pdfScale={zoomLevel / 100}
               containerWidth={containerWidth || 800}
@@ -335,10 +457,89 @@ export default function PdfViewerWithControls({
               drawingTool={drawingTool}
               drawingColor={drawingColor}
               strokeWidth={strokeWidth}
-              overlayRef={el => { overlayRefs.current[index] = el; }}
+              overlayRef={el => { overlayRefs.current[currentPage - 1] = el; }}
             />
-          ))}
+          ) : (
+            /* Continuous Multi-Page View */
+            Array.from(new Array(numPages || 0), (_, index) => (
+              <LazyPdfPage
+                key={`page_${index + 1}`}
+                index={index}
+                pageNumber={index + 1}
+                scale={zoomLevel / 100}
+                pdfScale={zoomLevel / 100}
+                containerWidth={containerWidth || 800}
+                isDrawingOpen={isDrawingOpen}
+                isDrawingMode={isDrawingOpen}
+                drawingTool={drawingTool}
+                drawingColor={drawingColor}
+                strokeWidth={strokeWidth}
+                overlayRef={el => { overlayRefs.current[index] = el; }}
+              />
+            ))
+          )}
         </Document>
+
+        {/* Floating Bottom Page Switcher Pill for Single-Page Mode */}
+        {numPages && numPages > 1 && pageViewMode === 'single' && (
+          <div style={{
+            position: 'sticky',
+            bottom: '0.5rem',
+            zIndex: 20,
+            background: 'rgba(15, 23, 42, 0.9)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            borderRadius: '9999px',
+            padding: '0.35rem 0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            userSelect: 'none'
+          }}>
+            <button
+              type="button"
+              onClick={handlePrevPage}
+              disabled={currentPage <= 1}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                opacity: currentPage <= 1 ? 0.35 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px'
+              }}
+              title="Önceki Sayfa"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc', whiteSpace: 'nowrap' }}>
+              Sayfa {currentPage} / {numPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={handleNextPage}
+              disabled={currentPage >= numPages}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: currentPage >= numPages ? 'not-allowed' : 'pointer',
+                opacity: currentPage >= numPages ? 0.35 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px'
+              }}
+              title="Sonraki Sayfa"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

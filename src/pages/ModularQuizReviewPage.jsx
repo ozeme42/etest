@@ -16,10 +16,12 @@ import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
 import SingleMultipleChoiceReview from '../components/quiz/single/SingleMultipleChoiceReview';
 import SingleOpenEndedReview from '../components/quiz/single/SingleOpenEndedReview';
 import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
-import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
+import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 import { findUnifiedSubmissionOrTest, normalizeUnifiedSubmission } from '../services/unifiedResultAdapter';
+import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
+import { idbGetPayload } from '../services/indexedDbService';
 
 export default function ModularQuizReviewPage() {
   const params = useParams();
@@ -488,9 +490,9 @@ export default function ModularQuizReviewPage() {
       const hasOptionAnswers = Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => 
         typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
       );
-      const isSubExplicitMC = (foundSubmission.questionType === 'coktan_secmeli' || foundSubmission.type === 'coktan_secmeli' || foundSubmission.sourceType === 'questionBank') && !foundSubmission.isOpenEnded;
+      const isSubExplicitMC = (foundSubmission.questionType === 'coktan_secmeli' || foundSubmission.type === 'coktan_secmeli') && !foundSubmission.isOpenEnded;
 
-      const isSubWritten = !isSubExplicitMC && !hasOptionAnswers && Boolean(
+      const isSubWritten = !isSubExplicitMC && (Boolean(
         foundSubmission.isOpenEnded ||
         foundSubmission.questionType === 'acik_uclu' ||
         foundSubmission.type === 'acik_uclu' ||
@@ -498,7 +500,7 @@ export default function ModularQuizReviewPage() {
         foundSubmission.openEndedAnswers ||
         (foundSubmission.testTitle && (foundSubmission.testTitle.toLowerCase().includes('açık uçlu') || foundSubmission.testTitle.toLowerCase().includes('acik uclu') || foundSubmission.testTitle.toLowerCase().includes('klasik soru') || foundSubmission.testTitle.toLowerCase().includes('yazılı klasik'))) ||
         (Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
-      );
+      ) || !hasOptionAnswers);
 
       const resolvedT = (allBankQuestions || []).find(q => String(q.id) === String(candidateTestId) || toUUID(q.id) === String(candidateTestId) || normalizeId(q.id) === normalizeId(candidateTestId)) ||
                         (homeworks || []).find(h => String(h.id) === String(candidateTestId) || toUUID(h.id) === String(candidateTestId) || normalizeId(h.id) === normalizeId(candidateTestId)) ||
@@ -551,6 +553,63 @@ export default function ModularQuizReviewPage() {
     setLoading(false);
   }, [targetId, studentId, homeworks, submissions, curriculumData, allBankQuestions, bookTests]);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreTestPayload() {
+      if (!test?.id) return;
+      const isMissingPayload = !test.contentPayload || test.contentPayload === '[STORED_IN_INDEXEDDB]' || test.contentPayload === '[LOCALSTORAGE_CACHE]';
+      const isMissingImage = (!test.imageUrl && (!test.imageUrls || test.imageUrls.length === 0)) || test.imageUrl === '[STORED_IN_INDEXEDDB]';
+      const isMissingPdf = (!test.pdfPayload && !test.pdfUrl) || test.pdfPayload === '[STORED_IN_INDEXEDDB]';
+
+      if (isMissingPayload || isMissingImage || isMissingPdf) {
+        const idList = [
+          test.id,
+          test.id?.replace(/^q_/, ''),
+          test.id?.replace(/^hw_/, ''),
+          test.sourceTestId,
+          test.testId,
+          ...(test.questionIds || []),
+          ...(test.selectedQuestions || [])
+        ].filter(Boolean);
+
+        for (const item of idList) {
+          const strId = typeof item === 'object' ? (item.id || item.questionId) : String(item);
+          const variants = [
+            strId,
+            `q_${strId.replace(/^q_|^hw_/, '')}`,
+            `hw_${strId.replace(/^q_|^hw_/, '')}`
+          ];
+
+          for (const v of variants) {
+            try {
+              const val = await idbGetPayload(v);
+              if (val && typeof val === 'string' && val.length > 20 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+                const isPdfData = val.startsWith('data:application/pdf') || val.startsWith('%PDF-');
+                const isImgData = val.startsWith('data:image/') || val.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(val);
+                const updatedTest = {
+                  ...test,
+                  contentPayload: val,
+                  pdfPayload: isPdfData ? val : test.pdfPayload,
+                  imageUrl: isImgData ? val : test.imageUrl,
+                  imageUrls: isImgData ? (test.imageUrls?.length > 1 ? test.imageUrls : [val]) : test.imageUrls
+                };
+                setTest(updatedTest);
+                const reResolved = resolveTestQuestions(updatedTest, allBankQuestions);
+                if (reResolved && reResolved.length > 0) {
+                  setQuestions(reResolved);
+                }
+                return;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    }
+
+    restoreTestPayload();
+    return () => { isMounted = false; };
+  }, [test?.id, test?.contentPayload, allBankQuestions]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontWeight: 800 }}>
@@ -572,48 +631,51 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                 (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                 (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-  const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
-                     (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
-  const hasOptionAnswers = Array.isArray(submission?.answers) && submission.answers.some(a => (
-    typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
-  ));
+  const isMultipleChoiceTest = Boolean(
+    isMultipleChoice(test) ||
+    (questions && questions.length > 0 && questions.some(q => isMultipleChoice(q))) ||
+    (test.questions && Array.isArray(test.questions) && test.questions.some(q => isMultipleChoice(q))) ||
+    (Array.isArray(test.options) && test.options.filter(Boolean).length >= 2) ||
+    test.questionType === 'coktan_secmeli' ||
+    test.type === 'coktan_secmeli'
+  );
 
-  const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || test.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !submission?.answers?.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
-
-  const isWritten = !isExplicitMC && Boolean(
-    test.questionType === 'acik_uclu' ||
-    test.type === 'acik_uclu' ||
-    test.type === 'gorsel_klasik' ||
-    test.isOpenEnded ||
-    submission?.isOpenEnded ||
-    submission?.questionType === 'acik_uclu' ||
-    submission?.type === 'acik_uclu' ||
-    submission?.openEndedText ||
-    submission?.openEndedAnswers ||
-    (test.title && (
-      test.title.toLowerCase().includes('açık uçlu') ||
-      test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('klasik soru') ||
-      test.title.toLowerCase().includes('yazılı klasik')
-    )) ||
-    (test.name && (
-      test.name.toLowerCase().includes('açık uçlu') ||
-      test.name.toLowerCase().includes('acik uclu') ||
-      test.name.toLowerCase().includes('klasik soru') ||
-      test.name.toLowerCase().includes('yazılı klasik')
-    )) ||
-    (submission?.testTitle && (
-      submission.testTitle.toLowerCase().includes('açık uçlu') ||
-      submission.testTitle.toLowerCase().includes('acik uclu') ||
-      submission.testTitle.toLowerCase().includes('klasik soru') ||
-      submission.testTitle.toLowerCase().includes('yazılı klasik')
-    )) ||
-    (test.questions && Array.isArray(test.questions) && test.questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && q.type !== 'coktan_secmeli')) ||
-    (questions && Array.isArray(questions) && questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && q.type !== 'coktan_secmeli')) ||
-    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
+  const isWritten = !isMultipleChoiceTest && (
+    isSectionOpenEnded(test) ||
+    Boolean(
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.contentType === 'acik_uclu' ||
+      test.type === 'gorsel_klasik' ||
+      test.questionType === 'gorsel_klasik' ||
+      test.isOpenEnded === true ||
+      test.is_open_ended === true ||
+      submission?.isOpenEnded === true ||
+      submission?.questionType === 'acik_uclu' ||
+      submission?.type === 'acik_uclu' ||
+      (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => v && String(v).trim().length > 0)) ||
+      (test.title && (
+        test.title.toLowerCase().includes('açık uçlu') ||
+        test.title.toLowerCase().includes('acik uclu') ||
+        test.title.toLowerCase().includes('klasik soru') ||
+        test.title.toLowerCase().includes('yazılı klasik')
+      )) ||
+      (test.name && (
+        test.name.toLowerCase().includes('açık uçlu') ||
+        test.name.toLowerCase().includes('acik uclu') ||
+        test.name.toLowerCase().includes('klasik soru') ||
+        test.name.toLowerCase().includes('yazılı klasik')
+      )) ||
+      (submission?.testTitle && (
+        submission.testTitle.toLowerCase().includes('açık uçlu') ||
+        submission.testTitle.toLowerCase().includes('acik uclu') ||
+        submission.testTitle.toLowerCase().includes('klasik soru') ||
+        submission.testTitle.toLowerCase().includes('yazılı klasik')
+      )) ||
+      (test.questions && Array.isArray(test.questions) && test.questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && !isMultipleChoice(q))) ||
+      (questions && Array.isArray(questions) && questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && !isMultipleChoice(q))) ||
+      (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded && !a.selectedOption && (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
+    )
   );
 
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
@@ -677,7 +739,9 @@ export default function ModularQuizReviewPage() {
     test.sourceFormat === 'image' || test.formatType === 'image' ||
     test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions ||
     Boolean(test.imageUrl || (test.imageUrls && test.imageUrls.length > 0)) ||
-    (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
+    extractImageUrls(test).length > 0 ||
+    (questions && questions.some(q => extractImageUrls(q).length > 0)) ||
+    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:image') || test.contentPayload.startsWith('http') || test.contentPayload.includes('.png') || test.contentPayload.includes('.jpg')))
   );
 
   // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended)
@@ -712,7 +776,7 @@ export default function ModularQuizReviewPage() {
     test.isComposite
   ));
 
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && (isWritten || isSectionOpenEnded(test));
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && !isMultipleChoiceTest && (isWritten || isSectionOpenEnded(test));
 
   const isTeacher = Boolean(
     currentUser?.role === 'teacher' ||
@@ -775,19 +839,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single Image Review
-  if (isImageTest) {
-    return (
-      <ImageQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 5. Single Open-Ended Review / Teacher Grading
+  // 4. Single Open-Ended Review / Teacher Grading
   if (isSingleOE) {
     return (
       <SingleOpenEndedReview
@@ -795,6 +847,18 @@ export default function ModularQuizReviewPage() {
         test={test}
         questions={questions}
         isTeacher={isTeacher}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 5. Single Image Review
+  if (isImageTest) {
+    return (
+      <ImageQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
         onClose={handleCloseReview}
       />
     );

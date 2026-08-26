@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react';
 import { idbGetPayload } from '../../../services/indexedDbService';
+import { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
 
 const extractDirectPayload = (obj) => {
   if (!obj) return null;
+  if (Array.isArray(obj.imageUrls) && obj.imageUrls.length > 0) {
+    const valid = obj.imageUrls.filter(isValidImageUrl);
+    if (valid.length > 0) return valid.join('\n\n');
+  }
+  if (Array.isArray(obj.images) && obj.images.length > 0) {
+    const valid = obj.images.filter(isValidImageUrl);
+    if (valid.length > 0) return valid.join('\n\n');
+  }
   const candidates = [
     obj.pdfPayload,
     obj.contentPayload,
     obj.htmlPayload,
+    obj.imagePayload,
+    obj.imageUrl,
+    obj.image,
     obj.pdfUrl,
     obj.url,
     obj.filePayload,
     obj.payload,
-    obj.data,
-    obj.imageUrl
+    obj.data
   ];
   return candidates.find(c => typeof c === 'string' && c && !c.includes('[STORED_IN_INDEXEDDB]') && !c.includes('[LOCALSTORAGE_CACHE]')) || null;
 };
@@ -78,21 +89,16 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
       rawIds.forEach(id => {
         const strId = typeof id === 'object' ? (id.id || id.questionId) : String(id);
         if (strId) {
+          const clean = strId.replace(/^q_|^hw_|^test_|^sec_|^img_|^image_/, '');
           idsToTry.push(strId);
-          idsToTry.push(strId.replace(/^q_?/, ''));
-          idsToTry.push(strId.replace(/^q_?/, 'q'));
-          idsToTry.push(strId.replace(/^q_?/, 'q_'));
-          idsToTry.push(strId.replace(/^hw_?/, ''));
-          idsToTry.push(strId.replace(/^hw_?/, 'q'));
-          idsToTry.push(strId.replace(/^hw_?/, 'q_'));
-          idsToTry.push(strId.replace(/^test_?/, ''));
-          idsToTry.push(strId.replace(/^test_?/, 'q'));
-          idsToTry.push(strId.replace(/^test_?/, 'q_'));
-          idsToTry.push(strId.replace(/^sec_?/, ''));
-          idsToTry.push(`q_${strId.replace(/^q_?/, '')}`);
-          idsToTry.push(`q${strId.replace(/^q_?/, '')}`);
-          idsToTry.push(`hw_${strId.replace(/^hw_?/, '')}`);
-          idsToTry.push(`test_${strId.replace(/^test_?/, '')}`);
+          idsToTry.push(clean);
+          idsToTry.push(`q_${clean}`);
+          idsToTry.push(`q${clean}`);
+          idsToTry.push(`hw_${clean}`);
+          idsToTry.push(`test_${clean}`);
+          idsToTry.push(`sec_${clean}`);
+          idsToTry.push(`img_${clean}`);
+          idsToTry.push(`image_${clean}`);
         }
       });
 
@@ -121,11 +127,16 @@ export function useQuizPayloads(activeSec = {}, test = {}) {
     activeSec?.pdfPayload,
     activeSec?.htmlPayload,
     activeSec?.pdfUrl,
+    activeSec?.imageUrl,
+    activeSec?.imageUrls,
+    activeSec?.images,
     activeSec?.testId,
     test?.id,
     test?.contentPayload,
     test?.pdfPayload,
-    test?.pdfUrl
+    test?.pdfUrl,
+    test?.imageUrl,
+    test?.imageUrls
   ]);
 
   return { payload, loading };

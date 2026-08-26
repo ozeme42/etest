@@ -17,6 +17,28 @@ export function toUUID(id) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
 }
 
+export function isValidUUID(str) {
+  if (!str || typeof str !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
+export function ensureUUIDs(ids = []) {
+  const result = new Set();
+  (Array.isArray(ids) ? ids : [ids]).forEach(id => {
+    if (!id) return;
+    const str = String(id).trim();
+    if (isValidUUID(str)) {
+      result.add(str.toLowerCase());
+    } else {
+      const generated = toUUID(str);
+      if (generated && isValidUUID(generated)) {
+        result.add(generated.toLowerCase());
+      }
+    }
+  });
+  return Array.from(result);
+}
+
 /**
  * High-performance Supabase database integration service.
  * Automatically falls back gracefully to localStorage or local memory if env variables are not present.
@@ -847,38 +869,28 @@ export async function dbDeleteSubmission(id) {
 export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds = [], hwId = null) {
   if (!isSupabaseConfigured() || !studentId) return null;
   try {
-    const stIdStr = String(studentId);
-    const stUuid = toUUID(stIdStr);
-    const studentIds = Array.from(new Set([stIdStr, stUuid, 'u1'].filter(Boolean)));
+    const validStudentUuids = ensureUUIDs([studentId]);
+    const validTestUuids = ensureUUIDs([...(testIds || []), hwId]);
 
-    // 1. Gather all possible test IDs and UUIDs
-    const allTestIdentifiers = new Set();
-    if (hwId) {
-      allTestIdentifiers.add(String(hwId));
-      const hu = toUUID(hwId);
-      if (hu) allTestIdentifiers.add(String(hu));
-    }
-    (testIds || []).forEach(tid => {
-      if (tid) {
-        allTestIdentifiers.add(String(tid));
-        const u = toUUID(tid);
-        if (u) allTestIdentifiers.add(String(u));
-      }
-    });
-
-    const targetList = Array.from(allTestIdentifiers);
-
-    for (const sid of studentIds) {
-      if (targetList.length > 0) {
-        await supabase.from('submissions').delete().eq('student_id', sid).in('test_id', targetList);
+    for (const sid of validStudentUuids) {
+      if (validTestUuids.length > 0) {
+        try {
+          await supabase.from('submissions').delete().eq('student_id', sid).in('test_id', validTestUuids);
+        } catch (e) {}
       }
       if (hwId && (!testIds || testIds.length === 0)) {
         const hwStr = String(hwId);
         const hwUuid = toUUID(hwStr);
-        await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwStr);
-        if (hwUuid) {
-          await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwUuid);
-          await supabase.from('submissions').delete().eq('student_id', sid).eq('test_id', hwUuid);
+        try {
+          await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwStr);
+        } catch (e) {}
+        if (hwUuid && hwUuid !== hwStr && isValidUUID(hwUuid)) {
+          try {
+            await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwUuid);
+          } catch (e) {}
+          try {
+            await supabase.from('submissions').delete().eq('student_id', sid).eq('test_id', hwUuid);
+          } catch (e) {}
         }
       }
     }
@@ -970,7 +982,7 @@ export async function dbClearHomeworkSubmissionsForStudent(hwId, studentId, book
 export async function dbDeleteSubmissionsByIds(ids = []) {
   if (!isSupabaseConfigured() || !ids || ids.length === 0) return null;
   try {
-    const validUuids = Array.from(new Set(ids.map(id => toUUID(id)).filter(Boolean)));
+    const validUuids = ensureUUIDs(ids);
     if (validUuids.length > 0) {
       await supabase.from('submissions').delete().in('id', validUuids);
     }
@@ -984,31 +996,26 @@ export async function dbDeleteSubmissionsByIds(ids = []) {
 export async function dbDeleteBookSubmissionsForEveryone(testIds = [], hwId = null) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const allTestIdentifiers = new Set();
-    if (hwId) {
-      allTestIdentifiers.add(String(hwId));
-      const hu = toUUID(hwId);
-      if (hu) allTestIdentifiers.add(String(hu));
-    }
-    (testIds || []).forEach(tid => {
-      if (tid) {
-        allTestIdentifiers.add(String(tid));
-        const u = toUUID(tid);
-        if (u) allTestIdentifiers.add(String(u));
-      }
-    });
+    const validTestUuids = ensureUUIDs([...(testIds || []), hwId]);
 
-    const targetList = Array.from(allTestIdentifiers);
-    if (targetList.length > 0) {
-      await supabase.from('submissions').delete().in('test_id', targetList);
+    if (validTestUuids.length > 0) {
+      try {
+        await supabase.from('submissions').delete().in('test_id', validTestUuids);
+      } catch (e) {}
     }
     if (hwId) {
       const hwStr = String(hwId);
       const hwUuid = toUUID(hwStr);
-      await supabase.from('submissions').delete().eq('homework_id', hwStr);
-      if (hwUuid) {
-        await supabase.from('submissions').delete().eq('homework_id', hwUuid);
-        await supabase.from('submissions').delete().eq('test_id', hwUuid);
+      try {
+        await supabase.from('submissions').delete().eq('homework_id', hwStr);
+      } catch (e) {}
+      if (hwUuid && hwUuid !== hwStr && isValidUUID(hwUuid)) {
+        try {
+          await supabase.from('submissions').delete().eq('homework_id', hwUuid);
+        } catch (e) {}
+        try {
+          await supabase.from('submissions').delete().eq('test_id', hwUuid);
+        } catch (e) {}
       }
     }
     return true;
@@ -1019,13 +1026,13 @@ export async function dbDeleteBookSubmissionsForEveryone(testIds = [], hwId = nu
 }
 
 export async function dbClearStudentSubmissions(studentId) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !studentId) return null;
   try {
-    const stIdStr = String(studentId);
-    const stUuid = toUUID(stIdStr);
-    await supabase.from('submissions').delete().eq('student_id', stIdStr);
-    if (stUuid && stUuid !== stIdStr) {
-      await supabase.from('submissions').delete().eq('student_id', stUuid);
+    const validStudentUuids = ensureUUIDs([studentId]);
+    for (const sid of validStudentUuids) {
+      try {
+        await supabase.from('submissions').delete().eq('student_id', sid);
+      } catch (e) {}
     }
     return true;
   } catch (err) {
@@ -1553,14 +1560,24 @@ export async function dbAddHomework(hw) {
 export async function dbDeleteHomework(hwId) {
   if (!isSupabaseConfigured() || !hwId) return null;
   try {
-    const candidateIds = Array.from(new Set([String(hwId), toUUID(hwId)].filter(Boolean)));
-    for (const cid of candidateIds) {
+    const hwStr = String(hwId);
+    const validSubTestUuids = ensureUUIDs([hwStr]);
+
+    if (validSubTestUuids.length > 0) {
       try {
-        await supabase.from('submissions').delete().eq('test_id', cid);
-      } catch {}
+        await supabase.from('submissions').delete().in('test_id', validSubTestUuids);
+      } catch (e) {}
+    }
+    try {
+      await supabase.from('submissions').delete().eq('homework_id', hwStr);
+    } catch (e) {}
+
+    // Delete from homeworks table (id can be string or uuid)
+    const hwCandidateIds = Array.from(new Set([hwStr, toUUID(hwStr)].filter(Boolean)));
+    for (const cid of hwCandidateIds) {
       try {
         await supabase.from('homeworks').delete().eq('id', cid);
-      } catch {}
+      } catch (e) {}
     }
     return true;
   } catch (err) {
@@ -2558,7 +2575,7 @@ export async function dbSaveUserAiApiKey(userId, apiKey, metadata = {}) {
     const payloadJson = JSON.stringify({
       userId: String(userId),
       apiKey: cleanKey,
-      defaultModel: metadata.defaultModel || 'gemini-3.7-flash',
+      defaultModel: metadata.defaultModel || 'gemini-3.6-flash',
       userName: metadata.userName || '',
       updatedAt: new Date().toISOString()
     });
@@ -2597,7 +2614,7 @@ export async function dbSaveUserAiApiKey(userId, apiKey, metadata = {}) {
  */
 export async function dbGetSystemAiConfig() {
   const localKey = localStorage.getItem('system_ai_api_key') || localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
-  const localModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.7-flash';
+  const localModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.6-flash';
   
   if (!isSupabaseConfigured()) {
     return { apiKey: localKey || null, defaultModel: localModel };
@@ -2677,7 +2694,7 @@ export async function dbGetSystemAiApiKey() {
  */
 export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
   const cleanKey = apiKey ? String(apiKey).trim() : '';
-  const modelToSave = metadata.defaultModel || localStorage.getItem('system_ai_default_model') || 'gemini-3.7-flash';
+  const modelToSave = metadata.defaultModel || localStorage.getItem('system_ai_default_model') || 'gemini-3.6-flash';
 
   localStorage.setItem('system_ai_default_model', modelToSave);
 

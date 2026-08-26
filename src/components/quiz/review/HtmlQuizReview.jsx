@@ -12,6 +12,7 @@ import { useAuth } from '../../../context/AuthContext';
 import ReviewResultModal from './ReviewResultModal';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
 import AiUsageBadge from '../ai/AiUsageBadge';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 const MISTAKE_REASON_OPTIONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -59,60 +60,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
   const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
   const isOpenEndedMode = useMemo(() => {
-    // 1. If explicitly multiple choice, or has answer key, opticAnswers, or options, NOT open ended!
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true) ||
-                   (test.opticAnswers && Object.keys(test.opticAnswers).length > 0);
-    const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
-                       (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      test.formatType === 'coktan_secmeli' ||
-      hasKey ||
-      hasOptions
-    ) {
-      return false;
-    }
-
-    // 2. If student answers contain multiple-choice options (e.g. 0, 1, 'A', 'B'), NOT open ended!
-    const hasOptionAnswers = answers.some(a => (
-      typeof a.userAnswer === 'number' ||
-      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
-    ));
-    if (hasOptionAnswers && !answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) {
-      return false;
-    }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'gorsel_klasik' ||
-      test.isOpenEnded === true ||
-      test.is_open_ended === true
-    ) {
-      return true;
-    }
-
-    const tTitle = String(test.title || test.name || submission?.testTitle || '').toLowerCase();
-    if (tTitle && (
-      tTitle.includes('açık uçlu') ||
-      tTitle.includes('acik uclu') ||
-      tTitle.includes('klasik soru') ||
-      tTitle.includes('yazılı klasik')
-    )) {
-      return true;
-    }
-
-    if (questions.some(q => (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) && q.type !== 'coktan_secmeli' && q.questionType !== 'coktan_secmeli')) {
-      return true;
-    }
-
-    return false;
-  }, [test, questions, answers, submission]);
+    return isSectionOpenEnded(test);
+  }, [test]);
 
   const qCount = useMemo(() => {
     if (Array.isArray(answers) && answers.length > 0) return answers.length;
@@ -166,13 +115,19 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
       const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
       const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
-      const isQOE = !hasUserOption && (
-        a?.isOpenEnded ||
-        a?.type === 'acik_uclu' ||
-        qObj?.type === 'acik_uclu' ||
-        qObj?.isOpenEnded ||
+      const isQOE = Boolean(
         isOpenEndedMode ||
-        hasText
+        a?.isOpenEnded ||
+        a?.is_open_ended ||
+        a?.type === 'acik_uclu' ||
+        a?.type === 'yazili' ||
+        a?.type === 'gorsel_klasik' ||
+        qObj?.type === 'acik_uclu' ||
+        qObj?.type === 'yazili' ||
+        qObj?.type === 'gorsel_klasik' ||
+        qObj?.questionType === 'acik_uclu' ||
+        qObj?.isOpenEnded ||
+        (!hasUserOption && hasText)
       );
 
       if (isQOE) {
@@ -340,7 +295,16 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       const hasText = Boolean(textAns && String(textAns).trim() !== '');
 
       const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
-      const isItemOE = !hasUserOption && (isOpenEndedMode || hasText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded);
+      const isItemOE = Boolean(
+        isOpenEndedMode ||
+        qObj.type === 'acik_uclu' ||
+        qObj.type === 'yazili' ||
+        qObj.type === 'gorsel_klasik' ||
+        qObj.questionType === 'acik_uclu' ||
+        ansObj.isOpenEnded ||
+        ansObj.is_open_ended ||
+        (!hasUserOption && hasText)
+      );
       const teacherSc = questionScores[qNo];
 
       if (isItemOE) {
@@ -715,10 +679,19 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               const hasAnswer = hasUserOption || (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns);
               const isBlank = !hasAnswer || userAns === 'empty' || userAns === '' || userAns === null || userAns === undefined;
               const isText = Boolean(textAns && String(textAns).trim() !== '');
-              const isItemOE = !hasUserOption && (isOpenEndedMode || isText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded);
+              const isItemOE = Boolean(
+                isOpenEndedMode ||
+                qObj.type === 'acik_uclu' ||
+                qObj.type === 'yazili' ||
+                qObj.type === 'gorsel_klasik' ||
+                qObj.questionType === 'acik_uclu' ||
+                ansObj.isOpenEnded ||
+                ansObj.is_open_ended ||
+                (!hasUserOption && isText)
+              );
 
               const teacherSc = questionScores[qNo];
-              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && isTrulyEvaluated;
+              const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc)) && isTrulyEvaluated;
 
               const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
               const uLetter = formatAnswerLetter(userAns);
@@ -741,10 +714,10 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                 <div
                   key={qNo}
                   style={{
-                    background: isItemOE ? '#faf5ff' : (isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#ffffff'),
+                    background: isItemOE ? (hasGradedScore ? (isCorrect === true ? '#f0fdf4' : '#fef2f2') : (isText ? '#faf5ff' : '#ffffff')) : (isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#ffffff'),
                     padding: '1rem',
                     borderRadius: '0.85rem',
-                    border: `1.5px solid ${isItemOE ? '#e9d5ff' : (isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0')}`,
+                    border: `1.5px solid ${isItemOE ? (hasGradedScore ? (isCorrect === true ? '#bbf7d0' : '#fecaca') : (isText ? '#ddd6fe' : '#e2e8f0')) : (isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0')}`,
                     color: '#0f172a'
                   }}
                 >
@@ -766,7 +739,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                         }}>
                           ○ BOŞ
                         </span>
-                      ) : (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && !isNaN(Number(teacherSc))) ? (
+                      ) : ((isTrulyEvaluated || isTeacherMode) && teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc))) ? (
                         Number(teacherSc) >= 5 ? (
                           <span style={{
                             color: '#15803d',
@@ -798,7 +771,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                             <XCircle size={14} color="#ef4444" /> YANLIŞ
                           </span>
                         )
-                      ) : isText ? (
+                      ) : (
                         <span style={{
                           color: '#7c3aed',
                           background: '#f5f3ff',
@@ -809,18 +782,6 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                           fontSize: '0.8rem'
                         }}>
                           ⏳ Değerlendirme Bekliyor
-                        </span>
-                      ) : (
-                        <span style={{
-                          color: '#475569',
-                          background: '#f1f5f9',
-                          border: '1px solid #cbd5e1',
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: '0.4rem',
-                          fontWeight: 900,
-                          fontSize: '0.8rem'
-                        }}>
-                          ○ BOŞ
                         </span>
                       )
                     ) : (

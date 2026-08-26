@@ -142,28 +142,32 @@ export default function SingleOpenEndedReview({
     let pCount = 0;
 
     const sMap = teacherScores.sec_1 || {};
-    answers.forEach((ans, idx) => {
-      const qNo = ans.questionNoInSection || ans.questionNo || (idx + 1);
-      const textVal = ans.userAnswerText || ans.studentAnswerText || ans.userAnswer || textMap[qNo] || '';
-      const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
-      const sc = sMap[qNo];
+    for (let i = 1; i <= totalQuestions; i++) {
+      const qNo = i;
+      const ans = (Array.isArray(answers) ? answers.find(a => (
+        Number(a?.questionNo) === qNo ||
+        Number(a?.questionNoInSection) === qNo ||
+        String(a?.questionId).endsWith(`_${qNo}`) ||
+        String(a?.id).endsWith(`_${qNo}`)
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : {}) || {};
 
-      if (!hasText || sc === 'empty') {
-        bCount++;
-      } else if (sc !== undefined && sc !== null && sc !== 'empty' && !isNaN(Number(sc))) {
+      const textVal = ans.userAnswerText || ans.studentAnswerText || ans.userAnswer || textMap[qNo] || (questions[i - 1]?.userAnswerText) || '';
+      const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
+      const sc = sMap[qNo] !== undefined ? sMap[qNo] : ans.score;
+
+      if (sc !== undefined && sc !== null && sc !== 'empty' && sc !== 'pending' && !isNaN(Number(sc))) {
         const numSc = Number(sc);
         if (numSc >= 5) cCount++;
         else wCount++;
-      } else if (hasText) {
-        pCount++;
+      } else if (!hasText || sc === 'empty') {
         bCount++;
       } else {
-        bCount++;
+        pCount++;
       }
-    });
+    }
 
     return { correctCount: cCount, wrongCount: wCount, blankCount: bCount, pendingCount: pCount };
-  }, [answers, teacherScores, textMap]);
+  }, [totalQuestions, answers, teacherScores, textMap, questions]);
 
   const { correctCount, wrongCount, blankCount, pendingCount } = stats;
 
@@ -180,12 +184,12 @@ export default function SingleOpenEndedReview({
 
   const totalMaxScore = totalQuestions * 10;
   const scorePercentage = useMemo(() => {
-    const totalScored = correctCount + wrongCount + blankCount;
-    if (totalScored > 0) {
-      return Math.min(100, Math.round((correctCount / totalScored) * 100));
+    const totalScored = correctCount + wrongCount;
+    if (isTrulyEvaluated && totalScored > 0) {
+      return Math.min(100, Math.round((correctCount / totalQuestions) * 100));
     }
     return 0;
-  }, [correctCount, wrongCount, blankCount]);
+  }, [correctCount, wrongCount, totalQuestions, isTrulyEvaluated]);
 
   const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
   const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
@@ -355,17 +359,31 @@ export default function SingleOpenEndedReview({
           </div>
 
           {/* Başarı & Net Pill */}
-          <div style={{
-            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: '#ffffff',
-            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
-            borderRadius: '0.55rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.76rem' : '0.84rem',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-          }}>
-            %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
-          </div>
+          {isTrulyEvaluated ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: '#ffffff',
+              padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+              borderRadius: '0.55rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+            }}>
+              %{scorePercentage} Başarı {netScore !== undefined && !isNaN(netScore) ? `(Net: ${netScore})` : ''}
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              color: '#ffffff',
+              padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
+              borderRadius: '0.55rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)'
+            }}>
+              ⏳ Değerlendirmede
+            </div>
+          )}
 
           {pendingCount > 0 && (
             <div style={{
@@ -499,6 +517,14 @@ export default function SingleOpenEndedReview({
               qCount={totalQuestions}
               openEndedText={textMap}
               resolvedQuestions={questions}
+              isReviewMode={true}
+              isTeacher={isTeacher}
+              teacherScores={teacherScores.sec_1 || {}}
+              teacherNotes={teacherNotes.sec_1 || {}}
+              submissionAnswers={answers}
+              isTrulyEvaluated={isTrulyEvaluated}
+              onSetTeacherScore={(qNo, sc) => handleScoreChange('sec_1', qNo, sc)}
+              onSetTeacherNote={(qNo, nt) => handleNoteChange('sec_1', qNo, nt)}
             />
           }
         />

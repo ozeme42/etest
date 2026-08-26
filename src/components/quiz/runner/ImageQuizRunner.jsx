@@ -3,10 +3,11 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
-import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
+import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil, ArrowLeft } from 'lucide-react';
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 
 export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId, onExit }) {
   const { isDark, toggleTheme } = useTheme();
@@ -36,12 +37,18 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
       const rawIds = [
         test.id,
         test.testId,
+        test.hwId,
         test.homeworkId,
+        test.realTestId,
         test.sourceTestId,
+        test.sourceId,
+        test.questionId,
         ...(test.questionIds || []),
         ...(test.selectedQuestions || []),
         ...(questions || []).map(q => q.id),
-        ...(questions || []).map(q => q.questionId)
+        ...(questions || []).map(q => q.questionId),
+        ...(Array.isArray(test.sections) ? test.sections.map(s => s.id || s.questionId) : []),
+        ...(Array.isArray(test.questionsList) ? test.questionsList.map(q => q.id || q.questionId) : [])
       ];
 
       const idsToTry = [];
@@ -49,16 +56,18 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
         if (!id) return;
         const strId = typeof id === 'object' ? (id.id || id.questionId) : String(id);
         if (strId) {
+          const clean = strId.replace(/^q_|^hw_|^test_|^sec_|^img_|^image_/, '');
           idsToTry.push(strId);
-          idsToTry.push(strId.replace(/^q_?/, ''));
-          idsToTry.push(strId.replace(/^hw_?/, ''));
-          idsToTry.push(strId.replace(/^hw_?/, 'q_'));
-          idsToTry.push(`q_${strId.replace(/^q_?|^hw_?/, '')}`);
-          idsToTry.push(`hw_${strId.replace(/^q_?|^hw_?/, '')}`);
+          idsToTry.push(clean);
+          idsToTry.push(`q_${clean}`);
+          idsToTry.push(`q${clean}`);
+          idsToTry.push(`hw_${clean}`);
+          idsToTry.push(`test_${clean}`);
+          idsToTry.push(`img_${clean}`);
         }
       });
 
-      const uniqueIds = [...new Set(idsToTry)];
+      const uniqueIds = [...new Set(idsToTry.filter(Boolean))];
       for (const candidate of uniqueIds) {
         try {
           const payload = await idbGetPayload(candidate);
@@ -90,47 +99,16 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   // Get all image URLs
   const allImageUrls = useMemo(() => {
     let urls = [];
-    const getObjUrls = (obj) => {
-      if (!obj) return [];
-      const list = [];
-      if (Array.isArray(obj.imageUrls)) {
-        obj.imageUrls.forEach(u => {
-          if (typeof u === 'string' && u && !u.includes('[STORED_IN_INDEXEDDB]')) {
-            if (u.includes('\n\n') || u.includes('\n') || u.includes('|')) {
-              list.push(...u.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
-            } else {
-              list.push(u);
-            }
-          }
-        });
-      }
-      if (obj.imageUrl && typeof obj.imageUrl === 'string' && !obj.imageUrl.includes('[STORED_IN_INDEXEDDB]')) {
-        list.push(obj.imageUrl);
-      }
-      if (obj.contentPayload && typeof obj.contentPayload === 'string' && !obj.contentPayload.includes('[STORED_IN_INDEXEDDB]')) {
-        if (obj.contentPayload.includes('\n\n') || obj.contentPayload.includes('\n') || obj.contentPayload.includes('|')) {
-          list.push(...obj.contentPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
-        } else if (obj.contentPayload.startsWith('data:image') || obj.contentPayload.startsWith('http') || obj.contentPayload.length > 50) {
-          list.push(obj.contentPayload);
-        }
-      }
-      return list;
-    };
-
     if (questions && questions.length > 0) {
       questions.forEach(q => {
-        urls.push(...getObjUrls(q));
+        urls.push(...extractImageUrls(q));
       });
     }
     if (urls.length === 0) {
-      urls.push(...getObjUrls(test));
+      urls.push(...extractImageUrls(test));
     }
     if (idbPayload) {
-      if (idbPayload.includes('\n\n') || idbPayload.includes('\n') || idbPayload.includes('|')) {
-        urls.push(...idbPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean));
-      } else if (idbPayload.startsWith('http') || idbPayload.startsWith('data:image') || idbPayload.length > 50) {
-        urls.push(idbPayload);
-      }
+      urls.push(...extractImageUrls(idbPayload));
     }
 
     return Array.from(new Set(urls.filter(isValidImageUrl)));
@@ -150,57 +128,8 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   }, [questions, test, allImageUrls.length]);
 
   const isOpenEndedMode = useMemo(() => {
-    const hasOptions = Array.isArray(test.options) && test.options.length > 1;
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      test.formatType === 'coktan_secmeli' ||
-      hasOptions ||
-      hasKey
-    ) {
-      return false;
-    }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.questionType === 'gorsel_klasik' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'gorsel_klasik' ||
-      test.isOpenEnded === true ||
-      test.is_open_ended === true
-    ) {
-      return true;
-    }
-
-    const titleStr = String(test.title || test.name || '').toLowerCase();
-    if (titleStr && (
-      titleStr.includes('açık uçlu') ||
-      titleStr.includes('acik uclu') ||
-      titleStr.includes('klasik soru') ||
-      titleStr.includes('yazılı klasik')
-    )) {
-      return true;
-    }
-
-    if (activeQuestion) {
-      if (
-        activeQuestion.type === 'acik_uclu' ||
-        activeQuestion.type === 'gorsel_klasik' ||
-        activeQuestion.questionType === 'acik_uclu' ||
-        activeQuestion.questionType === 'gorsel_klasik' ||
-        activeQuestion.isOpenEnded === true
-      ) {
-        return true;
-      }
-    }
-    
-    return false;
-  }, [test, activeQuestion]);
+    return isSectionOpenEnded(test);
+  }, [test]);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
@@ -296,34 +225,53 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   };
 
   const activeImageUrl = useMemo(() => {
-    const qDirect = activeQuestion.imageUrl || (activeQuestion.imageUrls && activeQuestion.imageUrls[0]) || activeQuestion.contentPayload;
-    if (qDirect && isValidImageUrl(qDirect) && qDirect !== '[STORED_IN_INDEXEDDB]') {
-      return qDirect;
+    // 1. If activeQuestion has a single valid imageUrl
+    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) {
+      return normalizeImageUrl(activeQuestion.imageUrl);
     }
-    if (allImageUrls[currentIndex]) {
-      return allImageUrls[currentIndex];
-    }
+    // 2. From allImageUrls matching current question index
     if (allImageUrls.length > 0) {
+      if (allImageUrls[currentIndex]) return allImageUrls[currentIndex];
       return allImageUrls[0];
     }
-    const testDirect = test.imageUrl || test.contentPayload || (test.imageUrls && test.imageUrls[0]) || idbPayload;
-    if (testDirect && isValidImageUrl(testDirect) && testDirect !== '[STORED_IN_INDEXEDDB]') {
-      return testDirect;
+    // 3. Extracted from active question
+    const fromActive = extractImageUrls(activeQuestion);
+    if (fromActive.length > 0) {
+      if (fromActive.length === qCount && fromActive[currentIndex]) return fromActive[currentIndex];
+      return fromActive[0];
+    }
+    // 4. Test direct
+    const testDirect = extractImageUrls(test);
+    if (testDirect.length > 0) {
+      if (testDirect.length === qCount && testDirect[currentIndex]) return testDirect[currentIndex];
+      return testDirect[0];
+    }
+    // 5. From IDB
+    if (idbPayload) {
+      const idbUrls = extractImageUrls(idbPayload);
+      if (idbUrls.length > 0) {
+        if (idbUrls.length === qCount && idbUrls[currentIndex]) return idbUrls[currentIndex];
+        return idbUrls[currentIndex] || idbUrls[0];
+      }
     }
     return null;
-  }, [activeQuestion, allImageUrls, currentIndex, test, idbPayload]);
+  }, [activeQuestion, allImageUrls, currentIndex, qCount, test, idbPayload]);
 
   const imageUrls = useMemo(() => {
+    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) {
+      return [normalizeImageUrl(activeQuestion.imageUrl)];
+    }
     if (allImageUrls.length > 0) {
-      const url = allImageUrls[currentIndex] || allImageUrls[0];
-      return url ? [url] : [];
+      if (allImageUrls[currentIndex]) return [allImageUrls[currentIndex]];
+      return [allImageUrls[0]];
     }
-    if (activeQuestion.imageUrls && Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 0) {
-      const firstValid = activeQuestion.imageUrls.find(isValidImageUrl);
-      return firstValid ? [firstValid] : [];
+    const fromActive = extractImageUrls(activeQuestion);
+    if (fromActive.length > 0) {
+      if (fromActive.length === qCount && fromActive[currentIndex]) return [fromActive[currentIndex]];
+      return [fromActive[0]];
     }
-    return activeImageUrl ? [activeImageUrl].filter(isValidImageUrl) : [];
-  }, [activeQuestion, allImageUrls, currentIndex, activeImageUrl]);
+    return activeImageUrl ? [activeImageUrl] : [];
+  }, [activeQuestion, allImageUrls, currentIndex, qCount, activeImageUrl]);
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => {

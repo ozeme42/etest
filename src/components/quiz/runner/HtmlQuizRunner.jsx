@@ -8,6 +8,8 @@ import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
+import { isSectionOpenEnded } from '../utils/quizTypeDetector';
+
 export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers, onExit }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark, toggleTheme } = useTheme();
@@ -17,9 +19,15 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
     if (draftAnswers && draftAnswers.length > 0) {
       const initAns = {};
       draftAnswers.forEach(a => {
-        if (a.userAnswer !== null && a.userAnswer !== undefined) {
-          initAns[a.questionNo] = a.userAnswer;
-          initAns[String(a.questionNo)] = a.userAnswer;
+        if (a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '' && a.userAnswer !== 'empty') {
+          let val = a.userAnswer;
+          if (typeof val === 'string' && /^[A-Ea-e]$/.test(val.trim())) {
+            val = val.trim().toUpperCase().charCodeAt(0) - 65;
+          } else if (!isNaN(Number(val)) && typeof val !== 'boolean') {
+            val = Number(val);
+          }
+          initAns[a.questionNo] = val;
+          initAns[String(a.questionNo)] = val;
         }
       });
       return initAns;
@@ -50,52 +58,8 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
 
   const isOpenEndedMode = useMemo(() => {
-    const hasOptions = Array.isArray(test.options) && test.options.length > 1;
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-
-    if (
-      test.questionType === 'coktan_secmeli' ||
-      test.type === 'coktan_secmeli' ||
-      test.contentType === 'coktan_secmeli' ||
-      test.formatType === 'coktan_secmeli' ||
-      hasOptions ||
-      hasKey
-    ) {
-      return false;
-    }
-
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'gorsel_klasik' ||
-      test.questionType === 'gorsel_klasik' ||
-      test.isOpenEnded === true ||
-      test.is_open_ended === true
-    ) {
-      return true;
-    }
-
-    const titleStr = String(test.title || test.name || '').toLowerCase();
-    if (titleStr && (
-      titleStr.includes('açık uçlu') ||
-      titleStr.includes('acik uclu') ||
-      titleStr.includes('klasik soru') ||
-      titleStr.includes('yazılı klasik')
-    )) {
-      return true;
-    }
-
-    if (questions.some(q =>
-      (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) &&
-      q.questionType !== 'coktan_secmeli' && q.type !== 'coktan_secmeli'
-    )) {
-      return true;
-    }
-
-    return false;
-  }, [test, questions]);
+    return isSectionOpenEnded(test);
+  }, [test]);
 
   // Exact question count calculation
   const qCount = useMemo(() => {
@@ -419,23 +383,25 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
       const qNo = idx + 1;
       const qObj = questions[idx] || questions[0] || {};
       const userAns = answers[qNo];
-const textAns = openEndedText[qNo];
+      const textAns = openEndedText[qNo];
 
-      // checkIsAnswerCorrect artık answerKey'i qObj.correctAnswer'dan önce kontrol ediyor
-      const isCorrect = (userAns !== undefined && userAns !== null)
-        ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
-        : (textAns ? null : false);
+      const isCorrect = isOpenEndedMode
+        ? null
+        : (userAns !== undefined && userAns !== null)
+          ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
+          : (textAns ? null : false);
 
       return {
         questionId: qObj.id ? `${qObj.id}_${qNo}` : `q_${qNo}`,
         questionNo: qNo,
-        userAnswer: userAns !== undefined ? userAns : null,
+        userAnswer: isOpenEndedMode ? (textAns || null) : (userAns !== undefined ? userAns : null),
         userAnswerText: textAns || null,
-        isCorrect
+        isOpenEnded: isOpenEndedMode,
+        isCorrect: isOpenEndedMode ? null : isCorrect
       };
     });
 
-    onSubmit(formattedAnswers);
+    onSubmit(formattedAnswers, { isOpenEnded: isOpenEndedMode });
   };
 
   return (

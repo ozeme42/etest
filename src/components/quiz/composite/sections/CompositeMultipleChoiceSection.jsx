@@ -4,6 +4,8 @@ import OpticalBubblePanel from '../../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../../runner/QuizPanelLayout';
 import { Check, ChevronLeft, ChevronRight, LayoutList, Square } from 'lucide-react';
 
+import { extractImageUrls, isValidImageUrl } from '../../common/ImageLightbox';
+
 /**
  * CompositeMultipleChoiceSection
  * Renders a Multiple-Choice section inside a composite homework.
@@ -11,6 +13,7 @@ import { Check, ChevronLeft, ChevronRight, LayoutList, Square } from 'lucide-rea
  */
 export default memo(function CompositeMultipleChoiceSection({
   section = {},
+  payload = null,
   answers = {},
   onSelectOption,
   onOpenDrawing,
@@ -29,19 +32,24 @@ export default memo(function CompositeMultipleChoiceSection({
 
   const sectionImages = useMemo(() => {
     const list = [];
+    if (payload) {
+      list.push(...extractImageUrls(payload));
+    }
     if (Array.isArray(section.images) && section.images.length > 0) list.push(...section.images);
     if (Array.isArray(section.imageUrls) && section.imageUrls.length > 0) list.push(...section.imageUrls);
     if (section.imageUrl && typeof section.imageUrl === 'string') list.push(section.imageUrl);
-    if (section.contentPayload && typeof section.contentPayload === 'string') {
-      if (section.contentPayload.includes('\n\n') || section.contentPayload.includes('\n') || section.contentPayload.includes('|')) {
-        const parts = section.contentPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
-        list.push(...parts);
-      } else if (section.contentPayload.startsWith('data:image') || section.contentPayload.startsWith('http')) {
-        list.push(section.contentPayload);
-      }
+    if (section.image && typeof section.image === 'string') list.push(section.image);
+    if (section.contentPayload) {
+      list.push(...extractImageUrls(section.contentPayload));
     }
-    return Array.from(new Set(list.filter(Boolean)));
-  }, [section]);
+    if (section.bankQ?.contentPayload) {
+      list.push(...extractImageUrls(section.bankQ.contentPayload));
+    }
+    if (Array.isArray(section.bankQ?.imageUrls)) {
+      list.push(...section.bankQ.imageUrls);
+    }
+    return Array.from(new Set(list.filter(isValidImageUrl)));
+  }, [section, payload]);
 
   const answeredCount = useMemo(() => {
     return Object.values(answers).filter(v => v !== null && v !== undefined && v !== 'empty').length;
@@ -52,13 +60,9 @@ export default memo(function CompositeMultipleChoiceSection({
     if (Array.isArray(q.images) && q.images.length > 0) qImages.push(...q.images);
     if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
     if (q.imageUrl) qImages.push(q.imageUrl);
-    if (q.contentPayload && typeof q.contentPayload === 'string') {
-      if (q.contentPayload.includes('\n\n') || q.contentPayload.includes('\n') || q.contentPayload.includes('|')) {
-        const parts = q.contentPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('data:image') || s.startsWith('http') || /\.(png|jpe?g|webp|gif)/i.test(s));
-        qImages.push(...parts);
-      } else if (q.contentPayload.startsWith('data:image') || q.contentPayload.startsWith('http')) {
-        qImages.push(q.contentPayload);
-      }
+    if (q.image) qImages.push(q.image);
+    if (q.contentPayload) {
+      qImages.push(...extractImageUrls(q.contentPayload));
     }
 
     if (qImages.length === 0 && sectionImages.length > 0) {
@@ -70,7 +74,7 @@ export default memo(function CompositeMultipleChoiceSection({
         qImages.push(sectionImages[0]);
       }
     }
-    return qImages;
+    return qImages.filter(isValidImageUrl);
   };
 
   const activeQuestion = questions[activeQIdx] || questions[0] || {};
