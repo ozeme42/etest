@@ -145,6 +145,22 @@ export default function ScreenSnipperAndSolverModal({
     reader.readAsDataURL(file);
   };
 
+  // ESC Key listener to cancel snipping
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isSnipping) {
+          setIsSnipping(false);
+          setSnipRect(null);
+        } else if (isOpen) {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSnipping, isOpen, onClose]);
+
   // ── Screen Snipping Tool Overlay Logic ──
   const startSnippingMode = () => {
     setIsSnipping(true);
@@ -187,30 +203,63 @@ export default function ScreenSnipperAndSolverModal({
     try {
       // Create cropped in-memory canvas
       const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = width;
-      cropCanvas.height = height;
-      const ctx = cropCanvas.getContext('2d');
 
-      // 1. Try to crop directly from PDF canvas if available
-      if (pdfCanvasRef?.current) {
-        const pdfCanvas = pdfCanvasRef.current;
-        const rect = pdfCanvas.getBoundingClientRect();
-        const scaleX = pdfCanvas.width / rect.width;
-        const scaleY = pdfCanvas.height / rect.height;
+      // 1. Search for any canvas elements in the viewport (e.g. PDF canvas)
+      const allCanvases = Array.from(document.querySelectorAll('canvas')).filter(c => {
+        const r = c.getBoundingClientRect();
+        return r.width > 20 && r.height > 20 &&
+               !(x1 > r.right || x1 + width < r.left || y1 > r.bottom || y1 + height < r.top);
+      });
 
-        const cropX = (x1 - rect.left) * scaleX;
-        const cropY = (y1 - rect.top) * scaleY;
-        const cropW = width * scaleX;
-        const cropH = height * scaleY;
+      if (pdfCanvasRef?.current || allCanvases.length > 0) {
+        const targetCanvas = pdfCanvasRef?.current || allCanvases[0];
+        const rect = targetCanvas.getBoundingClientRect();
+        const scaleX = targetCanvas.width / rect.width;
+        const scaleY = targetCanvas.height / rect.height;
 
-        ctx.drawImage(pdfCanvas, cropX, cropY, cropW, cropH, 0, 0, width, height);
+        const srcX = Math.max(0, (x1 - rect.left) * scaleX);
+        const srcY = Math.max(0, (y1 - rect.top) * scaleY);
+        const srcW = Math.min(targetCanvas.width - srcX, width * scaleX);
+        const srcH = Math.min(targetCanvas.height - srcY, height * scaleY);
+
+        cropCanvas.width = srcW;
+        cropCanvas.height = srcH;
+        const ctx = cropCanvas.getContext('2d');
+        ctx.drawImage(targetCanvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
       } else {
-        // 2. Fallback: Draw placeholder or capture visible DOM
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#3b82f6';
-        ctx.font = '14px sans-serif';
-        ctx.fillText(`Soru ${questionNo} Kırpıldı`, 10, 25);
+        // 2. Search for any <img> elements in the viewport
+        const allImages = Array.from(document.querySelectorAll('img')).filter(img => {
+          const r = img.getBoundingClientRect();
+          return r.width > 20 && r.height > 20 &&
+                 !(x1 > r.right || x1 + width < r.left || y1 > r.bottom || y1 + height < r.top);
+        });
+
+        if (allImages.length > 0) {
+          const img = allImages[0];
+          const rect = img.getBoundingClientRect();
+          const scaleX = (img.naturalWidth || img.width) / rect.width;
+          const scaleY = (img.naturalHeight || img.height) / rect.height;
+
+          const srcX = Math.max(0, (x1 - rect.left) * scaleX);
+          const srcY = Math.max(0, (y1 - rect.top) * scaleY);
+          const srcW = Math.min((img.naturalWidth || img.width) - srcX, width * scaleX);
+          const srcH = Math.min((img.naturalHeight || img.height) - srcY, height * scaleY);
+
+          cropCanvas.width = srcW;
+          cropCanvas.height = srcH;
+          const ctx = cropCanvas.getContext('2d');
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+        } else {
+          // 3. Fallback visual badge
+          cropCanvas.width = width;
+          cropCanvas.height = height;
+          const ctx = cropCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.fillStyle = '#7c3aed';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.fillText(`Soru ${questionNo} Seçildi`, 15, 30);
+        }
       }
 
       const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
@@ -346,37 +395,38 @@ export default function ScreenSnipperAndSolverModal({
         </div>
       )}
 
-      {/* ── MAIN AI SOLUTION MODAL ── */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 10000,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}
-        onClick={onClose}
-      >
+      {/* ── MAIN AI SOLUTION MODAL (Hidden during snipping so background document is fully visible) ── */}
+      {!isSnipping && (
         <div
-          onClick={(e) => e.stopPropagation()}
           style={{
-            background: 'var(--color-surface)',
-            color: 'var(--color-text)',
-            borderRadius: '1.5rem',
-            border: '1.5px solid var(--color-border)',
-            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
-            maxWidth: 720,
-            width: '100%',
-            maxHeight: '90vh',
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
           }}
+          onClick={onClose}
         >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              borderRadius: '1.5rem',
+              border: '1.5px solid var(--color-border)',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
+              maxWidth: 720,
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
           {/* Header */}
           <div style={{
             padding: '1.2rem 1.5rem',
@@ -951,6 +1001,7 @@ export default function ScreenSnipperAndSolverModal({
           </div>
         </div>
       </div>
+    )}
 
       {/* ── API KEY MODAL ── */}
       {apiKeyModalOpen && (
