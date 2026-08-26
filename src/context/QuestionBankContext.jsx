@@ -29,13 +29,33 @@ export function QuestionBankProvider({ children }) {
       // 1. Restore full PDF/Image payloads from IndexedDB for questions loaded from localStorage metadata
       const currentQs = questions || [];
       const restored = await Promise.all(currentQs.map(async (q) => {
-        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
-          const fullPayload = await idbGetPayload(q.id);
-          if (fullPayload) {
-            return { ...q, contentPayload: fullPayload };
+        let currentPayload = q.contentPayload;
+        const needsRestore = !currentPayload || (typeof currentPayload === 'string' && (currentPayload.includes('[STORED_IN_INDEXEDDB]') || currentPayload.includes('[LOCALSTORAGE_CACHE]')));
+        if (needsRestore) {
+          const candidateKeys = [q.id, String(q.id).replace(/^q_?/, ''), `q_${String(q.id).replace(/^q_?/, '')}`, `q${String(q.id).replace(/^q_?/, '')}`];
+          for (const key of candidateKeys) {
+            const fullPayload = await idbGetPayload(key);
+            if (fullPayload && typeof fullPayload === 'string' && fullPayload.length > 30 && !fullPayload.includes('[STORED_IN_INDEXEDDB]')) {
+              currentPayload = fullPayload;
+              break;
+            }
           }
         }
-        return q;
+
+        let subQs = q.questionsList;
+        if (Array.isArray(subQs)) {
+          subQs = await Promise.all(subQs.map(async (sq) => {
+            if (!sq.contentPayload || sq.contentPayload === '[STORED_IN_INDEXEDDB]' || !sq.imageUrl || sq.imageUrl === '[STORED_IN_INDEXEDDB]') {
+              const sqPayload = (sq.id ? await idbGetPayload(sq.id) : null) || (sq.id ? await idbGetPayload(String(sq.id).replace(/^q_?/, '')) : null);
+              if (sqPayload && !sqPayload.includes('[STORED_IN_INDEXEDDB]')) {
+                return { ...sq, contentPayload: sqPayload, imageUrl: sqPayload };
+              }
+            }
+            return sq;
+          }));
+        }
+
+        return { ...q, contentPayload: currentPayload, questionsList: subQs };
       }));
 
       setQuestions(prev => {
@@ -108,9 +128,21 @@ export function QuestionBankProvider({ children }) {
         const isHtml = q.contentType === 'html' || q.sourceFormat === 'html' ||
           (typeof q.contentPayload === 'string' && (q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE') || q.contentPayload.startsWith('data:text/html')));
 
-        // NEVER strip HTML content or text under 100,000 chars (100KB) from localStorage
-        if (!isHtml && typeof copy.contentPayload === 'string' && copy.contentPayload.length > 100000) {
-          copy.contentPayload = '[STORED_IN_INDEXEDDB]';
+        // Strip heavy base64 data to avoid LocalStorage QuotaExceededError
+        if (!isHtml) {
+          if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 50000 && copy.contentPayload.startsWith('data:')) {
+            copy.contentPayload = '[STORED_IN_INDEXEDDB]';
+          }
+          if (Array.isArray(copy.imageUrls)) {
+            copy.imageUrls = copy.imageUrls.map(u => (typeof u === 'string' && u.length > 50000 && u.startsWith('data:') ? '[STORED_IN_INDEXEDDB]' : u));
+          }
+          if (Array.isArray(copy.questionsList)) {
+            copy.questionsList = copy.questionsList.map(sq => ({
+              ...sq,
+              contentPayload: typeof sq.contentPayload === 'string' && sq.contentPayload.length > 50000 && sq.contentPayload.startsWith('data:') ? '[STORED_IN_INDEXEDDB]' : sq.contentPayload,
+              imageUrl: typeof sq.imageUrl === 'string' && sq.imageUrl.length > 50000 && sq.imageUrl.startsWith('data:') ? '[STORED_IN_INDEXEDDB]' : sq.imageUrl
+            }));
+          }
         }
         return copy;
       });
@@ -174,13 +206,22 @@ export function QuestionBankProvider({ children }) {
         htmlPayload: isHtmlType ? (questionData.contentPayload || questionData.htmlPayload) : questionData.htmlPayload,
         ...questionData 
       };
-      if (newQuestion.contentPayload && typeof newQuestion.contentPayload === 'string' && newQuestion.contentPayload.length > 500) {
+      if (newQuestion.contentPayload && typeof newQuestion.contentPayload === 'string' && newQuestion.contentPayload.length > 50) {
         const payload = newQuestion.contentPayload;
         const qId = newQuestion.id;
         await idbSetPayload(qId, payload);
         await idbSetPayload(String(qId).replace(/^q_?/, ''), payload);
         await idbSetPayload(String(qId).replace(/^q_?/, 'q_'), payload);
         await idbSetPayload(String(qId).replace(/^q_?/, 'q'), payload);
+      }
+      if (Array.isArray(newQuestion.questionsList)) {
+        for (const sq of newQuestion.questionsList) {
+          if (sq.id && (sq.contentPayload || sq.imageUrl)) {
+            const sqPayload = sq.contentPayload || sq.imageUrl;
+            await idbSetPayload(sq.id, sqPayload);
+            await idbSetPayload(String(sq.id).replace(/^q_?/, ''), sqPayload);
+          }
+        }
       }
       setQuestions(prev => [...prev, newQuestion]);
       await dbAddQuestion(newQuestion);
@@ -221,13 +262,22 @@ export function QuestionBankProvider({ children }) {
       return q;
     }));
     if (updatedQ) {
-      if (updatedQ.contentPayload && typeof updatedQ.contentPayload === 'string' && updatedQ.contentPayload.length > 500) {
+      if (updatedQ.contentPayload && typeof updatedQ.contentPayload === 'string' && updatedQ.contentPayload.length > 50) {
         const payload = updatedQ.contentPayload;
         const qId = updatedQ.id;
         await idbSetPayload(qId, payload);
         await idbSetPayload(String(qId).replace(/^q_?/, ''), payload);
         await idbSetPayload(String(qId).replace(/^q_?/, 'q_'), payload);
         await idbSetPayload(String(qId).replace(/^q_?/, 'q'), payload);
+      }
+      if (Array.isArray(updatedQ.questionsList)) {
+        for (const sq of updatedQ.questionsList) {
+          if (sq.id && (sq.contentPayload || sq.imageUrl)) {
+            const sqPayload = sq.contentPayload || sq.imageUrl;
+            await idbSetPayload(sq.id, sqPayload);
+            await idbSetPayload(String(sq.id).replace(/^q_?/, ''), sqPayload);
+          }
+        }
       }
       await dbAddQuestion(updatedQ);
     }

@@ -17,6 +17,7 @@ import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlice
 import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import { compressImageToWebP, compressMultipleImages } from '../services/imageCompressionService';
 import { Scissors } from 'lucide-react';
+import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../components/quiz/common/ImageLightbox';
 
 import { JSON_TEMPLATE, subjectThemes, gradeThemes } from '../features/question-bank/constants/questionBankConstants';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
@@ -100,26 +101,24 @@ export default function QuestionBank() {
   const [previewQuestion, setPreviewQuestion] = useState(null);
 
   const handlePreviewQuestion = async (q) => {
-    if (!q) return;
+    let richPayload = q.contentPayload;
+    const isMissing = !richPayload || (typeof richPayload === 'string' && (richPayload.includes('[STORED_IN_INDEXEDDB]') || richPayload.includes('[LOCALSTORAGE_CACHE]')));
 
-    let richPayload = null;
-    const isHtmlOrPdf = q.contentType === 'html' || q.contentType === 'pdf' || 
-      (typeof q.contentPayload === 'string' && (q.contentPayload.includes('[STORED_IN_INDEXEDDB]') || q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE')));
-
-    if (isHtmlOrPdf) {
+    if (isMissing || q.contentType === 'pdf' || q.contentType === 'html' || q.contentType === 'gorsel') {
       const candidates = [
         q.id,
         String(q.id).replace(/^q_?/, ''),
         `q_${String(q.id).replace(/^q_?/, '')}`,
         `q${String(q.id).replace(/^q_?/, '')}`,
         q.realTestId,
-        q.testId
+        q.testId,
+        ...(q.questionIds || [])
       ].filter(Boolean);
 
       for (const key of candidates) {
         try {
           const idbData = await idbGetPayload(key);
-          if (idbData && (typeof idbData === 'string' ? idbData.length > 50 : true)) {
+          if (idbData && typeof idbData === 'string' && idbData.length > 30 && !idbData.includes('[STORED_IN_INDEXEDDB]')) {
             richPayload = idbData;
             break;
           }
@@ -173,56 +172,96 @@ export default function QuestionBank() {
     reader.readAsDataURL(file);
   };
 
-  const handleMultipleFilesSelected = async (fileList) => {
+  const handleMultipleFilesSelected = async (fileList, append = false) => {
     if (!fileList || fileList.length === 0) return;
 
     const files = Array.from(fileList);
-    const imageFiles = files.filter(f => f.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(f.name.split('.').pop().toLowerCase()));
+    const imageFiles = files.filter(f => f.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg'].includes(f.name.split('.').pop().toLowerCase()));
 
-    if (imageFiles.length === 0) {
+    if (imageFiles.length === 0 && files.length === 1) {
       handleFileSelected(files[0]);
       return;
     }
 
-    if (imageFiles.length === 1 && files.length === 1) {
-      handleFileSelected(files[0]);
-      return;
-    }
-
-    const readAsDataURL = (file) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve({ name: file.name, data: e.target.result, size: file.size / 1024 });
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    };
+    if (imageFiles.length === 0) return;
 
     try {
-      const results = await Promise.all(imageFiles.map(readAsDataURL));
-      const base64List = results.map(r => r.data);
-      const totalKb = results.reduce((sum, r) => sum + r.size, 0).toFixed(1);
+      // Compress all images to lightweight, high-quality WebP
+      const compressedResults = await compressMultipleImages(imageFiles, 1600, 0.82);
+      const newBase64List = compressedResults.map(r => r.dataUrl);
+
+      const combinedList = append
+        ? [...imageUrls, ...newBase64List]
+        : (imageUrls.length > 0 && formData.contentType === 'gorsel' && creationStep === 2 ? [...imageUrls, ...newBase64List] : newBase64List);
+
+      const totalKb = compressedResults.reduce((sum, r) => sum + (r.sizeKb || 50), 0);
 
       setUploadedFileInfo({
-        name: `${results.length} Adet Görsel Soru Dosyası`,
+        name: `${combinedList.length} Adet Görsel Soru Dosyası`,
         size: `${totalKb} KB`,
         type: 'gorsel',
-        data: results[0].data,
-        count: results.length
+        data: combinedList[0],
+        count: combinedList.length
       });
 
       setFormData(prev => ({
         ...prev,
         contentType: 'gorsel',
-        contentPayload: base64List.join('\n\n'),
-        questionCount: results.length,
-        title: prev.title || `Görsel Soru Seti (${results.length} Soru)`
+        contentPayload: combinedList.join('\n\n'),
+        questionCount: combinedList.length,
+        title: prev.title || `Görsel Soru Seti (${combinedList.length} Soru)`
       }));
 
-      setImageUrls(base64List);
+      setImageUrls(combinedList);
       if (creationStep === 1) setCreationStep(2);
     } catch (err) {
       console.error('Toplu görsel yükleme hatası:', err);
+      // Fallback if canvas compression fails
+      const readAsDataURL = (file) => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+      const rawResults = (await Promise.all(imageFiles.map(readAsDataURL))).filter(Boolean);
+      const combinedList = append ? [...imageUrls, ...rawResults] : rawResults;
+      setImageUrls(combinedList);
+      setFormData(prev => ({
+        ...prev,
+        contentType: 'gorsel',
+        contentPayload: combinedList.join('\n\n'),
+        questionCount: combinedList.length,
+        title: prev.title || `Görsel Soru Seti (${combinedList.length} Soru)`
+      }));
+      if (creationStep === 1) setCreationStep(2);
+    }
+  };
+
+  const handleRemoveImageAtIndex = (removeIdx) => {
+    const updated = imageUrls.filter((_, idx) => idx !== removeIdx);
+    setImageUrls(updated);
+
+    const newAns = {};
+    Object.keys(imageAnswers).forEach(k => {
+      const numK = Number(k);
+      if (numK < removeIdx) {
+        newAns[numK] = imageAnswers[numK];
+      } else if (numK > removeIdx) {
+        newAns[numK - 1] = imageAnswers[numK];
+      }
+    });
+    setImageAnswers(newAns);
+
+    setFormData(prev => ({
+      ...prev,
+      contentPayload: updated.join('\n\n'),
+      questionCount: Math.max(1, updated.length)
+    }));
+
+    if (updated.length === 0) {
+      setUploadedFileInfo(null);
+    } else {
+      setUploadedFileInfo(prev => prev ? ({ ...prev, count: updated.length, data: updated[0] }) : null);
     }
   };
 
@@ -750,7 +789,7 @@ export default function QuestionBank() {
     setImageAnswers({});
   };
 
-  const openEditModal = (q) => {
+  const openEditModal = async (q) => {
     setEditingQuestionId(q.id);
     setCreationStep(2);
     
@@ -759,11 +798,34 @@ export default function QuestionBank() {
       keyStr = q.answerKey.join('').trimEnd();
     }
 
+    let richPayload = q.contentPayload || '';
+    if (!richPayload || (typeof richPayload === 'string' && (richPayload.includes('[STORED_IN_INDEXEDDB]') || richPayload.includes('[LOCALSTORAGE_CACHE]')))) {
+      const candidateKeys = [
+        q.id,
+        String(q.id).replace(/^q_?/, ''),
+        `q_${String(q.id).replace(/^q_?/, '')}`,
+        `q${String(q.id).replace(/^q_?/, '')}`,
+        q.realTestId,
+        q.testId,
+        ...(q.questionIds || [])
+      ].filter(Boolean);
+
+      for (const key of candidateKeys) {
+        try {
+          const idbData = await idbGetPayload(key);
+          if (idbData && typeof idbData === 'string' && idbData.length > 30 && !idbData.includes('[STORED_IN_INDEXEDDB]')) {
+            richPayload = idbData;
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+
     setFormData({
       title: q.title || q.name || '',
       type: q.type || 'coktan_secmeli',
       contentType: q.contentType,
-      contentPayload: q.contentPayload || '',
+      contentPayload: richPayload,
       questionText: q.questionText || '',
       options: q.options || ['', '', '', ''],
       correctAnswer: q.correctAnswer || 0,
@@ -774,9 +836,9 @@ export default function QuestionBank() {
     if (q.contentType === 'json' || q.questionsList) {
       if (q.questionsList && q.questionsList.length > 0) {
         setEditableQuestionsList(JSON.parse(JSON.stringify(q.questionsList)));
-      } else if (q.contentPayload) {
+      } else if (richPayload) {
         try {
-          const parsed = JSON.parse(q.contentPayload);
+          const parsed = JSON.parse(richPayload);
           if (Array.isArray(parsed)) {
             const list = parsed.map((item, idx) => {
               let cAns = item.correctAnswer !== undefined ? item.correctAnswer : item.correctAnswerLetter;
@@ -816,9 +878,14 @@ export default function QuestionBank() {
       }
       setOpticAnswers(newOptic);
     } else if (q.contentType === 'gorsel') {
-      const urls = Array.isArray(q.imageUrls) && q.imageUrls.length > 0 
-        ? q.imageUrls 
-        : (q.contentPayload ? q.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
+      const extracted = Array.from(new Set([
+        ...(Array.isArray(q.imageUrls) ? q.imageUrls : []),
+        ...(q.questionsList && Array.isArray(q.questionsList) ? q.questionsList.map(sq => sq.imageUrl || sq.contentPayload) : []),
+        ...extractImageUrls(richPayload),
+        ...extractImageUrls(q)
+      ].filter(Boolean))).filter(isValidImageUrl).map(normalizeImageUrl);
+
+      const urls = extracted.length > 0 ? extracted : (richPayload ? richPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
 
       setImageUrls(urls);
       
@@ -836,7 +903,7 @@ export default function QuestionBank() {
       } else if (q.questionsList && Array.isArray(q.questionsList)) {
         q.questionsList.forEach((subQ, idx) => {
           if (subQ.correctAnswer !== undefined) {
-            ansMap[idx] = subQ.correctAnswer;
+            ansMap[idx] = typeof subQ.correctAnswer === 'number' ? subQ.correctAnswer : (typeof subQ.correctAnswer === 'string' && /^[A-E]$/i.test(subQ.correctAnswer.trim()) ? subQ.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : 0);
           }
         });
       } else {
@@ -1099,9 +1166,12 @@ export default function QuestionBank() {
           const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
           return {
             id: `subq_${idx}_${Date.now()}`,
+            questionNo: idx + 1,
             title: `Görsel Soru ${idx + 1}`,
+            questionText: `${idx + 1}. Soru`,
             contentType: 'gorsel',
             contentPayload: u,
+            imageUrl: u,
             type: formData.type || 'coktan_secmeli',
             options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
@@ -1117,6 +1187,7 @@ export default function QuestionBank() {
           gradeId: foundGradeId,
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
+          imageUrl: validUrls[0] || formData.contentPayload || '',
           imageUrls: validUrls,
           contentPayload: finalPayload,
           questionsList: subQuestions,
@@ -1177,9 +1248,12 @@ export default function QuestionBank() {
           const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
           return {
             id: `subq_${idx}_${Date.now()}`,
+            questionNo: idx + 1,
             title: `Görsel Soru ${idx + 1}`,
+            questionText: `${idx + 1}. Soru`,
             contentType: 'gorsel',
             contentPayload: u,
+            imageUrl: u,
             type: formData.type || 'coktan_secmeli',
             options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
@@ -1195,6 +1269,7 @@ export default function QuestionBank() {
           gradeId: foundGradeId,
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
+          imageUrl: validUrls[0] || formData.contentPayload || '',
           imageUrls: validUrls,
           contentPayload: finalPayload,
           questionsList: subQuestions,
@@ -3500,7 +3575,7 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                {/* TYPE 4: IMAGE QUESTION FORM WITH CEVAP ANAHTARI */}
+                {/* TYPE 4: IMAGE QUESTION FORM WITH ALL CARDS & CEVAP ANAHTARI */}
                 {formData.contentType === 'gorsel' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div className="form-group" style={{ background: isDark ? 'rgba(245, 158, 11, 0.1)' : '#fffbeb', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a', padding: '1.5rem', borderRadius: '1.25rem' }}>
@@ -3509,7 +3584,7 @@ export default function QuestionBank() {
                       </label>
 
                       <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(251,191,36,0.5)' : '2px dashed #f59e0b', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#fde68a' : '#b45309', fontWeight: 800, fontSize: '0.9rem' }}>
+                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#fde68a' : '#b45309', fontWeight: 800, fontSize: '0.95rem' }}>
                           <input
                             type="file"
                             accept="image/*"
@@ -3517,84 +3592,128 @@ export default function QuestionBank() {
                             style={{ display: 'none' }}
                             onChange={e => {
                               if (e.target.files && e.target.files.length > 0) {
-                                handleMultipleFilesSelected(e.target.files);
+                                handleMultipleFilesSelected(e.target.files, imageUrls.length > 0);
                               }
                             }}
                           />
-                          📁 Bilgisayardan Görsel Seç (PNG / JPG / WEBP)
+                          📁 Bilgisayardan Görsel(ler) Seç (PNG / JPG / WEBP - Çoklu Seçim Desteklenir)
                         </label>
                       </div>
 
-                      <p style={{ fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', margin: '0 0 0.85rem 0' }}>
-                        Veya resim URL'lerini buraya alt alta yapıştırın:
+                      {imageUrls.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 1rem', borderRadius: '0.65rem', background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5', border: isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #a7f3d0', color: isDark ? '#34d399' : '#047857', fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                          <span>✅ Toplam {imageUrls.length} adet görsel hazırlandı</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageUrls([]);
+                              setImageAnswers({});
+                              setFormData(prev => ({ ...prev, contentPayload: '', questionCount: 1 }));
+                              setUploadedFileInfo(null);
+                            }}
+                            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '0.45rem', padding: '0.2rem 0.55rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem' }}
+                          >
+                            Tümünü Temizle
+                          </button>
+                        </div>
+                      )}
+
+                      <p style={{ fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', margin: '0 0 0.5rem 0' }}>
+                        Veya resim web URL'lerini buraya alt alta yapıştırın:
                       </p>
                       <textarea 
-                        rows={editingQuestionId ? "2" : "5"} 
-                        value={formData.contentPayload} 
+                        rows={imageUrls.length > 0 ? "2" : "4"} 
+                        value={formData.contentPayload && !formData.contentPayload.startsWith('data:') ? formData.contentPayload : ''} 
                         onChange={handleImagePayloadChange} 
-                        placeholder="Resim URL'lerini buraya alt alta yapıştırın..." 
+                        placeholder={imageUrls.length > 0 ? "Görseller başarıyla yüklendi. Ek URL eklemek isterseniz buraya yazabilirsiniz..." : "Resim linklerini buraya alt alta yapıştırın (https://...)"} 
                         style={{ padding: '0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
-                        required
                       ></textarea>
                     </div>
 
-                    {/* ANSWER KEY SECTION FOR MULTIPLE CHOICE IMAGE QUESTIONS */}
-                    {formData.type === 'coktan_secmeli' ? (
-                      <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                          <div>
-                            <h4 style={{ margin: 0, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '1.05rem' }}>🔘 Görsel Sorular Cevap Anahtarı</h4>
-                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b' }}>Görsel soruların doğru cevap şıklarını belirleyin.</p>
-                          </div>
-                          <span style={{ background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe' }}>
-                            Toplam {imageUrls.length || 1} Görsel Soru
-                          </span>
-                        </div>
-                        {/* FAST BULK ANSWER KEY STRING INPUT BOX FOR IMAGE QUESTIONS */}
-                        <div style={{ marginBottom: '1.25rem', background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(165,180,252,0.25)' : '1.5px solid #bfdbfe' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#c7d2fe' : '#1e40af', display: 'block', marginBottom: '0.35rem' }}>
+                    {/* BULK ANSWER KEY FOR MULTIPLE CHOICE */}
+                    {formData.type === 'coktan_secmeli' && (
+                      <div style={{ background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff', padding: '1rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(165,180,252,0.25)' : '1.5px solid #bfdbfe' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#c7d2fe' : '#1e40af', margin: 0 }}>
                             ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
                           </label>
-                          <input
-                            type="text"
-                            value={formData.bulkAnswerKey}
-                            onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
-                            placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: isDark ? '1.5px solid rgba(165,180,252,0.4)' : '1.5px solid #93c5fd', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
-                          />
+                          <span style={{ background: isDark ? 'rgba(99,102,241,0.2)' : '#dbeafe', color: isDark ? '#c7d2fe' : '#1e40af', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                            Toplam {imageUrls.length || 1} Soru
+                          </span>
                         </div>
+                        <input
+                          type="text"
+                          value={formData.bulkAnswerKey}
+                          onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
+                          placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
+                          style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: isDark ? '1.5px solid rgba(165,180,252,0.4)' : '1.5px solid #93c5fd', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    )}
 
-                        {/* LARGE READABLE VISUAL QUESTION CARDS WITH OPTIC BUBBLE BUTTONS */}
-                        <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', padding: '0.25rem' }}>
-                          {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
-                            const selectedOpt = imageAnswers[idx];
-                            return (
-                              <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                    {/* OPEN-ENDED BANNER WHEN AÇIK UÇLU */}
+                    {formData.type === 'acik_uclu' && (
+                      <div style={{ background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <p style={{ margin: 0, fontWeight: 800, color: isDark ? '#fde68a' : '#b45309', fontSize: '0.85rem' }}>
+                          📝 Açık Uçlu Sınav: Öğrenciler her görsel soru için metin kutusuna yazılı yanıt girecektir.
+                        </p>
+                        <span style={{ background: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7', color: isDark ? '#fde68a' : '#b45309', fontWeight: 900, fontSize: '0.75rem', padding: '0.25rem 0.65rem', borderRadius: '20px' }}>
+                          Toplam {imageUrls.length || 1} Soru
+                        </span>
+                      </div>
+                    )}
+
+                    {/* LARGE READABLE VISUAL QUESTION CARDS FOR BOTH MULTIPLE-CHOICE & OPEN-ENDED */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '1rem' }}>
+                          🖼️ Yüklenen Görsel Sorular ({imageUrls.length || 1})
+                        </h4>
+                      </div>
+
+                      <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', padding: '0.25rem' }}>
+                        {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
+                          const selectedOpt = imageAnswers[idx];
+                          return (
+                            <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>🖼️ Görsel Soru {idx + 1}</span>
-                                  {selectedOpt !== undefined && (
-                                    <span style={{ background: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5', color: isDark ? '#34d399' : '#059669', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                                      ✓ Cevap: {String.fromCharCode(65 + selectedOpt)}
+                                  {formData.type === 'coktan_secmeli' && selectedOpt !== undefined && (
+                                    <span style={{ background: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5', color: isDark ? '#34d399' : '#059669', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0', fontWeight: 900, fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>
+                                      ✓ {String.fromCharCode(65 + selectedOpt)}
                                     </span>
                                   )}
                                 </div>
-
-                                {/* Large Readable Image Box */}
-                                {url ? (
-                                  <div
-                                    onClick={() => setPreviewImage(url)}
-                                    title="Görseli daha da büyütmek için tıklayın"
-                                    style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
+                                {imageUrls.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveImageAtIndex(idx)}
+                                    title="Bu görsel soruyu kaldır"
+                                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', borderRadius: '0.45rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                                   >
-                                    <img src={url} alt={`Görsel Soru ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '0.5rem' }} onError={e => { e.target.style.display = 'none'; }} />
-                                  </div>
-                                ) : (
-                                  <div style={{ padding: '2rem', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
-                                    Resim yüklenmedi
-                                  </div>
+                                    <Trash2 size={13} /> Kaldır
+                                  </button>
                                 )}
+                              </div>
 
-                                {/* Optic Bubbles A B C D E */}
+                              {/* Large Readable Image Box */}
+                              {url ? (
+                                <div
+                                  onClick={() => setPreviewImage(url)}
+                                  title="Görseli daha da büyütmek için tıklayın"
+                                  style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '300px', overflow: 'hidden', cursor: 'pointer' }}
+                                >
+                                  <img src={url} alt={`Görsel Soru ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '0.5rem' }} onError={e => { e.target.style.display = 'none'; }} />
+                                </div>
+                              ) : (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', background: isDark ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+                                  Resim yüklenmedi
+                                </div>
+                              )}
+
+                              {/* Optic Bubbles A B C D E (If Multiple Choice) */}
+                              {formData.type === 'coktan_secmeli' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', alignItems: 'center' }}>
                                   <div style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
@@ -3607,13 +3726,13 @@ export default function QuestionBank() {
                                           onClick={() => setImageAnswers({ ...imageAnswers, [idx]: isSelected ? undefined : optIdx })}
                                           style={{
                                             flex: 1,
-                                            height: '42px',
+                                            height: '40px',
                                             borderRadius: '0.65rem',
                                             border: isSelected ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
                                             background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                                             color: isSelected ? '#ffffff' : (isDark ? '#ffffff' : '#334155'),
                                             fontWeight: 900,
-                                            fontSize: '1rem',
+                                            fontSize: '0.95rem',
                                             cursor: 'pointer',
                                             boxShadow: isSelected ? '0 4px 14px rgba(16,185,129,0.3)' : 'none',
                                             transition: 'all 0.15s ease',
@@ -3631,20 +3750,35 @@ export default function QuestionBank() {
                                     })}
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                              ) : (
+                                <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.6rem', background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fffbeb', border: isDark ? '1px solid rgba(251, 191, 36, 0.25)' : '1px solid #fde68a', textAlign: 'center', fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#fde68a' : '#b45309' }}>
+                                  📝 Açık Uçlu (Metin Yanıtlı)
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
 
+                      {/* ADD MORE IMAGES BUTTON */}
+                      <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                        <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '0.75rem', background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', border: isDark ? '1.5px dashed rgba(165,180,252,0.4)' : '1.5px dashed #93c5fd', color: isDark ? '#c7d2fe' : '#2563eb', fontWeight: 800, fontSize: '0.9rem' }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={e => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                handleMultipleFilesSelected(e.target.files, true);
+                              }
+                            }}
+                          />
+                          <Plus size={18} /> ➕ Bu Sete Daha Fazla Görsel Soru Ekle
+                        </label>
                       </div>
-                    ) : (
-                      /* OPEN-ENDED BANNER FOR IMAGE QUESTIONS */
-                      <div style={{ background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a' }}>
-                        <p style={{ margin: 0, fontWeight: 800, color: isDark ? '#fde68a' : '#b45309', fontSize: '0.85rem' }}>
-                          📝 Görsel sorular "Açık Uçlu (Metin Yanıtlı)" olarak belirlenmiştir. Öğrenciler cevabı metin kutusuna yazacaklardır.
-                        </p>
-                      </div>
-                    )}
+                    </div>
+
                   </div>
                 )}
 
@@ -4062,30 +4196,31 @@ export default function QuestionBank() {
 
                     {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
                     {(() => {
-                      const rawList = [];
-                      if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
-                        q.imageUrls.forEach(u => {
-                          if (u && typeof u === 'string') {
-                            const parts = u.split(/\n\n|\n|\|/).map(p => p.trim()).filter(Boolean);
-                            parts.forEach(p => { if (!rawList.includes(p)) rawList.push(p); });
-                          }
-                        });
-                      }
-                      if (rawList.length === 0 && q.contentPayload && typeof q.contentPayload === 'string') {
-                        const parts = q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(Boolean);
-                        parts.forEach(p => { if (!rawList.includes(p)) rawList.push(p); });
-                      }
-                      const imageList = rawList.length > 0 ? rawList : (q.contentPayload ? [q.contentPayload] : []);
+                      const extracted = Array.from(new Set([
+                        ...(Array.isArray(q.imageUrls) ? q.imageUrls : []),
+                        ...(q.questionsList && Array.isArray(q.questionsList) ? q.questionsList.map(sq => sq.imageUrl || sq.contentPayload) : []),
+                        ...extractImageUrls(q.contentPayload),
+                        ...extractImageUrls(q)
+                      ].filter(Boolean))).filter(isValidImageUrl).map(normalizeImageUrl);
+
+                      const rawList = extracted.length > 0 ? extracted : (q.contentPayload ? q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(isValidImageUrl).map(normalizeImageUrl) : []);
+                      const imageList = rawList.length > 0 ? rawList : (q.contentPayload && isValidImageUrl(q.contentPayload) ? [normalizeImageUrl(q.contentPayload)] : []);
 
                       const getCorrectIdxForImg = (imgIdx) => {
                         if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
-                          return q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65;
+                          return typeof q.answerKey[imgIdx] === 'number' ? q.answerKey[imgIdx] : (q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65);
                         }
                         if (q.imageAnswers && q.imageAnswers[imgIdx] !== undefined) {
                           return q.imageAnswers[imgIdx];
                         }
+                        if (q.questionsList && Array.isArray(q.questionsList) && q.questionsList[imgIdx]) {
+                          const subQ = q.questionsList[imgIdx];
+                          if (subQ.correctAnswer !== undefined) {
+                            return typeof subQ.correctAnswer === 'number' ? subQ.correctAnswer : (typeof subQ.correctAnswer === 'string' && /^[A-E]$/i.test(subQ.correctAnswer.trim()) ? subQ.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : -1);
+                          }
+                        }
                         if (imgIdx === 0 && q.correctAnswer !== undefined) {
-                          return q.correctAnswer;
+                          return typeof q.correctAnswer === 'number' ? q.correctAnswer : (typeof q.correctAnswer === 'string' && /^[A-E]$/i.test(q.correctAnswer.trim()) ? q.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : -1);
                         }
                         return -1;
                       };

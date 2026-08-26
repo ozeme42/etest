@@ -98,20 +98,22 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
 
   // Get all image URLs
   const allImageUrls = useMemo(() => {
-    let urls = [];
-    if (questions && questions.length > 0) {
+    const list = [];
+    if (Array.isArray(questions) && questions.length > 0) {
       questions.forEach(q => {
-        urls.push(...extractImageUrls(q));
+        const qUrls = extractImageUrls(q);
+        qUrls.forEach(u => { if (!list.includes(u)) list.push(u); });
       });
     }
-    if (urls.length === 0) {
-      urls.push(...extractImageUrls(test));
-    }
+    const testUrls = extractImageUrls(test);
+    testUrls.forEach(u => { if (!list.includes(u)) list.push(u); });
+
     if (idbPayload) {
-      urls.push(...extractImageUrls(idbPayload));
+      const idbUrls = extractImageUrls(idbPayload);
+      idbUrls.forEach(u => { if (!list.includes(u)) list.push(u); });
     }
 
-    return Array.from(new Set(urls.filter(isValidImageUrl)));
+    return list.filter(isValidImageUrl).map(normalizeImageUrl);
   }, [questions, test, idbPayload]);
 
   const activeQuestion = questions[currentIndex] || questions[0] || {};

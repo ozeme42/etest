@@ -1060,10 +1060,18 @@ export async function dbGetQuestions() {
       rawData = rawData && typeof rawData === 'object' ? rawData : {};
 
       const rawPayload = q.content_payload || rawData.contentPayload || '';
-      const contentPayload = rawPayload.startsWith('http') ? rawPayload : 
+      const contentPayload = rawPayload.startsWith('http') || rawPayload.includes('|') ? rawPayload : 
                              (rawPayload.startsWith('data:') && rawPayload.length > 500000 ? '' : rawPayload);
 
       const realId = rawData.id || String(q.id);
+
+      let finalImageUrls = rawData.imageUrls || q.imageUrls || null;
+      if ((!finalImageUrls || finalImageUrls.length === 0 || (Array.isArray(finalImageUrls) && finalImageUrls.every(u => u === '[STORED_IN_INDEXEDDB]'))) && typeof rawPayload === 'string' && (rawPayload.includes('|') || rawPayload.includes('http'))) {
+        const parts = rawPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('http') || (s.startsWith('data:') && s.length < 500000));
+        if (parts.length > 0) {
+          finalImageUrls = parts;
+        }
+      }
 
       return {
         ...rawData,
@@ -1077,7 +1085,7 @@ export async function dbGetQuestions() {
         contentPayload: contentPayload || rawData.contentPayload || '',
         isBundle: q.is_bundle !== undefined ? q.is_bundle : (rawData.isBundle || false),
         questionsList: rawData.questionsList || q.questionsList || null,
-        imageUrls: rawData.imageUrls || q.imageUrls || null,
+        imageUrls: finalImageUrls,
         answerKey: q.answer_key || rawData.answerKey || [],
         title: q.title || rawData.title || '',
         questionCount: q.question_count || rawData.questionCount || 1,
@@ -1085,7 +1093,7 @@ export async function dbGetQuestions() {
         options: q.options || rawData.options || [],
         correctAnswer: q.correct_answer !== undefined ? q.correct_answer : (rawData.correctAnswer || '0'),
         explanation: q.explanation || rawData.explanation || '',
-        imageUrl: q.image_url || rawData.imageUrl || ''
+        imageUrl: q.image_url || rawData.imageUrl || (Array.isArray(finalImageUrls) ? finalImageUrls[0] : '') || ''
       };
     });
   } catch (err) {
@@ -1221,6 +1229,12 @@ export async function dbAddQuestion(q) {
       }
     }
 
+    if (typeof safeRaw.imageUrl === 'string' && safeRaw.imageUrl.startsWith('data:')) {
+      const res = await processBase64String(safeRaw.imageUrl, 'single_img');
+      safeRaw.imageUrl = res;
+      q.imageUrl = res;
+    }
+
     // Process sub-questions in questionsList
     if (Array.isArray(safeRaw.questionsList)) {
       for (let i = 0; i < safeRaw.questionsList.length; i++) {
@@ -1229,6 +1243,11 @@ export async function dbAddQuestion(q) {
            const res = await processPayload(sq.contentPayload, `sq_${i}`);
            sq.contentPayload = res;
            q.questionsList[i].contentPayload = res;
+        }
+        if (sq.imageUrl) {
+           const res = await processBase64String(sq.imageUrl, `sq_img_${i}`);
+           sq.imageUrl = res;
+           q.questionsList[i].imageUrl = res;
         }
       }
     }
@@ -1246,6 +1265,15 @@ export async function dbAddQuestion(q) {
     }
 
     const dbContentPayload = finalContentPayload;
+
+    let cleanImageUrl = '';
+    if (typeof q.imageUrl === 'string' && q.imageUrl.startsWith('http')) {
+      cleanImageUrl = q.imageUrl;
+    } else if (Array.isArray(safeRaw.imageUrls) && typeof safeRaw.imageUrls[0] === 'string' && safeRaw.imageUrls[0].startsWith('http')) {
+      cleanImageUrl = safeRaw.imageUrls[0];
+    } else if (typeof safeRaw.imageUrl === 'string' && safeRaw.imageUrl.startsWith('http')) {
+      cleanImageUrl = safeRaw.imageUrl;
+    }
 
     const payload = {
       id: dbId,
@@ -1265,7 +1293,7 @@ export async function dbAddQuestion(q) {
       options: q.options || [],
       correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
       explanation: q.explanation || '',
-      image_url: q.imageUrl || ''
+      image_url: cleanImageUrl
     };
 
     let { data, error } = await supabase.from('questions').upsert([payload], { onConflict: 'id' }).select();
@@ -1280,7 +1308,7 @@ export async function dbAddQuestion(q) {
         options: q.options || [],
         correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
         explanation: JSON.stringify(safeRaw),
-        image_url: q.imageUrl || ''
+        image_url: cleanImageUrl
       };
       const res = await supabase.from('questions').upsert([fallbackPayload], { onConflict: 'id' }).select();
       if (res.error) throw res.error;
