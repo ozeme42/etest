@@ -19,8 +19,8 @@ export default function StudentBookDetailsPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { users = [] } = useUser();
-  const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
-  const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
+  const { homeworks = [], isLoading: hwLoading, updateHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest, updateTrackedBook } = useTrackedBooks();
   const { submissions = [], updateSubmission, deleteSubmission, deleteStudentSubmissionsForBookOrHw, deleteSubmissionsByTestId } = useEvaluation();
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function StudentBookDetailsPage() {
   const [openTopics, setOpenTopics] = useState({});
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
-  const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, answerKey: {}, pdfUrl: '' });
+  const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, answerKey: {}, pdfUrl: '', dueDate: '' });
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
@@ -47,7 +47,8 @@ export default function StudentBookDetailsPage() {
       name: test.name || '',
       questionCount: test.questionCount || 20,
       answerKey: test.answerKey || {},
-      pdfUrl: test.pdfUrl || ''
+      pdfUrl: test.pdfUrl || '',
+      dueDate: test.testDueDate || test.dueDate || ''
     });
     setIsEditTestModalOpen(true);
   };
@@ -55,6 +56,9 @@ export default function StudentBookDetailsPage() {
   const handleSaveEditTest = async () => {
     if (!editingTest || !editTestFormData.name?.trim()) return;
     try {
+      const dStr = editTestFormData.dueDate || null;
+
+      // 1. Update tracked_book_tests
       await updateTrackedBookTest(editingTest.id, {
         bookId: String(book?.id || editingTest.bookId),
         subjectId: editingTest.subjectId ? String(editingTest.subjectId) : null,
@@ -62,11 +66,43 @@ export default function StudentBookDetailsPage() {
         name: editTestFormData.name.trim(),
         questionCount: Number(editTestFormData.questionCount) || 20,
         answerKey: editTestFormData.answerKey || {},
-        pdfUrl: editTestFormData.pdfUrl || ''
+        pdfUrl: editTestFormData.pdfUrl || '',
+        dueDate: dStr,
+        testDueDate: dStr,
+        date: dStr
       });
+
+      // 2. Update matching homework in HomeworkContext & Supabase
+      const bId = String(book?.id || editingTest.bookId || '');
+      const matchingHws = (homeworks || []).filter(hw => hw.isBookAssignment && (String(hw.bookId || hw.book_id) === bId || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(bId))));
+      if (matchingHws.length > 0 && typeof updateHomework === 'function') {
+        for (const mHw of matchingHws) {
+          const nextDueMap = { ...(mHw.testDueDates || mHw.scheduleDates || {}) };
+          if (dStr) {
+            nextDueMap[editingTest.id] = dStr;
+          } else {
+            delete nextDueMap[editingTest.id];
+          }
+          await updateHomework(mHw.id, { testDueDates: nextDueMap });
+        }
+      }
+
+      // 3. Update book.subjects tests inside the book object
+      if (typeof updateTrackedBook === 'function' && book?.id) {
+        const updatedSubjects = (book.subjects || []).map(s => ({
+          ...s,
+          tests: (s.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, dueDate: dStr, testDueDate: dStr } : t),
+          topics: (s.topics || []).map(tp => ({
+            ...tp,
+            tests: (tp.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, dueDate: dStr, testDueDate: dStr } : t)
+          }))
+        }));
+        await updateTrackedBook(book.id, { subjects: updatedSubjects });
+      }
+
       setIsEditTestModalOpen(false);
     } catch (e) {
-      console.error(e);
+      console.error('Save test error:', e);
     }
   };
 
@@ -2709,6 +2745,18 @@ export default function StudentBookDetailsPage() {
                 onChange={e => setEditTestFormData(p => ({ ...p, pdfUrl: e.target.value }))} 
                 placeholder="https://drive.google.com/... veya PDF URL" 
                 style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontSize: '0.85rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                📅 Hedef / Bitirme Tarihi (Çalışma Programı)
+              </label>
+              <input 
+                type="date" 
+                value={editTestFormData.dueDate || ''} 
+                onChange={e => setEditTestFormData(p => ({ ...p, dueDate: e.target.value }))} 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1.5px solid #6366f1', fontSize: '0.85rem', fontWeight: 800, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
               />
             </div>
 

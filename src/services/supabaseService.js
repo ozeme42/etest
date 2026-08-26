@@ -1771,6 +1771,8 @@ export async function dbGetTrackedBooks() {
       const topId = t.topic_id ? String(t.topic_id) : null;
       const name = String(t.name || 'Test').trim();
 
+      const testDueDate = t.due_date || t.dueDate || ansMeta.dueDate || ansMeta.testDueDate || t.date || null;
+
       const testObj = {
         id: String(t.id),
         bookId: canonicalBookId,
@@ -1783,6 +1785,9 @@ export async function dbGetTrackedBooks() {
         questionType: qType,
         optionCount: Number(t.option_count || t.optionCount || ansMeta.optionCount) || undefined,
         pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
+        dueDate: testDueDate,
+        testDueDate: testDueDate,
+        date: testDueDate,
         createdAt: t.created_at
       };
 
@@ -2022,7 +2027,8 @@ export async function dbAddTrackedBookTest(test) {
         optionCount: test.optionCount,
         pdfUrl: test.pdfUrl || test.pdf_url || '',
         subjectId: sId ? String(sId) : '',
-        topicId: topId ? String(topId) : ''
+        topicId: topId ? String(topId) : '',
+        dueDate: test.dueDate || test.due_date || test.testDueDate || test.date || ansMeta.dueDate || ''
       }
     };
 
@@ -2085,7 +2091,8 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
           optionCount: t.optionCount,
           pdfUrl: t.pdfUrl || t.pdf_url || '',
           subjectId: sId ? String(sId) : '',
-          topicId: topId ? String(topId) : ''
+          topicId: topId ? String(topId) : '',
+          dueDate: t.dueDate || t.due_date || t.testDueDate || t.date || ansMeta.dueDate || ''
         }
       };
 

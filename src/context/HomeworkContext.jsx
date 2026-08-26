@@ -194,17 +194,43 @@ export function HomeworkProvider({ children }) {
   };
 
   const updateHomework = async (id, hwData) => {
+    const idStr = String(id || '');
+    const idUuid = toUUID(idStr);
+
     const bigPayload = hwData.htmlPayload || hwData.pdfPayload || hwData.contentPayload;
     if (bigPayload && typeof bigPayload === 'string' && bigPayload.length > 500 && !bigPayload.startsWith('http')) {
       try {
-        await idbSetPayload(id, bigPayload);
+        await idbSetPayload(idStr, bigPayload);
       } catch (e) {}
     }
 
-    setHomeworks(prev => prev.map(hw => hw.id === id ? { ...hw, ...hwData } : hw));
-    const targetHw = homeworks.find(h => h.id === id);
-    if (targetHw) {
-      await dbAddHomework({ ...targetHw, ...hwData });
+    let updatedTarget = null;
+    setHomeworks(prev => {
+      const next = prev.map(hw => {
+        const isMatch = String(hw.id) === idStr || (idUuid && String(hw.id) === idUuid) || (toUUID(hw.id) && String(toUUID(hw.id)) === idUuid);
+        if (isMatch) {
+          updatedTarget = { ...hw, ...hwData, id: hw.id };
+          return updatedTarget;
+        }
+        return hw;
+      });
+      try {
+        localStorage.setItem('eTestHomeworks', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (!updatedTarget) {
+      const targetHw = homeworks.find(h => String(h.id) === idStr || (idUuid && String(h.id) === idUuid) || (toUUID(h.id) && String(toUUID(h.id)) === idUuid));
+      if (targetHw) {
+        updatedTarget = { ...targetHw, ...hwData, id: targetHw.id };
+      } else {
+        updatedTarget = { id: idStr, ...hwData };
+      }
+    }
+
+    if (updatedTarget) {
+      await dbAddHomework(updatedTarget);
     }
   };
 

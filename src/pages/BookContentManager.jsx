@@ -4439,13 +4439,49 @@ export default function BookContentManager() {
                 <button
                   className="btn btn-primary"
                   onClick={async () => {
-                    if (typeof updateHomework === 'function') {
-                      await updateHomework(scheduleModalHw.id, {
-                        testDueDates: scheduleDates
-                      });
+                    try {
+                      // 1. Update homework in HomeworkContext (and Supabase homeworks table)
+                      if (typeof updateHomework === 'function' && scheduleModalHw?.id) {
+                        await updateHomework(scheduleModalHw.id, {
+                          testDueDates: scheduleDates
+                        });
+                      }
+
+                      // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)
+                      if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(scheduleDates).length > 0) {
+                        const testsToUpdate = Object.entries(scheduleDates).map(([tId, dStr]) => {
+                          const existingTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
+                          return {
+                            ...(existingTest || {}),
+                            id: tId,
+                            bookId: book?.id,
+                            dueDate: dStr,
+                            testDueDate: dStr,
+                            date: dStr
+                          };
+                        });
+                        await batchSaveTrackedBookTests(testsToUpdate);
+                      }
+
+                      // 3. Update book.subjects tests inside the book object
+                      if (typeof updateTrackedBook === 'function' && book?.id) {
+                        const updatedSubjects = (book.subjects || []).map(s => ({
+                          ...s,
+                          tests: (s.tests || []).map(t => scheduleDates[t.id] ? { ...t, dueDate: scheduleDates[t.id], testDueDate: scheduleDates[t.id] } : t),
+                          topics: (s.topics || []).map(tp => ({
+                            ...tp,
+                            tests: (tp.tests || []).map(t => scheduleDates[t.id] ? { ...t, dueDate: scheduleDates[t.id], testDueDate: scheduleDates[t.id] } : t)
+                          }))
+                        }));
+                        await updateTrackedBook(book.id, { subjects: updatedSubjects });
+                      }
+
+                      showToast('Test bazlı bitirme tarihleri veritabanına başarıyla kaydedildi! 🎉');
+                      setScheduleModalHw(null);
+                    } catch (err) {
+                      console.error('Error saving schedule dates:', err);
+                      showToast('Tarihler kaydedilirken hata oluştu!', 'error');
                     }
-                    showToast('Test bazlı bitirme tarihleri başarıyla kaydedildi! 🎉');
-                    setScheduleModalHw(null);
                   }}
                   style={{ padding: '0.65rem 1.6rem', fontWeight: 900, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(14,165,233,0.35)' }}
                 >
