@@ -878,7 +878,7 @@ export default function ScreenSnipperAndSolverModal({
                     {showSimilarQuestion && (
                       <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'var(--color-surface)' }}>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem' }}>
-                          {solution.similarQuestion.questionText}
+                          {cleanAiMathText(solution.similarQuestion.questionText)}
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -915,7 +915,7 @@ export default function ScreenSnipperAndSolverModal({
                                   fontWeight: 600
                                 }}
                               >
-                                {opt}
+                                {cleanAiMathText(opt)}
                               </button>
                             );
                           })}
@@ -933,7 +933,7 @@ export default function ScreenSnipperAndSolverModal({
                             {selectedSimilarAnswer === solution.similarQuestion.correctAnswerLetter ? '🎉 Tebrikler, doğru cevap!' : `❌ Yanlış. Doğru cevap: ${solution.similarQuestion.correctAnswerLetter}`}
                             {solution.similarQuestion.explanation && (
                               <div style={{ marginTop: 4, color: 'var(--color-text)', fontWeight: 500 }}>
-                                {solution.similarQuestion.explanation}
+                                {cleanAiMathText(solution.similarQuestion.explanation)}
                               </div>
                             )}
                           </div>

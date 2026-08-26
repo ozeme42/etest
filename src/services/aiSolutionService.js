@@ -43,32 +43,43 @@ export function cleanAiMathText(str) {
   res = res.replace(/^(\d+[\.\)]\s*(?:Adım|Aşama)[:\-]?|\s*(?:Adım|Aşama)\s*\d+[:\-]?)\s*/i, '');
 
   // 2. Clean LaTeX \text{...} -> ...
-  res = res.replace(/\\text\{([^}]+)\}/g, '$1');
+  res = res.replace(/\\text\s*\{([^}]+)\}/gi, '$1');
+  res = res.replace(/\\mathrm\s*\{([^}]+)\}/gi, '$1');
+  res = res.replace(/\\mathbf\s*\{([^}]+)\}/gi, '$1');
 
-  // 3. Clean LaTeX \frac{a}{b} -> (a / b) or a / b
-  res = res.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 / $2');
+  // 3. Clean LaTeX \frac{a}{b} -> a / b
+  res = res.replace(/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/gi, '$1 / $2');
 
   // 4. Clean LaTeX math symbols
-  res = res.replace(/\\times/g, '×');
-  res = res.replace(/\\cdot/g, '·');
-  res = res.replace(/\\div/g, '÷');
-  res = res.replace(/\\pm/g, '±');
-  res = res.replace(/\\neq/g, '≠');
-  res = res.replace(/\\leq/g, '≤');
-  res = res.replace(/\\geq/g, '≥');
-  res = res.replace(/\\approx/g, '≈');
-  res = res.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
-  res = res.replace(/\\sqrt/g, '√');
-  res = res.replace(/\\pi/g, 'π');
-  res = res.replace(/\\degree/g, '°');
-  res = res.replace(/\\circ/g, '°');
+  res = res.replace(/\\times/gi, '×');
+  res = res.replace(/\\cdot/gi, '·');
+  res = res.replace(/\\div/gi, '÷');
+  res = res.replace(/\\pm/gi, '±');
+  res = res.replace(/\\neq/gi, '≠');
+  res = res.replace(/\\leq/gi, '≤');
+  res = res.replace(/\\geq/gi, '≥');
+  res = res.replace(/\\approx/gi, '≈');
+  res = res.replace(/\\sqrt\s*\{([^}]+)\}/gi, '√($1)');
+  res = res.replace(/\\sqrt/gi, '√');
+  res = res.replace(/\\pi/gi, 'π');
+  res = res.replace(/\\degree/gi, '°');
+  res = res.replace(/\\circ/gi, '°');
+  res = res.replace(/\\infty/gi, '∞');
+  res = res.replace(/\\Delta/gi, 'Δ');
+  res = res.replace(/\\alpha/gi, 'α');
+  res = res.replace(/\\beta/gi, 'β');
+  res = res.replace(/\\theta/gi, 'θ');
 
   // 5. Clean dollar signs used for inline math $x$ -> x
-  res = res.replace(/\$([^\$]+)\$/g, '$1');
+  res = res.replace(/\$([^$]+)\$/g, '$1');
   res = res.replace(/\$/g, '');
 
-  // 6. Clean remaining backslashes before plain words
+  // 6. Clean escaped braces or remaining backslashes
+  res = res.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
   res = res.replace(/\\([a-zA-Z]+)/g, '$1');
+
+  // 7. Clean multiple consecutive spaces
+  res = res.replace(/[ \t]{2,}/g, ' ');
 
   return res.trim();
 }
