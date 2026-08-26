@@ -2661,28 +2661,30 @@ export async function dbGetSystemAiConfig() {
       }
     } catch {}
 
-    // 3. Check coaching_profiles table
+    // 3. Check coaching_profiles table (including any teacher user_ai_config_ rows)
     try {
       const { data: cData } = await supabase
         .from('coaching_profiles')
         .select('*')
-        .or(`id.eq.${storeIdUuid},target_school.eq.SYSTEM_AI_SETTINGS,target_school.eq.AI_SETTINGS`)
-        .limit(10);
+        .limit(20);
 
       if (Array.isArray(cData) && cData.length > 0) {
         for (const row of cData) {
-          const extraRaw = row.extra_data || row.data || row.raw_data;
-          if (extraRaw) {
-            const parsed = typeof extraRaw === 'string' ? JSON.parse(extraRaw) : extraRaw;
-            const key = parsed?.apiKey || parsed?.gemini_api_key || parsed?.key || null;
-            const model = parsed?.defaultModel || parsed?.model || localModel;
-            if (key && String(key).trim()) {
-              const cleanKey = String(key).trim();
-              localStorage.setItem('system_ai_api_key', cleanKey);
-              localStorage.setItem('gemini_api_key', cleanKey);
-              localStorage.setItem('eTestGeminiApiKey', cleanKey);
-              return { apiKey: cleanKey, defaultModel: model };
-            }
+          let parsed = row.extra_data || row.data || row.raw_data;
+          if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch {}
+          }
+          if (parsed && typeof parsed.extra_data === 'string') {
+            try { parsed = JSON.parse(parsed.extra_data); } catch {}
+          }
+          const key = parsed?.apiKey || parsed?.gemini_api_key || parsed?.key || null;
+          const model = parsed?.defaultModel || parsed?.model || localModel;
+          if (key && String(key).trim()) {
+            const cleanKey = String(key).trim();
+            localStorage.setItem('system_ai_api_key', cleanKey);
+            localStorage.setItem('gemini_api_key', cleanKey);
+            localStorage.setItem('eTestGeminiApiKey', cleanKey);
+            return { apiKey: cleanKey, defaultModel: model };
           }
         }
       }

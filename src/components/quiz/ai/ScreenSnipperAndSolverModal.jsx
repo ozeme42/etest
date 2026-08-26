@@ -115,7 +115,11 @@ export default function ScreenSnipperAndSolverModal({
       });
     } catch (err) {
       if (err.message === 'API_KEY_REQUIRED') {
-        setApiKeyModalOpen(true);
+        if (currentUser?.role === 'admin' || currentUser?.role === 'teacher') {
+          setApiKeyModalOpen(true);
+        } else {
+          setError('Yapay zeka çözümü için sistem anahtarı hazırlanıyor. Lütfen tekrar "Çöz" butonuna basınız.');
+        }
       } else {
         setError(err.message || 'Çözüm oluşturulurken bir hata oluştu.');
       }
