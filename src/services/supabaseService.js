@@ -1362,7 +1362,9 @@ export async function dbGetHomeworks() {
   try {
     const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false }).limit(500);
     if (error) throw error;
-    return data.map(h => {
+    return (data || [])
+      .filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'))
+      .map(h => {
       let raw = {};
       if (h.raw_data) {
         if (typeof h.raw_data === 'object') raw = h.raw_data;
@@ -2638,30 +2640,7 @@ export async function dbGetSystemAiConfig() {
       }
     } catch {}
 
-    // 2. Check homeworks table fallback
-    try {
-      const { data: hData } = await supabase
-        .from('homeworks')
-        .select('*')
-        .eq('id', 'global_ai_config')
-        .limit(1)
-        .maybeSingle();
-
-      if (hData && hData.raw_data) {
-        const raw = typeof hData.raw_data === 'string' ? JSON.parse(hData.raw_data) : hData.raw_data;
-        const key = raw.apiKey || raw.gemini_api_key;
-        if (key && String(key).trim()) {
-          const cleanKey = String(key).trim();
-          const model = raw.defaultModel || localModel;
-          localStorage.setItem('system_ai_api_key', cleanKey);
-          localStorage.setItem('gemini_api_key', cleanKey);
-          localStorage.setItem('eTestGeminiApiKey', cleanKey);
-          return { apiKey: cleanKey, defaultModel: model };
-        }
-      }
-    } catch {}
-
-    // 3. Check coaching_profiles table (including any teacher user_ai_config_ rows)
+    // 2. Check coaching_profiles table (including any teacher user_ai_config_ rows)
     try {
       const { data: cData } = await supabase
         .from('coaching_profiles')
@@ -2749,23 +2728,7 @@ export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
       await supabase.from('summaries').upsert([summaryPayload], { onConflict: 'id' });
     } catch {}
 
-    // 2. Save to homeworks table (JSON raw_data store)
-    try {
-      const hwPayload = {
-        id: 'global_ai_config',
-        title: 'GLOBAL_AI_CONFIG',
-        subject: 'SYSTEM',
-        due_date: '2099-12-31',
-        raw_data: {
-          apiKey: cleanKey,
-          defaultModel: modelToSave,
-          updatedAt: new Date().toISOString()
-        }
-      };
-      await supabase.from('homeworks').upsert([hwPayload], { onConflict: 'id' });
-    } catch {}
-
-    // 3. Save to coaching_profiles with UUID id
+    // 2. Save to coaching_profiles with UUID id
     try {
       const coachingPayloadUuid = {
         id: storeIdUuid,
