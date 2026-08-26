@@ -1820,7 +1820,7 @@ export function MonthlyListPanel({
           const tUuidStr = String(toUUID(tIdStr) || '');
           const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
 
-          let currentBook = bookObj || (allTrackedBooks || []).find(b => 
+          let currentBook = bookObj || (books || []).find(b => 
             String(b?.id) === String(hw?.bookId || hw?.book_id) || 
             (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId || hw?.book_id))) ||
             (hw?.title && String(b?.title).toLowerCase().trim().includes(String(hw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
@@ -1866,7 +1866,7 @@ export function MonthlyListPanel({
           }
 
           if (!subjObj && (!tObj || !tObj.subjectId)) {
-            for (const b of (allTrackedBooks || [])) {
+            for (const b of (books || [])) {
               if (!b.subjects) continue;
               for (const s of b.subjects) {
                 if (s.tests) {
@@ -3642,7 +3642,7 @@ export default function ProgramCenter({
           const tUuidStr = String(toUUID(tIdStr) || '');
           const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
 
-          let currentBook = bookObj || (allTrackedBooks || []).find(b => 
+          let currentBook = bookObj || (books || []).find(b => 
             String(b?.id) === String(hw?.bookId || hw?.book_id) || 
             (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(hw?.bookId || hw?.book_id))) ||
             (hw?.title && String(b?.title).toLowerCase().trim().includes(String(hw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
@@ -3688,7 +3688,7 @@ export default function ProgramCenter({
           }
 
           if (!subjObj && (!tObj || !tObj.subjectId)) {
-            for (const b of (allTrackedBooks || [])) {
+            for (const b of (books || [])) {
               if (!b.subjects) continue;
               for (const s of b.subjects) {
                 if (s.tests) {
