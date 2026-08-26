@@ -890,7 +890,7 @@ export default function TrackedBookQuizRunner() {
   const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: isMobile ? 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)' : 0, boxSizing: 'border-box', overflow: 'hidden', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* ── HEADER ── */}
       <header style={{ 
@@ -1211,7 +1211,7 @@ export default function TrackedBookQuizRunner() {
           display: 'flex',
           flexDirection: (effectivePdfMode === 'top' || isMobile) ? 'column' : 'row',
           flex: 1,
-          overflow: 'hidden',
+          overflow: isMobile ? 'visible' : 'hidden',
           minHeight: 0,
         }}
       >
@@ -1235,7 +1235,7 @@ export default function TrackedBookQuizRunner() {
             ref={opticalContainerRef}
             style={{ 
               flex: 1, 
-              overflowY: 'auto', 
+              overflowY: isMobile ? 'visible' : 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
               minWidth: 0, 
@@ -1243,7 +1243,7 @@ export default function TrackedBookQuizRunner() {
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: !isSidePdf ? 960 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 24px) + 3.5rem) 0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: !isSidePdf ? 960 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (

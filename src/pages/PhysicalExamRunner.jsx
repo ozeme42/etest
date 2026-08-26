@@ -957,7 +957,7 @@ export default function PhysicalExamRunner() {
   const currentAnswers = answers[activeSubject?.name] || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: isMobile ? 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)' : 0, boxSizing: 'border-box', overflow: 'hidden', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* Save Feedback Toast */}
       {savedFeedbackToast && (
@@ -1269,7 +1269,7 @@ export default function PhysicalExamRunner() {
           display: 'flex',
           flexDirection: (effectivePdfMode === 'top' || isMobile) ? 'column' : 'row',
           flex: 1,
-          overflow: 'hidden',
+          overflow: isMobile ? 'visible' : 'hidden',
           minHeight: 0,
         }}
       >
@@ -1293,7 +1293,7 @@ export default function PhysicalExamRunner() {
             ref={opticalContainerRef}
             style={{ 
               flex: 1, 
-              overflowY: 'auto', 
+              overflowY: isMobile ? 'visible' : 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
               minWidth: 0, 
@@ -1305,7 +1305,7 @@ export default function PhysicalExamRunner() {
               maxWidth: !isSidePdf ? 1200 : undefined, 
               width: '100%', 
               margin: !isSidePdf ? '0 auto' : undefined, 
-              padding: isMobile ? '0.75rem 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 24px) + 3.5rem) 0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', 
+              padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', 
               display: 'flex', 
               flexDirection: 'column', 
               gap: isSidePdf ? '0.75rem' : '1rem', 

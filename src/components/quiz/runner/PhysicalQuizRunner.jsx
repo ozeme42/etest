@@ -279,7 +279,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: isMobile ? 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)' : 0, boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
@@ -525,7 +525,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           display: 'flex',
           flexDirection: pdfMode === 'top' ? 'column' : 'row',
           flex: 1,
-          overflow: 'hidden',
+          overflow: isMobile ? 'visible' : 'hidden',
           minHeight: 0,
         }}
       >
@@ -544,8 +544,8 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
         {/* RIGHT/BOTTOM: Form — scrollable */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
-            <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 24px) + 3.5rem) 0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxSizing: 'border-box' }}>
+          <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
+            <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxSizing: 'border-box' }}>
               <div style={{ background: isOpenEndedMode ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: isOpenEndedMode ? '0 8px 24px rgba(124,58,237,0.2)' : '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isOpenEndedMode ? <Pencil size={26} /> : <FileSpreadsheet size={26} />}

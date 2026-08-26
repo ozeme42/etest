@@ -221,7 +221,7 @@ export default function CompositeHomeworkReview({
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       {/* Top Header */}
       <div style={{
         background: 'var(--color-surface)',

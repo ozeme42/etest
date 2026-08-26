@@ -407,7 +407,7 @@ export default function StandardQuizRunner({ test, questions: initialQuestions, 
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 0.35rem)', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}
     >
       <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
 
