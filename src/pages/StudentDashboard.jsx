@@ -972,14 +972,14 @@ export default function StudentDashboard() {
   const resolveBookTestInfo = useCallback((testId, targetHw = null, targetBookObj = null) => {
     const tIdStr = String(testId || '');
     const tUuidStr = String(toUUID(tIdStr) || '');
-    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
 
     let tObj = (bookTests || []).find(b => {
       const bId = String(b?.id || '');
       return bId === tIdStr || 
         (tUuidStr && bId === tUuidStr) || 
         (tUuidStr && toUUID(bId) === tUuidStr) || 
-        bId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId;
+        bId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId;
     });
 
     let currentBook = targetBookObj;
@@ -999,7 +999,7 @@ export default function StudentDashboard() {
       if (b.subjects && Array.isArray(b.subjects)) {
         for (const s of b.subjects) {
           if (s.tests && Array.isArray(s.tests)) {
-            const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+            const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
             if (found) {
               if (!tObj) tObj = found;
               subjObj = s;
@@ -1010,7 +1010,7 @@ export default function StudentDashboard() {
           if (s.topics && Array.isArray(s.topics)) {
             for (const tp of s.topics) {
               if (tp.tests && Array.isArray(tp.tests)) {
-                const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId);
+                const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
                 if (found) {
                   if (!tObj) tObj = found;
                   subjObj = s;
@@ -1055,7 +1055,7 @@ export default function StudentDashboard() {
     if (!tObj && currentBook?.subjects && Array.isArray(currentBook.subjects)) {
       for (const s of currentBook.subjects) {
         for (const t of (s.tests || [])) {
-          if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId) {
+          if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId || (t.name && String(t.name).toLowerCase() === tIdStr.toLowerCase())) {
             tObj = t;
             subjObj = s;
             break;
@@ -1063,7 +1063,7 @@ export default function StudentDashboard() {
         }
         for (const tp of (s.topics || [])) {
           for (const t of (tp.tests || [])) {
-            if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '') === tCleanId) {
+            if (String(t.id) === tIdStr || (tUuidStr && toUUID(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId || (t.name && String(t.name).toLowerCase() === tIdStr.toLowerCase())) {
               tObj = t;
               subjObj = s;
               topicObj = tp;
@@ -1072,6 +1072,26 @@ export default function StudentDashboard() {
           }
         }
         if (tObj) break;
+      }
+    }
+
+    // Fallback: If testId is numeric index or matching by position in book
+    if (!tObj && currentBook?.subjects) {
+      const allFlatTests = [];
+      currentBook.subjects.forEach(s => {
+        (s.tests || []).forEach(t => allFlatTests.push({ ...t, subj: s, topic: null }));
+        (s.topics || []).forEach(tp => {
+          (tp.tests || []).forEach(t => allFlatTests.push({ ...t, subj: s, topic: tp }));
+        });
+      });
+      const numericIndex = parseInt(tCleanId.replace(/\D/g, ''), 10);
+      if (!isNaN(numericIndex) && numericIndex >= 0 && numericIndex < allFlatTests.length) {
+        const found = allFlatTests[numericIndex];
+        if (found) {
+          tObj = found;
+          if (!subjObj) subjObj = found.subj;
+          if (!topicObj) topicObj = found.topic;
+        }
       }
     }
 
@@ -1088,10 +1108,10 @@ export default function StudentDashboard() {
     }
 
     const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
-    let testName = tObj?.name;
-    if (!testName || testName === 'Test') {
-      if (tObj?.title) testName = tObj.title;
-      else if (topicName) testName = `${topicName} Testi`;
+    let testName = tObj?.name || tObj?.title;
+    if (!testName || testName === 'Test' || testName === 'Kitap Testi') {
+      if (topicName) testName = `${topicName} - Test`;
+      else if (targetHw?.title && !/^(ödev|görev|test|sınav)$/i.test(targetHw.title.trim())) testName = targetHw.title;
       else testName = 'Kitap Testi';
     }
     const qCount = tObj?.questionCount || 12;
@@ -1844,11 +1864,38 @@ export default function StudentDashboard() {
       }
       const cleanBookTitle = bookObj?.title || hw.title?.replace(/\s*\(Tüm Kitap Görevi\)/gi, '')?.replace(/\s*\(Kendi Eklediğim\)/gi, '')?.trim() || 'Takip Kitabı';
 
-      // A) Bireysel Test Tarihleri (hw.testDueDates)
-      if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-        Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+      // A) Bireysel Test Tarihleri Haritası (hw.testDueDates + bookTests + book.subjects)
+      const testDueDatesMap = {
+        ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
+      };
+
+      // Also pull test dates from bookTests if matching this book
+      (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId) || toUUID(bt.bookId) === toUUID(hw.bookId)).forEach(bt => {
+        const d = bt.dueDate || bt.testDueDate || bt.date;
+        if (d && !testDueDatesMap[bt.id]) testDueDatesMap[bt.id] = d;
+      });
+
+      // Also pull test dates from bookObj
+      (bookObj?.subjects || []).forEach(s => {
+        (s.tests || []).forEach(t => {
+          const d = t.dueDate || t.testDueDate || t.date;
+          if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
+        });
+        (s.topics || []).forEach(tp => {
+          (tp.tests || []).forEach(t => {
+            const d = t.dueDate || t.testDueDate || t.date;
+            if (d && !testDueDatesMap[t.id]) testDueDatesMap[t.id] = d;
+          });
+        });
+      });
+
+      const hasIndividualDates = Object.keys(testDueDatesMap).length > 0;
+
+      if (hasIndividualDates) {
+        Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
           if (!tDateStr) return;
           const targetDateObj = parseSafeDate(tDateStr);
+          // ONLY add to overdue catch-up IF date is strictly in the past (< today)
           if (targetDateObj && targetDateObj.getTime() < nowTime) {
             const isSolved = isTestSolvedByStudent(testId, hw.id);
             if (!isSolved) {
@@ -1867,11 +1914,11 @@ export default function StudentDashboard() {
                   isBookTask: true,
                   taskType: 'kitap',
                   categoryType: 'kitap',
-                  subject: info.subjectName || 'Matematik',
+                  subject: info.subjectName || 'Türkçe',
                   unitTopic: info.topicName || '',
                   testName: info.testName || 'Test',
                   bookTitle: info.cleanBookTitle,
-                  title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                  title: `${info.testName}${info.topicName && !info.testName.includes(info.topicName) ? ` (${info.topicName})` : ''}`,
                   questionCount: `${info.qCount} soru`,
                   dueDateStr: targetDateObj.toLocaleDateString('tr-TR'),
                   dueDateObj: targetDateObj,
@@ -1883,53 +1930,53 @@ export default function StudentDashboard() {
             }
           }
         });
-      }
+      } else {
+        // B) Tüm Kitap İçin Genel Teslim Tarihi (hw.dueDate) - Sadece bireysel tarih planlanmamışsa
+        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const dueDateObj = parseSafeDate(rawDue);
+        if (dueDateObj && dueDateObj.getTime() < nowTime) {
+          let targetTests = [];
+          if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+            targetTests = hw.tests;
+          } else if (bookObj?.id) {
+            targetTests = (bookTests || []).filter(bt => String(bt.bookId) === String(bookObj.id)).map(bt => bt.id);
+          }
 
-      // B) Tüm Kitap İçin Genel Teslim Tarihi (hw.dueDate)
-      const rawDue = hw.dueDate || hw.assignedDueDate;
-      const dueDateObj = parseSafeDate(rawDue);
-      if (dueDateObj && dueDateObj.getTime() < nowTime) {
-        let targetTests = [];
-        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-          targetTests = hw.tests;
-        } else if (bookObj?.id) {
-          targetTests = (bookTests || []).filter(bt => String(bt.bookId) === String(bookObj.id)).map(bt => bt.id);
-        }
-
-        if (targetTests.length > 0) {
-          targetTests.forEach((testId, idx) => {
-            const isSolved = isTestSolvedByStudent(testId, hw.id);
-            if (!isSolved) {
-              const key = `book_test_${hw.id}_${testId}`;
-              if (!seen.has(key)) {
-                seen.add(key);
-                const info = resolveBookTestInfo(testId, hw, bookObj);
-                list.push({
-                  id: key,
-                  hwId: hw.id,
-                  testId: testId,
-                  realTestId: testId,
-                  bookTestId: testId,
-                  bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
-                  isAutoHomework: true,
-                  isBookTask: true,
-                  taskType: 'kitap',
-                  categoryType: 'kitap',
-                  subject: info.subjectName || 'Matematik',
-                  unitTopic: info.topicName || '',
-                  testName: info.testName || `Test ${idx + 1}`,
-                  bookTitle: info.cleanBookTitle,
-                  title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                  questionCount: `${info.qCount} soru`,
-                  dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
-                  dueDateObj,
-                  time: `Son: ${dueDateObj.toLocaleDateString('tr-TR')}`,
-                  isCatchUp: true,
-                  reason: `Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')}`
-                });
+          if (targetTests.length > 0) {
+            targetTests.forEach((testId, idx) => {
+              const isSolved = isTestSolvedByStudent(testId, hw.id);
+              if (!isSolved) {
+                const key = `book_test_${hw.id}_${testId}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  const info = resolveBookTestInfo(testId, hw, bookObj);
+                  list.push({
+                    id: key,
+                    hwId: hw.id,
+                    testId: testId,
+                    realTestId: testId,
+                    bookTestId: testId,
+                    bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    categoryType: 'kitap',
+                    subject: info.subjectName || 'Türkçe',
+                    unitTopic: info.topicName || '',
+                    testName: info.testName || `Test ${idx + 1}`,
+                    bookTitle: info.cleanBookTitle,
+                    title: `${info.testName}${info.topicName && !info.testName.includes(info.topicName) ? ` (${info.topicName})` : ''}`,
+                    questionCount: `${info.qCount} soru`,
+                    dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
+                    dueDateObj,
+                    time: `Son: ${dueDateObj.toLocaleDateString('tr-TR')}`,
+                    isCatchUp: true,
+                    reason: `Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')}`
+                  });
+                }
               }
-            }
-          });
+            });
+          }
         }
       }
     });

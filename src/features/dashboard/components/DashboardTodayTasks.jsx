@@ -219,14 +219,17 @@ export default memo(function DashboardTodayTasks({
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) ? (
-                              <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 160 : 260 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
+                              <span style={{ color: 'var(--color-text)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 180 : 320 }}>
                                 📖 {task.bookTitle}
                               </span>
-                            ) : task.unitTopic ? (
-                              <span>📌 {task.unitTopic}</span>
-                            ) : null}
+                            )}
+                            {task.unitTopic && (
+                              <span style={{ color: 'var(--color-text-secondary, #4b5563)', fontWeight: 700 }}>
+                                📌 {task.unitTopic}
+                              </span>
+                            )}
                             {task.questionCount && (
                               <span>• {task.questionCount}</span>
                             )}
@@ -526,14 +529,17 @@ export default memo(function DashboardTodayTasks({
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) ? (
-                              <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 180 : 280 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
+                              <span style={{ color: 'var(--color-text)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 180 : 320 }}>
                                 📖 {task.bookTitle}
                               </span>
-                            ) : task.unitTopic ? (
-                              <span>📌 {task.unitTopic}</span>
-                            ) : null}
+                            )}
+                            {task.unitTopic && (
+                              <span style={{ color: 'var(--color-text-secondary, #4b5563)', fontWeight: 700 }}>
+                                📌 {task.unitTopic}
+                              </span>
+                            )}
                             {task.questionCount && (
                               <span>• {task.questionCount}</span>
                             )}
