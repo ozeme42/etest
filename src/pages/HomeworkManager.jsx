@@ -362,10 +362,22 @@ export default function HomeworkManager() {
     return (hw.submissions || []).find(isMatch) || (submissions || []).find(isMatch) || null;
   };
 
+  const getHomeworkTargetStudentIds = (hw) => {
+    if (!hw) return [];
+    const rawIds = (Array.isArray(hw.targetIds) && hw.targetIds.length > 0)
+      ? hw.targetIds
+      : (Array.isArray(hw.raw_data?.targetIds) && hw.raw_data.targetIds.length > 0 ? hw.raw_data.targetIds : (hw.targetIds || []));
+    const targetType = hw.targetType || hw.raw_data?.targetType || 'student';
+
+    if (targetType === 'grade' || targetType === 'class') {
+      if (rawIds.length === 0) return (students || []).map(s => s.id);
+      return (students || []).filter(s => rawIds.some(tid => isStudentInGrade(s, tid))).map(s => s.id);
+    }
+    return rawIds;
+  };
+
   const getHomeworkStats = (hw) => {
-    const ids = (hw.targetType === 'grade' || hw.targetType === 'class')
-      ? students.filter(s => (hw.targetIds || []).some(tid => isStudentInGrade(s, tid))).map(s => s.id)
-      : (hw.targetIds || []);
+    const ids = getHomeworkTargetStudentIds(hw);
     const totalStudents = ids.length;
     const testIds = getHomeworkTestIds(hw);
     const isMultiTest = testIds.length > 1;
@@ -436,17 +448,22 @@ export default function HomeworkManager() {
   };
 
   const getTargetLabel = (hw) => {
-    if (hw.targetType === 'grade' || hw.targetType === 'class') {
-      const names = (curData?.grades || []).filter(g => (hw.targetIds || []).includes(g.id) || (hw.targetIds || []).includes(g.name)).map(g => g.name);
+    const rawIds = (Array.isArray(hw.targetIds) && hw.targetIds.length > 0)
+      ? hw.targetIds
+      : (Array.isArray(hw.raw_data?.targetIds) && hw.raw_data.targetIds.length > 0 ? hw.raw_data.targetIds : (hw.targetIds || []));
+    const targetType = hw.targetType || hw.raw_data?.targetType;
+
+    if (targetType === 'grade' || targetType === 'class') {
+      const names = (curData?.grades || []).filter(g => rawIds.includes(g.id) || rawIds.includes(g.name)).map(g => g.name);
       if (names.length > 0) return names.join(', ');
       
-      const hasRawId = Array.isArray(hw.targetIds) && hw.targetIds.some(id => id.startsWith('g_') || id.startsWith('c_'));
+      const hasRawId = Array.isArray(rawIds) && rawIds.some(id => String(id).startsWith('g_') || String(id).startsWith('c_'));
       if (hasRawId) return 'Silinmiş Sınıf';
       
-      if (Array.isArray(hw.targetIds) && hw.targetIds.length > 0) return hw.targetIds.join(', ');
+      if (Array.isArray(rawIds) && rawIds.length > 0) return rawIds.join(', ');
       return 'Tüm Sınıflar';
     }
-    return (hw.targetIds?.length || 0) + ' Öğrenci';
+    return (rawIds?.length || 0) + ' Öğrenci';
   };
 
   const globalAnalytics = useMemo(() => {
@@ -1280,9 +1297,9 @@ export default function HomeworkManager() {
                                 customLabel={
                                   stats.isMultiTest
                                     ? (stats.total === 1
-                                        ? `%{stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
-                                        : `%{stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
-                                    : `%{stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
+                                        ? `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
+                                        : `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
+                                    : `%${stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
                                 }
                                 color={stats.rate === 100 ? '#10b981' : theme.color}
                               />

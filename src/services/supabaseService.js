@@ -1388,6 +1388,14 @@ export async function dbGetHomeworks() {
       const canonicalId = raw.stringId || String(h.id);
       const testDueDates = raw.testDueDates || h.test_due_dates || raw.scheduleDates || h.schedule_dates || raw.testDates || {};
 
+      const rawTargetIds = (Array.isArray(raw.targetIds) && raw.targetIds.length > 0)
+        ? raw.targetIds
+        : (Array.isArray(raw.target_ids) && raw.target_ids.length > 0)
+          ? raw.target_ids
+          : (Array.isArray(h.target_ids) && h.target_ids.length > 0 ? h.target_ids : (raw.targetIds || []));
+
+      const rawTargetType = raw.targetType || raw.target_type || h.target_type || (rawTargetIds.some(id => String(id).startsWith('g_') || String(id).startsWith('c_')) ? 'grade' : 'student');
+
       return {
         ...raw,
         id: canonicalId,
@@ -1395,8 +1403,8 @@ export async function dbGetHomeworks() {
         title: h.title || raw.title || '',
         subject: h.subject || raw.subject || 'Genel',
         dueDate: h.due_date || raw.dueDate,
-        targetType: h.target_type || raw.targetType || 'grade',
-        targetIds: h.target_ids || raw.targetIds || [],
+        targetType: rawTargetType,
+        targetIds: rawTargetIds,
         tests: qIds,
         questionIds: qIds,
         totalQuestions: h.total_questions || raw.totalQuestions || raw.questionCount || (qIds.length > 0 ? qIds.length : 1),
@@ -1522,6 +1530,8 @@ export async function dbAddHomework(hw) {
       title: processedHw.title || 'Ödev',
       subject: processedHw.subject || 'Genel',
       due_date: calculatedDueDate,
+      target_type: processedHw.targetType || 'student',
+      target_ids: Array.isArray(processedHw.targetIds) ? processedHw.targetIds : [],
       raw_data: safeRaw
     };
 
