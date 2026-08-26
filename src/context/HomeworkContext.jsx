@@ -29,7 +29,7 @@ export function HomeworkProvider({ children }) {
     }
     const lastSync = sessionStorage.getItem('eTestLastHwSync');
     const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 15 * 1000 && homeworks.length > 0) {
+    if (!force && lastSync && now - Number(lastSync) < 60 * 1000 && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }

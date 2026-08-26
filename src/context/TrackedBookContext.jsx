@@ -76,7 +76,7 @@ export function TrackedBookProvider({ children }) {
     }
     const lastSync = sessionStorage.getItem('eTestLastTrackedBooksSync');
     const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 15 * 1000 && books.length > 0) {
+    if (!force && lastSync && now - Number(lastSync) < 60 * 1000 && books.length > 0) {
       setIsLoading(false);
       return { books, bookTests };
     }

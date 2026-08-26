@@ -18,6 +18,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
+import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 
@@ -764,18 +765,20 @@ export default function StudentWrongAnswersPage() {
     setShowAddModal(true);
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 8 * 1024 * 1024) {
-        alert("Lütfen 8MB'dan küçük bir görsel seçin.");
-        return;
+      try {
+        const compressed = await compressImageToWebP(file, 1400, 0.82);
+        setNewErrorForm(prev => ({ ...prev, imageUrl: compressed.dataUrl }));
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewErrorForm(prev => ({ ...prev, imageUrl: reader.result }));
+        };
+        reader.readAsDataURL(file);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewErrorForm(prev => ({ ...prev, imageUrl: reader.result }));
-      };
-      reader.readAsDataURL(file);
     }
   };
 
