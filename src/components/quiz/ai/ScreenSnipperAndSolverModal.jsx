@@ -5,7 +5,7 @@ import {
   ChevronUp, Copy, Eye, Upload, FileText, ArrowRight
 } from 'lucide-react';
 import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText } from '../../../services/aiSolutionService';
-import { dbSaveUserAiApiKey } from '../../../services/supabaseService';
+import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey } from '../../../services/supabaseService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -293,8 +293,12 @@ export default function ScreenSnipperAndSolverModal({
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) return;
     const cleanKey = apiKeyInput.trim();
+    localStorage.setItem('system_ai_api_key', cleanKey);
     localStorage.setItem('gemini_api_key', cleanKey);
     localStorage.setItem('eTestGeminiApiKey', cleanKey);
+    try {
+      await dbSaveSystemAiApiKey(cleanKey);
+    } catch {}
     if (currentUser?.id) {
       try {
         await dbSaveUserAiApiKey(currentUser.id, cleanKey);
