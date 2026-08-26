@@ -273,11 +273,10 @@ export default function EvaluationManager() {
       const titleLower = String(title).toLowerCase();
       const hasOEKeywords = titleLower.includes('açık uçlu') ||
                             titleLower.includes('acik uclu') ||
-                            titleLower.includes('yazılı') ||
-                            titleLower.includes('yazili') ||
+                            titleLower.includes('klasik soru') ||
+                            titleLower.includes('yazılı klasik') ||
                             titleLower.includes('yaztop') ||
-                            titleLower.includes('metinaç') ||
-                            titleLower.includes('klasik');
+                            titleLower.includes('metinaç');
 
       const isPureMC = !hasWrittenAnswers && !hasOpenEndedSection && (
         sub.type === 'multiple_choice' ||

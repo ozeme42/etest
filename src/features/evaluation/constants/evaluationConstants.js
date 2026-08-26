@@ -35,12 +35,13 @@ export const QUICK_FEEDBACK_PRESETS = [
 export function isItemOpenEnded(item, ans) {
   if (ans?.userAnswerText && String(ans.userAnswerText).trim().length > 0) return true;
   if (!item) return false;
+  if (Array.isArray(item.options) && item.options.length > 1 && !item.isOpenEnded) return false;
+  if (item.questionType === 'coktan_secmeli' || item.type === 'coktan_secmeli' || item.formatType === 'coktan_secmeli') return false;
   if (item.isOpenEnded === true || item.openEnded === true) return true;
-  const qType = String(item.questionType || item.type || item.contentType || item.formatType || '').toLowerCase();
-  if (['acik_uclu', 'yazili', 'gorsel_klasik'].includes(qType)) return true;
+  const qType = String(item.questionType || item.type || item.contentType || '').toLowerCase();
+  if (['acik_uclu', 'gorsel_klasik'].includes(qType)) return true;
   const title = String(item.title || item.name || item.questionText || item.text || '').toLowerCase();
-  if (title.includes('açık uçlu') || title.includes('acik uclu') || title.includes('yazılı') || title.includes('yazili') || title.includes('klasik')) return true;
-  if (Array.isArray(item.options) && item.options.length > 0 && !item.isOpenEnded) return false;
+  if (title.includes('açık uçlu') || title.includes('acik uclu') || title.includes('klasik soru') || title.includes('yazılı klasik')) return true;
   return false;
 }
 

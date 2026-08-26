@@ -397,15 +397,21 @@ export default function ModularQuizPage() {
           const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || foundTest.totalQuestions || foundTest.questionCount || 20;
           const ansKey = bt.answerKey || foundTest.answerKey || {};
           const ansMeta = ansKey.__meta || {};
-          const isOe = Boolean(
+          const hasKey = (Array.isArray(ansKey) && ansKey.length > 0) ||
+                         (typeof ansKey === 'string' && ansKey.trim().length > 0) ||
+                         (typeof ansKey === 'object' && ansKey !== null && Object.keys(ansKey).length > 0 && ansMeta.isOpenEnded !== true);
+          const hasOptions = (Array.isArray(bt.options) && bt.options.length > 1);
+          const isExplicitMC = bt.questionType === 'coktan_secmeli' || bt.type === 'coktan_secmeli' || hasKey || hasOptions;
+
+          const isOe = !isExplicitMC && Boolean(
             bt.isOpenEnded === true ||
             bt.is_open_ended === true ||
             ansMeta.isOpenEnded === true ||
             bt.questionType === 'acik_uclu' ||
             bt.question_type === 'acik_uclu' ||
             ansMeta.questionType === 'acik_uclu' ||
-            (bt.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(bt.name)) ||
-            (bt.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(bt.title))
+            (bt.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.name)) ||
+            (bt.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.title))
           );
           const qType = isOe ? 'acik_uclu' : (bt.questionType || bt.question_type || ansMeta.questionType || 'coktan_secmeli');
 
@@ -485,14 +491,17 @@ export default function ModularQuizPage() {
         if (allResolvedQs.length === 0 && totalQFallback) {
           const ansKey = foundTest.answerKey || {};
           const ansMeta = ansKey.__meta || {};
-          const isFallbackOe = Boolean(
+          const hasKey = (Array.isArray(foundTest.answerKey) && foundTest.answerKey.length > 0) ||
+                         (typeof foundTest.answerKey === 'string' && foundTest.answerKey.trim().length > 0) ||
+                         (typeof foundTest.answerKey === 'object' && foundTest.answerKey !== null && Object.keys(foundTest.answerKey).length > 0 && ansMeta.isOpenEnded !== true);
+          const isFallbackOe = !hasKey && foundTest.questionType !== 'coktan_secmeli' && foundTest.type !== 'coktan_secmeli' && Boolean(
             foundTest.isOpenEnded === true ||
             foundTest.is_open_ended === true ||
             foundTest.questionType === 'acik_uclu' ||
             ansMeta.isOpenEnded === true ||
             ansMeta.questionType === 'acik_uclu' ||
-            (foundTest.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.title)) ||
-            (foundTest.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.name))
+            (foundTest.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.title)) ||
+            (foundTest.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.name))
           );
           for (let i = 1; i <= totalQFallback; i++) {
             allResolvedQs.push({
@@ -511,16 +520,23 @@ export default function ModularQuizPage() {
           }
         }
 
-        const isFoundTestOe = Boolean(
+        const testHasKey = (Array.isArray(foundTest.answerKey) && foundTest.answerKey.length > 0) ||
+                           (typeof foundTest.answerKey === 'string' && foundTest.answerKey.trim().length > 0) ||
+                           (typeof foundTest.answerKey === 'object' && foundTest.answerKey !== null && Object.keys(foundTest.answerKey).length > 0 && foundTest.answerKey.__meta?.isOpenEnded !== true);
+        const testHasOptions = Array.isArray(foundTest.options) && foundTest.options.length > 1;
+        const isExplicitMC = foundTest.questionType === 'coktan_secmeli' || foundTest.type === 'coktan_secmeli' || testHasKey || testHasOptions;
+
+        const isFoundTestOe = !isExplicitMC && Boolean(
           foundTest.isOpenEnded === true ||
           foundTest.is_open_ended === true ||
           foundTest.questionType === 'acik_uclu' ||
           foundTest.type === 'acik_uclu' ||
+          foundTest.type === 'gorsel_klasik' ||
           foundTest.answerKey?.__meta?.isOpenEnded === true ||
           foundTest.answerKey?.__meta?.questionType === 'acik_uclu' ||
           sections.some(s => s.isOpenEnded) ||
-          (foundTest.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.title)) ||
-          (foundTest.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(foundTest.name))
+          (foundTest.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.title)) ||
+          (foundTest.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.name))
         );
 
         setTest({
@@ -755,14 +771,24 @@ export default function ModularQuizPage() {
     const totalScored = correctCount + wrongCount + blankCount;
     const totalQ = totalScored + pendingCount;
     const score = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
-    const isAcikUclu = Boolean(
+    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+    const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
+                       (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
+    const hasOptionAnswers = formattedAnswers.some(a => (
+      typeof a.userAnswer === 'number' ||
+      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+    ));
+    const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || test.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !formattedAnswers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
+
+    const isAcikUclu = !isExplicitMC && Boolean(
       test.questionType === 'acik_uclu' ||
       test.type === 'acik_uclu' ||
-      test.contentType === 'acik_uclu' ||
-      test.questionType === 'yazili' ||
-      test.type === 'yazili' ||
-      test.contentType === 'yazili' ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('yazılı') || test.title.toLowerCase().includes('yazili') || test.title.toLowerCase().includes('klasik'))) ||
+      test.type === 'gorsel_klasik' ||
+      test.isOpenEnded === true ||
+      test.is_open_ended === true ||
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('klasik soru') || test.title.toLowerCase().includes('yazılı klasik'))) ||
       formattedAnswers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
     );
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
@@ -899,24 +925,29 @@ export default function ModularQuizPage() {
     }
   };
 
-  // Determine Source Format Mode
-  const isWritten = Boolean(
-    test.questionType === 'yazili' ||
-    test.type === 'yazili' ||
-    test.contentType === 'yazili' ||
+  // Determine Source Format Mode (Only Open-Ended if not multiple choice)
+  const isExplicitMultipleChoice = Boolean(
+    test.questionType === 'coktan_secmeli' ||
+    test.type === 'coktan_secmeli' ||
+    test.formatType === 'coktan_secmeli' ||
+    (Array.isArray(test.options) && test.options.length > 1) ||
+    (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+    (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+    (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true)
+  );
+
+  const isWritten = !isExplicitMultipleChoice && Boolean(
     test.questionType === 'acik_uclu' ||
     test.type === 'acik_uclu' ||
-    test.contentType === 'acik_uclu' ||
-    test.sourceFormat === 'yazili' ||
-    test.formatType === 'yazili' ||
+    test.type === 'gorsel_klasik' ||
     test.isOpenEnded === true ||
     test.is_open_ended === true ||
     test.answerKey?.__meta?.isOpenEnded === true ||
     test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name)) ||
-    (test.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.title)) ||
-    (questions && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded === true || q.is_open_ended === true)) ||
-    (test.sections && Array.isArray(test.sections) && test.sections.some(s => s.isOpenEnded || s.is_open_ended || s.questionType === 'acik_uclu' || s.type === 'acik_uclu'))
+    (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name)) ||
+    (test.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.title)) ||
+    (questions && questions.some(q => (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) && q.type !== 'coktan_secmeli' && q.questionType !== 'coktan_secmeli')) ||
+    (test.sections && Array.isArray(test.sections) && test.sections.some(s => (s.isOpenEnded || s.is_open_ended || s.questionType === 'acik_uclu') && s.questionType !== 'coktan_secmeli'))
   );
 
 

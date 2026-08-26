@@ -142,7 +142,12 @@ export default function BookContentManager() {
         const mapped = tRows.map(t => {
           const ansKey = t.answer_key || {};
           const ansMeta = ansKey.__meta || {};
-          const isOe = Boolean(
+          const hasKey = (Array.isArray(ansKey) && ansKey.length > 0) ||
+                         (typeof ansKey === 'string' && ansKey.trim().length > 0) ||
+                         (typeof ansKey === 'object' && ansKey !== null && Object.keys(ansKey).length > 0 && ansMeta.isOpenEnded !== true);
+          const isExplicitMC = t.question_type === 'coktan_secmeli' || t.questionType === 'coktan_secmeli' || hasKey;
+
+          const isOe = !isExplicitMC && Boolean(
             t.is_open_ended === true ||
             t.isOpenEnded === true ||
             ansMeta.isOpenEnded === true ||
@@ -150,7 +155,7 @@ export default function BookContentManager() {
             t.questionType === 'acik_uclu' ||
             ansMeta.questionType === 'acik_uclu' ||
             (b?.bookType === 'open_ended') ||
-            (t.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(t.name))
+            (t.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(t.name))
           );
           const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
           const sId = t.subject_id || ansMeta.subjectId || null;
@@ -1091,7 +1096,12 @@ export default function BookContentManager() {
     const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
 
     // Test bazında tip tespiti (karma kitaplar için)
-    const testIsOpenEnded = Boolean(
+    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+    const isExplicitMC = test.questionType === 'coktan_secmeli' || test.question_type === 'coktan_secmeli' || hasKey;
+
+    const testIsOpenEnded = !isExplicitMC && Boolean(
       test.isOpenEnded === true ||
       test.is_open_ended === true ||
       test.questionType === 'acik_uclu' ||
@@ -1099,7 +1109,7 @@ export default function BookContentManager() {
       test.answerKey?.__meta?.isOpenEnded === true ||
       test.answerKey?.__meta?.questionType === 'acik_uclu' ||
       (book?.bookType === 'open_ended') ||
-      (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name))
+      (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name))
     );
 
     const testQuestionType = testIsOpenEnded ? 'acik_uclu' : (test.questionType || test.question_type || 'coktan_secmeli');

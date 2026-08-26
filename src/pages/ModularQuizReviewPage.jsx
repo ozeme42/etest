@@ -485,18 +485,19 @@ export default function ModularQuizReviewPage() {
       setQuestions(testQs || []);
     } else if (foundSubmission && !foundTest) {
       const candidateTestId = foundSubmission.testId || foundSubmission.realTestId || foundSubmission.bookTestId || extractedTbtId || extractedHwId || targetId;
-      const isSubWritten = Boolean(
+      const hasOptionAnswers = Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => 
+        typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+      );
+      const isSubExplicitMC = (foundSubmission.questionType === 'coktan_secmeli' || foundSubmission.type === 'coktan_secmeli' || foundSubmission.sourceType === 'questionBank') && !foundSubmission.isOpenEnded;
+
+      const isSubWritten = !isSubExplicitMC && !hasOptionAnswers && Boolean(
         foundSubmission.isOpenEnded ||
-        foundSubmission.questionType === 'yazili' ||
         foundSubmission.questionType === 'acik_uclu' ||
-        foundSubmission.type === 'yazili' ||
         foundSubmission.type === 'acik_uclu' ||
-        foundSubmission.sourceFormat === 'yazili' ||
-        foundSubmission.formatType === 'yazili' ||
         foundSubmission.openEndedText ||
         foundSubmission.openEndedAnswers ||
-        (foundSubmission.testTitle && (foundSubmission.testTitle.toLowerCase().includes('yazılı') || foundSubmission.testTitle.toLowerCase().includes('açık uçlu') || foundSubmission.testTitle.toLowerCase().includes('acik uclu'))) ||
-        (Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => a.isOpenEnded || a.userAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2)))
+        (foundSubmission.testTitle && (foundSubmission.testTitle.toLowerCase().includes('açık uçlu') || foundSubmission.testTitle.toLowerCase().includes('acik uclu') || foundSubmission.testTitle.toLowerCase().includes('klasik soru') || foundSubmission.testTitle.toLowerCase().includes('yazılı klasik'))) ||
+        (Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
       );
 
       const resolvedT = (allBankQuestions || []).find(q => String(q.id) === String(candidateTestId) || toUUID(q.id) === String(candidateTestId) || normalizeId(q.id) === normalizeId(candidateTestId)) ||
@@ -571,49 +572,48 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  const isWritten = Boolean(
-    test.questionType === 'yazili' ||
-    test.type === 'yazili' ||
-    test.contentType === 'yazili' ||
+  const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                 (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                 (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+  const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
+                     (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
+  const hasOptionAnswers = Array.isArray(submission?.answers) && submission.answers.some(a => (
+    typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+  ));
+
+  const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || test.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !submission?.answers?.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
+
+  const isWritten = !isExplicitMC && Boolean(
     test.questionType === 'acik_uclu' ||
     test.type === 'acik_uclu' ||
-    test.contentType === 'acik_uclu' ||
-    test.sourceFormat === 'yazili' ||
-    test.formatType === 'yazili' ||
+    test.type === 'gorsel_klasik' ||
     test.isOpenEnded ||
     submission?.isOpenEnded ||
-    submission?.questionType === 'yazili' ||
     submission?.questionType === 'acik_uclu' ||
-    submission?.type === 'yazili' ||
     submission?.type === 'acik_uclu' ||
-    submission?.contentType === 'yazili' ||
-    submission?.contentType === 'acik_uclu' ||
     submission?.openEndedText ||
     submission?.openEndedAnswers ||
     (test.title && (
       test.title.toLowerCase().includes('açık uçlu') ||
       test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('yazılı') ||
-      test.title.toLowerCase().includes('yazili') ||
-      test.title.toLowerCase().includes('klasik')
+      test.title.toLowerCase().includes('klasik soru') ||
+      test.title.toLowerCase().includes('yazılı klasik')
     )) ||
     (test.name && (
       test.name.toLowerCase().includes('açık uçlu') ||
       test.name.toLowerCase().includes('acik uclu') ||
-      test.name.toLowerCase().includes('yazılı') ||
-      test.name.toLowerCase().includes('yazili') ||
-      test.name.toLowerCase().includes('klasik')
+      test.name.toLowerCase().includes('klasik soru') ||
+      test.name.toLowerCase().includes('yazılı klasik')
     )) ||
     (submission?.testTitle && (
       submission.testTitle.toLowerCase().includes('açık uçlu') ||
       submission.testTitle.toLowerCase().includes('acik uclu') ||
-      submission.testTitle.toLowerCase().includes('yazılı') ||
-      submission.testTitle.toLowerCase().includes('yazili') ||
-      submission.testTitle.toLowerCase().includes('klasik')
+      submission.testTitle.toLowerCase().includes('klasik soru') ||
+      submission.testTitle.toLowerCase().includes('yazılı klasik')
     )) ||
-    (test.questions && Array.isArray(test.questions) && test.questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded)) ||
-    (questions && Array.isArray(questions) && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu' || q.isOpenEnded)) ||
-    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded || a.userAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2)))
+    (test.questions && Array.isArray(test.questions) && test.questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && q.type !== 'coktan_secmeli')) ||
+    (questions && Array.isArray(questions) && questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && q.type !== 'coktan_secmeli')) ||
+    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
   );
 
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 

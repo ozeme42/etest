@@ -50,42 +50,46 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
 
   const isOpenEndedMode = useMemo(() => {
+    const hasOptions = Array.isArray(test.options) && test.options.length > 1;
+    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+
     if (
       test.questionType === 'coktan_secmeli' ||
       test.type === 'coktan_secmeli' ||
       test.contentType === 'coktan_secmeli' ||
-      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+      test.formatType === 'coktan_secmeli' ||
+      hasOptions ||
+      hasKey
     ) {
       return false;
     }
 
     if (
       test.questionType === 'acik_uclu' ||
-      test.questionType === 'yazili' ||
       test.type === 'acik_uclu' ||
-      test.type === 'yazili' ||
-      test.contentType === 'acik_uclu' ||
-      test.contentType === 'yazili' ||
-      test.isOpenEnded
+      test.type === 'gorsel_klasik' ||
+      test.questionType === 'gorsel_klasik' ||
+      test.isOpenEnded === true ||
+      test.is_open_ended === true
     ) {
       return true;
     }
 
-    if (test.title && (
-      test.title.toLowerCase().includes('açık uçlu') ||
-      test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('yazılı') ||
-      test.title.toLowerCase().includes('yazili')
+    const titleStr = String(test.title || test.name || '').toLowerCase();
+    if (titleStr && (
+      titleStr.includes('açık uçlu') ||
+      titleStr.includes('acik uclu') ||
+      titleStr.includes('klasik soru') ||
+      titleStr.includes('yazılı klasik')
     )) {
       return true;
     }
 
     if (questions.some(q =>
-      q.type === 'acik_uclu' ||
-      q.type === 'yazili' ||
-      q.contentType === 'acik_uclu' ||
-      q.contentType === 'yazili' ||
-      q.isOpenEnded
+      (q.type === 'acik_uclu' || q.questionType === 'acik_uclu' || q.isOpenEnded === true) &&
+      q.questionType !== 'coktan_secmeli' && q.type !== 'coktan_secmeli'
     )) {
       return true;
     }

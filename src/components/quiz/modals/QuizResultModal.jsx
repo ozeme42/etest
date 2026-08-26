@@ -28,25 +28,30 @@ export default function QuizResultModal({
 
   const isMultiSection = Array.isArray(sectionBreakdown) && sectionBreakdown.length > 1;
 
-  const isPureOpenEnded = Boolean(
+  const hasKey = (Array.isArray(test?.answerKey) && test.answerKey.length > 0) ||
+                 (typeof test?.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                 (typeof test?.answerKey === 'object' && test?.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+  const hasOptions = (Array.isArray(test?.options) && test.options.length > 1);
+  const hasOptionAnswers = Array.isArray(submission?.answers) && submission.answers.some(a => (
+    typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+  ));
+
+  const isExplicitMC = test?.questionType === 'coktan_secmeli' || test?.type === 'coktan_secmeli' || test?.formatType === 'coktan_secmeli' || hasKey || hasOptions || (hasOptionAnswers && !submission?.answers?.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== '')));
+
+  const isPureOpenEnded = !isExplicitMC && Boolean(
     isOpenEnded ||
     submission?.isOpenEnded ||
     submission?.test?.isOpenEnded ||
     test?.isOpenEnded ||
     test?.type === 'acik_uclu' ||
-    test?.type === 'yazili' ||
     test?.type === 'gorsel_klasik' ||
     test?.questionType === 'acik_uclu' ||
-    test?.questionType === 'yazili' ||
     test?.questionType === 'gorsel_klasik' ||
-    test?.contentType === 'acik_uclu' ||
-    test?.contentType === 'yazili' ||
     (test?.title && (
       test.title.toLowerCase().includes('açık uçlu') ||
       test.title.toLowerCase().includes('acik uclu') ||
-      test.title.toLowerCase().includes('yazılı') ||
-      test.title.toLowerCase().includes('yazili') ||
-      test.title.toLowerCase().includes('klasik')
+      test.title.toLowerCase().includes('klasik soru') ||
+      test.title.toLowerCase().includes('yazılı klasik')
     )) ||
     (Array.isArray(sectionBreakdown) && sectionBreakdown.length > 0 && sectionBreakdown.every(s => s.isOE)) ||
     (submission?.answers && submission.answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) ||

@@ -141,14 +141,35 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   }, [test, bundleQ, questions, allAvailableImages, answers]);
 
   const isOpenEndedMode = useMemo(() => {
-    if (test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || (Array.isArray(test.answerKey) && test.answerKey.length > 0 && !test.isOpenEnded && test.type !== 'gorsel_klasik' && test.questionType !== 'gorsel_klasik')) {
+    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+    const hasOptions = (Array.isArray(test.options) && test.options.length > 1) ||
+                       (Array.isArray(questions) && questions.some(q => Array.isArray(q.options) && q.options.length > 1));
+
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      test.formatType === 'coktan_secmeli' ||
+      hasKey ||
+      hasOptions
+    ) {
       return false;
     }
+
+    const hasOptionAnswers = answers.some(a => (
+      typeof a.userAnswer === 'number' ||
+      (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(a.userAnswer.trim()))
+    ));
+    if (hasOptionAnswers && !answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))) {
+      return false;
+    }
+
     return Boolean(
       test.questionType === 'gorsel_klasik' || test.type === 'gorsel_klasik' || test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || test.isOpenEnded ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('klasik'))) ||
-      questions.some(q => q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded) ||
-      answers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
+      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('klasik soru') || test.title.toLowerCase().includes('yazılı klasik'))) ||
+      questions.some(q => (q.type === 'acik_uclu' || q.type === 'gorsel_klasik' || q.isOpenEnded) && q.type !== 'coktan_secmeli' && q.questionType !== 'coktan_secmeli')
     );
   }, [test, questions, answers]);
 

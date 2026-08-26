@@ -71,35 +71,37 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
-  const isOpenEndedMode = Boolean(
+  const hasOptions = Array.isArray(test.options) && test.options.length > 1;
+  const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
+                 (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
+                 (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
+  const isExplicitMC = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || hasOptions || hasKey;
+
+  const isOpenEndedMode = !isExplicitMC && Boolean(
     test.isOpenEnded === true ||
     test.is_open_ended === true ||
     test.questionType === 'acik_uclu' ||
     test.question_type === 'acik_uclu' ||
     test.type === 'acik_uclu' ||
-    test.type === 'yazili' ||
-    test.questionType === 'yazili' ||
+    test.type === 'gorsel_klasik' ||
     test.answerKey?.__meta?.isOpenEnded === true ||
     test.answerKey?.__meta?.questionType === 'acik_uclu' ||
     (test.book && test.book.bookType === 'open_ended') ||
-    (test.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.name)) ||
-    (test.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(test.title)) ||
+    (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name)) ||
+    (test.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.title)) ||
     (questions && questions.length > 0 && questions.some(q => 
-      q.isOpenEnded === true || 
+      (q.isOpenEnded === true || 
       q.is_open_ended === true || 
       q.questionType === 'acik_uclu' || 
-      q.type === 'acik_uclu' || 
-      q.questionType === 'yazili' || 
-      q.type === 'yazili' ||
-      (q.testName && /açık uçlu|acik uclu|klasik|yazılı/i.test(q.testName)) ||
-      (q.questionText && /açık uçlu|acik uclu|klasik|yazılı/i.test(q.questionText))
+      q.type === 'acik_uclu') &&
+      q.questionType !== 'coktan_secmeli' && q.type !== 'coktan_secmeli'
     )) ||
     (test.sections && Array.isArray(test.sections) && test.sections.some(s => 
-      s.isOpenEnded === true || 
+      (s.isOpenEnded === true || 
       s.is_open_ended === true || 
       s.questionType === 'acik_uclu' || 
-      s.type === 'acik_uclu' ||
-      (s.title && /açık uçlu|acik uclu|klasik|yazılı/i.test(s.title))
+      s.type === 'acik_uclu') &&
+      s.questionType !== 'coktan_secmeli' && s.type !== 'coktan_secmeli'
     ))
   );
 
