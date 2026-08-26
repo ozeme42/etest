@@ -146,6 +146,7 @@ export default function StudentHomeworksPage() {
     };
 
     const hwTests = (homeworks || []).filter(hw => {
+      if (!hw || hw.id === 'global_ai_config' || hw.subject === 'SYSTEM' || String(hw.title || '').includes('GLOBAL_AI_CONFIG')) return false;
       return isHomeworkForStudent(hw, selectedStudent, gradesList);
     }).flatMap(hw => {
       const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));

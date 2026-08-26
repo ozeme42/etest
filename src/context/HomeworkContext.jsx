@@ -12,8 +12,13 @@ export function useHomework() {
 
 export function HomeworkProvider({ children }) {
   const [homeworks, setHomeworks] = useState(() => {
-    const saved = localStorage.getItem('eTestHomeworks');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('eTestHomeworks');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return (parsed || []).filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
+    } catch {
+      return [];
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,14 +41,21 @@ export function HomeworkProvider({ children }) {
         sessionStorage.setItem('eTestLastHwSync', String(now));
         setHomeworks(prev => {
           const map = new Map();
-          dbHws.forEach(h => map.set(String(h.id), h));
+          dbHws
+            .filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'))
+            .forEach(h => map.set(String(h.id), h));
           (prev || []).forEach(localHw => {
             const k = String(localHw.id);
+            if (k === 'global_ai_config' || localHw.subject === 'SYSTEM' || String(localHw.title || '').includes('GLOBAL_AI_CONFIG')) return;
             if (!map.has(k) && !map.has(String(toUUID(k)))) {
               map.set(k, localHw);
             }
           });
-          return Array.from(map.values());
+          const finalArr = Array.from(map.values()).filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
+          try {
+            localStorage.setItem('eTestHomeworks', JSON.stringify(finalArr));
+          } catch {}
+          return finalArr;
         });
       }
       return dbHws;
