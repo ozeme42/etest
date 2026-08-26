@@ -1,4 +1,4 @@
-import { dbGetUserAiApiKey } from './supabaseService';
+import { dbGetUserAiApiKey, dbGetSystemAiApiKey } from './supabaseService';
 
 export const GEMINI_SOLVER_MODELS = [
   'gemini-3.7-flash',
@@ -13,12 +13,19 @@ export const GEMINI_SOLVER_MODELS = [
  */
 export async function getResolvedAiApiKey(userId) {
   try {
-    const local = localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
+    const local = localStorage.getItem('system_ai_api_key') || localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
     if (local && local.trim()) return local.trim();
 
     const envKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (envKey && envKey.trim()) return envKey.trim();
 
+    // Check system-wide key set by Admin
+    const systemCloudKey = await dbGetSystemAiApiKey();
+    if (systemCloudKey && systemCloudKey.trim()) {
+      return systemCloudKey.trim();
+    }
+
+    // Check user-specific key
     if (userId) {
       const cloudKey = await dbGetUserAiApiKey(userId);
       if (cloudKey && cloudKey.trim()) {

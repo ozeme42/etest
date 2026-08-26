@@ -2539,3 +2539,92 @@ export async function dbSaveUserAiApiKey(userId, apiKey, metadata = {}) {
     return false;
   }
 }
+
+/**
+ * Get system-wide global Gemini API Key (set by Admin in Admin Dashboard)
+ */
+export async function dbGetSystemAiApiKey() {
+  const localVal = localStorage.getItem('system_ai_api_key') || localStorage.getItem('gemini_api_key') || localStorage.getItem('eTestGeminiApiKey');
+  if (!isSupabaseConfigured()) return localVal || null;
+
+  try {
+    const storeId = 'system_global_ai_config';
+    const { data, error } = await supabase
+      .from('coaching_profiles')
+      .select('*')
+      .eq('id', storeId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[Supabase] dbGetSystemAiApiKey:', error.message);
+      return localVal || null;
+    }
+
+    if (data) {
+      const extraRaw = data.extra_data || data.data;
+      if (extraRaw) {
+        const parsed = typeof extraRaw === 'string' ? JSON.parse(extraRaw) : extraRaw;
+        if (parsed?.apiKey) {
+          localStorage.setItem('system_ai_api_key', parsed.apiKey);
+          localStorage.setItem('gemini_api_key', parsed.apiKey);
+          localStorage.setItem('eTestGeminiApiKey', parsed.apiKey);
+          return parsed.apiKey;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase] dbGetSystemAiApiKey error:', err.message);
+  }
+  return localVal || null;
+}
+
+/**
+ * Save system-wide global Gemini API Key (by Admin) to Supabase database & localStorage
+ */
+export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
+  const cleanKey = apiKey ? String(apiKey).trim() : '';
+
+  if (cleanKey) {
+    localStorage.setItem('system_ai_api_key', cleanKey);
+    localStorage.setItem('gemini_api_key', cleanKey);
+    localStorage.setItem('eTestGeminiApiKey', cleanKey);
+  } else {
+    localStorage.removeItem('system_ai_api_key');
+    localStorage.removeItem('gemini_api_key');
+    localStorage.removeItem('eTestGeminiApiKey');
+  }
+
+  if (!isSupabaseConfigured()) return true;
+
+  try {
+    const storeId = 'system_global_ai_config';
+    const payload = {
+      id: storeId,
+      student_id: 'SYSTEM_GLOBAL',
+      target_school: 'SYSTEM_AI_SETTINGS',
+      parent_notes: 'System-wide Google Gemini API Key configuration for all students and teachers',
+      extra_data: JSON.stringify({
+        apiKey: cleanKey,
+        defaultModel: metadata.defaultModel || 'gemini-3.7-flash',
+        updatedBy: metadata.updatedBy || 'Admin',
+        updatedAt: new Date().toISOString()
+      })
+    };
+
+    const { error } = await supabase
+      .from('coaching_profiles')
+      .upsert([payload], { onConflict: 'id' });
+
+    if (error) {
+      // Fallback with data column
+      const fallbackPayload = { ...payload, data: payload.extra_data };
+      delete fallbackPayload.extra_data;
+      await supabase.from('coaching_profiles').upsert([fallbackPayload], { onConflict: 'id' });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveSystemAiApiKey error:', err.message);
+    return false;
+  }
+}
+
