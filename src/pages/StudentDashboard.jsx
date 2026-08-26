@@ -1988,51 +1988,42 @@ export default function StudentDashboard() {
             }
           }
         });
-      } else {
-        // B) Tüm Kitap İçin Genel Teslim Tarihi (hw.dueDate) - Sadece bireysel tarih planlanmamışsa
-        const rawDue = hw.dueDate || hw.assignedDueDate;
-        const dueDateObj = parseSafeDate(rawDue);
-        if (dueDateObj && dueDateObj.getTime() < nowTime) {
-          let targetTests = [];
-          if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-            targetTests = hw.tests;
-          } else if (bookObj?.id) {
-            targetTests = (bookTests || []).filter(bt => String(bt.bookId) === String(bookObj.id)).map(bt => bt.id);
-          }
+      }
+    });
 
-          if (targetTests.length > 0) {
-            targetTests.forEach((testId, idx) => {
-              const isSolved = isTestSolvedByStudent(testId, hw.id);
-              if (!isSolved) {
-                const key = `book_test_${hw.id}_${testId}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  const info = resolveBookTestInfo(testId, hw, bookObj);
-                  list.push({
-                    id: key,
-                    hwId: hw.id,
-                    testId: testId,
-                    realTestId: testId,
-                    bookTestId: testId,
-                    bookId: hw.bookId || info.currentBook?.id || bookObj?.id,
-                    isAutoHomework: true,
-                    isBookTask: true,
-                    taskType: 'kitap',
-                    categoryType: 'kitap',
-                    subject: info.subjectName || 'Türkçe',
-                    unitTopic: info.topicName || '',
-                    testName: info.testName || `Test ${idx + 1}`,
-                    bookTitle: info.cleanBookTitle,
-                    title: `${info.testName}${info.topicName && !info.testName.includes(info.topicName) ? ` (${info.topicName})` : ''}`,
-                    questionCount: `${info.qCount} soru`,
-                    dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
-                    dueDateObj,
-                    time: `Son: ${dueDateObj.toLocaleDateString('tr-TR')}`,
-                    isCatchUp: true,
-                    reason: `Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')}`
-                  });
-                }
-              }
+    // 1.1) Tekil / Normal Ödevler İçin Tarihi Geçmiş Kontrolü
+    const regularHws = (homeworks || []).filter(hw => {
+      const isBook = hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook';
+      if (isBook) return false;
+      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
+    });
+
+    regularHws.forEach(hw => {
+      const rawDue = hw.dueDate || hw.assignedDueDate;
+      const dueDateObj = parseSafeDate(rawDue);
+      if (dueDateObj && dueDateObj.getTime() < nowTime) {
+        const isSolved = isTestSolvedByStudent(null, hw.id);
+        if (!isSolved) {
+          const key = `hw_${hw.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            list.push({
+              id: key,
+              hwId: hw.id,
+              isAutoHomework: true,
+              taskType: 'odev',
+              categoryType: 'odev',
+              subject: hw.subject || 'Genel',
+              unitTopic: '',
+              testName: hw.title,
+              title: hw.title,
+              bookTitle: '',
+              questionCount: `${hw.totalQuestions || hw.questionCount || 10} soru`,
+              dueDateStr: dueDateObj.toLocaleDateString('tr-TR'),
+              dueDateObj,
+              time: `Son: ${dueDateObj.toLocaleDateString('tr-TR')}`,
+              isCatchUp: true,
+              reason: `Son Teslim: ${dueDateObj.toLocaleDateString('tr-TR')}`
             });
           }
         }
