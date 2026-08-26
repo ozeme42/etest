@@ -1108,20 +1108,12 @@ export default function StudentDashboard() {
     }
 
     const topicName = topicObj?.name || tObj?.topicName || tObj?.topic || '';
-    let testName = tObj?.name || tObj?.title;
-    if (!testName || testName === 'Test' || testName === 'Kitap Testi') {
-      if (topicName) testName = `${topicName} - Test`;
-      else if (targetHw?.title && !/^(ödev|görev|test|sınav)$/i.test(targetHw.title.trim())) testName = targetHw.title;
-      else testName = 'Kitap Testi';
-    }
-    const qCount = tObj?.questionCount || 12;
-
+    
     let cleanTitle = currentBook?.title ||
       targetHw?.bookTitle ||
       targetHw?.bookName ||
       tObj?.bookTitle ||
       tObj?.bookName ||
-      (targetHw?.title && !/^(ödev|test|sınav|görev)$/i.test(targetHw.title.trim()) ? targetHw.title : '') ||
       '';
 
     if (cleanTitle) {
@@ -1129,6 +1121,7 @@ export default function StudentDashboard() {
         .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
         .replace(/\s*\(Tüm Kitap\)/gi, '')
         .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .replace(/\s*\(Görev\)/gi, '')
         .trim();
     }
 
@@ -1140,6 +1133,29 @@ export default function StudentDashboard() {
         cleanTitle = books[0].title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
       }
     }
+
+    let testName = tObj?.name || tObj?.title;
+    if (testName) {
+      testName = testName
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .replace(/\s*\(Görev\)/gi, '')
+        .trim();
+    }
+
+    // If testName matches book title or is generic, resolve from topic/subject
+    if (!testName || testName === 'Test' || testName === 'Kitap Testi' || testName === cleanTitle || (cleanTitle && testName.toLowerCase() === cleanTitle.toLowerCase())) {
+      if (topicName) {
+        testName = `${topicName} Testi`;
+      } else if (subjectName) {
+        testName = `${subjectName} Testi`;
+      } else {
+        testName = 'Konu Testi';
+      }
+    }
+
+    const qCount = tObj?.questionCount || 12;
 
     return {
       tObj,

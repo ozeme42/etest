@@ -148,8 +148,8 @@ export default memo(function DashboardTodayTasks({
                     displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
                   }
 
-                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim())) {
-                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim())) {
+                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
                       displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
                     } else if (task.unitTopic) {
                       displayTitle = `${task.unitTopic} Testi`;
@@ -469,8 +469,8 @@ export default memo(function DashboardTodayTasks({
                     displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
                   }
 
-                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim())) {
-                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim())) {
+                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
                       displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
                     } else if (task.unitTopic) {
                       displayTitle = `${task.unitTopic} Testi`;
