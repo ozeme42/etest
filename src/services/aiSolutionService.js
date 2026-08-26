@@ -147,6 +147,7 @@ export async function solveQuestionWithAi({
   userId,
   imageBase64, // Cropped image / photo dataUrl or raw base64
   questionText = '',
+  htmlPayload = '',
   options = [],
   studentAnswer = '',
   correctAnswer = '',
@@ -202,6 +203,15 @@ Kurallar:
   if (studentAnswer) prompt += `Öğrencinin Yanıtı: ${studentAnswer}\n`;
   if (correctAnswer) prompt += `Doğru Yanıt: ${correctAnswer}\n`;
   if (cleanReason) prompt += `Öğrencinin Belirttiği Hata Sebebi: ${cleanReason}\n`;
+
+  if (htmlPayload && typeof htmlPayload === 'string') {
+    const cleanHtml = htmlPayload
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .slice(0, 30000);
+    prompt += `\nTEST DÖKÜMANI / HTML METNİ:\n"""\n${cleanHtml}\n"""\n`;
+    prompt += `\nYukarıdaki test dökümanında yer alan ${questionNo}. soruyu bul, soru kökünü ve şıklarını dikkatle analiz ederek çözümü üret.\n`;
+  }
 
   if (questionText && questionText.trim()) {
     prompt += `\nSORU METNİ:\n"""\n${questionText}\n"""\n`;

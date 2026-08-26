@@ -20,6 +20,7 @@ export default function ScreenSnipperAndSolverModal({
   onClose,
   questionNo = 1,
   question = {},
+  htmlPayload = '',
   mistakeReason = '',
   onMistakeReasonChange,
   studentAnswer = '',
@@ -34,9 +35,8 @@ export default function ScreenSnipperAndSolverModal({
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
 
-  const [activeTab, setActiveTab] = useState(existingImageUrl ? 'image' : (question?.questionText ? 'auto' : 'crop')); // 'crop' | 'camera' | 'auto' | 'image'
+  const [activeTab, setActiveTab] = useState(existingImageUrl ? 'image' : (question?.questionText || htmlPayload ? 'auto' : 'crop')); // 'crop' | 'camera' | 'auto' | 'image'
   const [croppedImage, setCroppedImage] = useState(existingImageUrl || null);
-  const [capturedScreenImage, setCapturedScreenImage] = useState(null);
   const [isSnipping, setIsSnipping] = useState(false);
   const [snipRect, setSnipRect] = useState(null); // { startX, startY, currentX, currentY }
   const [isDragging, setIsDragging] = useState(false);
@@ -55,29 +55,38 @@ export default function ScreenSnipperAndSolverModal({
 
   const cacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
 
-  // Check cache or initialize
+  // Check cache or auto-solve on open
   useEffect(() => {
     if (isOpen) {
       setError(null);
-      // Pre-warm API key from database into cache
       getResolvedAiApiKey(currentUser?.id).catch(() => {});
 
+      let cachedSolution = null;
       try {
         const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
         if (cached) {
-          setSolution(JSON.parse(cached));
+          cachedSolution = JSON.parse(cached);
+          setSolution(cachedSolution);
         } else {
           setSolution(null);
         }
       } catch {
         setSolution(null);
       }
+
       if (existingImageUrl) {
         setCroppedImage(existingImageUrl);
         setActiveTab('image');
       }
+
+      // If no cached solution, auto-solve if HTML document or question text or existing image exists
+      const effectiveHtml = htmlPayload || question?.htmlPayload;
+      const effectiveText = question?.questionText || question?.title;
+      if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
+        handleSolve();
+      }
     }
-  }, [isOpen, cacheKey, existingImageUrl, currentUser]);
+  }, [isOpen, cacheKey, existingImageUrl, htmlPayload, question, currentUser]);
 
   // Global clipboard paste listener (Ctrl+V)
   useEffect(() => {
@@ -137,8 +146,9 @@ export default function ScreenSnipperAndSolverModal({
   const handleSolve = async (overrideImage = null) => {
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
     const qText = question?.questionText || question?.title || '';
+    const htmlDoc = htmlPayload || question?.htmlPayload || '';
 
-    if (!imgToSend && !qText) {
+    if (!imgToSend && !qText && !htmlDoc) {
       setError('Lütfen çözülmesi istenen sorunun ekran görüntüsünü kırpın, fotoğrafını yükleyin veya Ctrl+V ile yapıştırın.');
       return;
     }
@@ -151,6 +161,7 @@ export default function ScreenSnipperAndSolverModal({
         userId: currentUser?.id,
         imageBase64: imgToSend,
         questionText: qText,
+        htmlPayload: htmlDoc,
         options: question?.options || [],
         studentAnswer: studentAnswer || question?.userAnswer || '',
         correctAnswer: correctAnswer || question?.correctAnswerLetter || question?.correctAnswer || '',
@@ -235,7 +246,6 @@ export default function ScreenSnipperAndSolverModal({
         if (isSnipping) {
           setIsSnipping(false);
           setSnipRect(null);
-          setCapturedScreenImage(null);
         } else if (isOpen) {
           onClose();
         }
@@ -245,43 +255,9 @@ export default function ScreenSnipperAndSolverModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSnipping, isOpen, onClose]);
 
-  // ── Screen Snipping Tool Overlay Logic ──
-  const startSnippingMode = async () => {
+  // ── Screen Snipping Tool Overlay Logic (Zero Permission) ──
+  const startSnippingMode = () => {
     setError(null);
-    if (navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { displaySurface: "browser", preferCurrentTab: true },
-          audio: false
-        });
-
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.playsInline = true;
-        await video.play();
-
-        const fullCanvas = document.createElement('canvas');
-        fullCanvas.width = video.videoWidth;
-        fullCanvas.height = video.videoHeight;
-        const ctx = fullCanvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-
-        stream.getTracks().forEach(track => track.stop());
-
-        const fullScreenshotUrl = fullCanvas.toDataURL('image/jpeg', 0.95);
-        setCapturedScreenImage(fullScreenshotUrl);
-        setIsSnipping(true);
-        setSnipRect(null);
-        return;
-      } catch (err) {
-        if (err.name === 'NotAllowedError') {
-          return;
-        }
-        console.warn('getDisplayMedia fallback to overlay:', err);
-      }
-    }
-
-    setCapturedScreenImage(null);
     setIsSnipping(true);
     setSnipRect(null);
   };
@@ -316,44 +292,13 @@ export default function ScreenSnipperAndSolverModal({
     if (width < 20 || height < 20) {
       setIsSnipping(false);
       setSnipRect(null);
-      setCapturedScreenImage(null);
       return;
     }
 
     try {
       const cropCanvas = document.createElement('canvas');
 
-      if (capturedScreenImage) {
-        const img = new Image();
-        img.onload = () => {
-          const viewW = window.innerWidth;
-          const viewH = window.innerHeight;
-          const scaleX = img.naturalWidth / viewW;
-          const scaleY = img.naturalHeight / viewH;
-
-          const srcX = Math.max(0, x1 * scaleX);
-          const srcY = Math.max(0, y1 * scaleY);
-          const srcW = Math.min(img.naturalWidth - srcX, width * scaleX);
-          const srcH = Math.min(img.naturalHeight - srcY, height * scaleY);
-
-          cropCanvas.width = srcW;
-          cropCanvas.height = srcH;
-          const ctx = cropCanvas.getContext('2d');
-          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
-
-          const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.92);
-          setCroppedImage(croppedDataUrl);
-          setIsSnipping(false);
-          setSnipRect(null);
-          setCapturedScreenImage(null);
-          setActiveTab('image');
-          handleSolve(croppedDataUrl);
-        };
-        img.src = capturedScreenImage;
-        return;
-      }
-
-      // Fallback: Search for any canvas elements in the viewport (e.g. PDF canvas)
+      // Search for any canvas elements in the viewport (e.g. PDF canvas)
       const allCanvases = Array.from(document.querySelectorAll('canvas')).filter(c => {
         const r = c.getBoundingClientRect();
         return r.width > 20 && r.height > 20 &&
@@ -400,8 +345,7 @@ export default function ScreenSnipperAndSolverModal({
         } else {
           setIsSnipping(false);
           setSnipRect(null);
-          setCapturedScreenImage(null);
-          setError('Ekrandaki soru doğrudan yakalanamadı. Lütfen Windows Ekran Alıntısı (Win+Shift+S) ile soruyu kopyalayıp buraya Ctrl+V ile yapıştırınız.');
+          setError('Görsel bulunamadı. HTML testler için yapay zeka soruyu doğrudan test metninden çözer. İsterseniz Windows Ekran Alıntısı (Win+Shift+S) ile kopyalayıp Ctrl+V tuşlarıyla buraya yapıştırabilirsiniz.');
           return;
         }
       }
@@ -410,14 +354,12 @@ export default function ScreenSnipperAndSolverModal({
       setCroppedImage(croppedDataUrl);
       setIsSnipping(false);
       setSnipRect(null);
-      setCapturedScreenImage(null);
       setActiveTab('image');
       handleSolve(croppedDataUrl);
     } catch (err) {
       console.warn('Crop error:', err);
       setIsSnipping(false);
       setSnipRect(null);
-      setCapturedScreenImage(null);
     }
   };
 
@@ -472,11 +414,7 @@ export default function ScreenSnipperAndSolverModal({
             inset: 0,
             zIndex: 99999,
             cursor: 'crosshair',
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backgroundImage: capturedScreenImage ? `url(${capturedScreenImage})` : 'none',
-            backgroundSize: '100% 100%',
-            backgroundPosition: 'top left',
-            backgroundRepeat: 'no-repeat',
+            background: 'rgba(0, 0, 0, 0.45)',
             userSelect: 'none'
           }}
         >

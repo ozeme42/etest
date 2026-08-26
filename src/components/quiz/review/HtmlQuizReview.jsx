@@ -1112,10 +1112,13 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
           isOpen={Boolean(aiModalQuestionNo)}
           onClose={() => setAiModalQuestionNo(null)}
           questionNo={aiModalQuestionNo}
-          question={questions[aiModalQuestionNo - 1] || {
+          htmlPayload={htmlPayload || test?.htmlPayload || test?.contentPayload}
+          question={{
+            ...(questions[aiModalQuestionNo - 1] || {}),
             questionNo: aiModalQuestionNo,
             userAnswer: answers[aiModalQuestionNo - 1]?.userAnswer,
-            userAnswerText: answers[aiModalQuestionNo - 1]?.userAnswerText
+            userAnswerText: answers[aiModalQuestionNo - 1]?.userAnswerText,
+            htmlPayload: htmlPayload || test?.htmlPayload || test?.contentPayload
           }}
           mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
           onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
