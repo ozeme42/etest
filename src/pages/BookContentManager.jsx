@@ -2425,7 +2425,39 @@ export default function BookContentManager() {
                           <button 
                             onClick={() => {
                               setScheduleModalHw(hw);
-                              setScheduleDates(hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {});
+                              const initialDates = {
+                                ...(hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {})
+                              };
+
+                              // 1. Merge dates from other homeworks matching this book
+                              (allHomeworks || []).filter(h => h.isBookAssignment && (String(h.bookId || h.book_id) === String(book?.id) || toUUID(h.bookId) === toUUID(book?.id))).forEach(h => {
+                                const hDueDates = h.testDueDates || h.raw_data?.testDueDates || h.scheduleDates || h.raw_data?.scheduleDates || {};
+                                Object.entries(hDueDates).forEach(([tid, d]) => {
+                                  if (d && !initialDates[tid]) initialDates[tid] = d;
+                                });
+                              });
+
+                              // 2. Merge dates from bookTests
+                              (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(book?.id) || toUUID(bt.bookId) === toUUID(book?.id)).forEach(bt => {
+                                const d = bt.dueDate || bt.testDueDate || bt.date || bt.raw_data?.dueDate;
+                                if (d && !initialDates[bt.id]) initialDates[bt.id] = d;
+                              });
+
+                              // 3. Merge dates from book.subjects & topics
+                              (book?.subjects || []).forEach(s => {
+                                (s.tests || []).forEach(t => {
+                                  const d = t.dueDate || t.testDueDate || t.date;
+                                  if (d && !initialDates[t.id]) initialDates[t.id] = d;
+                                });
+                                (s.topics || []).forEach(tp => {
+                                  (tp.tests || []).forEach(t => {
+                                    const d = t.dueDate || t.testDueDate || t.date;
+                                    if (d && !initialDates[t.id]) initialDates[t.id] = d;
+                                  });
+                                });
+                              });
+
+                              setScheduleDates(initialDates);
                               setAutoStartDate(new Date().toISOString().split('T')[0]);
                               setScheduleSelectedTestIds([]);
                               setBulkApplyDate('');
