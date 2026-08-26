@@ -250,31 +250,58 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   let blankCount = 0;
   const detailedAnswers = [];
 
-  for (let i = 1; i <= totalQuestions; i++) {
-    const userLetter = studentAnswersMap[i] || null;
-    const correctLetter = answerKey[i] || null;
+  const isSubWritten = Boolean(
+    rawSub.isOpenEnded ||
+    rawSub.type === 'acik_uclu' ||
+    rawSub.type === 'yazili' ||
+    rawSub.questionType === 'acik_uclu' ||
+    rawSub.questionType === 'yazili' ||
+    rawSub.sourceFormat === 'yazili' ||
+    rawSub.formatType === 'yazili' ||
+    rawSub.openEndedText ||
+    rawSub.openEndedAnswers ||
+    (fullTitle && (fullTitle.toLowerCase().includes('açık uçlu') || fullTitle.toLowerCase().includes('acik uclu') || fullTitle.toLowerCase().includes('yazılı') || fullTitle.toLowerCase().includes('yazili') || fullTitle.toLowerCase().includes('klasik'))) ||
+    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a && (a.isOpenEnded || a.userAnswerText || a.studentAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2))))
+  );
 
-    let isCorrect = null;
-    if (userLetter && correctLetter) {
-      isCorrect = (userLetter === correctLetter);
-    } else if (userLetter && !correctLetter) {
-      if (Array.isArray(rawSub.answers)) {
-        const existing = rawSub.answers.find(a => (a.questionNo === i || a.questionIndex === i));
-        if (existing?.isCorrect !== undefined) isCorrect = existing.isCorrect;
-      }
-    }
-
-    if (isCorrect === true) correctCount++;
-    else if (userLetter) wrongCount++;
-    else blankCount++;
-
-    detailedAnswers.push({
-      questionNo: i,
-      userAnswer: userLetter,
-      correctAnswer: correctLetter,
-      isCorrect,
-      reason: mistakeReasons[i] || null
+  if (isSubWritten && Array.isArray(rawSub.answers) && rawSub.answers.length > 0) {
+    rawSub.answers.forEach((a, idx) => {
+      detailedAnswers.push({
+        ...a,
+        questionNo: a.questionNo || a.questionNoInSection || (idx + 1),
+        userAnswer: a.userAnswerText || a.studentAnswerText || a.userAnswer,
+        userAnswerText: a.userAnswerText || a.studentAnswerText || a.userAnswer,
+        correctAnswer: a.correctAnswer,
+        isCorrect: a.isCorrect
+      });
     });
+  } else {
+    for (let i = 1; i <= totalQuestions; i++) {
+      const userLetter = studentAnswersMap[i] || null;
+      const correctLetter = answerKey[i] || null;
+
+      let isCorrect = null;
+      if (userLetter && correctLetter) {
+        isCorrect = (userLetter === correctLetter);
+      } else if (userLetter && !correctLetter) {
+        if (Array.isArray(rawSub.answers)) {
+          const existing = rawSub.answers.find(a => (a.questionNo === i || a.questionIndex === i));
+          if (existing?.isCorrect !== undefined) isCorrect = existing.isCorrect;
+        }
+      }
+
+      if (isCorrect === true) correctCount++;
+      else if (userLetter) wrongCount++;
+      else blankCount++;
+
+      detailedAnswers.push({
+        questionNo: i,
+        userAnswer: userLetter,
+        correctAnswer: correctLetter,
+        isCorrect,
+        reason: mistakeReasons[i] || null
+      });
+    }
   }
 
   // Override correct/wrong counts if pre-evaluated by teacher or explicitly defined
@@ -354,6 +381,15 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     answers: detailedAnswers,
     mistakeReasons,
     
+    isOpenEnded: isSubWritten,
+    type: isSubWritten ? 'acik_uclu' : (rawSub.type || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
+    questionType: isSubWritten ? 'acik_uclu' : (rawSub.questionType || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
+    sourceFormat: isSubWritten ? 'yazili' : (matchedBookTest ? 'physical' : 'digital'),
+    openEndedText: rawSub.openEndedText || rawSub.openEndedAnswers || null,
+    questionsList: rawSub.questionsList || rawSub.questions || [],
+    teacherFeedback: rawSub.teacherFeedback || rawSub.teacherNote || '',
+    isEvaluatedByTeacher: rawSub.isEvaluatedByTeacher || rawSub.status === 'evaluated',
+
     raw: rawSub
   };
 }
@@ -547,7 +583,10 @@ export function findUnifiedSubmissionOrTest(targetId, {
     title: normalizedSubmission?.testTitle || 'İnceleme Testi',
     questionCount: normalizedSubmission?.totalQuestions || 12,
     answer_key: normalizedSubmission?.answerKey || {},
-    type: 'optik_form'
+    type: normalizedSubmission?.isOpenEnded ? 'acik_uclu' : (normalizedSubmission?.type || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
+    questionType: normalizedSubmission?.isOpenEnded ? 'acik_uclu' : (normalizedSubmission?.questionType || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
+    sourceFormat: normalizedSubmission?.sourceFormat || (normalizedSubmission?.isOpenEnded ? 'yazili' : (matchedBookTest ? 'physical' : 'digital')),
+    isOpenEnded: normalizedSubmission?.isOpenEnded || false
   } : null);
 
   return {
