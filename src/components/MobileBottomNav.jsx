@@ -73,7 +73,7 @@ export default function MobileBottomNav() {
           ? '0 -6px 25px rgba(0, 0, 0, 0.55), 0 -1px 3px rgba(0, 0, 0, 0.3)'
           : '0 -4px 20px rgba(0, 0, 0, 0.06), 0 -1px 3px rgba(0, 0, 0, 0.02)',
         paddingTop: '0.45rem',
-        paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.45rem)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 18px) + 0.45rem)',
         paddingLeft: '0.5rem',
         paddingRight: '0.5rem',
         transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease'
