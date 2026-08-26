@@ -2674,108 +2674,145 @@ export function MonthlyListPanel({
 
       {/* SCREEN VIEW (INTERACTIVE AGENDA WITH CONTROLS) */}
       <div className="screen-only-agenda">
-        {/* Month Navigation & Stats Banner */}
+        {/* Month Navigation & Controls Bar */}
         <div className="no-print" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
           background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
           border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
-          borderRadius: '1rem',
-          padding: '0.85rem 1.25rem',
-          marginBottom: '1.25rem',
+          borderRadius: '0.95rem',
+          padding: isMobile ? '0.5rem 0.65rem' : '0.85rem 1.25rem',
+          marginBottom: isMobile ? '0.75rem' : '1.25rem',
           boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 2px 10px rgba(0,0,0,0.03)',
-          backdropFilter: isDark ? 'blur(20px)' : 'none',
-          flexWrap: 'wrap',
-          gap: '0.85rem'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? 6 : '0.85rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Row 1: Month Title & Arrows */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 6
+          }}>
             <button
               onClick={() => setMonthOffset(m => m - 1)}
               style={{
-                padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+                borderRadius: '0.6rem',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                color: isDark ? '#ffffff' : '#334155',
+                fontWeight: 800,
+                fontSize: '0.76rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3
               }}
+              title="Önceki Ay"
             >
-              <ChevronLeft size={16} /> Önceki Ay
+              <ChevronLeft size={16} />
+              {!isMobile && <span>Önceki Ay</span>}
             </button>
 
-            {monthOffset !== 0 && (
-              <button
-                onClick={() => setMonthOffset(0)}
-                style={{
-                  padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                  color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
-                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
-                }}
-              >
-                📍 Bu Ay ({new Date().toLocaleDateString('tr-TR', { month: 'long' })})
-              </button>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0, padding: '0 4px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                <span style={{ fontSize: isMobile ? '0.88rem' : '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1.2 }}>
+                  📆 {monthInfo.monthTitle}
+                </span>
+                {monthOffset !== 0 && (
+                  <button
+                    onClick={() => setMonthOffset(0)}
+                    style={{
+                      padding: '1px 6px',
+                      borderRadius: 99,
+                      background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: '0.62rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Bu Ay
+                  </button>
+                )}
+              </div>
+              <span style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 800, marginTop: 1 }}>
+                {monthDoneTasks}/{monthTotalTasks} Tamamlandı (%{monthCompletionPct})
+              </span>
+            </div>
 
             <button
               onClick={() => setMonthOffset(m => m + 1)}
               style={{
-                padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+                borderRadius: '0.6rem',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                color: isDark ? '#ffffff' : '#334155',
+                fontWeight: 800,
+                fontSize: '0.76rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3
               }}
+              title="Sonraki Ay"
             >
-              Sonraki Ay <ChevronRight size={16} />
+              {!isMobile && <span>Sonraki Ay</span>}
+              <ChevronRight size={16} />
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={22} color="#818cf8" />
-              <span style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
-                📆 {monthInfo.monthTitle}
-              </span>
-            </div>
+          {/* Row 2: Filters & Actions */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 6,
+            flexWrap: 'wrap',
+            paddingTop: 4,
+            borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9'
+          }}>
+            <button
+              onClick={() => setOnlyWithTasks(v => !v)}
+              style={{
+                padding: isMobile ? '0.25rem 0.6rem' : '0.35rem 0.75rem',
+                borderRadius: 99,
+                background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+                fontWeight: 800,
+                fontSize: isMobile ? '0.7rem' : '0.75rem',
+                cursor: 'pointer'
+              }}
+            >
+              {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* Print Buttons */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
               <button
-                onClick={() => setOnlyWithTasks(v => !v)}
+                onClick={() => handlePrint('landscape')}
                 style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '99px',
-                  background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
-                  border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
-                  color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
-                  fontWeight: 800,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer'
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                  borderRadius: 99,
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.68rem' : '0.74rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
                 }}
+                title="A4 Yatay (Landscape) olarak yazdır / PDF kaydet"
               >
-                {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+                <Printer size={12} /> {isMobile ? 'Yazdır' : '📄 Yatay Yazdır'}
               </button>
-
-              {/* Dual Print Buttons: Yatay & Dikey */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
-                <button
-                  onClick={() => handlePrint('landscape')}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: 99,
-                    background: 'linear-gradient(135deg, #059669, #10b981)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: 900,
-                    fontSize: '0.74rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
-                  }}
-                  title="A4 Yatay (Landscape) olarak yazdır / PDF kaydet"
-                >
-                  <Printer size={13} /> 📄 Yatay Yazdır
-                </button>
+              {!isMobile && (
                 <button
                   onClick={() => handlePrint('portrait')}
                   style={{
@@ -2795,11 +2832,7 @@ export function MonthlyListPanel({
                 >
                   📄 Dikey
                 </button>
-              </div>
-
-              <span style={{ fontSize: '0.78rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 800, background: isDark ? 'rgba(5,150,105,0.2)' : '#f0fdf4', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1.5px solid #86efac' }}>
-                {monthDoneTasks}/{monthTotalTasks} Tamamlandı
-              </span>
+              )}
             </div>
           </div>
         </div>
@@ -4298,8 +4331,8 @@ export default function ProgramCenter({
           </div>
         )}
 
-        {/* Unified Slim Progress Bar */}
-        {totalItems > 0 && (
+        {/* Unified Slim Progress Bar (Weekly Tab Only) */}
+        {totalItems > 0 && programTab === 'haftalik' && (
           <div style={{
             padding: '0.4rem 0.75rem',
             background: isDark ? 'rgba(15, 23, 42, 0.75)' : '#ffffff',
