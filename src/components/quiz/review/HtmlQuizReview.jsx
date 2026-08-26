@@ -703,6 +703,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               const textAns = textCandidates.find(t => t !== undefined && t !== null && String(t).trim() !== '' && String(t).trim() !== 'empty');
               const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
               const hasAnswer = hasUserOption || (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || Boolean(textAns);
+              const isBlank = !hasAnswer || userAns === 'empty' || userAns === '' || userAns === null || userAns === undefined;
               const isText = Boolean(textAns && String(textAns).trim() !== '');
               const isItemOE = !hasUserOption && (isOpenEndedMode || isText || qObj.type === 'acik_uclu' || ansObj.isOpenEnded);
 

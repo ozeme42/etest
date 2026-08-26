@@ -1525,43 +1525,23 @@ export async function dbAddHomework(hw) {
 
     const hwId = String(processedHw.id || `hw_${Date.now()}`);
     const uuidId = toUUID(hwId);
+    const targetDbId = uuidId || hwId;
+
+    safeRaw.stringId = hwId;
+    safeRaw.targetType = processedHw.targetType || 'student';
+    safeRaw.targetIds = Array.isArray(processedHw.targetIds) ? processedHw.targetIds : [];
+
     const safePayload = {
-      id: hwId,
+      id: targetDbId,
       title: processedHw.title || 'Ödev',
       subject: processedHw.subject || 'Genel',
       due_date: calculatedDueDate,
-      target_type: processedHw.targetType || 'student',
-      target_ids: Array.isArray(processedHw.targetIds) ? processedHw.targetIds : [],
       raw_data: safeRaw
     };
 
-    // 1. If supabaseId exists, update by supabaseId
-    if (processedHw.supabaseId) {
-      try {
-        await supabase.from('homeworks').update(safePayload).eq('id', processedHw.supabaseId);
-      } catch {}
-    }
-
-    // 2. Also try updating by hwId and uuidId
-    try {
-      await supabase.from('homeworks').update(safePayload).eq('id', hwId);
-      if (uuidId && uuidId !== hwId) {
-        await supabase.from('homeworks').update(safePayload).eq('id', uuidId);
-      }
-    } catch {}
-
-    // 3. Upsert to ensure record is saved
     let { data, error } = await supabase.from('homeworks').upsert([safePayload], { onConflict: 'id' }).select();
     if (error) {
-      const uuidPayload = {
-        ...safePayload,
-        id: uuidId || hwId,
-        raw_data: { ...safeRaw, stringId: hwId }
-      };
-      const uuidRes = await supabase.from('homeworks').upsert([uuidPayload], { onConflict: 'id' }).select();
-      if (!uuidRes.error) {
-        return uuidRes.data;
-      }
+      console.warn('[Supabase] dbAddHomework error:', error.message);
     }
     return data;
   } catch (err) {
