@@ -601,9 +601,11 @@ function AppContent() {
   }, [currentUser?.role, currentUser?.id]);
 
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/quiz-review/', '/login', '/physical-exam/', '/study-room'];
-  const isLandingPage = location.pathname === '/';
+  const isLandingPage = location.pathname === '/' && !currentUser;
+  const isLoginPage = location.pathname === '/login' || location.pathname === '/landing';
   const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
-  const shouldHideSidebar = !currentUser || isLandingPage || isQuizRoute;
+  const shouldHideSidebar = !currentUser || isLandingPage || isLoginPage || isQuizRoute;
+  const shouldShowBottomNav = Boolean(currentUser && !isLoginPage && !isLandingPage);
 
   useEffect(() => {
     initNativeApp(navigate);
@@ -682,7 +684,7 @@ function AppContent() {
         </ErrorBoundary>
       </main>
       
-      {!shouldHideSidebar && <MobileBottomNav />}
+      {shouldShowBottomNav && <MobileBottomNav />}
       <ToastContainer />
       <CommandPalette />
     </div>

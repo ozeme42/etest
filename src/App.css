@@ -258,18 +258,11 @@ html.ssp-in-fullscreen .sidebar {
     border-radius: 0.5rem;
   }
   
-  .app-container:not(.no-sidebar) .main-content {
-    padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 18px) + 90px);
+  .app-container .main-content {
+    padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 76px) !important;
     width: 100% !important;
     max-width: 100% !important;
-  }
-
-  .app-container.no-sidebar .main-content,
-  .app-container.no-sidebar {
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px) !important;
     box-sizing: border-box !important;
-    width: 100% !important;
-    max-width: 100% !important;
   }
   
   .sidebar {
