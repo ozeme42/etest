@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { isSupabaseConfigured } from '../lib/supabase';
 import {
   dbGetStudyPlans,
   dbAddStudyPlan,

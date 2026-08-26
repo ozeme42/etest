@@ -835,25 +835,39 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       </div>
 
       {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
-      {aiModalQuestionNo && (
-        <ScreenSnipperAndSolverModal
-          isOpen={Boolean(aiModalQuestionNo)}
-          onClose={() => setAiModalQuestionNo(null)}
-          questionNo={aiModalQuestionNo}
-          question={{
-            questionNo: aiModalQuestionNo,
-            userAnswer: answers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + answers[aiModalQuestionNo]) : null,
-            correctAnswerLetter: correctAnswers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + correctAnswers[aiModalQuestionNo]) : null
-          }}
-          mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
-          onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
-          studentAnswer={answers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + answers[aiModalQuestionNo]) : ''}
-          correctAnswer={correctAnswers[aiModalQuestionNo] !== undefined ? String.fromCharCode(65 + correctAnswers[aiModalQuestionNo]) : ''}
-          subject={test?.subject || submission?.subject || 'Genel'}
-          topic={test?.topic || submission?.unitTopic || ''}
-          testId={testId}
-        />
-      )}
+      {aiModalQuestionNo && (() => {
+        const targetQNo = aiModalQuestionNo;
+        const targetQIdx = targetQNo - 1;
+        const targetQObj = questions[targetQIdx] || {};
+        const targetAnsObj = answers.find(a => (a.questionNo === targetQNo || String(a.questionNo) === String(targetQNo) || a.questionId === targetQObj.id)) || answers[targetQIdx] || {};
+        const rawUserAns = targetAnsObj.userAnswer ?? submission?.studentAnswersMap?.[targetQNo] ?? submission?.studentAnswers?.[targetQNo] ?? null;
+        const userAnsLetter = (rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '') ? (typeof rawUserAns === 'string' ? rawUserAns.toUpperCase() : String.fromCharCode(65 + rawUserAns)) : '';
+        const rawAk = submission?.answerKey || test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey || {};
+        const rawKeyVal = targetAnsObj.correctAnswer ?? targetAnsObj.correctAnswerLetter ?? targetQObj.correctAnswer ?? targetQObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[targetQIdx] : (rawAk[targetQNo] || rawAk[String(targetQNo)] || rawAk[targetQIdx]));
+        const correctAnsIndex = getAnsIndex(rawKeyVal);
+        const correctLetter = (typeof rawKeyVal === 'string' && rawKeyVal.length === 1) ? rawKeyVal.toUpperCase() : (correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '');
+
+        return (
+          <ScreenSnipperAndSolverModal
+            isOpen={Boolean(aiModalQuestionNo)}
+            onClose={() => setAiModalQuestionNo(null)}
+            questionNo={targetQNo}
+            question={{
+              questionNo: targetQNo,
+              userAnswer: userAnsLetter || null,
+              correctAnswerLetter: correctLetter || null,
+              userAnswerText: targetAnsObj.userAnswerText || ''
+            }}
+            mistakeReason={mistakeReasons[targetQNo] || ''}
+            onMistakeReasonChange={(r) => handleSetMistakeReason(targetQNo, r)}
+            studentAnswer={targetAnsObj.userAnswerText || userAnsLetter || 'Boş'}
+            correctAnswer={correctLetter || ''}
+            subject={test?.subject || submission?.subject || 'Genel'}
+            topic={test?.topic || submission?.unitTopic || ''}
+            testId={testId}
+          />
+        );
+      })()}
     </div>
   );
 }

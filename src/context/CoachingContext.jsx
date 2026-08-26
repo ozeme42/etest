@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { safeSetItem } from '../utils/storageUtils';
+import { isSupabaseConfigured } from '../lib/supabase';
 import {
   dbGetCoachingData,
   dbSaveCoachingNote,
