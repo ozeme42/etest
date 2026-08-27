@@ -13,7 +13,8 @@ import {
   AlertCircle, Search, Filter, Layers, MessageSquare, Award,
   Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
   RotateCcw, Trophy, ThumbsUp, ThumbsDown, CheckCircle, HelpCircle,
-  ClipboardCheck, Ruler, TestTube2, BookCopy, Zap, Plus, Minus, Maximize2
+  ClipboardCheck, Ruler, TestTube2, BookCopy, Zap, Plus, Minus, Maximize2,
+  Table, LayoutGrid
 } from 'lucide-react';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -47,6 +48,7 @@ export default function EvaluationManager() {
 
   const [activeSubmission, setActiveSubmission] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
@@ -549,6 +551,7 @@ export default function EvaluationManager() {
         </div>
       </header>
 
+      {/* ── CONTROLS & FILTER TOOLBAR ── */}
       <div style={{
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
@@ -561,6 +564,7 @@ export default function EvaluationManager() {
         gap: '0.85rem',
         boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
       }}>
+        {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -608,8 +612,61 @@ export default function EvaluationManager() {
           </button>
         </div>
 
+        {/* Search, Filters and View Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'relative', flex: '1 1 180px' }}>
+          {/* View Toggle (Table / Grid) */}
+          <div style={{
+            display: 'flex',
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0.65rem',
+            padding: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              title="Tablo Görünümü"
+              style={{
+                padding: '0.4rem 0.65rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                background: viewMode === 'table' ? 'var(--color-surface)' : 'transparent',
+                color: viewMode === 'table' ? '#4f46e5' : 'var(--color-text-muted)',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                boxShadow: viewMode === 'table' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              <Table size={14} /> Tablo
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              title="Kart Görünümü"
+              style={{
+                padding: '0.4rem 0.65rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                background: viewMode === 'cards' ? 'var(--color-surface)' : 'transparent',
+                color: viewMode === 'cards' ? '#4f46e5' : 'var(--color-text-muted)',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                boxShadow: viewMode === 'cards' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              <LayoutGrid size={14} /> Kartlar
+            </button>
+          </div>
+
+          <div style={{ position: 'relative', flex: '1 1 170px' }}>
             <Search size={14} color="var(--color-text-muted)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
@@ -617,7 +674,7 @@ export default function EvaluationManager() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
-                width: '100%', padding: '0.5rem 0.85rem 0.5rem 2rem', borderRadius: '0.65rem',
+                width: '100%', padding: '0.45rem 0.85rem 0.45rem 2rem', borderRadius: '0.65rem',
                 background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
                 color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box'
               }}
@@ -628,7 +685,7 @@ export default function EvaluationManager() {
             value={subjectFilter}
             onChange={e => setSubjectFilter(e.target.value)}
             style={{
-              padding: '0.5rem 0.75rem', borderRadius: '0.65rem',
+              padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
               background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
               color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none'
             }}
@@ -641,7 +698,7 @@ export default function EvaluationManager() {
             value={studentFilter}
             onChange={e => setStudentFilter(e.target.value)}
             style={{
-              padding: '0.5rem 0.75rem', borderRadius: '0.65rem',
+              padding: '0.45rem 0.75rem', borderRadius: '0.65rem',
               background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)',
               color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none'
             }}
@@ -673,7 +730,203 @@ export default function EvaluationManager() {
                 : 'Arama kriterlerinize uygun kayıt bulunamadı.')}
           </p>
         </div>
+      ) : viewMode === 'table' ? (
+        /* ── 1. COMPACT TABLE VIEW (TABLO GÖRÜNÜMÜ) ── */
+        <div style={{
+          background: 'var(--color-surface)',
+          borderRadius: '1.25rem',
+          border: '1.5px solid var(--color-border)',
+          boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+              <thead>
+                <tr style={{
+                  background: 'var(--color-surface-hover)',
+                  borderBottom: '1.5px solid var(--color-border)',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  <th style={{ padding: '0.85rem 1.15rem' }}>Öğrenci</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Sınav / Test Başlığı</th>
+                  <th style={{ padding: '0.85rem 0.85rem' }}>Ders</th>
+                  <th style={{ padding: '0.85rem 0.85rem', textAlign: 'center' }}>Soru</th>
+                  <th style={{ padding: '0.85rem 0.85rem' }}>Tarih</th>
+                  <th style={{ padding: '0.85rem 0.85rem' }}>Durum</th>
+                  <th style={{ padding: '0.85rem 0.85rem', textAlign: 'center' }}>Not</th>
+                  <th style={{ padding: '0.85rem 1.15rem', textAlign: 'right' }}>İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeDisplayList.map((sub, idx) => {
+                  const isPending = sub.isPending;
+                  const isManual = sub.isManual;
+                  const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
+                  const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
+                  const totalQ = sub.totalQuestions || 1;
+                  const subConf = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
+
+                  const aiMap = getAiUsageMapForTest(sub.testId || sub.id, sub.studentId || sub.userId);
+                  const aiCount = Object.keys(aiMap).length;
+
+                  return (
+                    <tr
+                      key={sub.id}
+                      style={{
+                        borderBottom: idx === activeDisplayList.length - 1 ? 'none' : '1px solid var(--color-border)',
+                        transition: 'background-color 0.15s ease',
+                        background: isPending ? 'rgba(245, 158, 11, 0.03)' : 'transparent'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = isPending ? 'rgba(245, 158, 11, 0.03)' : 'transparent'; }}
+                    >
+                      {/* Öğrenci */}
+                      <td style={{ padding: '0.75rem 1.15rem', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontWeight: 900, fontSize: '0.75rem',
+                            flexShrink: 0
+                          }}>
+                            {sub.studentName?.charAt(0) || 'Ö'}
+                          </div>
+                          <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>
+                            {sub.studentName || 'Öğrenci'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Sınav / Test Başlığı */}
+                      <td style={{ padding: '0.75rem 1rem', maxWidth: '280px' }}>
+                        <div style={{ fontWeight: 800, color: 'var(--color-text)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={sub.testTitle}>
+                          {sub.testTitle || 'Ödev / Sınav'}
+                        </div>
+                        {sub.bookTitle && (
+                          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <BookOpen size={10} color="#818cf8" />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.bookTitle}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Ders */}
+                      <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
+                        <span style={{
+                          background: subConf.bg,
+                          color: subConf.color,
+                          padding: '0.18rem 0.55rem',
+                          borderRadius: '0.45rem',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          border: `1px solid ${subConf.border}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}>
+                          <span>{subConf.icon}</span>
+                          <span>{sub.subject}</span>
+                        </span>
+                      </td>
+
+                      {/* Soru Sayısı & AI */}
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontWeight: 800, color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
+                            {totalQ} Soru
+                          </span>
+                          {aiCount > 0 && (
+                            <span title={`${aiCount} soruda yapay zeka çözümü incelemiştir.`} style={{ background: 'rgba(168,85,247,0.15)', color: '#7c3aed', padding: '0.1rem 0.35rem', borderRadius: 4, fontSize: '0.65rem', fontWeight: 800 }}>
+                              ✨ {aiCount} AI
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Tarih */}
+                      <td style={{ padding: '0.75rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock3 size={11} />
+                          <span>{dateStr}</span>
+                        </div>
+                      </td>
+
+                      {/* Durum */}
+                      <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
+                        {isPending ? (
+                          <span style={{
+                            background: 'rgba(245,158,11,0.12)', color: '#d97706',
+                            border: '1px solid rgba(245,158,11,0.3)',
+                            padding: '0.2rem 0.6rem', borderRadius: 99,
+                            fontWeight: 900, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: 3
+                          }}>
+                            ✍️ Not Bekliyor
+                          </span>
+                        ) : (
+                          <span style={{
+                            background: 'rgba(16,185,129,0.12)', color: '#059669',
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            padding: '0.2rem 0.6rem', borderRadius: 99,
+                            fontWeight: 900, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: 3
+                          }}>
+                            ✓ Değerlendirildi
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Puan / Not */}
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        {scoreVal !== null ? (
+                          <span style={{
+                            fontWeight: 900,
+                            fontSize: '0.88rem',
+                            color: scoreVal >= 70 ? '#10b981' : (scoreVal >= 50 ? '#f59e0b' : '#ef4444')
+                          }}>
+                            %{scoreVal}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>-</span>
+                        )}
+                      </td>
+
+                      {/* İşlem Butonu */}
+                      <td style={{ padding: '0.75rem 1.15rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubmission(sub)}
+                          style={{
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '0.6rem',
+                            border: 'none',
+                            background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                            color: '#ffffff',
+                            fontWeight: 900,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            boxShadow: isPending ? '0 2px 8px rgba(245,158,11,0.25)' : '0 2px 8px rgba(99,102,241,0.2)'
+                          }}
+                        >
+                          {isPending ? <Edit3 size={12} /> : <Eye size={12} />}
+                          <span>{isPending ? 'Değerlendir' : 'İncele & Not'}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
+        /* ── 2. CARD GRID VIEW (KART GÖRÜNÜMÜ) ── */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
           {activeDisplayList.map((sub) => {
             const isManual = sub.isManual;
