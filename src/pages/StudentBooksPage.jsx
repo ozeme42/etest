@@ -16,6 +16,7 @@ import {
   Legend, RadialBarChart, RadialBar, Cell
 } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import { isDeletedItem } from '../services/unifiedResultAdapter';
 import { useTheme } from '../context/ThemeContext';
 import ManualTestModal from '../components/ManualTestModal';
 
@@ -172,6 +173,7 @@ export default function StudentBooksPage() {
 
   const studentSubmissions = useMemo(() =>
     submissions.filter(s => {
+      if (!s || isDeletedItem(s)) return false;
       const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;

@@ -7,6 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { toUUID } from '../services/supabaseService';
+import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
@@ -529,6 +530,7 @@ export default function TrackedBookQuizRunner() {
     const studentUuidStr = String(toUUID(studentIdStr) || '');
 
     const existingSub = (submissions || []).find(s => {
+      if (!s || isDeletedItem(s)) return false;
       const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
       if (!isMatchStudent) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
@@ -608,9 +610,41 @@ export default function TrackedBookQuizRunner() {
       setResults(calculated);
       initializedRef.current = true;
     } else {
+      // Test is not solved or was reset -> ensure blank fresh test state
+      setIsSubmitted(false);
+      setResults(null);
+      setAnswers({});
+      try {
+        localStorage.removeItem(draftKey);
+        localStorage.removeItem(`${draftKey}_time`);
+      } catch {}
       initializedRef.current = true;
     }
   }, [resolvedTest, resolvedHw, resolvedBook, studentId, isRetake, draftKey, submissions, calculateTestResults]);
+
+  // Real-time synchronization on test reset or deletion
+  useEffect(() => {
+    const handleCachePurged = (e) => {
+      const pTestId = e?.detail?.testId;
+      const tKeyStr = String(testKey);
+      const resTIdStr = String(resolvedTest?.id || '');
+      if (!pTestId || pTestId === tKeyStr || pTestId === resTIdStr || pTestId.includes(tKeyStr) || (resTIdStr && pTestId.includes(resTIdStr))) {
+        setIsSubmitted(false);
+        setResults(null);
+        setAnswers({});
+        try {
+          localStorage.removeItem(draftKey);
+          localStorage.removeItem(`${draftKey}_time`);
+        } catch {}
+      }
+    };
+    window.addEventListener('test-cache-purged', handleCachePurged);
+    window.addEventListener('test-reset-cleared', handleCachePurged);
+    return () => {
+      window.removeEventListener('test-cache-purged', handleCachePurged);
+      window.removeEventListener('test-reset-cleared', handleCachePurged);
+    };
+  }, [testKey, resolvedTest, draftKey]);
 
   // Timer interval
   useEffect(() => {

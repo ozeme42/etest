@@ -9,6 +9,100 @@ import { getTurkeyYMD, extractItemDate } from '../utils/dateHelpers';
  * serbest kitap testleri veya deneme sınavları) tek bir standart modele dönüştürülür.
  */
 
+export function isDeletedItem(s) {
+  if (!s) return true;
+  let deletedIds = new Set();
+  try {
+    const raw = localStorage.getItem('eTestDeletedSubmissions');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+    }
+  } catch {}
+
+  const candidates = [
+    s.id,
+    s.submissionId,
+    s.supabaseId,
+    s.testId,
+    s.realTestId,
+    s.bookTestId,
+    s.metadata?.realTestId,
+    s.metadata?.bookTestId,
+    s.metadata?.testId
+  ];
+  return candidates.some(c => {
+    if (!c) return false;
+    const str = String(c);
+    const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+    const u = toUUID(str);
+    return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+  });
+}
+
+export function purgeTestCache(testId, studentId) {
+  if (!testId) return;
+  const tStr = String(testId);
+  const tClean = tStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+  const sStr = studentId ? String(studentId) : '';
+
+  try {
+    const rawDel = localStorage.getItem('eTestDeletedSubmissions');
+    let delSet = new Set();
+    if (rawDel) {
+      const parsed = JSON.parse(rawDel);
+      if (Array.isArray(parsed)) delSet = new Set(parsed.map(String));
+    }
+    delSet.add(tStr);
+    delSet.add(tClean);
+    delSet.add(`bt_${tClean}`);
+    delSet.add(`tbt_${tClean}`);
+    localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(delSet).slice(-500)));
+
+    const patterns = [
+      `draft_tracked_book_test_${tStr}_${sStr}`,
+      `draft_tracked_book_test_${tClean}_${sStr}`,
+      `draft_tracked_book_test_${tStr}`,
+      `draft_tracked_book_test_${tClean}`,
+      `draft_tracked_book_flagged_${tStr}_${sStr}`,
+      `draft_tracked_book_flagged_${tClean}_${sStr}`,
+      `draft_tracked_book_flagged_${tStr}`,
+      `draft_tracked_book_flagged_${tClean}`,
+      `mistake_reasons_${tStr}_${sStr}`,
+      `mistake_reasons_${tClean}_${sStr}`,
+      `mistake_reasons_bt_${tStr}_${sStr}`,
+      `mistake_reasons_bt_${tClean}_${sStr}`,
+      `mistake_reasons_${tStr}`,
+      `mistake_reasons_${tClean}`,
+      `sub_latest_${tStr}`,
+      `sub_latest_${tClean}`,
+      `quiz_answers_${tStr}`,
+      `quiz_answers_${tClean}`,
+      `quiz_draft_${tStr}`,
+      `quiz_draft_${tClean}`,
+      `draft_quiz_${tStr}_ans`,
+      `draft_quiz_${tClean}_ans`,
+      `draft_quiz_${tStr}_txt`,
+      `draft_quiz_${tClean}_txt`,
+      `draft_quiz_${tStr}_time`,
+      `draft_quiz_${tClean}_time`
+    ];
+
+    patterns.forEach(k => {
+      try {
+        localStorage.removeItem(k);
+        localStorage.removeItem(`${k}_time`);
+      } catch {}
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('test-cache-purged', { detail: { testId: tStr, studentId: sStr } }));
+    }
+  } catch (e) {
+    console.error('purgeTestCache error:', e);
+  }
+}
+
 /**
  * Helper: Answer letter to 0-based index and vice-versa
  */

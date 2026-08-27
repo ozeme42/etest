@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
+import { purgeTestCache } from '../services/unifiedResultAdapter';
 
 const EvaluationContext = createContext();
 
@@ -486,8 +487,11 @@ export function EvaluationProvider({ children }) {
     const idsToDelete = [String(id)];
     if (target?.id) idsToDelete.push(String(target.id));
     if (target?.supabaseId) idsToDelete.push(String(target.supabaseId));
+    if (target?.testId) idsToDelete.push(String(target.testId));
+    if (target?.bookTestId) idsToDelete.push(String(target.bookTestId));
 
     markIdsAsDeleted(idsToDelete);
+    idsToDelete.forEach(tid => purgeTestCache(tid, target?.studentId));
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !idsToDelete.includes(String(s.id)) && !idsToDelete.includes(String(s.supabaseId)));
@@ -537,7 +541,10 @@ export function EvaluationProvider({ children }) {
 
     if (toDelete.length > 0) {
       markIdsAsDeleted(toDelete);
+      toDelete.forEach(tid => purgeTestCache(tid));
     }
+    purgeTestCache(tStr);
+    if (tU) purgeTestCache(tU);
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => {

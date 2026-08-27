@@ -10,6 +10,7 @@ import { isHomeworkForStudent } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 import ManualTestModal from '../components/ManualTestModal';
 
@@ -291,6 +292,7 @@ export default function StudentBookDetailsPage() {
         const tUuidStr = String(toUUID(t.id) || '');
 
         const solvedSubs = submissions.filter(s => {
+          if (!s || isDeletedItem(s)) return false;
           const sStdId = String(s.studentId || s.student_id || '');
           const isMatchStudent = !studentIdStr || sStdId === studentIdStr || (studentUuidStr && sStdId === studentUuidStr) || (studentUuidStr && toUUID(sStdId) === studentUuidStr);
           if (!isMatchStudent) return false;
@@ -325,6 +327,7 @@ export default function StudentBookDetailsPage() {
         for (const hw of homeworks) {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
+            if (!s || isDeletedItem(s)) return false;
             const sStdId = String(s.studentId || s.student_id || '');
             const isMatchStudent = !studentIdStr || sStdId === studentIdStr || (studentUuidStr && sStdId === studentUuidStr) || (studentUuidStr && toUUID(sStdId) === studentUuidStr);
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
@@ -1020,6 +1023,10 @@ export default function StudentBookDetailsPage() {
         test.bestSub?.testId,
         test.bestSub?.supabaseId
       ].filter(Boolean);
+
+      allTestIdentifiers.forEach(id => {
+        purgeTestCache(id, studentId);
+      });
 
       if (test.latestSubId) {
         await deleteSubmission(test.latestSubId);
