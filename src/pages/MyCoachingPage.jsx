@@ -26,6 +26,7 @@ import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
