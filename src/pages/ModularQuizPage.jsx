@@ -18,7 +18,7 @@ import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
 import SingleMultipleChoiceRunner from '../components/quiz/single/SingleMultipleChoiceRunner';
 import SingleOpenEndedRunner from '../components/quiz/single/SingleOpenEndedRunner';
 import CompositeHomeworkRunner from '../components/quiz/composite/CompositeHomeworkRunner';
-import { isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
+import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 import { useMediaQuery } from '../hooks/useMediaQuery';

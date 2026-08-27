@@ -1,7 +1,7 @@
 import React from 'react';
 import { Award, CheckCircle2, XCircle, Clock, Eye, X, Layers } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { isSectionOpenEnded } from '../utils/quizTypeDetector';
+import { isSectionOpenEnded, isMultipleChoice } from '../utils/quizTypeDetector';
 
 /**
  * QuizResultModal
