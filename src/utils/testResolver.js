@@ -1338,7 +1338,7 @@ export function computeStudentAnalyticsData({
     
     // Multi-criteria uniqueness keys
     const primaryKey = String(item.id || '');
-    const logicalKey = `${cleanSubj}___${rawTitle}___${item.correctCount}_${item.wrongCount}`;
+    const logicalKey = `${cleanSubj}___${rawTitle}___${item.date}___${item.correctCount}_${item.wrongCount}_${item.emptyCount}`;
     const origKey = origId ? `orig_${origId}` : null;
 
     if ((primaryKey && seen.has(primaryKey)) || (logicalKey && seen.has(logicalKey)) || (origKey && seen.has(origKey))) {

@@ -78,7 +78,7 @@ export default function PeriodicQuestionAnalytics({
 
       const rawSubj = String(it.subject || it.subjectName || 'Genel').trim().toLowerCase();
       const primaryKey = String(it.id || it.originalSubmissionId || '');
-      const logicalKey = `${rawSubj}___${rawTitle}___${d}_${y}`;
+      const logicalKey = `${rawSubj}___${rawTitle}___${dateStr}___${d}_${y}_${b}`;
       const origKey = it.originalSubmissionId ? `orig_${it.originalSubmissionId}` : null;
 
       if ((primaryKey && seenUnifiedKeys.has(primaryKey)) || (logicalKey && seenUnifiedKeys.has(logicalKey)) || (origKey && seenUnifiedKeys.has(origKey))) {

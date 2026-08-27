@@ -182,38 +182,41 @@ export function normalizeAnswerKey(rawKey) {
  */
 export function normalizeStudentAnswers(rawSub) {
   if (!rawSub) return {};
+  if (typeof rawSub === 'object' && !Array.isArray(rawSub) && !rawSub.answers && !rawSub.studentAnswers && !rawSub.answersMap && !rawSub.studentAnswersMap) {
+    const directMap = {};
+    Object.entries(rawSub).forEach(([k, v]) => {
+      const qNo = parseInt(k, 10);
+      if (!isNaN(qNo)) {
+        const letter = normalizeLetter(v);
+        if (letter) directMap[qNo] = letter;
+      }
+    });
+    if (Object.keys(directMap).length > 0) return directMap;
+  }
   const map = {};
 
   // 1. Check studentAnswers dictionary { "1": "A", "2": "C" }
-  if (rawSub.studentAnswers && typeof rawSub.studentAnswers === 'object' && !Array.isArray(rawSub.studentAnswers)) {
-    Object.entries(rawSub.studentAnswers).forEach(([k, v]) => {
+  const rawMap = rawSub.studentAnswersMap || rawSub.studentAnswers || rawSub.answersMap;
+  if (rawMap && typeof rawMap === 'object' && !Array.isArray(rawMap)) {
+    Object.entries(rawMap).forEach(([k, v]) => {
       const qNo = parseInt(k, 10);
       if (!isNaN(qNo)) {
         const letter = normalizeLetter(v);
         if (letter) map[qNo] = letter;
       }
     });
-    return map;
+    if (Object.keys(map).length > 0) return map;
   }
 
-  // 2. Check answersMap dictionary
-  if (rawSub.answersMap && typeof rawSub.answersMap === 'object' && !Array.isArray(rawSub.answersMap)) {
-    Object.entries(rawSub.answersMap).forEach(([k, v]) => {
-      const qNo = parseInt(k, 10);
-      if (!isNaN(qNo)) {
-        const letter = normalizeLetter(v);
-        if (letter) map[qNo] = letter;
-      }
-    });
-    return map;
-  }
-
-  // 3. Check answers array [ { questionNo: 1, userAnswer: "A" } ]
-  if (Array.isArray(rawSub.answers)) {
-    rawSub.answers.forEach((a, idx) => {
-      if (!a || a.type === 'metadata') return;
-      const qNo = a.questionNo || a.questionIndex || (idx + 1);
-      const letter = normalizeLetter(a.userAnswer ?? a.selectedOption ?? a.userAnswerLetter ?? a.answer);
+  // 2. Check answers array [ { questionNo: 1, userAnswer: "A" } ] or primitive array
+  const rawAnswers = Array.isArray(rawSub) ? rawSub : (Array.isArray(rawSub.answers) ? rawSub.answers : (Array.isArray(rawSub.questions) ? rawSub.questions : []));
+  if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+    rawAnswers.forEach((a, idx) => {
+      if (a === null || a === undefined) return;
+      if (typeof a === 'object' && a.type === 'metadata') return;
+      const qNo = (typeof a === 'object') ? (a.questionNo || a.questionIndex || (idx + 1)) : (idx + 1);
+      const rawAns = (typeof a === 'object') ? (a.userAnswer ?? a.selectedOption ?? a.userAnswerLetter ?? a.answer ?? a.userAnswerText) : a;
+      const letter = normalizeLetter(rawAns);
       if (letter) map[qNo] = letter;
     });
   }
@@ -437,8 +440,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   // 7. Date Resolution
   const dateVal = extractItemDate(rawSub);
-  const rawSubDate = rawSub.submittedAt || rawSub.submitted_at || rawSub.completedAt || rawSub.completed_at || rawSub.date || raw.submittedAt || raw.completedAt || rawSub.createdAt;
-  const resolvedSubmittedAt = rawSubDate ? (typeof rawSubDate === 'string' && rawSubDate.includes('T') ? rawSubDate : new Date(dateVal).toISOString()) : new Date(dateVal).toISOString();
+  const [y, m, d] = dateVal.split('-').map(Number);
+  const resolvedSubmittedAt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
 
   // 8. Unique Clean ID & Subject/Type Keys
   const studentId = String(rawSub.studentId ?? rawSub.userId ?? rawSub.student_id ?? '');
@@ -450,7 +453,28 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
     String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_')
   );
-  const typeKey = isPhysicalExam ? 'physicalExam' : (matchedHw ? 'homework' : (matchedBook ? 'book' : 'individual'));
+
+  const isBookTest = Boolean(
+    matchedBook ||
+    matchedBookTest ||
+    rawSub.bookId ||
+    rawSub.bookTestId ||
+    rawSub.sourceType === 'trackedBook' ||
+    rawSub.sourceType === 'book' ||
+    rawSub.typeKey === 'book' ||
+    cleanBookTitle ||
+    String(realTestId).startsWith('tbt_') ||
+    String(realTestId).startsWith('tb_')
+  );
+
+  const typeKey = isPhysicalExam
+    ? 'physicalExam'
+    : (isBookTest ? 'book' : (matchedHw ? 'homework' : 'individual'));
+
+  const sourceType = isPhysicalExam
+    ? 'physicalExam'
+    : (isBookTest ? 'book' : (matchedHw ? 'homework' : 'submission'));
+
   const calculatedSubjectKey = getSubjectKey({ fullTitle, subjectName });
 
   const isEvaluated = Boolean(
@@ -587,7 +611,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
     const allCandidateSubs = [];
 
-    // 1. Homework Submissions
+    // 1. Standalone Submissions (Pure Source of Truth for test-by-test completion date)
+    (submissions || []).filter(isMatchStudent).forEach(sub => {
+      allCandidateSubs.push({ ...sub, isStandalone: true });
+    });
+
+    // 2. Homework Submissions
     (homeworks || []).forEach(hw => {
       if (!hw) return;
       const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
@@ -595,20 +624,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
 
       hwSubList.filter(isMatchStudent).forEach(sub => {
-        allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title });
+        allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title, isStandalone: false });
       });
     });
 
-    // 2. Standalone Submissions
-    (submissions || []).filter(isMatchStudent).forEach(sub => {
-      allCandidateSubs.push(sub);
-    });
-
-    // Sort candidates so that EVALUATED submissions come FIRST, then by date descending
+    // Sort candidates: Evaluated first, Standalone submissions before generic homework updates, then newest
     allCandidateSubs.sort((a, b) => {
       const aEval = (a.isEvaluated || a.isEvaluatedByTeacher || a.status === 'evaluated' || a.teacherFeedback) ? 1 : 0;
       const bEval = (b.isEvaluated || b.isEvaluatedByTeacher || b.status === 'evaluated' || b.teacherFeedback) ? 1 : 0;
       if (bEval !== aEval) return bEval - aEval;
+
+      const aStand = a.isStandalone ? 1 : 0;
+      const bStand = b.isStandalone ? 1 : 0;
+      if (bStand !== aStand) return bStand - aStand;
+
       return new Date(b.submittedAt || b.date || 0).getTime() - new Date(a.submittedAt || a.date || 0).getTime();
     });
 
@@ -625,7 +654,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const t = String(normalized.testTitle || normalized.fullTitle || normalized.title || '').toLowerCase();
       if (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)') || t.includes('(kendi eklediğim)')) return;
 
-      const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
+      const testKey = `${normalized.bookId || ''}_${normalized.subject || ''}_${normalized.realTestId || normalized.testId || normalized.id}`;
       if (processedTestIds.has(testKey)) return;
       processedTestIds.add(testKey);
 

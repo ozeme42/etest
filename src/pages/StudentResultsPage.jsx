@@ -33,7 +33,7 @@ import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/util
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
 import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
-import { extractItemDate, getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
+import { extractItemDate, getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange, formatTurkishDate } from '../utils/dateHelpers';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
@@ -3024,7 +3024,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               </span>
                             </td>
                             <td style={{ padding: '0.75rem 0.85rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                              {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                              {formatTurkishDate(s.date || s.submittedAt || s.createdAt, 'dd.MM.yyyy')}
                             </td>
                             <td style={{ padding: '0.75rem 0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>
                               {s.totalQuestions}

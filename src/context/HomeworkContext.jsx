@@ -424,16 +424,17 @@ export function HomeworkProvider({ children }) {
           if (targetTestId && (s.testId || s.bookTestId)) {
             return String(s.testId || s.bookTestId) === String(targetTestId);
           }
-          return !targetTestId && !s.testId;
+          return !targetTestId && !s.testId && !s.bookTestId;
         });
 
+        const nowIso = extraData.completedAt || extraData.submittedAt || new Date().toISOString();
         let newSubmissions;
         if (existingIdx >= 0) {
           newSubmissions = existingList.map((s, idx) =>
-            idx === existingIdx ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData } : s
+            idx === existingIdx ? { ...s, ...extraData, score, totalQuestions, completedAt: nowIso, submittedAt: s.submittedAt || nowIso } : s
           );
         } else {
-          newSubmissions = [...existingList, { studentId, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData }];
+          newSubmissions = [...existingList, { studentId, score, completedAt: nowIso, submittedAt: nowIso, totalQuestions, ...extraData }];
         }
         const updated = { ...hw, submissions: newSubmissions };
         dbAddHomework(updated);
