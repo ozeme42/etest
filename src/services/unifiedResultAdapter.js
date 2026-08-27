@@ -335,6 +335,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   const typeKey = isPhysicalExam ? 'physicalExam' : (matchedHw ? 'homework' : (matchedBook ? 'book' : 'individual'));
   const calculatedSubjectKey = getSubjectKey({ fullTitle, subjectName });
 
+  const isEvaluated = Boolean(
+    rawSub.isEvaluated === true ||
+    rawSub.isEvaluatedByTeacher === true ||
+    rawSub.evaluatedByTeacher === true ||
+    rawSub.status === 'evaluated' ||
+    rawSub.status === 'graded' ||
+    Boolean(rawSub.teacherFeedback || rawSub.teacherNote) ||
+    Boolean(rawSub.teacherScores && Object.keys(rawSub.teacherScores).length > 0) ||
+    Boolean(rawSub.evaluatedAt && (rawSub.teacherFeedback || rawSub.teacherNote || rawSub.isEvaluated || rawSub.status === 'evaluated')) ||
+    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending')))
+  );
+
+  const isPendingEvaluation = isSubWritten && !isEvaluated;
+
   return {
     id: uniqueId,
     submissionId: uniqueId,
@@ -382,136 +396,129 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     mistakeReasons,
     
     isOpenEnded: isSubWritten,
+    isEvaluated,
+    isEvaluatedByTeacher: isEvaluated,
+    isPendingEvaluation,
     type: isSubWritten ? 'acik_uclu' : (rawSub.type || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
     questionType: isSubWritten ? 'acik_uclu' : (rawSub.questionType || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
     sourceFormat: isSubWritten ? 'yazili' : (matchedBookTest ? 'physical' : 'digital'),
     openEndedText: rawSub.openEndedText || rawSub.openEndedAnswers || null,
     questionsList: rawSub.questionsList || rawSub.questions || [],
     teacherFeedback: rawSub.teacherFeedback || rawSub.teacherNote || '',
-    isEvaluatedByTeacher: rawSub.isEvaluatedByTeacher || rawSub.status === 'evaluated',
+    status: isEvaluated ? 'evaluated' : (rawSub.status || 'completed'),
 
     raw: rawSub
   };
 }
 
-/**
- * Returns all unified submissions for a student across all sources, deduplicated and sorted by date.
- */
-export function getAllUnifiedStudentSubmissions({
-  studentId,
-  submissions = [],
-  homeworks = [],
-  books = [],
-  bookTests = [],
-  mockExams = []
-}) {
-  if (!studentId) return [];
+  /**
+   * Returns all unified submissions for a student across all sources, deduplicated and sorted by date.
+   */
+  export function getAllUnifiedStudentSubmissions({
+    studentId,
+    submissions = [],
+    homeworks = [],
+    books = [],
+    bookTests = [],
+    mockExams = []
+  }) {
+    if (!studentId) return [];
 
-  const studentIdStr = String(studentId);
-  const studentUuidStr = toUUID(studentIdStr);
+    const studentIdStr = String(studentId);
+    const studentUuidStr = toUUID(studentIdStr);
 
-  const isMatchStudent = (s) => {
-    if (!s) return false;
-    const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
-    return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
-  };
+    const isMatchStudent = (s) => {
+      if (!s) return false;
+      const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+      return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+    };
 
-  let deletedIds = new Set();
-  try {
-    const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
-    if (savedDeleted) {
-      const parsed = JSON.parse(savedDeleted);
-      if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
-    }
-  } catch {}
+    let deletedIds = new Set();
+    try {
+      const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
+      if (savedDeleted) {
+        const parsed = JSON.parse(savedDeleted);
+        if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+      }
+    } catch {}
 
-  const isDeletedItem = (s) => {
-    if (!s) return true;
-    const candidates = [
-      s.id,
-      s.submissionId,
-      s.supabaseId,
-      s.testId,
-      s.realTestId,
-      s.bookTestId,
-      s.metadata?.realTestId,
-      s.metadata?.bookTestId,
-      s.metadata?.testId
-    ];
-    return candidates.some(c => {
-      if (!c) return false;
-      const str = String(c);
-      const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-      const u = toUUID(str);
-      return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+    const isDeletedItem = (s) => {
+      if (!s) return true;
+      const candidates = [
+        s.id,
+        s.submissionId,
+        s.supabaseId,
+        s.testId,
+        s.realTestId,
+        s.bookTestId,
+        s.metadata?.realTestId,
+        s.metadata?.bookTestId,
+        s.metadata?.testId
+      ];
+      return candidates.some(c => {
+        if (!c) return false;
+        const str = String(c);
+        const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+        const u = toUUID(str);
+        return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+      });
+    };
+
+    const results = [];
+    const processedTestIds = new Set();
+
+    const allCandidateSubs = [];
+
+    // 1. Homework Submissions
+    (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+
+      hwSubList.filter(isMatchStudent).forEach(sub => {
+        allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title });
+      });
     });
-  };
 
-  const results = [];
-  const processedTestIds = new Set();
-  const processedKeys = new Set();
+    // 2. Standalone Submissions
+    (submissions || []).filter(isMatchStudent).forEach(sub => {
+      allCandidateSubs.push(sub);
+    });
 
-  // 1. Process Homework Submissions (including Whole-Book Tasks)
-  (homeworks || []).forEach(hw => {
-    if (!hw) return;
-    const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
-      ? hw.submissions
-      : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+    // Sort candidates so that EVALUATED submissions come FIRST, then by date descending
+    allCandidateSubs.sort((a, b) => {
+      const aEval = (a.isEvaluated || a.isEvaluatedByTeacher || a.status === 'evaluated' || a.teacherFeedback) ? 1 : 0;
+      const bEval = (b.isEvaluated || b.isEvaluatedByTeacher || b.status === 'evaluated' || b.teacherFeedback) ? 1 : 0;
+      if (bEval !== aEval) return bEval - aEval;
+      return new Date(b.submittedAt || b.date || 0).getTime() - new Date(a.submittedAt || a.date || 0).getTime();
+    });
 
-    const matchingSubs = [
-      ...hwSubList.filter(isMatchStudent),
-      ...(submissions || []).filter(s => isMatchStudent(s) && (
-        String(s.hwId) === String(hw.id) ||
-        String(s.homeworkId) === String(hw.id) ||
-        String(s.testId) === String(hw.id)
-      ))
-    ].filter(s => s && s.status !== 'in_progress' && s.status !== 'draft' && !isDeletedItem(s));
+    allCandidateSubs.forEach(sub => {
+      if (!sub || isDeletedItem(sub)) return;
+      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      const rawSubId = String(sub.id || sub.submissionId || '');
+      if (rawSubId.startsWith('draft_') || rawSubId.startsWith('64726166')) return;
 
-    matchingSubs.forEach((sub, subIdx) => {
-      const subWithHw = { ...sub, hwId: hw.id, homeworkTitle: hw.title };
-      const normalized = normalizeUnifiedSubmission(subWithHw, { books, bookTests, homeworks });
+      const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (!normalized || isDeletedItem(normalized)) return;
 
       const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
       if (processedTestIds.has(testKey)) return;
       processedTestIds.add(testKey);
-      if (normalized.id) processedKeys.add(String(normalized.id));
-      if (sub.id) processedKeys.add(String(sub.id));
-      if (sub.submissionId) processedKeys.add(String(sub.submissionId));
 
       results.push(normalized);
     });
-  });
 
-  // 2. Process Standalone Submissions (Book Tests, Study Room, Free Quizzes)
-  (submissions || []).forEach(sub => {
-    if (!sub || !isMatchStudent(sub) || isDeletedItem(sub)) return;
-    if (sub.status === 'in_progress' || sub.status === 'draft') return;
-    const rawSubId = String(sub.id || sub.submissionId || '');
-    if (rawSubId.startsWith('draft_') || rawSubId.startsWith('64726166')) return;
-    if (sub.id && processedKeys.has(String(sub.id))) return;
-    if (sub.submissionId && processedKeys.has(String(sub.submissionId))) return;
+    // Sort newest first by exact timestamp
+    results.sort((a, b) => {
+      const timeB = new Date(b.submittedAt || b.date || 0).getTime();
+      const timeA = new Date(a.submittedAt || a.date || 0).getTime();
+      return timeB - timeA;
+    });
 
-    const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
-    if (!normalized || isDeletedItem(normalized)) return;
-
-    const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
-    if (processedTestIds.has(testKey)) return;
-    processedTestIds.add(testKey);
-    processedKeys.add(String(normalized.id));
-
-    results.push(normalized);
-  });
-
-  // Sort newest first by exact timestamp
-  results.sort((a, b) => {
-    const timeB = new Date(b.submittedAt || b.date || 0).getTime();
-    const timeA = new Date(a.submittedAt || a.date || 0).getTime();
-    return timeB - timeA;
-  });
-
-  return results;
-}
+    return results;
+  }
 
 /**
  * Universal finder for Review Page: Finds or builds normalized submission and test for any targetId.

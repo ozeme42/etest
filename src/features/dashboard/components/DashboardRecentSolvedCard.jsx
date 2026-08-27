@@ -110,7 +110,27 @@ export default function DashboardRecentSolvedCard({
             const correct = Number(test.correctCount) || 0;
             const wrong = Number(test.wrongCount) || 0;
             const empty = Number(test.emptyCount) || 0;
-            const scoreRate = totalQ > 0 ? Math.round((correct / totalQ) * 100) : null;
+
+            const isEvaluated = Boolean(
+              test.isEvaluated === true ||
+              test.isEvaluatedByTeacher === true ||
+              test.status === 'evaluated' ||
+              test.status === 'graded' ||
+              test.teacherFeedback ||
+              test.teacherNote ||
+              (test.score !== undefined && test.score !== null && !test.isPendingEvaluation)
+            );
+
+            const isPending = !isEvaluated && Boolean(
+              test.isPendingEvaluation === true ||
+              (test.isOpenEnded && !isEvaluated)
+            );
+
+            const scoreRate = (test.score !== undefined && test.score !== null)
+              ? Number(test.score)
+              : (test.scorePercentage !== undefined && test.scorePercentage !== null
+                  ? Number(test.scorePercentage)
+                  : (totalQ > 0 ? Math.round((correct / totalQ) * 100) : null));
 
             return (
               <div
@@ -192,27 +212,35 @@ export default function DashboardRecentSolvedCard({
                       <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 900 }}>
                         ❌ Onaylanmadı
                       </span>
-                    ) : (test.isPendingEvaluation || (test.isOpenEnded && !test.isEvaluated)) ? (
+                    ) : isPending ? (
                       <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                         📝 {totalQ || 1} Açık Uçlu Soru • ⏳ İncelemede
                       </span>
                     ) : (
                       <>
-                        <span style={{ color: '#16a34a' }}>
-                          ✓ {correct}D
-                        </span>
-                        <span style={{ color: '#dc2626' }}>
-                          ✗ {wrong}Y
-                        </span>
-                        {empty > 0 && (
-                          <span style={{ color: 'var(--color-text-muted)' }}>
-                            ○ {empty}B
+                        {test.isOpenEnded ? (
+                          <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 800 }}>
+                            ✓ Öğretmen Notu Verildi
                           </span>
+                        ) : (
+                          <>
+                            <span style={{ color: '#16a34a' }}>
+                              ✓ {correct}D
+                            </span>
+                            <span style={{ color: '#dc2626' }}>
+                              ✗ {wrong}Y
+                            </span>
+                            {empty > 0 && (
+                              <span style={{ color: 'var(--color-text-muted)' }}>
+                                ○ {empty}B
+                              </span>
+                            )}
+                          </>
                         )}
                         <span style={{ color: 'var(--color-text-muted)', opacity: 0.75 }}>
                           • {totalQ} Soru
                         </span>
-                        {test.net !== undefined && test.net !== null && (
+                        {test.net !== undefined && test.net !== null && !test.isOpenEnded && (
                           <span style={{ color: '#6366f1', fontWeight: 900 }}>
                             • {test.net} Net
                           </span>
@@ -224,7 +252,7 @@ export default function DashboardRecentSolvedCard({
 
                 {/* Sağ Taraf: Skor Rozeti ve İnceleme Oku */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  {scoreRate !== null && !test.isManualPending && !test.isPendingEvaluation && (
+                  {scoreRate !== null && !test.isManualPending && !isPending && (
                     <span style={{
                       fontSize: isMobile ? '0.68rem' : '0.75rem',
                       fontWeight: 900,
