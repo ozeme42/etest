@@ -5,7 +5,7 @@ import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { toUUID } from '../../../services/supabaseService';
 import { isItemOpenEnded, QUICK_FEEDBACK_PRESETS, isValidPayloadString } from '../constants/evaluationConstants';
-import MultiHomeworkRunner from '../../../components/quiz/runner/MultiHomeworkRunner';
+import MultiHomeworkRunner, { resolveExactQuestionCount } from '../../../components/quiz/runner/MultiHomeworkRunner';
 import PdfQuizReview from '../../../components/quiz/review/PdfQuizReview';
 import HtmlQuizReview from '../../../components/quiz/review/HtmlQuizReview';
 import ImageQuizReview from '../../../components/quiz/review/ImageQuizReview';
