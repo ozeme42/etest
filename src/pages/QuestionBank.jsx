@@ -353,21 +353,17 @@ export default function QuestionBank() {
       return;
     }
 
-    // 2. PDF Files (.pdf)
+    // 2. PDF Files (.pdf) - Directed to Link Based Input (Zero Egress)
     if (fileExt === 'pdf' || file.type === 'application/pdf') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Pdf = e.target.result;
-        setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'pdf', data: base64Pdf });
-        setFormData(prev => ({
-          ...prev,
-          contentType: 'pdf',
-          contentPayload: base64Pdf,
-          title: prev.title || fileName.replace(/\.pdf$/i, '')
-        }));
-        if (creationStep === 1) setCreationStep(2);
-      };
-      reader.readAsDataURL(file);
+      alert(`ℹ️ "${fileName}" dosyası seçildi.\n\nSunucu kotanızı ve ağ trafiğini korumak için PDF'ler Google Drive veya web bağlantısı olarak eklenmektedir.\nLütfen dosyanızı Google Drive veya bir bulut alanına yükleyip linkini açılan forma yapıştırınız.`);
+      setFormData(prev => ({
+        ...prev,
+        contentType: 'pdf',
+        contentPayload: '',
+        title: prev.title || fileName.replace(/\.pdf$/i, '')
+      }));
+      setUploadedFileInfo(null);
+      if (creationStep === 1) setCreationStep(2);
       return;
     }
 
@@ -3394,7 +3390,7 @@ export default function QuestionBank() {
                     </div>
                   </div>
 
-                  {/* Option 4: PDF Test Bundle */}
+                  {/* Option 4: PDF Test Bundle (Link Based) */}
                   <div
                     onClick={() => handleSelectType('pdf')}
                     style={{
@@ -3409,10 +3405,10 @@ export default function QuestionBank() {
                     </div>
                     <div>
                       <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? '#fca5a5' : '#b91c1c', margin: '0 0 0.35rem 0' }}>
-                        📕 PDF Test Paketi
+                        🔗 PDF Test Bağlantısı
                       </h4>
                       <p style={{ fontSize: '0.82rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#475569', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
-                        Hazır bir PDF doküman dosyası yükleyin ve cevap anahtarını tanımlayın.
+                        Google Drive, OneDrive veya web PDF linki yapıştırın (0 MB sunucu kotası).
                       </p>
                     </div>
                   </div>
@@ -3558,31 +3554,55 @@ export default function QuestionBank() {
                   )}
                 </div>
 
-                {/* TYPE 1: PDF TEST BUNDLE FORM */}
+                {/* TYPE 1: PDF TEST BUNDLE FORM (LINK ONLY - ZERO SUPABASE EGRESS) */}
                 {formData.contentType === 'pdf' && (
                   <div className="form-group" style={{ background: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2', border: isDark ? '1.5px solid rgba(248, 113, 113, 0.3)' : '1.5px solid #fca5a5', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '0.5rem', display: 'block' }}>
-                      📕 PDF Dosyası Yükleyin veya Bağlantı Yapıştırın
-                    </label>
-                    
-                    <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(248,113,113,0.5)' : '2px dashed #f87171', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#fca5a5' : '#dc2626', fontWeight: 800, fontSize: '0.9rem' }}>
-                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
-                        📁 Bilgisayardan PDF Seç
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <label style={{ fontWeight: 900, fontSize: '1.05rem', color: isDark ? '#fca5a5' : '#b91c1c', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🔗 PDF / Google Drive Bağlantısı
                       </label>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7', color: isDark ? '#34d399' : '#15803d', padding: '3px 8px', borderRadius: '6px' }}>
+                        ⚡ 0 MB Sunucu Trafiği (Limitsiz)
+                      </span>
                     </div>
 
-                    <p style={{ fontSize: '0.85rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', margin: '0 0 0.85rem 0' }}>
-                      Veya PDF dosyasının doğrudan web linkini yapıştırın:
-                    </p>
-                    <input 
-                      type="text" 
-                      value={formData.contentPayload} 
-                      onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
-                      placeholder="Örn: https://example.com/matematik-deneme.pdf veya Google Drive Linki" 
-                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', width: '100%', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
-                      required 
-                    />
+                    <div style={{ background: isDark ? 'rgba(0,0,0,0.25)' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #fee2e2', padding: '0.85rem 1rem', borderRadius: '0.75rem', marginBottom: '1rem', fontSize: '0.82rem', lineHeight: 1.6, color: isDark ? 'rgba(255,255,255,0.8)' : '#7f1d1d' }}>
+                      💡 <strong>Nasıl Eklenir?</strong> PDF dosyanızı <strong>Google Drive, OneDrive, Dropbox</strong> veya herhangi bir web alanına yükleyin. Drive için paylaşım ayarını <em>"Bağlantıya sahip olan herkes görüntüleyebilir"</em> yapıp linkini yapıştırın. Sistem otomatik olarak canlı PDF testine dönüştürecektir.
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input 
+                        type="url" 
+                        value={formData.contentPayload} 
+                        onChange={e => setFormData({...formData, contentPayload: e.target.value.trim()})} 
+                        placeholder="Örn: https://drive.google.com/file/d/1A2B3C.../view veya https://site.com/test.pdf" 
+                        style={{ flex: 1, padding: '0.85rem 1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1', fontSize: '0.95rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
+                        required 
+                      />
+                      {formData.contentPayload && (
+                        <a
+                          href={getEmbeddableUrl(formData.contentPayload) || formData.contentPayload}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ background: '#dc2626', color: 'white', border: 'none', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}
+                        >
+                          👁️ Önizle
+                        </a>
+                      )}
+                    </div>
+
+                    {formData.contentPayload && getEmbeddableUrl(formData.contentPayload) && (
+                      <div style={{ marginTop: '1rem' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '0.4rem' }}>
+                          📄 Canlı Önizleme:
+                        </div>
+                        <iframe
+                          src={getEmbeddableUrl(formData.contentPayload)}
+                          title="PDF Önizleme"
+                          style={{ width: '100%', height: '350px', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', borderRadius: '0.65rem', background: '#ffffff' }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -4665,15 +4685,21 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                {/* 4. PDF BUNDLE PREVIEW */}
+                {/* 4. PDF BUNDLE PREVIEW (LINK BASED) */}
                 {!q.questionsList && q.contentType === 'pdf' && (
                   <div style={{ marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
-                      <label style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem' }}>
-                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
-                        📁 PDF Değiştir / Yükle
-                      </label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c', fontSize: '0.9rem' }}>📄 PDF Sınav Dokümanı:</span>
+                      {q.contentPayload && q.contentPayload.startsWith('http') && (
+                        <a
+                          href={q.contentPayload}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#ffffff', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.35rem 0.85rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}
+                        >
+                          🔗 Yeni Sekmede Aç
+                        </a>
+                      )}
                     </div>
                     {getEmbeddableUrl(q.contentPayload) ? (
                       <iframe
@@ -4682,8 +4708,8 @@ export default function QuestionBank() {
                         style={{ width: '100%', height: '550px', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0', borderRadius: '0.75rem', background: 'white' }}
                       />
                     ) : (
-                      <div style={{ padding: '3rem', textAlign: 'center', color: isDark ? '#fca5a5' : '#b91c1c', background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', border: isDark ? '1px dashed rgba(239,68,68,0.3)' : '1.5px dashed #fca5a5', borderRadius: '0.75rem' }}>
-                        📄 Bu test için henüz bir PDF dosyası yüklenmedi. Lütfen yukarıdaki butondan bir PDF seçin.
+                      <div style={{ padding: '2.5rem', textAlign: 'center', color: isDark ? '#fca5a5' : '#b91c1c', background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', border: isDark ? '1px dashed rgba(239,68,68,0.3)' : '1.5px dashed #fca5a5', borderRadius: '0.75rem' }}>
+                        📄 Bu test için henüz geçerli bir PDF / Google Drive bağlantısı eklenmemiş.
                       </div>
                     )}
                   </div>

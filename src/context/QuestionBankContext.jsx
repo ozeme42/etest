@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetQuestions, dbAddQuestion, dbDeleteQuestion } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const QuestionBankContext = createContext();
 
@@ -71,15 +72,13 @@ export function QuestionBankProvider({ children }) {
         return Array.from(mergedMap.values());
       });
 
-      // 2. Safely merge from Supabase database only if cache expired
-      const lastSync = sessionStorage.getItem('eTestLastQBSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && currentQs.length > 0) {
+      // 2. Safely merge from Supabase database only if persistent 30m cache expired
+      if (isCacheValid('questions', 30) && currentQs.length > 0) {
         return;
       }
       const dbQs = await dbGetQuestions();
       if (dbQs && dbQs.length > 0) {
-        sessionStorage.setItem('eTestLastQBSync', String(now));
+        touchCache('questions');
         setQuestions(prev => {
           const mergedMap = new Map();
           (prev || []).forEach(q => mergedMap.set(String(q.id), q));

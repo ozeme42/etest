@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
+import { isCacheValid, touchCache, invalidateCache } from '../utils/cacheManager';
 
 const HomeworkContext = createContext();
 
@@ -27,9 +28,9 @@ export function HomeworkProvider({ children }) {
       setIsLoading(false);
       return null;
     }
-    const lastSync = sessionStorage.getItem('eTestLastHwSync');
-    const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 60 * 1000 && homeworks.length > 0) {
+    
+    // Check 30-minute persistent cache to prevent high network egress
+    if (!force && isCacheValid('homeworks', 30) && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -38,7 +39,7 @@ export function HomeworkProvider({ children }) {
     try {
       const dbHws = await dbGetHomeworks();
       if (dbHws) {
-        sessionStorage.setItem('eTestLastHwSync', String(now));
+        touchCache('homeworks');
         setHomeworks(prev => {
           const map = new Map();
           dbHws
@@ -66,13 +67,6 @@ export function HomeworkProvider({ children }) {
 
   useEffect(() => {
     refreshHomeworks();
-    const handleFocus = () => refreshHomeworks();
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
   }, []);
 
   // Restore payloads from IndexedDB if stored as placeholder

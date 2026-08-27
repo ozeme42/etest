@@ -37,32 +37,46 @@ export function getEmbeddablePdfUrl(url) {
     return null;
   }
   
-  if (url.includes('drive.google.com/file/d/')) {
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
+  let cleanUrl = url.trim();
+
+  // 1. Google Drive URLs
+  // drive.google.com/file/d/FILE_ID/view...
+  const driveFileMatch = cleanUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch && driveFileMatch[1]) {
+    return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
+  }
+  // drive.google.com/open?id=FILE_ID or drive.google.com/uc?id=FILE_ID
+  const driveIdMatch = cleanUrl.match(/drive\.google\.com\/(?:open|uc)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
+  if (driveIdMatch && driveIdMatch[1]) {
+    return `https://drive.google.com/file/d/${driveIdMatch[1]}/preview`;
+  }
+
+  // 2. Dropbox URLs: change dl=0 to raw=1 for direct viewing
+  if (cleanUrl.includes('dropbox.com')) {
+    return cleanUrl.replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1');
+  }
+
+  // 3. Direct HTTP(S) or Blob URLs
+  if (cleanUrl.startsWith('blob:') || cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return cleanUrl;
+  }
+
+  // 4. Data URLs
+  if (cleanUrl.startsWith('JVBERi0')) {
+    cleanUrl = `data:application/pdf;base64,${cleanUrl}`;
+  }
+
+  if (cleanUrl.startsWith('data:application/pdf') || cleanUrl.startsWith('data:')) {
+    if (blobUrlCache.has(cleanUrl)) {
+      return blobUrlCache.get(cleanUrl);
     }
-  }
-
-  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-
-  if (url.startsWith('JVBERi0')) {
-    url = `data:application/pdf;base64,${url.trim()}`;
-  }
-
-  if (url.startsWith('data:application/pdf') || url.startsWith('data:')) {
-    if (blobUrlCache.has(url)) {
-      return blobUrlCache.get(url);
-    }
-    const blob = dataURLtoBlob(url);
+    const blob = dataURLtoBlob(cleanUrl);
     if (blob) {
       const createdUrl = URL.createObjectURL(blob);
-      blobUrlCache.set(url, createdUrl);
+      blobUrlCache.set(cleanUrl, createdUrl);
       return createdUrl;
     }
   }
 
-  return url;
+  return cleanUrl;
 }

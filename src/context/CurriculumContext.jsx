@@ -12,6 +12,7 @@ import {
   dbDeleteTopic
 } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const CurriculumContext = createContext();
 
@@ -86,17 +87,15 @@ export function CurriculumProvider({ children }) {
         });
       }
 
-      // 2. Fetch latest from Supabase if configured and cache expired
-      const lastSync = sessionStorage.getItem('eTestLastCurriculumSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && curCache && curCache.grades?.length > 0) {
+      // 2. Fetch latest from Supabase only if configured and 60m persistent cache expired
+      if (isCacheValid('curriculum', 60) && curCache && curCache.grades?.length > 0) {
         return;
       }
 
       if (isSupabaseConfigured()) {
         const dbCurData = await dbGetCurriculum();
         if (dbCurData && dbCurData.grades && dbCurData.grades.length > 0) {
-          sessionStorage.setItem('eTestLastCurriculumSync', String(now));
+          touchCache('curriculum');
           setData({
             grades: (dbCurData.grades || []).sort(naturalSort),
             subjects: (dbCurData.subjects || []).sort(naturalSort),

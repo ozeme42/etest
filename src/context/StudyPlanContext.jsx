@@ -7,6 +7,7 @@ import {
   dbAddStudyAssignment,
   dbUpdateStudyAssignment
 } from '../services/supabaseService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const StudyPlanContext = createContext();
 
@@ -32,14 +33,12 @@ export function StudyPlanProvider({ children }) {
   useEffect(() => {
     async function syncStudyPlansFromSupabase() {
       if (!isSupabaseConfigured()) return;
-      const lastSync = sessionStorage.getItem('eTestLastStudyPlansSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && studyPlans.length > 0) {
+      if (isCacheValid('study_plans', 30) && studyPlans.length > 0) {
         return;
       }
       const res = await dbGetStudyPlans();
       if (res) {
-        sessionStorage.setItem('eTestLastStudyPlansSync', String(now));
+        touchCache('study_plans');
         if (res.plans) setStudyPlans(res.plans);
         if (res.assignments) setStudyAssignments(res.assignments);
       }

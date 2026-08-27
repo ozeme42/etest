@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetGoals, dbAddGoal, dbUpdateGoalProgress, dbDeleteGoal, toUUID } from '../services/supabaseService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const GoalContext = createContext();
 
@@ -17,27 +18,12 @@ export function GoalProvider({ children }) {
 
   useEffect(() => {
     async function syncFromSupabase() {
+      if (isCacheValid('goals', 30) && goals.length > 0) return;
       const dbGoals = await dbGetGoals();
       if (dbGoals && Array.isArray(dbGoals)) {
+        touchCache('goals');
         if (dbGoals.length > 0) {
           setGoals(dbGoals);
-        } else {
-          // If Supabase is empty, check localStorage and push to DB
-          const saved = localStorage.getItem('eTestGoals');
-          if (saved) {
-            try {
-              const localGoals = JSON.parse(saved);
-              if (Array.isArray(localGoals) && localGoals.length > 0) {
-                for (const g of localGoals) {
-                  await dbAddGoal(g);
-                }
-                const refreshed = await dbGetGoals();
-                if (refreshed && refreshed.length > 0) {
-                  setGoals(refreshed);
-                }
-              }
-            } catch (e) {}
-          }
         }
       }
     }

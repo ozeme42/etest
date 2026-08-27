@@ -13,6 +13,7 @@ import {
   dbGetCoachingProfiles,
   dbSaveCoachingProfile
 } from '../services/supabaseService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const CoachingContext = createContext();
 
@@ -49,14 +50,11 @@ export function CoachingProvider({ children }) {
   useEffect(() => {
     async function syncCoachingFromSupabase() {
       if (!isSupabaseConfigured()) return;
-      const lastSync = sessionStorage.getItem('eTestLastCoachingSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && coachingLinks.length > 0) {
+      if (isCacheValid('coaching', 30)) {
         return;
       }
       const res = await dbGetCoachingData();
       if (res) {
-        sessionStorage.setItem('eTestLastCoachingSync', String(now));
         if (res.links) setCoachingLinks(res.links);
         if (res.notes) setCoachingNotes(res.notes);
       }
@@ -77,6 +75,7 @@ export function CoachingProvider({ children }) {
         setCoachingProfiles(dbProfiles);
         safeSetItem('eTestCoachingProfiles', JSON.stringify(dbProfiles));
       }
+      touchCache('coaching');
     }
     syncCoachingFromSupabase();
   }, []);

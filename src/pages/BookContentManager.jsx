@@ -100,8 +100,8 @@ export default function BookContentManager() {
       const candidateBookIds = Array.from(new Set([safeBookId, String(id)].filter(Boolean)));
 
       const [bRes, tRes] = await Promise.all([
-        supabase.from('tracked_books').select('*').in('id', candidateBookIds).limit(1),
-        supabase.from('tracked_book_tests').select('*').in('book_id', candidateBookIds).order('created_at', { ascending: true })
+        supabase.from('tracked_books').select('id, title, publisher, book_type, option_count, pdf_url, subjects, raw_data').in('id', candidateBookIds).limit(1),
+        supabase.from('tracked_book_tests').select('id, book_id, subject_id, topic_id, name, question_count, answer_key, is_open_ended, question_type, option_count, pdf_url, due_date, created_at').in('book_id', candidateBookIds).order('created_at', { ascending: true })
       ]);
 
       const b = bRes?.data?.[0] || null;

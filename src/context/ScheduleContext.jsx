@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetSchedules, dbAddSchedule, dbToggleSchedule, dbDeleteSchedule, toUUID } from '../services/supabaseService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const ScheduleContext = createContext();
 
@@ -17,27 +18,12 @@ export function ScheduleProvider({ children }) {
 
   useEffect(() => {
     async function syncFromSupabase() {
+      if (isCacheValid('schedules', 30) && schedules.length > 0) return;
       const dbSchedules = await dbGetSchedules();
       if (dbSchedules && Array.isArray(dbSchedules)) {
+        touchCache('schedules');
         if (dbSchedules.length > 0) {
           setSchedules(dbSchedules);
-        } else {
-          // If Supabase is empty, check localStorage and push to DB
-          const saved = localStorage.getItem('eTestSchedule');
-          if (saved) {
-            try {
-              const localSch = JSON.parse(saved);
-              if (Array.isArray(localSch) && localSch.length > 0) {
-                for (const s of localSch) {
-                  await dbAddSchedule(s);
-                }
-                const refreshed = await dbGetSchedules();
-                if (refreshed && refreshed.length > 0) {
-                  setSchedules(refreshed);
-                }
-              }
-            } catch (e) {}
-          }
         }
       }
     }

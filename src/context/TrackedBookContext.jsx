@@ -11,6 +11,7 @@ import {
   toUUID
 } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const TrackedBookContext = createContext();
 
@@ -74,9 +75,8 @@ export function TrackedBookProvider({ children }) {
       setIsLoading(false);
       return null;
     }
-    const lastSync = sessionStorage.getItem('eTestLastTrackedBooksSync');
-    const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 60 * 1000 && books.length > 0) {
+    
+    if (!force && isCacheValid('tracked_books', 30) && books.length > 0) {
       setIsLoading(false);
       return { books, bookTests };
     }
@@ -85,7 +85,7 @@ export function TrackedBookProvider({ children }) {
     try {
       const res = await dbGetTrackedBooks();
       if (res) {
-        sessionStorage.setItem('eTestLastTrackedBooksSync', String(now));
+        touchCache('tracked_books');
         if (res.books) {
           const cleanBooks = res.books.map(b => ({
             ...b,
@@ -103,13 +103,6 @@ export function TrackedBookProvider({ children }) {
 
   useEffect(() => {
     refreshTrackedBooks();
-    const handleFocus = () => refreshTrackedBooks();
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
   }, []);
 
   useEffect(() => {

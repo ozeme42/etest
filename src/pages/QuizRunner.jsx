@@ -9,6 +9,7 @@ import { useUser } from '../context/UserContext';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload, idbSetPayload } from '../services/indexedDbService';
+import { dbGetQuestionPayload } from '../services/supabaseService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 import './QuizRunner.css';
@@ -265,13 +266,24 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       const enriched = await Promise.all(rawTestQuestions.map(async (q) => {
         let payload = q.contentPayload || q.htmlPayload || q.pdfPayload || q.url || q.content;
         if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && (payload.includes('[STORED_IN_INDEXEDDB]') || payload.includes('[LOCALSTORAGE_CACHE]')))) {
-          const fullPayload = (await idbGetPayload(q.id)) ||
-                              (await idbGetPayload(q.id?.replace(/^q_/, ''))) ||
-                              (await idbGetPayload(id)) ||
-                              (await idbGetPayload(id?.replace(/^hw_/, ''))) ||
-                              (await idbGetPayload(id?.replace(/^hw_/, 'q_'))) ||
-                              (await idbGetPayload(test?.id)) ||
-                              (await idbGetPayload(testQuestionIds[0]));
+          let fullPayload = (await idbGetPayload(q.id)) ||
+                            (await idbGetPayload(q.id?.replace(/^q_/, ''))) ||
+                            (await idbGetPayload(id)) ||
+                            (await idbGetPayload(id?.replace(/^hw_/, ''))) ||
+                            (await idbGetPayload(id?.replace(/^hw_/, 'q_'))) ||
+                            (await idbGetPayload(test?.id)) ||
+                            (await idbGetPayload(testQuestionIds[0]));
+          
+          if (!fullPayload || fullPayload === '[STORED_IN_INDEXEDDB]') {
+            try {
+              const remote = await dbGetQuestionPayload(q.id || id || test?.id);
+              if (remote && remote !== '[STORED_IN_INDEXEDDB]') {
+                fullPayload = remote;
+                idbSetPayload(q.id || id, remote).catch(() => {});
+              }
+            } catch {}
+          }
+
           if (fullPayload && fullPayload !== '[STORED_IN_INDEXEDDB]') {
             payload = fullPayload;
           }

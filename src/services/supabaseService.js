@@ -1048,56 +1048,67 @@ export async function dbClearStudentSubmissions(studentId) {
 export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
   try {
+    // Ultra-lean select: excludes bloated raw_data to minimize network egress by 99%
     const { data, error } = await supabase.from('questions')
-      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, raw_data, created_at')
+      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(q => {
-      let rawData = q.raw_data;
-      if (typeof rawData === 'string') {
-        try { rawData = JSON.parse(rawData); } catch (e) { rawData = {}; }
+      const rawPayload = q.content_payload || '';
+      
+      // If legacy row contains a heavy base64 string in DB (> 200KB), strip it from bulk memory/egress
+      // Local device has it in IndexedDB, and it can be lazy-loaded on demand via dbGetQuestionPayload
+      const isUrl = typeof rawPayload === 'string' && (rawPayload.startsWith('http://') || rawPayload.startsWith('https://') || rawPayload.includes('drive.google.com') || rawPayload.includes('|'));
+      const isHeavyBase64 = typeof rawPayload === 'string' && rawPayload.startsWith('data:') && rawPayload.length > 200000;
+      const contentPayload = isUrl ? rawPayload : (isHeavyBase64 ? '[STORED_IN_INDEXEDDB]' : rawPayload);
+
+      let cleanImageUrl = q.image_url || '';
+      if (cleanImageUrl.length > 200000 && cleanImageUrl.startsWith('data:')) {
+        cleanImageUrl = '[STORED_IN_INDEXEDDB]';
       }
-      rawData = rawData && typeof rawData === 'object' ? rawData : {};
 
-      const rawPayload = q.content_payload || rawData.contentPayload || '';
-      const contentPayload = rawPayload.startsWith('http') || rawPayload.includes('|') ? rawPayload : 
-                             (rawPayload.startsWith('data:') && rawPayload.length > 500000 ? '' : rawPayload);
-
-      const realId = rawData.id || String(q.id);
-
-      let finalImageUrls = rawData.imageUrls || q.imageUrls || null;
-      if ((!finalImageUrls || finalImageUrls.length === 0 || (Array.isArray(finalImageUrls) && finalImageUrls.every(u => u === '[STORED_IN_INDEXEDDB]'))) && typeof rawPayload === 'string' && (rawPayload.includes('|') || rawPayload.includes('http'))) {
-        const parts = rawPayload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(s => s.startsWith('http') || (s.startsWith('data:') && s.length < 500000));
-        if (parts.length > 0) {
-          finalImageUrls = parts;
-        }
-      }
+      const realId = String(q.id);
 
       return {
-        ...rawData,
         id: realId,
-        subject: q.subject || rawData.subject || 'Matematik',
-        gradeId: q.grade_id || rawData.gradeId || 'g1',
-        topic: q.topic || rawData.topic || 'Genel',
-        topicId: q.topic_id || rawData.topicId || 'global_all',
-        type: q.type || rawData.type || 'coktan_secmeli',
-        contentType: q.content_type || rawData.contentType || 'text',
-        contentPayload: contentPayload || rawData.contentPayload || '',
-        isBundle: q.is_bundle !== undefined ? q.is_bundle : (rawData.isBundle || false),
-        questionsList: rawData.questionsList || q.questionsList || null,
-        imageUrls: finalImageUrls,
-        answerKey: q.answer_key || rawData.answerKey || [],
-        title: q.title || rawData.title || '',
-        questionCount: q.question_count || rawData.questionCount || 1,
-        questionText: q.question_text || rawData.questionText || '',
-        options: q.options || rawData.options || [],
-        correctAnswer: q.correct_answer !== undefined ? q.correct_answer : (rawData.correctAnswer || '0'),
-        explanation: q.explanation || rawData.explanation || '',
-        imageUrl: q.image_url || rawData.imageUrl || (Array.isArray(finalImageUrls) ? finalImageUrls[0] : '') || ''
+        subject: q.subject || 'Matematik',
+        gradeId: q.grade_id || 'g1',
+        topic: q.topic || 'Genel',
+        topicId: q.topic_id || 'global_all',
+        type: q.type || 'coktan_secmeli',
+        contentType: q.content_type || 'text',
+        contentPayload: contentPayload,
+        isBundle: Boolean(q.is_bundle),
+        answerKey: q.answer_key || [],
+        title: q.title || '',
+        questionCount: q.question_count || 1,
+        questionText: q.question_text || '',
+        options: q.options || [],
+        correctAnswer: q.correct_answer !== undefined ? q.correct_answer : '0',
+        explanation: q.explanation || '',
+        imageUrl: cleanImageUrl,
+        createdAt: q.created_at
       };
     });
   } catch (err) {
     console.warn('[Supabase] dbGetQuestions error:', err.message);
+    return null;
+  }
+}
+
+export async function dbGetQuestionPayload(questionId) {
+  if (!isSupabaseConfigured() || !questionId) return null;
+  try {
+    const qUuid = toUUID(questionId);
+    const candidateIds = Array.from(new Set([qUuid, String(questionId)].filter(Boolean)));
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id, content_payload, image_url')
+      .in('id', candidateIds)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.content_payload || data.image_url || null;
+  } catch {
     return null;
   }
 }
@@ -1287,6 +1298,25 @@ export async function dbAddQuestion(q) {
       cleanImageUrl = safeRaw.imageUrl;
     }
 
+    // Strip heavy Base64 strings from raw_data so PostgreSQL rows stay under 5 KB
+    const cleanSafeRaw = { ...safeRaw };
+    if (typeof cleanSafeRaw.contentPayload === 'string' && cleanSafeRaw.contentPayload.startsWith('data:') && cleanSafeRaw.contentPayload.length > 5000) {
+      cleanSafeRaw.contentPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    if (typeof cleanSafeRaw.pdfPayload === 'string' && cleanSafeRaw.pdfPayload.startsWith('data:') && cleanSafeRaw.pdfPayload.length > 5000) {
+      cleanSafeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    if (Array.isArray(cleanSafeRaw.imageUrls)) {
+      cleanSafeRaw.imageUrls = cleanSafeRaw.imageUrls.map(u => typeof u === 'string' && u.startsWith('data:') && u.length > 5000 ? '[STORED_IN_INDEXEDDB]' : u);
+    }
+    if (Array.isArray(cleanSafeRaw.questionsList)) {
+      cleanSafeRaw.questionsList = cleanSafeRaw.questionsList.map(sq => ({
+        ...sq,
+        contentPayload: typeof sq.contentPayload === 'string' && sq.contentPayload.startsWith('data:') && sq.contentPayload.length > 5000 ? '[STORED_IN_INDEXEDDB]' : sq.contentPayload,
+        imageUrl: typeof sq.imageUrl === 'string' && sq.imageUrl.startsWith('data:') && sq.imageUrl.length > 5000 ? '[STORED_IN_INDEXEDDB]' : sq.imageUrl
+      }));
+    }
+
     const payload = {
       id: dbId,
       subject: q.subject || 'Matematik',
@@ -1300,7 +1330,7 @@ export async function dbAddQuestion(q) {
       answer_key: q.answerKey || [],
       title: q.title || '',
       question_count: q.questionCount || 1,
-      raw_data: safeRaw,
+      raw_data: cleanSafeRaw,
       question_text: q.questionText || '',
       options: q.options || [],
       correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
@@ -1401,12 +1431,16 @@ export async function dbDeleteQuestion(q) {
 }
 
 // ==========================================
-// 5. ÖDEVLER (HOMEWORKS)
+// 5. ÖDEVLER
 // ==========================================
 export async function dbGetHomeworks() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false }).limit(500);
+    const { data, error } = await supabase
+      .from('homeworks')
+      .select('id, title, subject, due_date, target_type, target_ids, question_ids, total_questions, time_per_question, time, is_book_assignment, book_id, test_due_dates, created_at, raw_data')
+      .order('created_at', { ascending: false })
+      .limit(300);
     if (error) throw error;
     return (data || [])
       .filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'))
@@ -1427,6 +1461,11 @@ export async function dbGetHomeworks() {
         else if (typeof h.extra_data === 'string') {
           try { raw = JSON.parse(h.extra_data); } catch {}
         }
+      }
+
+      // Strip heavy base64 strings if legacy rows contain them
+      if (typeof raw.pdfPayload === 'string' && raw.pdfPayload.startsWith('data:') && raw.pdfPayload.length > 5000) {
+        raw.pdfPayload = '[STORED_IN_INDEXEDDB]';
       }
 
       const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : (raw.tests || []));
@@ -1472,10 +1511,9 @@ export async function dbGetHomeworks() {
 export async function dbAddHomework(hw) {
   if (!isSupabaseConfigured()) return null;
   try {
-    // Upload large PDF/image payloads in sections[] to Supabase Storage
-    // so all devices can load the PDF via public URL (not just the device that created it)
-    let processedHw = { ...hw };
+    const processedHw = { ...hw };
 
+    // Upload large PDF/image payloads in sections[] to Supabase Storage if present
     if (Array.isArray(processedHw.sections)) {
       processedHw.sections = await Promise.all(processedHw.sections.map(async (sec) => {
         const s = { ...sec };
@@ -1522,11 +1560,38 @@ export async function dbAddHomework(hw) {
       }));
     }
 
-    const qIds = processedHw.questionIds || processedHw.tests || [];
-    
-    // Compute max dueDate from testDueDates if present
-    let calculatedDueDate = processedHw.dueDate;
-    const testDatesObj = processedHw.testDueDates || processedHw.scheduleDates || {};
+    let qIds = [];
+    if (Array.isArray(processedHw.questionIds) && processedHw.questionIds.length > 0) {
+      qIds = processedHw.questionIds;
+    } else if (Array.isArray(processedHw.tests) && processedHw.tests.length > 0) {
+      qIds = processedHw.tests;
+    } else if (Array.isArray(processedHw.questions) && processedHw.questions.length > 0) {
+      qIds = processedHw.questions.map(q => typeof q === 'object' ? (q.id || q._id) : q).filter(Boolean);
+    } else if (Array.isArray(processedHw.sections)) {
+      processedHw.sections.forEach(sec => {
+        if (sec.testId) qIds.push(sec.testId);
+        if (sec.id) qIds.push(sec.id);
+        if (Array.isArray(sec.questions)) {
+          sec.questions.forEach(sq => {
+            if (sq && typeof sq === 'object' && sq.id) qIds.push(sq.id);
+          });
+        }
+      });
+      qIds = Array.from(new Set(qIds));
+    }
+
+    if (qIds.length === 0 && processedHw.bookId) {
+      const dbBooks = await dbGetTrackedBooks();
+      if (dbBooks && dbBooks.tests) {
+        const matchingTests = dbBooks.tests.filter(t => String(t.bookId) === String(processedHw.bookId));
+        if (matchingTests.length > 0) {
+          qIds = matchingTests.map(t => t.id);
+        }
+      }
+    }
+
+    let calculatedDueDate = processedHw.dueDate || processedHw.due_date || null;
+    const testDatesObj = processedHw.testDueDates || processedHw.scheduleDates || processedHw.testDates || {};
     if (testDatesObj && typeof testDatesObj === 'object') {
       const dates = Object.values(testDatesObj).filter(Boolean);
       if (dates.length > 0) {
@@ -1550,18 +1615,18 @@ export async function dbAddHomework(hw) {
       dueDate: calculatedDueDate
     };
 
-    // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
+    // Strip large base64 payloads from raw_data so PostgreSQL rows stay under 5 KB
     const safeRaw = { ...fullRaw };
-    if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 50000) {
+    if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 2000) {
       safeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
     }
     if (Array.isArray(safeRaw.sections)) {
       safeRaw.sections = safeRaw.sections.map(sec => {
         const s = { ...sec };
-        if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 50000) {
+        if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 2000) {
           s.pdfPayload = '[STORED_IN_INDEXEDDB]';
         }
-        if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 50000) {
+        if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 2000) {
           s.contentPayload = '[STORED_IN_INDEXEDDB]';
         }
         return s;

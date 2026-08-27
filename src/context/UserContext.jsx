@@ -2,6 +2,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetUsers, dbAddUser, dbUpdateUser, dbDeleteUser } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const UserContext = createContext();
 
@@ -34,14 +35,12 @@ export function UserProvider({ children }) {
   useEffect(() => {
     async function syncUsersFromSupabase() {
       if (!isSupabaseConfigured()) return;
-      const lastSync = sessionStorage.getItem('eTestLastUsersSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000 && users.length > 0) {
+      if (isCacheValid('users', 30) && users.length > 0) {
         return;
       }
       const dbUsersList = await dbGetUsers();
       if (dbUsersList && dbUsersList.length > 0) {
-        sessionStorage.setItem('eTestLastUsersSync', String(now));
+        touchCache('users');
         setUsers(prev => {
           const merged = dbUsersList.map(dbU => {
             const localU = prev.find(l => 

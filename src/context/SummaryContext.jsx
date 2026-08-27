@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetSummaries, dbSaveSummary, dbDeleteSummary } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const SummaryContext = createContext();
 
@@ -51,10 +52,8 @@ export function SummaryProvider({ children }) {
         console.warn('IDB summary cache read failed', e);
       }
 
-      // Fetch from Supabase if cache expired
-      const lastSync = sessionStorage.getItem('eTestLastSummariesSync');
-      const now = Date.now();
-      if (lastSync && now - Number(lastSync) < 15 * 60 * 1000) {
+      // Fetch from Supabase if persistent 30m cache expired
+      if (isCacheValid('summaries', 30)) {
         if (isMounted) setIsLoading(false);
         return;
       }
@@ -62,7 +61,7 @@ export function SummaryProvider({ children }) {
       try {
         const remote = await dbGetSummaries();
         if (remote && isMounted) {
-          sessionStorage.setItem('eTestLastSummariesSync', String(now));
+          touchCache('summaries');
           setSummaries(prev => {
             const map = new Map();
             // Remote first

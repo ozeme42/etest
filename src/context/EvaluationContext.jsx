@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback } f
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
+import { isCacheValid, touchCache } from '../utils/cacheManager';
 
 const EvaluationContext = createContext();
 
@@ -111,9 +112,7 @@ export function EvaluationProvider({ children }) {
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
     if (showLoading) setIsSyncing(true);
-    const lastSync = sessionStorage.getItem('eTestLastSubsSync');
-    const now = Date.now();
-    if (!force && lastSync && now - Number(lastSync) < 10 * 60 * 1000 && submissions.length > 0) {
+    if (!force && isCacheValid('submissions', 30) && submissions.length > 0) {
       if (showLoading) setIsSyncing(false);
       return submissions;
     }
@@ -121,7 +120,7 @@ export function EvaluationProvider({ children }) {
     try {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
-        sessionStorage.setItem('eTestLastSubsSync', String(now));
+        touchCache('submissions');
         const deletedIds = getDeletedIds();
 
         // Filter out deleted items from DB list immediately
