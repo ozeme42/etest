@@ -907,8 +907,16 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const subjectBarData = useMemo(() => {
     return subjectBreakdown.map(sb => ({
       name: sb.subj,
+      fullName: sb.subj,
       'Başarı %': sb.avgScore,
       'Soru Sayısı': sb.totalQ,
+      totalQ: sb.totalQ,
+      'Doğru': sb.totalCorrect,
+      'Yanlış': sb.totalWrong,
+      'Boş': sb.totalBlank,
+      totalCorrect: sb.totalCorrect,
+      totalWrong: sb.totalWrong,
+      totalBlank: sb.totalBlank,
       barColor: getSubjectTheme(sb.subj, isDark).color
     }));
   }, [subjectBreakdown, isDark]);
@@ -918,6 +926,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       .filter(sb => (sb.totalQ || 0) > 0)
       .map(sb => ({
         name: sb.subj,
+        fullName: sb.subj,
         value: sb.totalQ,
         totalQ: sb.totalQ,
         'Soru Sayısı': sb.totalQ,
@@ -932,6 +941,79 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         color: getSubjectTheme(sb.subj, isDark).color
       }));
   }, [subjectBreakdown, isDark]);
+
+  /* ── Active Subject Details for Topic-Level Drilldown ─── */
+  const activeSubjectObj = useMemo(() => {
+    if (selectedSubjFilter === 'all') return null;
+    return subjectBreakdown.find(sb => sb.subj === selectedSubjFilter) || null;
+  }, [subjectBreakdown, selectedSubjFilter]);
+
+  const activeSubjectBarData = useMemo(() => {
+    if (selectedSubjFilter === 'all' || !activeSubjectObj) {
+      return subjectBarData;
+    }
+    const subjThemeColor = getSubjectTheme(selectedSubjFilter, isDark).color;
+    return (activeSubjectObj.topicArray || []).map((t, idx) => ({
+      name: t.name,
+      fullName: t.name,
+      'Başarı %': t.accuracy,
+      'Soru Sayısı': t.totalQ,
+      totalQ: t.totalQ,
+      'Doğru': t.correctQ,
+      'Yanlış': t.wrongQ,
+      'Boş': t.blankQ,
+      totalCorrect: t.correctQ,
+      totalWrong: t.wrongQ,
+      totalBlank: t.blankQ,
+      barColor: t.accuracy >= 70 ? '#10b981' : t.accuracy >= 50 ? (subjThemeColor || '#6366f1') : '#ef4444'
+    }));
+  }, [selectedSubjFilter, activeSubjectObj, subjectBarData, isDark]);
+
+  const activeRadarData = useMemo(() => {
+    if (selectedSubjFilter === 'all' || !activeSubjectObj) {
+      return radarData;
+    }
+    return (activeSubjectObj.topicArray || []).map(t => ({
+      subject: t.name.length > 15 ? t.name.substring(0, 13) + '…' : t.name,
+      fullName: t.name,
+      name: t.name,
+      value: t.accuracy,
+      'Başarı %': t.accuracy,
+      'Soru Sayısı': t.totalQ,
+      totalQ: t.totalQ,
+      'Doğru': t.correctQ,
+      'Yanlış': t.wrongQ,
+      'Boş': t.blankQ,
+      totalCorrect: t.correctQ,
+      totalWrong: t.wrongQ,
+      totalBlank: t.blankQ
+    }));
+  }, [selectedSubjFilter, activeSubjectObj, radarData]);
+
+  const activePieData = useMemo(() => {
+    if (selectedSubjFilter === 'all' || !activeSubjectObj) {
+      return subjectPieData;
+    }
+    const topicColors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#3b82f6'];
+    return (activeSubjectObj.topicArray || [])
+      .filter(t => (t.totalQ || 0) > 0)
+      .map((t, idx) => ({
+        name: t.name,
+        fullName: t.name,
+        value: t.totalQ,
+        totalQ: t.totalQ,
+        'Soru Sayısı': t.totalQ,
+        'Başarı %': t.accuracy,
+        avgScore: t.accuracy,
+        correctQ: t.correctQ,
+        wrongQ: t.wrongQ,
+        blankQ: t.blankQ,
+        'Doğru': t.correctQ,
+        'Yanlış': t.wrongQ,
+        'Boş': t.blankQ,
+        color: topicColors[idx % topicColors.length]
+      }));
+  }, [selectedSubjFilter, activeSubjectObj, subjectPieData]);
 
   const handleOpenReview = (s) => {
     if (!s) return;
@@ -1765,12 +1847,58 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 12, flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.3)', flexShrink: 0 }}>
-                    <BookOpen size={18} />
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: selectedSubjFilter === 'all'
+                      ? 'linear-gradient(135deg, #6366f1, #a855f7)'
+                      : theme(selectedSubjFilter).bg,
+                    border: selectedSubjFilter === 'all'
+                      ? 'none'
+                      : `1.5px solid ${theme(selectedSubjFilter).border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: selectedSubjFilter === 'all' ? '#fff' : theme(selectedSubjFilter).color,
+                    boxShadow: selectedSubjFilter === 'all'
+                      ? '0 4px 14px rgba(99,102,241,0.3)'
+                      : '0 2px 8px rgba(0,0,0,0.04)',
+                    flexShrink: 0
+                  }}>
+                    {selectedSubjFilter === 'all' ? <BookOpen size={18} /> : React.createElement(theme(selectedSubjFilter).icon, { size: 18, color: theme(selectedSubjFilter).color })}
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>Ders Başarı Analizi</h3>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm derslerdeki soru ve test başarı grafiği</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {selectedSubjFilter === 'all' ? 'Ders Başarı Analizi' : `${selectedSubjFilter} — Konu Başarı Grafiği`}
+                      </h3>
+                      {selectedSubjFilter !== 'all' && (
+                        <button
+                          onClick={() => setSelectedSubjFilter('all')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: isDark ? 'rgba(99,102,241,0.18)' : '#eff6ff',
+                            color: '#4f46e5',
+                            border: '1px solid #bfdbfe',
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <ChevronLeft size={12} /> Tüm Derslere Dön
+                        </button>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      {selectedSubjFilter === 'all'
+                        ? 'Tüm derslerdeki soru ve test başarı grafiği (Bir derse tıklayarak konu grafiğini inceleyebilirsiniz)'
+                        : `${selectedSubjFilter} dersine ait ${activeSubjectObj?.topicArray?.length || 0} konunun detaylı başarı analizi`}
+                    </p>
                   </div>
                 </div>
 
@@ -1849,21 +1977,26 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
               </div>
 
               {/* Chart Content */}
-              {subjectBreakdown.length === 0 ? (
+              {activeSubjectBarData.length === 0 ? (
                 <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
                   Henüz çözülmüş test verisi bulunmuyor
                 </div>
               ) : (
-                <div style={{ height: isMobile ? 230 : 310, width: '100%', position: 'relative' }}>
+                <div style={{ height: isMobile ? (selectedSubjFilter !== 'all' ? 260 : 230) : (selectedSubjFilter !== 'all' ? 330 : 310), width: '100%', position: 'relative' }}>
                   {subjChartType === 'bar' && (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={subjectBarData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                      <BarChart data={activeSubjectBarData} margin={{ top: 10, right: 10, left: -25, bottom: selectedSubjFilter !== 'all' ? 30 : 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                         <XAxis
                           dataKey="name"
-                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 12, fontWeight: 700 }}
+                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9 : (selectedSubjFilter === 'all' ? 11 : 10), fontWeight: 700 }}
                           axisLine={{ stroke: 'var(--color-border)' }}
                           tickLine={false}
+                          interval={0}
+                          angle={selectedSubjFilter !== 'all' ? -15 : 0}
+                          textAnchor={selectedSubjFilter !== 'all' ? 'end' : 'middle'}
+                          height={selectedSubjFilter !== 'all' ? (isMobile ? 55 : 45) : (isMobile ? 30 : 35)}
+                          tickFormatter={v => (v && v.length > (isMobile ? 12 : 18) ? v.substring(0, isMobile ? 10 : 16) + '…' : v)}
                         />
                         <YAxis
                           domain={[0, 100]}
@@ -1877,9 +2010,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         <Bar
                           dataKey="Başarı %"
                           radius={[8, 8, 0, 0]}
-                          maxBarSize={45}
+                          maxBarSize={selectedSubjFilter !== 'all' ? 36 : 45}
+                          onClick={(entry) => {
+                            if (selectedSubjFilter === 'all' && entry && entry.name) {
+                              setSelectedSubjFilter(entry.name);
+                            }
+                          }}
+                          style={{ cursor: selectedSubjFilter === 'all' ? 'pointer' : 'default' }}
                         >
-                          {subjectBarData.map((entry, index) => (
+                          {activeSubjectBarData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.barColor || '#6366f1'} />
                           ))}
                         </Bar>
@@ -1889,11 +2028,18 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
                   {subjChartType === 'radar' && (
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={radarData} outerRadius={isMobile ? '65%' : '75%'}>
+                      <RadarChart data={activeRadarData} outerRadius={isMobile ? '65%' : '75%'}>
                         <PolarGrid stroke="var(--color-border)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 9 : 12, fontWeight: 800 }} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 8.5 : 11, fontWeight: 800 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
-                        <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
+                        <Radar
+                          name="Başarı %"
+                          dataKey="value"
+                          stroke={selectedSubjFilter !== 'all' ? theme(selectedSubjFilter).color : '#6366f1'}
+                          fill={selectedSubjFilter !== 'all' ? theme(selectedSubjFilter).color : '#6366f1'}
+                          fillOpacity={0.35}
+                          strokeWidth={2.5}
+                        />
                         <Tooltip content={<CustomSubjectTooltip />} />
                       </RadarChart>
                     </ResponsiveContainer>
@@ -1903,7 +2049,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={subjectPieData}
+                          data={activePieData}
                           dataKey="value"
                           nameKey="name"
                           cx="50%"
@@ -1912,7 +2058,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                           outerRadius={isMobile ? 68 : 105}
                           paddingAngle={4}
                         >
-                          {subjectPieData.map((entry, index) => (
+                          {activePieData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--color-surface)" strokeWidth={2} />
                           ))}
                         </Pie>
