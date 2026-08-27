@@ -1397,8 +1397,8 @@ export async function dbDeleteQuestion(q) {
     }
 
     // 2. Extract and delete any uploaded files from Supabase Storage ('question_files' bucket)
+    const urlsToDelete = [];
     if (questionObj) {
-      const urlsToDelete = [];
       const payloadUrl = questionObj.content_payload || questionObj.contentPayload;
       if (typeof payloadUrl === 'string' && payloadUrl.includes('/storage/v1/object/public/question_files/')) {
         urlsToDelete.push(payloadUrl);
@@ -1439,38 +1439,38 @@ export async function dbDeleteQuestion(q) {
           });
         }
       }
+    }
 
-      // Perform file deletion from Storage bucket
-      const fileNames = urlsToDelete.map(url => url.split('/question_files/').pop()).filter(Boolean);
-      
-      // Also search bucket for any orphaned chunked parts belonging to this question ID
-      try {
-        const searchTerms = [rawIdStr.replace(/^q_?/, ''), ...(validUuids || [])];
-        for (const term of searchTerms) {
-          if (term && term.length > 5) {
-            const { data: listedFiles } = await supabase.storage.from('question_files').list('', {
-              search: term
-            });
-            if (Array.isArray(listedFiles)) {
-              listedFiles.forEach(f => {
-                if (f && f.name && !fileNames.includes(f.name)) {
-                  fileNames.push(f.name);
-                }
-              });
+    // Perform file deletion from Storage bucket
+    const fileNames = urlsToDelete.map(url => url.split('/question_files/').pop()).filter(Boolean);
+    
+    // Also scan bucket for ALL files matching this question ID (even legacy/orphaned chunks)
+    try {
+      const idClean = rawIdStr.replace(/^q_?/, '').replace(/^hw_?/, '');
+      const { data: listedFiles } = await supabase.storage.from('question_files').list('', {
+        limit: 1000
+      });
+      if (Array.isArray(listedFiles)) {
+        listedFiles.forEach(f => {
+          if (f && f.name) {
+            const matches = (idClean.length > 5 && f.name.includes(idClean)) ||
+                            validUuids.some(u => u.length > 5 && f.name.includes(u));
+            if (matches && !fileNames.includes(f.name)) {
+              fileNames.push(f.name);
             }
           }
-        }
-      } catch (searchErr) {
-        console.warn('[Supabase Storage] List/search cleanup error:', searchErr);
+        });
       }
+    } catch (searchErr) {
+      console.warn('[Supabase Storage] List/search cleanup error:', searchErr);
+    }
 
-      if (fileNames.length > 0) {
-        try {
-          await supabase.storage.from('question_files').remove(fileNames);
-          console.log('[Supabase Storage] Deleted files from storage bucket:', fileNames);
-        } catch (storageErr) {
-          console.warn('[Supabase Storage] Delete error:', storageErr.message);
-        }
+    if (fileNames.length > 0) {
+      try {
+        await supabase.storage.from('question_files').remove(fileNames);
+        console.log('[Supabase Storage] Deleted files from storage bucket:', fileNames);
+      } catch (storageErr) {
+        console.warn('[Supabase Storage] Delete error:', storageErr.message);
       }
     }
 

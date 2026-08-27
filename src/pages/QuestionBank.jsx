@@ -1543,6 +1543,13 @@ export default function QuestionBank() {
     }
   };
 
+  const handleDeleteConfirm = (q) => {
+    const qTitle = q.title || q.name || 'Bu soru/testi';
+    if (window.confirm(`⚠️ "${qTitle}" silinsin mi?\n\nBu işlem geri alınamaz ve ilgili tüm görseller/dosyalar veritabanından kalıcı olarak temizlenecektir.`)) {
+      deleteQuestion(q.id);
+    }
+  };
+
   const getTypeIcon = (contentType, isBundle) => {
     if (contentType === 'pdf') return <FileText size={18} />;
     if (contentType === 'html') return <Globe size={18} />;
@@ -1751,7 +1758,7 @@ export default function QuestionBank() {
               <Edit2 size={14} /> Düzenle
             </button>
             <button
-              onClick={() => deleteQuestion(q.id)}
+              onClick={() => handleDeleteConfirm(q)}
               style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
             >
               <Trash2 size={14} />
@@ -1832,7 +1839,7 @@ export default function QuestionBank() {
           <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Edit2 size={13} />
           </button>
-          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => handleDeleteConfirm(q)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Trash2 size={13} />
           </button>
         </div>
@@ -4626,12 +4633,24 @@ export default function QuestionBank() {
                   <span>Soru Önizleme &amp; Hata Kontrol Modu</span>
                 </div>
 
-                <button 
-                  onClick={() => { const target = q; setPreviewQuestion(null); openEditModal(target); }} 
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
-                >
-                  <Edit2 size={16} /> Soruyu Düzenle / Hata Düzelt
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={() => { const target = q; setPreviewQuestion(null); openEditModal(target); }} 
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
+                  >
+                    <Edit2 size={16} /> Soruyu Düzenle / Hata Düzelt
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setPreviewQuestion(null);
+                      handleDeleteConfirm(q);
+                    }}
+                    style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.55rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Trash2 size={16} /> Testi Sil
+                  </button>
+                </div>
               </div>
 
               {/* QUESTION BODY PREVIEW */}
