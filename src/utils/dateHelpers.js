@@ -236,12 +236,11 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
 
 /**
  * Intelligently extracts the accurate historical completion date of any submission or test item.
- * Strictly prioritizes the unique submission epoch timestamp (sub_178..., me_178...) and
- * submittedAt/completedAt over generic assignment container creation dates (createdAt).
+ * Strictly reads genuine solve timestamps (submittedAt, date, created_at) from Supabase / state
+ * and strictly ignores book test authoring IDs (tbt_...).
  */
 export const extractItemDate = (s) => {
   if (!s) return getTurkeyToday();
-  const todayYMD = getTurkeyToday();
 
   // If s is a Date instance
   if (s instanceof Date) {
@@ -263,44 +262,26 @@ export const extractItemDate = (s) => {
   const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
   const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : ((s && s.metadata) || {});
 
-  // 1. HIGHEST PRIORITY: Embedded epoch timestamp in submission ID (e.g. sub_1787..., sub_manual_1787..., me_1787...)
-  const subIdCandidates = [
-    String(meta?.realId || ''),
-    String(meta?.submissionId || ''),
-    String(s.originalSubmissionId || ''),
-    String(s.submissionId || ''),
-    String(s.id || ''),
-    String(raw.id || ''),
-    String(s.supabaseId || '')
-  ];
-
-  for (const idStr of subIdCandidates) {
-    if (!idStr) continue;
-    if (idStr.startsWith('tbt_') || idStr.startsWith('tb_') || idStr.startsWith('hw_')) continue; // Ignore book/homework container IDs
-
-    const matchSubTs = idStr.match(/sub_(?:manual_)?(\d{12,13})/i) || idStr.match(/^me_(\d{12,13})/i) || idStr.match(/_(\d{12,13})/);
-    if (matchSubTs) {
-      const tsNum = Number(matchSubTs[1]);
-      if (tsNum > 1650000000000 && tsNum < 2000000000000) {
-        const extractedYMD = getTurkeyYMD(new Date(tsNum));
-        if (extractedYMD) return extractedYMD;
-      }
-    }
-  }
-
-  // 2. SECOND PRIORITY: Explicit completion timestamps on the submission
+  // 1. FIRST PRIORITY: Genuine submission & solve timestamps from database
   const solveTimestamps = [
     meta?.submittedAt,
     meta?.completedAt,
+    meta?.date,
     s.submittedAt,
     s.submitted_at,
     s.completedAt,
     s.completed_at,
+    s.date,
     raw.submittedAt,
     raw.submitted_at,
     raw.completedAt,
     raw.completed_at,
-    meta?.date
+    raw.date,
+    s.created_at,
+    s.createdAt,
+    raw.created_at,
+    raw.createdAt,
+    meta?.createdAt
   ];
 
   for (const exp of solveTimestamps) {
@@ -310,30 +291,29 @@ export const extractItemDate = (s) => {
     }
   }
 
-  // 3. THIRD PRIORITY: General date field
-  if (s.date && String(s.date).trim()) {
-    const dYMD = getTurkeyYMD(String(s.date).trim());
-    if (dYMD) return dYMD;
-  }
-  if (raw.date && String(raw.date).trim()) {
-    const dYMD = getTurkeyYMD(String(raw.date).trim());
-    if (dYMD) return dYMD;
-  }
-
-  // 4. FOURTH PRIORITY: Creation timestamp (container fallback)
-  const createTimestamps = [
-    meta?.createdAt,
-    s.createdAt,
-    s.created_at,
-    raw.createdAt,
-    raw.created_at
+  // 2. SECOND PRIORITY: Pure submission ID with epoch timestamp (e.g. sub_1787..., me_1787...)
+  const subIdCandidates = [
+    String(meta?.realId || ''),
+    String(meta?.submissionId || ''),
+    String(s.originalSubmissionId || ''),
+    String(s.submissionId || ''),
+    String(s.id || ''),
+    String(raw.id || '')
   ];
-  for (const cr of createTimestamps) {
-    if (cr && String(cr).trim()) {
-      const crYMD = getTurkeyYMD(String(cr).trim());
-      if (crYMD) return crYMD;
+
+  for (const idStr of subIdCandidates) {
+    if (!idStr) continue;
+    if (idStr.includes('tbt') || idStr.includes('bt_') || idStr.includes('hw_') || idStr.includes('tb_')) continue;
+
+    const matchSubTs = idStr.match(/^sub_(?:manual_)?(\d{12,13})$/i) || idStr.match(/^me_(\d{12,13})$/i);
+    if (matchSubTs) {
+      const tsNum = Number(matchSubTs[1]);
+      if (tsNum > 1650000000000 && tsNum < 2000000000000) {
+        const extractedYMD = getTurkeyYMD(new Date(tsNum));
+        if (extractedYMD) return extractedYMD;
+      }
     }
   }
 
-  return todayYMD;
+  return getTurkeyToday();
 };
