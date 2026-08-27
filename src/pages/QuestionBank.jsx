@@ -334,22 +334,39 @@ export default function QuestionBank() {
     const fileName = file.name;
     const fileExt = fileName.split('.').pop().toLowerCase();
 
-    // 1. Image Files (.png, .jpg, .jpeg, .webp, .gif)
+    // 1. Image Files (.png, .jpg, .jpeg, .webp, .gif) - Automatically Compressed to WebP
     if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt) || file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Data = e.target.result;
-        setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'gorsel', data: base64Data });
-        setFormData(prev => ({
-          ...prev,
-          contentType: 'gorsel',
-          contentPayload: base64Data,
-          title: prev.title || fileName.replace(/\.[^/.]+$/, '')
-        }));
-        setImageUrls([base64Data]);
-        if (creationStep === 1) setCreationStep(2);
-      };
-      reader.readAsDataURL(file);
+      compressImageToWebP(file, 1600, 0.82)
+        .then(result => {
+          const webpData = result.dataUrl;
+          const sizeStr = `${result.sizeKb || Math.round(file.size / 1024)} KB (WebP Sıkıştırıldı)`;
+          setUploadedFileInfo({ name: fileName, size: sizeStr, type: 'gorsel', data: webpData });
+          setFormData(prev => ({
+            ...prev,
+            contentType: 'gorsel',
+            contentPayload: webpData,
+            title: prev.title || fileName.replace(/\.[^/.]+$/, '')
+          }));
+          setImageUrls([webpData]);
+          if (creationStep === 1) setCreationStep(2);
+        })
+        .catch(err => {
+          console.warn('Görsel sıkıştırma hatası, fallback uygulanıyor:', err);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const base64Data = e.target.result;
+            setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'gorsel', data: base64Data });
+            setFormData(prev => ({
+              ...prev,
+              contentType: 'gorsel',
+              contentPayload: base64Data,
+              title: prev.title || fileName.replace(/\.[^/.]+$/, '')
+            }));
+            setImageUrls([base64Data]);
+            if (creationStep === 1) setCreationStep(2);
+          };
+          reader.readAsDataURL(file);
+        });
       return;
     }
 
