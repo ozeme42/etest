@@ -127,6 +127,18 @@ export default function PdfViewerWithControls({
     return getEmbeddablePdfUrl(activePayload);
   }, [activePayload]);
 
+  const isIframeUrl = useMemo(() => {
+    if (!embedUrl || typeof embedUrl !== 'string') return false;
+    return (
+      embedUrl.includes('drive.google.com') ||
+      embedUrl.includes('docs.google.com') ||
+      embedUrl.includes('dropbox.com') ||
+      embedUrl.includes('onedrive.live.com') ||
+      embedUrl.includes('1drv.ms') ||
+      embedUrl.includes('/preview')
+    );
+  }, [embedUrl]);
+
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     overlayRefs.current = Array(numPages).fill(null);
@@ -434,6 +446,21 @@ export default function PdfViewerWithControls({
             <p style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: '0.5rem' }}>Geçerli Bir PDF Dokümanı Bulunamadı</p>
             <p style={{ fontSize: '0.85rem' }}>Bu içerik PDF formatında değil veya doküman kaynağı henüz yüklenemedi.</p>
           </div>
+        ) : isIframeUrl ? (
+          <iframe
+            src={embedUrl}
+            title={title || "PDF Dokümanı"}
+            style={{
+              width: '100%',
+              height: '100%',
+              minHeight: '600px',
+              border: 'none',
+              background: '#ffffff',
+              borderRadius: '0.5rem',
+              flex: 1
+            }}
+            allow="autoplay"
+          />
         ) : (
           <Document
             file={embedUrl}

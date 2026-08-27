@@ -1124,7 +1124,7 @@ export default function ModularQuizPage() {
     (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.startsWith('JVBERi0') || test.contentPayload.startsWith('%PDF') || (test.contentPayload.includes('.pdf') && !isValidHtmlPayload)))
   );
 
-  const isHtml = !isDefinitelyStandardForHtml && (isValidHtmlPayload || Boolean(
+  const isHtml = isValidHtmlPayload || (!isDefinitelyStandardForHtml && Boolean(
     test.sourceFormat === 'html' || test.formatType === 'html' ||
     test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions ||
     ((test.title && String(test.title).toLowerCase().includes('html')) && !isValidPdfPayload) ||
@@ -1132,8 +1132,15 @@ export default function ModularQuizPage() {
   ));
 
   const isPdf = !isHtml && !isValidHtmlPayload && Boolean(
-    isValidPdfPayload || test.pdfPayload || test.pdfUrl || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
-    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions ||
+    isValidPdfPayload ||
+    (test.pdfPayload && typeof test.pdfPayload === 'string') ||
+    (test.pdfUrl && typeof test.pdfUrl === 'string') ||
+    test.sourceFormat === 'pdf' ||
+    test.formatType === 'pdf' ||
+    test.contentType === 'pdf' ||
+    test.type === 'pdf' ||
+    test.questionType === 'pdf' ||
+    hasExplicitPdfQuestions ||
     (test.title && String(test.title).toLowerCase().includes('pdf') && !test.options?.length) ||
     (test.name && String(test.name).toLowerCase().includes('pdf') && !test.options?.length)
   );
