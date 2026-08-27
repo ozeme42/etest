@@ -4,7 +4,7 @@ import { useHomework } from '../../../context/HomeworkContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { toUUID } from '../../../services/supabaseService';
-import { isItemOpenEnded, QUICK_FEEDBACK_PRESETS } from '../constants/evaluationConstants';
+import { isItemOpenEnded, QUICK_FEEDBACK_PRESETS, isValidPayloadString } from '../constants/evaluationConstants';
 import MultiHomeworkRunner from '../../../components/quiz/runner/MultiHomeworkRunner';
 import PdfQuizReview from '../../../components/quiz/review/PdfQuizReview';
 import HtmlQuizReview from '../../../components/quiz/review/HtmlQuizReview';

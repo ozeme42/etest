@@ -328,12 +328,12 @@ export default function StudentCoachingModal({ student, teacherId, onClose }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                     <select value={newSubject} onChange={e => setNewSubject(e.target.value)} style={{ padding: '0.6rem 0.8rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: 'white' }} required>
                       <option value="">Ders Seçin...</option>
-                      {curriculumData?.subjects?.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                      <option value="Matematik">Matematik</option>
-                      <option value="Fen Bilimleri">Fen Bilimleri</option>
-                      <option value="Türkçe">Türkçe</option>
-                      <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
-                      <option value="İngilizce">İngilizce</option>
+                      {Array.from(new Set([
+                        ...(curriculumData?.subjects?.map(s => s.name) || []),
+                        'Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'Din Kültürü ve Ahlak Bilgisi', 'İngilizce', 'T.C. İnkılap Tarihi ve Atatürkçülük'
+                      ])).filter(Boolean).map(subName => (
+                        <option key={subName} value={subName}>{subName}</option>
+                      ))}
                     </select>
 
                     <input
