@@ -77,17 +77,13 @@ export default function PeriodicQuestionAnalytics({
       rawTitle = rawTitle.replace(/\s*\(tüm kitap.*?\)/g, '').replace(/\s*\(kendi eklediğim.*?\)/g, '').trim();
 
       const rawSubj = String(it.subject || it.subjectName || 'Genel').trim().toLowerCase();
-      const primaryKey = String(it.id || it.originalSubmissionId || '');
-      const logicalKey = `${rawSubj}___${rawTitle}___${dateStr}___${d}_${y}_${b}`;
-      const origKey = it.originalSubmissionId ? `orig_${it.originalSubmissionId}` : null;
+      const uniqueKey = String(it.id || it.submissionId || it.originalSubmissionId || `${rawSubj}___${rawTitle}___${dateStr}___${d}_${y}_${b}`);
 
-      if ((primaryKey && seenUnifiedKeys.has(primaryKey)) || (logicalKey && seenUnifiedKeys.has(logicalKey)) || (origKey && seenUnifiedKeys.has(origKey))) {
+      if (seenUnifiedKeys.has(uniqueKey)) {
         return; // Duplicate!
       }
 
-      if (primaryKey) seenUnifiedKeys.add(primaryKey);
-      if (logicalKey) seenUnifiedKeys.add(logicalKey);
-      if (origKey) seenUnifiedKeys.add(origKey);
+      seenUnifiedKeys.add(uniqueKey);
 
       list.push({
         id: it.id || `item_${list.length}`,
