@@ -896,9 +896,36 @@ export default function QuestionBank() {
     setEditingQuestionId(q.id);
     setCreationStep(2);
     
+    // Safely extract answer key as both array and clean string
+    let normalizedAnswerKey = [];
     let keyStr = '';
-    if (q.answerKey && Array.isArray(q.answerKey)) {
+
+    if (Array.isArray(q.answerKey)) {
+      normalizedAnswerKey = q.answerKey;
       keyStr = q.answerKey.join('').trimEnd();
+    } else if (typeof q.answerKey === 'string') {
+      const trimmed = q.answerKey.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            normalizedAnswerKey = parsed;
+            keyStr = parsed.join('').trimEnd();
+          } else {
+            normalizedAnswerKey = trimmed.split('');
+            keyStr = trimmed;
+          }
+        } catch {
+          normalizedAnswerKey = trimmed.split('');
+          keyStr = trimmed;
+        }
+      } else {
+        normalizedAnswerKey = trimmed.split('');
+        keyStr = trimmed;
+      }
+    } else if (q.answerKey && typeof q.answerKey === 'object') {
+      normalizedAnswerKey = Object.values(q.answerKey);
+      keyStr = normalizedAnswerKey.join('').trimEnd();
     }
 
     let richPayload = q.contentPayload || '';
@@ -989,10 +1016,15 @@ export default function QuestionBank() {
     
     if (q.contentType === 'pdf' || q.contentType === 'html') {
       const newOptic = {};
-      if (q.answerKey) {
-        q.answerKey.forEach((k, idx) => {
-          if (k && k !== ' ') {
-            newOptic[idx] = k.charCodeAt(0) - 65;
+      if (Array.isArray(normalizedAnswerKey) && normalizedAnswerKey.length > 0) {
+        normalizedAnswerKey.forEach((k, idx) => {
+          if (k !== undefined && k !== null && String(k).trim() !== '') {
+            if (typeof k === 'number') {
+              newOptic[idx] = k;
+            } else {
+              const letter = String(k).toUpperCase().trim();
+              newOptic[idx] = letter.charCodeAt(0) - 65;
+            }
           }
         });
       }
@@ -1012,10 +1044,10 @@ export default function QuestionBank() {
       const qCount = q.questionCount || (urls.length > 0 ? urls.length : 1);
 
       const ansMap = {};
-      if (Array.isArray(q.answerKey)) {
-        q.answerKey.forEach((k, idx) => {
-          if (k && k !== ' ') {
-            ansMap[idx] = typeof k === 'number' ? k : (k.charCodeAt(0) - 65);
+      if (Array.isArray(normalizedAnswerKey) && normalizedAnswerKey.length > 0) {
+        normalizedAnswerKey.forEach((k, idx) => {
+          if (k !== undefined && k !== null && String(k).trim() !== '') {
+            ansMap[idx] = typeof k === 'number' ? k : (String(k).toUpperCase().charCodeAt(0) - 65);
           }
         });
       } else if (q.imageAnswers) {
@@ -4834,28 +4866,33 @@ export default function QuestionBank() {
                     </div>
 
                     {/* Optical Answer Key Grid */}
-                    {q.type === 'coktan_secmeli' && (
-                      <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
-                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
-                          🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
-                        </h5>
+                    {q.type === 'coktan_secmeli' && (() => {
+                      const keyList = Array.isArray(q.answerKey) ? q.answerKey : (typeof q.answerKey === 'string' ? q.answerKey.split('') : (q.answerKey && typeof q.answerKey === 'object' ? Object.values(q.answerKey) : []));
+                      const totalQCount = Number(q.questionCount) || (keyList.length > 0 ? keyList.length : 1);
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
-                          {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
-                            const ans = q.answerKey ? q.answerKey[idx] : null;
-                            const hasAns = ans && ans !== ' ';
-                            return (
-                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
-                                  {hasAns ? ans : '—'}
-                                </span>
-                              </div>
-                            );
-                          })}
+                      return (
+                        <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                          <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
+                            🔘 Cevap Anahtarı Tablosu ({totalQCount} Soru):
+                          </h5>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                            {Array.from({ length: totalQCount }).map((_, idx) => {
+                              const ans = keyList[idx];
+                              const hasAns = ans && String(ans).trim() !== '' && ans !== ' ';
+                              return (
+                                <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
+                                  <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                                  <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
+                                    {hasAns ? ans : '—'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -4890,28 +4927,33 @@ export default function QuestionBank() {
                 )}
 
                 {/* Optical Answer Key Grid for PDF Tests */}
-                {!q.questionsList && q.contentType === 'pdf' && q.type === 'coktan_secmeli' && (
-                  <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
-                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
-                      🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
-                    </h5>
+                {!q.questionsList && q.contentType === 'pdf' && q.type === 'coktan_secmeli' && (() => {
+                  const keyList = Array.isArray(q.answerKey) ? q.answerKey : (typeof q.answerKey === 'string' ? q.answerKey.split('') : (q.answerKey && typeof q.answerKey === 'object' ? Object.values(q.answerKey) : []));
+                  const totalQCount = Number(q.questionCount) || (keyList.length > 0 ? keyList.length : 1);
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
-                      {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
-                        const ans = q.answerKey ? q.answerKey[idx] : null;
-                        const hasAns = ans && ans !== ' ';
-                        return (
-                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
-                              {hasAns ? ans : '—'}
-                            </span>
-                          </div>
-                        );
-                      })}
+                  return (
+                    <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: '0.95rem' }}>
+                        🔘 Cevap Anahtarı Tablosu ({totalQCount} Soru):
+                      </h5>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                        {Array.from({ length: totalQCount }).map((_, idx) => {
+                          const ans = keyList[idx];
+                          const hasAns = ans && String(ans).trim() !== '' && ans !== ' ';
+                          return (
+                            <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: hasAns ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'), border: hasAns ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #a7f3d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'), textAlign: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                              <span style={{ fontSize: '0.95rem', fontWeight: 900, color: hasAns ? (isDark ? '#34d399' : '#059669') : (isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8') }}>
+                                {hasAns ? ans : '—'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
               </div>
 

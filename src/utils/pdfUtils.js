@@ -32,6 +32,18 @@ export function dataURLtoBlob(dataurl) {
 
 const blobUrlCache = new Map();
 
+export function extractGoogleDriveId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  const m1 = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1 && m1[1]) return m1[1];
+  const m2 = trimmed.match(/[?&]id(?:%3D|=)([a-zA-Z0-9_-]+)/i);
+  if (m2 && m2[1]) return m2[1];
+  const m3 = trimmed.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (m3 && m3[1]) return m3[1];
+  return null;
+}
+
 export function getEmbeddablePdfUrl(url) {
   if (!url || typeof url !== 'string' || url.trim() === '' || url.includes('[STORED_IN_INDEXEDDB]')) {
     return null;
@@ -39,16 +51,10 @@ export function getEmbeddablePdfUrl(url) {
   
   let cleanUrl = url.trim();
 
-  // 1. Google Drive URLs
-  // drive.google.com/file/d/FILE_ID/view...
-  const driveFileMatch = cleanUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFileMatch && driveFileMatch[1]) {
-    return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
-  }
-  // drive.google.com/open?id=FILE_ID or drive.google.com/uc?id=FILE_ID
-  const driveIdMatch = cleanUrl.match(/drive\.google\.com\/(?:open|uc)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
-  if (driveIdMatch && driveIdMatch[1]) {
-    return `https://drive.google.com/file/d/${driveIdMatch[1]}/preview`;
+  // 1. Google Drive URLs (any format)
+  const driveId = extractGoogleDriveId(cleanUrl);
+  if (driveId) {
+    return `https://drive.google.com/file/d/${driveId}/preview`;
   }
 
   // 2. Dropbox URLs: change dl=0 to raw=1 for direct viewing
