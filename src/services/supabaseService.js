@@ -1154,7 +1154,7 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(fileName, fileBlob, {
-        cacheControl: '3600',
+        cacheControl: '31536000, immutable',
         upsert: true,
         contentType: mimeType
       });
