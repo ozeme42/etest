@@ -1193,13 +1193,26 @@ export async function dbAddQuestion(q) {
       );
     };
 
+    // Deduplication cache so identical image payloads are uploaded ONLY ONCE per question
+    const uploadedCache = new Map();
+
     // Helper to upload to storage OR preserve directly within PostgreSQL TEXT columns
     const processBase64String = async (val, suffix) => {
-      if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
+      if (!val || typeof val !== 'string') return val;
+      if (val.startsWith('http://') || val.startsWith('https://')) return val;
+
+      if (uploadedCache.has(val)) {
+        return uploadedCache.get(val);
+      }
+
+      if (val.startsWith('data:') || isHtmlPayload(val)) {
         // Attempt storage upload for all files (PDF, WebP, HTML)
         if (isQuestionFilesBucketAvailable) {
           const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
-          if (publicUrl) return publicUrl;
+          if (publicUrl) {
+            uploadedCache.set(val, publicUrl);
+            return publicUrl;
+          }
         }
         // Fallback: Keep directly in PostgreSQL if under 15MB (PostgreSQL text columns support up to 1GB payload)
         if (val.length < 15000000) {
@@ -1229,7 +1242,16 @@ export async function dbAddQuestion(q) {
       return payload;
     };
 
-    // Process main content payload
+    // 1. Process individual image URLs array first (clean naming: img_0, img_1, img_2...)
+    if (Array.isArray(safeRaw.imageUrls)) {
+      for (let i = 0; i < safeRaw.imageUrls.length; i++) {
+        const res = await processBase64String(safeRaw.imageUrls[i], `img_${i}`);
+        safeRaw.imageUrls[i] = res;
+        if (Array.isArray(q.imageUrls)) q.imageUrls[i] = res;
+      }
+    }
+
+    // 2. Process main content payload (reuses cached URLs with ZERO duplicate uploads)
     finalContentPayload = await processPayload(finalContentPayload, 'main');
     safeRaw.contentPayload = finalContentPayload;
     q.contentPayload = finalContentPayload;
@@ -1243,34 +1265,25 @@ export async function dbAddQuestion(q) {
       q.htmlPayload = safeRaw.htmlPayload;
     }
 
-    // Process image URLs array
-    if (Array.isArray(safeRaw.imageUrls)) {
-      for (let i = 0; i < safeRaw.imageUrls.length; i++) {
-        const res = await processBase64String(safeRaw.imageUrls[i], `img_${i}`);
-        safeRaw.imageUrls[i] = res;
-        q.imageUrls[i] = res;
-      }
-    }
-
     if (typeof safeRaw.imageUrl === 'string' && safeRaw.imageUrl.startsWith('data:')) {
       const res = await processBase64String(safeRaw.imageUrl, 'single_img');
       safeRaw.imageUrl = res;
       q.imageUrl = res;
     }
 
-    // Process sub-questions in questionsList
+    // 3. Process sub-questions (reuses cached URLs from step 1 with ZERO duplicate uploads)
     if (Array.isArray(safeRaw.questionsList)) {
       for (let i = 0; i < safeRaw.questionsList.length; i++) {
         let sq = safeRaw.questionsList[i];
         if (sq.contentPayload) {
            const res = await processPayload(sq.contentPayload, `sq_${i}`);
            sq.contentPayload = res;
-           q.questionsList[i].contentPayload = res;
+           if (q.questionsList && q.questionsList[i]) q.questionsList[i].contentPayload = res;
         }
         if (sq.imageUrl) {
            const res = await processBase64String(sq.imageUrl, `sq_img_${i}`);
            sq.imageUrl = res;
-           q.questionsList[i].imageUrl = res;
+           if (q.questionsList && q.questionsList[i]) q.questionsList[i].imageUrl = res;
         }
       }
     }
@@ -1282,7 +1295,7 @@ export async function dbAddQuestion(q) {
         if (item.contentPayload) {
            const res = await processPayload(item.contentPayload, `item_${i}`);
            item.contentPayload = res;
-           q.items[i].contentPayload = res;
+           if (q.items && q.items[i]) q.items[i].contentPayload = res;
         }
       }
     }
