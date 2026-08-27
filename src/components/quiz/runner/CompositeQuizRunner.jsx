@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
@@ -627,13 +627,20 @@ export default function CompositeQuizRunner({ test, onSubmit }) {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          handleFinalSubmit();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
+  }, [timeLeft]);
+
+  const hasAutoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && !hasAutoSubmittedRef.current) {
+      hasAutoSubmittedRef.current = true;
+      handleFinalSubmit();
+    }
   }, [timeLeft]);
 
   const onCurrentSectionAnswerChange = (newSecAns) => {

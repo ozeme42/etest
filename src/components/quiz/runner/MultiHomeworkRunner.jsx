@@ -973,17 +973,25 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   useEffect(() => {
     if (isReviewMode) return;
-    if (timeLeft <= 0) { handleSubmit(); return; }
+    if (timeLeft <= 0) return;
     try { localStorage.setItem(`${draftKey}_time`, String(timeLeft)); } catch {}
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { clearInterval(timer); handleSubmit(); return 0; }
+        if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
   }, [draftKey, isReviewMode]);
+
+  const hasAutoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && !hasAutoSubmittedRef.current && !isReviewMode) {
+      hasAutoSubmittedRef.current = true;
+      handleSubmit();
+    }
+  }, [timeLeft, isReviewMode]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return '--:--';

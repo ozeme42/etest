@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
-import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
+import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls, normalizeImageUrl } from '../common/ImageLightbox';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil, ArrowLeft } from 'lucide-react';
@@ -208,7 +208,6 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit();
           return 0;
         }
         return prev - 1;
@@ -216,6 +215,14 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     }, 1000);
     return () => clearInterval(timer);
   }, [draftKey]);
+
+  const hasAutoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && !hasAutoSubmittedRef.current) {
+      hasAutoSubmittedRef.current = true;
+      handleSubmit();
+    }
+  }, [timeLeft]);
 
   const formatTime = (seconds) => {
     if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';

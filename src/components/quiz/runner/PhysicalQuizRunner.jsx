@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, PanelTop, Maximize2, X as XIcon, EyeOff, Eye, Sun, Moon } from 'lucide-react';
@@ -149,7 +149,6 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit();
           return 0;
         }
         return prev - 1;
@@ -157,6 +156,14 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
     }, 1000);
     return () => clearInterval(timer);
   }, [draftKey]);
+
+  const hasAutoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && !hasAutoSubmittedRef.current) {
+      hasAutoSubmittedRef.current = true;
+      handleSubmit();
+    }
+  }, [timeLeft]);
 
   const formatTime = (seconds) => {
     if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';
