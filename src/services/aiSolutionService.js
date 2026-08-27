@@ -2,8 +2,8 @@ import { dbGetUserAiApiKey, dbGetSystemAiApiKey } from './supabaseService';
 
 export const GEMINI_AVAILABLE_MODELS = [
   {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
     tag: '⚡ En Hızlı & En Kararlı (Önerilen)',
     desc: "Yapay zeka ile şekilli soru çözümü, fotoğraf tanıma ve adım adım çözüm için en hızlı ve yüksek başarımlı model.",
     badge: 'Önerilen',
@@ -12,41 +12,41 @@ export const GEMINI_AVAILABLE_MODELS = [
     border: '#c084fc'
   },
   {
-    id: 'gemini-3.7-flash',
-    name: 'Gemini 3.7 Flash',
-    tag: '⭐ En Yeni Nesil',
-    desc: "Google'ın en yeni nesil akıl yürütme modeli.",
-    badge: 'Yeni Nesil',
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    tag: '🚀 Yüksek Başarım & Hız',
+    desc: "Google'ın yeni nesil yüksek hızlı multimodal görsel analiz ve muhakeme modeli.",
+    badge: 'Hızlı & Güçlü',
     color: '#6366f1',
     bg: 'rgba(99, 102, 241, 0.12)',
     border: '#a5b4fc'
   },
   {
-    id: 'gemini-3.5-flash',
-    name: 'Gemini 3.5 Flash',
-    tag: '🚀 Hızlı Muhakeme',
-    desc: 'Hızlı yanıt süresi, güçlü görsel anlama ve yüksek akıl yürütme kabiliyeti.',
-    badge: 'Performans',
-    color: '#0284c7',
-    bg: 'rgba(2, 132, 199, 0.12)',
-    border: '#7dd3fc'
-  },
-  {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash-Lite',
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash-Lite',
     tag: '⚡ Ultra Düşük Gecikme',
-    desc: 'Hafif ve ekonomik çözüm modeli.',
+    desc: 'Anlık yanıtlar ve düşük gecikmeli soru çözümü için optimize edilmiş hafif model.',
     badge: 'Ultra Hızlı',
     color: '#10b981',
     bg: 'rgba(16, 185, 129, 0.12)',
     border: '#86efac'
   },
   {
-    id: 'gemini-flash-latest',
-    name: 'Gemini Flash Latest',
-    tag: '📦 Otomatik En Güncel',
-    desc: 'Google tarafından sürekli güncellenen en son Flash sürümü.',
-    badge: 'Otomatik',
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    tag: '🛡️ Kararlı & Güvenilir',
+    desc: 'Geniş bağlam penceresi ve güvenilir soru analiz performansı sunan standart Flash modeli.',
+    badge: 'Kararlı',
+    color: '#0284c7',
+    bg: 'rgba(2, 132, 199, 0.12)',
+    border: '#7dd3fc'
+  },
+  {
+    id: 'gemini-1.5-flash-8b',
+    name: 'Gemini 1.5 Flash-8B',
+    tag: '📦 Ultra Hafif & Hızlı',
+    desc: 'Yüksek hacimli ve hızlı soru çözümleri için tasarlanmış küçük boyutlu model.',
+    badge: 'Ekonomik',
     color: '#64748b',
     bg: 'rgba(100, 116, 139, 0.12)',
     border: '#cbd5e1'
@@ -347,14 +347,14 @@ Kurallar:
   let responseData = null;
   let lastError = null;
 
-  const preferredModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.6-flash';
+  const preferredModel = localStorage.getItem('system_ai_default_model') || 'gemini-2.5-flash';
   const prioritizedModels = [
     preferredModel,
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.7-flash'
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b'
   ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
   for (const model of prioritizedModels) {
@@ -363,11 +363,11 @@ Kurallar:
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         try {
-          controller.abort(new Error(`Timeout: ${model} 35 saniyede yanıt vermedi.`));
+          controller.abort(new Error(`Timeout: ${model} 12 saniyede yanıt vermedi.`));
         } catch {
           controller.abort();
         }
-      }, 35000);
+      }, 12000);
 
       const res = await fetch(endpoint, {
         method: 'POST',
