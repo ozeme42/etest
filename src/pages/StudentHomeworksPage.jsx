@@ -6,7 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, normalizeId } from '../utils/testResolver';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';

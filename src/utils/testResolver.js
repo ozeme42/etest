@@ -250,6 +250,8 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   return [];
 }
 
+export const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
+
 /**
  * Resolves full question objects for a given test from QuestionBank.
  */
@@ -257,7 +259,6 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
   if (!foundTest) return [];
 
   let rawQuestions = [];
-  const normalizeId = (id) => String(id || '').replace(/^q_?/, '');
 
   // 1. If test has sections array
   if (rawQuestions.length === 0 && foundTest.sections && Array.isArray(foundTest.sections) && foundTest.sections.length > 0) {
