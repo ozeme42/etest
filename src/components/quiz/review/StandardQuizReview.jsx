@@ -129,30 +129,64 @@ export default function StandardQuizReview({ submission, test, questions = [], o
 
   const [questionScores, setQuestionScores] = useState(() => {
     const initial = {};
-    if (answers && Array.isArray(answers)) {
-      answers.forEach((a, idx) => {
-        const qNo = a.questionNo || (idx + 1);
-        if (a.score !== undefined && a.score !== null) {
-          initial[qNo] = Number(a.score);
-        } else if (a.isCorrect === true) {
-          initial[qNo] = 10;
-        } else if (a.isCorrect === false) {
-          initial[qNo] = 0;
-        }
-      });
+    const isSubEvaluated = Boolean(
+      submission?.isEvaluatedByTeacher ||
+      submission?.isEvaluated ||
+      submission?.status === 'evaluated' ||
+      submission?.status === 'graded'
+    );
+
+    for (let i = 1; i <= qCount; i++) {
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : {}) || {};
+
+      const rawTeacherScore = submission?.teacherScores?.[i] ??
+                              submission?.teacherScores?.[String(i)] ??
+                              submission?.raw_data?.teacherScores?.[i] ??
+                              submission?.raw_data?.teacherScores?.[String(i)] ??
+                              a?.teacherScore ??
+                              a?.score;
+
+      if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
+        initial[i] = 'empty';
+      } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+        initial[i] = Number(rawTeacherScore);
+      } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+        initial[i] = 10;
+      } else if (a?.evalStatus === 'half') {
+        initial[i] = 5;
+      } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+        initial[i] = 0;
+      } else if (isSubEvaluated || a?.evaluatedByTeacher) {
+        initial[i] = a?.userAnswerText ? 0 : 'empty';
+      }
     }
     return initial;
   });
 
   const [teacherNotes, setTeacherNotes] = useState(() => {
     const initial = {};
-    if (answers && Array.isArray(answers)) {
-      answers.forEach((a, idx) => {
-        const qNo = a.questionNo || (idx + 1);
-        if (a.teacherFeedback || a.teacherNote) {
-          initial[qNo] = a.teacherFeedback || a.teacherNote;
-        }
-      });
+    for (let i = 1; i <= qCount; i++) {
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : {}) || {};
+
+      initial[i] = submission?.teacherNotes?.[i] ||
+                   submission?.teacherNotes?.[String(i)] ||
+                   submission?.raw_data?.teacherNotes?.[i] ||
+                   submission?.raw_data?.teacherNotes?.[String(i)] ||
+                   a?.teacherFeedback ||
+                   a?.teacherNote ||
+                   a?.teacher_note ||
+                   a?.feedback ||
+                   '';
     }
     return initial;
   });

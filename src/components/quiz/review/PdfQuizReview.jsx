@@ -115,6 +115,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const [idbPdf, setIdbPdf] = useState(null);
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
+    const isSubEvaluated = Boolean(
+      submission?.isEvaluatedByTeacher ||
+      submission?.isEvaluated ||
+      submission?.status === 'evaluated' ||
+      submission?.status === 'graded'
+    );
+
     for (let i = 1; i <= qCount; i++) {
       const a = (Array.isArray(answers) ? answers.find(ans => (
         Number(ans?.questionNo) === i ||
@@ -127,7 +134,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
       const qObj = questions[i - 1] || questions[0] || {};
       const userAns = a?.userAnswer;
-      const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)] || submission?.raw_data?.openEndedText?.[i];
       const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty' && (typeof userAns === 'number' || /^[A-Ea-e0-4]$/.test(String(userAns).trim())));
       const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const isQOE = Boolean(
@@ -145,19 +152,42 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         (!hasUserOption && hasText)
       );
 
+      const rawTeacherScore = submission?.teacherScores?.[i] ??
+                              submission?.teacherScores?.[String(i)] ??
+                              submission?.raw_data?.teacherScores?.[i] ??
+                              submission?.raw_data?.teacherScores?.[String(i)] ??
+                              a?.teacherScore ??
+                              a?.score;
+
       if (isQOE) {
-        if (!hasText) {
+        if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
           scores[i] = 'empty';
-        } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
-          scores[i] = Number(a.score);
+        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+          scores[i] = Number(rawTeacherScore);
+        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (a?.evalStatus === 'half') {
+          scores[i] = 5;
+        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
+        } else if (isSubEvaluated || a?.evaluatedByTeacher) {
+          scores[i] = hasText ? 0 : 'empty';
+        } else if (!hasText) {
+          scores[i] = 'empty';
         } else {
           scores[i] = 'pending';
         }
       } else {
         // Multiple choice
         const hasAns = hasUserOption || (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
-        if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && !isNaN(Number(a.score))) {
-          scores[i] = Number(a.score);
+        if (rawTeacherScore === 'empty') {
+          scores[i] = 'empty';
+        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+          scores[i] = Number(rawTeacherScore);
+        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
         } else if (hasAns) {
           const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
           const uLetter = formatAnswerLetter(userAns);
@@ -175,7 +205,23 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const [teacherNotes, setTeacherNotes] = useState(() => {
     const notes = {};
     for (let i = 1; i <= qCount; i++) {
-      notes[i] = answers[i - 1]?.teacherNote || '';
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i ||
+        String(ans?.questionId).includes(`_${i}`) ||
+        String(ans?.id).includes(`_${i}`)
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : (typeof answers === 'object' ? (answers[i] || answers[String(i)]) : {})) || {};
+
+      notes[i] = submission?.teacherNotes?.[i] ||
+                 submission?.teacherNotes?.[String(i)] ||
+                 submission?.raw_data?.teacherNotes?.[i] ||
+                 submission?.raw_data?.teacherNotes?.[String(i)] ||
+                 a?.teacherNote ||
+                 a?.teacher_note ||
+                 a?.feedback ||
+                 '';
     }
     return notes;
   });

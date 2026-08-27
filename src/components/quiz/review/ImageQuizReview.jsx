@@ -211,12 +211,27 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const [questionScores, setQuestionScores] = useState(() => {
     const scores = {};
+    const isSubEvaluated = Boolean(
+      submission?.isEvaluatedByTeacher ||
+      submission?.isEvaluated ||
+      submission?.status === 'evaluated' ||
+      submission?.status === 'graded'
+    );
+
     for (let i = 1; i <= qCount; i++) {
-      const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i ||
+        String(ans?.questionId).includes(`_${i}`) ||
+        String(ans?.id).includes(`_${i}`)
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : (typeof answers === 'object' ? (answers[i] || answers[String(i)]) : {})) || {};
+
       const qObj = questions[i - 1] || bundleQ || {};
       const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
       const hasUserOption = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
-      const textVal = a?.userAnswerText || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)] || submission?.raw_data?.openEndedText?.[i];
       const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const isQOE = Boolean(
         isOpenEndedMode ||
@@ -229,19 +244,41 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         (!hasUserOption && hasText)
       );
 
+      const rawTeacherScore = submission?.teacherScores?.[i] ??
+                              submission?.teacherScores?.[String(i)] ??
+                              submission?.raw_data?.teacherScores?.[i] ??
+                              submission?.raw_data?.teacherScores?.[String(i)] ??
+                              a?.teacherScore ??
+                              a?.score;
+
       if (isQOE) {
-        if (!hasText) {
+        if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
           scores[i] = 'empty';
-        } else if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && a?.score !== 'pending' && !isNaN(Number(a.score))) {
-          scores[i] = Number(a.score);
+        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+          scores[i] = Number(rawTeacherScore);
+        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (a?.evalStatus === 'half') {
+          scores[i] = 5;
+        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
+        } else if (isSubEvaluated || a?.evaluatedByTeacher) {
+          scores[i] = hasText ? 0 : 'empty';
+        } else if (!hasText) {
+          scores[i] = 'empty';
         } else {
           scores[i] = 'pending';
         }
       } else {
-        const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
         const hasAns = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
-        if (a?.score !== undefined && a?.score !== null && a?.score !== '' && a?.score !== 'empty' && a?.score !== 'pending' && !isNaN(Number(a.score))) {
-          scores[i] = Number(a.score);
+        if (rawTeacherScore === 'empty') {
+          scores[i] = 'empty';
+        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+          scores[i] = Number(rawTeacherScore);
+        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
         } else if (hasAns) {
           const isRight = checkIsAnswerCorrect(rawAns, qObj, test, i);
           scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
@@ -254,7 +291,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   });
 
   const isTrulyEvaluated = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+    if (submission?.isEvaluatedByTeacher === true || submission?.isEvaluated === true || submission?.status === 'evaluated') {
       return true;
     }
     const hasAnyGradedScore = Object.values(questionScores).some(s => s !== 'pending' && s !== 'empty' && typeof s === 'number');
@@ -264,7 +301,23 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const [teacherNotes, setTeacherNotes] = useState(() => {
     const notes = {};
     for (let i = 1; i <= qCount; i++) {
-      notes[i] = answers[i - 1]?.teacherNote || '';
+      const a = (Array.isArray(answers) ? answers.find(ans => (
+        Number(ans?.questionNo) === i ||
+        Number(ans?.questionNoInSection) === i ||
+        Number(ans?.number) === i ||
+        Number(ans?.qNo) === i ||
+        String(ans?.questionId).includes(`_${i}`) ||
+        String(ans?.id).includes(`_${i}`)
+      )) : null) || (Array.isArray(answers) ? answers[i - 1] : (typeof answers === 'object' ? (answers[i] || answers[String(i)]) : {})) || {};
+
+      notes[i] = submission?.teacherNotes?.[i] ||
+                 submission?.teacherNotes?.[String(i)] ||
+                 submission?.raw_data?.teacherNotes?.[i] ||
+                 submission?.raw_data?.teacherNotes?.[String(i)] ||
+                 a?.teacherNote ||
+                 a?.teacher_note ||
+                 a?.feedback ||
+                 '';
     }
     return notes;
   });
