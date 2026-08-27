@@ -3611,7 +3611,7 @@ export default function QuestionBank() {
                     </div>
 
                     <div style={{ background: isDark ? 'rgba(0,0,0,0.25)' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #fee2e2', padding: '0.85rem 1rem', borderRadius: '0.75rem', marginBottom: '1rem', fontSize: '0.82rem', lineHeight: 1.6, color: isDark ? 'rgba(255,255,255,0.8)' : '#7f1d1d' }}>
-                      💡 <strong>Nasıl Eklenir?</strong> PDF dosyanızı <strong>Google Drive, OneDrive, Dropbox</strong> veya herhangi bir web alanına yükleyin. Drive için paylaşım ayarını <em>"Bağlantıya sahip olan herkes görüntüleyebilir"</em> yapıp linkini yapıştırın. Sistem otomatik olarak canlı PDF testine dönüştürecektir.
+                      💡 <strong>Nasıl Eklenir?</strong> PDF dosyanızı <strong>Google Drive, OneDrive, Dropbox</strong> veya herhangi bir web alanına yükleyin. Drive için paylaşım ayarını <em>"Bağlantıya sahip olan herkes (Görüntüleyen)"</em> yapıp linkini yapıştırın.
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -3630,15 +3630,48 @@ export default function QuestionBank() {
                           rel="noopener noreferrer"
                           style={{ background: '#dc2626', color: 'white', border: 'none', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}
                         >
-                          👁️ Önizle
+                          👁️ Yeni Sekmede Aç
                         </a>
                       )}
                     </div>
 
+                    {/* Google Drive Specific Guidance Alert */}
+                    {formData.contentPayload && formData.contentPayload.includes('drive.google.com') && (
+                      <div style={{
+                        marginTop: '0.75rem',
+                        background: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                        border: isDark ? '1px solid rgba(147, 197, 253, 0.3)' : '1px solid #bfdbfe',
+                        borderRadius: '0.65rem',
+                        padding: '0.65rem 0.85rem',
+                        fontSize: '0.8rem',
+                        color: isDark ? '#bfdbfe' : '#1e40af',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.5rem',
+                        lineHeight: 1.5
+                      }}>
+                        <span style={{ fontSize: '1rem' }}>⚠️</span>
+                        <div>
+                          <strong>Google Drive Yetki Kontrolü:</strong> Önizleme açılmıyorsa veya giriş ekranı geliyorsa dosyanız Drive'da <em>"Kısıtlı"</em> kalmış olabilir. 
+                          Google Drive'da dosyaya <strong>Sağ Tık ➔ Paylaş ➔ Genel Erişim ➔ "Bağlantıya sahip olan herkes" (Görüntüleyen)</strong> olarak ayarladığınızdan emin olun.
+                        </div>
+                      </div>
+                    )}
+
                     {formData.contentPayload && getEmbeddableUrl(formData.contentPayload) && (
                       <div style={{ marginTop: '1rem' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '0.4rem' }}>
-                          📄 Canlı Önizleme:
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#fca5a5' : '#b91c1c' }}>
+                            📄 Canlı Önizleme:
+                          </span>
+                          <a
+                            href={getEmbeddableUrl(formData.contentPayload) || formData.contentPayload}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', textDecoration: 'underline' }}
+                          >
+                            Düzgün görünmüyorsa yeni sekmede aç ↗
+                          </a>
                         </div>
                         <iframe
                           src={getEmbeddableUrl(formData.contentPayload)}
