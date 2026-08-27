@@ -183,35 +183,33 @@ export function EvaluationProvider({ children }) {
             if (s?.supabaseId) dbIds.add(String(s.supabaseId));
           });
 
-          // Keep ALL local items that are not in DB yet and not deleted
-          const localOnly = (prev || []).filter(localSub => {
+          // Detect any completed submissions that existed locally on tablet but are now deleted from Supabase (by PC)
+          const prevCompletedMissingFromDb = (prev || []).filter(s => {
+            const sid = String(s?.id || '');
+            const suid = String(s?.supabaseId || '');
+            const isCompleted = s.status !== 'in_progress' && s.status !== 'draft';
+            return isCompleted && !dbIds.has(sid) && (!suid || !dbIds.has(suid));
+          });
+
+          // Purge local cache for all tests that were deleted on another device (PC)
+          prevCompletedMissingFromDb.forEach(s => {
+            purgeTestCache(s.testId, s.studentId);
+            purgeTestCache(s.bookTestId, s.studentId);
+            purgeTestCache(s.id, s.studentId);
+          });
+
+          // Only keep purely unsubmitted local drafts that are in progress
+          const localDraftsOnly = (prev || []).filter(localSub => {
+            const isDraft = localSub.status === 'in_progress' || localSub.status === 'draft';
             const lId = String(localSub?.id || '');
             const lSuId = String(localSub?.supabaseId || '');
-            if (!lId && !lSuId) return false;
+            if (!isDraft || (!lId && !lSuId)) return false;
             if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
             if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
             return true;
           });
 
-          // Also check localStorage backups
-          let lsSubs = [];
-          try {
-            const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
-            const l2 = JSON.parse(localStorage.getItem('etest_submissions') || '[]');
-            lsSubs = [...(Array.isArray(l1) ? l1 : []), ...(Array.isArray(l2) ? l2 : [])];
-          } catch {}
-
-          const lsOnly = lsSubs.filter(lsSub => {
-            const lId = String(lsSub?.id || '');
-            const lSuId = String(lsSub?.supabaseId || '');
-            if (!lId && !lSuId) return false;
-            if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
-            if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
-            if (localOnly.some(lo => (lo.id && lo.id === lsSub.id) || (lo.supabaseId && lo.supabaseId === lsSub.supabaseId))) return false;
-            return true;
-          });
-
-          const mergedList = deduplicateSubmissions([...updatedSubs, ...localOnly, ...lsOnly]);
+          const mergedList = deduplicateSubmissions([...updatedSubs, ...localDraftsOnly]);
           try {
             localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
             localStorage.setItem('etest_submissions', JSON.stringify(mergedList));
@@ -232,6 +230,54 @@ export function EvaluationProvider({ children }) {
     } else {
       setIsSyncing(false);
     }
+  }, []);
+
+  // Supabase Realtime synchronization across all devices (PC -> Tablet / Phone)
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    const subChannel = supabase
+      .channel('realtime_submissions_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const delRow = payload.old;
+          const delId = String(delRow?.id || delRow?.supabaseId || '');
+          if (delId) {
+            markIdsAsDeleted([delId]);
+            purgeTestCache(delId);
+            setSubmissions(prev => {
+              const next = prev.filter(s => String(s.id) !== delId && String(s.supabaseId) !== delId);
+              try {
+                localStorage.setItem('eTestSubmissions', JSON.stringify(next));
+                localStorage.setItem('etest_submissions', JSON.stringify(next));
+              } catch (e) {}
+              return next;
+            });
+          }
+        } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          syncFromSupabase(false, true);
+        }
+      })
+      .subscribe();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromSupabase(false, true);
+      }
+    };
+    const handleFocus = () => {
+      syncFromSupabase(false, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      try {
+        supabase.removeChannel(subChannel);
+      } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   useEffect(() => {

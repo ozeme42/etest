@@ -103,6 +103,22 @@ export function TrackedBookProvider({ children }) {
 
   useEffect(() => {
     refreshTrackedBooks();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshTrackedBooks(true);
+      }
+    };
+    const handleFocus = () => {
+      refreshTrackedBooks(true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   useEffect(() => {

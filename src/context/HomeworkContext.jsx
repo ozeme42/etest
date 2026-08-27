@@ -56,6 +56,34 @@ export function HomeworkProvider({ children }) {
 
   useEffect(() => {
     refreshHomeworks();
+
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    const hwChannel = supabase
+      .channel('realtime_homeworks_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'homeworks' }, () => {
+        refreshHomeworks(true);
+      })
+      .subscribe();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshHomeworks(true);
+      }
+    };
+    const handleFocus = () => {
+      refreshHomeworks(true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      try {
+        supabase.removeChannel(hwChannel);
+      } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Restore payloads from IndexedDB if stored as placeholder
