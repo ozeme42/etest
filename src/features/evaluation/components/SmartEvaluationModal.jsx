@@ -28,6 +28,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   const [resolvedImagesMap, setResolvedImagesMap] = useState({});
   const [resolvedPdfPayload, setResolvedPdfPayload] = useState(null);
   const [resolvedHtmlPayload, setResolvedHtmlPayload] = useState(null);
+  const [isHtmlType, setIsHtmlType] = useState(false);
+  const [isPdfType, setIsPdfType] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeOeIndex, setActiveOeIndex] = useState(0);
@@ -117,9 +119,72 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         };
       }
 
+      const testTitleLower = String(submission?.testTitle || resolved?.title || foundHw?.title || foundBankQ?.title || '').toLowerCase();
+      const isExplicitHtml = Boolean(
+        resolved?.contentType === 'html' ||
+        resolved?.formatType === 'html' ||
+        resolved?.sourceFormat === 'html' ||
+        resolved?.type === 'html' ||
+        foundBankQ?.contentType === 'html' ||
+        foundBankQ?.formatType === 'html' ||
+        foundBankQ?.sourceFormat === 'html' ||
+        foundBankQ?.type === 'html' ||
+        foundHw?.contentType === 'html' ||
+        foundHw?.type === 'html' ||
+        submission?.contentType === 'html' ||
+        submission?.formatType === 'html' ||
+        submission?.type === 'html' ||
+        testTitleLower.includes('html')
+      );
+
+      const isExplicitPdf = Boolean(
+        resolved?.contentType === 'pdf' ||
+        resolved?.formatType === 'pdf' ||
+        resolved?.type === 'pdf' ||
+        foundBankQ?.contentType === 'pdf' ||
+        foundHw?.contentType === 'pdf' ||
+        submission?.contentType === 'pdf' ||
+        testTitleLower.includes('pdf') ||
+        testTitleLower.includes('pdfaç')
+      );
+
       // Resolve Payloads (PDF / HTML) from Objects & IndexedDB
-      const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF') || val.includes('drive.google.com') || (val.startsWith('http') && val.includes('pdf')));
-      const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<div') || val.includes('<p'));
+      const isPdfStr = (val) => isValidPayloadString(val) && (
+        val.startsWith('data:application/pdf') ||
+        val.includes('.pdf') ||
+        val.startsWith('%PDF') ||
+        val.includes('drive.google.com') ||
+        (val.startsWith('http') && val.includes('pdf'))
+      );
+
+      const isHtmlStr = (val) => {
+        if (!isValidPayloadString(val)) return false;
+        if (isPdfStr(val)) return false;
+        if (val.startsWith('data:image') || val.startsWith('blob:image')) return false;
+        const lower = val.toLowerCase().trim();
+        if (isExplicitHtml) {
+          return val.length > 5 && !val.startsWith('data:image');
+        }
+        return (
+          lower.includes('<html') ||
+          lower.includes('<!doctype') ||
+          lower.includes('<div') ||
+          lower.includes('<p') ||
+          lower.includes('<table') ||
+          lower.includes('<style') ||
+          lower.includes('<section') ||
+          lower.includes('<body') ||
+          lower.includes('<span>') ||
+          lower.includes('<h1') ||
+          lower.includes('<h2') ||
+          lower.includes('<h3') ||
+          lower.includes('<h4') ||
+          lower.includes('<ol') ||
+          lower.includes('<ul') ||
+          lower.startsWith('data:text/html') ||
+          (lower.startsWith('<') && lower.endsWith('>'))
+        );
+      };
 
       let directPdf = [
         resolved?.pdfPayload, resolved?.pdfUrl, resolved?.contentPayload,
@@ -129,10 +194,14 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
       ].find(isPdfStr) || null;
 
       let directHtml = [
-        resolved?.htmlPayload, resolved?.contentPayload,
-        foundBankQ?.htmlPayload, foundBankQ?.contentPayload,
-        foundHw?.htmlPayload, foundHw?.contentPayload,
-        submission?.htmlPayload, submission?.contentPayload
+        resolved?.htmlPayload, (isExplicitHtml ? resolved?.contentPayload : null),
+        foundBankQ?.htmlPayload, (isExplicitHtml ? foundBankQ?.contentPayload : null),
+        foundHw?.htmlPayload, (isExplicitHtml ? foundHw?.contentPayload : null),
+        submission?.htmlPayload, (isExplicitHtml ? submission?.contentPayload : null),
+        resolved?.contentPayload,
+        foundBankQ?.contentPayload,
+        foundHw?.contentPayload,
+        submission?.contentPayload
       ].find(isHtmlStr) || null;
 
       // If not found in memory, query IndexedDB across all possible candidate keys
@@ -140,21 +209,39 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         const candidateKeys = [
           targetId,
           normTargetId,
-          `pdf_${targetId}`,
-          `pdf_${normTargetId}`,
+          toUUID(targetId),
+          toUUID(normTargetId),
           `q_${targetId}`,
           `q_${normTargetId}`,
+          `pdf_${targetId}`,
+          `pdf_${normTargetId}`,
           `hw_${targetId}`,
           `hw_${normTargetId}`,
           submission?.testId,
+          toUUID(submission?.testId),
+          submission?.realTestId,
+          toUUID(submission?.realTestId),
           submission?.homeworkId,
+          toUUID(submission?.homeworkId),
+          submission?.questionId,
+          toUUID(submission?.questionId),
           submission?.id,
+          toUUID(submission?.id),
           foundBankQ?.id,
+          toUUID(foundBankQ?.id),
           foundBankQ?.questionId,
+          toUUID(foundBankQ?.questionId),
           foundHw?.id,
+          toUUID(foundHw?.id),
           foundHw?.testId,
+          toUUID(foundHw?.testId),
           foundHw?.questionId,
+          toUUID(foundHw?.questionId),
           resolved?.id,
+          toUUID(resolved?.id),
+          resolved?.realTestId,
+          resolved?.questionsList?.[0]?.id,
+          foundBankQ?.questionsList?.[0]?.id,
           resolved?.pdfPayload,
           resolved?.htmlPayload,
           resolved?.contentPayload
@@ -181,13 +268,13 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
       let generatedQuestions = [];
       const sections = resolved?.sections || resolved?.tests || resolved?.items || null;
 
-      const resolvedImages = [
+      const resolvedImages = (isExplicitHtml || isExplicitPdf) ? [] : [
         ...(Array.isArray(resolved?.imageUrls) ? resolved.imageUrls : []),
         ...(Array.isArray(foundBankQ?.imageUrls) ? foundBankQ.imageUrls : []),
         ...(Array.isArray(foundHw?.imageUrls) ? foundHw.imageUrls : []),
         ...(resolved?.imageUrl ? [resolved.imageUrl] : []),
         ...(foundBankQ?.imageUrl ? [foundBankQ.imageUrl] : [])
-      ].filter(Boolean);
+      ].filter(u => u && typeof u === 'string' && (u.startsWith('data:image') || u.startsWith('http') || u.startsWith('blob:') || u.startsWith('idb:')));
 
       if (Array.isArray(sections) && sections.length > 0 && subAnsCount === 0) {
         let runningQIndex = 0;
@@ -206,7 +293,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
           for (let qIdx = 0; qIdx < secCount; qIdx++) {
             runningQIndex++;
             const existingQ = secResolvedQs[qIdx] || {};
-            const qImg = secImages[qIdx] || (secImages.length === 1 ? secImages[0] : null) || existingQ.imageUrl || null;
+            const qImg = (isExplicitHtml || isExplicitPdf) ? null : (secImages[qIdx] || (secImages.length === 1 ? secImages[0] : null) || existingQ.imageUrl || null);
 
             generatedQuestions.push({
               ...existingQ,
@@ -236,12 +323,14 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         for (let qIdx = 0; qIdx < count; qIdx++) {
           const ans = submissionAnswers[qIdx] || {};
           const existingQ = resolvedQs[qIdx] || {};
-          const qImg = existingQ.imageUrl ||
-                       resolvedImages[qIdx] ||
-                       (resolvedImages.length === 1 && count === 1 ? resolvedImages[0] : null) ||
-                       ans.imageUrl ||
-                       ans.photoUrl ||
-                       null;
+          const qImg = (isExplicitHtml || isExplicitPdf) ? null : (
+            existingQ.imageUrl ||
+            resolvedImages[qIdx] ||
+            (resolvedImages.length === 1 && count === 1 ? resolvedImages[0] : null) ||
+            ans.imageUrl ||
+            ans.photoUrl ||
+            null
+          );
           const isSingleOE = isItemOpenEnded(resolved, ans) || isItemOpenEnded(existingQ, ans) || existingQ.isOpenEnded;
 
           generatedQuestions.push({
@@ -267,29 +356,23 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         generatedQuestions = generatedQuestions.slice(0, subAnsCount);
       }
 
-      // Resolve question images from IndexedDB asynchronously
+      // Resolve question images from IndexedDB asynchronously (only for genuine image tests)
       const imgMap = {};
-      for (const q of generatedQuestions) {
-        const rawImg = q.imageUrl;
-        if (rawImg && typeof rawImg === 'string') {
-          if (rawImg.startsWith('idb:') || rawImg.length > 50) {
-            try {
-              const loaded = await idbGetPayload(rawImg);
-              if (loaded && typeof loaded === 'string' && (loaded.startsWith('data:image') || loaded.startsWith('http'))) {
-                imgMap[q.questionNo] = loaded;
-              }
-            } catch {}
-          } else if (rawImg.startsWith('data:image') || rawImg.startsWith('http')) {
-            imgMap[q.questionNo] = rawImg;
-          }
-        }
-        if (!imgMap[q.questionNo] && q.id) {
-          try {
-            const loaded = await idbGetPayload(String(q.id));
-            if (loaded && typeof loaded === 'string' && (loaded.startsWith('data:image') || loaded.startsWith('http'))) {
-              imgMap[q.questionNo] = loaded;
+      if (!isExplicitHtml && !isExplicitPdf && !directPdf && !directHtml) {
+        for (const q of generatedQuestions) {
+          const rawImg = q.imageUrl;
+          if (rawImg && typeof rawImg === 'string') {
+            if (rawImg.startsWith('idb:') || rawImg.length > 50) {
+              try {
+                const loaded = await idbGetPayload(rawImg);
+                if (loaded && typeof loaded === 'string' && (loaded.startsWith('data:image') || loaded.startsWith('http'))) {
+                  imgMap[q.questionNo] = loaded;
+                }
+              } catch {}
+            } else if (rawImg.startsWith('data:image') || rawImg.startsWith('http')) {
+              imgMap[q.questionNo] = rawImg;
             }
-          } catch {}
+          }
         }
       }
 
@@ -299,6 +382,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         setResolvedImagesMap(imgMap);
         setResolvedPdfPayload(directPdf);
         setResolvedHtmlPayload(directHtml);
+        setIsHtmlType(isExplicitHtml || Boolean(directHtml));
+        setIsPdfType(isExplicitPdf || Boolean(directPdf));
 
         const scores = {};
         const notes = {};
@@ -395,7 +480,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         studentWritten,
         studentImage,
         isOE,
-        imageUrl: resolvedImagesMap[i] || (qObj.imageUrl && !qObj.imageUrl.startsWith('idb:') ? qObj.imageUrl : null),
+        imageUrl: (isHtmlType || isPdfType) ? null : (resolvedImagesMap[i] || (qObj.imageUrl && !qObj.imageUrl.startsWith('idb:') ? qObj.imageUrl : null)),
         pdfPayload: qObj.pdfPayload || resolvedPdfPayload || null,
         htmlPayload: qObj.htmlPayload || resolvedHtmlPayload || null,
         title: qObj.title || `Soru ${i}`,
@@ -407,7 +492,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
     }
 
     return { oeList, mcList, totalQ };
-  }, [questions, submission, test, resolvedImagesMap, resolvedPdfPayload, resolvedHtmlPayload]);
+  }, [questions, submission, test, resolvedImagesMap, resolvedPdfPayload, resolvedHtmlPayload, isHtmlType, isPdfType]);
 
   const scoreStats = useMemo(() => {
     const { oeList, mcList, totalQ } = categorizedQuestions;
@@ -544,7 +629,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   // Active Document Payload (PDF / HTML)
   const currentPdf = activeItem?.pdfPayload || resolvedPdfPayload || null;
   const currentHtml = activeItem?.htmlPayload || resolvedHtmlPayload || null;
-  const hasDocument = Boolean(currentPdf || currentHtml);
+  const hasDocument = Boolean(currentPdf || currentHtml || isHtmlType || isPdfType);
 
   // ── Step-by-Step Evaluation Panel Content ──
   const evaluationPanelContent = (
@@ -739,8 +824,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
                 </div>
               </div>
 
-              {/* Question Image (Only show if genuine image is available and not in PDF mode) */}
-              {questionImage && !hasDocument && (
+              {/* Question Image (Only show if genuine image is available and NOT in PDF/HTML mode) */}
+              {questionImage && !hasDocument && !isHtmlType && !isPdfType && (
                 <div style={{ maxWidth: '650px', borderRadius: '0.85rem', overflow: 'hidden', border: '1.5px solid var(--color-border)', margin: '0 auto', width: '100%', background: '#f8fafc' }}>
                   <img
                     src={questionImage}
@@ -751,7 +836,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
                 </div>
               )}
 
-              {/* Question Text (if standalone text without PDF) */}
+              {/* Question Text (if standalone text without PDF/HTML) */}
               {!hasDocument && activeItem.question?.questionText && (
                 <div style={{
                   fontSize: '0.95rem',
@@ -1240,10 +1325,20 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
             defaultSize={480}
             documentContent={
               <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#1e293b', color: '#ffffff' }}>
-                {currentPdf ? (
+                {isPdfType && currentPdf ? (
                   <PdfViewerWithControls payload={currentPdf} title={test?.title} height="100%" />
                 ) : (
-                  <HtmlViewerWithControls payload={currentHtml} title={test?.title} height="100%" />
+                  <HtmlViewerWithControls
+                    payload={currentHtml}
+                    htmlContent={currentHtml}
+                    htmlPayload={currentHtml}
+                    title={test?.title}
+                    height="100%"
+                    id={targetId}
+                    testId={targetId}
+                    realTestId={test?.id || targetId}
+                    test={test}
+                  />
                 )}
               </div>
             }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { idbGetPayload } from '../services/indexedDbService';
+import { toUUID } from '../services/supabaseService';
 
 export function wrapInStyledHtmlDocument(content, title = 'Döküman / Soru') {
   if (!content) return '';
@@ -101,7 +102,7 @@ export default React.memo(function HtmlViewerWithControls(props) {
   const wrapperRef = useRef(null);
 
   const rawCandidates = [payload, htmlContent, src, contentPayload, htmlPayload];
-  const directPayload = rawCandidates.find(p => typeof p === 'string' && p.length > 50 && !p.includes('[STORED_IN_INDEXEDDB]') && !p.includes('[LOCALSTORAGE_CACHE]'));
+  const directPayload = rawCandidates.find(p => typeof p === 'string' && p.trim().length > 5 && !p.includes('[STORED_IN_INDEXEDDB]') && !p.includes('[LOCALSTORAGE_CACHE]'));
   const activePayload = directPayload || idbHtml || rawCandidates.find(Boolean);
 
   useEffect(() => {
@@ -110,11 +111,20 @@ export default React.memo(function HtmlViewerWithControls(props) {
       if (directPayload) return;
       const keysToTry = [id, testId, realTestId, qId, props?.bankQ?.id, props?.test?.id].filter(Boolean);
       for (const k of keysToTry) {
-        const candidates = [k, String(k).replace(/^q_?/, ''), `q_${String(k).replace(/^q_?/, '')}`, `q${String(k).replace(/^q_?/, '')}`];
+        const strK = String(k);
+        const norm = strK.replace(/^q_?|^hw_?|^test_?|^bt_?/, '');
+        const candidates = [
+          strK,
+          norm,
+          `q_${norm}`,
+          `hw_${norm}`,
+          toUUID(strK),
+          toUUID(norm)
+        ].filter(Boolean);
         for (const candidate of candidates) {
           try {
             const val = await idbGetPayload(candidate);
-            if (val && typeof val === 'string' && val.length > 50 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+            if (val && typeof val === 'string' && val.trim().length > 5 && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
               setIdbHtml(val);
               return;
             }
