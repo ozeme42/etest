@@ -5,7 +5,7 @@ import {
   ChevronUp, Copy, Eye, Upload, FileText, ArrowRight,
   Languages, Volume2, Bookmark, Globe
 } from 'lucide-react';
-import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText } from '../../../services/aiSolutionService';
+import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey } from '../../../services/supabaseService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
@@ -84,8 +84,14 @@ export default function ScreenSnipperAndSolverModal({
     try {
       const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
       if (cached) {
-        cachedSolution = JSON.parse(cached);
-        setSolution(cachedSolution);
+        const parsed = JSON.parse(cached);
+        const isEnglishSubj = /ingilizce|english|yks[\s-_]*dil/i.test(subject || '');
+        if (parsed?.isEnglishQuestion && !isEnglishSubj) {
+          localStorage.removeItem(`ai_sol_${cacheKey}`);
+        } else {
+          cachedSolution = parsed;
+          setSolution(cachedSolution);
+        }
       } else {
         setSolution(null);
       }
@@ -100,7 +106,7 @@ export default function ScreenSnipperAndSolverModal({
 
     // If no cached solution, auto-solve if HTML document or question text or existing image exists
     const effectiveHtml = htmlPayload || question?.htmlPayload;
-    const effectiveText = question?.questionText || question?.title;
+    const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo);
     if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
       if (autoSolvedRef.current !== cacheKey) {
         autoSolvedRef.current = cacheKey;
@@ -167,8 +173,8 @@ export default function ScreenSnipperAndSolverModal({
   const handleSolve = async (overrideImage = null) => {
     if (solvingRef.current) return;
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
-    const qText = question?.questionText || question?.title || '';
     const htmlDoc = htmlPayload || question?.htmlPayload || '';
+    const qText = question?.questionText || question?.title || extractTargetQuestionFromHtml(htmlDoc, questionNo) || '';
 
     if (!imgToSend && !qText && !htmlDoc) {
       setError('Lütfen çözülmesi istenen sorunun ekran görüntüsünü kırpın, fotoğrafını yükleyin veya Ctrl+V ile yapıştırın.');
@@ -890,7 +896,7 @@ export default function ScreenSnipperAndSolverModal({
                 </div>
 
                 {/* 🇬🇧 İNGİLİZCE DİL ÖĞRETİM MOTORU: CÜMLE ÇEVİRİLERİ, KELİME DAĞARCIĞI VE ŞIK ANALİZİ */}
-                {(solution.isEnglishQuestion || (Array.isArray(solution.vocabulary) && solution.vocabulary.length > 0) || (Array.isArray(solution.sentenceTranslations) && solution.sentenceTranslations.length > 0)) && (
+                {Boolean(solution.isEnglishQuestion === true && ((Array.isArray(solution.vocabulary) && solution.vocabulary.length > 0) || (Array.isArray(solution.sentenceTranslations) && solution.sentenceTranslations.length > 0))) && (
                   <div style={{
                     background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.06))',
                     border: '1.5px solid rgba(99, 102, 241, 0.25)',

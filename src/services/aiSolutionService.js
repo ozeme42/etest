@@ -215,6 +215,55 @@ export async function resolveImageToBase64(imgSrc) {
 }
 
 /**
+ * Extract targeted question text and options from HTML document
+ */
+export function extractTargetQuestionFromHtml(html, qNo) {
+  if (!html || typeof html !== 'string') return '';
+  try {
+    const cleaned = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+
+    if (typeof DOMParser !== 'undefined') {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(cleaned, 'text/html');
+
+      const selectors = [
+        `#q${qNo}`, `#q_${qNo}`, `#question_${qNo}`, `#question-${qNo}`, `#soru_${qNo}`, `#soru-${qNo}`,
+        `[data-question="${qNo}"]`, `[data-q="${qNo}"]`, `[data-index="${qNo - 1}"]`,
+        `.question:nth-of-type(${qNo})`, `.soru:nth-of-type(${qNo})`, `.question-card:nth-of-type(${qNo})`,
+        `.question-block:nth-of-type(${qNo})`, `.test-question:nth-of-type(${qNo})`
+      ];
+      for (const sel of selectors) {
+        const el = doc.querySelector(sel);
+        if (el && el.textContent && el.textContent.trim().length > 10) {
+          return el.textContent.trim();
+        }
+      }
+
+      const allText = doc.body ? (doc.body.innerText || doc.body.textContent || '') : '';
+      if (allText) {
+        const qRegex = new RegExp(`(?:(?:Soru|SORU)\\s*${qNo}[:\\.]?|${qNo}\\.\\s*(?:Soru|SORU)[:\\.]?|^\\s*${qNo}\\.)([\\s\\S]*?)(?=(?:(?:Soru|SORU)\\s*${qNo + 1}[:\\.]?|${qNo + 1}\\.\\s*(?:Soru|SORU)[:\\.]?|^\\s*${qNo + 1}\\.|$))`, 'im');
+        const match = allText.match(qRegex);
+        if (match && match[0] && match[0].trim().length > 10) {
+          return match[0].trim();
+        }
+      }
+    }
+
+    const textOnly = cleaned.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    const qRegex = new RegExp(`(?:(?:Soru|SORU)\\s*${qNo}[:\\.]?|${qNo}\\.\\s*(?:Soru|SORU)[:\\.]?)(.*?)(?=(?:(?:Soru|SORU)\\s*${qNo + 1}[:\\.]?|${qNo + 1}\\.\\s*(?:Soru|SORU)[:\\.]?|$))`, 'i');
+    const match = textOnly.match(qRegex);
+    if (match && match[0] && match[0].trim().length > 10) {
+      return match[0].trim();
+    }
+  } catch (e) {
+    console.warn('[aiSolutionService] extractTargetQuestionFromHtml error:', e);
+  }
+  return '';
+}
+
+/**
  * Solve a single question using Gemini (Multimodal Vision / Text)
  * Zero database storage, processed strictly in-memory.
  */
@@ -234,14 +283,39 @@ export async function solveQuestionWithAi({
   questionNo = 1,
   cacheKey = ''
 }) {
-  // 1. Check local cache first to avoid re-calling API (Zero API & DB cost)
+  // Extract question from HTML if questionText is minimal
+  const extractedFromHtml = extractTargetQuestionFromHtml(htmlPayload, questionNo);
+  const effectiveQuestionText = (questionText && questionText.trim().length > 10)
+    ? questionText.trim()
+    : (extractedFromHtml || questionText || '');
+
+  // Strict language / subject analysis
+  const isEnglishSubject = Boolean(
+    (subject && /ingilizce|english|yks[\s-_]*dil|yds|lgs[\s-_]*ingilizce|toefl|ielts/i.test(subject)) ||
+    (topic && /ingilizce|english|grammar|vocabulary|tenses|reading|cloze/i.test(topic))
+  );
+
+  const containsTurkishMarkers = /[çğıöşüÇĞİÖŞÜ]|\b(soru|kelime|cümle|aşağıdaki|metne|hangisi|doğrudur|yanlıştır|sesteş|eş sesli|eş anlamlı|zıt anlamlı|paragraf|yazar|metin|türkçe|matematik|fen|sosyal|din|tarih)\b/i.test(
+    (effectiveQuestionText || '') + ' ' + (subject || '') + ' ' + (topic || '')
+  );
+
+  const isEnglishQuestion = isEnglishSubject || (
+    !containsTurkishMarkers &&
+    effectiveQuestionText &&
+    /\b(which of the following|according to the text|according to the passage|choose the correct|fill in the blank|complete the sentence|opposite meaning|closest in meaning|read the text and answer)\b/i.test(effectiveQuestionText)
+  );
+
+  // 1. Check local cache first (with invalidation for hallucinated English outputs on non-English tests)
   if (cacheKey) {
     try {
       const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed && (parsed.steps || parsed.explanation || parsed.summary)) {
+        const isStaleEnglish = parsed?.isEnglishQuestion && !isEnglishQuestion;
+        if (parsed && (parsed.steps || parsed.explanation || parsed.summary) && !isStaleEnglish) {
           return parsed;
+        } else if (isStaleEnglish) {
+          localStorage.removeItem(`ai_sol_${cacheKey}`);
         }
       }
     } catch {}
@@ -255,43 +329,33 @@ export async function solveQuestionWithAi({
 
   // 3. Prepare System Instruction & Prompt
   const cleanReason = mistakeReason || 'Hata Sebebi Belirtilmedi';
-  
-  const isEnglishCandidate = Boolean(
-    (subject && /ingilizce|english|yks[\s-_]*dil|yds|lgs[\s-_]*ingilizce|toefl|ielts/i.test(subject)) ||
-    (topic && /ingilizce|english|grammar|vocabulary|tenses|reading|cloze/i.test(topic)) ||
-    (questionText && /\b(which of the following|according to the text|choose the correct|fill in the blank|complete the sentence|opposite meaning|closest in meaning|passage|dialogue)\b/i.test(questionText))
-  );
 
-  const systemInstruction = `Sen Türkiye MEB müfredatına ve LGS/YKS/ÖSYM sınav standartlarına tam hakim, Türkçe konuşan öğrencilere ders anlatan son derece pedagojik, cana yakın ve uzman bir öğretmensin.
-Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım adım, tane tane ve en anlaşılır şekilde çözmek ve seçtiği hata sebebine göre özel bir koçluk tavsiyesi sunmaktır.
-
-${isEnglishCandidate ? '⚠️ BU SORU İNGİLİZCE DERSİNE AİTTİR VEYA İNGİLİZCE İÇERMEKTEDİR.' : ''}
-🇹🇷 TÜRKÇE ÖĞRENCİSİNE İNGİLİZCE DİL ÖĞRETİM PRENSİBİ (DİL ÖĞRETMENİ MODU):
-Eğer soru İngilizce dersine aitse veya görseldeki/metindeki soru İngilizce dilinde yazılmışsa:
-Öğrencinin bu soruyu çözme amacı YALNIZCA doğru şıkkı bulmak DEĞİLDİR; ASIL AMAÇ İNGİLİZCE DİLİNİ, KELİMELERİNİ VE CÜMLE YAPILARINI ÖĞRENMEKTİR.
-Bu nedenle soru çözümünü doğrudan bir İngilizce Öğretmeni gibi TÜRKÇE anlatımla ve şu unsurlarla hazırla:
+  const systemInstruction = isEnglishQuestion
+    ? `Sen Türkiye MEB müfredatına ve LGS/YKS sınav standartlarına tam hakim, Türkçe konuşan öğrencilere ders anlatan uzman bir İngilizce öğretmenisin.
+Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı İngilizce sorusunu dil öğretim odaklı olarak Türkçe açıklamalar, cümle çevirileri ve kelime rehberi ile adım adım çözmektir.
 1. "isEnglishQuestion": true olarak işaretle.
-2. "summary": Soruda ne anlatıldığını, metnin ana fikrini ve soru kökünün ne istediğini 1-2 cümlelik net Türkçe ile özetle.
-3. "sentenceTranslations": Soruda geçen İngilizce cümleleri, paragrafı, diyalogları ve soru kökünü satır satır Türkçe çevirileriyle eşleştir (dizide her eleman { "english": "İngilizce Cümle", "turkish": "Türkçe Çevirisi" } olsun).
-4. "vocabulary": Soruda ve şıklarda geçen en önemli 4-8 İngilizce kelimeyi/deyimi/kalıbı liste şeklinde çıkar (dizide her eleman { "word": "İngilizce Kelime", "meaning": "Türkçe Anlamı", "type": "Fiil/İsim/Sıfat/Deyim/Bağlaç", "clue": "Cümledeki kullanım püf noktası" } olsun).
-5. "grammarNotes": Soruda test edilen gramer yapısını (Tenses, Modals, Passive, Conjunctions, Prepositions vb.) Türkçe anlaşılır şekilde açıkla.
-6. "optionTranslations": Bütün şıkları (A, B, C, D, E) listele (dizide her eleman { "letter": "A", "english": "Şıktaki İngilizce İfade", "turkish": "Türkçe Çevirisi", "isCorrect": true/false, "reason": "Neden elendiği veya neden doğru olduğu" } olsun).
-7. "steps": Adım adım pedagojik dil anlatımı: (1. Paragraf/Diyalog Çevirisi ve Anlamı, 2. Sorudaki Kilit Gramer ve Kelime İpuçları, 3. Şıkların Türkçe Anlamlarıyla İncelenmesi ve Doğru Cevap).
-8. "goldenRule": İngilizce soru çözerken hayat kurtaran pratik bir dil/kelime altın kuralı ver.
+2. "summary": Soruda ne anlatıldığını ve soru kökünün ne istediğini 1-2 cümlelik net Türkçe ile özetle.
+3. "sentenceTranslations": Soruda geçen İngilizce cümleleri ve soru kökünü satır satır Türkçe çevirileriyle eşleştir.
+4. "vocabulary": Soruda geçen en önemli 4-8 İngilizce kelimeyi/kalıbı anlamları ve ipuçlarıyla listele.
+5. "grammarNotes": Sorudaki gramer konusunu Türkçe açıkla.
+6. "optionTranslations": Şıkları Türkçe anlamları ve çeldirici analizleriyle açıkla.
+7. "steps": Adım adım çözüm (1. Çeviri ve Anlam, 2. Gramer/Kelime İpuçları, 3. Doğru Cevap).
+8. "goldenRule": İngilizce soru çözerken hayat kurtaran pratik altın kural.
+9. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX veya '$' sembolü KULLANMA. Temiz Türkçe yaz.
+10. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`
+    : `Sen Türkiye MEB müfredatına ve LGS/YKS/ÖSYM sınav standartlarına tam hakim, öğrencilere ders anlatan son derece pedagojik, cana yakın ve uzman bir öğretmenisin.
+Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım adım, tane tane ve en anlaşılır Türkçe ile çözmek ve seçtiği hata sebebine göre özel bir koçluk tavsiyesi sunmaktır.
+1. "isEnglishQuestion": false olarak işaretle. Kesinlikle İngilizce çeviri, İngilizce kelime sözlüğü veya İngilizce kalıp EKLEME.
+2. "summary": Sorunun temel mantığını ve kazanımını 1-2 cümlelik net Türkçe ile özetle.
+3. "steps": Soruyu 3 net adımda anlaşılır Türkçe ile çöz (1. Verilenleri ve isteneni anlama, 2. Çözüm yolunu ve kuralları adım adım uygulama, 3. Sonucu hesaplama ve şıkları eleyerek doğru cevabı bulma).
+4. "goldenRule": Bu soruyu çözerken kullanılan temel kural, formül veya altın ipucu.
+5. "mistakeAdvice": Öğrencinin seçtiği HATA SEBEBİ (${cleanReason}) doğrultusunda nokta atışı koçluk uyarısı.
+6. "similarQuestion": Öğrencinin bu kazanımı pekiştirmesi için 1 adet benzer mini soru metni, şıkları ve çözümü.
+7. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX, kodlama etiketleri veya '$', '\\text', '\\frac' gibi semboller KULLANMA. Günlük temiz Türkçe sembollerle doğal olarak yaz.
+8. ADIM BAŞLIKLARI: Her adımın başına '1. Adım:', 'Adım 1:' gibi ifadeler YAZMA. Doğrudan açıklamayı yaz.
+9. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`;
 
-Genel Kurallar:
-1. Çözümü madde madde, adım adım ve net mantıksal akışla yaz.
-2. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX, kodlama etiketleri veya '$', '\\text', '\\frac', '\\times' gibi semboller KULLANMA. Tüm işlemleri günlük temiz Türkçe ve anlaşılır sembollerle doğal olarak yaz.
-3. ADIM BAŞLIKLARI: Her adımın başına '1. Adım:', 'Adım 1:' gibi ifadeler YAZMA. Doğrudan o adımda yapılan açıklamayı ve işlemi yaz.
-4. Öğrencinin seçtiği HATA SEBEBİ (${cleanReason}) doğrultusunda:
-   - "İşlem Hatası" ise: En sık hata yapılan işlem adımını vurgula.
-   - "Formül / Bilgi Unutuldu" ise: Kullanılan ana formülü veya kuralı 'Altın Kural' kutusunda net ver.
-   - "Konu Eksiği" ise: Sorunun ait olduğu konunun 2-3 cümlelik mini konu özetini ekle.
-   - "Dikkat / Yanlış Okuma" ise: Sorudaki çeldiricileri, olumsuz kökleri ve dikkat edilmesi gereken anahtar kelimeleri göster.
-   - "Zaman Yetmedi" ise: Soruyu 30 saniyede çözebileceği pratik kısayol taktiğini açıkla.
-5. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`;
-
-  let prompt = `Aşağıdaki soruyu incele ve ayrıntılı çözümünü üret:\n\n`;
+  let prompt = `Aşağıdaki ${subject && subject !== 'Genel' ? subject : ''} sorusunu incele ve ayrıntılı çözümünü üret:\n\n`;
   if (subject) prompt += `Ders: ${subject}\n`;
   if (grade) prompt += `Sınıf / Seviye: ${grade}\n`;
   if (topic) prompt += `Konu: ${topic}\n`;
@@ -300,51 +364,69 @@ Genel Kurallar:
   if (correctAnswer) prompt += `Doğru Yanıt: ${correctAnswer}\n`;
   if (cleanReason) prompt += `Öğrencinin Belirttiği Hata Sebebi: ${cleanReason}\n`;
 
-  if (htmlPayload && typeof htmlPayload === 'string') {
+  if (effectiveQuestionText) {
+    prompt += `\nHEDEF SORU METNİ (${questionNo}. Soru):\n"""\n${effectiveQuestionText}\n"""\n`;
+  } else if (htmlPayload && typeof htmlPayload === 'string') {
     const cleanHtml = htmlPayload
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .slice(0, 30000);
-    prompt += `\nTEST DÖKÜMANI / HTML METNİ:\n"""\n${cleanHtml}\n"""\n`;
-    prompt += `\nYukarıdaki test dökümanında yer alan ${questionNo}. soruyu bul, soru kökünü ve şıklarını dikkatle analiz ederek çözümü üret.\n`;
+      .slice(0, 15000);
+    prompt += `\nTEST DÖKÜMANI:\n"""\n${cleanHtml}\n"""\n`;
+    prompt += `\nYukarıdaki test dökümanında yer alan ${questionNo}. soruyu bul ve tam olarak çöz.\n`;
   }
 
-  if (questionText && questionText.trim()) {
-    prompt += `\nSORU METNİ:\n"""\n${questionText}\n"""\n`;
-  }
   if (Array.isArray(options) && options.length > 0) {
     prompt += `\nŞIKLAR:\n${options.map((opt, i) => `${String.fromCharCode(65 + i)}) ${opt}`).join('\n')}\n`;
   }
 
-  prompt += `\nDöndürülecek JSON Şeması:
-{
-  "isEnglishQuestion": ${isEnglishCandidate ? 'true' : 'false'},
-  "correctAnswer": "A",
-  "summary": "Sorunun 1-2 cümlelik özeti ve ana fikri (İngilizce ise Türkçe çeviri özeti)",
+  const jsonSchema = isEnglishQuestion ? `{
+  "isEnglishQuestion": true,
+  "correctAnswer": "C",
+  "summary": "Sorunun 1-2 cümlelik Türkçe özeti",
   "steps": [
-    "1. Adım: Verilenleri ve istenenleri belirleyelim...",
-    "2. Adım: Kuralı/ipucunu uygulayalım...",
-    "3. Adım: Sonucu hesaplayalım ve doğru şıkkı bulalım..."
+    "Paragraf/Diyalog Çevirisi ve Anlamı...",
+    "Sorudaki Kilit Gramer ve Kelime İpuçları...",
+    "Şıkların İncelenmesi ve Doğru Cevap..."
   ],
   "sentenceTranslations": [
-    { "english": "Which of the following is correct according to the text?", "turkish": "Metne göre aşağıdakilerden hangisi doğrudur?" }
+    { "english": "English sentence from the question", "turkish": "Türkçe çevirisi" }
   ],
   "vocabulary": [
-    { "word": "responsible for", "meaning": "...den sorumlu", "type": "Deyim / Kalıp", "clue": "Preposition kalıbı" }
+    { "word": "target word", "meaning": "Türkçe anlamı", "type": "Fiil/İsim/Sıfat", "clue": "Kullanım ipucu" }
   ],
-  "grammarNotes": "Sorudaki zaman yapısı ve bağlaç kuralları...",
+  "grammarNotes": "Sorudaki gramer yapısının açıklaması...",
   "optionTranslations": [
-    { "letter": "A", "english": "He prefers staying at home", "turkish": "Evde kalmayı tercih eder", "isCorrect": true, "reason": "Paragraftaki 'indoor' ifadesiyle birebir örtüşür." }
+    { "letter": "A", "english": "Option in English", "turkish": "Şıkkın Türkçe çevirisi", "isCorrect": false, "reason": "Neden elendiği" },
+    { "letter": "C", "english": "Correct option", "turkish": "Doğru şıkkın çevirisi", "isCorrect": true, "reason": "Neden doğru olduğu" }
   ],
-  "mistakeAdvice": "Öğrencinin seçtiği '${cleanReason}' sebebine göre nokta atışı koçluk uyarısı ve tavsiyesi",
-  "goldenRule": "Bu soruyu çözmek için gereken altın kural, formül veya dil püf noktası",
+  "mistakeAdvice": "Öğrencinin seçtiği '${cleanReason}' sebebine göre koçluk tavsiyesi",
+  "goldenRule": "Bu soru için altın kural",
   "similarQuestion": {
-    "questionText": "Öğrencinin bu konuyu pekiştirmesi için 1 adet benzer mini soru metni...",
+    "questionText": "Benzer 1 adet pekiştirme sorusu...",
+    "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+    "correctAnswerLetter": "C",
+    "explanation": "Çözüm açıklaması"
+  }
+}` : `{
+  "isEnglishQuestion": false,
+  "correctAnswer": "${correctAnswer || 'A'}",
+  "summary": "Sorunun kazanımı ve temel mantığının 1-2 cümlelik özeti",
+  "steps": [
+    "Soruda verilenleri ve isteneni netleştirelim...",
+    "Kuralı veya çözüm yolunu adım adım uygulayalım...",
+    "Sonucu hesaplayıp şıkları eleyerek doğru cevabı bulalım..."
+  ],
+  "mistakeAdvice": "Öğrencinin seçtiği '${cleanReason}' sebebine göre koçluk tavsiyesi",
+  "goldenRule": "Bu soruyu çözerken dikkat edilmesi gereken formül, kural veya püf nokta",
+  "similarQuestion": {
+    "questionText": "Öğrencinin bu kazanımı pekiştirmesi için 1 adet benzer mini soru metni...",
     "options": ["A) Şık 1", "B) Şık 2", "C) Şık 3", "D) Şık 4"],
     "correctAnswerLetter": "B",
     "explanation": "Pekiştirme sorusunun kısa çözümü"
   }
 }`;
+
+  prompt += `\nDöndürülecek JSON Şeması:\n${jsonSchema}`;
 
   // 4. Prepare Parts (Multimodal Image + Text)
   const parts = [];
