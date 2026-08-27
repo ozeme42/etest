@@ -160,6 +160,7 @@ export default function QuestionBank() {
   const [imageAnswers, setImageAnswers] = useState({});
   const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [showHtmlCodeEditor, setShowHtmlCodeEditor] = useState(false);
 
   const handlePdfUploadForPreview = (file, questionId) => {
     if (!file || !questionId) return;
@@ -856,6 +857,7 @@ export default function QuestionBank() {
     setCreationStep(1);
     setEditableQuestionsList([]);
     setJsonEditMode('visual');
+    setShowHtmlCodeEditor(false);
     setUploadedFileInfo(null);
 
     if (activeSubjectId && activeSubjectId !== 'all_subjects') {
@@ -3735,26 +3737,118 @@ export default function QuestionBank() {
 
                 {/* TYPE 2: HTML FORM */}
                 {formData.contentType === 'html' && (
-                  <div className="form-group" style={{ background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.3)' : '1.5px solid #86efac', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#6ee7b7' : '#047857', marginBottom: '0.5rem', display: 'block' }}>
-                      🌐 HTML Dosyası Yükleyin veya Kod Yapıştırın
-                    </label>
+                  <div className="form-group" style={{ background: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.3)' : '1.5px solid #86efac', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <label style={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#6ee7b7' : '#047857', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Globe size={18} /> HTML Dosyası Yükleyin veya Kod Yapıştırın
+                      </label>
 
+                      {formData.contentPayload && (
+                        <button
+                          type="button"
+                          onClick={() => setShowHtmlCodeEditor(prev => !prev)}
+                          style={{
+                            background: showHtmlCodeEditor ? (isDark ? 'rgba(99,102,241,0.3)' : '#e0e7ff') : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
+                            color: showHtmlCodeEditor ? (isDark ? '#c7d2fe' : '#4338ca') : (isDark ? '#cbd5e1' : '#475569'),
+                            border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '0.65rem',
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <Code size={14} /> {showHtmlCodeEditor ? 'Kodu Gizle' : 'Kodu / URL Düzenle'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* File Picker */}
                     <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: isDark ? '2px dashed rgba(52,211,153,0.5)' : '2px dashed #34d399', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
                       <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: isDark ? '#6ee7b7' : '#059669', fontWeight: 800, fontSize: '0.9rem' }}>
                         <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                         📁 Bilgisayardan HTML Dosyası Seç (.html)
                       </label>
+                      {uploadedFileInfo && uploadedFileInfo.type === 'html' && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669' }}>
+                          ✓ Seçilen Dosya: {uploadedFileInfo.name} ({uploadedFileInfo.size})
+                        </div>
+                      )}
                     </div>
 
-                    <textarea 
-                      rows="8" 
-                      value={formData.contentPayload} 
-                      onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
-                      placeholder="Canlı Web Adresi (https://...) veya HTML Kodları..." 
-                      style={{ padding: '1rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(52,211,153,0.3)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: isDark ? 'rgba(0,0,0,0.4)' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', boxSizing: 'border-box' }}
-                      required
-                    ></textarea>
+                    {/* Code / URL Input (Shown when empty or when user toggles 'Kodu Düzenle') */}
+                    {(!formData.contentPayload || showHtmlCodeEditor) && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: isDark ? '#a7f3d0' : '#065f46' }}>
+                            HTML Kodu veya Canlı Web Bağlantısı (URL):
+                          </span>
+                          {formData.contentPayload && (
+                            <span style={{ fontSize: '0.75rem', color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b' }}>
+                              {formData.contentPayload.length.toLocaleString('tr-TR')} karakter
+                            </span>
+                          )}
+                        </div>
+                        <textarea 
+                          rows="6" 
+                          value={formData.contentPayload} 
+                          onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
+                          placeholder="Canlı Web Adresi (https://...) veya HTML Kodları (<!DOCTYPE html>...)..." 
+                          style={{ padding: '0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(52,211,153,0.3)' : '1.5px solid #cbd5e1', width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: 1.5, background: isDark ? 'rgba(0,0,0,0.4)' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', boxSizing: 'border-box' }}
+                        ></textarea>
+                      </div>
+                    )}
+
+                    {/* LIVE HTML PREVIEW (Underneath, rendered beautifully like PDF) */}
+                    {formData.contentPayload ? (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 900, color: isDark ? '#6ee7b7' : '#047857', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Eye size={15} /> 📄 Canlı HTML Test Önizlemesi:
+                          </span>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (formData.contentPayload.startsWith('http://') || formData.contentPayload.startsWith('https://')) {
+                                  window.open(formData.contentPayload, '_blank');
+                                } else {
+                                  const blob = new Blob([formData.contentPayload], { type: 'text/html;charset=utf-8' });
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  window.open(blobUrl, '_blank');
+                                }
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: isDark ? '#34d399' : '#059669', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'underline' }}
+                            >
+                              Yeni Sekmede Aç <ExternalLink size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          background: '#ffffff',
+                          borderRadius: '0.85rem',
+                          border: isDark ? '1.5px solid rgba(52, 211, 153, 0.4)' : '1.5px solid #cbd5e1',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                          height: '460px'
+                        }}>
+                          <HtmlViewerWithControls
+                            payload={formData.contentPayload}
+                            title={formData.title || 'HTML Test Önizleme'}
+                            height="460px"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '1.5rem', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b', fontSize: '0.85rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#ffffff', borderRadius: '0.75rem', border: isDark ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #cbd5e1' }}>
+                        🌐 Yukarıdan bir HTML dosyası seçtiğinizde veya kod/link girdiğinizde canlı test önizlemesi burada açılacaktır.
+                      </div>
+                    )}
                   </div>
                 )}
 
