@@ -1102,14 +1102,8 @@ export async function dbGetQuestions() {
   }
 }
 
-// Storage bucket availability flag. Default to false unless explicitly configured,
-// preventing recurrent 400 Bad Request network errors when 'question_files' bucket is not created/public in Supabase.
-let isQuestionFilesBucketAvailable = false;
-try {
-  if (typeof window !== 'undefined' && localStorage.getItem('supabase_question_files_bucket_enabled') === 'true') {
-    isQuestionFilesBucketAvailable = true;
-  }
-} catch {}
+// Storage bucket availability flag. Default to true to allow uploading to Supabase Storage.
+let isQuestionFilesBucketAvailable = true;
 
 export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file', bucket = 'question_files') {
   if (!isSupabaseConfigured() || !fileOrDataUrl) return null;
@@ -1143,18 +1137,19 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
 
     if (!fileBlob) return null;
 
+    const mimeType = fileBlob.type || (fileExt === 'pdf' ? 'application/pdf' : (fileExt === 'webp' ? 'image/webp' : (fileExt === 'png' ? 'image/png' : (fileExt === 'html' ? 'text/html' : 'application/octet-stream'))));
     const fileName = `${filenamePrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(fileName, fileBlob, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType: mimeType
       });
 
     if (error) {
-      // Disable further storage requests immediately on any RLS or bucket error to keep console clean
-      isQuestionFilesBucketAvailable = false;
+      console.warn(`[Supabase Storage] '${bucket}' yükleme uyarısı (${error.message || error}). Dosyalar veritabanında korunuyor.`);
       return null;
     }
 
@@ -1164,7 +1159,7 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
 
     return publicUrlData?.publicUrl || null;
   } catch (err) {
-    isQuestionFilesBucketAvailable = false;
+    console.warn(`[Supabase Storage] '${bucket}' işlem hatası:`, err.message || err);
     return null;
   }
 }
@@ -1190,13 +1185,12 @@ export async function dbAddQuestion(q) {
     // Helper to upload to storage OR preserve directly within PostgreSQL TEXT columns
     const processBase64String = async (val, suffix) => {
       if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
-        // Optimized WebP images are lightweight (~50-150KB) and store directly in DB with 0 network latency.
-        // Only attempt storage upload if bucket is confirmed available.
-        if (isQuestionFilesBucketAvailable && val.length > 2000000) {
+        // Attempt storage upload for all files (PDF, WebP, HTML)
+        if (isQuestionFilesBucketAvailable) {
           const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
           if (publicUrl) return publicUrl;
         }
-        // Keep in PostgreSQL if under 15MB (PostgreSQL text columns support up to 1GB payload)
+        // Fallback: Keep directly in PostgreSQL if under 15MB (PostgreSQL text columns support up to 1GB payload)
         if (val.length < 15000000) {
           return val;
         }

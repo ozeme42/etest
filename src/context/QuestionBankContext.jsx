@@ -198,7 +198,11 @@ export function QuestionBankProvider({ children }) {
       }
 
       setQuestions(prev => [...prev, singleBundleQuestion]);
-      await dbAddQuestion(singleBundleQuestion);
+      const savedBundle = await dbAddQuestion(singleBundleQuestion);
+      if (savedBundle && savedBundle[0]) {
+        const row = savedBundle[0];
+        setQuestions(prev => prev.map(item => item.id === singleBundleQuestion.id ? { ...item, contentPayload: row.content_payload || item.contentPayload, ...(row.raw_data || {}) } : item));
+      }
     } else {
       const isHtmlType = questionData.contentType === 'html';
       const newQuestion = { 
@@ -224,7 +228,11 @@ export function QuestionBankProvider({ children }) {
         }
       }
       setQuestions(prev => [...prev, newQuestion]);
-      await dbAddQuestion(newQuestion);
+      const savedQ = await dbAddQuestion(newQuestion);
+      if (savedQ && savedQ[0]) {
+        const row = savedQ[0];
+        setQuestions(prev => prev.map(item => item.id === newQuestion.id ? { ...item, contentPayload: row.content_payload || item.contentPayload, imageUrl: row.image_url || item.imageUrl, ...(row.raw_data || {}) } : item));
+      }
     }
   };
 
