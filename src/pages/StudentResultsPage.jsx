@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
-  LayoutGrid, Plus, Edit3, Trash2
+  LayoutGrid, Plus, Edit3, Trash2, X
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -33,7 +33,7 @@ import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/util
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
 import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
-import { extractItemDate } from '../utils/dateHelpers';
+import { extractItemDate, getTurkeyYMD, getTurkeyToday } from '../utils/dateHelpers';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
@@ -594,6 +594,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [typeFilter, setTypeFilter]   = useState('all');
+  const [dateFilter, setDateFilter]   = useState('');
   const [viewMode, setViewMode]       = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 768 ? 'cards' : 'table'));
   const [trendSubject, setTrendSubject] = useState('all');
   const [byTypeTab, setByTypeTab]       = useState('homework');
@@ -811,12 +812,31 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   /* ── Filtered submissions for 'all' tab ─── */
   const filteredSubs = useMemo(() => {
     return studentSubmissions.filter(s => {
-      const titleMatch = (s.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const titleMatch = (s.testTitle || s.bookTitle || s.testName || '').toLowerCase().includes(searchQuery.toLowerCase());
       const subjectMatch = subjectFilter === 'all' || s.subjectKey === subjectFilter;
       const typeMatch = typeFilter === 'all' || s.typeKey === typeFilter;
-      return titleMatch && subjectMatch && typeMatch;
+      
+      let dateMatch = true;
+      if (dateFilter) {
+        const itemYMD = getTurkeyYMD(s.date || s.submittedAt || s.createdAt);
+        dateMatch = itemYMD === dateFilter;
+      }
+
+      return titleMatch && subjectMatch && typeMatch && dateMatch;
     });
-  }, [studentSubmissions, searchQuery, subjectFilter, typeFilter]);
+  }, [studentSubmissions, searchQuery, subjectFilter, typeFilter, dateFilter]);
+
+  /* ── Totals summary across filtered submissions ─── */
+  const tableTotals = useMemo(() => {
+    const count = filteredSubs.length;
+    const totalQ = filteredSubs.reduce((sum, s) => sum + (Number(s.totalQuestions) || 0), 0);
+    const totalC = filteredSubs.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
+    const totalW = filteredSubs.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
+    const totalB = filteredSubs.reduce((sum, s) => sum + (Number(s.blankCount ?? s.emptyCount) || 0), 0);
+    const totalNet = Number(filteredSubs.reduce((sum, s) => sum + (Number(s.netScore ?? s.net ?? s.totalNet) || 0), 0).toFixed(2));
+    const overallSuccess = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
+    return { count, totalQ, totalC, totalW, totalB, totalNet, overallSuccess };
+  }, [filteredSubs]);
 
   /* ── By-type tab submissions ─── */
   const byTypeSubs = useMemo(() => {
@@ -2275,49 +2295,113 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
               </div>
 
               {isMobile ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
-                  <select
-                    value={subjectFilter}
-                    onChange={e => setSubjectFilter(e.target.value)}
-                    style={{
-                      padding: '0.45rem 0.6rem',
-                      borderRadius: 8,
-                      border: '1.5px solid var(--color-border-input)',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      background: 'var(--color-surface-hover)',
-                      color: 'var(--color-text)',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      width: '100%'
-                    }}
-                  >
-                    <option value="all">Tüm Dersler</option>
-                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
+                    <select
+                      value={subjectFilter}
+                      onChange={e => setSubjectFilter(e.target.value)}
+                      style={{
+                        padding: '0.45rem 0.6rem',
+                        borderRadius: 8,
+                        border: '1.5px solid var(--color-border-input)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        background: 'var(--color-surface-hover)',
+                        color: 'var(--color-text)',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        width: '100%'
+                      }}
+                    >
+                      <option value="all">Tüm Dersler</option>
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
 
-                  <select
-                    value={typeFilter}
-                    onChange={e => setTypeFilter(e.target.value)}
-                    style={{
-                      padding: '0.45rem 0.6rem',
-                      borderRadius: 8,
-                      border: '1.5px solid var(--color-border-input)',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      background: 'var(--color-surface-hover)',
-                      color: 'var(--color-text)',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      width: '100%'
-                    }}
-                  >
-                    <option value="all">Tüm Türler</option>
-                    <option value="homework">Ödevler</option>
-                    <option value="book">Kitap Testleri</option>
-                    <option value="physicalExam">Denemeler</option>
-                    <option value="individual">Bireysel</option>
-                  </select>
+                    <select
+                      value={typeFilter}
+                      onChange={e => setTypeFilter(e.target.value)}
+                      style={{
+                        padding: '0.45rem 0.6rem',
+                        borderRadius: 8,
+                        border: '1.5px solid var(--color-border-input)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        background: 'var(--color-surface-hover)',
+                        color: 'var(--color-text)',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        width: '100%'
+                      }}
+                    >
+                      <option value="all">Tüm Türler</option>
+                      <option value="homework">Ödevler</option>
+                      <option value="book">Kitap Testleri</option>
+                      <option value="physicalExam">Denemeler</option>
+                      <option value="individual">Bireysel</option>
+                    </select>
+                  </div>
+
+                  {/* Mobile Date Filter Row */}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%' }}>
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      onChange={e => setDateFilter(e.target.value)}
+                      title="Tarih Filtresi"
+                      style={{
+                        flex: 1,
+                        padding: '0.45rem 0.6rem',
+                        borderRadius: 8,
+                        border: dateFilter ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        background: dateFilter ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)',
+                        color: dateFilter ? '#4f46e5' : 'var(--color-text)',
+                        outline: 'none'
+                      }}
+                    />
+                    {dateFilter ? (
+                      <button
+                        onClick={() => setDateFilter('')}
+                        style={{
+                          padding: '0.45rem 0.65rem',
+                          borderRadius: 8,
+                          border: '1px solid #fecaca',
+                          background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                          color: '#dc2626',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <X size={12} /> Temizle
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setDateFilter(getTurkeyToday())}
+                        style={{
+                          padding: '0.45rem 0.65rem',
+                          borderRadius: 8,
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text-muted)',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <Calendar size={12} /> Bugün
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>
@@ -2361,6 +2445,70 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     <option value="physicalExam">Denemeler</option>
                     <option value="individual">Bireysel</option>
                   </select>
+
+                  {/* Desktop Date Filter */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: dateFilter ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)', padding: '2px 4px', borderRadius: 10, border: dateFilter ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)' }}>
+                      <Calendar size={14} color={dateFilter ? '#6366f1' : 'var(--color-text-muted)'} style={{ marginLeft: 6 }} />
+                      <input
+                        type="date"
+                        value={dateFilter}
+                        onChange={e => setDateFilter(e.target.value)}
+                        title="Tarih Filtresi"
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: dateFilter ? '#4f46e5' : 'var(--color-text)',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          padding: '0.45rem 0.4rem',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                    {dateFilter ? (
+                      <button
+                        onClick={() => setDateFilter('')}
+                        title="Tarihi Temizle"
+                        style={{
+                          padding: '0.45rem 0.65rem',
+                          borderRadius: 8,
+                          border: '1px solid #fecaca',
+                          background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                          color: '#dc2626',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}
+                      >
+                        <X size={13} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setDateFilter(getTurkeyToday())}
+                        title="Bugünün Sonuçlarını Göster"
+                        style={{
+                          padding: '0.45rem 0.7rem',
+                          borderRadius: 8,
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text-muted)',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        Bugün
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -2599,7 +2747,176 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         </td></tr>
                       )}
                     </tbody>
+                    {filteredSubs.length > 0 && (
+                      <tfoot>
+                        <tr style={{
+                          background: isDark ? 'rgba(99,102,241,0.12)' : '#f8fafc',
+                          borderTop: '2px solid var(--color-border)',
+                          fontWeight: 900
+                        }}>
+                          <td style={{ padding: '0.9rem 1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: 8,
+                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '0.85rem'
+                              }}>
+                                📊
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.82rem', color: isDark ? '#a5b4fc' : '#3730a3', fontWeight: 900 }}>
+                                  TOPLAM ({tableTotals.count} Test)
+                                </div>
+                                {dateFilter && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                    📅 {new Date(dateFilter).toLocaleDateString('tr-TR')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
+                            —
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                            {dateFilter ? new Date(dateFilter).toLocaleDateString('tr-TR') : 'Tüm Tarihler'}
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem', fontSize: '0.9rem', color: 'var(--color-text)', fontWeight: 900 }}>
+                            {tableTotals.totalQ}
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <span style={{
+                                background: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7',
+                                color: '#15803d',
+                                border: '1px solid #86efac',
+                                borderRadius: 5,
+                                padding: '0.12rem 0.4rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 900
+                              }}>
+                                ✓{tableTotals.totalC}
+                              </span>
+                              <span style={{
+                                background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fca5a5',
+                                borderRadius: 5,
+                                padding: '0.12rem 0.4rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 900
+                              }}>
+                                ✗{tableTotals.totalW}
+                              </span>
+                              <span style={{
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text-muted)',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 5,
+                                padding: '0.12rem 0.4rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 900
+                              }}>
+                                —{tableTotals.totalB}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <ScoreBadge score={tableTotals.overallSuccess} size="sm" isDark={isDark} />
+                              <span style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 900,
+                                color: '#4f46e5',
+                                background: isDark ? 'rgba(99,102,241,0.18)' : '#eff6ff',
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: 6,
+                                border: '1px solid #bfdbfe'
+                              }}>
+                                {tableTotals.totalNet} Net
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.9rem 0.85rem' }}>
+                            —
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* DATE FILTER HIGHLIGHT SUMMARY BANNER */}
+            {dateFilter && filteredSubs.length > 0 && (
+              <div style={{
+                background: isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4',
+                border: isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0',
+                borderRadius: 14,
+                padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.1rem',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+                  }}>
+                    📅
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                      {new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                      Seçilen tarihte çözülen {tableTotals.count} testin genel toplam sonuçları
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>SORU</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalQ}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#16a34a', fontWeight: 800 }}>DOĞRU</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d' }}>{tableTotals.totalC}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #fecaca', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#dc2626', fontWeight: 800 }}>YANLIŞ</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c' }}>{tableTotals.totalW}</div>
+                  </div>
+                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>BOŞ</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalB}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: 8, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}>
+                    <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
+                  </div>
                 </div>
               </div>
             )}
