@@ -2447,25 +2447,91 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         const SubIcon = th.icon;
                         return (
                           <tr key={s.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)' }}>
-                            <td style={{ padding: '0.75rem 0.85rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 8, background: th.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <SubIcon size={14} color={th.color} />
+                            <td style={{ padding: '0.85rem 1rem', minWidth: isMobile ? 220 : 340 }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                <div style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 10,
+                                  background: th.bg,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  marginTop: 2,
+                                  border: `1px solid ${th.border || 'transparent'}`
+                                }}>
+                                  <SubIcon size={16} color={th.color} />
                                 </div>
-                                <div style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>
-                                    {s.bookTitle ? (
-                                      <>
-                                        <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
-                                        <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
-                                        <span>{s.subjectName || s.subjectKey}</span>
-                                        {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
-                                        <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
-                                      </>
-                                    ) : (
-                                      s.testTitle
-                                    )}
-                                  </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+                                  {s.bookTitle ? (
+                                    <>
+                                      {/* 1. Satır: Kitap Adı */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <span style={{
+                                          color: isDark ? '#a5b4fc' : '#4338ca',
+                                          fontWeight: 900,
+                                          fontSize: '0.82rem',
+                                          letterSpacing: '-0.01em',
+                                          lineHeight: 1.3
+                                        }}>
+                                          📖 {s.bookTitle}
+                                        </span>
+                                      </div>
+
+                                      {/* 2. Satır: Ders › Ünite/Konu › Test Adı (Açık ve Seçik) */}
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        flexWrap: 'wrap',
+                                        fontSize: '0.76rem',
+                                        lineHeight: 1.4
+                                      }}>
+                                        <span style={{
+                                          fontWeight: 800,
+                                          color: isDark ? '#38bdf8' : '#0284c7',
+                                          background: isDark ? 'rgba(56,189,248,0.12)' : '#e0f2fe',
+                                          padding: '1px 7px',
+                                          borderRadius: 5
+                                        }}>
+                                          {s.subjectName || s.subjectKey}
+                                        </span>
+
+                                        {s.topicName && (
+                                          <span style={{
+                                            color: 'var(--color-text-muted)',
+                                            fontWeight: 700,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 4
+                                          }}>
+                                            <span style={{ opacity: 0.4 }}>›</span>
+                                            <span>{s.topicName}</span>
+                                          </span>
+                                        )}
+
+                                        <span style={{
+                                          fontWeight: 900,
+                                          color: isDark ? '#f8fafc' : '#0f172a',
+                                          background: isDark ? 'rgba(255,255,255,0.09)' : '#f1f5f9',
+                                          border: '1px solid var(--color-border)',
+                                          padding: '1px 8px',
+                                          borderRadius: 6,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 4
+                                        }}>
+                                          <span style={{ opacity: 0.4 }}>›</span>
+                                          <span>{s.testName || 'Test'}</span>
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.84rem', lineHeight: 1.35 }}>
+                                      {s.testTitle || s.title || s.fullTitle}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </td>

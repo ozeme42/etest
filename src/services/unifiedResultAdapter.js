@@ -420,10 +420,15 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   }
 
   // 6. Score & Net Calculation
-  const expScorePct = rawSub.scorePercentage ?? rawSub.score_percentage ?? rawSub.score ?? rawSub.pct ?? raw.scorePercentage;
-  const scorePercentage = (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct)))
-    ? Math.round(Number(expScorePct))
-    : (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
+  const expScorePct = rawSub.scorePercentage ?? rawSub.score_percentage ?? rawSub.pct ?? raw.scorePercentage;
+  let scorePercentage = 0;
+  if (totalQuestions > 0) {
+    scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+  } else if (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct))) {
+    scorePercentage = Math.round(Number(expScorePct));
+  } else if (rawSub.score !== undefined && rawSub.score !== null && !isNaN(Number(rawSub.score)) && Number(rawSub.score) > 10) {
+    scorePercentage = Math.round(Number(rawSub.score));
+  }
 
   const expNet = rawSub.totalNet ?? rawSub.total_net ?? rawSub.net ?? raw.totalNet;
   const netScore = (expNet !== undefined && expNet !== null && !isNaN(Number(expNet)))
