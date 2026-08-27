@@ -273,10 +273,10 @@ export default function EvaluationManager() {
       const titleLower = String(title).toLowerCase();
       const hasOEKeywords = titleLower.includes('açık uçlu') ||
                             titleLower.includes('acik uclu') ||
-                            titleLower.includes('klasik soru') ||
-                            titleLower.includes('yazılı klasik') ||
-                            titleLower.includes('yaztop') ||
-                            titleLower.includes('metinaç');
+                            titleLower.includes('klasik sınav') ||
+                            titleLower.includes('yazılı sınav') ||
+                            titleLower.includes('klasik yazılı') ||
+                            titleLower.includes('yazılı kağıdı');
 
       const isPureMC = !hasWrittenAnswers && !hasOpenEndedSection && (
         sub.type === 'multiple_choice' ||
@@ -286,12 +286,13 @@ export default function EvaluationManager() {
         matchedHw?.type === 'multiple_choice' ||
         matchedBankQ?.type === 'multiple_choice' ||
         (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => 
-          !a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
-          (!a.userAnswerText || String(a.userAnswerText).trim().length === 0)
+          typeof a === 'number' || typeof a === 'string' ||
+          (!a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+          (!a.userAnswerText || String(a.userAnswerText).trim().length === 0))
         ))
       );
 
-      const isOpenEndedExam = !isPureMC && (isExplicitOpenEnded || hasOEKeywords || hasWrittenAnswers);
+      const isOpenEndedExam = !isPureMC && (isExplicitOpenEnded || (hasOEKeywords && !isPureMC) || hasWrittenAnswers);
 
       const isPending = isManual
         ? isManualPending
