@@ -715,7 +715,15 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         defaultSize={450}
         documentContent={
           <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#ffffff', color: '#1e293b' }}>
-            <HtmlViewerWithControls payload={htmlPayload} title={test.title} height="100%" />
+            <HtmlViewerWithControls
+              payload={htmlPayload}
+              id={test?.id}
+              testId={testId}
+              realTestId={test?.realTestId}
+              qId={questions[0]?.id}
+              title={test?.title || 'HTML Testi'}
+              height="100%"
+            />
           </div>
         }
         answerContent={

@@ -278,6 +278,31 @@ export function extractTargetQuestionFromHtml(html, qNo) {
   return '';
 }
 
+export function getHtmlFromActiveIframe() {
+  if (typeof document === 'undefined') return '';
+  try {
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    for (const ifr of iframes) {
+      try {
+        const doc = ifr.contentDocument || ifr.contentWindow?.document;
+        if (doc && doc.body) {
+          const bodyText = doc.body.innerText || doc.body.textContent || '';
+          if (bodyText && bodyText.trim().length > 10) {
+            return doc.documentElement.outerHTML || bodyText;
+          }
+        }
+      } catch (e) {
+        if (ifr.srcDoc && ifr.srcDoc.trim().length > 10) {
+          return ifr.srcDoc;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ScreenSnipper] iframe read error:', e);
+  }
+  return '';
+}
+
 export function isGenericPlaceholderSolution(parsed) {
   if (!parsed || typeof parsed !== 'object') return true;
   const sText = JSON.stringify(parsed);
@@ -310,13 +335,15 @@ export async function solveQuestionWithAi({
   grade = '',
   topic = '',
   questionNo = 1,
-  cacheKey = ''
+  cacheKey = '',
+  forceRefresh = false
 }) {
-  // Extract question from HTML if questionText is minimal
+  // Extract question from HTML or active iframe if questionText is minimal
   const extractedFromHtml = extractTargetQuestionFromHtml(htmlPayload, questionNo);
+  const extractedFromIframe = !extractedFromHtml ? extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo) : '';
   const effectiveQuestionText = (questionText && questionText.trim().length > 10)
     ? questionText.trim()
-    : (extractedFromHtml || questionText || '');
+    : (extractedFromHtml || extractedFromIframe || questionText || '');
 
   // Strict language / subject analysis
   const isEnglishSubject = Boolean(
@@ -334,8 +361,14 @@ export async function solveQuestionWithAi({
     /\b(which of the following|according to the text|according to the passage|choose the correct|fill in the blank|complete the sentence|opposite meaning|closest in meaning|read the text and answer)\b/i.test(effectiveQuestionText)
   );
 
-  // 1. Check local cache first (with invalidation for hallucinated English outputs on non-English tests)
-  if (cacheKey) {
+  // 1. Invalidate or check local cache
+  if (forceRefresh && cacheKey) {
+    try {
+      localStorage.removeItem(`ai_sol_${cacheKey}`);
+    } catch {}
+  }
+
+  if (!forceRefresh && !imageBase64 && cacheKey) {
     try {
       const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
       if (cached) {

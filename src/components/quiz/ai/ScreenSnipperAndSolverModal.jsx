@@ -5,7 +5,7 @@ import {
   ChevronUp, Copy, Eye, Upload, FileText, ArrowRight,
   Languages, Volume2, Bookmark, Globe
 } from 'lucide-react';
-import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml, isGenericPlaceholderSolution } from '../../../services/aiSolutionService';
+import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml, getHtmlFromActiveIframe, isGenericPlaceholderSolution } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey, toUUID } from '../../../services/supabaseService';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
@@ -107,7 +107,7 @@ export default function ScreenSnipperAndSolverModal({
     }
 
     async function tryAutoSolve() {
-      let effectiveHtml = htmlPayload || question?.htmlPayload;
+      let effectiveHtml = htmlPayload || question?.htmlPayload || getHtmlFromActiveIframe();
       if (!effectiveHtml || effectiveHtml === '[STORED_IN_INDEXEDDB]' || effectiveHtml === '[LOCALSTORAGE_CACHE]') {
         const candidateKeys = [
           testId,
@@ -129,11 +129,11 @@ export default function ScreenSnipperAndSolverModal({
         }
       }
 
-      const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo);
+      const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
       if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
         if (autoSolvedRef.current !== cacheKey) {
           autoSolvedRef.current = cacheKey;
-          handleSolve(null, effectiveHtml);
+          handleSolve(null, effectiveHtml, false);
         }
       }
     }
@@ -155,7 +155,7 @@ export default function ScreenSnipperAndSolverModal({
               const base64 = event.target.result;
               setCroppedImage(base64);
               setActiveTab('image');
-              handleSolve(base64);
+              handleSolve(base64, null, true);
             };
             reader.readAsDataURL(blob);
             break;
@@ -180,7 +180,7 @@ export default function ScreenSnipperAndSolverModal({
                 const base64 = event.target.result;
                 setCroppedImage(base64);
                 setActiveTab('image');
-                handleSolve(base64);
+                handleSolve(base64, null, true);
               };
               reader.readAsDataURL(blob);
               return;
@@ -194,11 +194,59 @@ export default function ScreenSnipperAndSolverModal({
     setError('Panoda görsel bulunamadı. Lütfen Win+Shift+S ile soruyu kopyaladıktan sonra buraya Ctrl+V tuşlarına basarak yapıştırınız.');
   };
 
+  // Browser Screen Capture API (1-Click screen grab)
+  const handleCaptureScreen = async () => {
+    setError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        setError('Tarayıcınız doğrudan ekran yakalamayı desteklemiyor. Windows için Win+Shift+S ile soruyu kopyalayıp buraya Ctrl+V ile yapıştırabilirsiniz.');
+        return;
+      }
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'browser' },
+        audio: false
+      });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream.getTracks().forEach(track => track.stop());
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      setCroppedImage(dataUrl);
+      setActiveTab('image');
+      try {
+        localStorage.removeItem(`ai_sol_${cacheKey}`);
+      } catch {}
+      setSolution(null);
+      handleSolve(dataUrl, null, true);
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') {
+        console.warn('Screen capture error:', err);
+        setError('Ekran yakalama başlatılamadı. Alternatif olarak Win+Shift+S ile kopyalayıp Ctrl+V tuşlarına basarak yapıştırabilirsiniz.');
+      }
+    }
+  };
+
+  // Force Re-solve Handler
+  const handleReSolve = () => {
+    try {
+      localStorage.removeItem(`ai_sol_${cacheKey}`);
+    } catch {}
+    setSolution(null);
+    setError(null);
+    autoSolvedRef.current = null;
+    handleSolve(croppedImage, null, true);
+  };
+
   // Handle Solving with AI
-  const handleSolve = async (overrideImage = null, overrideHtml = null) => {
+  const handleSolve = async (overrideImage = null, overrideHtml = null, forceRefresh = false) => {
     if (solvingRef.current) return;
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
-    let htmlDoc = overrideHtml || htmlPayload || question?.htmlPayload || '';
+    let htmlDoc = overrideHtml || htmlPayload || question?.htmlPayload || getHtmlFromActiveIframe() || '';
     if (!htmlDoc || htmlDoc === '[STORED_IN_INDEXEDDB]' || htmlDoc === '[LOCALSTORAGE_CACHE]') {
       const candidateKeys = [
         testId,
@@ -219,7 +267,7 @@ export default function ScreenSnipperAndSolverModal({
         } catch (e) {}
       }
     }
-    const qText = question?.questionText || question?.title || extractTargetQuestionFromHtml(htmlDoc, questionNo) || '';
+    const qText = question?.questionText || question?.title || extractTargetQuestionFromHtml(htmlDoc, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo) || '';
 
     if (!imgToSend && !qText && !htmlDoc) {
       setError('Lütfen çözülmesi istenen sorunun ekran görüntüsünü kırpın, fotoğrafını yükleyin veya Ctrl+V ile yapıştırın.');
@@ -244,7 +292,8 @@ export default function ScreenSnipperAndSolverModal({
         grade: grade || question?.grade || '',
         topic: topic || question?.topic || '',
         questionNo,
-        cacheKey
+        cacheKey,
+        forceRefresh
       });
 
       setSolution(res);
@@ -307,7 +356,7 @@ export default function ScreenSnipperAndSolverModal({
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         setCroppedImage(dataUrl);
         setActiveTab('image');
-        handleSolve(dataUrl);
+        handleSolve(dataUrl, null, true);
       };
       img.src = event.target.result;
     };
@@ -694,6 +743,28 @@ export default function ScreenSnipperAndSolverModal({
                 <span>📸 Fotoğraf Çek</span>
               </button>
 
+              {/* 📸 Browser Screen Capture API */}
+              <button
+                onClick={handleCaptureScreen}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '0.6rem',
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12))',
+                  border: '1.5px solid rgba(99, 102, 241, 0.4)',
+                  color: '#4f46e5',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+                title="Tarayıcı ekran görüntüsü al ve anında çöz"
+              >
+                <Camera size={15} color="#4f46e5" />
+                <span>📸 Ekranı Yakala</span>
+              </button>
+
               {/* Clipboard Paste (Ctrl+V) */}
               <button
                 onClick={handleClipboardPaste}
@@ -756,25 +827,26 @@ export default function ScreenSnipperAndSolverModal({
 
             {/* Direct Re-solve / Refresh */}
             <button
-              onClick={() => handleSolve()}
+              onClick={handleReSolve}
               disabled={loading}
               style={{
                 padding: '0.45rem 0.85rem',
                 borderRadius: '0.6rem',
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                color: 'var(--color-text)',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                border: 'none',
+                color: '#ffffff',
                 fontWeight: 800,
                 fontSize: '0.78rem',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                opacity: loading ? 0.6 : 1
+                opacity: loading ? 0.6 : 1,
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
               }}
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Çözülüyor...' : 'Yeniden Çöz'}</span>
+              <span>{loading ? 'Yeniden Çözülüyor...' : 'Yeniden Çöz'}</span>
             </button>
           </div>
 
@@ -787,6 +859,28 @@ export default function ScreenSnipperAndSolverModal({
             flexDirection: 'column',
             gap: '1.25rem'
           }}>
+            {/* Target Question Preview Badge */}
+            {(question?.questionText || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)) && (
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.06)',
+                border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                borderRadius: '0.85rem',
+                padding: '0.75rem 1rem',
+                fontSize: '0.82rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4
+              }}>
+                <div style={{ fontWeight: 800, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <BookOpen size={15} />
+                  <span>🎯 Algılanan Hedef Soru ({questionNo}. Soru):</span>
+                </div>
+                <div style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', lineHeight: 1.45, maxHeight: '90px', overflowY: 'auto', fontWeight: 600 }}>
+                  {question?.questionText || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)}
+                </div>
+              </div>
+            )}
+
             {/* Cropped Preview (if any) */}
             {croppedImage && (
               <div style={{
@@ -816,8 +910,12 @@ export default function ScreenSnipperAndSolverModal({
                   </div>
                 </div>
                 <button
-                  onClick={() => setCroppedImage(null)}
+                  onClick={() => {
+                    setCroppedImage(null);
+                    handleReSolve();
+                  }}
                   style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                  title="Görseli Kaldır ve Metinden Çöz"
                 >
                   <X size={16} />
                 </button>
