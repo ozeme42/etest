@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Eye, Key, Check, X, HelpCircle, Lightbulb, Sparkles, BookOpen } from 'lucide-react';
-import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { extractQuestionText, extractQuestionOptions, hasMeaningfulOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
@@ -133,7 +133,27 @@ export default function MultipleChoiceReview({
   };
 
   const rawUser = selectedOption ?? userAnswer;
-  const rawCorrect = correctOption ?? correctAnswer ?? question?.correctAnswer;
+
+  const rawCorrect = (() => {
+    const isValidVal = (v) => v !== undefined && v !== null && (typeof v === 'string' ? v.trim() !== '' && v.trim() !== 'empty' : true);
+    if (isValidVal(correctOption)) return correctOption;
+    if (isValidVal(correctAnswer)) return correctAnswer;
+    if (isValidVal(question?.correctAnswer)) return question.correctAnswer;
+    if (isValidVal(question?.correct_answer)) return question.correct_answer;
+    if (isValidVal(question?.bankQ?.correctAnswer)) return question.bankQ.correctAnswer;
+    if (isValidVal(question?.bankQ?.correct_answer)) return question.bankQ.correct_answer;
+
+    for (const exp of [question?.explanation, question?.bankQ?.explanation]) {
+      if (typeof exp === 'string' && exp.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(exp);
+          if (isValidVal(parsed.correctAnswer)) return parsed.correctAnswer;
+          if (isValidVal(parsed.correct_answer)) return parsed.correct_answer;
+        } catch {}
+      }
+    }
+    return null;
+  })();
 
   const normalizedUser = normalizeAns(rawUser);
   const normalizedCorrect = normalizeAns(rawCorrect);
@@ -203,13 +223,40 @@ export default function MultipleChoiceReview({
   };
 
   const optionsWithText = useMemo(() => {
-    let opts = (Array.isArray(rawOptions) && rawOptions.length > 0) ? rawOptions : (
-      (Array.isArray(question?.options) && question.options.length > 0) ? question.options : (
-        (Array.isArray(question?.choices) && question.choices.length > 0) ? question.choices : (
-          (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : []
-        )
-      )
-    );
+    const parseExp = (exp) => {
+      if (typeof exp === 'string' && exp.trim().startsWith('{')) {
+        try {
+          const p = JSON.parse(exp);
+          if (Array.isArray(p.options)) return p.options;
+          if (Array.isArray(p.choices)) return p.choices;
+          if (Array.isArray(p.secenekler)) return p.secenekler;
+        } catch {}
+      }
+      return null;
+    };
+
+    const candidateLists = [
+      rawOptions,
+      question?.options,
+      question?.choices,
+      question?.secenekler,
+      question?.bankQ?.options,
+      question?.raw_data?.options,
+      question?.bankQ?.choices,
+      parseExp(question?.explanation),
+      parseExp(question?.bankQ?.explanation),
+      parseExp(question?.contentPayload),
+      parseExp(question?.content_payload)
+    ];
+
+    let opts = candidateLists.find(hasMeaningfulOptions) || candidateLists.find(l => Array.isArray(l) && l.length > 0) || [];
+
+    if (typeof opts === 'string') {
+      try {
+        const parsed = JSON.parse(opts);
+        if (Array.isArray(parsed)) opts = parsed;
+      } catch {}
+    }
 
     const cleanOptionPrefix = (str, idx) => {
       if (!str || typeof str !== 'string') return str;
@@ -221,18 +268,21 @@ export default function MultipleChoiceReview({
     return optionLetters.map((opt, optIdx) => {
       const raw = opts ? opts[optIdx] : null;
       let text = '';
-      if (typeof raw === 'string') text = cleanOptionPrefix(raw.trim(), optIdx);
+      if (typeof raw === 'string') text = cleanOptionPrefix(raw.trim(), optIdx) || raw.trim();
       else if (raw && typeof raw === 'object') {
         const rawT = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || raw.secenekText || '';
-        text = cleanOptionPrefix(String(rawT).trim(), optIdx);
+        text = cleanOptionPrefix(String(rawT).trim(), optIdx) || String(rawT).trim();
       }
       const cleanText = text.trim();
       const lower = cleanText.toLowerCase();
       const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}` || lower === `seçenek ${opt.toLowerCase()}` || lower === `secenek ${opt.toLowerCase()}` || lower === `option ${opt.toLowerCase()}`;
+      
+      const displayText = (!isPlaceholder && cleanText) ? cleanText : `${opt} Seçeneği`;
+
       return {
         letter: opt,
-        text: isPlaceholder ? '' : cleanText,
-        hasText: !isPlaceholder
+        text: displayText,
+        hasText: Boolean(cleanText && !isPlaceholder)
       };
     });
   }, [rawOptions, question, optionLetters]);

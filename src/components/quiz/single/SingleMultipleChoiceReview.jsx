@@ -40,21 +40,39 @@ export default function SingleMultipleChoiceReview({
   };
 
   const resolveCorrectForQ = (qNo, idx, ansObj, q, testObj) => {
-    if (ansObj?.correctAnswer !== undefined && ansObj?.correctAnswer !== null) return ansObj.correctAnswer;
-    if (ansObj?.correctAnswerLetter) return ansObj.correctAnswerLetter;
-    if (q?.correctAnswer !== undefined && q?.correctAnswer !== null) return q.correctAnswer;
-    if (q?.correctAnswerLetter) return q.correctAnswerLetter;
-    if (q?.correctOption !== undefined && q?.correctOption !== null) return q.correctOption;
-    if (q?.answer !== undefined && q?.answer !== null) return q.answer;
+    const isValidVal = (v) => v !== undefined && v !== null && (typeof v === 'string' ? v.trim() !== '' && v.trim() !== 'empty' : true);
+
+    if (isValidVal(ansObj?.correctAnswer)) return ansObj.correctAnswer;
+    if (isValidVal(ansObj?.correctAnswerLetter)) return ansObj.correctAnswerLetter;
+    if (isValidVal(q?.correctAnswer)) return q.correctAnswer;
+    if (isValidVal(q?.correct_answer)) return q.correct_answer;
+    if (isValidVal(q?.bankQ?.correctAnswer)) return q.bankQ.correctAnswer;
+    if (isValidVal(q?.bankQ?.correct_answer)) return q.bankQ.correct_answer;
+    if (isValidVal(q?.correctAnswerLetter)) return q.correctAnswerLetter;
+    if (isValidVal(q?.correctOption)) return q.correctOption;
+    if (isValidVal(q?.answer)) return q.answer;
+    if (isValidVal(testObj?.correctAnswer)) return testObj.correctAnswer;
+    if (isValidVal(testObj?.correct_answer)) return testObj.correct_answer;
+    if (isValidVal(testObj?.bankQ?.correctAnswer)) return testObj.bankQ.correctAnswer;
+
+    for (const exp of [q?.explanation, q?.bankQ?.explanation, testObj?.explanation, testObj?.bankQ?.explanation]) {
+      if (typeof exp === 'string' && exp.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(exp);
+          if (isValidVal(parsed.correctAnswer)) return parsed.correctAnswer;
+          if (isValidVal(parsed.correct_answer)) return parsed.correct_answer;
+        } catch {}
+      }
+    }
 
     const ak = testObj?.answerKey || testObj?.answers || testObj?.correctAnswers;
     if (ak) {
       if (typeof ak === 'object' && !Array.isArray(ak)) {
         const val = ak[qNo] ?? ak[String(qNo)] ?? ak[idx] ?? ak[String(idx)];
-        if (val !== undefined && val !== null) return val;
+        if (isValidVal(val)) return val;
       } else if (Array.isArray(ak)) {
         const val = ak[idx] ?? ak[qNo];
-        if (val !== undefined && val !== null) return val;
+        if (isValidVal(val)) return val;
       } else if (typeof ak === 'string') {
         const clean = ak.replace(/[^A-Ea-e]/g, '').toUpperCase();
         if (clean[idx]) return clean[idx];

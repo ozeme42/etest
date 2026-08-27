@@ -302,15 +302,28 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
 
       // Correct Answer normalization:
       // Priority 1: If individual raw question object exists for this index (multi-question array): qObj.correctAnswer
+      // Correct Answer normalization:
+      // Priority 1: qObj.correctAnswer / qObj.correct_answer / qObj.bankQ.correctAnswer
       // Priority 2: sec.questionsList?.[i]?.correctAnswer
-      // Priority 3: sec.answerKey / sec.bankQ.answerKey / sec.opticAnswers (matching index i / qNo)
-      // Priority 4: rawTest.answerKey (matching globalNo - 1)
-      // Priority 5: If targetCount === 1, qObj.correctAnswer
+      // Priority 3: If targetCount === 1, sec.correctAnswer / sec.bankQ.correctAnswer
+      // Priority 4: sec.answerKey / sec.bankQ.answerKey / rawTest.answerKey
       let rawCorrect = null;
-      if (hasMultipleRawQs && qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
+      const isValidVal = (v) => v !== undefined && v !== null && (typeof v === 'string' ? v.trim() !== '' && v.trim() !== 'empty' : true);
+
+      if (isValidVal(qObj.correctAnswer)) {
         rawCorrect = qObj.correctAnswer;
-      } else if (sec.questionsList?.[i]?.correctAnswer !== undefined && sec.questionsList[i].correctAnswer !== null) {
+      } else if (isValidVal(qObj.correct_answer)) {
+        rawCorrect = qObj.correct_answer;
+      } else if (isValidVal(qObj.bankQ?.correctAnswer)) {
+        rawCorrect = qObj.bankQ.correctAnswer;
+      } else if (isValidVal(qObj.bankQ?.correct_answer)) {
+        rawCorrect = qObj.bankQ.correct_answer;
+      } else if (isValidVal(sec.questionsList?.[i]?.correctAnswer)) {
         rawCorrect = sec.questionsList[i].correctAnswer;
+      } else if (targetCount === 1 && isValidVal(sec.correctAnswer)) {
+        rawCorrect = sec.correctAnswer;
+      } else if (targetCount === 1 && isValidVal(sec.bankQ?.correctAnswer)) {
+        rawCorrect = sec.bankQ.correctAnswer;
       } else {
         const keySources = [
           sec.answerKey,
@@ -329,14 +342,14 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
           if (!ks) continue;
           if (Array.isArray(ks)) {
             const val = ks[i] ?? ks[String(i)] ?? (ks[0] === null ? ks[qNo] : undefined);
-            if (val !== undefined && val !== null && val !== '') {
+            if (isValidVal(val)) {
               rawCorrect = val;
               break;
             }
           } else if (typeof ks === 'object' && ks !== null) {
             const isZeroIndexed = (0 in ks) || ('0' in ks);
             const val = isZeroIndexed ? (ks[i] ?? ks[String(i)]) : (ks[qNo] ?? ks[String(qNo)] ?? ks[i]);
-            if (val !== undefined && val !== null && val !== '') {
+            if (isValidVal(val)) {
               rawCorrect = val;
               break;
             }
@@ -347,10 +360,6 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
               break;
             }
           }
-        }
-
-        if (rawCorrect === null && targetCount === 1 && qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-          rawCorrect = qObj.correctAnswer;
         }
       }
 
