@@ -1071,19 +1071,46 @@ export default function QuestionBank() {
     setCreationStep(2);
   };
 
-  const handleBulkAnswerKeyChange = (val) => {
-    setFormData(prev => ({ ...prev, bulkAnswerKey: val }));
-    const maxLetter = String.fromCharCode(65 + currentOptionCount - 1);
-    const regex = new RegExp(`[^A-${maxLetter}]`, 'gi');
-    const letters = val.toUpperCase().replace(regex, '').split('');
+  const parseBulkAnswerString = (val, optionCount) => {
+    if (!val || typeof val !== 'string') return { newOptic: {}, maxIndex: 0 };
+    const maxLetter = String.fromCharCode(65 + optionCount - 1);
+    const validRegex = new RegExp(`[A-${maxLetter}]`, 'i');
+
     const newOptic = {};
-    letters.forEach((l, idx) => {
-      newOptic[idx] = l.charCodeAt(0) - 65;
-    });
-    setOpticAnswers(newOptic);
-    if (letters.length > 0) {
-      setFormData(prev => ({ ...prev, questionCount: Math.max(prev.questionCount, letters.length) }));
+
+    // Check if numbered pairs exist like "1A 2B" or "1.A 2:B" or "1-A, 2-B"
+    const numberedMatches = [...val.matchAll(/(\d+)[\s.:\-)_=]*([A-Za-z])/g)];
+    if (numberedMatches.length >= 2) {
+      numberedMatches.forEach(m => {
+        const qNum = parseInt(m[1], 10);
+        const letter = m[2].toUpperCase();
+        if (validRegex.test(letter) && qNum >= 1 && qNum <= 200) {
+          const idx = qNum - 1;
+          newOptic[idx] = letter.charCodeAt(0) - 65;
+        }
+      });
+    } else {
+      // Direct sequence of letters
+      const regex = new RegExp(`[^A-${maxLetter}]`, 'gi');
+      const letters = val.toUpperCase().replace(regex, '').split('');
+      letters.forEach((l, idx) => {
+        newOptic[idx] = l.charCodeAt(0) - 65;
+      });
     }
+
+    const indices = Object.keys(newOptic).map(Number);
+    const maxIndex = indices.length > 0 ? Math.max(...indices) + 1 : 0;
+    return { newOptic, maxIndex };
+  };
+
+  const handleBulkAnswerKeyChange = (val) => {
+    const { newOptic, maxIndex } = parseBulkAnswerString(val, currentOptionCount);
+    setOpticAnswers(newOptic);
+    setFormData(prev => ({
+      ...prev,
+      bulkAnswerKey: val,
+      questionCount: maxIndex > 0 ? Math.max(prev.questionCount || 1, maxIndex) : prev.questionCount
+    }));
   };
 
   const handleAddVisualQuestion = () => {
@@ -1141,15 +1168,9 @@ export default function QuestionBank() {
   };
 
   const handleImageBulkAnswerKeyChange = (val) => {
+    const { newOptic } = parseBulkAnswerString(val, currentOptionCount);
+    setImageAnswers(newOptic);
     setFormData(prev => ({ ...prev, bulkAnswerKey: val }));
-    const maxLetter = String.fromCharCode(65 + currentOptionCount - 1);
-    const regex = new RegExp(`[^A-${maxLetter}]`, 'gi');
-    const letters = val.toUpperCase().replace(regex, '').split('');
-    const newAnswers = {};
-    letters.forEach((l, idx) => {
-      newAnswers[idx] = l.charCodeAt(0) - 65;
-    });
-    setImageAnswers(newAnswers);
   };
 
   const handleSaveQuestion = (e) => {
@@ -4283,6 +4304,103 @@ export default function QuestionBank() {
                             />
                           </div>
                         </div>
+                      </div>
+
+                      {/* BULK QUICK ANSWER KEY INPUT FOR PDF / HTML BUNDLES */}
+                      <div style={{
+                        background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff',
+                        padding: '1rem',
+                        borderRadius: '0.85rem',
+                        border: isDark ? '1.5px solid rgba(165,180,252,0.25)' : '1.5px solid #bfdbfe',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.88rem', color: isDark ? '#c7d2fe' : '#1e40af', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span>⚡ Hızlı Toplu Seçenek / Cevap Anahtarı Yaz veya Yapıştır:</span>
+                          </label>
+                          
+                          {Object.keys(opticAnswers).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpticAnswers({});
+                                setFormData(prev => ({ ...prev, bulkAnswerKey: '' }));
+                              }}
+                              style={{
+                                background: 'rgba(239,68,68,0.12)',
+                                border: '1px solid rgba(239,68,68,0.25)',
+                                color: '#ef4444',
+                                borderRadius: '0.5rem',
+                                padding: '0.25rem 0.6rem',
+                                cursor: 'pointer',
+                                fontWeight: 800,
+                                fontSize: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}
+                            >
+                              🗑️ Şıkları Temizle
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={formData.bulkAnswerKey || ''}
+                          onChange={e => handleBulkAnswerKeyChange(e.target.value)}
+                          placeholder={`Örn: ABCDABCD... veya A,B,C,D... veya 1A 2B 3C... (${currentOptionCount} Şık: ${getOptionLetters(currentOptionCount).join('-')})`}
+                          style={{
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: '0.6rem',
+                            border: isDark ? '1.5px solid rgba(165,180,252,0.4)' : '1.5px solid #93c5fd',
+                            width: '100%',
+                            fontSize: '0.95rem',
+                            fontFamily: 'monospace',
+                            fontWeight: 800,
+                            background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                            color: isDark ? '#ffffff' : '#0f172a',
+                            boxSizing: 'border-box',
+                            letterSpacing: '0.06em'
+                          }}
+                        />
+
+                        {/* Live Detected Info & Preview */}
+                        {Object.keys(opticAnswers).length > 0 && (
+                          <div style={{
+                            marginTop: '0.6rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '0.5rem',
+                            fontSize: '0.78rem'
+                          }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              background: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5',
+                              color: isDark ? '#34d399' : '#059669',
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '0.5rem',
+                              fontWeight: 800
+                            }}>
+                              <span>✅ Toplam <strong>{Object.keys(opticAnswers).length}</strong> soru cevabı otomatik işaretlendi</span>
+                            </div>
+                            <div style={{
+                              color: isDark ? '#a5b4fc' : '#4f46e5',
+                              fontWeight: 700,
+                              fontFamily: 'monospace',
+                              maxWidth: '100%',
+                              overflowX: 'auto',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {Object.keys(opticAnswers).map(Number).sort((a, b) => a - b).slice(0, 15).map(i => `${i + 1}:${String.fromCharCode(65 + opticAnswers[i])}`).join(' ')}
+                              {Object.keys(opticAnswers).length > 15 ? ' ...' : ''}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* 3-COLUMN INTERACTIVE OPTIC BUBBLE BUTTON GRID FOR PDF / HTML BUNDLES */}
