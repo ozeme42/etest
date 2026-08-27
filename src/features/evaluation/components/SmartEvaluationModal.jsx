@@ -6,6 +6,7 @@ import { idbGetPayload } from '../../../services/indexedDbService';
 import { toUUID } from '../../../services/supabaseService';
 import { isItemOpenEnded, QUICK_FEEDBACK_PRESETS, isValidPayloadString } from '../constants/evaluationConstants';
 import { resolveExactQuestionCount } from '../../../components/quiz/runner/MultiHomeworkRunner';
+import QuizPanelLayout from '../../../components/quiz/runner/QuizPanelLayout';
 import ImageLightbox from '../../../components/quiz/common/ImageLightbox';
 import PdfViewerWithControls from '../../../components/PdfViewerWithControls';
 import HtmlViewerWithControls from '../../../components/HtmlViewerWithControls';
@@ -26,7 +27,6 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showTopMedia, setShowTopMedia] = useState(false);
   const [activeOeIndex, setActiveOeIndex] = useState(0);
 
   // Local Grading States
@@ -265,8 +265,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
   const globalMedia = useMemo(() => {
-    const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF'));
-    const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html'));
+    const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF') || val.includes('drive.google.com'));
+    const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html') || val.includes('<div') || val.includes('<p'));
 
     let pdfSrc = null;
     if (isPdfStr(test?.pdfPayload)) pdfSrc = test.pdfPayload;
@@ -309,6 +309,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         answer: ans,
         isOE,
         imageUrl: qObj.imageUrl || ans.imageUrl || null,
+        pdfPayload: qObj.pdfPayload || null,
+        htmlPayload: qObj.htmlPayload || null,
         title: qObj.title || `Soru ${i}`,
         sectionTitle: qObj.sectionTitle || test?.title || null
       };
@@ -447,6 +449,584 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   const safeActiveIndex = Math.min(Math.max(0, activeOeIndex), Math.max(0, oeList.length - 1));
   const activeItem = oeList[safeActiveIndex] || null;
 
+  // Active Document Payload (PDF / HTML)
+  const currentPdf = activeItem?.pdfPayload || globalMedia.pdfSrc || null;
+  const currentHtml = activeItem?.htmlPayload || globalMedia.htmlSrc || null;
+  const hasDocument = Boolean(currentPdf || currentHtml);
+
+  // ── Step-by-Step Evaluation Panel Content ──
+  const evaluationPanelContent = (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.25rem',
+      padding: hasDocument ? '1rem 1.25rem 2.5rem' : '1.5rem',
+      maxWidth: hasDocument ? '100%' : '900px',
+      margin: '0 auto',
+      width: '100%'
+    }}>
+
+      {/* ── QUESTION NAVIGATOR PILLS ── */}
+      {oeList.length > 0 && (
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '0.85rem',
+          padding: '0.65rem 0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          overflowX: 'auto',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+        }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginRight: 4 }}>
+            Açık Uçlu Sorular:
+          </span>
+
+          {oeList.map((item, idx) => {
+            const qNo = item.qNo;
+            const score = questionScores[qNo] ?? (item.answer?.score !== undefined && item.answer?.score !== null ? item.answer.score : null);
+            const isGraded = score !== null && score !== undefined;
+            const isActive = idx === safeActiveIndex;
+
+            let badgeBg = 'var(--color-surface-hover)';
+            let badgeBorder = 'var(--color-border)';
+            let badgeColor = 'var(--color-text)';
+
+            if (isActive) {
+              badgeBorder = '#7c3aed';
+              badgeColor = '#7c3aed';
+              badgeBg = 'rgba(124, 58, 237, 0.12)';
+            } else if (isGraded) {
+              if (score === 'empty') {
+                badgeBg = 'rgba(100, 116, 139, 0.15)';
+                badgeColor = '#64748b';
+              } else if (Number(score) >= 8) {
+                badgeBg = 'rgba(16, 185, 129, 0.15)';
+                badgeColor = '#10b981';
+                badgeBorder = 'rgba(16, 185, 129, 0.4)';
+              } else if (Number(score) >= 5) {
+                badgeBg = 'rgba(245, 158, 11, 0.15)';
+                badgeColor = '#d97706';
+                badgeBorder = 'rgba(245, 158, 11, 0.4)';
+              } else {
+                badgeBg = 'rgba(239, 68, 68, 0.15)';
+                badgeColor = '#ef4444';
+                badgeBorder = 'rgba(239, 68, 68, 0.4)';
+              }
+            }
+
+            return (
+              <button
+                key={qNo}
+                type="button"
+                onClick={() => setActiveOeIndex(idx)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '0.6rem',
+                  border: isActive ? '2px solid #7c3aed' : `1.5px solid ${badgeBorder}`,
+                  background: badgeBg,
+                  color: badgeColor,
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                  boxShadow: isActive ? '0 0 0 3px rgba(124, 58, 237, 0.2)' : 'none'
+                }}
+              >
+                <span>Soru {qNo}</span>
+                {isGraded && (
+                  <span style={{ fontSize: '0.68rem' }}>
+                    {score === 'empty' ? '○' : `(${score}P)`}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── ACTIVE QUESTION CARD ── */}
+      {oeList.length === 0 ? (
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px dashed var(--color-border)',
+          borderRadius: '1rem',
+          padding: '3rem 1.5rem',
+          textAlign: 'center',
+          color: 'var(--color-text-muted)'
+        }}>
+          <CheckCircle2 size={40} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
+          <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)' }}>
+            Bu sınavda manuel puanlama gerektiren açık uçlu soru bulunmamaktadır.
+          </p>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+            Çoktan seçmeli sorular cevap anahtarıyla otomatik olarak puanlanmıştır.
+          </p>
+        </div>
+      ) : activeItem && (
+        (() => {
+          const qNo = activeItem.qNo;
+          const currentScore = questionScores[qNo] ?? (activeItem.answer?.score !== undefined && activeItem.answer?.score !== null ? activeItem.answer.score : null);
+          const currentNote = teacherNotes[qNo] ?? (activeItem.answer?.teacherNote || activeItem.answer?.feedback || '');
+          const studentWritten = activeItem.answer?.userAnswerText || activeItem.answer?.studentAnswerText || activeItem.answer?.writtenAnswer || activeItem.answer?.text || (typeof activeItem.answer?.userAnswer === 'string' && isNaN(Number(activeItem.answer.userAnswer)) ? activeItem.answer.userAnswer : '');
+          const studentImage = activeItem.answer?.imageUrl || activeItem.answer?.photoUrl || activeItem.answer?.fileUrl || null;
+          const questionImage = activeItem.imageUrl || activeItem.question?.imageUrl || null;
+          const modelAnswer = activeItem.question?.correctAnswerText || activeItem.question?.explanation || (activeItem.question?.correctAnswer && isNaN(Number(activeItem.question.correctAnswer)) ? activeItem.question.correctAnswer : null);
+
+          return (
+            <div
+              key={qNo}
+              style={{
+                background: 'var(--color-surface)',
+                border: currentScore !== null && currentScore !== undefined ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid var(--color-border)',
+                borderRadius: '1.25rem',
+                padding: '1.35rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.15rem',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+              }}
+            >
+              {/* Card Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: '#7c3aed',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {qNo}
+                  </span>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem' }}>
+                      {activeItem.title || `${qNo}. Soru`}
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      {safeActiveIndex + 1} / {oeList.length} Açık Uçlu Soru {activeItem.sectionTitle ? `• ${activeItem.sectionTitle}` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Score Status Badge */}
+                <div>
+                  {currentScore !== null && currentScore !== undefined ? (
+                    <span style={{
+                      background: currentScore === 'empty' ? '#64748b' : Number(currentScore) >= 8 ? '#10b981' : Number(currentScore) >= 5 ? '#f59e0b' : '#ef4444',
+                      color: 'white',
+                      padding: '0.3rem 0.8rem',
+                      borderRadius: '0.7rem',
+                      fontWeight: 900,
+                      fontSize: '0.82rem'
+                    }}>
+                      {currentScore === 'empty' ? '○ Boş Bırakıldı' : `Verilen Not: ${currentScore} / 10 P`}
+                    </span>
+                  ) : (
+                    <span style={{
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      color: '#b45309',
+                      padding: '0.3rem 0.8rem',
+                      borderRadius: '0.7rem',
+                      fontWeight: 800,
+                      fontSize: '0.78rem'
+                    }}>
+                      ⏳ Puan Bekliyor
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Question Image (if any) */}
+              {questionImage && (
+                <div style={{ maxWidth: '600px', borderRadius: '0.85rem', overflow: 'hidden', border: '1px solid var(--color-border)', margin: '0 auto', width: '100%' }}>
+                  <img
+                    src={questionImage}
+                    alt={`Soru ${qNo}`}
+                    style={{ width: '100%', maxHeight: '350px', objectFit: 'contain', background: '#f8fafc', cursor: 'pointer' }}
+                    onClick={() => setLightboxSrc(questionImage)}
+                  />
+                </div>
+              )}
+
+              {/* Question Text (if standalone text without PDF) */}
+              {!hasDocument && activeItem.question?.questionText && (
+                <div style={{
+                  fontSize: '0.95rem',
+                  lineHeight: 1.6,
+                  color: 'var(--color-text)',
+                  fontWeight: 700,
+                  background: 'var(--color-surface-hover)',
+                  padding: '0.85rem 1.15rem',
+                  borderRadius: '0.85rem',
+                  border: '1px solid var(--color-border)'
+                }}>
+                  {activeItem.question.questionText}
+                </div>
+              )}
+
+              {/* 📝 ÖĞRENCİNİN YAZILI CEVABI */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(124, 58, 237, 0.05))',
+                border: '2px solid rgba(99, 102, 241, 0.25)',
+                borderRadius: '1rem',
+                padding: '1.15rem 1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Edit3 size={16} /> ÖĞRENCİNİN YAZILI CEVABI:
+                </div>
+
+                {studentWritten ? (
+                  <div style={{
+                    fontSize: '0.98rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text)',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.6,
+                    padding: '0.4rem 0'
+                  }}>
+                    {studentWritten}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', fontStyle: 'italic', padding: '0.4rem 0' }}>
+                    ⚪ Öğrenci bu soruya yazılı metin yanıtı girmemiş.
+                  </div>
+                )}
+
+                {/* Öğrencinin Çözüm Fotoğrafı */}
+                {studentImage && (
+                  <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px dashed rgba(99, 102, 241, 0.2)' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#4f46e5' }}>📷 Öğrencinin Çözüm Kağıdı / Fotoğrafı:</span>
+                    <div style={{ maxWidth: '320px', marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                      <img
+                        src={studentImage}
+                        alt="Öğrenci Çözümü"
+                        style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', cursor: 'pointer' }}
+                        onClick={() => setLightboxSrc(studentImage)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 🔑 MODEL CEVAP / REHBER (Varsa) */}
+              {modelAnswer && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.06)',
+                  border: '1.5px dashed rgba(16, 185, 129, 0.35)',
+                  borderRadius: '0.85rem',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5
+                }}>
+                  <span style={{ fontWeight: 900, color: '#15803d' }}>🔑 Cevap Anahtarı / Çözüm Kılavuzu: </span>
+                  <span style={{ color: 'var(--color-text)', fontWeight: 700 }}>{modelAnswer}</span>
+                </div>
+              )}
+
+              {/* 💯 PUAN VERME BUTONLARI & KUTUSU */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.85rem',
+                paddingTop: '0.75rem',
+                borderTop: '1.5px solid var(--color-border)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 900 }}>Puan Ver:</span>
+
+                  {[
+                    { label: '✓ Tam (10)', val: 10, bg: '#10b981', color: 'white' },
+                    { label: '⚡ Yarım (5)', val: 5, bg: '#f59e0b', color: 'white' },
+                    { label: '✗ Sıfır (0)', val: 0, bg: '#ef4444', color: 'white' },
+                    { label: '○ Boş', val: 'empty', bg: '#64748b', color: 'white' }
+                  ].map((btn) => {
+                    const isSelected = String(currentScore) === String(btn.val);
+                    return (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        onClick={() => setQuestionScores(prev => ({ ...prev, [qNo]: btn.val }))}
+                        style={{
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '0.6rem',
+                          border: isSelected ? `2px solid ${btn.bg}` : '1.5px solid var(--color-border)',
+                          background: isSelected ? btn.bg : 'var(--color-surface-hover)',
+                          color: isSelected ? btn.color : 'var(--color-text)',
+                          fontWeight: 900,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          boxShadow: isSelected ? `0 4px 10px ${btn.bg}40` : 'none'
+                        }}
+                      >
+                        {btn.label}
+                      </button>
+                    );
+                  })}
+
+                  {/* Custom Input Box */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      placeholder="Puan"
+                      value={currentScore === 'empty' || currentScore === null || currentScore === undefined ? '' : currentScore}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? null : Number(e.target.value);
+                        setQuestionScores(prev => ({ ...prev, [qNo]: val }));
+                      }}
+                      style={{
+                        width: '65px',
+                        padding: '0.4rem 0.45rem',
+                        borderRadius: '0.6rem',
+                        border: '2px solid var(--color-border-input)',
+                        fontSize: '0.82rem',
+                        fontWeight: 900,
+                        textAlign: 'center',
+                        outline: 'none',
+                        background: 'var(--color-surface)'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ 10</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 💬 ÖĞRETMEN NOTU & GERİ BİLDİRİM */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>
+                  💬 Bu Soru İçin Öğretmen Notu & Geri Bildirimi:
+                </span>
+                <input
+                  type="text"
+                  placeholder="Örn: Çözüm yolun doğru ama işlem sırasına dikkat etmelisin..."
+                  value={currentNote}
+                  onChange={(e) => setTeacherNotes(prev => ({ ...prev, [qNo]: e.target.value }))}
+                  style={{
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: '0.75rem',
+                    border: '1.5px solid var(--color-border-input)',
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                    width: '100%'
+                  }}
+                />
+
+                {/* Preset Feedback Tags */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {['⭐ Harika Çözüm!', '⚠️ İşlem Hatası Var', '💡 Çözüm Yolu Doğru', '🧠 Eksik Adım Bırakılmış'].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setTeacherNotes(prev => ({ ...prev, [qNo]: tag }))}
+                      style={{
+                        padding: '0.18rem 0.5rem',
+                        borderRadius: 6,
+                        background: 'var(--color-surface-hover)',
+                        border: '1px solid var(--color-border)',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        color: 'var(--color-text-muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          );
+        })()
+      )}
+
+      {/* ── PAGINATION CONTROLS (ÖNCEKİ / SONRAKİ BUTONLARI) ── */}
+      {oeList.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.85rem',
+          padding: '0.5rem 0'
+        }}>
+          <button
+            type="button"
+            disabled={safeActiveIndex === 0}
+            onClick={() => setActiveOeIndex(prev => Math.max(0, prev - 1))}
+            style={{
+              padding: '0.65rem 1.25rem',
+              borderRadius: '0.85rem',
+              border: '1.5px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: safeActiveIndex === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+              fontWeight: 900,
+              fontSize: '0.85rem',
+              cursor: safeActiveIndex === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              opacity: safeActiveIndex === 0 ? 0.4 : 1
+            }}
+          >
+            <ChevronLeft size={18} /> Önceki Soru
+          </button>
+
+          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>
+            Soru {safeActiveIndex + 1} / {oeList.length}
+          </span>
+
+          {safeActiveIndex < oeList.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setActiveOeIndex(prev => Math.min(oeList.length - 1, prev + 1))}
+              style={{
+                padding: '0.65rem 1.45rem',
+                borderRadius: '0.85rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)'
+              }}
+            >
+              Sonraki Soru <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSaveEvaluation}
+              disabled={isSaving}
+              style={{
+                padding: '0.65rem 1.45rem',
+                borderRadius: '0.85rem',
+                border: 'none',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <CheckCircle size={18} /> Değerlendirmeyi Kaydet
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── OVERALL GENERAL TEACHER FEEDBACK ── */}
+      <div style={{
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
+        borderRadius: '1rem',
+        padding: '1.15rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.65rem'
+      }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <MessageSquare size={16} color="#4f46e5" />
+          Öğrenciye Genel Sınav Değerlendirmesi ve Tavsiyesi:
+        </span>
+        <textarea
+          rows={2}
+          placeholder="Öğrencinin bu sınavdaki genel performansını özetleyen bir mesaj yazın..."
+          value={overallFeedback}
+          onChange={(e) => setOverallFeedback(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.65rem 0.85rem',
+            borderRadius: '0.75rem',
+            border: '1.5px solid var(--color-border-input)',
+            fontSize: '0.82rem',
+            outline: 'none',
+            background: 'var(--color-bg)',
+            color: 'var(--color-text)',
+            lineHeight: 1.5
+          }}
+        />
+      </div>
+
+      {/* ── AUTO-GRADED MULTIPLE CHOICE SUMMARY (IF MIXED TEST) ── */}
+      {mcList.length > 0 && (
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '1rem',
+          padding: '1rem 1.15rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.65rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircle2 size={15} color="#10b981" />
+              Otomatik Değerlendirilen Çoktan Seçmeli Sorular ({mcCorrect}/{mcCount} Doğru)
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem' }}>
+              Otomatik Puanlandı
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.4rem', marginTop: 2 }}>
+            {mcList.map(m => {
+              const isCorrect = m.answer?.isCorrect === true;
+              const isWrong = m.answer?.isCorrect === false;
+              return (
+                <div key={m.qNo} style={{
+                  padding: '0.4rem 0.6rem',
+                  borderRadius: '0.55rem',
+                  background: isCorrect ? 'rgba(16, 185, 129, 0.08)' : isWrong ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-surface-hover)',
+                  border: `1px solid ${isCorrect ? '#10b981' : isWrong ? '#ef4444' : 'var(--color-border)'}`,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>Soru {m.qNo}</span>
+                  <span style={{ color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                    {isCorrect ? '✓' : isWrong ? '✗' : '○'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+
   return (
     <div style={{
       position: 'fixed',
@@ -458,7 +1038,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* ── 1. TOP HEADER ── */}
+      {/* ── TOP HEADER ── */}
       <header style={{
         padding: '0.85rem 1.5rem',
         background: 'var(--color-surface)',
@@ -469,7 +1049,8 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         flexWrap: 'wrap',
         gap: '0.75rem',
         boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-        zIndex: 10
+        zIndex: 10,
+        flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <button
@@ -556,611 +1137,35 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         </div>
       </header>
 
-      {/* ── 2. QUESTION NAVIGATOR PILLS (TEK TEK SORU GEÇİŞ ÇUBUĞU) ── */}
-      {oeList.length > 0 && (
-        <div style={{
-          background: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border)',
-          padding: '0.5rem 1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          overflowX: 'auto'
-        }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginRight: 4 }}>
-            Sorular:
-          </span>
-
-          {oeList.map((item, idx) => {
-            const qNo = item.qNo;
-            const score = questionScores[qNo] ?? (item.answer?.score !== undefined && item.answer?.score !== null ? item.answer.score : null);
-            const isGraded = score !== null && score !== undefined;
-            const isActive = idx === safeActiveIndex;
-
-            let badgeBg = 'var(--color-surface-hover)';
-            let badgeBorder = 'var(--color-border)';
-            let badgeColor = 'var(--color-text)';
-
-            if (isActive) {
-              badgeBorder = '#7c3aed';
-              badgeColor = '#7c3aed';
-              badgeBg = 'rgba(124, 58, 237, 0.1)';
-            } else if (isGraded) {
-              if (score === 'empty') {
-                badgeBg = 'rgba(100, 116, 139, 0.15)';
-                badgeColor = '#64748b';
-              } else if (Number(score) >= 8) {
-                badgeBg = 'rgba(16, 185, 129, 0.15)';
-                badgeColor = '#10b981';
-                badgeBorder = 'rgba(16, 185, 129, 0.4)';
-              } else if (Number(score) >= 5) {
-                badgeBg = 'rgba(245, 158, 11, 0.15)';
-                badgeColor = '#d97706';
-                badgeBorder = 'rgba(245, 158, 11, 0.4)';
-              } else {
-                badgeBg = 'rgba(239, 68, 68, 0.15)';
-                badgeColor = '#ef4444';
-                badgeBorder = 'rgba(239, 68, 68, 0.4)';
-              }
+      {/* ── MAIN CONTENT (SPLIT VIEW IF PDF/HTML EXISTS) ── */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+        {hasDocument ? (
+          <QuizPanelLayout
+            panelTitle="Yazılı Değerlendirme"
+            panelSubtitle={`${activeOeIndex + 1}. Soru — Not ve Geri Bildirim`}
+            icon="✍️"
+            defaultPosition="right"
+            defaultSize={480}
+            documentContent={
+              <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#1e293b', color: '#ffffff' }}>
+                {currentPdf ? (
+                  <PdfViewerWithControls payload={currentPdf} title={test?.title} height="100%" />
+                ) : (
+                  <HtmlViewerWithControls payload={currentHtml} title={test?.title} height="100%" />
+                )}
+              </div>
             }
-
-            return (
-              <button
-                key={qNo}
-                type="button"
-                onClick={() => setActiveOeIndex(idx)}
-                style={{
-                  padding: '0.35rem 0.8rem',
-                  borderRadius: '0.6rem',
-                  border: isActive ? '2px solid #7c3aed' : `1.5px solid ${badgeBorder}`,
-                  background: badgeBg,
-                  color: badgeColor,
-                  fontWeight: 900,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
-                  boxShadow: isActive ? '0 0 0 3px rgba(124, 58, 237, 0.2)' : 'none'
-                }}
-              >
-                <span>Soru {qNo}</span>
-                {isGraded && (
-                  <span style={{ fontSize: '0.7rem' }}>
-                    {score === 'empty' ? '○' : `(${score}P)`}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── 3. BODY: SINGLE QUESTION CARD CONTAINER ── */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '1.25rem 1.5rem',
-        maxWidth: '1000px',
-        width: '100%',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.25rem'
-      }}>
-
-        {/* Global Media (PDF / Document Preview if available) */}
-        {globalMedia.hasPdf && (
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border)',
-            borderRadius: '1rem',
-            padding: '0.75rem 1rem',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showTopMedia ? '0.75rem' : 0 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <FileText size={15} color="#3b82f6" /> Sınav Dokümanı (PDF)
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowTopMedia(!showTopMedia)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#3b82f6',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.78rem'
-                }}
-              >
-                {showTopMedia ? 'Gizle ▲' : 'Dokümanı Göster ▼'}
-              </button>
-            </div>
-            {showTopMedia && (
-              <div style={{ height: '380px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-                <PdfViewerWithControls payload={globalMedia.pdfSrc} title={test?.title} />
+            answerContent={
+              <div style={{ height: '100%', overflowY: 'auto' }}>
+                {evaluationPanelContent}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* ACTIVE QUESTION CONTAINER */}
-        {oeList.length === 0 ? (
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1px dashed var(--color-border)',
-            borderRadius: '1rem',
-            padding: '3rem 1.5rem',
-            textAlign: 'center',
-            color: 'var(--color-text-muted)'
-          }}>
-            <CheckCircle2 size={40} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
-            <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)' }}>
-              Bu sınavda manuel puanlama gerektiren açık uçlu soru bulunmamaktadır.
-            </p>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
-              Çoktan seçmeli sorular cevap anahtarıyla otomatik olarak puanlanmıştır.
-            </p>
-          </div>
-        ) : activeItem && (
-          (() => {
-            const qNo = activeItem.qNo;
-            const currentScore = questionScores[qNo] ?? (activeItem.answer?.score !== undefined && activeItem.answer?.score !== null ? activeItem.answer.score : null);
-            const currentNote = teacherNotes[qNo] ?? (activeItem.answer?.teacherNote || activeItem.answer?.feedback || '');
-            const studentWritten = activeItem.answer?.userAnswerText || activeItem.answer?.studentAnswerText || activeItem.answer?.writtenAnswer || activeItem.answer?.text || (typeof activeItem.answer?.userAnswer === 'string' && isNaN(Number(activeItem.answer.userAnswer)) ? activeItem.answer.userAnswer : '');
-            const studentImage = activeItem.answer?.imageUrl || activeItem.answer?.photoUrl || activeItem.answer?.fileUrl || null;
-            const questionImage = activeItem.imageUrl || activeItem.question?.imageUrl || null;
-            const modelAnswer = activeItem.question?.correctAnswerText || activeItem.question?.explanation || (activeItem.question?.correctAnswer && isNaN(Number(activeItem.question.correctAnswer)) ? activeItem.question.correctAnswer : null);
-
-            return (
-              <div
-                key={qNo}
-                style={{
-                  background: 'var(--color-surface)',
-                  border: currentScore !== null && currentScore !== undefined ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid var(--color-border)',
-                  borderRadius: '1.25rem',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1.25rem',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.04)'
-                }}
-              >
-                {/* Question Header & Title */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      background: '#7c3aed',
-                      color: 'white',
-                      fontWeight: 900,
-                      fontSize: '0.95rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {qNo}
-                    </span>
-                    <div>
-                      <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem' }}>
-                        {activeItem.title || `${qNo}. Soru`}
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                        {safeActiveIndex + 1} / {oeList.length} Açık Uçlu Soru {activeItem.sectionTitle ? `• ${activeItem.sectionTitle}` : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Score Status Badge */}
-                  <div>
-                    {currentScore !== null && currentScore !== undefined ? (
-                      <span style={{
-                        background: currentScore === 'empty' ? '#64748b' : Number(currentScore) >= 8 ? '#10b981' : Number(currentScore) >= 5 ? '#f59e0b' : '#ef4444',
-                        color: 'white',
-                        padding: '0.3rem 0.85rem',
-                        borderRadius: '0.7rem',
-                        fontWeight: 900,
-                        fontSize: '0.85rem'
-                      }}>
-                        {currentScore === 'empty' ? '○ Boş Bırakıldı' : `Verilen Not: ${currentScore} / 10 Puan`}
-                      </span>
-                    ) : (
-                      <span style={{
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        color: '#b45309',
-                        padding: '0.3rem 0.85rem',
-                        borderRadius: '0.7rem',
-                        fontWeight: 800,
-                        fontSize: '0.8rem'
-                      }}>
-                        ⏳ Henüz Puanlanmadı
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Question Image (if any) */}
-                {questionImage && (
-                  <div style={{ maxWidth: '650px', borderRadius: '0.85rem', overflow: 'hidden', border: '1px solid var(--color-border)', margin: '0 auto', width: '100%' }}>
-                    <img
-                      src={questionImage}
-                      alt={`Soru ${qNo}`}
-                      style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', background: '#f8fafc', cursor: 'pointer' }}
-                      onClick={() => setLightboxSrc(questionImage)}
-                    />
-                  </div>
-                )}
-
-                {/* Question Text */}
-                {activeItem.question?.questionText && (
-                  <div style={{
-                    fontSize: '0.95rem',
-                    lineHeight: 1.6,
-                    color: 'var(--color-text)',
-                    fontWeight: 700,
-                    background: 'var(--color-surface-hover)',
-                    padding: '0.85rem 1.15rem',
-                    borderRadius: '0.85rem',
-                    border: '1px solid var(--color-border)'
-                  }}>
-                    {activeItem.question.questionText}
-                  </div>
-                )}
-
-                {/* 📝 ÖĞRENCİNİN YAZILI CEVABI */}
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(124, 58, 237, 0.05))',
-                  border: '2px solid rgba(99, 102, 241, 0.25)',
-                  borderRadius: '1rem',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8
-                }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Edit3 size={16} /> ÖĞRENCİNİN YAZILI YANITI:
-                  </div>
-
-                  {studentWritten ? (
-                    <div style={{
-                      fontSize: '1rem',
-                      fontWeight: 800,
-                      color: 'var(--color-text)',
-                      whiteSpace: 'pre-wrap',
-                      lineHeight: 1.6,
-                      padding: '0.5rem 0'
-                    }}>
-                      {studentWritten}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', fontStyle: 'italic', padding: '0.5rem 0' }}>
-                      ⚪ Öğrenci bu soruya yazılı metin yanıtı girmemiş.
-                    </div>
-                  )}
-
-                  {/* Öğrencinin Çözüm Fotoğrafı */}
-                  {studentImage && (
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed rgba(99, 102, 241, 0.2)' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#4f46e5' }}>📷 Öğrencinin Çözüm Kağıdı / Fotoğrafı:</span>
-                      <div style={{ maxWidth: '350px', marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-                        <img
-                          src={studentImage}
-                          alt="Öğrenci Çözümü"
-                          style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', cursor: 'pointer' }}
-                          onClick={() => setLightboxSrc(studentImage)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 🔑 MODEL CEVAP / REHBER (Varsa) */}
-                {modelAnswer && (
-                  <div style={{
-                    background: 'rgba(16, 185, 129, 0.06)',
-                    border: '1.5px dashed rgba(16, 185, 129, 0.35)',
-                    borderRadius: '0.85rem',
-                    padding: '0.85rem 1.15rem',
-                    fontSize: '0.85rem',
-                    lineHeight: 1.55
-                  }}>
-                    <span style={{ fontWeight: 900, color: '#15803d' }}>🔑 Cevap Anahtarı / Çözüm Kılavuzu: </span>
-                    <span style={{ color: 'var(--color-text)', fontWeight: 700 }}>{modelAnswer}</span>
-                  </div>
-                )}
-
-                {/* 💯 PUAN VERME BUTONLARI & KUTUSU */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                  paddingTop: '0.75rem',
-                  borderTop: '1.5px solid var(--color-border)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 900 }}>Puan Ver:</span>
-
-                    {[
-                      { label: '✓ Tam Puan (10)', val: 10, bg: '#10b981', color: 'white' },
-                      { label: '⚡ Yarım (5)', val: 5, bg: '#f59e0b', color: 'white' },
-                      { label: '✗ Yanlış (0)', val: 0, bg: '#ef4444', color: 'white' },
-                      { label: '○ Boş', val: 'empty', bg: '#64748b', color: 'white' }
-                    ].map((btn) => {
-                      const isSelected = String(currentScore) === String(btn.val);
-                      return (
-                        <button
-                          key={btn.label}
-                          type="button"
-                          onClick={() => setQuestionScores(prev => ({ ...prev, [qNo]: btn.val }))}
-                          style={{
-                            padding: '0.45rem 0.95rem',
-                            borderRadius: '0.6rem',
-                            border: isSelected ? `2px solid ${btn.bg}` : '1.5px solid var(--color-border)',
-                            background: isSelected ? btn.bg : 'var(--color-surface-hover)',
-                            color: isSelected ? btn.color : 'var(--color-text)',
-                            fontWeight: 900,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                            boxShadow: isSelected ? `0 4px 10px ${btn.bg}40` : 'none'
-                          }}
-                        >
-                          {btn.label}
-                        </button>
-                      );
-                    })}
-
-                    {/* Custom Input Box */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        placeholder="Puan"
-                        value={currentScore === 'empty' || currentScore === null || currentScore === undefined ? '' : currentScore}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? null : Number(e.target.value);
-                          setQuestionScores(prev => ({ ...prev, [qNo]: val }));
-                        }}
-                        style={{
-                          width: '70px',
-                          padding: '0.45rem 0.5rem',
-                          borderRadius: '0.6rem',
-                          border: '2px solid var(--color-border-input)',
-                          fontSize: '0.85rem',
-                          fontWeight: 900,
-                          textAlign: 'center',
-                          outline: 'none',
-                          background: 'var(--color-surface)'
-                        }}
-                      />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ 10</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 💬 ÖĞRETMEN NOTU & GERİ BİLDİRİM */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>
-                    💬 Bu Soru İçin Öğretmen Notu & Geri Bildirimi:
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Örn: Çözüm yolun doğru ama işlem sırasına dikkat etmelisin..."
-                    value={currentNote}
-                    onChange={(e) => setTeacherNotes(prev => ({ ...prev, [qNo]: e.target.value }))}
-                    style={{
-                      padding: '0.65rem 1rem',
-                      borderRadius: '0.75rem',
-                      border: '1.5px solid var(--color-border-input)',
-                      fontSize: '0.85rem',
-                      outline: 'none',
-                      background: 'var(--color-surface)',
-                      color: 'var(--color-text)',
-                      width: '100%'
-                    }}
-                  />
-
-                  {/* Preset Feedback Tags */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['⭐ Harika Çözüm!', '⚠️ İşlem Hatası Var', '💡 Çözüm Yolu Doğru', '🧠 Eksik Adım Bırakılmış', '📖 Tanım / Formül Unutulmuş'].map(tag => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => setTeacherNotes(prev => ({ ...prev, [qNo]: tag }))}
-                        style={{
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: 6,
-                          background: 'var(--color-surface-hover)',
-                          border: '1px solid var(--color-border)',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          color: 'var(--color-text-muted)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            );
-          })()
-        )}
-
-        {/* ── 4. PAGINATION CONTROLS (ÖNCEKİ / SONRAKİ BUTONLARI) ── */}
-        {oeList.length > 0 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            padding: '0.75rem 0'
-          }}>
-            <button
-              type="button"
-              disabled={safeActiveIndex === 0}
-              onClick={() => setActiveOeIndex(prev => Math.max(0, prev - 1))}
-              style={{
-                padding: '0.75rem 1.4rem',
-                borderRadius: '0.85rem',
-                border: '1.5px solid var(--color-border)',
-                background: 'var(--color-surface)',
-                color: safeActiveIndex === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
-                fontWeight: 900,
-                fontSize: '0.88rem',
-                cursor: safeActiveIndex === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                opacity: safeActiveIndex === 0 ? 0.4 : 1
-              }}
-            >
-              <ChevronLeft size={18} /> Önceki Soru
-            </button>
-
-            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>
-              Soru {safeActiveIndex + 1} / {oeList.length}
-            </span>
-
-            {safeActiveIndex < oeList.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setActiveOeIndex(prev => Math.min(oeList.length - 1, prev + 1))}
-                style={{
-                  padding: '0.75rem 1.6rem',
-                  borderRadius: '0.85rem',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
-                  color: 'white',
-                  fontWeight: 900,
-                  fontSize: '0.88rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)'
-                }}
-              >
-                Sonraki Soru <ChevronRight size={18} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSaveEvaluation}
-                disabled={isSaving}
-                style={{
-                  padding: '0.75rem 1.6rem',
-                  borderRadius: '0.85rem',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: 'white',
-                  fontWeight: 900,
-                  fontSize: '0.88rem',
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
-                }}
-              >
-                <CheckCircle size={18} /> Değerlendirmeyi Kaydet
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── 5. OVERALL GENERAL TEACHER FEEDBACK ── */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1rem',
-          padding: '1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          <span style={{ fontSize: '0.88rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MessageSquare size={16} color="#4f46e5" />
-            Öğrenciye Genel Sınav Değerlendirmesi ve Tavsiyesi:
-          </span>
-          <textarea
-            rows={3}
-            placeholder="Öğrencinin bu sınavdaki genel performansını özetleyen bir mesaj yazın..."
-            value={overallFeedback}
-            onChange={(e) => setOverallFeedback(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '0.75rem',
-              border: '1.5px solid var(--color-border-input)',
-              fontSize: '0.85rem',
-              outline: 'none',
-              background: 'var(--color-bg)',
-              color: 'var(--color-text)',
-              lineHeight: 1.5
-            }}
+            }
           />
-        </div>
-
-        {/* ── 6. AUTO-GRADED MULTIPLE CHOICE SUMMARY (IF MIXED TEST) ── */}
-        {mcList.length > 0 && (
-          <div style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '1rem',
-            padding: '1rem 1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.65rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle2 size={15} color="#10b981" />
-                Otomatik Değerlendirilen Çoktan Seçmeli Sorular ({mcCorrect}/{mcCount} Doğru)
-              </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem' }}>
-                Otomatik Puanlandı
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.45rem', marginTop: 2 }}>
-              {mcList.map(m => {
-                const isCorrect = m.answer?.isCorrect === true;
-                const isWrong = m.answer?.isCorrect === false;
-                return (
-                  <div key={m.qNo} style={{
-                    padding: '0.45rem 0.65rem',
-                    borderRadius: '0.55rem',
-                    background: isCorrect ? 'rgba(16, 185, 129, 0.08)' : isWrong ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-surface-hover)',
-                    border: `1px solid ${isCorrect ? '#10b981' : isWrong ? '#ef4444' : 'var(--color-border)'}`,
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}>
-                    <span>Soru {m.qNo}</span>
-                    <span style={{ color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
-                      {isCorrect ? '✓ Doğru' : isWrong ? '✗ Yanlış' : '○ Boş'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+        ) : (
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            {evaluationPanelContent}
           </div>
         )}
-
       </div>
 
       {/* Image Lightbox */}
