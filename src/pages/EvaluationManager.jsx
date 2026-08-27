@@ -9,7 +9,6 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import {
   CheckCircle2, XCircle, Clock3, Eye, Save, ArrowLeft,
-
   ClipboardList, Users, BookOpen, Star, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
   AlertCircle, Search, Filter, Layers, MessageSquare, Award,
   Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
@@ -227,10 +226,14 @@ export default function EvaluationManager() {
 
       const isAlreadyEvaluated = Boolean(
         sub.isEvaluatedByTeacher === true ||
+        sub.isEvaluated === true ||
         sub.status === 'evaluated' ||
         sub.status === 'graded' ||
+        sub.evaluatedByTeacher === true ||
         Boolean(sub.teacherFeedback || sub.teacherNote) ||
-        Boolean(sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote))
+        Boolean(sub.teacherScores && Object.keys(sub.teacherScores).length > 0) ||
+        Boolean(sub.evaluatedAt && (sub.teacherFeedback || sub.teacherNote || sub.isEvaluated || sub.status === 'evaluated')) ||
+        (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedByTeacher === true || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending')))
       );
 
       let hasWrittenAnswers = false;
@@ -276,7 +279,9 @@ export default function EvaluationManager() {
                             titleLower.includes('klasik sınav') ||
                             titleLower.includes('yazılı sınav') ||
                             titleLower.includes('klasik yazılı') ||
-                            titleLower.includes('yazılı kağıdı');
+                            titleLower.includes('yazılı kağıdı') ||
+                            titleLower.includes('pdfaç') ||
+                            titleLower.includes('görsel soru');
 
       const isPureMC = !hasWrittenAnswers && !hasOpenEndedSection && (
         sub.type === 'multiple_choice' ||
@@ -859,4 +864,3 @@ export default function EvaluationManager() {
     </div>
   );
 }
-
