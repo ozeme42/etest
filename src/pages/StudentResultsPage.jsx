@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
-  LayoutGrid, Plus, Edit3, Trash2, X
+  LayoutGrid, Plus, Edit3, Trash2, X, ChevronLeft, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -595,6 +595,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [typeFilter, setTypeFilter]   = useState('all');
   const [dateFilter, setDateFilter]   = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize]       = useState(15);
   const [viewMode, setViewMode]       = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 768 ? 'cards' : 'table'));
   const [trendSubject, setTrendSubject] = useState('all');
   const [byTypeTab, setByTypeTab]       = useState('homework');
@@ -837,6 +839,20 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     const overallSuccess = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
     return { count, totalQ, totalC, totalW, totalB, totalNet, overallSuccess };
   }, [filteredSubs]);
+
+  // Reset page to 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, subjectFilter, typeFilter, dateFilter, selectedStudent]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubs.length / (pageSize || 15)));
+
+  /* ── Paginated submissions for current page ─── */
+  const paginatedSubs = useMemo(() => {
+    if (!pageSize || pageSize >= 9999) return filteredSubs;
+    const start = (currentPage - 1) * pageSize;
+    return filteredSubs.slice(start, start + pageSize);
+  }, [filteredSubs, currentPage, pageSize]);
 
   /* ── By-type tab submissions ─── */
   const byTypeSubs = useMemo(() => {
@@ -2577,11 +2593,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
               </div>
             </div>
 
-            {/* DATE FILTER HIGHLIGHT SUMMARY BANNER (TOP) */}
-            {dateFilter && filteredSubs.length > 0 && (
+            {/* SUMMARY HIGHLIGHT BANNER (TOP) */}
+            {filteredSubs.length > 0 && (
               <div style={{
-                background: isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4',
-                border: isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0',
+                background: dateFilter
+                  ? (isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4')
+                  : (isDark ? 'rgba(99,102,241,0.1)' : '#f8fafc'),
+                border: dateFilter
+                  ? (isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0')
+                  : (isDark ? '1.5px solid rgba(99,102,241,0.25)' : '1.5px solid var(--color-border)'),
                 borderRadius: 14,
                 padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
                 display: 'flex',
@@ -2596,22 +2616,30 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    background: dateFilter
+                      ? 'linear-gradient(135deg, #10b981, #059669)'
+                      : 'linear-gradient(135deg, #6366f1, #4f46e5)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
                     fontSize: '1.1rem',
-                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+                    boxShadow: dateFilter
+                      ? '0 2px 8px rgba(16,185,129,0.3)'
+                      : '0 2px 8px rgba(99,102,241,0.3)'
                   }}>
-                    📅
+                    {dateFilter ? '📅' : '📊'}
                   </div>
                   <div>
                     <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                      {new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti
+                      {dateFilter
+                        ? `${new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti`
+                        : `Tüm Sonuçlar & Performans Özeti`}
                     </div>
                     <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                      Seçilen tarihte çözülen {tableTotals.count} testin genel toplam sonuçları
+                      {dateFilter
+                        ? `Seçilen tarihte çözülen ${tableTotals.count} testin genel toplam sonuçları`
+                        : `Listelenen ${tableTotals.count} testin genel toplam sonuçları`}
                     </div>
                   </div>
                 </div>
@@ -2637,7 +2665,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
                   </div>
-                  <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}>
+                  <div style={{ background: dateFilter ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: dateFilter ? '0 2px 8px rgba(16,185,129,0.25)' : '0 2px 8px rgba(99,102,241,0.25)' }}>
                     <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
                   </div>
@@ -2658,7 +2686,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSubs.map((s, idx) => {
+                      {paginatedSubs.map((s, idx) => {
                         const th = theme(s.subjectKey);
                         const SubIcon = th.icon;
                         return (
@@ -2925,7 +2953,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             {/* CARDS VIEW */}
             {viewMode === 'cards' && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(270px, 1fr))', gap: isMobile ? 8 : 12 }}>
-                {filteredSubs.map((s, i) => {
+                {paginatedSubs.map((s, i) => {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
@@ -3019,6 +3047,163 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     Sonuç bulunamadı
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* PAGINATION TOOLBAR */}
+            {filteredSubs.length > pageSize && pageSize > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 10,
+                padding: '0.75rem 1rem',
+                background: 'var(--color-surface)',
+                borderRadius: 14,
+                border: '1.5px solid var(--color-border)',
+                boxShadow: '0 2px 8px -2px rgba(0,0,0,0.03)'
+              }}>
+                {/* Left: Info */}
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                  Sayfa <strong style={{ color: 'var(--color-text)' }}>{currentPage}</strong> / <strong style={{ color: 'var(--color-text)' }}>{totalPages}</strong> ({filteredSubs.length} Sonuçtan {Math.min((currentPage - 1) * pageSize + 1, filteredSubs.length)}-{Math.min(currentPage * pageSize, filteredSubs.length)} arası)
+                </div>
+
+                {/* Center: Page Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="İlk Sayfa"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: currentPage === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === 1 ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ChevronsLeft size={14} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    title="Önceki Sayfa"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: currentPage === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === 1 ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+
+                  {/* Page Numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const hasGap = prev && p - prev > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {hasGap && <span style={{ color: 'var(--color-text-muted)', padding: '0 4px', fontSize: '0.75rem' }}>…</span>}
+                          <button
+                            onClick={() => setCurrentPage(p)}
+                            style={{
+                              minWidth: 30,
+                              height: 30,
+                              borderRadius: 8,
+                              border: p === currentPage ? 'none' : '1px solid var(--color-border)',
+                              background: p === currentPage ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                              color: p === currentPage ? 'white' : 'var(--color-text)',
+                              fontWeight: p === currentPage ? 900 : 700,
+                              fontSize: '0.76rem',
+                              cursor: 'pointer',
+                              boxShadow: p === currentPage ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                            }}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    title="Sonraki Sayfa"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: currentPage === totalPages ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === totalPages ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="Son Sayfa"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: currentPage === totalPages ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === totalPages ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ChevronsRight size={14} />
+                  </button>
+                </div>
+
+                {/* Right: Page Size Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sayfa Başı:</span>
+                  <select
+                    value={pageSize}
+                    onChange={e => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--color-border)',
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={9999}>Tümü</option>
+                  </select>
+                </div>
               </div>
             )}
           </div>
