@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Sparkles, Camera, Crop, X, Check, RefreshCw, AlertCircle,
   BookOpen, Lightbulb, Key, HelpCircle, CheckCircle2, ChevronDown,
-  ChevronUp, Copy, Eye, Upload, FileText, ArrowRight
+  ChevronUp, Copy, Eye, Upload, FileText, ArrowRight,
+  Languages, Volume2, Bookmark, Globe
 } from 'lucide-react';
 import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey } from '../../../services/supabaseService';
@@ -54,6 +55,18 @@ export default function ScreenSnipperAndSolverModal({
   const cameraInputRef = useRef(null);
   const solvingRef = useRef(false);
   const autoSolvedRef = useRef(null);
+
+  const speakEnglish = (text) => {
+    try {
+      if ('speechSynthesis' in window && text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch {}
+  };
 
   const cacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
 
@@ -875,6 +888,252 @@ export default function ScreenSnipperAndSolverModal({
                     <span>{copied ? 'Kopyalandı' : 'Kopyala'}</span>
                   </button>
                 </div>
+
+                {/* 🇬🇧 İNGİLİZCE DİL ÖĞRETİM MOTORU: CÜMLE ÇEVİRİLERİ, KELİME DAĞARCIĞI VE ŞIK ANALİZİ */}
+                {(solution.isEnglishQuestion || (Array.isArray(solution.vocabulary) && solution.vocabulary.length > 0) || (Array.isArray(solution.sentenceTranslations) && solution.sentenceTranslations.length > 0)) && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.06))',
+                    border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                    borderRadius: '1rem',
+                    padding: '1.1rem 1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                  }}>
+                    {/* English Section Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '1.25rem' }}>🇬🇧</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#4f46e5' }}>
+                          İngilizce Dil Öğrenim & Çeviri Rehberi
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '0.2rem 0.65rem',
+                        borderRadius: '1rem',
+                        background: 'rgba(99, 102, 241, 0.15)',
+                        color: '#4f46e5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        <Languages size={12} />
+                        <span>Dil Öğretim Modülü</span>
+                      </span>
+                    </div>
+
+                    {/* 1. Soru Cümleleri ve Çevirileri (Sentence Translations) */}
+                    {Array.isArray(solution.sentenceTranslations) && solution.sentenceTranslations.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <FileText size={14} color="#6366f1" />
+                          <span>📝 Metin ve Soru Cümleleri Çevirisi (Satır Satır):</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                          {solution.sentenceTranslations.map((item, idx) => (
+                            <div key={idx} style={{
+                              background: 'var(--color-surface)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: '0.65rem',
+                              padding: '0.65rem 0.85rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 3
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e40af' }}>
+                                  {item.english}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => speakEnglish(item.english)}
+                                  style={{
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: 4,
+                                    padding: '2px 6px',
+                                    cursor: 'pointer',
+                                    color: '#6366f1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    flexShrink: 0
+                                  }}
+                                  title="Telaffuzu Dinle"
+                                >
+                                  <Volume2 size={12} />
+                                  <span>Dinle</span>
+                                </button>
+                              </div>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                                ↳ {item.turkish}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Önemli Kelime & Deyim Dağarcığı (Vocabulary Glossary) */}
+                    {Array.isArray(solution.vocabulary) && solution.vocabulary.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Bookmark size={14} color="#a855f7" />
+                          <span>📚 Kilit Kelimeler & Deyimler Sözlüğü (Vocabulary):</span>
+                        </div>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                          gap: '0.5rem'
+                        }}>
+                          {solution.vocabulary.map((vocab, vIdx) => (
+                            <div key={vIdx} style={{
+                              background: 'var(--color-surface)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: '0.65rem',
+                              padding: '0.65rem 0.8rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 2
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#7c3aed' }}>
+                                  {vocab.word}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  {vocab.type && (
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 800,
+                                      padding: '1px 5px',
+                                      borderRadius: 4,
+                                      background: 'rgba(124, 58, 237, 0.1)',
+                                      color: '#7c3aed'
+                                    }}>
+                                      {vocab.type}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => speakEnglish(vocab.word)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: 2,
+                                      cursor: 'pointer',
+                                      color: '#7c3aed'
+                                    }}
+                                    title="Telaffuzu Dinle"
+                                  >
+                                    <Volume2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text)' }}>
+                                {vocab.meaning}
+                              </span>
+                              {vocab.clue && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                                  💡 {vocab.clue}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Şıkların Türkçe Anlamları & Çeldirici Analizi (Option Translations) */}
+                    {Array.isArray(solution.optionTranslations) && solution.optionTranslations.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <HelpCircle size={14} color="#059669" />
+                          <span>🔍 Şıkların Türkçe Anlamları & Çeldirici Analizi:</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {solution.optionTranslations.map((opt, oIdx) => (
+                            <div key={oIdx} style={{
+                              background: opt.isCorrect ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface)',
+                              border: `1px solid ${opt.isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border)'}`,
+                              borderRadius: '0.65rem',
+                              padding: '0.65rem 0.85rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 3
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{
+                                    width: 22,
+                                    height: 22,
+                                    borderRadius: '50%',
+                                    background: opt.isCorrect ? '#10b981' : '#64748b',
+                                    color: 'white',
+                                    fontWeight: 900,
+                                    fontSize: '0.74rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                  }}>
+                                    {opt.letter || String.fromCharCode(65 + oIdx)}
+                                  </span>
+                                  <span style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--color-text)' }}>
+                                    {opt.english}
+                                  </span>
+                                </div>
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  color: opt.isCorrect ? '#15803d' : '#94a3b8'
+                                }}>
+                                  {opt.isCorrect ? '✓ Doğru Şık' : '✗ Elenen Şık'}
+                                </span>
+                              </div>
+                              <div style={{ paddingLeft: '1.75rem', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <span style={{ fontSize: '0.79rem', color: '#0369a1', fontWeight: 600 }}>
+                                  ↳ Çevirisi: {opt.turkish}
+                                </span>
+                                {opt.reason && (
+                                  <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                                    • {opt.reason}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. Gramer & Dilbilgisi Püf Noktası (Grammar Notes) */}
+                    {solution.grammarNotes && (
+                      <div style={{
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '0.65rem',
+                        padding: '0.8rem 0.95rem',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.6rem'
+                      }}>
+                        <Lightbulb size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#b45309' }}>
+                            💡 Gramer & Dilbilgisi Püf Noktası:
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--color-text)', marginTop: 2, lineHeight: 1.5 }}>
+                            {solution.grammarNotes}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Hata Sebebine Özel Koçluk Tavsiyesi (Eğer varsa) */}
                 {solution.mistakeAdvice && (

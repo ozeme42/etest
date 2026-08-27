@@ -256,18 +256,36 @@ export async function solveQuestionWithAi({
   // 3. Prepare System Instruction & Prompt
   const cleanReason = mistakeReason || 'Hata Sebebi Belirtilmedi';
   
+  const isEnglishCandidate = Boolean(
+    (subject && /ingilizce|english|yks[\s-_]*dil|yds|lgs[\s-_]*ingilizce|toefl|ielts/i.test(subject)) ||
+    (topic && /ingilizce|english|grammar|vocabulary|tenses|reading|cloze/i.test(topic)) ||
+    (questionText && /\b(which of the following|according to the text|choose the correct|fill in the blank|complete the sentence|opposite meaning|closest in meaning|passage|dialogue)\b/i.test(questionText))
+  );
+
   const systemInstruction = `Sen Türkiye MEB müfredatına ve LGS/YKS/ÖSYM sınav standartlarına tam hakim, son derece pedagojik, cana yakın ve uzman bir öğretmensin.
 Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım adım, tane tane ve en anlaşılır şekilde çözmek ve seçtiği hata sebebine göre özel bir koçluk tavsiyesi sunmaktır.
 
-Kurallar:
-1. Çözümü madde madde, adım adım ve net matematiksel/mantıksal akışla yaz.
-2. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX, kodlama etiketleri veya '$', '\\text', '\\frac', '\\times' gibi semboller KULLANMA. Tüm işlemleri günlük temiz Türkçe ve anlaşılır matematik sembolleriyle (örn: 2 L = 2000 mL, 2 × 1000 = 2000, 2500 / 250 = 10 bardak) doğal olarak yaz.
-3. ADIM BAŞLIKLARI: Her adımın başına '1. Adım:', 'Adım 1:' gibi ifadeler YAZMA. Doğrudan o adımda yapılan açıklamayı ve işlemi yaz. (Çünkü arayüz adım numaralarını otomatik olarak yan kutucukta göstermektedir).
+${isEnglishCandidate ? '⚠️ BU SORU İNGİLİZCE DERSİNE AİTTİR.' : ''}
+ÖZEL İNGİLİZCE VE DİL ÖĞRETİM TALİMATI:
+Eğer soru İngilizce dersine aitse veya soru/görsel İngilizce içeriyorsa:
+Öğrencinin bu soruyu çözme amacı YALNIZCA doğru şıkkı bulmak değil, İNGİLİZCE ÖĞRENMEK VE KELİME DAĞARCIĞINI GELİŞTİRMEKTİR.
+Bu nedenle çözümü bir İngilizce Dil Öğretmeni olarak şu pedagojik unsurlarla üret:
+1. "isEnglishQuestion": true olarak işaretle.
+2. "sentenceTranslations": Soruda geçen İngilizce cümleleri, diyaloğu veya paragrafı satır satır Türkçe çevirileriyle eşleştir (dizide her eleman { "english": "...", "turkish": "..." } şeklinde olsun).
+3. "vocabulary": Soruda ve şıklarda geçen en önemli 4-8 İngilizce kelimeyi, deyimi veya kalıbı liste şeklinde çıkar (dizide her eleman { "word": "...", "meaning": "...", "type": "Fiil/İsim/Sıfat/Deyim/Bağlaç", "clue": "Kısa kullanım ipucu" } olsun).
+4. "grammarNotes": Sorudaki zaman yapısını (Tenses), bağlaçları, kipleri (Modals) veya kalıpları Türkçe açıkla.
+5. "optionTranslations": Bütün şıkları (A, B, C, D, E) listele (dizide her eleman { "letter": "A", "english": "...", "turkish": "...", "isCorrect": true/false, "reason": "Neden doğru veya neden elendiği" } olsun).
+6. "steps": Adım adım pedagojik akış: (1. Paragraf/Diyalog Çevirisi ve Ana Fikir, 2. Kilit Gramer ve Kelime İpuçları, 3. Şıkların Elenmesi ve Doğru Şıkkın Tespiti).
+
+Genel Kurallar:
+1. Çözümü madde madde, adım adım ve net mantıksal akışla yaz.
+2. DİL VE MATEMATİK YAZIMI: Kesinlikle LaTeX, kodlama etiketleri veya '$', '\\text', '\\frac', '\\times' gibi semboller KULLANMA. Tüm işlemleri günlük temiz Türkçe ve anlaşılır sembollerle doğal olarak yaz.
+3. ADIM BAŞLIKLARI: Her adımın başına '1. Adım:', 'Adım 1:' gibi ifadeler YAZMA. Doğrudan o adımda yapılan açıklamayı ve işlemi yaz.
 4. Öğrencinin seçtiği HATA SEBEBİ (${cleanReason}) doğrultusunda:
-   - "İşlem Hatası" ise: En sık hata yapılan işlem adımını ve işlem sırasını vurgula.
+   - "İşlem Hatası" ise: En sık hata yapılan işlem adımını vurgula.
    - "Formül / Bilgi Unutuldu" ise: Kullanılan ana formülü veya kuralı 'Altın Kural' kutusunda net ver.
-   - "Konu Eksiği" ise: Sorunun ait olduğu konunun 2-3 cümlelik mini konu özetini ve püf noktasını ekle.
-   - "Dikkat / Yanlış Okuma" ise: Sorudaki çeldiricileri, olumsuz kökleri (değildir, çıkarılamaz vb.) ve dikkat edilmesi gereken anahtar kelimeleri göster.
+   - "Konu Eksiği" ise: Sorunun ait olduğu konunun 2-3 cümlelik mini konu özetini ekle.
+   - "Dikkat / Yanlış Okuma" ise: Sorudaki çeldiricileri, olumsuz kökleri ve dikkat edilmesi gereken anahtar kelimeleri göster.
    - "Zaman Yetmedi" ise: Soruyu 30 saniyede çözebileceği pratik kısayol taktiğini açıkla.
 5. Yanıtını YALNIZCA geçerli bir JSON nesnesi olarak döndür.`;
 
@@ -298,15 +316,26 @@ Kurallar:
 
   prompt += `\nDöndürülecek JSON Şeması:
 {
+  "isEnglishQuestion": ${isEnglishCandidate ? 'true' : 'false'},
   "correctAnswer": "A",
-  "summary": "Sorunun 1-2 cümlelik özeti ve ana fikri",
+  "summary": "Sorunun 1-2 cümlelik özeti ve ana fikri (İngilizce ise Türkçe çeviri özeti)",
   "steps": [
     "1. Adım: Verilenleri ve istenenleri belirleyelim...",
-    "2. Adım: Formülü/kuralı uygulayalım...",
+    "2. Adım: Kuralı/ipucunu uygulayalım...",
     "3. Adım: Sonucu hesaplayalım ve doğru şıkkı bulalım..."
   ],
+  "sentenceTranslations": [
+    { "english": "Which of the following is correct according to the text?", "turkish": "Metne göre aşağıdakilerden hangisi doğrudur?" }
+  ],
+  "vocabulary": [
+    { "word": "responsible for", "meaning": "...den sorumlu", "type": "Deyim / Kalıp", "clue": "Preposition kalıbı" }
+  ],
+  "grammarNotes": "Sorudaki zaman yapısı ve bağlaç kuralları...",
+  "optionTranslations": [
+    { "letter": "A", "english": "He prefers staying at home", "turkish": "Evde kalmayı tercih eder", "isCorrect": true, "reason": "Paragraftaki 'indoor' ifadesiyle birebir örtüşür." }
+  ],
   "mistakeAdvice": "Öğrencinin seçtiği '${cleanReason}' sebebine göre nokta atışı koçluk uyarısı ve tavsiyesi",
-  "goldenRule": "Bu soruyu çözmek için gereken altın kural, formül veya püf nokta",
+  "goldenRule": "Bu soruyu çözmek için gereken altın kural, formül veya dil püf noktası",
   "similarQuestion": {
     "questionText": "Öğrencinin bu konuyu pekiştirmesi için 1 adet benzer mini soru metni...",
     "options": ["A) Şık 1", "B) Şık 2", "C) Şık 3", "D) Şık 4"],
