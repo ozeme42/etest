@@ -5,8 +5,9 @@ import {
   ChevronUp, Copy, Eye, Upload, FileText, ArrowRight,
   Languages, Volume2, Bookmark, Globe
 } from 'lucide-react';
-import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml } from '../../../services/aiSolutionService';
-import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey } from '../../../services/supabaseService';
+import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml, isGenericPlaceholderSolution } from '../../../services/aiSolutionService';
+import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey, toUUID } from '../../../services/supabaseService';
+import { idbGetPayload } from '../../../services/indexedDbService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -86,7 +87,8 @@ export default function ScreenSnipperAndSolverModal({
       if (cached) {
         const parsed = JSON.parse(cached);
         const isEnglishSubj = /ingilizce|english|yks[\s-_]*dil/i.test(subject || '');
-        if (parsed?.isEnglishQuestion && !isEnglishSubj) {
+        const isStale = (parsed?.isEnglishQuestion && !isEnglishSubj) || isGenericPlaceholderSolution(parsed);
+        if (isStale) {
           localStorage.removeItem(`ai_sol_${cacheKey}`);
         } else {
           cachedSolution = parsed;
@@ -104,15 +106,38 @@ export default function ScreenSnipperAndSolverModal({
       setActiveTab('image');
     }
 
-    // If no cached solution, auto-solve if HTML document or question text or existing image exists
-    const effectiveHtml = htmlPayload || question?.htmlPayload;
-    const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo);
-    if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
-      if (autoSolvedRef.current !== cacheKey) {
-        autoSolvedRef.current = cacheKey;
-        handleSolve();
+    async function tryAutoSolve() {
+      let effectiveHtml = htmlPayload || question?.htmlPayload;
+      if (!effectiveHtml || effectiveHtml === '[STORED_IN_INDEXEDDB]' || effectiveHtml === '[LOCALSTORAGE_CACHE]') {
+        const candidateKeys = [
+          testId,
+          String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, ''),
+          `q_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+          `hw_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+          toUUID(testId),
+          question?.id,
+          toUUID(question?.id)
+        ].filter(Boolean);
+        for (const k of candidateKeys) {
+          try {
+            const val = await idbGetPayload(String(k));
+            if (val && typeof val === 'string' && val.trim().length > 5 && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+              effectiveHtml = val;
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+
+      const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo);
+      if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
+        if (autoSolvedRef.current !== cacheKey) {
+          autoSolvedRef.current = cacheKey;
+          handleSolve(null, effectiveHtml);
+        }
       }
     }
+    tryAutoSolve();
   }, [isOpen, cacheKey, existingImageUrl, htmlPayload, question]);
 
   // Global clipboard paste listener (Ctrl+V)
@@ -170,10 +195,30 @@ export default function ScreenSnipperAndSolverModal({
   };
 
   // Handle Solving with AI
-  const handleSolve = async (overrideImage = null) => {
+  const handleSolve = async (overrideImage = null, overrideHtml = null) => {
     if (solvingRef.current) return;
     const imgToSend = overrideImage || croppedImage || existingImageUrl;
-    const htmlDoc = htmlPayload || question?.htmlPayload || '';
+    let htmlDoc = overrideHtml || htmlPayload || question?.htmlPayload || '';
+    if (!htmlDoc || htmlDoc === '[STORED_IN_INDEXEDDB]' || htmlDoc === '[LOCALSTORAGE_CACHE]') {
+      const candidateKeys = [
+        testId,
+        String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, ''),
+        `q_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+        `hw_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+        toUUID(testId),
+        question?.id,
+        toUUID(question?.id)
+      ].filter(Boolean);
+      for (const k of candidateKeys) {
+        try {
+          const val = await idbGetPayload(String(k));
+          if (val && typeof val === 'string' && val.trim().length > 5 && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+            htmlDoc = val;
+            break;
+          }
+        } catch (e) {}
+      }
+    }
     const qText = question?.questionText || question?.title || extractTargetQuestionFromHtml(htmlDoc, questionNo) || '';
 
     if (!imgToSend && !qText && !htmlDoc) {

@@ -3,6 +3,8 @@ import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
+import { toUUID } from '../../../services/supabaseService';
+import { extractTargetQuestionFromHtml } from '../../../services/aiSolutionService';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -253,23 +255,51 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     } catch {}
   };
 
+  const isValidPayload = (p) => typeof p === 'string' && p.trim().length > 5 && p !== '[STORED_IN_INDEXEDDB]' && p !== '[LOCALSTORAGE_CACHE]';
+
+  const directCandidate = [
+    test?.htmlPayload, test?.contentPayload, test?.raw_data?.htmlPayload, test?.raw_data?.contentPayload,
+    questions[0]?.htmlPayload, questions[0]?.contentPayload,
+    submission?.htmlPayload, submission?.contentPayload, submission?.raw_data?.htmlPayload, submission?.raw_data?.contentPayload
+  ].find(isValidPayload) || null;
+
   useEffect(() => {
     let isMounted = true;
     async function fetchHtmlPayload() {
-      const direct = test.htmlPayload || test.contentPayload || questions[0]?.htmlPayload || questions[0]?.contentPayload;
-      if (direct && direct !== '[STORED_IN_INDEXEDDB]' && direct !== '[LOCALSTORAGE_CACHE]') return;
+      if (directCandidate) return;
+
+      const targetId = String(test?.id || submission?.testId || submission?.homeworkId || submission?.bookTestId || submission?.id || '');
+      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '');
 
       const candidates = [
-        test.id,
-        test.id?.replace(/^q_/, ''),
+        targetId,
+        normTargetId,
+        `q_${normTargetId}`,
+        `hw_${normTargetId}`,
+        toUUID(targetId),
+        toUUID(normTargetId),
+        submission?.testId,
+        toUUID(submission?.testId),
+        submission?.realTestId,
+        toUUID(submission?.realTestId),
+        submission?.homeworkId,
+        toUUID(submission?.homeworkId),
+        submission?.id,
+        toUUID(submission?.id),
+        test?.id,
+        toUUID(test?.id),
+        test?.realTestId,
+        toUUID(test?.realTestId),
         questions[0]?.id,
-        test.questionsList?.[0]?.id
+        toUUID(questions[0]?.id),
+        test?.questionsList?.[0]?.id,
+        toUUID(test?.questionsList?.[0]?.id)
       ].filter(Boolean);
 
       for (const id of candidates) {
         try {
-          const val = await idbGetPayload(id);
-          if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+          const val = await idbGetPayload(String(id));
+          if (isValidPayload(val) && isMounted) {
             setIdbHtml(val);
             break;
           }
@@ -278,9 +308,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     }
     fetchHtmlPayload();
     return () => { isMounted = false; };
-  }, [test, questions, submission]);
+  }, [test, questions, submission, directCandidate]);
 
-  const htmlPayload = idbHtml || test.htmlPayload || test.contentPayload || questions[0]?.htmlPayload || questions[0]?.contentPayload || submission?.htmlPayload;
+  const htmlPayload = directCandidate || idbHtml || null;
 
   const isTrulyEvaluated = useMemo(() => {
     if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
@@ -1167,19 +1197,20 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
           isOpen={Boolean(aiModalQuestionNo)}
           onClose={() => setAiModalQuestionNo(null)}
           questionNo={aiModalQuestionNo}
-          htmlPayload={htmlPayload || test?.htmlPayload || test?.contentPayload}
+          htmlPayload={htmlPayload}
           question={{
             ...(questions[aiModalQuestionNo - 1] || {}),
             questionNo: aiModalQuestionNo,
+            questionText: questions[aiModalQuestionNo - 1]?.questionText || extractTargetQuestionFromHtml(htmlPayload, aiModalQuestionNo),
             userAnswer: answers[aiModalQuestionNo - 1]?.userAnswer,
             userAnswerText: answers[aiModalQuestionNo - 1]?.userAnswerText,
-            htmlPayload: htmlPayload || test?.htmlPayload || test?.contentPayload
+            htmlPayload: htmlPayload
           }}
           mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
           onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
           studentAnswer={answers[aiModalQuestionNo - 1]?.userAnswerText || (answers[aiModalQuestionNo - 1]?.userAnswer !== undefined ? (typeof answers[aiModalQuestionNo - 1]?.userAnswer === 'number' ? String.fromCharCode(65 + answers[aiModalQuestionNo - 1]?.userAnswer) : answers[aiModalQuestionNo - 1]?.userAnswer) : '')}
           correctAnswer={formatAnswerLetter(resolveQuestionCorrectAnswer(aiModalQuestionNo, questions[aiModalQuestionNo - 1], test)) || ''}
-          subject={test?.subject || submission?.subject || 'Genel'}
+          subject={test?.subject || submission?.subject || 'Türkçe'}
           topic={test?.topic || submission?.unitTopic || ''}
           testId={testId}
         />

@@ -219,6 +219,8 @@ export async function resolveImageToBase64(imgSrc) {
  */
 export function extractTargetQuestionFromHtml(html, qNo) {
   if (!html || typeof html !== 'string') return '';
+  if (html === '[STORED_IN_INDEXEDDB]' || html === '[LOCALSTORAGE_CACHE]') return '';
+
   try {
     const cleaned = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -228,9 +230,10 @@ export function extractTargetQuestionFromHtml(html, qNo) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cleaned, 'text/html');
 
+      // 1. Selector based match
       const selectors = [
-        `#q${qNo}`, `#q_${qNo}`, `#question_${qNo}`, `#question-${qNo}`, `#soru_${qNo}`, `#soru-${qNo}`,
-        `[data-question="${qNo}"]`, `[data-q="${qNo}"]`, `[data-index="${qNo - 1}"]`,
+        `#q${qNo}`, `#q_${qNo}`, `#question_${qNo}`, `#question-${qNo}`, `#soru_${qNo}`, `#soru-${qNo}`, `#s${qNo}`,
+        `[data-question="${qNo}"]`, `[data-q="${qNo}"]`, `[data-index="${qNo - 1}"]`, `[data-qno="${qNo}"]`,
         `.question:nth-of-type(${qNo})`, `.soru:nth-of-type(${qNo})`, `.question-card:nth-of-type(${qNo})`,
         `.question-block:nth-of-type(${qNo})`, `.test-question:nth-of-type(${qNo})`
       ];
@@ -241,9 +244,20 @@ export function extractTargetQuestionFromHtml(html, qNo) {
         }
       }
 
+      // 2. Element header text search (e.g. <h3>Soru 2...</h3> or <b>Soru 2:</b>)
+      const elements = Array.from(doc.querySelectorAll('div, section, article, p, h1, h2, h3, h4, h5, h6, li, tr'));
+      for (const el of elements) {
+        const text = (el.innerText || el.textContent || '').trim();
+        const startsWithQ = new RegExp(`^(?:(?:Soru|SORU|soru)[\\s\\-_:]*${qNo}[:\\.\\s]|${qNo}\\s*[\\.\\)]\\s*(?:Soru|SORU|soru)?|${qNo}\\s*[\\.\\)])`, 'i').test(text);
+        if (startsWithQ && text.length > 25) {
+          return text;
+        }
+      }
+
+      // 3. Document body full-text regex extraction
       const allText = doc.body ? (doc.body.innerText || doc.body.textContent || '') : '';
       if (allText) {
-        const qRegex = new RegExp(`(?:(?:Soru|SORU)\\s*${qNo}[:\\.]?|${qNo}\\.\\s*(?:Soru|SORU)[:\\.]?|^\\s*${qNo}\\.)([\\s\\S]*?)(?=(?:(?:Soru|SORU)\\s*${qNo + 1}[:\\.]?|${qNo + 1}\\.\\s*(?:Soru|SORU)[:\\.]?|^\\s*${qNo + 1}\\.|$))`, 'im');
+        const qRegex = new RegExp(`(?:(?:Soru|SORU|soru)[\\s\\-_:]*${qNo}[:\\.\\s]|${qNo}\\s*[\\.\\)]\\s*(?:Soru|SORU|soru)?|^\\s*${qNo}\\s*[\\.\\)])([\\s\\S]*?)(?=(?:(?:Soru|SORU|soru)[\\s\\-_:]*${qNo + 1}[:\\.\\s]|${qNo + 1}\\s*[\\.\\)]\\s*(?:Soru|SORU|soru)?|^\\s*${qNo + 1}\\s*[\\.\\)]|$))`, 'im');
         const match = allText.match(qRegex);
         if (match && match[0] && match[0].trim().length > 10) {
           return match[0].trim();
@@ -251,8 +265,9 @@ export function extractTargetQuestionFromHtml(html, qNo) {
       }
     }
 
-    const textOnly = cleaned.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
-    const qRegex = new RegExp(`(?:(?:Soru|SORU)\\s*${qNo}[:\\.]?|${qNo}\\.\\s*(?:Soru|SORU)[:\\.]?)(.*?)(?=(?:(?:Soru|SORU)\\s*${qNo + 1}[:\\.]?|${qNo + 1}\\.\\s*(?:Soru|SORU)[:\\.]?|$))`, 'i');
+    // 4. Raw text fallback
+    const textOnly = cleaned.replace(/<[^>]+>/g, '\n').replace(/&nbsp;/g, ' ');
+    const qRegex = new RegExp(`(?:(?:Soru|SORU|soru)[\\s\\-_:]*${qNo}[:\\.\\s]|${qNo}\\s*[\\.\\)]\\s*(?:Soru|SORU|soru)?|^\\s*${qNo}\\s*[\\.\\)])([\\s\\S]*?)(?=(?:(?:Soru|SORU|soru)[\\s\\-_:]*${qNo + 1}[:\\.\\s]|${qNo + 1}\\s*[\\.\\)]\\s*(?:Soru|SORU|soru)?|^\\s*${qNo + 1}\\s*[\\.\\)]|$))`, 'im');
     const match = textOnly.match(qRegex);
     if (match && match[0] && match[0].trim().length > 10) {
       return match[0].trim();
@@ -261,6 +276,20 @@ export function extractTargetQuestionFromHtml(html, qNo) {
     console.warn('[aiSolutionService] extractTargetQuestionFromHtml error:', e);
   }
   return '';
+}
+
+export function isGenericPlaceholderSolution(parsed) {
+  if (!parsed || typeof parsed !== 'object') return true;
+  const sText = JSON.stringify(parsed);
+  return (
+    sText.includes('genel test mantığı çerçevesinde temel bir kazanımı') ||
+    sText.includes('Öncelikle soruda bizden ne istendiğini ve elimizdeki verilerin neler olduğunu') ||
+    sText.includes('Soruda verilenleri ve isteneni netleştirelim') ||
+    sText.includes('Kuralı veya çözüm yolunu adım adım uygulayalım') ||
+    sText.includes('verilen öncüllerin dikkatli analiz edilerek') ||
+    sText.includes('rastgele harfler girmen') ||
+    (parsed.isEnglishQuestion && sText.includes('Which of the following is correct according to the text'))
+  );
 }
 
 /**
@@ -312,9 +341,10 @@ export async function solveQuestionWithAi({
       if (cached) {
         const parsed = JSON.parse(cached);
         const isStaleEnglish = parsed?.isEnglishQuestion && !isEnglishQuestion;
-        if (parsed && (parsed.steps || parsed.explanation || parsed.summary) && !isStaleEnglish) {
+        const isPlaceholder = isGenericPlaceholderSolution(parsed);
+        if (parsed && (parsed.steps || parsed.explanation || parsed.summary) && !isStaleEnglish && !isPlaceholder) {
           return parsed;
-        } else if (isStaleEnglish) {
+        } else if (isStaleEnglish || isPlaceholder) {
           localStorage.removeItem(`ai_sol_${cacheKey}`);
         }
       }
