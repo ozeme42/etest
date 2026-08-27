@@ -1438,7 +1438,7 @@ export async function dbGetHomeworks() {
   try {
     const { data, error } = await supabase
       .from('homeworks')
-      .select('id, title, subject, due_date, target_type, target_ids, question_ids, total_questions, time_per_question, time, is_book_assignment, book_id, test_due_dates, created_at, raw_data')
+      .select('id, title, subject, due_date, created_at, raw_data')
       .order('created_at', { ascending: false })
       .limit(300);
     if (error) throw error;

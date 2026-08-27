@@ -93,6 +93,7 @@ export default function QuestionBank() {
   
   const [showModal, setShowModal] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
   // Type Selection Wizard Step (1: Select Type, 2: Fill Form)
   const [creationStep, setCreationStep] = useState(1);
@@ -1173,9 +1174,11 @@ export default function QuestionBank() {
     setFormData(prev => ({ ...prev, bulkAnswerKey: val }));
   };
 
-  const handleSaveQuestion = (e) => {
+  const handleSaveQuestion = async (e) => {
     e.preventDefault();
-    if (!categoryId) return;
+    if (!categoryId || isSavingQuestion) return;
+    setIsSavingQuestion(true);
+    try {
 
     // Determine correct subject and grade based on the current context
     let foundSubjectObj = null;
@@ -1281,9 +1284,9 @@ export default function QuestionBank() {
       };
 
       if (editingQuestionId) {
-        updateQuestion(editingQuestionId, bundleData);
+        await updateQuestion(editingQuestionId, bundleData);
       } else {
-        addQuestion(bundleData);
+        await addQuestion(bundleData);
       }
 
       setShowModal(false);
@@ -1302,7 +1305,7 @@ export default function QuestionBank() {
             else parsedKey.push(' ');
           }
         }
-        updateQuestion(editingQuestionId, {
+        await updateQuestion(editingQuestionId, {
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1349,7 +1352,7 @@ export default function QuestionBank() {
 
         const finalPayload = validUrls.length > 0 ? validUrls.join('\n\n') : formData.contentPayload;
 
-        updateQuestion(editingQuestionId, {
+        await updateQuestion(editingQuestionId, {
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1368,7 +1371,7 @@ export default function QuestionBank() {
           createdBy: formData.createdBy || teacherId
         });
       } else {
-        updateQuestion(editingQuestionId, {
+        await updateQuestion(editingQuestionId, {
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1393,7 +1396,7 @@ export default function QuestionBank() {
           }
         }
 
-        addQuestion({
+        await addQuestion({
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1441,7 +1444,7 @@ export default function QuestionBank() {
 
         const finalPayload = validUrls.length > 0 ? validUrls.join('\n\n') : formData.contentPayload;
 
-        addQuestion({
+        await addQuestion({
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1461,7 +1464,7 @@ export default function QuestionBank() {
         });
       }
       else {
-        addQuestion({
+        await addQuestion({
           ...formData,
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
@@ -1477,6 +1480,9 @@ export default function QuestionBank() {
     
     setShowModal(false);
     resetForm();
+    } finally {
+      setIsSavingQuestion(false);
+    }
   };
 
   const getTypeLabel = (q) => {
@@ -4482,9 +4488,9 @@ export default function QuestionBank() {
 
                 {/* Action Buttons */}
                 <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#1e293b', borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '0.95rem', fontSize: '1.05rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
-                    {editingQuestionId ? '✓ Değişiklikleri Kaydet' : '➕ İçeriği Kaydet ve Ekle'}
+                  <button type="button" className="btn btn-outline" disabled={isSavingQuestion} style={{ flex: 1, padding: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#1e293b', borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
+                  <button type="submit" disabled={isSavingQuestion} className="btn btn-primary" style={{ flex: 2, padding: '0.95rem', fontSize: '1.05rem', fontWeight: 900, background: isSavingQuestion ? '#64748b' : 'linear-gradient(135deg, #6366f1, #4f46e5)', opacity: isSavingQuestion ? 0.7 : 1, cursor: isSavingQuestion ? 'not-allowed' : 'pointer' }}>
+                    {isSavingQuestion ? '⏳ Kaydediliyor...' : (editingQuestionId ? '✓ Değişiklikleri Kaydet' : '➕ İçeriği Kaydet ve Ekle')}
                   </button>
                 </div>
 
