@@ -429,57 +429,75 @@ export default function ModularQuizReviewPage() {
         }
       }
 
-      // 2. Resolve questions
-      let testQs = resolveTestQuestions(foundTest, allBankQuestions);
+      // 2. Resolve questions from test structure
+      let testQs = resolveTestQuestions(foundTest, allBankQuestions) || [];
 
-      // 3. Fallback to submission.questionsList if available
-      if ((!testQs || testQs.length === 0) && foundSubmission?.questionsList && Array.isArray(foundSubmission.questionsList) && foundSubmission.questionsList.length > 0) {
-        testQs = foundSubmission.questionsList.map((q, idx) => ({
-          ...q,
-          questionNo: idx + 1,
-          questionText: q.text || q.questionText || `Soru ${idx + 1}`
-        }));
-      }
+      // Calculate target total questions count from all available clues
+      const expectedQCount = Math.max(
+        testQs.length,
+        foundSubmission?.answers?.length || 0,
+        foundSubmission?.questionsList?.length || 0,
+        foundSubmission?.totalQuestions || 0,
+        foundTest.questionCount || 0,
+        foundTest.totalQuestions || 0,
+        foundTest.questionsList?.length || 0
+      );
 
-      // 4. Fallback to submission.answers if still empty
-      if ((!testQs || testQs.length === 0) && foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
-        const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
-        let sectionIndex = 0;
-        let qCountInSection = 0;
-        
-        testQs = foundSubmission.answers.map((ans, idx) => {
-          let currentSec = sectionsArr[sectionIndex] || {};
-          let expectedCount = currentSec.questionCount || currentSec.totalQuestions || currentSec.qCount || currentSec.bankQ?.questionCount || currentSec.bankQ?.totalQuestions || 1;
-          
-          let correctOpt = ans.correctAnswer;
-          if (correctOpt === null || correctOpt === undefined) {
-            const letter = ans.correctAnswerLetter;
-            if (letter && typeof letter === 'string') {
-              correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
-            }
+      // Helper to check if text is empty or a placeholder
+      const isPlaceholder = (txt) => !txt || typeof txt !== 'string' || txt.trim() === '' || /^(soru\s*\d+|\d+\.\s*bölüm|bölüm\s*\d+|genel test)/i.test(txt.trim());
+
+      // 3. If testQs has fewer items than expected or is empty, build/expand from submission.questionsList or submission.answers
+      if (testQs.length < expectedQCount) {
+        const expanded = [];
+        for (let i = 0; i < expectedQCount; i++) {
+          const qNo = i + 1;
+          const existingQ = testQs[i] || {};
+          const subQ = (foundSubmission?.questionsList && foundSubmission.questionsList[i]) || (foundTest.questionsList && foundTest.questionsList[i]) || {};
+          const subAns = (foundSubmission?.answers && (foundSubmission.answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) || foundSubmission.answers[i])) || {};
+
+          let resolvedText = null;
+          if (!isPlaceholder(existingQ.questionText)) resolvedText = existingQ.questionText;
+          else if (!isPlaceholder(existingQ.text)) resolvedText = existingQ.text;
+          else if (!isPlaceholder(subQ.questionText)) resolvedText = subQ.questionText;
+          else if (!isPlaceholder(subQ.text)) resolvedText = subQ.text;
+          else if (!isPlaceholder(subAns.questionText)) resolvedText = subAns.questionText;
+          else if (!isPlaceholder(subAns.text)) resolvedText = subAns.text;
+          else if (expectedQCount === 1 && !isPlaceholder(foundTest.questionText)) resolvedText = foundTest.questionText;
+          else resolvedText = existingQ.questionText || `Soru ${qNo}`;
+
+          expanded.push({
+            ...existingQ,
+            ...subQ,
+            ...subAns,
+            id: existingQ.id || subQ.id || subAns.questionId || `q_${qNo}`,
+            questionNo: qNo,
+            questionText: resolvedText,
+            userAnswer: subAns.userAnswer ?? existingQ.userAnswer,
+            userAnswerText: subAns.userAnswerText || subAns.studentAnswerText || existingQ.userAnswerText || ''
+          });
+        }
+        testQs = expanded;
+      } else {
+        // Even if length is sufficient, enrich questionText if placeholder
+        testQs = testQs.map((q, idx) => {
+          const qNo = idx + 1;
+          const subQ = (foundSubmission?.questionsList && foundSubmission.questionsList[idx]) || (foundTest.questionsList && foundTest.questionsList[idx]) || {};
+          const subAns = (foundSubmission?.answers && (foundSubmission.answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) || foundSubmission.answers[idx])) || {};
+
+          let resolvedText = q.questionText;
+          if (isPlaceholder(resolvedText)) {
+            if (!isPlaceholder(q.text)) resolvedText = q.text;
+            else if (!isPlaceholder(subQ.questionText)) resolvedText = subQ.questionText;
+            else if (!isPlaceholder(subQ.text)) resolvedText = subQ.text;
+            else if (!isPlaceholder(subAns.questionText)) resolvedText = subAns.questionText;
+            else if (!isPlaceholder(subAns.text)) resolvedText = subAns.text;
           }
-          
-          const qObj = {
-            id: ans.questionId || `q_${idx + 1}`,
-            questionNo: ans.questionNo || (idx + 1),
-            sectionId: ans.sectionId || currentSec.id || `sec_${sectionIndex + 1}`,
-            sectionTitle: ans.sectionTitle || currentSec.title || `${sectionIndex + 1}. Bölüm`,
-            testName: ans.testName || foundTest.title || 'Test',
-            questionText: ans.questionText || `Soru ${idx + 1}`,
-            options: ans.options || ['A', 'B', 'C', 'D', 'E'],
-            correctAnswer: correctOpt !== undefined ? correctOpt : null,
-            correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
-            userAnswer: ans.userAnswer,
-            userAnswerText: ans.userAnswerText
+
+          return {
+            ...q,
+            questionText: resolvedText || q.questionText || `Soru ${qNo}`,
+            userAnswerText: q.userAnswerText || subAns.userAnswerText || subAns.studentAnswerText || ''
           };
-
-          qCountInSection++;
-          if (qCountInSection >= expectedCount && sectionIndex < sectionsArr.length - 1) {
-            sectionIndex++;
-            qCountInSection = 0;
-          }
-          
-          return qObj;
         });
       }
 

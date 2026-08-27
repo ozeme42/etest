@@ -24,7 +24,6 @@ export default function SingleOpenEndedReview({
   const { updateHomeworkSubmission } = useHomework();
 
   const answers = submission.answers || [];
-  const totalQuestions = questions.length || answers.length || test.questionCount || 1;
 
   // 1. Text Map
   const textMap = useMemo(() => {
@@ -35,8 +34,64 @@ export default function SingleOpenEndedReview({
         map[qNo] = a.userAnswerText || a.studentAnswerText || a.userAnswer || '';
       }
     });
+    if (submission.openEndedText && typeof submission.openEndedText === 'object') {
+      Object.entries(submission.openEndedText).forEach(([k, v]) => {
+        if (!map[k] && v) map[k] = v;
+      });
+    }
     return map;
-  }, [answers]);
+  }, [answers, submission.openEndedText]);
+
+  // Robust questions list ensuring every question exists with its actual text
+  const effectiveQuestions = useMemo(() => {
+    const list = [...(questions || [])];
+    const targetCount = Math.max(
+      list.length,
+      answers.length,
+      submission.questionsList?.length || 0,
+      test.questionCount || 0,
+      test.questionsList?.length || 0,
+      Object.keys(textMap).length,
+      1
+    );
+
+    const isPlaceholder = (txt) => !txt || typeof txt !== 'string' || txt.trim() === '' || /^(soru\s*\d+|\d+\.\s*bölüm|bölüm\s*\d+|genel test)/i.test(txt.trim());
+
+    const result = [];
+    for (let i = 0; i < targetCount; i++) {
+      const qNo = i + 1;
+      const existing = list[i] || {};
+      const subAns = (Array.isArray(answers) ? answers.find(a => (
+        Number(a?.questionNo) === qNo ||
+        Number(a?.questionNoInSection) === qNo ||
+        String(a?.questionId).endsWith(`_${qNo}`) ||
+        String(a?.id).endsWith(`_${qNo}`)
+      )) : null) || (Array.isArray(answers) ? answers[i] : {}) || {};
+      const subQ = (submission.questionsList && submission.questionsList[i]) || (test.questionsList && test.questionsList[i]) || {};
+
+      let resolvedText = null;
+      if (!isPlaceholder(existing.questionText)) resolvedText = existing.questionText;
+      else if (!isPlaceholder(existing.text)) resolvedText = existing.text;
+      else if (!isPlaceholder(subQ.questionText)) resolvedText = subQ.questionText;
+      else if (!isPlaceholder(subQ.text)) resolvedText = subQ.text;
+      else if (!isPlaceholder(subAns.questionText)) resolvedText = subAns.questionText;
+      else if (!isPlaceholder(subAns.text)) resolvedText = subAns.text;
+      else if (targetCount === 1 && !isPlaceholder(test.questionText)) resolvedText = test.questionText;
+      else resolvedText = existing.questionText || `Soru ${qNo}`;
+
+      result.push({
+        ...existing,
+        ...subQ,
+        id: existing.id || subQ.id || subAns.questionId || `q_${qNo}`,
+        questionNo: qNo,
+        questionText: resolvedText,
+        userAnswerText: textMap[qNo] || subAns.userAnswerText || subAns.studentAnswerText || existing.userAnswerText || ''
+      });
+    }
+    return result;
+  }, [questions, answers, test, submission, textMap]);
+
+  const totalQuestions = effectiveQuestions.length;
 
   // 1. isTrulyEvaluated check
   const isTrulyEvaluated = useMemo(() => {
@@ -457,9 +512,9 @@ export default function SingleOpenEndedReview({
           defaultOpenOnMobile={false}
           documentContent={
             <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {questions.map((q, idx) => {
+              {effectiveQuestions.map((q, idx) => {
                 const qNo = idx + 1;
-                const userText = textMap[qNo] || '';
+                const userText = q.userAnswerText || textMap[qNo] || '';
                 const teacherScore = teacherScores.sec_1?.[qNo];
                 const teacherNote = teacherNotes.sec_1?.[qNo] || '';
                 const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
@@ -516,7 +571,7 @@ export default function SingleOpenEndedReview({
             <OpenEndedStatusPanel
               qCount={totalQuestions}
               openEndedText={textMap}
-              resolvedQuestions={questions}
+              resolvedQuestions={effectiveQuestions}
               isReviewMode={true}
               isTeacher={isTeacher}
               teacherScores={teacherScores.sec_1 || {}}

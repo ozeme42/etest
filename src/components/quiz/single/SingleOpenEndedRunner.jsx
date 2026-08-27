@@ -137,6 +137,7 @@ export default function SingleOpenEndedRunner({
         questionId: q.id || `q_${num}`,
         questionNo: num,
         questionNoInSection: num,
+        questionText: q.questionText || q.text || q.soruMetni || (q.title && !q.title.includes('Bölüm') ? q.title : null) || `Soru ${num}`,
         userAnswer: txt,
         userAnswerText: txt,
         textAns: txt,

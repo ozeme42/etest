@@ -226,7 +226,13 @@ export default function OpenEndedReview({
   );
   
   const numScore = hasTeacherGraded && teacherScore !== 'empty' ? Number(teacherScore) : null;
-  const qText = question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
+  const isGenericText = (txt) => !txt || typeof txt !== 'string' || txt.trim() === '' || /^(soru\s*\d+|\d+\.\s*bölüm|bölüm\s*\d+|genel test|toplu yazılı test)/i.test(txt.trim());
+  const qText = !isGenericText(question?.questionText) ? question.questionText :
+                !isGenericText(question?.text) ? question.text :
+                !isGenericText(question?.soruMetni) ? question.soruMetni :
+                !isGenericText(question?.question) ? question.question :
+                (!isGenericText(question?.title) && !question?.title?.includes('Bölüm') && !question?.title?.includes('Paket')) ? question.title :
+                (question?.questionText || `Soru ${qNo}`);
 
   return (
     <div style={{
