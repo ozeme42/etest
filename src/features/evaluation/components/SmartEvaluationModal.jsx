@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
-import { resolveTestQuestions } from '../../../utils/testResolver';
+import { resolveTestQuestions, extractQuestionText } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { toUUID } from '../../../services/supabaseService';
 import { isItemOpenEnded, QUICK_FEEDBACK_PRESETS, isValidPayloadString } from '../constants/evaluationConstants';
@@ -25,6 +25,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [resolvedImagesMap, setResolvedImagesMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeOeIndex, setActiveOeIndex] = useState(0);
@@ -48,6 +49,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
       }
       setLoading(true);
 
+      // 1. Find direct match in homeworks
       let foundHw = (homeworks || []).find(h =>
         String(h.id) === targetId ||
         String(h.id) === normTargetId ||
@@ -55,6 +57,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         (h.submissions && h.submissions.some(s => String(s.id) === String(submission?.id)))
       );
 
+      // 2. Find direct match in bank questions
       let foundBankQ = (allBankQuestions || []).find(q =>
         String(q.id) === targetId ||
         String(q.id) === normTargetId ||
@@ -62,23 +65,29 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         String(q.id) === String(foundHw?.questionId || foundHw?.testId)
       );
 
-      let titleMatchBankQ = (allBankQuestions || []).find(q =>
-        submission?.testTitle && q.title &&
-        String(q.title).toLowerCase().trim() === String(submission.testTitle).toLowerCase().trim()
-      );
-
+      // 3. Find in book tests
       let foundBookTest = (bookTests || []).find(bt =>
         String(bt.id) === targetId ||
         String(bt.id) === normTargetId ||
         toUUID(bt.id) === targetId
       );
 
+      // 4. Find in curriculum
       let foundCurTest = (curriculumData?.tests || []).find(t =>
         String(t.id) === targetId ||
         String(t.id) === normTargetId
       );
 
-      let resolved = foundHw || foundBankQ || titleMatchBankQ || foundBookTest || foundCurTest || null;
+      // 5. Title match ONLY if no ID matches found and title is distinct
+      let titleMatchBankQ = null;
+      if (!foundHw && !foundBankQ && !foundBookTest && !foundCurTest && submission?.testTitle) {
+        titleMatchBankQ = (allBankQuestions || []).find(q =>
+          q.title &&
+          String(q.title).toLowerCase().trim() === String(submission.testTitle).toLowerCase().trim()
+        );
+      }
+
+      let resolved = foundHw || foundBankQ || foundBookTest || foundCurTest || titleMatchBankQ || null;
 
       if (!resolved && (foundBankQ?.bankQId || foundHw?.bankQId)) {
         const altId = String(foundBankQ?.bankQId || foundHw?.bankQId);
@@ -92,17 +101,21 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         }
       }
 
+      const submissionAnswers = Array.isArray(submission?.answers) ? submission.answers : [];
+      const subAnsCount = submissionAnswers.length;
+
       if (!resolved) {
         resolved = {
           id: targetId,
           title: submission?.testTitle || submission?.title || 'Ödev / Sınav',
           subject: submission?.subject || 'Genel',
-          totalQuestions: submission?.answers?.length || 1,
-          questionCount: submission?.answers?.length || 1,
-          questionsList: submission?.answers || []
+          totalQuestions: subAnsCount > 0 ? subAnsCount : (submission?.totalQuestions || 1),
+          questionCount: subAnsCount > 0 ? subAnsCount : (submission?.totalQuestions || 1),
+          questionsList: submissionAnswers
         };
       }
 
+      // Resolve Payloads (PDF / HTML)
       let contentPayload = isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null;
       let pdfPayload = isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null;
       let htmlPayload = isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null;
@@ -138,13 +151,20 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         }
       }
 
-      const generatedQuestions = [];
+      let generatedQuestions = [];
       const sections = resolved?.sections || resolved?.tests || resolved?.items || null;
 
-      if (Array.isArray(sections) && sections.length > 0) {
-        const mappedSections = [];
-        let runningQIndex = 0;
+      // Extract all top-level images array
+      const resolvedImages = [
+        ...(Array.isArray(resolved?.imageUrls) ? resolved.imageUrls : []),
+        ...(Array.isArray(foundBankQ?.imageUrls) ? foundBankQ.imageUrls : []),
+        ...(Array.isArray(foundHw?.imageUrls) ? foundHw.imageUrls : []),
+        ...(resolved?.imageUrl ? [resolved.imageUrl] : []),
+        ...(foundBankQ?.imageUrl ? [foundBankQ.imageUrl] : [])
+      ].filter(Boolean);
 
+      if (Array.isArray(sections) && sections.length > 0 && subAnsCount === 0) {
+        let runningQIndex = 0;
         for (let i = 0; i < sections.length; i++) {
           const sec = sections[i];
           const secQId = typeof sec === 'object' ? (sec.questionId || sec.id) : sec;
@@ -181,41 +201,32 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
               correctAnswer: existingQ.correctAnswer ?? (isSecOE ? null : 0)
             });
           }
-
-          mappedSections.push({
-            ...sec,
-            id: secQId,
-            bankQ: secBankQ || sec,
-            questionCount: secCount,
-            pdfPayload: secPdf,
-            htmlPayload: secHtml
-          });
         }
-
-        resolved = {
-          ...resolved,
-          sections: mappedSections,
-          totalQuestions: runningQIndex,
-          questionCount: runningQIndex
-        };
       } else {
         const resolvedQs = resolveTestQuestions(resolved, allBankQuestions);
-        const images = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
-        const count = resolveExactQuestionCount(resolved, resolved, resolved, resolvedQs, images);
+        // Determine exact question count based on student's actual submission
+        let count = subAnsCount > 0 ? subAnsCount : (submission?.totalQuestions || resolveExactQuestionCount(resolved, resolved, resolved, resolvedQs, resolvedImages));
+        count = Math.max(1, count);
 
         for (let qIdx = 0; qIdx < count; qIdx++) {
+          const ans = submissionAnswers[qIdx] || {};
           const existingQ = resolvedQs[qIdx] || {};
-          const qImg = images[qIdx] || (images.length === 1 ? images[0] : null) || existingQ.imageUrl || null;
-          const isSingleOE = isItemOpenEnded(resolved) || existingQ.isOpenEnded;
+          const qImg = existingQ.imageUrl ||
+                       resolvedImages[qIdx] ||
+                       (resolvedImages.length === 1 && count === 1 ? resolvedImages[0] : null) ||
+                       ans.imageUrl ||
+                       ans.photoUrl ||
+                       null;
+          const isSingleOE = isItemOpenEnded(resolved, ans) || isItemOpenEnded(existingQ, ans) || existingQ.isOpenEnded;
 
           generatedQuestions.push({
             ...existingQ,
-            id: existingQ.id || `${targetId}_q${qIdx + 1}`,
+            id: existingQ.id || ans.questionId || `${targetId}_q${qIdx + 1}`,
             globalIndex: qIdx + 1,
-            questionNo: qIdx + 1,
+            questionNo: ans.questionNo || (qIdx + 1),
             subIndex: qIdx,
-            title: existingQ.title || existingQ.name || existingQ.questionText || `Soru ${qIdx + 1}`,
-            questionText: existingQ.questionText || (count === 1 ? (resolved?.questionText || resolved?.title) : `Soru ${qIdx + 1}`),
+            title: existingQ.title || existingQ.name || `Soru ${qIdx + 1}`,
+            questionText: existingQ.questionText || extractQuestionText(existingQ, resolved, qIdx) || (count === 1 ? (resolved?.questionText || resolved?.title) : `Soru ${qIdx + 1}`),
             pdfPayload,
             htmlPayload,
             imageUrl: qImg,
@@ -224,25 +235,51 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
             correctAnswer: existingQ.correctAnswer ?? (isSingleOE ? null : 0)
           });
         }
+      }
 
-        resolved = {
-          ...resolved,
-          totalQuestions: count,
-          questionCount: count
-        };
+      // Strictly cap questions to the student's submission count if answers exist
+      if (subAnsCount > 0 && generatedQuestions.length > subAnsCount) {
+        generatedQuestions = generatedQuestions.slice(0, subAnsCount);
+      }
+
+      // Asynchronously resolve any IndexedDB images
+      const imgMap = {};
+      for (const q of generatedQuestions) {
+        const rawImg = q.imageUrl;
+        if (rawImg && typeof rawImg === 'string') {
+          if (rawImg.startsWith('idb:') || rawImg.length > 50) {
+            try {
+              const loaded = await idbGetPayload(rawImg);
+              if (loaded && typeof loaded === 'string' && (loaded.startsWith('data:image') || loaded.startsWith('http'))) {
+                imgMap[q.questionNo] = loaded;
+              }
+            } catch {}
+          } else {
+            imgMap[q.questionNo] = rawImg;
+          }
+        }
+        if (!imgMap[q.questionNo] && q.id) {
+          try {
+            const loaded = await idbGetPayload(String(q.id));
+            if (loaded && typeof loaded === 'string' && (loaded.startsWith('data:image') || loaded.startsWith('http'))) {
+              imgMap[q.questionNo] = loaded;
+            }
+          } catch {}
+        }
       }
 
       if (isMounted) {
         setTest(resolved);
         setQuestions(generatedQuestions);
+        setResolvedImagesMap(imgMap);
 
         const scores = {};
         const notes = {};
 
-        if (submission?.answers && Array.isArray(submission.answers)) {
-          submission.answers.forEach((a, idx) => {
+        if (submissionAnswers.length > 0) {
+          submissionAnswers.forEach((a, idx) => {
             const qNo = a.questionNo || a.questionNoInSection || (idx + 1);
-            if (a.score !== undefined && a.score !== null && a.evaluatedByTeacher === true) {
+            if (a.score !== undefined && a.score !== null && (a.evaluatedByTeacher === true || submission.isEvaluatedByTeacher)) {
               const isExplicitEmpty = a.evalStatus === 'empty' || a.score === 'empty' || (Number(a.score) === 0 && a.isCorrect === null);
               scores[qNo] = isExplicitEmpty ? 'empty' : Number(a.score);
             }
@@ -294,21 +331,22 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   }, [test]);
 
   const categorizedQuestions = useMemo(() => {
-    const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
+    const submissionAnswers = Array.isArray(submission?.answers) ? submission.answers : [];
+    const totalQ = Math.max(1, questions?.length || submissionAnswers.length || submission?.totalQuestions || 1);
     const oeList = [];
     const mcList = [];
 
     for (let i = 1; i <= totalQ; i++) {
       const qObj = questions[i - 1] || {};
-      const ans = (submission?.answers || [])[i - 1] || {};
-      const isOE = isItemOpenEnded(qObj, ans) || Boolean(ans.userAnswerText && String(ans.userAnswerText).trim().length > 0);
+      const ans = submissionAnswers[i - 1] || submissionAnswers.find(a => (a.questionNo === i || a.questionNoInSection === i)) || {};
+      const isOE = isItemOpenEnded(qObj, ans) || Boolean(ans.userAnswerText && String(ans.userAnswerText).trim().length > 0) || (test?.type === 'acik_uclu' || test?.contentType === 'acik_uclu' || test?.formatType === 'acik_uclu');
 
       const itemInfo = {
         qNo: i,
         question: qObj,
         answer: ans,
         isOE,
-        imageUrl: qObj.imageUrl || ans.imageUrl || null,
+        imageUrl: resolvedImagesMap[i] || qObj.imageUrl || ans.imageUrl || ans.photoUrl || null,
         pdfPayload: qObj.pdfPayload || null,
         htmlPayload: qObj.htmlPayload || null,
         title: qObj.title || `Soru ${i}`,
@@ -320,7 +358,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
     }
 
     return { oeList, mcList, totalQ };
-  }, [questions, submission, test]);
+  }, [questions, submission, test, resolvedImagesMap]);
 
   const scoreStats = useMemo(() => {
     const { oeList, mcList, totalQ } = categorizedQuestions;
@@ -380,7 +418,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
           score: isExplicitEmpty ? 'empty' : (score !== null ? score : (ans.score ?? null)),
           isCorrect,
           evalStatus,
-          evaluatedByTeacher: hasScore || ans.evaluatedByTeacher,
+          evaluatedByTeacher: hasScore || ans.evaluatedByTeacher || true,
           teacherNote: note || ans.teacherNote || '',
           evaluatedAt: new Date().toISOString()
         };
@@ -415,13 +453,17 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         evaluatedAt: new Date().toISOString()
       };
 
+      // 1. Save to Database via EvaluationContext (Submissions Table)
       await updateSubmission(submission.id, updatedSubPayload);
 
-      if (submission.homeworkId || submission.hwId) {
-        const hwId = submission.homeworkId || submission.hwId;
+      // 2. Save to Database via HomeworkContext (Homeworks Table)
+      const hwId = submission.homeworkId || submission.hwId || submission.id;
+      if (hwId) {
         try {
-          await updateHomeworkSubmission(hwId, submission.id, updatedSubPayload);
-        } catch (e) {}
+          await updateHomeworkSubmission(hwId, submission.studentId || submission.id, updatedSubPayload);
+        } catch (e) {
+          console.warn('updateHomeworkSubmission error:', e);
+        }
       }
 
       if (onSaveSuccess) onSaveSuccess(updatedSubPayload);
@@ -480,7 +522,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
           boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginRight: 4 }}>
-            Açık Uçlu Sorular:
+            Açık Uçlu Sorular ({oeList.length}):
           </span>
 
           {oeList.map((item, idx) => {
@@ -575,7 +617,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
           const currentNote = teacherNotes[qNo] ?? (activeItem.answer?.teacherNote || activeItem.answer?.feedback || '');
           const studentWritten = activeItem.answer?.userAnswerText || activeItem.answer?.studentAnswerText || activeItem.answer?.writtenAnswer || activeItem.answer?.text || (typeof activeItem.answer?.userAnswer === 'string' && isNaN(Number(activeItem.answer.userAnswer)) ? activeItem.answer.userAnswer : '');
           const studentImage = activeItem.answer?.imageUrl || activeItem.answer?.photoUrl || activeItem.answer?.fileUrl || null;
-          const questionImage = activeItem.imageUrl || activeItem.question?.imageUrl || null;
+          const questionImage = activeItem.imageUrl || null;
           const modelAnswer = activeItem.question?.correctAnswerText || activeItem.question?.explanation || (activeItem.question?.correctAnswer && isNaN(Number(activeItem.question.correctAnswer)) ? activeItem.question.correctAnswer : null);
 
           return (
@@ -647,13 +689,13 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
                 </div>
               </div>
 
-              {/* Question Image (if any) */}
+              {/* Question Image (Prominent & Clickable) */}
               {questionImage && (
-                <div style={{ maxWidth: '600px', borderRadius: '0.85rem', overflow: 'hidden', border: '1px solid var(--color-border)', margin: '0 auto', width: '100%' }}>
+                <div style={{ maxWidth: '650px', borderRadius: '0.85rem', overflow: 'hidden', border: '1.5px solid var(--color-border)', margin: '0 auto', width: '100%', background: '#f8fafc' }}>
                   <img
                     src={questionImage}
                     alt={`Soru ${qNo}`}
-                    style={{ width: '100%', maxHeight: '350px', objectFit: 'contain', background: '#f8fafc', cursor: 'pointer' }}
+                    style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', cursor: 'pointer', display: 'block' }}
                     onClick={() => setLightboxSrc(questionImage)}
                   />
                 </div>
