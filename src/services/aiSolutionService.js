@@ -138,6 +138,82 @@ export function cleanAiMathText(str) {
   return res.trim();
 }
 
+export async function resolveImageToBase64(imgSrc) {
+  if (!imgSrc || typeof imgSrc !== 'string') return null;
+  const trimmed = imgSrc.trim();
+
+  // If already base64 data URL
+  if (trimmed.startsWith('data:image/')) {
+    const parts = trimmed.split(';base64,');
+    return {
+      mimeType: parts[0].replace('data:', '') || 'image/jpeg',
+      data: parts[1]
+    };
+  }
+
+  // If it's a raw base64 string without data prefix
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('blob:') && trimmed.length > 100 && !trimmed.includes('/')) {
+    return {
+      mimeType: 'image/jpeg',
+      data: trimmed
+    };
+  }
+
+  // If it's an HTTP/HTTPS/Blob URL, fetch and convert to base64
+  try {
+    const res = await fetch(trimmed);
+    const blob = await res.blob();
+    const mimeType = blob.type || (trimmed.endsWith('.png') ? 'image/png' : (trimmed.endsWith('.webp') ? 'image/webp' : 'image/jpeg'));
+    
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result;
+        if (typeof result === 'string' && result.includes(';base64,')) {
+          const split = result.split(';base64,');
+          resolve({
+            mimeType: split[0].replace('data:', '') || mimeType,
+            data: split[1]
+          });
+        } else {
+          resolve(null);
+        }
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn('Direct fetch failed, attempting canvas fallback for:', trimmed, err);
+    try {
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const split = dataUrl.split(';base64,');
+            resolve({
+              mimeType: 'image/jpeg',
+              data: split[1]
+            });
+          } catch (e) {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = trimmed;
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
 /**
  * Solve a single question using Gemini (Multimodal Vision / Text)
  * Zero database storage, processed strictly in-memory.
@@ -243,19 +319,15 @@ Kurallar:
   const parts = [];
 
   if (imageBase64 && typeof imageBase64 === 'string') {
-    let cleanB64 = imageBase64;
-    let mimeType = 'image/jpeg';
-    if (imageBase64.includes(';base64,')) {
-      const split = imageBase64.split(';base64,');
-      mimeType = split[0].replace('data:', '') || 'image/jpeg';
-      cleanB64 = split[1];
+    const resolvedImg = await resolveImageToBase64(imageBase64);
+    if (resolvedImg && resolvedImg.data) {
+      parts.push({
+        inlineData: {
+          mimeType: resolvedImg.mimeType || 'image/jpeg',
+          data: resolvedImg.data
+        }
+      });
     }
-    parts.push({
-      inlineData: {
-        mimeType,
-        data: cleanB64
-      }
-    });
   }
 
   parts.push({ text: systemInstruction + '\n\n' + prompt });
