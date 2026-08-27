@@ -905,14 +905,21 @@ export default function ModularQuizPage() {
     const totalQ = totalScored + pendingCount;
     const score = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
 
-    const isAcikUclu = isSectionOpenEnded(effectiveTest) || isSectionOpenEnded(test) || Boolean(
-      test.questionType === 'acik_uclu' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'gorsel_klasik' ||
-      test.isOpenEnded === true ||
-      test.is_open_ended === true ||
-      (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('klasik soru') || test.title.toLowerCase().includes('yazılı klasik'))) ||
-      formattedAnswers.some(a => a.isOpenEnded || (a.userAnswerText && String(a.userAnswerText).trim() !== ''))
+    const hasExplicitOptionChoices = isMultipleChoice(effectiveTest) || isMultipleChoice(test) ||
+      test.type === 'coktan_secmeli' || test.questionType === 'coktan_secmeli' ||
+      effectiveTest.type === 'coktan_secmeli' || effectiveTest.questionType === 'coktan_secmeli' ||
+      formattedAnswers.some(a => typeof a.userAnswer === 'number' || (typeof a.userAnswer === 'string' && /^[A-Ea-e0-4]$/.test(String(a.userAnswer).trim())));
+
+    const isAcikUclu = !hasExplicitOptionChoices && (
+      isSectionOpenEnded(effectiveTest) || isSectionOpenEnded(test) || Boolean(
+        test.questionType === 'acik_uclu' ||
+        test.type === 'acik_uclu' ||
+        test.type === 'gorsel_klasik' ||
+        test.isOpenEnded === true ||
+        test.is_open_ended === true ||
+        (test.title && (test.title.toLowerCase().includes('açık uçlu') || test.title.toLowerCase().includes('acik uclu') || test.title.toLowerCase().includes('klasik soru') || test.title.toLowerCase().includes('yazılı klasik'))) ||
+        formattedAnswers.some(a => a.isOpenEnded)
+      )
     );
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;

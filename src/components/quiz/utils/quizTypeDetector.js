@@ -121,11 +121,11 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  // 3. Title Keyword Detection strictly for Açık Uçlu / Klasik / Yazılı (when NOT coktan_secmeli)
+  // 3. Title Keyword Detection strictly for Açık Uçlu / Klasik (when NOT coktan_secmeli)
   const titleStr = String(sec?.title || sec?.name || bankQ?.title || bankQ?.name || test?.title || test?.name || '').toLowerCase();
   if (
-    (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('klasik') || titleStr.includes('yazılı')) &&
-    !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli')
+    (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('klasik soru') || titleStr.includes('yazılı klasik')) &&
+    !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli') && !titleStr.includes('çok')
   ) {
     return true;
   }
