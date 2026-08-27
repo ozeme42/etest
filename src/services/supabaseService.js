@@ -1083,7 +1083,25 @@ export async function dbGetQuestions() {
         title: q.title || '',
         questionCount: q.question_count || 1,
         questionText: q.question_text || '',
-        options: Array.isArray(q.options) ? q.options : (typeof q.options === 'string' ? (() => { try { const p = JSON.parse(q.options); return Array.isArray(p) ? p : []; } catch { return q.options.split('\n').filter(Boolean); } })() : []),
+        options: (() => {
+          let opts = Array.isArray(q.options) ? q.options : (typeof q.options === 'string' ? (() => { try { const p = JSON.parse(q.options); return Array.isArray(p) ? p : []; } catch { return q.options.split('\n').filter(Boolean); } })() : []);
+          const isMeaningful = (arr) => Array.isArray(arr) && arr.some(o => typeof o === 'string' && o.trim().length > 0 && !/^[A-E]$/i.test(o.trim()) && !/^şık [A-E]$/i.test(o.trim()) && !/^[A-E] seçeneği$/i.test(o.trim()));
+          if (!isMeaningful(opts) && typeof q.explanation === 'string' && q.explanation.trim().startsWith('{')) {
+            try {
+              const expObj = JSON.parse(q.explanation);
+              if (isMeaningful(expObj.options)) opts = expObj.options;
+              else if (isMeaningful(expObj.choices)) opts = expObj.choices;
+              else if (isMeaningful(expObj.secenekler)) opts = expObj.secenekler;
+            } catch {}
+          }
+          if (!isMeaningful(opts) && typeof q.content_payload === 'string' && q.content_payload.trim().startsWith('{')) {
+            try {
+              const cpObj = JSON.parse(q.content_payload);
+              if (isMeaningful(cpObj.options)) opts = cpObj.options;
+            } catch {}
+          }
+          return opts || [];
+        })(),
         correctAnswer: q.correct_answer !== undefined ? q.correct_answer : '0',
         explanation: q.explanation || '',
         imageUrl: cleanImageUrl,

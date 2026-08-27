@@ -248,6 +248,18 @@ export default function MultipleChoiceRunner({
 
   // Extract option texts
   const optionsWithText = useMemo(() => {
+    const parseExp = (exp) => {
+      if (typeof exp === 'string' && exp.trim().startsWith('{')) {
+        try {
+          const p = JSON.parse(exp);
+          if (Array.isArray(p.options)) return p.options;
+          if (Array.isArray(p.choices)) return p.choices;
+          if (Array.isArray(p.secenekler)) return p.secenekler;
+        } catch {}
+      }
+      return null;
+    };
+
     const candidateLists = [
       rawOptions,
       question?.options,
@@ -255,7 +267,11 @@ export default function MultipleChoiceRunner({
       question?.secenekler,
       question?.bankQ?.options,
       question?.raw_data?.options,
-      question?.bankQ?.choices
+      question?.bankQ?.choices,
+      parseExp(question?.explanation),
+      parseExp(question?.bankQ?.explanation),
+      parseExp(question?.contentPayload),
+      parseExp(question?.content_payload)
     ];
 
     let opts = candidateLists.find(hasMeaningfulOptions) || candidateLists.find(l => Array.isArray(l) && l.length > 0) || [];

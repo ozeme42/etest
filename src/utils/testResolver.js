@@ -149,21 +149,48 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
-  const candidateLists = [
-    qObj.options,
-    qObj.choices,
-    qObj.secenekler,
-    qObj.optionsList,
-    qObj.bankQ?.options,
-    qObj.bankQ?.choices,
-    qObj.raw_data?.options,
-    testObj.options,
-    testObj.choices,
-    testObj.secenekler,
-    testObj.bankQ?.options
-  ];
+  const parseOptionsFromTarget = (target) => {
+    if (!target) return null;
+    if (hasMeaningfulOptions(target.options)) return target.options;
+    if (hasMeaningfulOptions(target.choices)) return target.choices;
+    if (hasMeaningfulOptions(target.secenekler)) return target.secenekler;
+    if (hasMeaningfulOptions(target.optionsList)) return target.optionsList;
+    if (hasMeaningfulOptions(target.answers)) return target.answers;
+    if (hasMeaningfulOptions(target.items)) return target.items;
+    if (hasMeaningfulOptions(target.opt)) return target.opt;
+    if (hasMeaningfulOptions(target.raw_data?.options)) return target.raw_data.options;
+    if (hasMeaningfulOptions(target.bankQ?.options)) return target.bankQ.options;
+    if (hasMeaningfulOptions(target.bankQ?.choices)) return target.bankQ.choices;
+    if (hasMeaningfulOptions(target.bankQ?.raw_data?.options)) return target.bankQ.raw_data.options;
 
-  let rawOptions = candidateLists.find(hasMeaningfulOptions) || candidateLists.find(l => Array.isArray(l) && l.length > 0) || qObj.options || testObj.options;
+    // Check explanation JSON
+    for (const exp of [target.explanation, target.bankQ?.explanation, target.raw_data?.explanation]) {
+      if (typeof exp === 'string' && exp.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(exp);
+          if (hasMeaningfulOptions(parsed.options)) return parsed.options;
+          if (hasMeaningfulOptions(parsed.choices)) return parsed.choices;
+          if (hasMeaningfulOptions(parsed.secenekler)) return parsed.secenekler;
+        } catch {}
+      }
+    }
+
+    // Check contentPayload JSON
+    for (const cp of [target.contentPayload, target.content_payload, target.bankQ?.contentPayload]) {
+      if (typeof cp === 'string' && cp.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(cp);
+          if (hasMeaningfulOptions(parsed.options)) return parsed.options;
+          if (hasMeaningfulOptions(parsed.choices)) return parsed.choices;
+          if (hasMeaningfulOptions(parsed.secenekler)) return parsed.secenekler;
+        } catch {}
+      }
+    }
+
+    return null;
+  };
+
+  let rawOptions = parseOptionsFromTarget(qObj) || parseOptionsFromTarget(testObj) || qObj.options || testObj.options;
 
   if (typeof rawOptions === 'string') {
     const trimmed = rawOptions.trim();
@@ -172,15 +199,6 @@ export function extractQuestionOptions(qObj, testObj = {}) {
         rawOptions = JSON.parse(trimmed);
       } catch {}
     }
-  }
-
-  if (!rawOptions && typeof qObj.contentPayload === 'string') {
-    try {
-      const parsed = JSON.parse(qObj.contentPayload);
-      if (parsed && typeof parsed === 'object') {
-        rawOptions = parsed.options || parsed.choices || parsed.secenekler;
-      }
-    } catch {}
   }
 
   let optArray = [];
