@@ -252,11 +252,20 @@ export default function MultipleChoiceRunner({
       (Array.isArray(question?.options) && question.options.length > 0) ? question.options : (
         (Array.isArray(question?.choices) && question.choices.length > 0) ? question.choices : (
           (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : (
-            (Array.isArray(question?.bankQ?.options) && question.bankQ.options.length > 0) ? question.bankQ.options : []
+            (Array.isArray(question?.bankQ?.options) && question.bankQ.options.length > 0) ? question.bankQ.options : (
+              (Array.isArray(question?.raw_data?.options) && question.raw_data.options.length > 0) ? question.raw_data.options : []
+            )
           )
         )
       )
     );
+
+    if (typeof opts === 'string') {
+      try {
+        const parsed = JSON.parse(opts);
+        if (Array.isArray(parsed)) opts = parsed;
+      } catch {}
+    }
 
     const cleanOptionPrefix = (str, idx) => {
       if (!str || typeof str !== 'string') return str;
@@ -268,23 +277,28 @@ export default function MultipleChoiceRunner({
     return optionLetters.map((opt, optIdx) => {
       const raw = opts ? opts[optIdx] : null;
       let text = '';
-      if (typeof raw === 'string') text = cleanOptionPrefix(raw.trim(), optIdx);
+      if (typeof raw === 'string') text = cleanOptionPrefix(raw.trim(), optIdx) || raw.trim();
       else if (raw && typeof raw === 'object') {
         const rawT = raw.text || raw.optionText || raw.label || raw.title || raw.value || raw.content || raw.secenekText || '';
-        text = cleanOptionPrefix(String(rawT).trim(), optIdx);
+        text = cleanOptionPrefix(String(rawT).trim(), optIdx) || String(rawT).trim();
       }
       const cleanText = text.trim();
       const lower = cleanText.toLowerCase();
-      const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}` || lower === `seçenek ${opt.toLowerCase()}` || lower === `secenek ${opt.toLowerCase()}` || lower === `option ${opt.toLowerCase()}`;
+      const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}`;
+      
+      const displayText = cleanText || `${opt} Seçeneği`;
+
       return {
         letter: opt,
-        text: isPlaceholder ? '' : cleanText,
-        hasText: !isPlaceholder
+        text: displayText,
+        hasText: Boolean(cleanText && !isPlaceholder)
       };
     });
   }, [rawOptions, question, optionLetters]);
 
   const hasAnyOptionText = optionsWithText.some(o => o.hasText);
+  // Show full vertical option cards if option text is present OR if there are no question images (pure text question)
+  const showVerticalOptionCards = hasAnyOptionText || resolvedImages.length === 0;
 
   // Difficulty badge colors
   const diffBadge = {
@@ -496,7 +510,7 @@ export default function MultipleChoiceRunner({
       </div>
 
       {/* ── OPTIONS RENDERING (Vibrant Interactive Tiles) ── */}
-      {hasAnyOptionText ? (
+      {showVerticalOptionCards ? (
         /* Vertical Stacked Options with Full Text */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.35rem' }}>
           {optionsWithText.map((optObj, optIdx) => {

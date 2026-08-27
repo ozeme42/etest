@@ -139,7 +139,16 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
-  let rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || testObj.options || testObj.choices || testObj.secenekler;
+  let rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || qObj.raw_data?.options || qObj.bankQ?.options || testObj.options || testObj.choices || testObj.secenekler;
+
+  if (typeof rawOptions === 'string') {
+    const trimmed = rawOptions.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        rawOptions = JSON.parse(trimmed);
+      } catch {}
+    }
+  }
 
   if (!rawOptions && typeof qObj.contentPayload === 'string') {
     try {
@@ -221,7 +230,7 @@ export function extractQuestionOptions(qObj, testObj = {}) {
     const optLabel = String.fromCharCode(65 + optIdx);
     if (typeof opt === 'string') {
       const trimmed = cleanOptionPrefix(opt.trim(), optIdx);
-      return trimmed || null;
+      return trimmed || opt.trim();
     }
     if (opt && typeof opt === 'object') {
       const textCandidate = [
@@ -239,15 +248,12 @@ export function extractQuestionOptions(qObj, testObj = {}) {
         opt.label
       ].find(t => t && typeof t === 'string' && t.trim());
 
-      if (textCandidate) return cleanOptionPrefix(textCandidate.trim(), optIdx);
+      if (textCandidate) return cleanOptionPrefix(textCandidate.trim(), optIdx) || textCandidate.trim();
     }
-    return null;
+    return String.fromCharCode(65 + optIdx);
   });
 
-  const realOptions = mapped.filter(Boolean);
-  if (realOptions.length > 0) return mapped.map((m, i) => m || String.fromCharCode(65 + i));
-
-  return [];
+  return mapped.length > 0 ? mapped : [];
 }
 
 export const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');

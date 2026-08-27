@@ -1083,7 +1083,7 @@ export async function dbGetQuestions() {
         title: q.title || '',
         questionCount: q.question_count || 1,
         questionText: q.question_text || '',
-        options: q.options || [],
+        options: Array.isArray(q.options) ? q.options : (typeof q.options === 'string' ? (() => { try { const p = JSON.parse(q.options); return Array.isArray(p) ? p : []; } catch { return q.options.split('\n').filter(Boolean); } })() : []),
         correctAnswer: q.correct_answer !== undefined ? q.correct_answer : '0',
         explanation: q.explanation || '',
         imageUrl: cleanImageUrl,
