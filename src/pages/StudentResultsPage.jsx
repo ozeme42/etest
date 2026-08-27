@@ -33,7 +33,7 @@ import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/util
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
 import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
-import { extractItemDate, getTurkeyYMD, getTurkeyToday } from '../utils/dateHelpers';
+import { extractItemDate, getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
@@ -594,10 +594,37 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [typeFilter, setTypeFilter]   = useState('all');
-  const [dateFilter, setDateFilter]   = useState('');
+  const [startDate, setStartDate]     = useState('');
+  const [endDate, setEndDate]         = useState('');
+  const [datePreset, setDatePreset]   = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize]       = useState(15);
   const [viewMode, setViewMode]       = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 768 ? 'cards' : 'table'));
+
+  const handleDatePreset = (preset) => {
+    setDatePreset(preset);
+    if (preset === 'all') {
+      setStartDate('');
+      setEndDate('');
+    } else if (preset === 'today') {
+      const t = getTurkeyToday();
+      setStartDate(t);
+      setEndDate(t);
+    } else if (preset === 'yesterday') {
+      const yDate = new Date(Date.now() - 86400000);
+      const y = getTurkeyYMD(yDate);
+      setStartDate(y);
+      setEndDate(y);
+    } else if (preset === 'week') {
+      const { startYMD, endYMD } = getTurkeyWeekRange();
+      setStartDate(startYMD);
+      setEndDate(endYMD);
+    } else if (preset === 'month') {
+      const { startYMD, endYMD } = getTurkeyMonthRange();
+      setStartDate(startYMD);
+      setEndDate(endYMD);
+    }
+  };
   const [trendSubject, setTrendSubject] = useState('all');
   const [byTypeTab, setByTypeTab]       = useState('homework');
   const [expandedSubject, setExpandedSubject] = useState(null);
@@ -819,14 +846,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const typeMatch = typeFilter === 'all' || s.typeKey === typeFilter;
       
       let dateMatch = true;
-      if (dateFilter) {
+      if (startDate || endDate) {
         const itemYMD = getTurkeyYMD(s.date || s.submittedAt || s.createdAt);
-        dateMatch = itemYMD === dateFilter;
+        if (startDate && itemYMD < startDate) dateMatch = false;
+        if (endDate && itemYMD > endDate) dateMatch = false;
       }
 
       return titleMatch && subjectMatch && typeMatch && dateMatch;
     });
-  }, [studentSubmissions, searchQuery, subjectFilter, typeFilter, dateFilter]);
+  }, [studentSubmissions, searchQuery, subjectFilter, typeFilter, startDate, endDate]);
 
   /* ── Totals summary across filtered submissions ─── */
   const tableTotals = useMemo(() => {
@@ -843,7 +871,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   // Reset page to 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, subjectFilter, typeFilter, dateFilter, selectedStudent]);
+  }, [searchQuery, subjectFilter, typeFilter, startDate, endDate, selectedStudent]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSubs.length / (pageSize || 15)));
 
@@ -2357,66 +2385,99 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     </select>
                   </div>
 
-                  {/* Mobile Date Filter Row */}
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%' }}>
-                    <input
-                      type="date"
-                      value={dateFilter}
-                      onChange={e => setDateFilter(e.target.value)}
-                      title="Tarih Filtresi"
-                      style={{
-                        flex: 1,
-                        padding: '0.45rem 0.6rem',
-                        borderRadius: 8,
-                        border: dateFilter ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        background: dateFilter ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)',
-                        color: dateFilter ? '#4f46e5' : 'var(--color-text)',
-                        outline: 'none'
-                      }}
-                    />
-                    {dateFilter ? (
-                      <button
-                        onClick={() => setDateFilter('')}
+                  {/* Mobile Date Range Filter Row */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <select
+                        value={datePreset}
+                        onChange={e => handleDatePreset(e.target.value)}
                         style={{
-                          padding: '0.45rem 0.65rem',
+                          flex: 1,
+                          padding: '0.45rem 0.6rem',
                           borderRadius: 8,
-                          border: '1px solid #fecaca',
-                          background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
-                          color: '#dc2626',
-                          fontSize: '0.72rem',
+                          border: (startDate || endDate) ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                          fontSize: '0.76rem',
                           fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          whiteSpace: 'nowrap'
+                          background: (startDate || endDate) ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)',
+                          color: (startDate || endDate) ? '#4f46e5' : 'var(--color-text)',
+                          outline: 'none',
+                          cursor: 'pointer'
                         }}
                       >
-                        <X size={12} /> Temizle
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setDateFilter(getTurkeyToday())}
+                        <option value="all">📅 Tüm Tarihler</option>
+                        <option value="today">📅 Bugün</option>
+                        <option value="yesterday">📅 Dün</option>
+                        <option value="week">📅 Bu Hafta</option>
+                        <option value="month">📅 Bu Ay</option>
+                        <option value="custom">📅 Özel Tarih Aralığı...</option>
+                      </select>
+
+                      {(startDate || endDate) && (
+                        <button
+                          onClick={() => handleDatePreset('all')}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: 8,
+                            border: '1px solid #fecaca',
+                            background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                            color: '#dc2626',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <X size={12} /> Temizle
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={e => {
+                          setStartDate(e.target.value);
+                          setDatePreset('custom');
+                        }}
+                        title="Başlangıç Tarihi"
                         style={{
-                          padding: '0.45rem 0.65rem',
+                          flex: 1,
+                          padding: '0.4rem 0.5rem',
                           borderRadius: 8,
-                          border: '1px solid var(--color-border)',
+                          border: startDate ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
                           background: 'var(--color-surface-hover)',
-                          color: 'var(--color-text-muted)',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          whiteSpace: 'nowrap'
+                          color: 'var(--color-text)',
+                          outline: 'none'
                         }}
-                      >
-                        <Calendar size={12} /> Bugün
-                      </button>
-                    )}
+                      />
+                      <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>-</span>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={e => {
+                          setEndDate(e.target.value);
+                          setDatePreset('custom');
+                        }}
+                        title="Bitiş Tarihi"
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem 0.5rem',
+                          borderRadius: 8,
+                          border: endDate ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text)',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -2462,69 +2523,95 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     <option value="individual">Bireysel</option>
                   </select>
 
-                  {/* Desktop Date Filter */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: dateFilter ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)', padding: '2px 4px', borderRadius: 10, border: dateFilter ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)' }}>
-                      <Calendar size={14} color={dateFilter ? '#6366f1' : 'var(--color-text-muted)'} style={{ marginLeft: 6 }} />
-                      <input
-                        type="date"
-                        value={dateFilter}
-                        onChange={e => setDateFilter(e.target.value)}
-                        title="Tarih Filtresi"
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: dateFilter ? '#4f46e5' : 'var(--color-text)',
-                          fontSize: '0.8rem',
-                          fontWeight: 800,
-                          padding: '0.45rem 0.4rem',
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                    {dateFilter ? (
-                      <button
-                        onClick={() => setDateFilter('')}
-                        title="Tarihi Temizle"
-                        style={{
-                          padding: '0.45rem 0.65rem',
-                          borderRadius: 8,
-                          border: '1px solid #fecaca',
-                          background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
-                          color: '#dc2626',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3
-                        }}
-                      >
-                        <X size={13} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setDateFilter(getTurkeyToday())}
-                        title="Bugünün Sonuçlarını Göster"
-                        style={{
-                          padding: '0.45rem 0.7rem',
-                          borderRadius: 8,
-                          border: '1px solid var(--color-border)',
-                          background: 'var(--color-surface-hover)',
-                          color: 'var(--color-text-muted)',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        Bugün
-                      </button>
-                    )}
+                  {/* Desktop Date Range Preset Dropdown */}
+                  <select
+                    value={datePreset}
+                    onChange={e => handleDatePreset(e.target.value)}
+                    style={{
+                      padding: '0.5rem 0.8rem',
+                      borderRadius: 10,
+                      border: (startDate || endDate) ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      background: (startDate || endDate) ? (isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff') : 'var(--color-surface-hover)',
+                      color: (startDate || endDate) ? '#4f46e5' : 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">📅 Tüm Tarihler</option>
+                    <option value="today">📅 Bugün</option>
+                    <option value="yesterday">📅 Dün</option>
+                    <option value="week">📅 Bu Hafta</option>
+                    <option value="month">📅 Bu Ay</option>
+                    <option value="custom">📅 Özel Aralık...</option>
+                  </select>
+
+                  {/* Desktop Start & End Date Pickers */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: (startDate || endDate) ? (isDark ? 'rgba(99,102,241,0.14)' : '#eef2ff') : 'var(--color-surface-hover)', padding: '2px 6px', borderRadius: 10, border: (startDate || endDate) ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)' }}>
+                    <Calendar size={14} color={(startDate || endDate) ? '#6366f1' : 'var(--color-text-muted)'} style={{ marginLeft: 3 }} />
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => {
+                        setStartDate(e.target.value);
+                        setDatePreset('custom');
+                      }}
+                      title="Başlangıç Tarihi"
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: (startDate || endDate) ? '#4f46e5' : 'var(--color-text)',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        padding: '0.45rem 0.3rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>-</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => {
+                        setEndDate(e.target.value);
+                        setDatePreset('custom');
+                      }}
+                      title="Bitiş Tarihi"
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: (startDate || endDate) ? '#4f46e5' : 'var(--color-text)',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        padding: '0.45rem 0.3rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    />
                   </div>
+
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => handleDatePreset('all')}
+                      title="Tarih Filtresini Temizle"
+                      style={{
+                        padding: '0.45rem 0.65rem',
+                        borderRadius: 8,
+                        border: '1px solid #fecaca',
+                        background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}
+                    >
+                      <X size={13} /> Temizle
+                    </button>
+                  )}
                 </>
               )}
 
@@ -2594,84 +2681,90 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
             </div>
 
             {/* SUMMARY HIGHLIGHT BANNER (TOP) */}
-            {filteredSubs.length > 0 && (
-              <div style={{
-                background: dateFilter
-                  ? (isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4')
-                  : (isDark ? 'rgba(99,102,241,0.1)' : '#f8fafc'),
-                border: dateFilter
-                  ? (isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0')
-                  : (isDark ? '1.5px solid rgba(99,102,241,0.25)' : '1.5px solid var(--color-border)'),
-                borderRadius: 14,
-                padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 12,
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background: dateFilter
-                      ? 'linear-gradient(135deg, #10b981, #059669)'
-                      : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '1.1rem',
-                    boxShadow: dateFilter
-                      ? '0 2px 8px rgba(16,185,129,0.3)'
-                      : '0 2px 8px rgba(99,102,241,0.3)'
-                  }}>
-                    {dateFilter ? '📅' : '📊'}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                      {dateFilter
-                        ? `${new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti`
-                        : `Tüm Sonuçlar & Performans Özeti`}
+            {filteredSubs.length > 0 && (() => {
+              const isSingleDay = Boolean(startDate && endDate && startDate === endDate);
+              const isDateActive = Boolean(startDate || endDate);
+              return (
+                <div style={{
+                  background: isDateActive
+                    ? (isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4')
+                    : (isDark ? 'rgba(99,102,241,0.1)' : '#f8fafc'),
+                  border: isDateActive
+                    ? (isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0')
+                    : (isDark ? '1.5px solid rgba(99,102,241,0.25)' : '1.5px solid var(--color-border)'),
+                  borderRadius: 14,
+                  padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: isDateActive
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '1.1rem',
+                      boxShadow: isDateActive
+                        ? '0 2px 8px rgba(16,185,129,0.3)'
+                        : '0 2px 8px rgba(99,102,241,0.3)'
+                    }}>
+                      {isDateActive ? '📅' : '📊'}
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                      {dateFilter
-                        ? `Seçilen tarihte çözülen ${tableTotals.count} testin genel toplam sonuçları`
-                        : `Listelenen ${tableTotals.count} testin genel toplam sonuçları`}
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                        {isSingleDay
+                          ? `${new Date(startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti`
+                          : isDateActive
+                            ? `${startDate ? new Date(startDate).toLocaleDateString('tr-TR') : '...'} — ${endDate ? new Date(endDate).toLocaleDateString('tr-TR') : '...'} Tarih Aralığı Özeti`
+                            : `Tüm Sonuçlar & Performans Özeti`}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                        {isDateActive
+                          ? `Seçilen tarih aralığında çözülen ${tableTotals.count} testin genel toplam sonuçları`
+                          : `Listelenen ${tableTotals.count} testin genel toplam sonuçları`}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>SORU</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalQ}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #bbf7d0', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#16a34a', fontWeight: 800 }}>DOĞRU</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d' }}>{tableTotals.totalC}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #fecaca', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#dc2626', fontWeight: 800 }}>YANLIŞ</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c' }}>{tableTotals.totalW}</div>
-                  </div>
-                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>BOŞ</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalB}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: 8, border: '1px solid #bfdbfe', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
-                  </div>
-                  <div style={{ background: dateFilter ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: dateFilter ? '0 2px 8px rgba(16,185,129,0.25)' : '0 2px 8px rgba(99,102,241,0.25)' }}>
-                    <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>SORU</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalQ}</div>
+                    </div>
+                    <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#16a34a', fontWeight: 800 }}>DOĞRU</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d' }}>{tableTotals.totalC}</div>
+                    </div>
+                    <div style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #fecaca', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#dc2626', fontWeight: 800 }}>YANLIŞ</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c' }}>{tableTotals.totalW}</div>
+                    </div>
+                    <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>BOŞ</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalB}</div>
+                    </div>
+                    <div style={{ background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: 8, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
+                    </div>
+                    <div style={{ background: isDateActive ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: isDateActive ? '0 2px 8px rgba(16,185,129,0.25)' : '0 2px 8px rgba(99,102,241,0.25)' }}>
+                      <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* TABLE VIEW */}
             {viewMode === 'table' && (
@@ -2869,9 +2962,11 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                                 <div style={{ fontSize: '0.82rem', color: isDark ? '#a5b4fc' : '#3730a3', fontWeight: 900 }}>
                                   TOPLAM ({tableTotals.count} Test)
                                 </div>
-                                {dateFilter && (
+                                {(startDate || endDate) && (
                                   <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                                    📅 {new Date(dateFilter).toLocaleDateString('tr-TR')}
+                                    📅 {startDate === endDate
+                                      ? new Date(startDate).toLocaleDateString('tr-TR')
+                                      : `${startDate ? new Date(startDate).toLocaleDateString('tr-TR') : '...'} - ${endDate ? new Date(endDate).toLocaleDateString('tr-TR') : '...'}`}
                                   </div>
                                 )}
                               </div>
@@ -2881,7 +2976,11 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                             —
                           </td>
                           <td style={{ padding: '0.9rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                            {dateFilter ? new Date(dateFilter).toLocaleDateString('tr-TR') : 'Tüm Tarihler'}
+                            {startDate && endDate && startDate === endDate
+                              ? new Date(startDate).toLocaleDateString('tr-TR')
+                              : (startDate || endDate)
+                                ? `${startDate ? new Date(startDate).toLocaleDateString('tr-TR') : '...'} - ${endDate ? new Date(endDate).toLocaleDateString('tr-TR') : '...'}`
+                                : 'Tüm Tarihler'}
                           </td>
                           <td style={{ padding: '0.9rem 0.85rem', fontSize: '0.9rem', color: 'var(--color-text)', fontWeight: 900 }}>
                             {tableTotals.totalQ}
