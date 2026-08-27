@@ -1390,6 +1390,23 @@ export async function dbDeleteQuestion(q) {
       if (typeof payloadUrl === 'string' && payloadUrl.includes('/storage/v1/object/public/question_files/')) {
         urlsToDelete.push(payloadUrl);
       }
+      if (typeof questionObj.image_url === 'string' && questionObj.image_url.includes('/storage/v1/object/public/question_files/')) {
+        urlsToDelete.push(questionObj.image_url);
+      }
+      if (typeof questionObj.imageUrl === 'string' && questionObj.imageUrl.includes('/storage/v1/object/public/question_files/')) {
+        urlsToDelete.push(questionObj.imageUrl);
+      }
+      if (Array.isArray(questionObj.imageUrls)) {
+        questionObj.imageUrls.forEach(url => {
+          if (typeof url === 'string' && url.includes('/storage/v1/object/public/question_files/')) urlsToDelete.push(url);
+        });
+      }
+      if (Array.isArray(questionObj.questionsList)) {
+        questionObj.questionsList.forEach(sq => {
+          if (typeof sq.imageUrl === 'string' && sq.imageUrl.includes('/storage/v1/object/public/question_files/')) urlsToDelete.push(sq.imageUrl);
+          if (typeof sq.contentPayload === 'string' && sq.contentPayload.includes('/storage/v1/object/public/question_files/')) urlsToDelete.push(sq.contentPayload);
+        });
+      }
       if (questionObj.raw_data && typeof questionObj.raw_data === 'object') {
         const rawUrl = questionObj.raw_data.contentPayload;
         if (typeof rawUrl === 'string' && rawUrl.includes('/storage/v1/object/public/question_files/')) {
@@ -1402,10 +1419,38 @@ export async function dbDeleteQuestion(q) {
             }
           });
         }
+        if (Array.isArray(questionObj.raw_data.questionsList)) {
+          questionObj.raw_data.questionsList.forEach(sq => {
+            if (typeof sq.imageUrl === 'string' && sq.imageUrl.includes('/storage/v1/object/public/question_files/')) urlsToDelete.push(sq.imageUrl);
+            if (typeof sq.contentPayload === 'string' && sq.contentPayload.includes('/storage/v1/object/public/question_files/')) urlsToDelete.push(sq.contentPayload);
+          });
+        }
       }
 
       // Perform file deletion from Storage bucket
       const fileNames = urlsToDelete.map(url => url.split('/question_files/').pop()).filter(Boolean);
+      
+      // Also search bucket for any orphaned chunked parts belonging to this question ID
+      try {
+        const searchTerms = [rawIdStr.replace(/^q_?/, ''), ...(validUuids || [])];
+        for (const term of searchTerms) {
+          if (term && term.length > 5) {
+            const { data: listedFiles } = await supabase.storage.from('question_files').list('', {
+              search: term
+            });
+            if (Array.isArray(listedFiles)) {
+              listedFiles.forEach(f => {
+                if (f && f.name && !fileNames.includes(f.name)) {
+                  fileNames.push(f.name);
+                }
+              });
+            }
+          }
+        }
+      } catch (searchErr) {
+        console.warn('[Supabase Storage] List/search cleanup error:', searchErr);
+      }
+
       if (fileNames.length > 0) {
         try {
           await supabase.storage.from('question_files').remove(fileNames);
