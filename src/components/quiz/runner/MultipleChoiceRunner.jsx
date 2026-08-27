@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Check, Eye, Pencil, Sparkles, HelpCircle, Zap, Star, Bookmark } from 'lucide-react';
-import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { extractQuestionText, extractQuestionOptions, hasMeaningfulOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import ImageLightbox from '../common/ImageLightbox';
 
@@ -248,17 +248,17 @@ export default function MultipleChoiceRunner({
 
   // Extract option texts
   const optionsWithText = useMemo(() => {
-    let opts = (Array.isArray(rawOptions) && rawOptions.length > 0) ? rawOptions : (
-      (Array.isArray(question?.options) && question.options.length > 0) ? question.options : (
-        (Array.isArray(question?.choices) && question.choices.length > 0) ? question.choices : (
-          (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : (
-            (Array.isArray(question?.bankQ?.options) && question.bankQ.options.length > 0) ? question.bankQ.options : (
-              (Array.isArray(question?.raw_data?.options) && question.raw_data.options.length > 0) ? question.raw_data.options : []
-            )
-          )
-        )
-      )
-    );
+    const candidateLists = [
+      rawOptions,
+      question?.options,
+      question?.choices,
+      question?.secenekler,
+      question?.bankQ?.options,
+      question?.raw_data?.options,
+      question?.bankQ?.choices
+    ];
+
+    let opts = candidateLists.find(hasMeaningfulOptions) || candidateLists.find(l => Array.isArray(l) && l.length > 0) || [];
 
     if (typeof opts === 'string') {
       try {
@@ -284,9 +284,9 @@ export default function MultipleChoiceRunner({
       }
       const cleanText = text.trim();
       const lower = cleanText.toLowerCase();
-      const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}`;
+      const isPlaceholder = !cleanText || lower === opt.toLowerCase() || lower === `şık ${opt.toLowerCase()}` || lower === `sik ${opt.toLowerCase()}` || lower === `seçenek ${opt.toLowerCase()}` || lower === `secenek ${opt.toLowerCase()}`;
       
-      const displayText = cleanText || `${opt} Seçeneği`;
+      const displayText = (!isPlaceholder && cleanText) ? cleanText : `${opt} Seçeneği`;
 
       return {
         letter: opt,

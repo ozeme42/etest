@@ -20,7 +20,7 @@ import SingleOpenEndedRunner from '../components/quiz/single/SingleOpenEndedRunn
 import CompositeHomeworkRunner from '../components/quiz/composite/CompositeHomeworkRunner';
 import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
-import { resolveTestQuestions } from '../utils/testResolver';
+import { resolveTestQuestions, hasMeaningfulOptions } from '../utils/testResolver';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { idbGetPayload } from '../services/indexedDbService';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
@@ -571,10 +571,15 @@ export default function ModularQuizPage() {
                             [];
             const qImg = bankQ?.imageUrl || bankQ?.image || (typeof item === 'object' ? item.imageUrl : null) || (typeof item === 'object' ? item.image : null) || null;
 
+            const secOptions = hasMeaningfulOptions(bankQ?.options)
+              ? bankQ.options
+              : (hasMeaningfulOptions(item?.options) ? item.options : (bankQ?.options || item?.options || []));
+
             return {
               ...(bankQ || {}),
               ...(typeof item === 'object' ? item : {}),
               id: itemId || `sec_${idx}`,
+              options: secOptions,
               questionId: itemId,
               title,
               bankQ: bankQ || (typeof item === 'object' ? item : { id: itemId, title }),
@@ -661,7 +666,7 @@ export default function ModularQuizPage() {
               formatType: foundTest.formatType || bankQ.formatType,
               sourceFormat: foundTest.sourceFormat || bankQ.sourceFormat,
               questionText: foundTest.questionText || bankQ.questionText || foundTest.text || bankQ.text,
-              options: (foundTest.options && foundTest.options.length > 0) ? foundTest.options : bankQ.options,
+              options: hasMeaningfulOptions(bankQ?.options) ? bankQ.options : (hasMeaningfulOptions(foundTest.options) ? foundTest.options : (bankQ?.options || foundTest.options || [])),
               questionsList: (foundTest.questionsList && foundTest.questionsList.length > 0) ? foundTest.questionsList : bankQ.questionsList,
               contentPayload: resolvedContentPayload,
               pdfPayload: resolvedPdfPayload,

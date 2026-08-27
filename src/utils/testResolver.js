@@ -132,6 +132,16 @@ export function extractQuestionText(qObj, testObj = {}, index = 0) {
   return `Soru ${index + 1}`;
 }
 
+export const hasMeaningfulOptions = (opts) => {
+  if (!Array.isArray(opts) || opts.length === 0) return false;
+  return opts.some((opt, idx) => {
+    const text = typeof opt === 'string' ? opt : (opt?.text || opt?.optionText || opt?.label || opt?.title || '');
+    const clean = text.trim().toLowerCase();
+    const letter = String.fromCharCode(65 + idx).toLowerCase();
+    return clean && clean !== letter && clean !== `şık ${letter}` && clean !== `sik ${letter}` && clean !== `seçenek ${letter}` && clean !== `secenek ${letter}`;
+  });
+};
+
 /**
  * Helper to extract option texts robustly from any question object format.
  */
@@ -139,7 +149,21 @@ export function extractQuestionOptions(qObj, testObj = {}) {
   if (!qObj) qObj = {};
   if (!testObj) testObj = {};
 
-  let rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || qObj.raw_data?.options || qObj.bankQ?.options || testObj.options || testObj.choices || testObj.secenekler;
+  const candidateLists = [
+    qObj.options,
+    qObj.choices,
+    qObj.secenekler,
+    qObj.optionsList,
+    qObj.bankQ?.options,
+    qObj.bankQ?.choices,
+    qObj.raw_data?.options,
+    testObj.options,
+    testObj.choices,
+    testObj.secenekler,
+    testObj.bankQ?.options
+  ];
+
+  let rawOptions = candidateLists.find(hasMeaningfulOptions) || candidateLists.find(l => Array.isArray(l) && l.length > 0) || qObj.options || testObj.options;
 
   if (typeof rawOptions === 'string') {
     const trimmed = rawOptions.trim();
@@ -442,7 +466,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
     const isPayloadMissing = !q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || q.contentPayload === '[LOCALSTORAGE_CACHE]';
     const isImageMissing = !q.imageUrl || q.imageUrl === '[STORED_IN_INDEXEDDB]' || q.imageUrl === '[LOCALSTORAGE_CACHE]';
 
-    if (q.id && (isPayloadMissing || isImageMissing || !q.questionText || !q.options || q.options.length === 0)) {
+    const qHasMeaningfulOpts = hasMeaningfulOptions(q.options);
+    if (q.id && (isPayloadMissing || isImageMissing || !q.questionText || !qHasMeaningfulOpts || !q.options || q.options.length === 0)) {
       const matched = allBankQuestions.find(bq => String(bq.id) === String(q.id) || normalizeId(bq.id) === normalizeId(q.id));
       if (matched) {
         const matchedImgs = extractImageUrls(matched);
@@ -452,6 +477,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
           ? resolvedImgs[idx]
           : (resolvedImgs[0] || (!isImageMissing ? q.imageUrl : matched.imageUrl) || q.imageUrl);
 
+        const chosenOpts = qHasMeaningfulOpts ? q.options : (hasMeaningfulOptions(matched.options) ? matched.options : (matched.options || q.options));
+
         return {
           ...matched,
           ...q,
@@ -459,7 +486,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
           imageUrl: targetImg || null,
           imageUrls: targetImg ? [targetImg] : undefined,
           images: targetImg ? [targetImg] : undefined,
-          options: (Array.isArray(q.options) && q.options.length > 0) ? q.options : matched.options,
+          options: chosenOpts,
           questionText: extractQuestionText(q, foundTest, idx) || extractQuestionText(matched, foundTest, idx)
         };
       }
