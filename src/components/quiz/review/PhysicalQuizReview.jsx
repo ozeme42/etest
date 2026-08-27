@@ -7,6 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
+import AiUsageBadge from '../ai/AiUsageBadge';
 import { useTheme } from '../../../context/ThemeContext';
 import { toUUID } from '../../../services/supabaseService';
 
