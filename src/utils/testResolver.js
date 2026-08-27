@@ -992,12 +992,19 @@ export function computeStudentAnalyticsData({
 
     const isTrial = isExamBook || s.isDeneme || s.isExam || parentHw?.isDeneme || /deneme|lgs|yks|tyt|ayt|bursluluk|kurumsal/i.test(title);
 
-    let correct = s.correctCount ?? s.correct ?? s.totalCorrect ?? 0;
-    let wrong = s.wrongCount ?? s.wrong ?? s.totalWrong ?? 0;
-    let empty = s.emptyCount ?? s.blankCount ?? s.empty ?? s.totalEmpty ?? 0;
+    const raw = s.raw_data || {};
+    const expCorrect = s.correctCount ?? s.correct_count ?? s.correct ?? s.totalCorrect ?? raw.correctCount ?? raw.correct_count;
+    const expWrong = s.wrongCount ?? s.wrong_count ?? s.wrong ?? s.totalWrong ?? raw.wrongCount ?? raw.wrong_count;
+    const expEmpty = s.emptyCount ?? s.empty_count ?? s.blankCount ?? s.blank_count ?? s.empty ?? s.totalEmpty ?? raw.emptyCount ?? raw.empty_count;
 
-    // Extract from answers array if available
-    if (Array.isArray(s.answers) && s.answers.length > 0) {
+    let correct = (expCorrect !== undefined && expCorrect !== null && !isNaN(Number(expCorrect))) ? Number(expCorrect) : 0;
+    let wrong = (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) ? Number(expWrong) : 0;
+    let empty = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) ? Number(expEmpty) : 0;
+
+    const hasExplicitCounts = (expCorrect !== undefined && expCorrect !== null) || (expWrong !== undefined && expWrong !== null);
+
+    // Only extract from answers array if explicit counts were NOT provided or were both zero
+    if ((!hasExplicitCounts || (correct === 0 && wrong === 0)) && Array.isArray(s.answers) && s.answers.length > 0) {
       let aCorr = 0;
       let aWrong = 0;
       let aEmpty = 0;
@@ -1043,7 +1050,7 @@ export function computeStudentAnalyticsData({
         else if (isRight === false) aWrong++;
         else aEmpty++;
       });
-      if (aCorr > 0 || aWrong > 0 || aEmpty > 0) {
+      if (aCorr > 0 || aWrong > 0) {
         correct = aCorr;
         wrong = aWrong;
         empty = aEmpty;
@@ -1058,7 +1065,7 @@ export function computeStudentAnalyticsData({
       (Array.isArray(s.answers) && s.answers.length > 0 && (!s.sections || Object.keys(s.sections || {}).length <= 1))
     );
 
-    if (!isSingleTestSub) {
+    if (!isSingleTestSub && !hasExplicitCounts) {
       const unifiedStats = computeUnifiedSubmissionStats(s, parentHw || testObj, []);
       if (unifiedStats) {
         correct = unifiedStats.correct;
@@ -1068,9 +1075,13 @@ export function computeStudentAnalyticsData({
     }
 
     // Total questions
-    const totalQ = isSingleTestSub
-      ? (s.totalQuestions || testObj?.questionCount || (Array.isArray(s.answers) ? s.answers.length : 0) || (correct + wrong + empty) || 10)
-      : (parentHw?.totalQuestions || parentHw?.questionCount || testObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10);
+    const totalQ = Math.max(
+      isSingleTestSub
+        ? (s.totalQuestions || testObj?.questionCount || (Array.isArray(s.answers) ? s.answers.length : 0) || (correct + wrong + empty) || 10)
+        : (parentHw?.totalQuestions || parentHw?.questionCount || testObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10),
+      correct + wrong,
+      1
+    );
 
     // Deduce D/Y/B if score was stored as 0-100 percentage or points without D/Y/B
     if (!correct && !wrong && s.score !== undefined && s.score !== null) {
@@ -1082,10 +1093,8 @@ export function computeStudentAnalyticsData({
       }
     }
 
-    // Always ensure empty accounts for all remaining questions if totalQ is known
-    if (totalQ > (correct + wrong)) {
-      empty = Math.max(empty, totalQ - (correct + wrong));
-    }
+    // Ensure empty accurately accounts for remainder
+    empty = Math.max(0, totalQ - (correct + wrong));
 
     // Net calculation
     let net = 0;
@@ -1149,6 +1158,10 @@ export function computeStudentAnalyticsData({
   const hwSubmissions = [];
   (homeworks || []).forEach(hw => {
     if (!hw) return;
+    const cleanHwTitle = String(hw.title || '').toLowerCase();
+    if (cleanHwTitle.includes('(tüm kitap görevi)') || cleanHwTitle.includes('(tüm kitap)') || cleanHwTitle.includes('(kendi eklediğim)')) {
+      return; // Skip dummy umbrella whole-book assignments
+    }
     if (hw.bookId && !books.some(b => String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId))) {
       return; // Deleted book or exam!
     }
@@ -1173,6 +1186,10 @@ export function computeStudentAnalyticsData({
     if (allMatching.length === 0) return;
 
     allMatching.forEach(sub => {
+      const cleanSubTitle = String(sub.title || sub.testTitle || sub.testName || '').toLowerCase();
+      if (cleanSubTitle.includes('(tüm kitap görevi)') || cleanSubTitle.includes('(tüm kitap)') || cleanSubTitle.includes('(kendi eklediğim)')) {
+        return;
+      }
       const sDate = extractItemDate(sub.submittedAt || sub.completedAt || sub.date || sub);
       if (!sDate) return;
 
@@ -1196,6 +1213,10 @@ export function computeStudentAnalyticsData({
   (submissions || []).forEach(s => {
     if (!s) return;
     if (!isStudentMatch(s)) return;
+    const cleanSubTitle = String(s.testTitle || s.title || s.testName || '').toLowerCase();
+    if (cleanSubTitle.includes('(tüm kitap görevi)') || cleanSubTitle.includes('(tüm kitap)') || cleanSubTitle.includes('(kendi eklediğim)')) {
+      return;
+    }
 
     const subIdStr = String(s.id || s.supabaseId || '');
     if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
