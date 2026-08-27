@@ -10,6 +10,7 @@ import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
+import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndSolverModal';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
@@ -271,6 +272,7 @@ export default function TrackedBookQuizRunner() {
 
   const [isSavingDb, setIsSavingDb] = useState(false);
   const [saveToast, setSaveToast] = useState(null);
+  const [aiModalQuestionNo, setAiModalQuestionNo] = useState(null);
 
   const handleSetMistakeReason = (qNo, reason) => {
     setMistakeReasons(prev => {
@@ -1520,23 +1522,50 @@ export default function TrackedBookQuizRunner() {
                                     }}
                                   />
 
-                                  {/* Doğru cevabı göster (gönderim sonrası + cevap anahtarı varsa) */}
-                                  {isSubmitted && hasKey && (
-                                    <div style={{
-                                      fontSize: '0.78rem',
-                                      fontWeight: 800,
-                                      color: isOeCorrect ? '#15803d' : '#b91c1c',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 4
-                                    }}>
-                                      <span style={{ color: '#94a3b8', fontWeight: 600 }}>Doğru:</span>
-                                      <span style={{ fontFamily: 'monospace' }}>{rawCorrectKey}</span>
-                                    </div>
-                                  )}
-                                  {isSubmitted && !hasKey && (
-                                    <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 700 }}>
-                                      ⚠️ Cevap anahtarı girilmemiş — öğretmen kontrolünde
+                                  {/* Doğru cevabı göster ve AI Çözüm butonu (gönderim sonrası) */}
+                                  {isSubmitted && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, flexWrap: 'wrap', gap: 6 }}>
+                                      {hasKey ? (
+                                        <div style={{
+                                          fontSize: '0.78rem',
+                                          fontWeight: 800,
+                                          color: isOeCorrect ? '#15803d' : '#b91c1c',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 4
+                                        }}>
+                                          <span style={{ color: '#94a3b8', fontWeight: 600 }}>Doğru:</span>
+                                          <span style={{ fontFamily: 'monospace' }}>{rawCorrectKey}</span>
+                                        </div>
+                                      ) : (
+                                        <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 700 }}>
+                                          ⚠️ Cevap anahtarı girilmemiş — öğretmen kontrolünde
+                                        </div>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
+                                        style={{
+                                          padding: isVeryNarrow ? '0.14rem 0.4rem' : '0.18rem 0.55rem',
+                                          fontSize: isVeryNarrow ? '0.55rem' : '0.65rem',
+                                          fontWeight: 900,
+                                          borderRadius: 6,
+                                          border: '1.5px solid #a855f7',
+                                          background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                          color: '#7c3aed',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                                          transition: 'all 0.15s ease'
+                                        }}
+                                        title={`Soru ${qNo} için yapay zeka çözümü ve soru kırpma`}
+                                      >
+                                        <Sparkles size={12} color="#a855f7" />
+                                        <span>✨ AI Çözüm & Kırp</span>
+                                      </button>
                                     </div>
                                   )}
                                 </div>
@@ -1615,9 +1644,36 @@ export default function TrackedBookQuizRunner() {
                                     )}
 
                                     {isSubmitted && (
-                                      <span style={{ fontSize: isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
-                                        {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
-                                      </span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                        <span style={{ fontSize: isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                                          {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
+                                        </span>
+                                        {isCorrect && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
+                                            style={{
+                                              padding: isVeryNarrow ? '0.1rem 0.3rem' : '0.14rem 0.45rem',
+                                              fontSize: isVeryNarrow ? '0.52rem' : '0.62rem',
+                                              fontWeight: 900,
+                                              borderRadius: 6,
+                                              border: '1.5px solid #a855f7',
+                                              background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                              color: '#7c3aed',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 2,
+                                              boxShadow: '0 2px 6px rgba(168,85,247,0.15)',
+                                              transition: 'all 0.15s ease'
+                                            }}
+                                            title={`Soru ${qNo} için yapay zeka çözümü`}
+                                          >
+                                            <Sparkles size={10} color="#a855f7" />
+                                            <span>AI</span>
+                                          </button>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
 
@@ -1713,7 +1769,7 @@ export default function TrackedBookQuizRunner() {
                                   </div>
                                 </div>
 
-                                {/* Mistake Diagnostic Selector */}
+                                {/* Mistake Diagnostic Selector & AI Button */}
                                 {isSubmitted && (isWrong || !selected) && (
                                   <div style={{
                                     width: '100%',
@@ -1726,36 +1782,63 @@ export default function TrackedBookQuizRunner() {
                                     flexWrap: 'wrap',
                                     gap: '0.35rem'
                                   }}>
-                                    <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
-                                    </span>
-                                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                                      {MISTAKE_REASON_OPTIONS.map(r => {
-                                        const isSelected = mistakeReasons[qNo] === r.label;
-                                        return (
-                                          <button
-                                            key={r.label}
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(qNo, r.label); }}
-                                            style={{
-                                              padding: isVeryNarrow ? '0.12rem 0.35rem' : '0.18rem 0.5rem',
-                                              fontSize: isVeryNarrow ? '0.55rem' : '0.62rem',
-                                              fontWeight: 800,
-                                              borderRadius: 6,
-                                              border: `1.5px solid ${isSelected ? r.color : r.border}`,
-                                              background: isSelected ? r.color : r.bg,
-                                              color: isSelected ? '#ffffff' : r.color,
-                                              cursor: 'pointer',
-                                              boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
-                                              transition: 'all 0.15s'
-                                            }}
-                                            title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
-                                          >
-                                            {r.label}
-                                          </button>
-                                        );
-                                      })}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
+                                      </span>
+                                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                        {MISTAKE_REASON_OPTIONS.map(r => {
+                                          const isSelected = mistakeReasons[qNo] === r.label;
+                                          return (
+                                            <button
+                                              key={r.label}
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(qNo, r.label); }}
+                                              style={{
+                                                padding: isVeryNarrow ? '0.12rem 0.35rem' : '0.18rem 0.5rem',
+                                                fontSize: isVeryNarrow ? '0.55rem' : '0.62rem',
+                                                fontWeight: 800,
+                                                borderRadius: 6,
+                                                border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                                background: isSelected ? r.color : r.bg,
+                                                color: isSelected ? '#ffffff' : r.color,
+                                                cursor: 'pointer',
+                                                boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
+                                                transition: 'all 0.15s'
+                                              }}
+                                              title={`Soru ${qNo} için sebebi "${r.label}" olarak kaydet`}
+                                            >
+                                              {r.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
+
+                                    {/* ✂️ AI Soru Çözümü & Kırpma Butonu */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
+                                      style={{
+                                        padding: isVeryNarrow ? '0.16rem 0.45rem' : '0.2rem 0.6rem',
+                                        fontSize: isVeryNarrow ? '0.58rem' : '0.66rem',
+                                        fontWeight: 900,
+                                        borderRadius: 6,
+                                        border: '1.5px solid #a855f7',
+                                        background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                        color: '#7c3aed',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                      title={`Soru ${qNo} için yapay zeka çözümü ve soru kırpma`}
+                                    >
+                                      <Sparkles size={12} color="#a855f7" />
+                                      <span>✨ AI Çözüm & Kırp</span>
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -2073,6 +2156,38 @@ export default function TrackedBookQuizRunner() {
           <FileSpreadsheet size={24} />
         </button>
       )}
+
+      {/* ── AI SCREEN SNIPPER & SOLVER MODAL ── */}
+      {aiModalQuestionNo && (() => {
+        const targetQNo = aiModalQuestionNo;
+        const targetQIdx = targetQNo - 1;
+        const rawUserAns = answers[targetQNo] || answers[String(targetQNo)] || '';
+        const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+        const rawKeyVal = Array.isArray(answerKey) ? (answerKey[targetQIdx] ?? '') : (answerKey[targetQNo] ?? answerKey[String(targetQNo)] ?? '');
+        const studentAns = rawUserAns || 'Boş';
+        const correctAns = rawKeyVal || '';
+
+        return (
+          <ScreenSnipperAndSolverModal
+            isOpen={Boolean(aiModalQuestionNo)}
+            onClose={() => setAiModalQuestionNo(null)}
+            questionNo={targetQNo}
+            question={{
+              questionNo: targetQNo,
+              userAnswer: rawUserAns || null,
+              correctAnswerLetter: rawKeyVal || null,
+              userAnswerText: rawUserAns || ''
+            }}
+            mistakeReason={mistakeReasons[targetQNo] || ''}
+            onMistakeReasonChange={(r) => handleSetMistakeReason(targetQNo, r)}
+            studentAnswer={studentAns}
+            correctAnswer={correctAns}
+            subject={resolvedBook?.subject || 'Genel'}
+            topic={resolvedUnit ? `${resolvedUnit} - ${resolvedTest?.name || ''}` : (resolvedTest?.name || '')}
+            testId={cleanId}
+          />
+        );
+      })()}
 
     </div>
   );
