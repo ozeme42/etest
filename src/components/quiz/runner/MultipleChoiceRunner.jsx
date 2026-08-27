@@ -251,7 +251,9 @@ export default function MultipleChoiceRunner({
     let opts = (Array.isArray(rawOptions) && rawOptions.length > 0) ? rawOptions : (
       (Array.isArray(question?.options) && question.options.length > 0) ? question.options : (
         (Array.isArray(question?.choices) && question.choices.length > 0) ? question.choices : (
-          (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : []
+          (Array.isArray(question?.secenekler) && question.secenekler.length > 0) ? question.secenekler : (
+            (Array.isArray(question?.bankQ?.options) && question.bankQ.options.length > 0) ? question.bankQ.options : []
+          )
         )
       )
     );
@@ -488,7 +490,7 @@ export default function MultipleChoiceRunner({
         )}
 
         {/* Question Text with Rich Premises & Highlights */}
-        {qText && !qText.startsWith('Soru ') && (
+        {qText && (!resolvedImages.length || !/^Soru\s*\d+[:.]?$/i.test(qText.trim())) && (
           <FormattedQuestionText text={qText} />
         )}
       </div>

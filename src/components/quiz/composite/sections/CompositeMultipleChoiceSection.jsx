@@ -19,7 +19,11 @@ export default memo(function CompositeMultipleChoiceSection({
   onOpenDrawing,
   isMobile = false
 }) {
-  const questions = section.resolvedQuestions || section.questions || [];
+  const questions = (section.resolvedQuestions && section.resolvedQuestions.length > 0)
+    ? section.resolvedQuestions
+    : (section.questions && section.questions.length > 0
+        ? section.questions
+        : [section]);
   const totalCount = section.qCount || questions.length || 1;
 
   const [activeQIdx, setActiveQIdx] = useState(0);

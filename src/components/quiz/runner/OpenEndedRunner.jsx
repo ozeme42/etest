@@ -308,7 +308,7 @@ export default function OpenEndedRunner({
         )}
 
         {/* Question Text */}
-        {qText && !qText.startsWith('Soru ') && (
+        {qText && (!resolvedImages.length || !/^Soru\s*\d+[:.]?$/i.test(qText.trim())) && (
           <div style={{
             fontSize: isMobile ? '0.94rem' : '1.02rem',
             lineHeight: 1.65,

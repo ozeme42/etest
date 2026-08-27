@@ -340,7 +340,7 @@ export default function MultipleChoiceReview({
           />
         ))}
 
-        {qText && (resolvedImages.length === 0 || !qText.startsWith('Soru ')) && (
+        {qText && (resolvedImages.length === 0 || !/^Soru\s*\d+[:.]?$/i.test(qText.trim())) && (
           <div style={{
             fontSize: isMobile ? '0.95rem' : '1.05rem',
             lineHeight: 1.7,
