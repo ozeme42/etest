@@ -15,9 +15,9 @@ export async function initNativeApp(navigate) {
     // 1. Hide Splash Screen after app load
     await SplashScreen.hide().catch(() => {});
 
-    // 2. Set Status Bar Style (dark text/content for light backgrounds)
-    await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-    await StatusBar.setBackgroundColor({ color: '#0f172a' }).catch(() => {});
+    // 2. Hide Status Bar completely (Fullscreen Immersive App Experience)
+    await StatusBar.hide().catch(() => {});
+    await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
 
     // 3. Android Back Button handling
     App.addListener('backButton', ({ canGoBack }) => {
