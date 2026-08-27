@@ -1102,7 +1102,14 @@ export async function dbGetQuestions() {
   }
 }
 
-let isQuestionFilesBucketAvailable = true;
+// Storage bucket availability flag. Default to false unless explicitly configured,
+// preventing recurrent 400 Bad Request network errors when 'question_files' bucket is not created/public in Supabase.
+let isQuestionFilesBucketAvailable = false;
+try {
+  if (typeof window !== 'undefined' && localStorage.getItem('supabase_question_files_bucket_enabled') === 'true') {
+    isQuestionFilesBucketAvailable = true;
+  }
+} catch {}
 
 export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file', bucket = 'question_files') {
   if (!isSupabaseConfigured() || !fileOrDataUrl) return null;
@@ -1184,13 +1191,13 @@ export async function dbAddQuestion(q) {
     const processBase64String = async (val, suffix) => {
       if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
         // Optimized WebP images are lightweight (~50-150KB) and store directly in DB with 0 network latency.
-        // Only attempt storage upload for very large files (> 2MB).
-        if (val.length > 2000000 && isQuestionFilesBucketAvailable) {
+        // Only attempt storage upload if bucket is confirmed available.
+        if (isQuestionFilesBucketAvailable && val.length > 2000000) {
           const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
           if (publicUrl) return publicUrl;
         }
-        // Keep in PostgreSQL if under 3MB
-        if (val.length < 3000000) {
+        // Keep in PostgreSQL if under 15MB (PostgreSQL text columns support up to 1GB payload)
+        if (val.length < 15000000) {
           return val;
         }
         return '[STORED_IN_INDEXEDDB]';

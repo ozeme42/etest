@@ -27,6 +27,7 @@ export default function PdfQuestionSlicerModal({
   const [sourceImage, setSourceImage] = useState(null);
   const [sourceFileName, setSourceFileName] = useState('');
   const [slicedQuestions, setSlicedQuestions] = useState([]);
+  const [defaultOptionCount, setDefaultOptionCount] = useState(4);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentRect, setCurrentRect] = useState(null);
@@ -258,7 +259,7 @@ export default function PdfQuestionSlicerModal({
       image: compressed.dataUrl || croppedBase64,
       sizeKb: compressed.sizeKb || 50,
       correctAnswer: 'A',
-      optionCount: 4,
+      optionCount: defaultOptionCount,
       subject,
       grade,
       page: pdfCurrentPage,
@@ -278,7 +279,16 @@ export default function PdfQuestionSlicerModal({
   };
 
   const handleUpdateOptionCount = (id, count) => {
-    setSlicedQuestions(prev => prev.map(q => q.id === id ? { ...q, optionCount: count } : q));
+    setSlicedQuestions(prev => prev.map(q => q.id === id ? { ...q, optionCount: count, correctAnswer: (q.correctAnswer && q.correctAnswer.charCodeAt(0) - 65 >= count) ? 'A' : q.correctAnswer } : q));
+  };
+
+  const handleSetGlobalOptionCount = (count) => {
+    setDefaultOptionCount(count);
+    setSlicedQuestions(prev => prev.map(q => ({
+      ...q,
+      optionCount: count,
+      correctAnswer: (q.correctAnswer && q.correctAnswer.charCodeAt(0) - 65 >= count) ? 'A' : q.correctAnswer
+    })));
   };
 
   const handleSaveAll = () => {
@@ -556,17 +566,47 @@ export default function PdfQuestionSlicerModal({
                 justifyContent: 'space-between'
               }}
             >
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: 0 }}>
-                Kırpılan Sorular ({slicedQuestions.length})
-              </h3>
-              {slicedQuestions.length > 0 && (
-                <button
-                  onClick={() => setSlicedQuestions([])}
-                  style={{ fontSize: '0.72rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
-                >
-                  Tümünü Temizle
-                </button>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: 0 }}>
+                    Kırpılan Sorular ({slicedQuestions.length})
+                  </h3>
+                  {slicedQuestions.length > 0 && (
+                    <button
+                      onClick={() => setSlicedQuestions([])}
+                      style={{ fontSize: '0.72rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                    >
+                      Tümünü Temizle
+                    </button>
+                  )}
+                </div>
+
+                {/* Batch Option Count Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9', padding: '0.35rem 0.5rem', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Varsayılan Şık:</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[2, 3, 4, 5].map(cnt => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => handleSetGlobalOptionCount(cnt)}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          border: defaultOptionCount === cnt ? '1.5px solid #6366f1' : '1px solid transparent',
+                          background: defaultOptionCount === cnt ? (isDark ? 'rgba(99,102,241,0.3)' : '#e0e7ff') : 'transparent',
+                          color: defaultOptionCount === cnt ? (isDark ? '#c7d2fe' : '#4f46e5') : 'var(--color-text-muted)',
+                          fontSize: '0.7rem',
+                          fontWeight: defaultOptionCount === cnt ? 900 : 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {cnt} Şık
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -575,80 +615,86 @@ export default function PdfQuestionSlicerModal({
                   Sayfa üzerinden farenizle soru etrafında seçim yapın. Kırptığınız her soru otomatik olarak WebP formatına çevrilip burada listelenecektir. ✂️
                 </div>
               ) : (
-                slicedQuestions.map(q => (
-                  <div
-                    key={q.id}
-                    style={{
-                      padding: '0.75rem',
-                      borderRadius: 14,
-                      border: '1.5px solid var(--color-border)',
-                      background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.85rem' }}>Soru #{q.qNo}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800 }}>WebP ~{q.sizeKb} KB</span>
-                        <button
-                          onClick={() => handleDeleteQuestion(q.id)}
-                          style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2 }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Thumbnail */}
-                    <div style={{ width: '100%', maxHeight: 110, overflow: 'hidden', borderRadius: 8, border: '1px solid var(--color-border)', background: '#ffffff' }}>
-                      <img src={q.image} alt={`Soru ${q.qNo}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    </div>
-
-                    {/* Answer Key & Option Count Select */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Cevap:</span>
-                        {['A', 'B', 'C', 'D', ...(q.optionCount === 5 ? ['E'] : [])].map(opt => (
+                slicedQuestions.map(q => {
+                  const optCount = q.optionCount || defaultOptionCount;
+                  const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, optCount);
+                  return (
+                    <div
+                      key={q.id}
+                      style={{
+                        padding: '0.75rem',
+                        borderRadius: 14,
+                        border: '1.5px solid var(--color-border)',
+                        background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 900, fontSize: '0.85rem' }}>Soru #{q.qNo}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800 }}>WebP ~{q.sizeKb} KB</span>
                           <button
-                            key={opt}
-                            onClick={() => handleUpdateAnswer(q.id, opt)}
-                            style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 6,
-                              border: q.correctAnswer === opt ? 'none' : '1px solid var(--color-border)',
-                              background: q.correctAnswer === opt ? '#6366f1' : 'transparent',
-                              color: q.correctAnswer === opt ? 'white' : 'var(--color-text)',
-                              fontWeight: 900,
-                              fontSize: '0.75rem',
-                              cursor: 'pointer'
-                            }}
+                            onClick={() => handleDeleteQuestion(q.id)}
+                            style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2 }}
                           >
-                            {opt}
+                            <Trash2 size={14} />
                           </button>
-                        ))}
+                        </div>
                       </div>
 
-                      <select
-                        value={q.optionCount}
-                        onChange={(e) => handleUpdateOptionCount(q.id, Number(e.target.value))}
-                        style={{
-                          padding: '2px 4px',
-                          borderRadius: 6,
-                          border: '1px solid var(--color-border)',
-                          fontSize: '0.7rem',
-                          background: 'transparent',
-                          color: 'var(--color-text)'
-                        }}
-                      >
-                        <option value={4}>4 Şık</option>
-                        <option value={5}>5 Şık</option>
-                      </select>
+                      {/* Thumbnail */}
+                      <div style={{ width: '100%', maxHeight: 110, overflow: 'hidden', borderRadius: 8, border: '1px solid var(--color-border)', background: '#ffffff' }}>
+                        <img src={q.image} alt={`Soru ${q.qNo}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                      </div>
+
+                      {/* Answer Key & Option Count Select */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Cevap:</span>
+                          {letters.map(opt => (
+                            <button
+                              key={opt}
+                              onClick={() => handleUpdateAnswer(q.id, opt)}
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 6,
+                                border: q.correctAnswer === opt ? 'none' : '1px solid var(--color-border)',
+                                background: q.correctAnswer === opt ? '#6366f1' : 'transparent',
+                                color: q.correctAnswer === opt ? 'white' : 'var(--color-text)',
+                                fontWeight: 900,
+                                fontSize: '0.75rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+
+                        <select
+                          value={optCount}
+                          onChange={(e) => handleUpdateOptionCount(q.id, Number(e.target.value))}
+                          style={{
+                            padding: '2px 4px',
+                            borderRadius: 6,
+                            border: '1px solid var(--color-border)',
+                            fontSize: '0.7rem',
+                            background: 'transparent',
+                            color: 'var(--color-text)'
+                          }}
+                        >
+                          <option value={2}>2 Şık</option>
+                          <option value={3}>3 Şık</option>
+                          <option value={4}>4 Şık</option>
+                          <option value={5}>5 Şık</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

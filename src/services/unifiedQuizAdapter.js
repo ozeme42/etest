@@ -270,8 +270,9 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
       // Question text & options
       const qText = extractQuestionText(qObj, sec, i);
       const rawOpts = extractQuestionOptions(qObj, sec);
-      const optionsCount = (rawOpts.length >= 5 || Number(sec.optionsCount || rawTest.optionsCount) === 5) ? 5 : 4;
-      const letters = optionsCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+      const rawOptCount = Number(qObj.optionCount || qObj.optionsCount || sec.optionCount || sec.optionsCount || rawTest.optionCount || rawTest.optionsCount || (rawOpts.length > 0 ? rawOpts.length : 0));
+      const optionsCount = (rawOptCount >= 2 && rawOptCount <= 5) ? rawOptCount : (rawOpts.length >= 5 ? 5 : 4);
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, optionsCount);
 
       const options = letters.map((opt, optIdx) => {
         const raw = rawOpts[optIdx];

@@ -286,14 +286,21 @@ export default function QuestionBank() {
     const base64List = slicedList.map(s => s.image);
     const totalKb = slicedList.reduce((sum, s) => sum + (s.sizeKb || 50), 0);
 
-    const generatedQuestionsList = slicedList.map((s, idx) => ({
-      questionNo: idx + 1,
-      questionText: `${idx + 1}. Soru`,
-      imageUrl: s.image,
-      correctAnswer: s.correctAnswer || 'A',
-      optionCount: s.optionCount || 4,
-      options: s.optionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']
-    }));
+    const generatedQuestionsList = slicedList.map((s, idx) => {
+      const optCount = Math.max(2, Math.min(5, Number(s.optionCount) || 4));
+      const letters = Array.from({ length: optCount }, (_, i) => String.fromCharCode(65 + i));
+      return {
+        questionNo: idx + 1,
+        questionText: `${idx + 1}. Soru`,
+        imageUrl: s.image,
+        correctAnswer: s.correctAnswer || 'A',
+        optionCount: optCount,
+        optionsCount: optCount,
+        options: letters
+      };
+    });
+
+    const firstOptCount = Math.max(2, Math.min(5, Number(slicedList[0]?.optionCount) || 4));
 
     setUploadedFileInfo({
       name: `${slicedList.length} Adet Kırpılmış Görsel Soru (WebP)`,
@@ -309,6 +316,9 @@ export default function QuestionBank() {
       contentPayload: base64List.join('\n\n'),
       questionCount: slicedList.length,
       questionsList: generatedQuestionsList,
+      optionCount: firstOptCount,
+      optionsCount: firstOptCount,
+      options: Array.from({ length: firstOptCount }, () => ''),
       title: prev.title || `Kırpılmış Test (${slicedList.length} Soru)`
     }));
 
@@ -746,10 +756,87 @@ export default function QuestionBank() {
       gName.includes('lise') || gName.includes('yks') || gName.includes('tyt') || gName.includes('ayt') || gName.includes('mezun');
   };
 
+  const getDefaultOptionCountForGrade = (gId) => {
+    const targetGId = gId || selectedGrade || activeGradeId;
+    if (!targetGId || targetGId === 'all') return 4;
+    const gObj = curData?.grades?.find(g => String(g.id) === String(targetGId) || g.name === targetGId);
+    const gName = String(gObj ? gObj.name : targetGId).toLowerCase();
+    if (gName.includes('1.') || gName.includes('1. sınıf') || gName.includes('1.sınıf')) return 2;
+    if (gName.includes('2.') || gName.includes('3.') || gName.includes('4.') || gName.includes('ilkokul')) return 3;
+    if (isHighSchoolGrade(targetGId)) return 5;
+    return 4;
+  };
+
   const getDefaultOptionsForGrade = (gId) => {
-    return isHighSchoolGrade(gId) 
-      ? ['', '', '', '', ''] 
-      : ['', '', '', ''];
+    const count = getDefaultOptionCountForGrade(gId);
+    return Array.from({ length: count }, () => '');
+  };
+
+  const getOptionLetters = (count = 4) => {
+    const validCount = Math.max(2, Math.min(5, Number(count) || 4));
+    return Array.from({ length: validCount }, (_, i) => String.fromCharCode(65 + i));
+  };
+
+  const currentOptionCount = useMemo(() => {
+    if (formData.options && Array.isArray(formData.options) && formData.options.length >= 2) {
+      return formData.options.length;
+    }
+    if (formData.optionCount && Number(formData.optionCount) >= 2) {
+      return Number(formData.optionCount);
+    }
+    if (formData.optionsCount && Number(formData.optionsCount) >= 2) {
+      return Number(formData.optionsCount);
+    }
+    return getDefaultOptionCountForGrade(selectedGrade || activeGradeId);
+  }, [formData.options, formData.optionCount, formData.optionsCount, selectedGrade, activeGradeId, curData]);
+
+  const handleOptionCountChange = (newCount) => {
+    const count = Math.max(2, Math.min(5, Number(newCount) || 4));
+    setFormData(prev => {
+      const currentOpts = Array.isArray(prev.options) ? prev.options : [];
+      let nextOpts = [];
+      if (currentOpts.length > count) {
+        nextOpts = currentOpts.slice(0, count);
+      } else {
+        nextOpts = [...currentOpts];
+        while (nextOpts.length < count) {
+          nextOpts.push('');
+        }
+      }
+      const safeCorrectAnswer = Math.min(typeof prev.correctAnswer === 'number' ? prev.correctAnswer : 0, count - 1);
+      return {
+        ...prev,
+        optionCount: count,
+        optionsCount: count,
+        options: nextOpts,
+        correctAnswer: safeCorrectAnswer
+      };
+    });
+
+    if (editableQuestionsList.length > 0) {
+      setEditableQuestionsList(prevList =>
+        prevList.map(qItem => {
+          const qOpts = Array.isArray(qItem.options) ? qItem.options : [];
+          let nextQOpts = [];
+          if (qOpts.length > count) {
+            nextQOpts = qOpts.slice(0, count);
+          } else {
+            nextQOpts = [...qOpts];
+            while (nextQOpts.length < count) {
+              nextQOpts.push('');
+            }
+          }
+          const safeCAns = typeof qItem.correctAnswer === 'number' ? Math.min(qItem.correctAnswer, count - 1) : 0;
+          return {
+            ...qItem,
+            optionCount: count,
+            optionsCount: count,
+            options: nextQOpts,
+            correctAnswer: safeCAns
+          };
+        })
+      );
+    }
   };
 
   const resetForm = () => {
@@ -779,6 +866,8 @@ export default function QuestionBank() {
       contentType: 'text',
       contentPayload: '',
       questionText: '',
+      optionCount: initialOpts.length,
+      optionsCount: initialOpts.length,
       options: initialOpts,
       correctAnswer: 0,
       questionCount: 1,
@@ -821,21 +910,35 @@ export default function QuestionBank() {
       }
     }
 
+    const resolvedOptCount = Number(q.optionCount || q.optionsCount) || (Array.isArray(q.options) && q.options.length >= 2 ? q.options.length : (isHighSchoolGrade(q.gradeId) ? 5 : 4));
+    const initialLoadedOpts = (Array.isArray(q.options) && q.options.length >= 2) ? q.options : Array.from({ length: resolvedOptCount }, () => '');
+
     setFormData({
       title: q.title || q.name || '',
       type: q.type || 'coktan_secmeli',
       contentType: q.contentType,
       contentPayload: richPayload,
       questionText: q.questionText || '',
-      options: q.options || ['', '', '', ''],
-      correctAnswer: q.correctAnswer || 0,
+      optionCount: resolvedOptCount,
+      optionsCount: resolvedOptCount,
+      options: initialLoadedOpts,
+      correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
       questionCount: q.questionCount || 1,
       bulkAnswerKey: keyStr
     });
 
     if (q.contentType === 'json' || q.questionsList) {
       if (q.questionsList && q.questionsList.length > 0) {
-        setEditableQuestionsList(JSON.parse(JSON.stringify(q.questionsList)));
+        const list = q.questionsList.map(sq => {
+          const sqOptCount = Number(sq.optionCount || sq.optionsCount) || (Array.isArray(sq.options) && sq.options.length >= 2 ? sq.options.length : resolvedOptCount);
+          return {
+            ...sq,
+            optionCount: sqOptCount,
+            optionsCount: sqOptCount,
+            options: (Array.isArray(sq.options) && sq.options.length >= 2) ? sq.options : Array.from({ length: sqOptCount }, () => '')
+          };
+        });
+        setEditableQuestionsList(list);
       } else if (richPayload) {
         try {
           const parsed = JSON.parse(richPayload);
@@ -850,10 +953,13 @@ export default function QuestionBank() {
                 else if (upper === 'D') cAns = 3;
                 else if (upper === 'E') cAns = 4;
               }
+              const itemOptCount = Number(item.optionCount || item.optionsCount) || (Array.isArray(item.options) && item.options.length >= 2 ? item.options.length : resolvedOptCount);
               return {
                 id: `sub_${idx}_${Date.now()}`,
                 questionText: item.questionText || `Soru ${idx + 1}`,
-                options: item.options || ['A', 'B', 'C', 'D'],
+                optionCount: itemOptCount,
+                optionsCount: itemOptCount,
+                options: (Array.isArray(item.options) && item.options.length >= 2) ? item.options : Array.from({ length: itemOptCount }, (_, i) => String.fromCharCode(65 + i)),
                 correctAnswer: typeof cAns === 'number' ? cAns : 0,
                 type: item.type || 'coktan_secmeli'
               };
@@ -954,7 +1060,9 @@ export default function QuestionBank() {
 
   const handleBulkAnswerKeyChange = (val) => {
     setFormData(prev => ({ ...prev, bulkAnswerKey: val }));
-    const letters = val.toUpperCase().replace(/[^A-E]/g, '').split('');
+    const maxLetter = String.fromCharCode(65 + currentOptionCount - 1);
+    const regex = new RegExp(`[^A-${maxLetter}]`, 'gi');
+    const letters = val.toUpperCase().replace(regex, '').split('');
     const newOptic = {};
     letters.forEach((l, idx) => {
       newOptic[idx] = l.charCodeAt(0) - 65;
@@ -971,9 +1079,11 @@ export default function QuestionBank() {
       {
         id: `sub_${prev.length + 1}_${Date.now()}`,
         questionText: `${prev.length + 1}) Soru metnini yazınız...`,
-        options: ['', '', '', ''],
+        optionCount: currentOptionCount,
+        optionsCount: currentOptionCount,
+        options: Array.from({ length: currentOptionCount }, () => ''),
         correctAnswer: 0,
-        type: 'coktan_secmeli'
+        type: formData.type || 'coktan_secmeli'
       }
     ]);
   };
@@ -993,7 +1103,8 @@ export default function QuestionBank() {
   const handleUpdateVisualOptionText = (qIndex, optIndex, text) => {
     setEditableQuestionsList(prev => {
       const copy = [...prev];
-      const opts = [...(copy[qIndex].options || ['', '', '', ''])];
+      const count = copy[qIndex].options?.length || currentOptionCount;
+      const opts = [...(copy[qIndex].options || Array.from({ length: count }, () => ''))];
       opts[optIndex] = text;
       copy[qIndex] = { ...copy[qIndex], options: opts };
       return copy;
@@ -1018,7 +1129,9 @@ export default function QuestionBank() {
 
   const handleImageBulkAnswerKeyChange = (val) => {
     setFormData(prev => ({ ...prev, bulkAnswerKey: val }));
-    const letters = val.toUpperCase().replace(/[^A-E]/g, '').split('');
+    const maxLetter = String.fromCharCode(65 + currentOptionCount - 1);
+    const regex = new RegExp(`[^A-${maxLetter}]`, 'gi');
+    const letters = val.toUpperCase().replace(regex, '').split('');
     const newAnswers = {};
     letters.forEach((l, idx) => {
       newAnswers[idx] = l.charCodeAt(0) - 65;
@@ -1060,15 +1173,26 @@ export default function QuestionBank() {
     const foundSubject = foundSubjectObj ? foundSubjectObj.name : 'Genel Testler';
     const foundGradeId = foundSubjectObj ? foundSubjectObj.gradeId : (activeGradeId || 'g1');
 
+    const isAcikUclu = formData.type === 'acik_uclu';
+    const finalOptionCount = isAcikUclu ? 0 : (formData.options?.length || currentOptionCount || 4);
+    const defaultOptionLetters = getOptionLetters(finalOptionCount);
+    const finalOptions = isAcikUclu ? [] : (formData.options && formData.options.length > 0 ? formData.options : defaultOptionLetters);
+
     if (formData.contentType === 'json') {
       let questionsList = [];
       
       if (jsonEditMode === 'visual' && editableQuestionsList.length > 0) {
-        questionsList = editableQuestionsList.map(q => ({
-          ...q,
-          type: formData.type || q.type || 'coktan_secmeli',
-          options: formData.type === 'acik_uclu' ? [] : (q.options || ['A', 'B', 'C', 'D'])
-        }));
+        questionsList = editableQuestionsList.map(q => {
+          const qOptCount = isAcikUclu ? 0 : (q.options?.length || finalOptionCount);
+          const qLetters = getOptionLetters(qOptCount);
+          return {
+            ...q,
+            type: formData.type || q.type || 'coktan_secmeli',
+            optionCount: qOptCount,
+            optionsCount: qOptCount,
+            options: isAcikUclu ? [] : (q.options && q.options.length > 0 ? q.options : qLetters)
+          };
+        });
       } else {
         try {
           const parsed = JSON.parse(formData.contentPayload);
@@ -1084,10 +1208,14 @@ export default function QuestionBank() {
               else if (upper === 'D') cAns = 3;
               else if (upper === 'E') cAns = 4;
             }
+            const qOptCount = isAcikUclu ? 0 : (q.options?.length || Number(q.optionCount) || finalOptionCount);
+            const qLetters = getOptionLetters(qOptCount);
             return {
               id: `sub_${idx}_${Date.now()}`,
               questionText: q.questionText || `Soru ${idx + 1}`,
-              options: formData.type === 'acik_uclu' ? [] : (q.options || ['A', 'B', 'C', 'D']),
+              optionCount: qOptCount,
+              optionsCount: qOptCount,
+              options: isAcikUclu ? [] : (q.options && q.options.length > 0 ? q.options : qLetters),
               correctAnswer: typeof cAns === 'number' ? cAns : 0,
               type: formData.type || q.type || 'coktan_secmeli'
             };
@@ -1109,6 +1237,9 @@ export default function QuestionBank() {
         contentType: 'json',
         type: formData.type || 'coktan_secmeli',
         isBundle: true,
+        optionCount: finalOptionCount,
+        optionsCount: finalOptionCount,
+        options: finalOptions,
         questionCount: questionsList.length,
         questionsList: questionsList,
         answerKey: answerKey,
@@ -1139,6 +1270,9 @@ export default function QuestionBank() {
         }
         updateQuestion(editingQuestionId, {
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -1159,7 +1293,6 @@ export default function QuestionBank() {
           }
         }
 
-        const isAcikUclu = formData.type === 'acik_uclu';
         const isSingleQuestion = totalQs <= 1;
 
         const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
@@ -1173,7 +1306,9 @@ export default function QuestionBank() {
             contentPayload: u,
             imageUrl: u,
             type: formData.type || 'coktan_secmeli',
-            options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
+            optionCount: finalOptionCount,
+            optionsCount: finalOptionCount,
+            options: finalOptions,
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
           };
         });
@@ -1182,6 +1317,9 @@ export default function QuestionBank() {
 
         updateQuestion(editingQuestionId, {
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -1198,6 +1336,9 @@ export default function QuestionBank() {
       } else {
         updateQuestion(editingQuestionId, {
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -1220,6 +1361,9 @@ export default function QuestionBank() {
 
         addQuestion({
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -1241,7 +1385,6 @@ export default function QuestionBank() {
           }
         }
 
-        const isAcikUclu = formData.type === 'acik_uclu';
         const isSingleQuestion = totalQs <= 1;
 
         const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
@@ -1255,7 +1398,9 @@ export default function QuestionBank() {
             contentPayload: u,
             imageUrl: u,
             type: formData.type || 'coktan_secmeli',
-            options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
+            optionCount: finalOptionCount,
+            optionsCount: finalOptionCount,
+            options: finalOptions,
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
           };
         });
@@ -1264,6 +1409,9 @@ export default function QuestionBank() {
 
         addQuestion({
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -1281,6 +1429,9 @@ export default function QuestionBank() {
       else {
         addQuestion({
           ...formData,
+          optionCount: finalOptionCount,
+          optionsCount: finalOptionCount,
+          options: finalOptions,
           topicId: categoryId,
           subject: foundSubject,
           gradeId: foundGradeId,
@@ -3332,7 +3483,7 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                {/* Title & Soru Tipi Selector */}
+                {/* Title & Soru Tipi Selector & Universal Option Count */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
                   <div className="form-group" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
                     <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a', marginBottom: '0.4rem', display: 'block' }}>
@@ -3360,6 +3511,51 @@ export default function QuestionBank() {
                       <option value="acik_uclu">📝 Açık Uçlu (Metin Yanıtlı / Yazılı)</option>
                     </select>
                   </div>
+
+                  {formData.type === 'coktan_secmeli' && (
+                    <div className="form-group" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                        <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a', margin: 0 }}>
+                          🔘 Şık / Seçenek Sayısı
+                        </label>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1' }}>
+                          {currentOptionCount} Şık ({getOptionLetters(currentOptionCount).join('-')})
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginTop: '0.4rem' }}>
+                        {[
+                          { count: 2, label: '2 Şık', sub: 'A-B', color: '#3b82f6' },
+                          { count: 3, label: '3 Şık', sub: 'A-C', color: '#f59e0b' },
+                          { count: 4, label: '4 Şık', sub: 'A-D', color: '#10b981' },
+                          { count: 5, label: '5 Şık', sub: 'A-E', color: '#8b5cf6' }
+                        ].map(item => {
+                          const isSel = currentOptionCount === item.count;
+                          return (
+                            <button
+                              key={item.count}
+                              type="button"
+                              onClick={() => handleOptionCountChange(item.count)}
+                              style={{
+                                padding: '0.55rem 0.2rem',
+                                borderRadius: '0.6rem',
+                                border: isSel ? `2px solid ${item.color}` : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
+                                background: isSel ? (isDark ? `${item.color}25` : `${item.color}15`) : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                                color: isSel ? (isDark ? '#ffffff' : item.color) : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+                                fontWeight: 900,
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <div>{item.label}</div>
+                              <div style={{ fontSize: '0.68rem', opacity: isSel ? 1 : 0.7 }}>({item.sub})</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* TYPE 1: PDF TEST BUNDLE FORM */}
@@ -3431,6 +3627,33 @@ export default function QuestionBank() {
                       </div>
 
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {formData.type === 'coktan_secmeli' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.25rem 0.5rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginRight: '0.15rem' }}>Şık:</span>
+                            {[2, 3, 4, 5].map(cnt => {
+                              const isSel = currentOptionCount === cnt;
+                              return (
+                                <button
+                                  key={cnt}
+                                  type="button"
+                                  onClick={() => handleOptionCountChange(cnt)}
+                                  style={{
+                                    padding: '0.2rem 0.45rem',
+                                    borderRadius: '0.4rem',
+                                    border: isSel ? '1.5px solid #6366f1' : '1px solid transparent',
+                                    background: isSel ? (isDark ? 'rgba(99,102,241,0.3)' : '#eff6ff') : 'transparent',
+                                    color: isSel ? (isDark ? '#c7d2fe' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                                    fontWeight: isSel ? 900 : 700,
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {cnt} Şık
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         <label style={{ cursor: 'pointer', background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                           📁 JSON Dosyası Yükle
@@ -3468,7 +3691,9 @@ export default function QuestionBank() {
                     {jsonEditMode === 'visual' ? (
                       <div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                          {editableQuestionsList.map((qItem, qIdx) => (
+                          {editableQuestionsList.map((qItem, qIdx) => {
+                            const itemOpts = (qItem.options && qItem.options.length > 0) ? qItem.options : Array.from({ length: currentOptionCount }, () => '');
+                            return (
                             <div key={qItem.id || qIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                                 <span style={{ background: isDark ? 'rgba(99,102,241,0.25)' : '#eff6ff', color: isDark ? '#c7d2fe' : '#4f46e5', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: '6px', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe' }}>
@@ -3499,11 +3724,53 @@ export default function QuestionBank() {
                               {/* Option Inputs and Correct Answer Radio Buttons */}
                               {formData.type === 'coktan_secmeli' && (
                                 <div>
-                                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', display: 'block', marginBottom: '0.5rem' }}>
-                                    Şıklar ve Doğru Cevap Seçimi:
-                                  </label>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: 0 }}>
+                                      Şıklar ve Doğru Cevap Seçimi:
+                                    </label>
+                                    <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                                      {[2, 3, 4, 5].map(cnt => {
+                                        const curLen = itemOpts.length;
+                                        const isSel = curLen === cnt;
+                                        return (
+                                          <button
+                                            key={cnt}
+                                            type="button"
+                                            onClick={() => {
+                                              setEditableQuestionsList(prev => {
+                                                const copy = [...prev];
+                                                let nextOpts = copy[qIdx].options ? [...copy[qIdx].options] : [];
+                                                if (nextOpts.length > cnt) nextOpts = nextOpts.slice(0, cnt);
+                                                else while (nextOpts.length < cnt) nextOpts.push('');
+                                                copy[qIdx] = {
+                                                  ...copy[qIdx],
+                                                  optionCount: cnt,
+                                                  optionsCount: cnt,
+                                                  options: nextOpts,
+                                                  correctAnswer: Math.min(copy[qIdx].correctAnswer || 0, cnt - 1)
+                                                };
+                                                return copy;
+                                              });
+                                            }}
+                                            style={{
+                                              padding: '0.15rem 0.4rem',
+                                              borderRadius: '0.35rem',
+                                              border: isSel ? '1px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1'),
+                                              background: isSel ? (isDark ? 'rgba(99,102,241,0.25)' : '#eff6ff') : 'transparent',
+                                              color: isSel ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.5)' : '#64748b'),
+                                              fontWeight: isSel ? 900 : 700,
+                                              fontSize: '0.7rem',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {cnt} Şık
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
-                                    {(qItem.options || ['', '', '', '']).map((optText, oIdx) => {
+                                    {itemOpts.map((optText, oIdx) => {
                                       const isCorrect = qItem.correctAnswer === oIdx;
                                       return (
                                         <div 
@@ -3548,7 +3815,8 @@ export default function QuestionBank() {
                               )}
 
                             </div>
-                          ))}
+                          );
+                        })}
                         </div>
 
                         <button
@@ -3633,19 +3901,50 @@ export default function QuestionBank() {
                     {/* BULK ANSWER KEY FOR MULTIPLE CHOICE */}
                     {formData.type === 'coktan_secmeli' && (
                       <div style={{ background: isDark ? 'rgba(99,102,241,0.12)' : '#eff6ff', padding: '1rem', borderRadius: '0.85rem', border: isDark ? '1.5px solid rgba(165,180,252,0.25)' : '1.5px solid #bfdbfe' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#c7d2fe' : '#1e40af', margin: 0 }}>
                             ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
                           </label>
-                          <span style={{ background: isDark ? 'rgba(99,102,241,0.2)' : '#dbeafe', color: isDark ? '#c7d2fe' : '#1e40af', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                            Toplam {imageUrls.length || 1} Soru
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '0.25rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#ffffff', padding: '0.2rem', borderRadius: '0.5rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #bfdbfe' }}>
+                              {[
+                                { count: 2, label: '2 Şık' },
+                                { count: 3, label: '3 Şık' },
+                                { count: 4, label: '4 Şık' },
+                                { count: 5, label: '5 Şık' }
+                              ].map(item => {
+                                const isSel = currentOptionCount === item.count;
+                                return (
+                                  <button
+                                    key={item.count}
+                                    type="button"
+                                    onClick={() => handleOptionCountChange(item.count)}
+                                    style={{
+                                      padding: '0.2rem 0.5rem',
+                                      borderRadius: '0.4rem',
+                                      border: isSel ? '1.5px solid #6366f1' : 'none',
+                                      background: isSel ? (isDark ? 'rgba(99,102,241,0.3)' : '#eff6ff') : 'transparent',
+                                      color: isSel ? (isDark ? '#c7d2fe' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                                      fontWeight: isSel ? 900 : 700,
+                                      fontSize: '0.72rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {item.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <span style={{ background: isDark ? 'rgba(99,102,241,0.2)' : '#dbeafe', color: isDark ? '#c7d2fe' : '#1e40af', fontWeight: 900, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                              Toplam {imageUrls.length || 1} Soru
+                            </span>
+                          </div>
                         </div>
                         <input
                           type="text"
                           value={formData.bulkAnswerKey}
                           onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
-                          placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
+                          placeholder={`Örn: ${getOptionLetters(currentOptionCount).join('')} veya ${getOptionLetters(currentOptionCount).join(',')} veya 1A 2B 3C... (${currentOptionCount} Şık: ${getOptionLetters(currentOptionCount).join('-')})`}
                           style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: isDark ? '1.5px solid rgba(165,180,252,0.4)' : '1.5px solid #93c5fd', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', color: isDark ? '#ffffff' : '#0f172a', boxSizing: 'border-box' }}
                         />
                       </div>
@@ -3712,12 +4011,15 @@ export default function QuestionBank() {
                                 </div>
                               )}
 
-                              {/* Optic Bubbles A B C D E (If Multiple Choice) */}
+                              {/* Optic Bubbles Dynamic (2, 3, 4, 5 options) */}
                               {formData.type === 'coktan_secmeli' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', alignItems: 'center' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '0.2rem' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Doğru Cevabı Seçin:</div>
+                                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6366f1' }}>{currentOptionCount} Şık</div>
+                                  </div>
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                                    {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
+                                    {getOptionLetters(currentOptionCount).map((letter, optIdx) => {
                                       const isSelected = selectedOpt === optIdx;
                                       return (
                                         <button
@@ -3803,25 +4105,38 @@ export default function QuestionBank() {
                           <label style={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>
                             🔘 Soru Şıkları ve Doğru Cevap Seçimi:
                           </label>
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => setFormData(p => ({ ...p, options: p.options.length === 4 ? p.options : ['', '', '', ''], correctAnswer: Math.min(p.correctAnswer, 3) }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #cbd5e1'), background: formData.options.length === 4 ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'), color: formData.options.length === 4 ? (isDark ? '#34d399' : '#047857') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'), fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
-                            >
-                              🏫 Ortaokul (4 Şık A-D)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setFormData(p => ({ ...p, options: p.options.length === 5 ? p.options : ['', '', '', '', ''] }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #8b5cf6' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #cbd5e1'), background: formData.options.length === 5 ? (isDark ? 'rgba(139,92,246,0.2)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'), color: formData.options.length === 5 ? (isDark ? '#c084fc' : '#6d28d9') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'), fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
-                            >
-                              🏛️ Lise (5 Şık A-E)
-                            </button>
+                          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {[
+                              { count: 2, label: '2 Şık', sub: 'A-B • D/Y', color: '#3b82f6' },
+                              { count: 3, label: '3 Şık', sub: 'A-C • İlkokul', color: '#f59e0b' },
+                              { count: 4, label: '4 Şık', sub: 'A-D • Ortaokul', color: '#10b981' },
+                              { count: 5, label: '5 Şık', sub: 'A-E • Lise', color: '#8b5cf6' }
+                            ].map(btn => {
+                              const isSel = currentOptionCount === btn.count;
+                              return (
+                                <button
+                                  key={btn.count}
+                                  type="button"
+                                  onClick={() => handleOptionCountChange(btn.count)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '0.55rem',
+                                    border: isSel ? `2px solid ${btn.color}` : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #cbd5e1'),
+                                    background: isSel ? (isDark ? `${btn.color}30` : `${btn.color}15`) : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                                    color: isSel ? (isDark ? '#ffffff' : btn.color) : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                                    fontSize: '0.78rem',
+                                    fontWeight: isSel ? 900 : 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {btn.label} ({btn.sub.split(' ')[0]})
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                         <div className="options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
-                          {formData.options.map((opt, idx) => {
+                          {(formData.options && formData.options.length > 0 ? formData.options : Array.from({ length: currentOptionCount }, () => '')).map((opt, idx) => {
                             const isSelected = formData.correctAnswer === idx;
                             return (
                               <div 
@@ -3857,7 +4172,8 @@ export default function QuestionBank() {
                                   value={opt} 
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => {
-                                    const newOpts = [...formData.options];
+                                    const count = formData.options?.length || currentOptionCount;
+                                    const newOpts = [...(formData.options || Array.from({ length: count }, () => ''))];
                                     newOpts[idx] = e.target.value;
                                     setFormData({...formData, options: newOpts});
                                   }} 
@@ -3886,41 +4202,36 @@ export default function QuestionBank() {
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                          {/* Option Count Selector (4 Şık A-D vs 5 Şık A-E) */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1' }}>
+                          {/* Option Count Selector (2, 3, 4, 5 Şık) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.25rem 0.5rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1' }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginRight: '0.15rem' }}>Şık Sayısı:</span>
-                            <button
-                              type="button"
-                              onClick={() => setFormData(p => ({ ...p, options: ['', '', '', ''] }))}
-                              style={{
-                                padding: '0.25rem 0.55rem',
-                                borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 4 ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
-                                background: (formData.options?.length || 4) === 4 ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                                color: (formData.options?.length || 4) === 4 ? (isDark ? '#34d399' : '#047857') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
-                                fontWeight: 900,
-                                fontSize: '0.75rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              🏫 4 Şık (A-D)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setFormData(p => ({ ...p, options: ['', '', '', '', ''] }))}
-                              style={{
-                                padding: '0.25rem 0.55rem',
-                                borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 5 ? '2px solid #8b5cf6' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
-                                background: (formData.options?.length || 4) === 5 ? (isDark ? 'rgba(139,92,246,0.2)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                                color: (formData.options?.length || 4) === 5 ? (isDark ? '#c084fc' : '#6d28d9') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
-                                fontWeight: 900,
-                                fontSize: '0.75rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              🏛️ 5 Şık (A-E)
-                            </button>
+                            {[
+                              { count: 2, label: '2 Şık', sub: 'A-B', color: '#3b82f6' },
+                              { count: 3, label: '3 Şık', sub: 'A-C', color: '#f59e0b' },
+                              { count: 4, label: '4 Şık', sub: 'A-D', color: '#10b981' },
+                              { count: 5, label: '5 Şık', sub: 'A-E', color: '#8b5cf6' }
+                            ].map(btn => {
+                              const isSel = currentOptionCount === btn.count;
+                              return (
+                                <button
+                                  key={btn.count}
+                                  type="button"
+                                  onClick={() => handleOptionCountChange(btn.count)}
+                                  style={{
+                                    padding: '0.25rem 0.55rem',
+                                    borderRadius: '0.5rem',
+                                    border: isSel ? `2px solid ${btn.color}` : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
+                                    background: isSel ? (isDark ? `${btn.color}25` : `${btn.color}15`) : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                                    color: isSel ? (isDark ? '#ffffff' : btn.color) : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                                    fontWeight: 900,
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {btn.label}
+                                </button>
+                              );
+                            })}
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1' }}>
@@ -3941,8 +4252,7 @@ export default function QuestionBank() {
                       <div style={{ maxHeight: '340px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem', padding: '0.25rem' }}>
                         {Array.from({ length: formData.questionCount }).map((_, idx) => {
                           const selectedOpt = opticAnswers[idx];
-                          const currentOptionCount = (formData.options && formData.options.length) ? formData.options.length : (isHighSchoolGrade(selectedGrade || activeGradeId) ? 5 : 4);
-                          const currentBubbleLetters = currentOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                          const currentBubbleLetters = getOptionLetters(currentOptionCount);
 
                           return (
                             <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', boxShadow: isDark ? 'none' : '0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -3950,7 +4260,7 @@ export default function QuestionBank() {
                                 Soru {idx + 1}
                               </div>
 
-                              {/* Optic Bubbles A-D or A-E */}
+                              {/* Optic Bubbles Dynamic */}
                               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 {currentBubbleLetters.map((letter, optIdx) => {
                                   const isSelected = selectedOpt === optIdx;
@@ -4250,44 +4560,48 @@ export default function QuestionBank() {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-                                      {['A', 'B', 'C', 'D', 'E'].map((letter, oIdx) => {
-                                        const isCorrect = correctIdx === oIdx;
-                                        const optText = (q.options && q.options[oIdx]) ? q.options[oIdx] : letter;
+                                      {(() => {
+                                        const optCount = Number(q.optionCount || q.optionsCount || (q.options ? q.options.length : 0)) || (isHighSchoolGrade(q.gradeId) ? 5 : 4);
+                                        const letters = getOptionLetters(optCount);
+                                        return letters.map((letter, oIdx) => {
+                                          const isCorrect = correctIdx === oIdx;
+                                          const optText = (q.options && q.options[oIdx]) ? q.options[oIdx] : letter;
 
-                                        return (
-                                          <div
-                                            key={letter}
-                                            style={{
-                                              padding: '0.55rem 0.95rem',
-                                              borderRadius: '0.75rem',
-                                              border: isCorrect ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
-                                              background: isCorrect ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'),
-                                              fontWeight: 800,
-                                              fontSize: '0.9rem',
-                                              color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#1e293b'),
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.4rem',
-                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.25)' : 'none'
-                                            }}
-                                          >
-                                            <span style={{
-                                              width: '24px', height: '24px', borderRadius: '50%',
-                                              background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1'),
-                                              color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), fontWeight: 900, fontSize: '0.8rem',
-                                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                            }}>
-                                              {letter}
-                                            </span>
-                                            <span>{optText !== letter ? `${letter}) ${optText}` : `${letter} Şıkkı`}</span>
-                                            {isCorrect && (
-                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
-                                                <Check size={14} strokeWidth={3} /> Doğru
+                                          return (
+                                            <div
+                                              key={letter}
+                                              style={{
+                                                padding: '0.55rem 0.95rem',
+                                                borderRadius: '0.75rem',
+                                                border: isCorrect ? '2px solid #10b981' : (isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
+                                                background: isCorrect ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'),
+                                                fontWeight: 800,
+                                                fontSize: '0.9rem',
+                                                color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#1e293b'),
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.4rem',
+                                                boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.25)' : 'none'
+                                              }}
+                                            >
+                                              <span style={{
+                                                width: '24px', height: '24px', borderRadius: '50%',
+                                                background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1'),
+                                                color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), fontWeight: 900, fontSize: '0.8rem',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                              }}>
+                                                {letter}
                                               </span>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
+                                              <span>{optText !== letter ? `${letter}) ${optText}` : `${letter} Şıkkı`}</span>
+                                              {isCorrect && (
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                                                  <Check size={14} strokeWidth={3} /> Doğru
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        });
+                                      })()}
                                     </div>
                                   </div>
                                 )}

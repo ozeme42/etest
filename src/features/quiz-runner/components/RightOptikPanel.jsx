@@ -259,18 +259,28 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                 <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem' }}>
                   {(() => {
                     const targetObj = bankQ || {};
-                    const isExplicitFive = Boolean(
-                      Number(targetObj?.optionCount) === 5 ||
-                      Number(targetObj?.optionsCount) === 5 ||
-                      Number(targetObj?.book?.optionCount) === 5 ||
-                      String(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || '').includes('5') ||
-                      targetObj?.examType === 'TYT' || targetObj?.examType === 'AYT' || targetObj?.examType === 'YKS' ||
-                      targetObj?.book?.publisher === 'TYT' || targetObj?.book?.publisher === 'AYT' || targetObj?.book?.publisher === 'YKS' ||
-                      Boolean(String(targetObj?.grade || targetObj?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-                      Boolean(String(targetObj?.title || targetObj?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+                    const explicitCount = Number(
+                      qObj?.optionCount ||
+                      qObj?.optionsCount ||
+                      (Array.isArray(qObj?.options) ? qObj.options.length : 0) ||
+                      targetObj?.optionCount ||
+                      targetObj?.optionsCount ||
+                      targetObj?.book?.optionCount
                     );
-                    const isFourOptions = !isExplicitFive;
-                    const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+
+                    let optList;
+                    if (explicitCount >= 2 && explicitCount <= 5) {
+                      optList = ['A', 'B', 'C', 'D', 'E'].slice(0, explicitCount);
+                    } else {
+                      const isExplicitFive = Boolean(
+                        String(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || '').includes('5') ||
+                        targetObj?.examType === 'TYT' || targetObj?.examType === 'AYT' || targetObj?.examType === 'YKS' ||
+                        targetObj?.book?.publisher === 'TYT' || targetObj?.book?.publisher === 'AYT' || targetObj?.book?.publisher === 'YKS' ||
+                        Boolean(String(targetObj?.grade || targetObj?.book?.grade || '').match(/^(9|10|11|12)/)) ||
+                        Boolean(String(targetObj?.title || targetObj?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+                      );
+                      optList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                    }
 
                     return optList.map((opt, optIdx) => {
                       const isSelected = hasUserAns && numericUserAns === optIdx;

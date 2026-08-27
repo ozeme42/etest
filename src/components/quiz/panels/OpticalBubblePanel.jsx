@@ -23,7 +23,7 @@ export default memo(function OpticalBubblePanel({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const totalCount = Math.max(qCount, resolvedQuestions.length, Array.isArray(correctAnswers) ? correctAnswers.length : 0, 1);
-  const options = Number(optionsCount) === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+  const defaultOptions = ['A', 'B', 'C', 'D', 'E'].slice(0, Math.min(5, Math.max(2, Number(optionsCount) || 4)));
 
   const normalizeAns = (val) => {
     if (val === null || val === undefined || val === '' || val === 'empty') return null;
@@ -211,67 +211,76 @@ export default memo(function OpticalBubblePanel({
 
                 {/* Option Bubbles */}
                 <div style={{ display: 'flex', gap: isMobile ? '0.3rem' : '0.4rem' }}>
-                  {options.map((letter, optIdx) => {
-                    const isSelected = userAns === optIdx;
-                    const isKeyOption = isReviewMode && correctAns === optIdx;
+                  {(() => {
+                    const qObj = resolvedQuestions[idx] || {};
+                    const qOptCount = Number(qObj.optionCount || qObj.optionsCount || (Array.isArray(qObj.options) ? qObj.options.length : 0));
+                    const rowOptions = (qOptCount >= 2 && qOptCount <= 5) ? ['A', 'B', 'C', 'D', 'E'].slice(0, qOptCount) : defaultOptions;
+                    return rowOptions.map((letter, optIdx) => {
+                      const isSelected = userAns === optIdx;
+                      const isKeyOption = isReviewMode && correctAns === optIdx;
 
-                    let btnBg = 'var(--color-surface)';
-                    let btnBorder = '1.5px solid var(--color-border-input)';
-                    let btnColor = 'var(--color-text)';
+                      let btnBg = 'var(--color-surface)';
+                      let btnBorder = '1.5px solid var(--color-border-input)';
+                      let btnColor = 'var(--color-text)';
 
-                    if (isReviewMode) {
-                      if (isSelected) {
-                        if (isCorrect === true) {
-                          btnBg = '#16a34a';
+                      if (isReviewMode) {
+                        if (isSelected) {
+                          if (isCorrect === true) {
+                            btnBg = '#16a34a';
+                            btnBorder = '2px solid #16a34a';
+                            btnColor = '#ffffff';
+                          } else {
+                            btnBg = '#dc2626';
+                            btnBorder = '2px solid #dc2626';
+                            btnColor = '#ffffff';
+                          }
+                        } else if (isKeyOption && !isCorrect) {
+                          // Highlight the correct answer if student got wrong or left blank
+                          btnBg = '#dcfce7';
                           btnBorder = '2px solid #16a34a';
-                          btnColor = '#ffffff';
-                        } else {
-                          btnBg = '#dc2626';
-                          btnBorder = '2px solid #dc2626';
-                          btnColor = '#ffffff';
+                          btnColor = '#15803d';
                         }
-                      } else if (isKeyOption && !isCorrect) {
-                        // Highlight the correct answer if student got wrong or left blank
-                        btnBg = '#dcfce7';
-                        btnBorder = '2px solid #16a34a';
-                        btnColor = '#15803d';
+                      } else if (isSelected) {
+                        btnBg = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+                        btnBorder = '2px solid #4f46e5';
+                        btnColor = '#ffffff';
                       }
-                    } else if (isSelected) {
-                      btnBg = 'linear-gradient(135deg, #6366f1, #4f46e5)';
-                      btnBorder = '2px solid #4f46e5';
-                      btnColor = '#ffffff';
-                    }
 
-                    const bubbleSize = isMobile ? '32px' : '30px';
+                      const bubbleSize = isMobile ? '32px' : '30px';
 
-                    return (
-                      <button
-                        key={letter}
-                        type="button"
-                        disabled={isReviewMode}
-                        onClick={() => onSelectOption && onSelectOption(qNo, isSelected ? null : optIdx)}
-                        style={{
-                          width: bubbleSize,
-                          height: bubbleSize,
-                          borderRadius: '50%',
-                          border: btnBorder,
-                          background: btnBg,
-                          color: btnColor,
-                          fontWeight: 900,
-                          fontSize: isMobile ? '0.82rem' : '0.8rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: isReviewMode ? 'default' : 'pointer',
-                          transition: 'all 0.12s ease',
-                          boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
-                          touchAction: 'manipulation'
-                        }}
-                      >
-                        {letter}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={letter}
+                          type="button"
+                          disabled={isReviewMode}
+                          onClick={() => {
+                            if (isReviewMode) return;
+                            const nextAns = (userAns === optIdx) ? null : optIdx;
+                            onSelectOption(qNo, nextAns);
+                          }}
+                          style={{
+                            width: bubbleSize,
+                            height: bubbleSize,
+                            borderRadius: '50%',
+                            background: btnBg,
+                            border: btnBorder,
+                            color: btnColor,
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.82rem' : '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: isReviewMode ? 'default' : 'pointer',
+                            transition: 'all 0.12s ease',
+                            boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+                            touchAction: 'manipulation'
+                          }}
+                        >
+                          {letter}
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             );

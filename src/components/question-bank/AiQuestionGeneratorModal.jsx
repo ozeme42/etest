@@ -919,6 +919,8 @@ export default function AiQuestionGeneratorModal({
                     onChange={(e) => setOptionCount(Number(e.target.value))}
                     style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem' }}
                   >
+                    <option value={2}>2 Şık (A-B • Doğru / Yanlış)</option>
+                    <option value={3}>3 Şık (A-C • İlkokul)</option>
                     <option value={4}>4 Şık (A-D • Ortaokul / LGS)</option>
                     <option value={5}>5 Şık (A-E • Lise / YKS)</option>
                   </select>

@@ -246,17 +246,19 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
 
   const targetObj = test || {};
   const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
-  const isExplicitFive = explicitOpt === 5 ? true : (explicitOpt === 4 ? false : Boolean(
-    Number(test?.optionCount) === 5 ||
-    Number(test?.optionsCount) === 5 ||
-    Number(resolvedBook?.optionCount) === 5 ||
-    String(test?.optionCount || test?.optionsCount || resolvedBook?.optionCount || '').includes('5') ||
-    test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-    resolvedBook?.publisher === 'TYT' || resolvedBook?.publisher === 'AYT' || resolvedBook?.publisher === 'YKS' ||
-    Boolean(String(test?.grade || resolvedBook?.grade || '').match(/^(9|10|11|12)/)) ||
-    Boolean(String(test?.title || test?.name || resolvedBook?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
-  ));
-  const optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+  let optionsList;
+  if (explicitOpt >= 2 && explicitOpt <= 5) {
+    optionsList = ['A', 'B', 'C', 'D', 'E'].slice(0, explicitOpt);
+  } else {
+    const isExplicitFive = Boolean(
+      String(test?.optionCount || test?.optionsCount || resolvedBook?.optionCount || '').includes('5') ||
+      test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
+      resolvedBook?.publisher === 'TYT' || resolvedBook?.publisher === 'AYT' || resolvedBook?.publisher === 'YKS' ||
+      Boolean(String(test?.grade || resolvedBook?.grade || '').match(/^(9|10|11|12)/)) ||
+      Boolean(String(test?.title || test?.name || resolvedBook?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+    );
+    optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+  }
 
   // Mistake Statistics for this test
   const mistakeCounts = useMemo(() => {

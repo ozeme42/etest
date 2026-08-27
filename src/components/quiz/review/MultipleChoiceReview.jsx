@@ -144,8 +144,14 @@ export default function MultipleChoiceReview({
     : (isCorrect !== null && isCorrect !== undefined ? isCorrect : null);
 
   const rawOptions = extractQuestionOptions(question);
-  const isFiveOpts = Number(optionsCount) === 5 || rawOptions.length >= 5;
-  const optionLetters = isFiveOpts ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+  const explicitCount = Number(
+    question?.optionCount ||
+    question?.optionsCount ||
+    (Array.isArray(rawOptions) && rawOptions.length > 0 ? rawOptions.length : 0) ||
+    optionsCount
+  );
+  const targetCount = (explicitCount >= 2 && explicitCount <= 5) ? explicitCount : (Number(optionsCount) === 5 || rawOptions.length >= 5 ? 5 : 4);
+  const optionLetters = ['A', 'B', 'C', 'D', 'E'].slice(0, targetCount);
 
   const qText = extractQuestionText(question, null, qNo - 1) || question?.questionText || question?.text || question?.question || question?.title || `Soru ${qNo}`;
   const explanation = question?.explanation || question?.solution || question?.answerExplanation || '';

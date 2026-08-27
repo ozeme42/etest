@@ -350,20 +350,17 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
     return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
   };
 
-  const isExplicitFive = useMemo(() => {
+  const resolvedOptionCount = useMemo(() => {
     const explicitOpt = Number(test?.optionCount || test?.optionsCount || test?.book?.optionCount);
-    if (explicitOpt === 5) return true;
-    if (explicitOpt === 4) return false;
-    return Boolean(
-      Number(test?.optionCount) === 5 ||
-      Number(test?.optionsCount) === 5 ||
-      Number(test?.book?.optionCount) === 5 ||
+    if (explicitOpt >= 2 && explicitOpt <= 5) return explicitOpt;
+    const isLise = Boolean(
       String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
       test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
       test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
       Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
       Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
     );
+    return isLise ? 5 : 4;
   }, [test]);
 
   const handleOptionSelect = (qNo, optionIdx) => {
@@ -670,7 +667,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
               qCount={qCount}
               answers={answers}
               onSelectOption={(qNo, optIdx) => handleOptionSelect(qNo, optIdx)}
-              optionsCount={isExplicitFive ? 5 : 4}
+              optionsCount={resolvedOptionCount}
               resolvedQuestions={questions}
               hideHeader={true}
             />
