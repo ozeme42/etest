@@ -7,7 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
-import AiUsageBadge from '../ai/AiUsageBadge';
+import { useTheme } from '../../../context/ThemeContext';
 import { toUUID } from '../../../services/supabaseService';
 
 function getAnsIndex(val) {
@@ -62,6 +62,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const studentId = submission?.studentId || currentUser?.id || 'u1';
   const testId = test?.id || submission?.testId || submission?.bookTestId || 'test_1';
   const testKey = String(testId).replace(/^bt_/, '');
+  const { isDark = false } = useTheme();
 
   // ── Resolve Book & PDF ──
   const resolvedBook = useMemo(() => {
@@ -74,6 +75,63 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     }
     return null;
   }, [test, books, bookTests, testId]);
+
+  // ── Full Metadata Resolution (Book, Subject, Unit/Topic, Test Name) ──
+  const resolvedMeta = useMemo(() => {
+    let bookTitle = resolvedBook?.title || submission?.bookTitle || test?.bookTitle || '';
+    let subjectName = submission?.subjectName || submission?.subject || test?.subjectName || test?.subject || '';
+    let topicName = submission?.topicName || submission?.unitTopic || submission?.topic || test?.topicName || test?.unitTopic || test?.topic || '';
+    let testName = test?.name || test?.title || submission?.testName || submission?.title || 'Test';
+
+    // Try finding matching bookTest
+    const matchedBt = (bookTests || []).find(bt => String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId));
+    if (matchedBt) {
+      if (!testName || testName === 'Test') testName = matchedBt.name;
+      if (!subjectName && matchedBt.subjectId && resolvedBook?.subjects) {
+        const foundSub = resolvedBook.subjects.find(s => String(s.id) === String(matchedBt.subjectId));
+        if (foundSub) {
+          subjectName = foundSub.name;
+          if (!topicName && matchedBt.topicId && foundSub.topics) {
+            const foundTop = foundSub.topics.find(t => String(t.id) === String(matchedBt.topicId));
+            if (foundTop) topicName = foundTop.name;
+          }
+        }
+      }
+    }
+
+    if (!subjectName && resolvedBook?.subjects && (test?.subjectId || submission?.subjectId)) {
+      const sId = test?.subjectId || submission?.subjectId;
+      const foundSub = resolvedBook.subjects.find(s => String(s.id) === String(sId));
+      if (foundSub) subjectName = foundSub.name;
+    }
+
+    // Extract from composite testTitle or fullTitle if still missing (e.g. "Ünite Ünite Yeni Nesil Soru Bankası — Türkçe › 5. Ünite (Test-9)")
+    const rawTitle = submission?.fullTitle || submission?.testTitle || test?.testTitle || '';
+    if (rawTitle && rawTitle.includes('—')) {
+      const parts = rawTitle.split('—');
+      if (!bookTitle && parts[0]) bookTitle = parts[0].trim();
+      const rest = parts[1] || '';
+      if (rest.includes('›')) {
+        const subParts = rest.split('›');
+        if (!subjectName && subParts[0]) subjectName = subParts[0].trim();
+        const topAndTest = subParts[1] || '';
+        const matchTestInParen = topAndTest.match(/(.*?)\s*\((.*?)\)/);
+        if (matchTestInParen) {
+          if (!topicName && matchTestInParen[1]) topicName = matchTestInParen[1].trim();
+          if (matchTestInParen[2]) testName = matchTestInParen[2].trim();
+        } else {
+          if (!topicName) topicName = topAndTest.trim();
+        }
+      }
+    }
+
+    return {
+      bookTitle,
+      subjectName,
+      topicName,
+      testName
+    };
+  }, [resolvedBook, test, submission, bookTests, testId]);
 
   const pdfUrl = test?.pdfUrl || resolvedBook?.pdfUrl || submission?.pdfUrl || '';
   const hasPdf = Boolean(pdfUrl);
@@ -207,7 +265,9 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const correctCount = submission?.correctCount ?? answers.filter(a => a.isCorrect === true).length;
   const wrongCount = submission?.wrongCount ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
   const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
-  const scorePct = submission?.score ?? (qCount > 0 ? Math.round((correctCount / qCount) * 100) : 0);
+  const scorePct = qCount > 0
+    ? Math.round((correctCount / qCount) * 100)
+    : (submission?.scorePercentage ?? submission?.score ?? 0);
   const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
   const netScore = submission?.netScore !== undefined && submission?.netScore !== null
     ? Number(submission.netScore)
@@ -322,27 +382,82 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           </button>
           
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-              <span style={{ fontSize: isMobile ? '0.64rem' : '0.68rem', fontWeight: 900, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: '1px 6px', borderRadius: 4, flexShrink: 0 }}>
+            {/* 1. Üst Satır: KİTAP OPTİK İNCELEME & Kitap Adı */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+              <span style={{
+                fontSize: isMobile ? '0.62rem' : '0.68rem',
+                fontWeight: 900,
+                color: '#2563eb',
+                background: 'rgba(37,99,235,0.1)',
+                border: '1px solid rgba(37,99,235,0.2)',
+                padding: '1px 7px',
+                borderRadius: 5,
+                flexShrink: 0
+              }}>
                 📖 KİTAP OPTİK İNCELEME
               </span>
-              {resolvedBook?.title && (
-                <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  • {resolvedBook.title}
+              {resolvedMeta.bookTitle && (
+                <span style={{
+                  fontSize: isMobile ? '0.72rem' : '0.8rem',
+                  color: isDark ? '#a5b4fc' : '#4338ca',
+                  fontWeight: 900,
+                  letterSpacing: '-0.01em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  • {resolvedMeta.bookTitle}
                 </span>
               )}
             </div>
-            <h2 style={{
-              fontSize: isMobile ? '0.9rem' : '1.05rem',
-              fontWeight: 900,
-              margin: '2px 0 0 0',
-              color: 'var(--color-text, #0f172a)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
+
+            {/* 2. Alt Satır: Ders › Ünite / Konu › Test Adı */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flexWrap: 'wrap',
+              fontSize: isMobile ? '0.8rem' : '0.94rem',
+              lineHeight: 1.3
             }}>
-              {test?.title || test?.name || submission?.testTitle || 'Optik Form İnceleme'}
-            </h2>
+              {resolvedMeta.subjectName && (
+                <span style={{
+                  fontWeight: 800,
+                  color: isDark ? '#38bdf8' : '#0284c7',
+                  background: isDark ? 'rgba(56,189,248,0.12)' : '#e0f2fe',
+                  padding: '1px 8px',
+                  borderRadius: 6
+                }}>
+                  {resolvedMeta.subjectName}
+                </span>
+              )}
+              {resolvedMeta.topicName && (
+                <span style={{
+                  color: 'var(--color-text-muted, #64748b)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  <span style={{ opacity: 0.4 }}>›</span>
+                  <span>{resolvedMeta.topicName}</span>
+                </span>
+              )}
+              <span style={{
+                fontWeight: 900,
+                color: 'var(--color-text, #0f172a)',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                border: '1px solid var(--color-border, #cbd5e1)',
+                padding: '1px 9px',
+                borderRadius: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                {(resolvedMeta.subjectName || resolvedMeta.topicName) && <span style={{ opacity: 0.4 }}>›</span>}
+                <span>{resolvedMeta.testName}</span>
+              </span>
+            </div>
           </div>
         </div>
 
