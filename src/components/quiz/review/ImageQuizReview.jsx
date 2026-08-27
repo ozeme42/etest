@@ -1285,7 +1285,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           onClose={() => setAiModalQuestionNo(null)}
           questionNo={aiModalQuestionNo}
           question={activeQuestion}
-          existingImageUrl={activeImgSrc}
+          existingImageUrl={imageUrls[0] || activeQuestion?.imageUrl || ''}
           mistakeReason={mistakeReasons[aiModalQuestionNo] || ''}
           onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
           studentAnswer={hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns)) : ''}
