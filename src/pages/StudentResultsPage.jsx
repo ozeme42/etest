@@ -2577,6 +2577,74 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
               </div>
             </div>
 
+            {/* DATE FILTER HIGHLIGHT SUMMARY BANNER (TOP) */}
+            {dateFilter && filteredSubs.length > 0 && (
+              <div style={{
+                background: isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4',
+                border: isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0',
+                borderRadius: 14,
+                padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.1rem',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+                  }}>
+                    📅
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                      {new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                      Seçilen tarihte çözülen {tableTotals.count} testin genel toplam sonuçları
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>SORU</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalQ}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#16a34a', fontWeight: 800 }}>DOĞRU</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d' }}>{tableTotals.totalC}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #fecaca', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#dc2626', fontWeight: 800 }}>YANLIŞ</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c' }}>{tableTotals.totalW}</div>
+                  </div>
+                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>BOŞ</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalB}</div>
+                  </div>
+                  <div style={{ background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: 8, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}>
+                    <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* TABLE VIEW */}
             {viewMode === 'table' && (
               <div style={{ background: 'var(--color-surface)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
@@ -2850,73 +2918,6 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </tfoot>
                     )}
                   </table>
-                </div>
-              </div>
-            )}
-
-            {/* DATE FILTER HIGHLIGHT SUMMARY BANNER */}
-            {dateFilter && filteredSubs.length > 0 && (
-              <div style={{
-                background: isDark ? 'rgba(99,102,241,0.12)' : '#f0fdf4',
-                border: isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid #bbf7d0',
-                borderRadius: 14,
-                padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 12
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '1.1rem',
-                    boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
-                  }}>
-                    📅
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
-                      {new Date(dateFilter).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })} Günlük Özeti
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                      Seçilen tarihte çözülen {tableTotals.count} testin genel toplam sonuçları
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>SORU</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalQ}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #bbf7d0', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#16a34a', fontWeight: 800 }}>DOĞRU</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d' }}>{tableTotals.totalC}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid #fecaca', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#dc2626', fontWeight: 800 }}>YANLIŞ</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#b91c1c' }}>{tableTotals.totalW}</div>
-                  </div>
-                  <div style={{ background: 'var(--color-surface)', padding: '0.35rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>BOŞ</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{tableTotals.totalB}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: 8, border: '1px solid #bfdbfe', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.64rem', color: '#4f46e5', fontWeight: 800 }}>NET</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1d4ed8' }}>{tableTotals.totalNet}</div>
-                  </div>
-                  <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', padding: '0.35rem 0.9rem', borderRadius: 8, textAlign: 'center', boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}>
-                    <div style={{ fontSize: '0.64rem', opacity: 0.85, fontWeight: 800 }}>BAŞARI</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>%{tableTotals.overallSuccess}</div>
-                  </div>
                 </div>
               </div>
             )}
