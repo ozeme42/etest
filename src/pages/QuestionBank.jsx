@@ -191,9 +191,7 @@ export default function QuestionBank() {
       const compressedResults = await compressMultipleImages(imageFiles, 1600, 0.82);
       const newBase64List = compressedResults.map(r => r.dataUrl);
 
-      const combinedList = append
-        ? [...imageUrls, ...newBase64List]
-        : (imageUrls.length > 0 && formData.contentType === 'gorsel' && creationStep === 2 ? [...imageUrls, ...newBase64List] : newBase64List);
+      const combinedList = append ? [...imageUrls, ...newBase64List] : newBase64List;
 
       const totalKb = compressedResults.reduce((sum, r) => sum + (r.sizeKb || 50), 0);
 
@@ -1030,22 +1028,34 @@ export default function QuestionBank() {
       }
       setOpticAnswers(newOptic);
     } else if (q.contentType === 'gorsel') {
-      const extracted = Array.from(new Set([
-        ...(Array.isArray(q.imageUrls) ? q.imageUrls : []),
-        ...(q.questionsList && Array.isArray(q.questionsList) ? q.questionsList.map(sq => sq.imageUrl || sq.contentPayload) : []),
-        ...extractImageUrls(richPayload),
-        ...extractImageUrls(q)
-      ].filter(Boolean))).filter(isValidImageUrl).map(normalizeImageUrl);
+      let urls = [];
+      if (q.questionsList && Array.isArray(q.questionsList) && q.questionsList.length > 0) {
+        urls = q.questionsList.map(sq => sq.imageUrl || sq.contentPayload).filter(Boolean).filter(isValidImageUrl).map(normalizeImageUrl);
+      }
+      if (urls.length === 0 && Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
+        urls = q.imageUrls.filter(Boolean).filter(isValidImageUrl).map(normalizeImageUrl);
+      }
+      if (urls.length === 0 && richPayload) {
+        urls = extractImageUrls(richPayload);
+      }
+      if (urls.length === 0) {
+        urls = extractImageUrls(q);
+      }
 
-      const urls = extracted.length > 0 ? extracted : (richPayload ? richPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
+      // Deduplicate without losing order
+      const uniqueUrls = [];
+      urls.forEach(u => {
+        if (u && !uniqueUrls.includes(u)) uniqueUrls.push(u);
+      });
 
-      setImageUrls(urls);
-      
-      const qCount = q.questionCount || (urls.length > 0 ? urls.length : 1);
+      const qCount = Number(q.questionCount) || (uniqueUrls.length > 0 ? uniqueUrls.length : 1);
+      const resolvedUrls = (q.questionCount && uniqueUrls.length > qCount) ? uniqueUrls.slice(0, qCount) : uniqueUrls;
+
+      setImageUrls(resolvedUrls);
 
       const ansMap = {};
       if (Array.isArray(normalizedAnswerKey) && normalizedAnswerKey.length > 0) {
-        normalizedAnswerKey.forEach((k, idx) => {
+        normalizedAnswerKey.slice(0, qCount).forEach((k, idx) => {
           if (k !== undefined && k !== null && String(k).trim() !== '') {
             ansMap[idx] = typeof k === 'number' ? k : (String(k).toUpperCase().charCodeAt(0) - 65);
           }
@@ -1053,7 +1063,7 @@ export default function QuestionBank() {
       } else if (q.imageAnswers) {
         Object.assign(ansMap, q.imageAnswers);
       } else if (q.questionsList && Array.isArray(q.questionsList)) {
-        q.questionsList.forEach((subQ, idx) => {
+        q.questionsList.slice(0, qCount).forEach((subQ, idx) => {
           if (subQ.correctAnswer !== undefined) {
             ansMap[idx] = typeof subQ.correctAnswer === 'number' ? subQ.correctAnswer : (typeof subQ.correctAnswer === 'string' && /^[A-E]$/i.test(subQ.correctAnswer.trim()) ? subQ.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : 0);
           }
@@ -1065,8 +1075,8 @@ export default function QuestionBank() {
 
       setFormData(prev => ({
         ...prev,
-        questionCount: qCount,
-        contentPayload: urls.join('\n\n')
+        questionCount: resolvedUrls.length > 0 ? resolvedUrls.length : qCount,
+        contentPayload: resolvedUrls.join('\n\n')
       }));
     }
     
@@ -1351,7 +1361,7 @@ export default function QuestionBank() {
         });
       } else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? formData.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
-        const totalQs = validUrls.length > 0 ? validUrls.length : (parseInt(formData.questionCount, 10) || 1);
+        const totalQs = validUrls.length > 0 ? validUrls.length : 1;
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -1364,8 +1374,7 @@ export default function QuestionBank() {
 
         const isSingleQuestion = totalQs <= 1;
 
-        const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
-          const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
+        const subQuestions = isSingleQuestion ? [] : validUrls.map((u, idx) => {
           return {
             id: `subq_${idx}_${Date.now()}`,
             questionNo: idx + 1,
@@ -1443,7 +1452,7 @@ export default function QuestionBank() {
       }
       else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? formData.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
-        const totalQs = validUrls.length > 0 ? validUrls.length : (parseInt(formData.questionCount, 10) || 1);
+        const totalQs = validUrls.length > 0 ? validUrls.length : 1;
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -1456,8 +1465,7 @@ export default function QuestionBank() {
 
         const isSingleQuestion = totalQs <= 1;
 
-        const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
-          const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
+        const subQuestions = isSingleQuestion ? [] : validUrls.map((u, idx) => {
           return {
             id: `subq_${idx}_${Date.now()}`,
             questionNo: idx + 1,
@@ -1478,6 +1486,8 @@ export default function QuestionBank() {
 
         await addQuestion({
           ...formData,
+          contentType: 'gorsel',
+          type: formData.type || 'coktan_secmeli',
           optionCount: finalOptionCount,
           optionsCount: finalOptionCount,
           options: finalOptions,
@@ -1485,13 +1495,13 @@ export default function QuestionBank() {
           subject: foundSubject,
           gradeId: foundGradeId,
           isBundle: !isSingleQuestion,
-          questionCount: totalQs,
+          contentPayload: finalPayload,
           imageUrl: validUrls[0] || formData.contentPayload || '',
           imageUrls: validUrls,
-          contentPayload: finalPayload,
           questionsList: subQuestions,
           answerKey: parsedKey,
           imageAnswers: imageAnswers,
+          questionCount: totalQs,
           createdBy: teacherId
         });
       }
@@ -1509,7 +1519,7 @@ export default function QuestionBank() {
         });
       }
     }
-    
+
     setShowModal(false);
     resetForm();
     } finally {
@@ -1521,6 +1531,7 @@ export default function QuestionBank() {
     if (q.isBundle) {
       if (q.contentType === 'pdf') return `PDF Test Paketi (${q.questionCount || 1} Soru)`;
       if (q.contentType === 'html') return `HTML Test Paketi (${q.questionCount || 1} Soru)`;
+      if (q.contentType === 'gorsel') return `Görsel Soru Seti (${q.questionCount || 1} Soru)`;
       return `Toplu Yazılı Test (${q.questionCount || 1} Soru)`;
     }
     switch(q.contentType) {
@@ -4732,28 +4743,45 @@ export default function QuestionBank() {
 
                     {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
                     {(() => {
-                      const extracted = Array.from(new Set([
-                        ...(Array.isArray(q.imageUrls) ? q.imageUrls : []),
-                        ...(q.questionsList && Array.isArray(q.questionsList) ? q.questionsList.map(sq => sq.imageUrl || sq.contentPayload) : []),
-                        ...extractImageUrls(q.contentPayload),
-                        ...extractImageUrls(q)
-                      ].filter(Boolean))).filter(isValidImageUrl).map(normalizeImageUrl);
+                      // 1. Check if structured questionsList exists
+                      const subQList = (q.questionsList && Array.isArray(q.questionsList) && q.questionsList.length > 0)
+                        ? q.questionsList
+                        : [];
 
-                      const rawList = extracted.length > 0 ? extracted : (q.contentPayload ? q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(isValidImageUrl).map(normalizeImageUrl) : []);
-                      const imageList = rawList.length > 0 ? rawList : (q.contentPayload && isValidImageUrl(q.contentPayload) ? [normalizeImageUrl(q.contentPayload)] : []);
+                      // 2. Extract image URLs cleanly
+                      let rawImages = [];
+                      if (subQList.length > 0) {
+                        rawImages = subQList.map(sq => normalizeImageUrl(sq.imageUrl || sq.contentPayload)).filter(isValidImageUrl);
+                      } else if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
+                        rawImages = q.imageUrls.filter(Boolean).filter(isValidImageUrl).map(normalizeImageUrl);
+                      } else if (q.contentPayload) {
+                        const splitted = q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(isValidImageUrl).map(normalizeImageUrl);
+                        rawImages = splitted.length > 0 ? splitted : [normalizeImageUrl(q.contentPayload)].filter(isValidImageUrl);
+                      }
+
+                      // Deduplicate keeping original order
+                      const uniqueImages = [];
+                      rawImages.forEach(url => {
+                        if (url && !uniqueImages.includes(url)) uniqueImages.push(url);
+                      });
+
+                      // Restrict image count strictly to q.questionCount if specified
+                      const targetCount = Number(q.questionCount) || (uniqueImages.length > 0 ? uniqueImages.length : 1);
+                      const imageList = (uniqueImages.length > targetCount) ? uniqueImages.slice(0, targetCount) : (uniqueImages.length > 0 ? uniqueImages : (q.contentPayload ? [q.contentPayload] : ['']));
 
                       const getCorrectIdxForImg = (imgIdx) => {
-                        if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
-                          return typeof q.answerKey[imgIdx] === 'number' ? q.answerKey[imgIdx] : (q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65);
+                        if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] !== undefined && q.answerKey[imgIdx] !== ' ') {
+                          return typeof q.answerKey[imgIdx] === 'number' ? q.answerKey[imgIdx] : (String(q.answerKey[imgIdx]).toUpperCase().charCodeAt(0) - 65);
+                        }
+                        if (typeof q.answerKey === 'string' && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
+                          return q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65;
                         }
                         if (q.imageAnswers && q.imageAnswers[imgIdx] !== undefined) {
                           return q.imageAnswers[imgIdx];
                         }
-                        if (q.questionsList && Array.isArray(q.questionsList) && q.questionsList[imgIdx]) {
-                          const subQ = q.questionsList[imgIdx];
-                          if (subQ.correctAnswer !== undefined) {
-                            return typeof subQ.correctAnswer === 'number' ? subQ.correctAnswer : (typeof subQ.correctAnswer === 'string' && /^[A-E]$/i.test(subQ.correctAnswer.trim()) ? subQ.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : -1);
-                          }
+                        if (subQList[imgIdx] && subQList[imgIdx].correctAnswer !== undefined) {
+                          const subAns = subQList[imgIdx].correctAnswer;
+                          return typeof subAns === 'number' ? subAns : (typeof subAns === 'string' && /^[A-E]$/i.test(subAns.trim()) ? subAns.trim().toUpperCase().charCodeAt(0) - 65 : -1);
                         }
                         if (imgIdx === 0 && q.correctAnswer !== undefined) {
                           return typeof q.correctAnswer === 'number' ? q.correctAnswer : (typeof q.correctAnswer === 'string' && /^[A-E]$/i.test(q.correctAnswer.trim()) ? q.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65 : -1);
