@@ -447,20 +447,55 @@ export default function PdfViewerWithControls({
             <p style={{ fontSize: '0.85rem' }}>Bu içerik PDF formatında değil veya doküman kaynağı henüz yüklenemedi.</p>
           </div>
         ) : isIframeUrl ? (
-          <iframe
-            src={embedUrl}
-            title={title || "PDF Dokümanı"}
-            style={{
-              width: '100%',
-              height: '100%',
-              minHeight: '600px',
-              border: 'none',
-              background: '#ffffff',
-              borderRadius: '0.5rem',
-              flex: 1
-            }}
-            allow="autoplay"
-          />
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: '550px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.4rem 0.75rem',
+              background: '#1e293b',
+              borderRadius: '0.5rem 0.5rem 0 0',
+              borderBottom: '1px solid #334155',
+              flexShrink: 0
+            }}>
+              <span style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <FileText size={14} /> {title || "PDF Dokümanı"}
+              </span>
+              <a
+                href={embedUrl.replace(/\/preview$/, '/view')}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#60a5fa',
+                  textDecoration: 'none',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '0.35rem'
+                }}
+              >
+                <ExternalLink size={13} /> Yeni Sekmede Aç ↗
+              </a>
+            </div>
+            <iframe
+              src={embedUrl}
+              title={title || "PDF Dokümanı"}
+              style={{
+                width: '100%',
+                height: '100%',
+                minHeight: '550px',
+                border: 'none',
+                background: '#ffffff',
+                borderRadius: '0 0 0.5rem 0.5rem',
+                flex: 1
+              }}
+              allow="autoplay"
+            />
+          </div>
         ) : (
           <Document
             file={embedUrl}

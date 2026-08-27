@@ -1131,6 +1131,10 @@ export default function ModularQuizPage() {
     ((test.name && String(test.name).toLowerCase().includes('html')) && !isValidPdfPayload)
   ));
 
+  const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || Boolean(q.pdfPayload) || Boolean(q.pdfUrl)
+  ));
+
   const isPdf = !isHtml && !isValidHtmlPayload && Boolean(
     isValidPdfPayload ||
     (test.pdfPayload && typeof test.pdfPayload === 'string') ||
