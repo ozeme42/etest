@@ -214,15 +214,19 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     for (let i = 1; i <= qCount; i++) {
       const a = answers.find(ans => (ans.questionNo === i || String(ans.questionId).includes(`_${i}`))) || answers[i - 1];
       const qObj = questions[i - 1] || bundleQ || {};
-      const textVal = a?.userAnswerText || a?.textAns || a?.text || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const rawAns = unwrapUserAnswer(a?.userAnswer ?? a);
+      const hasUserOption = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
+      const textVal = a?.userAnswerText || a?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
       const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const isQOE = Boolean(
+        isOpenEndedMode ||
         a?.isOpenEnded ||
         a?.type === 'acik_uclu' ||
+        a?.type === 'gorsel_klasik' ||
         qObj?.type === 'acik_uclu' ||
+        qObj?.type === 'gorsel_klasik' ||
         qObj?.isOpenEnded ||
-        isOpenEndedMode ||
-        hasText
+        (!hasUserOption && hasText)
       );
 
       if (isQOE) {
@@ -439,10 +443,20 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const qObj = questions[i - 1] || bundleQ || {};
       const ansObj = answers.find(a => (a.questionNo === i || String(a.questionId).includes(`_${i}`))) || answers[i - 1] || {};
       const rawAns = unwrapUserAnswer(ansObj?.userAnswer ?? ansObj);
-      const textVal = ansObj?.userAnswerText || ansObj?.textAns || ansObj?.text || ansObj?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
+      const hasUserOption = (rawAns !== null && rawAns !== undefined && rawAns !== '' && rawAns !== 'empty');
+      const textVal = ansObj?.userAnswerText || ansObj?.writtenAnswer || submission?.openEndedText?.[i] || submission?.openEndedText?.[String(i)];
       const hasText = Boolean(textVal && String(textVal).trim() !== '' && String(textVal).trim() !== 'empty');
       const teacherSc = questionScores[i];
-      const isItemOE = isOpenEndedMode || hasText || qObj.type === 'acik_uclu' || qObj.type === 'gorsel_klasik' || ansObj.isOpenEnded;
+      const isItemOE = Boolean(
+        isOpenEndedMode ||
+        ansObj.isOpenEnded ||
+        ansObj.type === 'acik_uclu' ||
+        ansObj.type === 'gorsel_klasik' ||
+        qObj.type === 'acik_uclu' ||
+        qObj.type === 'gorsel_klasik' ||
+        qObj.isOpenEnded ||
+        (!hasUserOption && hasText)
+      );
 
       if (isItemOE) {
         if (!hasText || teacherSc === 'empty') {
@@ -550,9 +564,19 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       const rawAns = unwrapUserAnswer(ans?.userAnswer ?? ans);
       const userAns = typeof rawAns === 'number' ? rawAns : (rawAns || null);
       const textAns = typeof ans?.userAnswerText === 'string' ? ans.userAnswerText.trim() : (submission?.openEndedText?.[qNo] || '');
-      const hasAns = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty') || textAns.length > 0;
+      const hasUserOption = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty');
+      const hasAns = hasUserOption || (textAns.length > 0 && textAns !== 'empty');
       
-      const isItemOE = isOpenEndedMode || textAns.length > 0 || qObj?.type === 'acik_uclu' || qObj?.type === 'gorsel_klasik' || ans?.type === 'acik_uclu';
+      const isItemOE = Boolean(
+        isOpenEndedMode ||
+        ans?.isOpenEnded ||
+        ans?.type === 'acik_uclu' ||
+        ans?.type === 'gorsel_klasik' ||
+        qObj?.type === 'acik_uclu' ||
+        qObj?.type === 'gorsel_klasik' ||
+        qObj?.isOpenEnded ||
+        (!hasUserOption && textAns.length > 0 && textAns !== 'empty')
+      );
       const teacherSc = questionScores[qNo];
       const isPending = teacherSc === 'pending' || (isItemOE && hasAns && (teacherSc === undefined || teacherSc === null || teacherSc === 'pending' || !isTrulyEvaluated));
 
@@ -593,10 +617,19 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const rawUserAns = unwrapUserAnswer(activeAnsObj);
   const userAns = typeof rawUserAns === 'number' ? rawUserAns : activeAnsObj.userAnswer;
-  const textAns = activeAnsObj.userAnswerText;
+  const textAns = typeof activeAnsObj.userAnswerText === 'string' ? activeAnsObj.userAnswerText.trim() : '';
   const hasAnswer = (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty');
-  const isText = Boolean(textAns && String(textAns).trim() !== '');
-  const isItemOE = isOpenEndedMode || isText || activeQuestion?.type === 'acik_uclu' || activeQuestion?.type === 'gorsel_klasik';
+  const isText = Boolean(textAns && String(textAns).trim() !== '' && String(textAns).trim() !== 'empty');
+  const isItemOE = Boolean(
+    isOpenEndedMode ||
+    activeAnsObj.isOpenEnded ||
+    activeAnsObj.type === 'acik_uclu' ||
+    activeAnsObj.type === 'gorsel_klasik' ||
+    activeQuestion?.type === 'acik_uclu' ||
+    activeQuestion?.type === 'gorsel_klasik' ||
+    activeQuestion?.isOpenEnded ||
+    (!hasAnswer && isText)
+  );
 
   // Correct answer for the current question
   const keySource = test.answerKey || bundleQ.answerKey || questions[0]?.answerKey || null;
