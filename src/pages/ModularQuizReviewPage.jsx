@@ -763,22 +763,54 @@ export default function ModularQuizReviewPage() {
 
   // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended)
   const isBookOrOptical = !isWritten && !isSectionOpenEnded(test) && Boolean(
+    test.bookId ||
+    test.bookTestId ||
+    submission?.bookId ||
+    submission?.bookTestId ||
+    test.sourceType === 'trackedBook' ||
+    test.sourceType === 'bookTest' ||
+    test.sourceType === 'optik' ||
+    test.sourceType === 'book' ||
+    submission?.sourceType === 'trackedBook' ||
+    submission?.sourceType === 'bookTest' ||
+    submission?.sourceType === 'optik' ||
+    submission?.sourceType === 'book' ||
+    submission?.typeKey === 'book' ||
+    submission?.type === 'book' ||
+    submission?.isManual === true ||
+    submission?.sourceType === 'manual_test' ||
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
     test.type === 'optik_form' ||
-    test.sourceType === 'trackedBook' ||
-    test.sourceType === 'bookTest' ||
     test.isBookAssignment ||
     test.isPhysical ||
-    (Boolean(test.bookId || test.bookTestId || submission?.bookId || submission?.bookTestId) && !test.questions?.length && (!questions || questions.length === 0)) ||
-    submission?.sourceType === 'trackedBook' ||
-    submission?.sourceType === 'bookTest' ||
-    submission?.sourceType === 'optik' ||
+    String(test.id || '').startsWith('bt_') ||
+    String(test.id || '').startsWith('tbt_') ||
+    String(submission?.testId || '').startsWith('bt_') ||
+    String(submission?.testId || '').startsWith('tbt_') ||
+    String(submission?.id || '').startsWith('bt_') ||
+    String(submission?.id || '').startsWith('tbt_') ||
+    (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
+      String(bt.id) === String(test.id) || 
+      String(bt.id) === String(submission?.testId) || 
+      String(bt.id) === String(submission?.bookTestId) ||
+      (toUUID(bt.id) && (toUUID(bt.id) === toUUID(test.id) || toUUID(bt.id) === toUUID(submission?.testId)))
+    )) ||
+    (books && Array.isArray(books) && books.some(b => 
+      String(b.id) === String(test.bookId) || 
+      String(b.id) === String(submission?.bookId) ||
+      (toUUID(b.id) && (toUUID(b.id) === toUUID(test.bookId) || toUUID(b.id) === toUUID(submission?.bookId)))
+    )) ||
     (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)')))
   );
 
-  const isPhysical = !isHtml && !isPdf && !isImageTest && !isWritten && !isSectionOpenEnded(test) && isBookOrOptical;
+  const isPhysical = !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+    test.sourceFormat === 'physical' ||
+    test.formatType === 'physical' ||
+    test.questionType === 'optik_form' ||
+    test.type === 'optik_form'
+  ));
 
   const hasMultipleDistinctSections = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
@@ -787,13 +819,13 @@ export default function ModularQuizReviewPage() {
     (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 1)
   );
 
-  const isMultiSection = !isPhysical && (hasMultipleDistinctSections || Boolean(
+  const isMultiSection = !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
     test.isBulk ||
     test.isMulti ||
     test.isComposite
   ));
 
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && !isMultipleChoiceTest && (isWritten || isSectionOpenEnded(test));
+  const isSingleOE = !isMultiSection && !isPhysical && !isBookOrOptical && !isPdf && !isHtml && !isImageTest && !isMultipleChoiceTest && (isWritten || isSectionOpenEnded(test));
 
   const isTeacher = Boolean(
     currentUser?.role === 'teacher' ||
@@ -832,7 +864,19 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 2. Single PDF Review
+  // 2. Physical & Tracked Book Optical Review (Pure Optical Sheet + Mistake Diagnostics + AI Solver)
+  if (isPhysical || isBookOrOptical) {
+    return (
+      <PhysicalQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 3. Single PDF Review
   if (isPdf) {
     return (
       <PdfQuizReview
@@ -844,7 +888,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 3. Single HTML Review
+  // 4. Single HTML Review
   if (isHtml) {
     return (
       <HtmlQuizReview
@@ -856,7 +900,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single Open-Ended Review / Teacher Grading
+  // 5. Single Open-Ended Review / Teacher Grading
   if (isSingleOE) {
     return (
       <SingleOpenEndedReview
@@ -869,22 +913,10 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 5. Single Image Review
+  // 6. Single Image Review
   if (isImageTest) {
     return (
       <ImageQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 6. Physical Exam Review
-  if (isPhysical) {
-    return (
-      <PhysicalQuizReview
         submission={submission}
         test={test}
         questions={questions}
