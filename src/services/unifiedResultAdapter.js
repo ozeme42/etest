@@ -304,23 +304,42 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  // Override correct/wrong counts if pre-evaluated by teacher or explicitly defined
-  if (typeof rawSub.correctCount === 'number' && typeof rawSub.wrongCount === 'number') {
-    if (rawSub.correctCount !== correctCount || rawSub.wrongCount !== wrongCount) {
-      if ((rawSub.correctCount + rawSub.wrongCount) <= totalQuestions) {
-        correctCount = rawSub.correctCount;
-        wrongCount = rawSub.wrongCount;
-        blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
-      }
+  // Override correct/wrong counts if pre-evaluated by teacher, entered manually, or explicitly defined in snake_case / camelCase
+  const expCorrect = rawSub.correctCount ?? rawSub.correct_count ?? rawSub.correct ?? raw.correctCount ?? raw.correct_count;
+  const expWrong = rawSub.wrongCount ?? rawSub.wrong_count ?? rawSub.wrong ?? raw.wrongCount ?? raw.wrong_count;
+  const expEmpty = rawSub.emptyCount ?? rawSub.empty_count ?? rawSub.blankCount ?? rawSub.blank_count ?? rawSub.empty ?? raw.emptyCount ?? raw.empty_count;
+
+  if (expCorrect !== undefined && expCorrect !== null && !isNaN(Number(expCorrect))) {
+    const numCorr = Number(expCorrect);
+    const numWrg = (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) ? Number(expWrong) : 0;
+    const numEmp = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) ? Number(expEmpty) : Math.max(0, totalQuestions - numCorr - numWrg);
+    
+    if ((correctCount === 0 && wrongCount === 0 && (numCorr > 0 || numWrg > 0)) || Object.keys(studentAnswersMap).length === 0) {
+      correctCount = numCorr;
+      wrongCount = numWrg;
+      blankCount = numEmp;
+    } else if (numCorr !== correctCount || numWrg !== wrongCount) {
+      correctCount = numCorr;
+      wrongCount = numWrg;
+      blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
     }
   }
 
   // 6. Score & Net Calculation
-  const scorePercentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-  const netScore = Number((correctCount - (wrongCount / 4)).toFixed(2));
+  const expScorePct = rawSub.scorePercentage ?? rawSub.score_percentage ?? rawSub.score ?? rawSub.pct ?? raw.scorePercentage;
+  const scorePercentage = (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct)))
+    ? Math.round(Number(expScorePct))
+    : (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
+
+  const expNet = rawSub.totalNet ?? rawSub.total_net ?? rawSub.net ?? raw.totalNet;
+  const netScore = (expNet !== undefined && expNet !== null && !isNaN(Number(expNet)))
+    ? Number(Number(expNet).toFixed(2))
+    : Number((correctCount - (wrongCount / 4)).toFixed(2));
 
   // 7. Date Resolution
-  const dateVal = extractItemDate(rawSub.submittedAt || rawSub.submitted_at || rawSub.completedAt || rawSub.date || raw.submittedAt || raw.completedAt || rawSub);
+  const dateVal = extractItemDate(rawSub);
+  const rawSubDate = rawSub.submittedAt || rawSub.submitted_at || rawSub.completedAt || rawSub.completed_at || rawSub.date || raw.submittedAt || raw.completedAt || rawSub.createdAt;
+  const resolvedSubmittedAt = rawSubDate ? (typeof rawSubDate === 'string' && rawSubDate.includes('T') ? rawSubDate : new Date(dateVal).toISOString()) : new Date(dateVal).toISOString();
 
   // 8. Unique Clean ID & Subject/Type Keys
   const studentId = String(rawSub.studentId ?? rawSub.userId ?? rawSub.student_id ?? '');
@@ -375,7 +394,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     
     studentId,
     date: dateVal,
-    submittedAt: dateVal,
+    submittedAt: resolvedSubmittedAt || dateVal,
     
     totalQuestions,
     correctCount,
@@ -502,6 +521,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (!normalized || isDeletedItem(normalized)) return;
+
+      // Filter out umbrella "(Tüm Kitap Görevi)" or placeholder container assignments
+      const t = String(normalized.testTitle || normalized.fullTitle || normalized.title || '').toLowerCase();
+      if (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)') || t.includes('(kendi eklediğim)')) return;
 
       const testKey = String(normalized.testId || normalized.realTestId || normalized.id);
       if (processedTestIds.has(testKey)) return;

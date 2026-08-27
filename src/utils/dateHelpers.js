@@ -164,8 +164,25 @@ export const extractItemDate = (s) => {
   if (!s) return getTurkeyToday();
   const todayYMD = getTurkeyToday();
 
+  // If s is a Date instance
+  if (s instanceof Date) {
+    return getTurkeyYMD(s);
+  }
+  // If s is a numeric timestamp
+  if (typeof s === 'number') {
+    return getTurkeyYMD(new Date(s));
+  }
+  // If s is a string formatted as date / ISO
+  if (typeof s === 'string') {
+    const trimmed = s.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T') || trimmed.includes('Z')) {
+      const parsedYMD = getTurkeyYMD(trimmed);
+      if (parsedYMD) return parsedYMD;
+    }
+  }
+
   const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
-  const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : null;
+  const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : null;
 
   // 1. Helper to extract embedded epoch timestamp from submission ID / meta.realId / meta.submissionId
   const getEmbeddedTsDate = () => {
@@ -192,7 +209,7 @@ export const extractItemDate = (s) => {
     return null;
   };
 
-  // 2. Explicit date candidates
+  // 2. Explicit date candidates in object
   const explicitCandidates = [
     meta?.submittedAt,
     meta?.completedAt,
@@ -202,10 +219,16 @@ export const extractItemDate = (s) => {
     s.submitted_at,
     s.completedAt,
     s.completed_at,
+    s.date,
     raw.submittedAt,
     raw.submitted_at,
     raw.completedAt,
-    raw.date
+    raw.completed_at,
+    raw.date,
+    s.createdAt,
+    s.created_at,
+    raw.createdAt,
+    raw.created_at
   ];
 
   // Check if any explicit date has a distinct historical date (not today)
