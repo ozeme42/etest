@@ -789,38 +789,6 @@ export default function TrackedBookQuizRunner() {
   const currentTestIndex = otherTestsInBook.findIndex(t => String(t.id) === String(resolvedTest?.id));
   const nextTest = currentTestIndex >= 0 && currentTestIndex < otherTestsInBook.length - 1 ? otherTestsInBook[currentTestIndex + 1] : null;
 
-  // Loading Screen
-  if (booksLoading || hwLoading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
-        Kitap Testi Yükleniyor...
-      </div>
-    );
-  }
-
-  // Not Found Screen
-  if (!resolvedTest) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: '#f8fafc', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <AlertCircle size={32} />
-        </div>
-        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Kitap Testi Bulunamadı</h2>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', maxWidth: 420, lineHeight: 1.5 }}>
-          Bu teste ait kayıt bulunamadı veya henüz yükleniyor olabilir. Lütfen kitap listenizi kontrol ediniz.
-        </p>
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <button onClick={() => navigate('/student/books')} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem' }}>
-            Kitaplarıma Dön
-          </button>
-          <button onClick={() => navigate('/student')} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', background: '#334155', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem' }}>
-            Öğrenci Paneli
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const { resolvedSubject, resolvedUnit, resolvedTopic } = useMemo(() => {
     let subj = null;
     let unit = null;
@@ -890,6 +858,38 @@ export default function TrackedBookQuizRunner() {
     )
   );
   const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+
+  // Loading Screen
+  if (booksLoading || hwLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        Kitap Testi Yükleniyor...
+      </div>
+    );
+  }
+
+  // Not Found Screen
+  if (!resolvedTest) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: '#f8fafc', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <AlertCircle size={32} />
+        </div>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Kitap Testi Bulunamadı</h2>
+        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', maxWidth: 420, lineHeight: 1.5 }}>
+          Bu teste ait kayıt bulunamadı veya henüz yükleniyor olabilir. Lütfen kitap listenizi kontrol ediniz.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+          <button onClick={() => navigate('/student/books')} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem' }}>
+            Kitaplarıma Dön
+          </button>
+          <button onClick={() => navigate('/student')} style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', background: '#334155', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem' }}>
+            Öğrenci Paneli
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>

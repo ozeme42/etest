@@ -48,7 +48,20 @@ export default function EvaluationManager() {
 
   const [activeSubmission, setActiveSubmission] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('eval_view_mode') || 'table';
+    } catch {
+      return 'table';
+    }
+  }); // 'table' | 'cards'
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('eval_view_mode', mode);
+    } catch {}
+  };
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
@@ -624,7 +637,7 @@ export default function EvaluationManager() {
           }}>
             <button
               type="button"
-              onClick={() => setViewMode('table')}
+              onClick={() => handleViewModeChange('table')}
               title="Tablo Görünümü"
               style={{
                 padding: '0.4rem 0.65rem',
@@ -645,7 +658,7 @@ export default function EvaluationManager() {
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('cards')}
+              onClick={() => handleViewModeChange('cards')}
               title="Kart Görünümü"
               style={{
                 padding: '0.4rem 0.65rem',

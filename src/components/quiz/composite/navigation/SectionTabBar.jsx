@@ -14,9 +14,11 @@ export default memo(function SectionTabBar({
   isReviewMode = false
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
-  if (!sections || sections.length <= 1) return null;
 
   const { totalExamQuestions, totalExamAnswered, progressPct } = useMemo(() => {
+    if (!Array.isArray(sections) || sections.length <= 1) {
+      return { totalExamQuestions: 0, totalExamAnswered: 0, progressPct: 0 };
+    }
     let totQ = 0;
     let totA = 0;
     sections.forEach((sec, idx) => {
@@ -35,6 +37,8 @@ export default memo(function SectionTabBar({
     const pct = totQ > 0 ? Math.min(100, Math.round((totA / totQ) * 100)) : 0;
     return { totalExamQuestions: totQ, totalExamAnswered: totA, progressPct: pct };
   }, [sections, sectionAnswers]);
+
+  if (!sections || sections.length <= 1) return null;
 
   return (
     <div style={{ position: 'relative', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>

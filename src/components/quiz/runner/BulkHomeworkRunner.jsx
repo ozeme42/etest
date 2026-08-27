@@ -542,7 +542,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                     {(() => {
                       const targetObj = qObj || (typeof currentSec !== 'undefined' ? currentSec : null) || test || {};
                       const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
-  const isExplicitFive = explicitOpt === 5 ? true : (explicitOpt === 4 ? false : Boolean(
+                      const isExplicitFive = explicitOpt === 5 ? true : (explicitOpt === 4 ? false : Boolean(
                         Number(test?.optionCount) === 5 ||
                         Number(test?.optionsCount) === 5 ||
                         Number(test?.book?.optionCount) === 5 ||
@@ -551,7 +551,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                         test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
                         Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
                         Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
-                      );
+                      ));
                       const isFourOptions = !isExplicitFive;
                       const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                       return optionsList.map((opt, optIdx) => {

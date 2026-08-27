@@ -62,8 +62,6 @@ export default function TeacherStudentQuickReportModal({
     setTeacherNote(prev => prev ? `${prev} ${phrase}` : phrase);
   };
 
-  if (!student) return null;
-
   // Helper to normalize subjects reliably
   const normalizeSubjectName = (rawName) => {
     if (!rawName) return 'Genel';
@@ -91,6 +89,7 @@ export default function TeacherStudentQuickReportModal({
 
   // Student's Complete Resolved Submissions (including Tracked Books, Homeworks, and Optical Tests)
   const studentSubs = useMemo(() => {
+    if (!student?.id) return [];
     const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
       studentId: student.id,
       targetStudent: student,
@@ -236,6 +235,7 @@ export default function TeacherStudentQuickReportModal({
 
   // Student Homework metrics
   const homeworkMetrics = useMemo(() => {
+    if (!student?.id) return { total: 0, completed: 0, pending: 0, completionRate: 100 };
     const assignedHw = (homeworks || []).filter(h => {
       const tIds = h.targetIds || [];
       return tIds.includes(student.id) || tIds.includes(String(student.id));
@@ -253,7 +253,7 @@ export default function TeacherStudentQuickReportModal({
       pending: Math.max(0, assignedHw.length - completedCount),
       completionRate
     };
-  }, [homeworks, student.id]);
+  }, [homeworks, student?.id]);
 
   // Class Info
   const gradeObj = grades.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
@@ -315,6 +315,8 @@ ${stats.strongTopics.length > 0 ? `━━━━━━━━━━━━━━━
       window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
     }
   };
+
+  if (!student) return null;
 
   return (
     <div style={{

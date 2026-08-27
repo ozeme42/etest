@@ -118,19 +118,27 @@ export default function DashboardRecentSolvedCard({
               test.status === 'graded' ||
               test.teacherFeedback ||
               test.teacherNote ||
-              (test.score !== undefined && test.score !== null && !test.isPendingEvaluation)
+              (test.teacherScores && Object.keys(test.teacherScores).length > 0) ||
+              test.evaluatedAt ||
+              (Array.isArray(test.answers) && test.answers.some(a => a && (a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending'))))
             );
 
-            const isPending = !isEvaluated && Boolean(
-              test.isPendingEvaluation === true ||
-              (test.isOpenEnded && !isEvaluated)
+            const isWritten = Boolean(
+              test.isOpenEnded ||
+              test.type === 'acik_uclu' ||
+              test.type === 'yazili' ||
+              test.questionType === 'acik_uclu' ||
+              test.questionType === 'yazili' ||
+              test.isPendingEvaluation
             );
 
-            const scoreRate = (test.score !== undefined && test.score !== null)
+            const isPending = isWritten && !isEvaluated;
+
+            const scoreRate = (test.score !== undefined && test.score !== null && !isPending)
               ? Number(test.score)
-              : (test.scorePercentage !== undefined && test.scorePercentage !== null
+              : (test.scorePercentage !== undefined && test.scorePercentage !== null && !isPending
                   ? Number(test.scorePercentage)
-                  : (totalQ > 0 ? Math.round((correct / totalQ) * 100) : null));
+                  : (totalQ > 0 && !isPending ? Math.round((correct / totalQ) * 100) : null));
 
             return (
               <div
@@ -218,7 +226,7 @@ export default function DashboardRecentSolvedCard({
                       </span>
                     ) : (
                       <>
-                        {test.isOpenEnded ? (
+                        {isWritten ? (
                           <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 800 }}>
                             ✓ Öğretmen Notu Verildi
                           </span>

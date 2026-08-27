@@ -457,161 +457,6 @@ export default function StudentBookDetailsPage() {
     }
   };
 
-  const isDataLoading = booksLoading || (hwLoading && homeworks.length === 0);
-
-  if (!book) {
-    if (isDataLoading) {
-      return (
-        <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Harita Yükleniyor...</h3>
-          <style>{`
-        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .sbdp-anim { animation: fadeSlideUp 0.25s ease both; }
-        .sbdp-subject-card { transition: box-shadow 0.2s, transform 0.2s; }
-        .sbdp-subject-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; transform: translateY(-2px); }
-        .sbdp-test-row { transition: background 0.15s, box-shadow 0.15s; }
-        .sbdp-test-row:hover { background: var(--color-surface-hover) !important; }
-        .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
-        .sbdp-btn-solve:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3) !important; transform: translateY(-1px); }
-
-        .sbdp-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          width: 100%;
-        }
-        .sbdp-stat-item {
-          border-right: 1px solid var(--color-border);
-          padding: 1rem 0.6rem;
-          text-align: center;
-          box-sizing: border-box;
-        }
-        .sbdp-stat-item:last-child {
-          border-right: none;
-        }
-
-        /* 📱 MOBIL UYGULAMA DÜZENİ VE RESPONSIVE ENTEGRASYONU */
-        @media (max-width: 768px) {
-          .sbdp-page-container {
-            padding: 0.65rem 0.75rem 4rem 0.75rem !important;
-          }
-          .sbdp-hero-box {
-            padding: 1.1rem 1.1rem 1rem 1.1rem !important;
-            border-radius: 18px !important;
-          }
-          .sbdp-hero-cover {
-            width: 52px !important;
-            height: 68px !important;
-            border-radius: 10px !important;
-          }
-          .sbdp-hero-title {
-            font-size: 1.15rem !important;
-            line-height: 1.3 !important;
-            margin-bottom: 0.5rem !important;
-          }
-          .sbdp-stats-grid {
-            grid-template-columns: repeat(5, 1fr) !important;
-          }
-          .sbdp-stat-item {
-            padding: 0.65rem 0.2rem !important;
-          }
-          .sbdp-stat-val {
-            font-size: 1.05rem !important;
-          }
-          .sbdp-stat-lbl {
-            font-size: 0.62rem !important;
-            letter-spacing: 0 !important;
-          }
-          .sbdp-test-row {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            padding: 0.75rem 0.85rem !important;
-            border-radius: 14px !important;
-            gap: 0.6rem !important;
-          }
-          .sbdp-test-header-mobile {
-            display: flex !important;
-            align-items: flex-start !important;
-            justify-content: space-between !important;
-            gap: 8px !important;
-            width: 100% !important;
-          }
-          .sbdp-test-actions-mobile {
-            display: flex !important;
-            align-items: center !important;
-            gap: 6px !important;
-            width: 100% !important;
-            flex-wrap: wrap !important;
-          }
-          .sbdp-test-actions-mobile button, .sbdp-test-actions-mobile a {
-            flex: 1 !important;
-            min-width: 110px !important;
-            justify-content: center !important;
-            padding: 0.5rem 0.65rem !important;
-            font-size: 0.76rem !important;
-            border-radius: 10px !important;
-          }
-          .sbdp-chart-card {
-            padding: 1rem 0.85rem !important;
-            border-radius: 16px !important;
-          }
-          .sbdp-subject-card {
-            border-radius: 16px !important;
-          }
-        }
-
-        .sbdp-mistake-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 0.75rem;
-          margin-bottom: 1.25rem;
-        }
-        @media (max-width: 1024px) {
-          .sbdp-mistake-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-        @media (max-width: 640px) {
-          .sbdp-mistake-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-          }
-          .sbdp-mistake-card {
-            padding: 0.65rem 0.75rem !important;
-            border-radius: 11px !important;
-          }
-          .sbdp-mistake-card:last-child {
-            grid-column: span 2;
-          }
-          .sbdp-mistake-card-title {
-            font-size: 0.72rem !important;
-          }
-          .sbdp-mistake-card-pct {
-            font-size: 0.82rem !important;
-          }
-          .sbdp-mistake-card-val {
-            font-size: 1.05rem !important;
-          }
-        }
-      `}</style>
-        </div>
-      );
-    }
-    return (
-      <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📚</div>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', margin: '0 0 0.5rem 0' }}>İçerik Bulunamadı</h3>
-        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Aradığınız kitap veya test haritası bulunamadı veya silinmiş olabilir.</p>
-        <button
-          onClick={() => navigate('/student')}
-          style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <ArrowLeft size={16} /> Öğrenci Paneline Dön
-        </button>
-      </div>
-    );
-  }
-
   let overallCompleted = 0;
   let overallTotal = 0;
   let overallCorrect = 0;
@@ -1200,6 +1045,32 @@ export default function StudentBookDetailsPage() {
       console.error('Reset test error:', err);
     }
   };
+
+  const isDataLoading = booksLoading || (hwLoading && homeworks.length === 0);
+
+  if (!book) {
+    if (isDataLoading) {
+      return (
+        <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+          <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Harita Yükleniyor...</h3>
+        </div>
+      );
+    }
+    return (
+      <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📚</div>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', margin: '0 0 0.5rem 0' }}>İçerik Bulunamadı</h3>
+        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Aradığınız kitap veya test haritası bulunamadı veya silinmiş olabilir.</p>
+        <button
+          onClick={() => navigate('/student')}
+          style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <ArrowLeft size={16} /> Öğrenci Paneline Dön
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="sbdp-page-container" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: isMobile ? '0.65rem 0.75rem 4rem' : '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>

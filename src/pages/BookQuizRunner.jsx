@@ -39,29 +39,25 @@ export default function BookQuizRunner() {
   const testDef = bookTests.find(t => t.id === testId);
   const book = books.find(b => b.id === testDef?.bookId);
 
-  useEffect(() => {
-    if (!hw || !student || !testDef || !book) {}
-  }, [hw, student, testDef, book]);
-
-  if (!hw || !student || !testDef || !book) {
-    return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test yüklenirken bir sorun oluştu. Geçersiz bağlantı.</div>;
-  }
-
   const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
   const hwCreatedTime = hw?.createdAt ? new Date(hw.createdAt).getTime() : 0;
 
   const existingSubmission = isRetake ? null : (submissions || []).find(s => 
     String(s.studentId) === String(studentId) && 
-    (String(s.testId) === String(hw.id) || String(s.hwId) === String(hw.id) || String(s.testId) === String(testId)) &&
+    (String(s.testId) === String(hw?.id) || String(s.hwId) === String(hw?.id) || String(s.testId) === String(testId)) &&
     s.status !== 'in_progress' && s.status !== 'draft' &&
     (hwCreatedTime && s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
   );
 
   useEffect(() => {
-    if (existingSubmission && !submissionComplete) {
+    if (existingSubmission && !submissionComplete && book?.id) {
       navigate(`/review/${existingSubmission.id}`, { replace: true, state: { from: `/student/books/${book.id}` } });
     }
-  }, [existingSubmission, submissionComplete, navigate, book]);
+  }, [existingSubmission, submissionComplete, navigate, book?.id]);
+
+  if (!hw || !student || !testDef || !book) {
+    return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test yüklenirken bir sorun oluştu. Geçersiz bağlantı.</div>;
+  }
 
   if (existingSubmission && !submissionComplete) {
     return (
