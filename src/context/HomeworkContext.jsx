@@ -29,8 +29,8 @@ export function HomeworkProvider({ children }) {
       return null;
     }
     
-    // Check 5-minute persistent cache (metadata is lightweight ~5KB, so 5 mins gives fresh updates with zero lag)
-    if (!force && isCacheValid('homeworks', 5) && homeworks.length > 0) {
+    // Check 30-second persistent cache (metadata is lightweight ~5KB, so 30s gives fresh updates with zero lag)
+    if (!force && isCacheValid('homeworks', 0.5) && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -38,26 +38,15 @@ export function HomeworkProvider({ children }) {
     setIsLoading(true);
     try {
       const dbHws = await dbGetHomeworks();
-      if (dbHws) {
+      if (dbHws && Array.isArray(dbHws)) {
         touchCache('homeworks');
-        setHomeworks(prev => {
-          const map = new Map();
-          dbHws
-            .filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'))
-            .forEach(h => map.set(String(h.id), h));
-          (prev || []).forEach(localHw => {
-            const k = String(localHw.id);
-            if (k === 'global_ai_config' || localHw.subject === 'SYSTEM' || String(localHw.title || '').includes('GLOBAL_AI_CONFIG')) return;
-            if (!map.has(k) && !map.has(String(toUUID(k)))) {
-              map.set(k, localHw);
-            }
-          });
-          const finalArr = Array.from(map.values()).filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
-          try {
-            localStorage.setItem('eTestHomeworks', JSON.stringify(finalArr));
-          } catch {}
-          return finalArr;
-        });
+        const cleanDbHws = dbHws.filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
+        
+        setHomeworks(cleanDbHws);
+        try {
+          localStorage.setItem('eTestHomeworks', JSON.stringify(cleanDbHws));
+        } catch {}
+        return cleanDbHws;
       }
       return dbHws;
     } finally {
@@ -350,7 +339,16 @@ export function HomeworkProvider({ children }) {
   };
 
   const deleteHomework = async (id) => {
-    setHomeworks(prev => prev.filter(hw => hw.id !== id));
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+    setHomeworks(prev => {
+      const next = prev.filter(hw => String(hw.id) !== idStr && (!idUuid || toUUID(hw.id) !== idUuid));
+      try {
+        localStorage.setItem('eTestHomeworks', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    invalidateCache('homeworks');
     await dbDeleteHomework(id);
     try {
       localStorage.removeItem(`quiz_draft_${id}`);
@@ -359,6 +357,8 @@ export function HomeworkProvider({ children }) {
       localStorage.removeItem(`draft_quiz_${id}_ans`);
       if (typeof idbDeletePayload === 'function') {
         await idbDeletePayload(id);
+        await idbDeletePayload(idStr.replace(/^hw_/, ''));
+        if (idUuid) await idbDeletePayload(idUuid);
       }
     } catch (e) {}
     window.dispatchEvent(new CustomEvent('homework_deleted', { detail: { id } }));
@@ -367,6 +367,10 @@ export function HomeworkProvider({ children }) {
   const deleteAllHomeworks = async () => {
     const currentHomeworks = [...homeworks];
     setHomeworks([]);
+    try {
+      localStorage.setItem('eTestHomeworks', JSON.stringify([]));
+    } catch (e) {}
+    invalidateCache('homeworks');
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
       try {

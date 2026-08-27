@@ -80,9 +80,11 @@ export default function StudentHomeworksPage() {
     }
   };
 
-  // Ensure fresh homeworks on mount with zero delay
+  // Ensure fresh homeworks, books and submissions on mount with zero delay
   React.useEffect(() => {
     refreshHomeworks?.(true);
+    refreshTrackedBooks?.(true);
+    syncFromSupabase?.(false, true);
   }, []);
 
   const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);

@@ -49,45 +49,34 @@ export function QuestionBankProvider({ children }) {
         };
       }));
 
-      const initialMap = new Map();
-      (restored || []).forEach(q => {
-        if (!q || !q.id || q.id === 'q1') return;
-        initialMap.set(toUUID(q.id), q);
-      });
-
-      // Safely merge from Supabase database if configured
+      // Safely sync from Supabase database if configured
       const dbQs = await dbGetQuestions();
-      if (dbQs && dbQs.length > 0) {
+      if (dbQs && Array.isArray(dbQs)) {
         touchCache('questions');
-        dbQs.forEach(dbQ => {
-          if (!dbQ || !dbQ.id || dbQ.id === 'q1') return;
+        const dbMap = new Map();
 
+        await Promise.all(dbQs.filter(q => q && q.id !== 'q1').map(async (dbQ) => {
           const canonicalKey = toUUID(dbQ.id);
-          const existing = initialMap.get(canonicalKey);
-          if (existing) {
-            const hasFullLocalPayload = typeof existing.contentPayload === 'string' &&
-              existing.contentPayload.length > 500 &&
-              !existing.contentPayload.includes('[STORED_IN_INDEXEDDB]') &&
-              !existing.contentPayload.includes('[LOCALSTORAGE_CACHE]');
-
-            const dbHasStorageUrl = typeof dbQ.contentPayload === 'string' && dbQ.contentPayload.startsWith('http');
-
-            initialMap.set(canonicalKey, {
-              ...dbQ,
-              ...existing,
-              id: dbQ.id || existing.id,
-              questionsList: existing.questionsList || dbQ.questionsList || null,
-              contentPayload: dbHasStorageUrl ? dbQ.contentPayload :
-                              hasFullLocalPayload ? existing.contentPayload :
-                              (dbQ.contentPayload || existing.contentPayload)
-            });
-          } else {
-            initialMap.set(canonicalKey, dbQ);
+          let payload = dbQ.contentPayload;
+          const isMissing = !payload || (typeof payload === 'string' && (payload.includes('[STORED_IN_INDEXEDDB]') || payload.includes('[LOCALSTORAGE_CACHE]')));
+          if (isMissing) {
+            const stored = await idbGetPayload(dbQ.id) || await idbGetPayload(String(dbQ.id).replace(/^q_?/, ''));
+            if (stored) {
+              payload = stored;
+            }
           }
-        });
-      }
+          dbMap.set(canonicalKey, {
+            ...dbQ,
+            contentPayload: payload || dbQ.contentPayload
+          });
+        }));
 
-      setQuestions(Array.from(initialMap.values()));
+        const finalArr = Array.from(dbMap.values());
+        setQuestions(finalArr);
+        try {
+          localStorage.setItem('eTestQuestions', JSON.stringify(finalArr));
+        } catch {}
+      }
     }
 
     syncAndRestorePayloads();
@@ -224,7 +213,13 @@ export function QuestionBankProvider({ children }) {
   const deleteQuestion = async (id) => {
     const targetUuid = toUUID(id);
     const targetQ = questions.find(q => toUUID(q.id) === targetUuid);
-    setQuestions(prev => prev.filter(q => toUUID(q.id) !== targetUuid));
+    setQuestions(prev => {
+      const filtered = prev.filter(q => toUUID(q.id) !== targetUuid && String(q.id) !== String(id));
+      try {
+        localStorage.setItem('eTestQuestions', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
 
     // 1. Delete from IndexedDB (main ID and ID variants)
     await idbDeletePayload(id);
