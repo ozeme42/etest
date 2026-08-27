@@ -51,6 +51,22 @@ export function getEmbeddablePdfUrl(url) {
   
   let cleanUrl = url.trim();
 
+  // Explicitly reject HTML, images, and non-PDF text payloads
+  if (
+    cleanUrl.startsWith('<!DOCTYPE') ||
+    cleanUrl.startsWith('<html') ||
+    cleanUrl.startsWith('<head') ||
+    cleanUrl.startsWith('<body') ||
+    cleanUrl.startsWith('<div') ||
+    cleanUrl.startsWith('<p') ||
+    cleanUrl.startsWith('data:text/html') ||
+    cleanUrl.startsWith('data:image/') ||
+    cleanUrl.startsWith('{') ||
+    cleanUrl.startsWith('[')
+  ) {
+    return null;
+  }
+
   // 1. Google Drive URLs (any format)
   const driveId = extractGoogleDriveId(cleanUrl);
   if (driveId) {
@@ -67,12 +83,13 @@ export function getEmbeddablePdfUrl(url) {
     return cleanUrl;
   }
 
-  // 4. Data URLs
+  // 4. Raw base64 PDF header (JVBERi0 = %PDF-)
   if (cleanUrl.startsWith('JVBERi0')) {
     cleanUrl = `data:application/pdf;base64,${cleanUrl}`;
   }
 
-  if (cleanUrl.startsWith('data:application/pdf') || cleanUrl.startsWith('data:')) {
+  // 5. Data URLs (strictly PDF)
+  if (cleanUrl.startsWith('data:application/pdf')) {
     if (blobUrlCache.has(cleanUrl)) {
       return blobUrlCache.get(cleanUrl);
     }
@@ -84,5 +101,10 @@ export function getEmbeddablePdfUrl(url) {
     }
   }
 
-  return cleanUrl;
+  // 6. File path or raw %PDF stream
+  if (cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf?') || cleanUrl.startsWith('%PDF')) {
+    return cleanUrl;
+  }
+
+  return null;
 }

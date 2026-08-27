@@ -715,14 +715,13 @@ export default function ModularQuizReviewPage() {
 
   const isValidPdfStr = (str) => typeof str === 'string' && (
     str.startsWith('data:application/pdf') ||
-    str.includes('.pdf') ||
-    str.startsWith('%PDF')
+    str.startsWith('JVBERi0') ||
+    str.startsWith('%PDF') ||
+    (str.includes('.pdf') && !str.includes('<html') && !str.includes('<!DOCTYPE'))
   );
 
-  const isHtml = Boolean(
+  const isHtml = isValidHtmlStr(test.contentPayload) || isValidHtmlStr(test.payload) || Boolean(
     test.htmlPayload ||
-    isValidHtmlStr(test.contentPayload) ||
-    isValidHtmlStr(test.payload) ||
     test.sourceFormat === 'html' ||
     test.formatType === 'html' ||
     test.contentType === 'html' ||
@@ -734,7 +733,7 @@ export default function ModularQuizReviewPage() {
     (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('html'))
   );
 
-  const isPdf = !isHtml && Boolean(
+  const isPdf = !isHtml && !isValidHtmlStr(test.contentPayload) && !isValidHtmlStr(test.payload) && Boolean(
     test.pdfPayload ||
     test.pdfUrl ||
     isValidPdfStr(test.contentPayload) ||
@@ -744,8 +743,8 @@ export default function ModularQuizReviewPage() {
     test.type === 'pdf' ||
     test.questionType === 'pdf' ||
     hasExplicitPdfQuestions ||
-    (test.title && String(test.title).toLowerCase().includes('pdf')) ||
-    (test.name && String(test.name).toLowerCase().includes('pdf')) ||
+    (test.title && String(test.title).toLowerCase().includes('pdf') && !test.options?.length) ||
+    (test.name && String(test.name).toLowerCase().includes('pdf') && !test.options?.length) ||
     (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('pdf'))
   );
 

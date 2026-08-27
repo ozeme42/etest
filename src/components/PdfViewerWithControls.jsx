@@ -428,22 +428,29 @@ export default function PdfViewerWithControls({
           position: 'relative'
         }}
       >
-        <Document
-          file={embedUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', padding: '2rem' }}>
-              <Loader2 className="animate-spin" size={24} />
-              <span>PDF Dokümanı Yükleniyor...</span>
-            </div>
-          }
-          error={
-            <div style={{ color: '#fca5a5', padding: '2rem', textAlign: 'center' }}>
-              PDF Dokümanı yüklenirken bir sorun oluştu.
-            </div>
-          }
-        >
-          {pageViewMode === 'single' ? (
+        {!embedUrl ? (
+          <div style={{ color: '#94a3b8', padding: '3rem 1.5rem', textAlign: 'center', maxWidth: 450 }}>
+            <FileText size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+            <p style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: '0.5rem' }}>Geçerli Bir PDF Dokümanı Bulunamadı</p>
+            <p style={{ fontSize: '0.85rem' }}>Bu içerik PDF formatında değil veya doküman kaynağı henüz yüklenemedi.</p>
+          </div>
+        ) : (
+          <Document
+            file={embedUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            loading={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', padding: '2rem' }}>
+                <Loader2 className="animate-spin" size={24} />
+                <span>PDF Dokümanı Yükleniyor...</span>
+              </div>
+            }
+            error={
+              <div style={{ color: '#fca5a5', padding: '2rem', textAlign: 'center' }}>
+                PDF Dokümanı yüklenirken bir sorun oluştu.
+              </div>
+            }
+          >
+            {pageViewMode === 'single' ? (
             /* Single Page View: renders only the selected page */
             <LazyPdfPage
               key={`page_${currentPage}`}
@@ -479,6 +486,7 @@ export default function PdfViewerWithControls({
             ))
           )}
         </Document>
+        )}
 
         {/* Floating Bottom Page Switcher Pill for Single-Page Mode */}
         {numPages && numPages > 1 && pageViewMode === 'single' && (

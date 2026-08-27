@@ -1102,25 +1102,40 @@ export default function ModularQuizPage() {
   
   const isValidHtmlPayload = Boolean(
     (typeof test.htmlPayload === 'string' && test.htmlPayload.length > 0 && !test.htmlPayload.startsWith('data:image')) ||
-    (typeof test.contentPayload === 'string' && (test.contentPayload.includes('<!DOCTYPE') || test.contentPayload.includes('<html') || test.contentPayload.includes('<body') || test.contentPayload.includes('<div') || test.contentPayload.startsWith('data:text/html')))
+    (typeof test.contentPayload === 'string' && (
+      test.contentPayload.includes('<!DOCTYPE') ||
+      test.contentPayload.includes('<html') ||
+      test.contentPayload.includes('<body') ||
+      test.contentPayload.includes('<div') ||
+      test.contentPayload.startsWith('data:text/html')
+    )) ||
+    (typeof test.payload === 'string' && (
+      test.payload.includes('<!DOCTYPE') ||
+      test.payload.includes('<html') ||
+      test.payload.includes('<body') ||
+      test.payload.includes('<div') ||
+      test.payload.startsWith('data:text/html')
+    ))
   );
 
-  const isHtml = !isDefinitelyStandardForHtml && Boolean(
-    isValidHtmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
+  const isValidPdfPayload = Boolean(
+    (test.pdfUrl && typeof test.pdfUrl === 'string') ||
+    (typeof test.pdfPayload === 'string' && (test.pdfPayload.startsWith('data:application/pdf') || test.pdfPayload.startsWith('JVBERi0') || test.pdfPayload.startsWith('blob:') || test.pdfPayload.startsWith('http') || test.pdfPayload.endsWith('.pdf'))) ||
+    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.startsWith('JVBERi0') || test.contentPayload.startsWith('%PDF') || (test.contentPayload.includes('.pdf') && !isValidHtmlPayload)))
+  );
+
+  const isHtml = !isDefinitelyStandardForHtml && (isValidHtmlPayload || Boolean(
+    test.sourceFormat === 'html' || test.formatType === 'html' ||
     test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions ||
-    (test.title && String(test.title).toLowerCase().includes('html')) ||
-    (test.name && String(test.name).toLowerCase().includes('html'))
-  );
-
-  const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
-    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || Boolean(q.pdfPayload) || Boolean(q.pdfUrl)
+    ((test.title && String(test.title).toLowerCase().includes('html')) && !isValidPdfPayload) ||
+    ((test.name && String(test.name).toLowerCase().includes('html')) && !isValidPdfPayload)
   ));
-  const isPdf = !isHtml && Boolean(
-    test.pdfPayload || test.pdfUrl || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
+
+  const isPdf = !isHtml && !isValidHtmlPayload && Boolean(
+    isValidPdfPayload || test.pdfPayload || test.pdfUrl || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
     test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions ||
-    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.includes('.pdf') || test.contentPayload.startsWith('%PDF'))) ||
-    (test.title && String(test.title).toLowerCase().includes('pdf')) ||
-    (test.name && String(test.name).toLowerCase().includes('pdf'))
+    (test.title && String(test.title).toLowerCase().includes('pdf') && !test.options?.length) ||
+    (test.name && String(test.name).toLowerCase().includes('pdf') && !test.options?.length)
   );
 
   // ALWAYS force Physical Optik Grid Form ONLY for real physical tracked book tests with no digital content
