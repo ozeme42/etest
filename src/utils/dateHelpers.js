@@ -236,8 +236,8 @@ export const getDueStatus = (rawDueDate, isDone = false) => {
 
 /**
  * Intelligently extracts the accurate historical completion date of any submission or test item.
- * Recovers original solve timestamps embedded in IDs (sub_..., me_..., timestamps) when
- * bulk updates or migrations stamped today's date.
+ * Strictly prioritizes the unique submission epoch timestamp (sub_178..., me_178...) and
+ * submittedAt/completedAt over generic assignment container creation dates (createdAt).
  */
 export const extractItemDate = (s) => {
   if (!s) return getTurkeyToday();
@@ -263,38 +263,33 @@ export const extractItemDate = (s) => {
   const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
   const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : ((s && s.metadata) || {});
 
-  // 1. Helper to extract embedded epoch timestamp from submission ID / meta
-  const getEmbeddedTsDate = () => {
-    const subIdCandidates = [
-      String(meta?.realId || ''),
-      String(meta?.submissionId || ''),
-      String(s.originalSubmissionId || ''),
-      String(s.submissionId || ''),
-      String(s.id || ''),
-      String(raw.id || ''),
-      String(s.supabaseId || '')
-    ];
+  // 1. HIGHEST PRIORITY: Embedded epoch timestamp in submission ID (e.g. sub_1787..., sub_manual_1787..., me_1787...)
+  const subIdCandidates = [
+    String(meta?.realId || ''),
+    String(meta?.submissionId || ''),
+    String(s.originalSubmissionId || ''),
+    String(s.submissionId || ''),
+    String(s.id || ''),
+    String(raw.id || ''),
+    String(s.supabaseId || '')
+  ];
 
-    for (const idStr of subIdCandidates) {
-      if (!idStr) continue;
-      if (idStr.startsWith('tbt_') || idStr.startsWith('tb_')) continue; // Ignore book authoring IDs
+  for (const idStr of subIdCandidates) {
+    if (!idStr) continue;
+    if (idStr.startsWith('tbt_') || idStr.startsWith('tb_') || idStr.startsWith('hw_')) continue; // Ignore book/homework container IDs
 
-      const matchSubTs = idStr.match(/sub_(?:manual_)?(\d{12,13})/i) || idStr.match(/^me_(\d{12,13})/i) || idStr.match(/_(\d{12,13})/);
-      if (matchSubTs) {
-        const tsNum = Number(matchSubTs[1]);
-        if (tsNum > 1650000000000 && tsNum < 2000000000000) {
-          const extractedYMD = getTurkeyYMD(new Date(tsNum));
-          if (extractedYMD) return extractedYMD;
-        }
+    const matchSubTs = idStr.match(/sub_(?:manual_)?(\d{12,13})/i) || idStr.match(/^me_(\d{12,13})/i) || idStr.match(/_(\d{12,13})/);
+    if (matchSubTs) {
+      const tsNum = Number(matchSubTs[1]);
+      if (tsNum > 1650000000000 && tsNum < 2000000000000) {
+        const extractedYMD = getTurkeyYMD(new Date(tsNum));
+        if (extractedYMD) return extractedYMD;
       }
     }
-    return null;
-  };
+  }
 
-  const embeddedTsDate = (typeof s === 'object') ? getEmbeddedTsDate() : null;
-
-  // 2. Explicit submission / completion timestamps
-  const explicitCandidates = [
+  // 2. SECOND PRIORITY: Explicit completion timestamps on the submission
+  const solveTimestamps = [
     meta?.submittedAt,
     meta?.completedAt,
     s.submittedAt,
@@ -305,40 +300,40 @@ export const extractItemDate = (s) => {
     raw.submitted_at,
     raw.completedAt,
     raw.completed_at,
-    meta?.date,
-    s.date,
-    raw.date,
-    meta?.createdAt,
-    s.createdAt,
-    s.created_at,
-    raw.createdAt,
-    raw.created_at
+    meta?.date
   ];
 
-  // If any explicit candidate has a historical date that is NOT today, use it!
-  for (const exp of explicitCandidates) {
-    if (exp && String(exp).trim()) {
-      const expYMD = getTurkeyYMD(String(exp).trim());
-      if (expYMD && expYMD !== todayYMD) {
-        return expYMD;
-      }
-    }
-  }
-
-  // If explicit date was today (or missing), check if an embedded historical date exists in ID
-  if (embeddedTsDate && embeddedTsDate !== todayYMD) {
-    return embeddedTsDate;
-  }
-
-  // If no historical date was found, use the first valid explicit date
-  for (const exp of explicitCandidates) {
+  for (const exp of solveTimestamps) {
     if (exp && String(exp).trim()) {
       const expYMD = getTurkeyYMD(String(exp).trim());
       if (expYMD) return expYMD;
     }
   }
 
-  if (embeddedTsDate) return embeddedTsDate;
+  // 3. THIRD PRIORITY: General date field
+  if (s.date && String(s.date).trim()) {
+    const dYMD = getTurkeyYMD(String(s.date).trim());
+    if (dYMD) return dYMD;
+  }
+  if (raw.date && String(raw.date).trim()) {
+    const dYMD = getTurkeyYMD(String(raw.date).trim());
+    if (dYMD) return dYMD;
+  }
+
+  // 4. FOURTH PRIORITY: Creation timestamp (container fallback)
+  const createTimestamps = [
+    meta?.createdAt,
+    s.createdAt,
+    s.created_at,
+    raw.createdAt,
+    raw.created_at
+  ];
+  for (const cr of createTimestamps) {
+    if (cr && String(cr).trim()) {
+      const crYMD = getTurkeyYMD(String(cr).trim());
+      if (crYMD) return crYMD;
+    }
+  }
 
   return todayYMD;
 };
