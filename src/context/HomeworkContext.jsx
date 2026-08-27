@@ -29,8 +29,8 @@ export function HomeworkProvider({ children }) {
       return null;
     }
     
-    // Check 30-minute persistent cache to prevent high network egress
-    if (!force && isCacheValid('homeworks', 30) && homeworks.length > 0) {
+    // Check 5-minute persistent cache (metadata is lightweight ~5KB, so 5 mins gives fresh updates with zero lag)
+    if (!force && isCacheValid('homeworks', 5) && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }

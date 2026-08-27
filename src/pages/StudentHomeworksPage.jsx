@@ -13,7 +13,7 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import {
   BookMarked, CheckCircle2, Clock, PlayCircle, AlertCircle,
   Search, ArrowLeft, ChevronRight, Eye, Sparkles, Filter,
-  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target
+  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target, RefreshCw
 } from 'lucide-react';
 
 const SUBJECT_ROW_THEMES = {
@@ -56,15 +56,34 @@ const getRowTheme = (subject, idx) => {
 export default function StudentHomeworksPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { homeworks } = useHomework();
-  const { bookTests = [], books = [] } = useTrackedBooks() || {};
-  const { submissions } = useEvaluation();
+  const { homeworks, refreshHomeworks } = useHomework();
+  const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
+  const { submissions, syncFromSupabase } = useEvaluation();
   const { data: curData } = useCurriculum();
   const { users } = useUser();
 
+  const [isRefreshingManual, setIsRefreshingManual] = useState(false);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'completed' | 'all'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
+
+  const handleManualRefresh = async () => {
+    setIsRefreshingManual(true);
+    try {
+      await Promise.all([
+        refreshHomeworks?.(true),
+        refreshTrackedBooks?.(true),
+        syncFromSupabase?.(false, true)
+      ]);
+    } finally {
+      setTimeout(() => setIsRefreshingManual(false), 500);
+    }
+  };
+
+  // Ensure fresh homeworks on mount with zero delay
+  React.useEffect(() => {
+    refreshHomeworks?.(true);
+  }, []);
 
   const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(() => {
@@ -554,7 +573,7 @@ export default function StudentHomeworksPage() {
   };
 
   return (
-    <SmartPullToRefresh>
+    <SmartPullToRefresh onRefresh={handleManualRefresh}>
       <div style={{
         minHeight: '100vh',
         background: 'var(--color-bg)',
@@ -606,7 +625,7 @@ export default function StudentHomeworksPage() {
         
         {/* ─── TOP HEADER & ACTION BAR ─── */}
         <div className="hw-header-wrap hw-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => navigate('/student')}
               style={{
@@ -626,6 +645,30 @@ export default function StudentHomeworksPage() {
               }}
             >
               <ArrowLeft size={16} /> Öğrenci Paneli
+            </button>
+
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshingManual}
+              title="Ödev listesini ve son durumları sunucudan anında yenile"
+              style={{
+                background: isRefreshingManual ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)',
+                border: isRefreshingManual ? '1.5px solid #3b82f6' : '1.5px solid var(--color-border-input)',
+                borderRadius: '0.75rem',
+                padding: '0.5rem 0.85rem',
+                cursor: isRefreshingManual ? 'wait' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                color: isRefreshingManual ? '#3b82f6' : 'var(--color-text)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <RefreshCw size={15} style={{ animation: isRefreshingManual ? 'spin 1s linear infinite' : 'none' }} />
+              {isRefreshingManual ? 'Yenileniyor...' : 'Yenile'}
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

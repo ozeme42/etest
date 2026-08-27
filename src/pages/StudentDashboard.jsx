@@ -375,15 +375,28 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
-  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { homeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { submissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { bookTests = [], books = [] } = useTrackedBooks() || {};
+  const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
+
+  // Instant fresh homework sync when opening the dashboard
+  useEffect(() => {
+    refreshHomeworks?.(true);
+  }, []);
+
+  const handleDashboardRefresh = async () => {
+    await Promise.all([
+      refreshHomeworks?.(true),
+      refreshTrackedBooks?.(true),
+      syncFromSupabase?.(false, true)
+    ]);
+  };
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -2506,7 +2519,7 @@ export default function StudentDashboard() {
   }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats]);
 
   return (
-    <SmartPullToRefresh>
+    <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: isMobile ? 'calc(75px + env(safe-area-inset-bottom) + 20px)' : '0' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
