@@ -859,8 +859,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                               }
                             }
 
-                            const isWrong = isCorrect === false && (userAnsIndex !== null || userAnsLetter !== null);
-                            const isBlank = userAnsIndex === null && !userAnsLetter && !textAns;
+                            const isWrong = isCorrect === false || (userAnsIndex !== null && !isCorrect) || (ansObj.evalStatus === 'wrong');
+                            const isBlank = isCorrect !== true && !isWrong && userAnsIndex === null && !userAnsLetter && !textAns;
 
                             return (
                               <div

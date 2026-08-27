@@ -182,7 +182,7 @@ export function normalizeAnswerKey(rawKey) {
  */
 export function normalizeStudentAnswers(rawSub) {
   if (!rawSub) return {};
-  if (typeof rawSub === 'object' && !Array.isArray(rawSub) && !rawSub.answers && !rawSub.studentAnswers && !rawSub.answersMap && !rawSub.studentAnswersMap) {
+  if (typeof rawSub === 'object' && !Array.isArray(rawSub) && !rawSub.answers && !rawSub.studentAnswers && !rawSub.answersMap && !rawSub.studentAnswersMap && !rawSub.raw_data?.studentAnswers) {
     const directMap = {};
     Object.entries(rawSub).forEach(([k, v]) => {
       const qNo = parseInt(k, 10);
@@ -195,8 +195,14 @@ export function normalizeStudentAnswers(rawSub) {
   }
   const map = {};
 
+  const raw = (rawSub && typeof rawSub === 'object') ? (rawSub.raw_data || rawSub.raw || {}) : {};
+  const meta = (rawSub && Array.isArray(rawSub.answers)) ? (rawSub.answers.find(a => a?.type === 'metadata') || {}) : (rawSub.metadata || {});
+
   // 1. Check studentAnswers dictionary { "1": "A", "2": "C" }
-  const rawMap = rawSub.studentAnswersMap || rawSub.studentAnswers || rawSub.answersMap;
+  const rawMap = rawSub.studentAnswersMap || rawSub.studentAnswers || rawSub.student_answers || rawSub.answersMap ||
+                 raw.studentAnswersMap || raw.studentAnswers || raw.student_answers || raw.answersMap ||
+                 meta.studentAnswers || meta.studentAnswersMap;
+
   if (rawMap && typeof rawMap === 'object' && !Array.isArray(rawMap)) {
     Object.entries(rawMap).forEach(([k, v]) => {
       const qNo = parseInt(k, 10);
@@ -209,16 +215,63 @@ export function normalizeStudentAnswers(rawSub) {
   }
 
   // 2. Check answers array [ { questionNo: 1, userAnswer: "A" } ] or primitive array
-  const rawAnswers = Array.isArray(rawSub) ? rawSub : (Array.isArray(rawSub.answers) ? rawSub.answers : (Array.isArray(rawSub.questions) ? rawSub.questions : []));
+  const rawAnswers = Array.isArray(rawSub) ? rawSub : (
+    Array.isArray(rawSub.answers) ? rawSub.answers : (
+      Array.isArray(rawSub.questions) ? rawSub.questions : (
+        Array.isArray(raw.answers) ? raw.answers : (
+          Array.isArray(raw.questions) ? raw.questions : []
+        )
+      )
+    )
+  );
+
   if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
     rawAnswers.forEach((a, idx) => {
       if (a === null || a === undefined) return;
       if (typeof a === 'object' && a.type === 'metadata') return;
-      const qNo = (typeof a === 'object') ? (a.questionNo || a.questionIndex || (idx + 1)) : (idx + 1);
-      const rawAns = (typeof a === 'object') ? (a.userAnswer ?? a.selectedOption ?? a.userAnswerLetter ?? a.answer ?? a.userAnswerText) : a;
+      const qNo = (typeof a === 'object') ? (a.questionNo || a.questionNoInSection || a.questionIndex || (idx + 1)) : (idx + 1);
+      const rawAns = (typeof a === 'object') ? (a.userAnswer ?? a.selectedOption ?? a.userAnswerLetter ?? a.answerLetter ?? a.answer ?? a.userAnswerText) : a;
       const letter = normalizeLetter(rawAns);
       if (letter) map[qNo] = letter;
     });
+    if (Object.keys(map).length > 0) return map;
+  }
+
+  // 3. Fallback: Check local storage drafts for this test & student
+  const testId = String(rawSub.testId || rawSub.bookTestId || rawSub.realTestId || rawSub.id || '');
+  const cleanTId = testId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+  const studentId = String(rawSub.studentId || rawSub.userId || rawSub.student_id || '');
+  
+  if (testId && typeof localStorage !== 'undefined') {
+    const keys = [
+      `draft_tracked_book_test_${testId}_${studentId}`,
+      `draft_tracked_book_test_${cleanTId}_${studentId}`,
+      `draft_tracked_book_test_${testId}`,
+      `draft_tracked_book_test_${cleanTId}`,
+      `quiz_answers_${testId}`,
+      `quiz_answers_${cleanTId}`,
+      `sub_latest_${testId}`,
+      `sub_latest_${cleanTId}`
+    ];
+    for (const k of keys) {
+      try {
+        const stored = localStorage.getItem(k);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const candidateMap = parsed?.studentAnswers || parsed?.answers || (typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null);
+          if (candidateMap && typeof candidateMap === 'object') {
+            Object.entries(candidateMap).forEach(([qk, qv]) => {
+              const qNo = parseInt(qk, 10);
+              if (!isNaN(qNo)) {
+                const letter = normalizeLetter(typeof qv === 'object' ? qv?.userAnswer : qv);
+                if (letter) map[qNo] = letter;
+              }
+            });
+            if (Object.keys(map).length > 0) return map;
+          }
+        }
+      } catch (e) {}
+    }
   }
 
   return map;
@@ -420,6 +473,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       wrongCount = numWrg;
       blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
     }
+  }
+
+  // If student marked answers were not recorded letter-by-letter, align detailedAnswers with explicit correct/wrong counts
+  if (Object.keys(studentAnswersMap).length === 0 && (correctCount > 0 || wrongCount > 0)) {
+    detailedAnswers.forEach((ans, idx) => {
+      if (idx < correctCount) {
+        ans.isCorrect = true;
+        if (!ans.userAnswer && ans.correctAnswer) ans.userAnswer = ans.correctAnswer;
+      } else if (idx < correctCount + wrongCount) {
+        ans.isCorrect = false;
+      } else {
+        ans.isCorrect = null;
+      }
+    });
   }
 
   // 6. Score & Net Calculation
