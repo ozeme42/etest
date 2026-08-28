@@ -1128,74 +1128,71 @@ export default function StudentDashboard() {
         bId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId;
     });
 
-    let currentBook = targetBookObj;
+    let currentBook = (targetBookObj?.subjects && targetBookObj.subjects.length > 0) ? targetBookObj : null;
     let subjObj = null;
     let topicObj = null;
 
-    // Search in all books & nested subjects & topics
+    // Search in all books that have subjects
     for (const b of (books || [])) {
-      const bIdStr = String(b?.id || '');
-      const isBookMatch = bIdStr === String(tObj?.bookId || targetHw?.bookId || targetHw?.book_id) ||
-        (toUUID(bIdStr) && (toUUID(bIdStr) === toUUID(tObj?.bookId) || toUUID(bIdStr) === toUUID(targetHw?.bookId)));
+      if (!b.subjects || b.subjects.length === 0) continue;
       
-      if (isBookMatch && !currentBook) {
-        currentBook = b;
-      }
+      const tSubjectId = String(tObj?.subject_id || tObj?.subjectId || '');
+      const tTopicId = String(tObj?.topic_id || tObj?.topicId || '');
 
-      if (b.subjects && Array.isArray(b.subjects)) {
-        for (const s of b.subjects) {
-          if (s.tests && Array.isArray(s.tests)) {
-            const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
-            if (found) {
-              if (!tObj) tObj = found;
-              subjObj = s;
-              if (!currentBook) currentBook = b;
+      for (const s of b.subjects) {
+        if (tSubjectId && (String(s.id) === tSubjectId || toUUID(s.id) === toUUID(tSubjectId) || (s.name && (tObj?.subjectName || tObj?.subject) && String(s.name).toLowerCase().trim() === String(tObj?.subjectName || tObj?.subject).toLowerCase().trim()))) {
+          subjObj = s;
+          if (!currentBook) currentBook = b;
+          for (const tp of (s.topics || [])) {
+            if (tTopicId && (String(tp.id) === tTopicId || toUUID(tp.id) === toUUID(tTopicId) || (tp.name && (tObj?.topicName || tObj?.topic) && String(tp.name).toLowerCase().trim() === String(tObj?.topicName || tObj?.topic).toLowerCase().trim()))) {
+              topicObj = tp;
               break;
             }
           }
-          if (s.topics && Array.isArray(s.topics)) {
-            for (const tp of s.topics) {
-              if (tp.tests && Array.isArray(tp.tests)) {
-                const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
-                if (found) {
-                  if (!tObj) tObj = found;
-                  subjObj = s;
-                  topicObj = tp;
-                  if (!currentBook) currentBook = b;
-                  break;
-                }
+          break;
+        }
+
+        if (s.tests && Array.isArray(s.tests)) {
+          const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
+          if (found) {
+            if (!tObj) tObj = found;
+            subjObj = s;
+            if (!currentBook) currentBook = b;
+            break;
+          }
+        }
+        if (s.topics && Array.isArray(s.topics)) {
+          for (const tp of s.topics) {
+            if (tp.tests && Array.isArray(tp.tests)) {
+              const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
+              if (found) {
+                if (!tObj) tObj = found;
+                subjObj = s;
+                topicObj = tp;
+                if (!currentBook) currentBook = b;
+                break;
               }
             }
           }
-          if (subjObj) break;
         }
+        if (subjObj) break;
       }
+      if (subjObj) break;
     }
 
     if (!currentBook) {
       currentBook = (books || []).find(b => 
-        String(b?.id) === String(targetHw?.bookId || targetHw?.book_id || tObj?.bookId) || 
-        (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(targetHw?.bookId || targetHw?.book_id || tObj?.bookId))) ||
-        (targetHw?.title && String(b?.title).toLowerCase().trim().includes(String(targetHw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
-        (targetHw?.title && String(targetHw?.title).toLowerCase().trim().includes(String(b?.title).toLowerCase().trim()))
+        (b.subjects && b.subjects.length > 0) && (
+          String(b?.id) === String(targetHw?.bookId || targetHw?.book_id || tObj?.book_id || tObj?.bookId) || 
+          (toUUID(b?.id) && String(toUUID(b?.id)) === String(toUUID(targetHw?.bookId || targetHw?.book_id || tObj?.book_id || tObj?.bookId))) ||
+          (targetHw?.title && String(b?.title).toLowerCase().trim().includes(String(targetHw?.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
+          (targetHw?.title && String(targetHw?.title).toLowerCase().trim().includes(String(b?.title).toLowerCase().trim()))
+        )
       );
     }
 
-    if (!currentBook && books && books.length === 1) {
-      currentBook = books[0];
-    }
-
-    if (tObj && !subjObj && currentBook) {
-      subjObj = (currentBook.subjects || []).find(s => 
-        String(s.id) === String(tObj.subjectId) || 
-        (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId)) || 
-        (s.name && tObj.subjectName && String(s.name).toLowerCase().trim() === String(tObj.subjectName).toLowerCase().trim())
-      );
-      topicObj = (subjObj?.topics || []).find(tp => 
-        String(tp.id) === String(tObj.topicId) || 
-        (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId)) || 
-        (tp.name && tObj.topicName && String(tp.name).toLowerCase().trim() === String(tObj.topicName).toLowerCase().trim())
-      );
+    if (!currentBook && books && books.length > 0) {
+      currentBook = books.find(b => b.subjects && b.subjects.length > 0) || books[0];
     }
 
     if (!tObj && currentBook?.subjects && Array.isArray(currentBook.subjects)) {
