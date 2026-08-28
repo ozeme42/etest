@@ -421,14 +421,12 @@ export default function StudentDashboard() {
 
   const isTaskDismissed = useCallback((task) => {
     if (!task || !Array.isArray(dismissedTaskKeys) || dismissedTaskKeys.length === 0) return false;
+    const testId = task.testId || task.bookTestId || task.realTestId;
     const keysToCheck = [
       String(task.id || ''),
-      String(task.hwId || ''),
-      String(task.testId || ''),
-      String(task.realTestId || ''),
-      String(task.bookTestId || ''),
       String(task.uniqueKey || ''),
-      String(task.title || '')
+      testId ? `book_due_${task.bookId || task.hwId}_${testId}` : null,
+      testId ? `dismiss_${testId}` : null
     ].filter(Boolean);
 
     return keysToCheck.some(k => dismissedTaskKeys.includes(k));
@@ -2155,7 +2153,7 @@ export default function StudentDashboard() {
     // 2. KİTAP TAKİBİNDEN / KİTAP ÖDEVLERİNDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
     (homeworks || []).forEach(hw => {
       const testDueDatesMap = {
-        ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
+        ...(hw.test_due_dates || hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
       };
 
       const allGenuineTests = [];
@@ -2250,7 +2248,7 @@ export default function StudentDashboard() {
 
           if (!isItemSolved(itemObj) && !isTaskDismissed(itemObj)) {
             const key = `book_due_${itemObj.bookId || hw.id}_${itemObj.testId}`;
-            const cleanKey = `${itemObj.bookTitle}_${itemObj.subject}_${itemObj.testName}`;
+            const cleanKey = `${itemObj.bookTitle}_${itemObj.subject}_${itemObj.unitTopic}_${itemObj.testName}`;
             if (!seen.has(key) && !seen.has(cleanKey)) {
               seen.add(key);
               seen.add(cleanKey);
