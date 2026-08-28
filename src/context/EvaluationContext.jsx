@@ -197,6 +197,7 @@ export function EvaluationProvider({ children }) {
         });
 
         setSubmissions(prev => {
+          const currentDeletedIds = getDeletedIds();
           const dbIds = new Set();
           (updatedSubs || []).forEach(s => {
             if (s?.id) dbIds.add(String(s.id));
@@ -224,7 +225,7 @@ export function EvaluationProvider({ children }) {
             const lId = String(localSub?.id || '');
             const lSuId = String(localSub?.supabaseId || '');
             if (!isDraft || (!lId && !lSuId)) return false;
-            if (deletedIds.has(lId) || (lSuId && deletedIds.has(lSuId))) return false;
+            if (currentDeletedIds.has(lId) || (lSuId && currentDeletedIds.has(lSuId))) return false;
             if (dbIds.has(lId) || (lSuId && dbIds.has(lSuId))) return false;
             return true;
           });
