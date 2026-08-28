@@ -7,12 +7,13 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 import ManualTestModal from '../components/ManualTestModal';
+import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 
 export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
@@ -37,6 +38,7 @@ export default function StudentBookDetailsPage() {
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, answerKey: {}, pdfUrl: '', dueDate: '' });
+  const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
@@ -1295,6 +1297,29 @@ export default function StudentBookDetailsPage() {
                     <FileText size={12} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setIsSlicerModalOpen(true)}
+                  style={{
+                    marginLeft: 8,
+                    verticalAlign: 'middle',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '0.3rem 0.85rem',
+                    borderRadius: '0.55rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 900,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(99,102,241,0.35)'
+                  }}
+                  title="Bu kitabın PDF'sinden yanlış soruları kırparak telafi testi oluşturun"
+                >
+                  <Scissors size={13} /> Yanlışlardan Test Kırp
+                </button>
               </h1>
 
               <div style={{ maxWidth: 500 }}>
@@ -2954,6 +2979,19 @@ export default function StudentBookDetailsPage() {
         initialData={manualTestModalData.data}
         onClose={() => setManualTestModalData({ isOpen: false, data: null })}
       />
+
+      {/* ✂️ Akıllı PDF Soru Kırpıcı & Telafi Testi Birleştirici Modalı */}
+      {isSlicerModalOpen && (
+        <PdfQuestionSlicerModal
+          isOpen={isSlicerModalOpen}
+          onClose={() => setIsSlicerModalOpen(false)}
+          initialBook={book}
+          initialPdfUrl={book?.pdfUrl}
+          studentId={currentUser?.id}
+          subject={book?.subject || 'Matematik'}
+          grade={book?.grade ? `${book.grade}. Sınıf` : '8. Sınıf'}
+        />
+      )}
     </div>
   );
 }

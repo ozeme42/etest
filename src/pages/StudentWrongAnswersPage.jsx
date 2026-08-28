@@ -6,7 +6,7 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
   Table, List, ChevronRight, Check, Clock, Plus, Upload,
   Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked,
-  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap
+  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors
 } from 'lucide-react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
@@ -21,6 +21,7 @@ import { toUUID } from '../services/supabaseService';
 import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
+import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 
 const getSubjectConfig = (isDark) => ({
   'Tümü': {
@@ -158,6 +159,7 @@ export default function StudentWrongAnswersPage() {
 
   // Date & Metric Sort State: 'date_desc' | 'date_asc' | 'wrong_desc' | 'name_asc'
   const [sortBy, setSortBy] = useState('date_desc');
+  const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
 
   useEffect(() => {
     if (location.state?.subject !== undefined) {
@@ -1326,6 +1328,31 @@ export default function StudentWrongAnswersPage() {
               </span>
             </button>
           </div>
+
+          {/* ✂️ PDF'TEN YANLIŞLARI KIRPARAK TEST OLUŞTUR BUTONU */}
+          <button
+            type="button"
+            onClick={() => setIsSlicerModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.6rem 1.15rem',
+              borderRadius: '14px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Scissors size={16} />
+            <span>✂️ Kitap PDF'sinden Telafi Testi Kırp</span>
+          </button>
         </div>
 
         {/* ════════════════════════════════════════════
@@ -2851,6 +2878,16 @@ export default function StudentWrongAnswersPage() {
           // Trigger re-render by clearing selection
         }}
       />
+
+      {/* ✂️ Akıllı PDF Soru Kırpıcı & Telafi Testi Birleştirici Modal */}
+      {isSlicerModalOpen && (
+        <PdfQuestionSlicerModal
+          isOpen={isSlicerModalOpen}
+          onClose={() => setIsSlicerModalOpen(false)}
+          studentId={selectedStudent?.id || currentUser?.id}
+          subject={selectedSubject !== 'Tümü' ? selectedSubject : 'Matematik'}
+        />
+      )}
     </div>
   );
 }
