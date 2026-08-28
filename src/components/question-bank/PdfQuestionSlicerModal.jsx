@@ -4,7 +4,7 @@ import {
   ZoomIn, ZoomOut, RotateCcw, Image as ImageIcon, FileText,
   CheckCircle2, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   BookOpen, Sparkles, HelpCircle, Layers, CheckSquare, Square,
-  ExternalLink, Save, Filter, ChevronDown, ChevronUp, Eye
+  ExternalLink, Save, Filter, ChevronDown, ChevronUp, Eye, Calendar
 } from 'lucide-react';
 import { compressImageToWebP } from '../../services/imageCompressionService';
 import { useTheme } from '../../context/ThemeContext';
@@ -13,6 +13,7 @@ import { useEvaluation } from '../../context/EvaluationContext';
 import { useHomework } from '../../context/HomeworkContext';
 import { useQuestionBank } from '../../context/QuestionBankContext';
 import { useCurriculum } from '../../context/CurriculumContext';
+import { useCoaching } from '../../context/CoachingContext';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { getAllUnifiedStudentSubmissions } from '../../services/unifiedResultAdapter';
 import { getEmbeddablePdfUrl } from '../../utils/pdfUtils';
@@ -515,8 +516,10 @@ export default function PdfQuestionSlicerModal({
   const { homeworks = [] } = useHomework();
   const { addQuestion } = useQuestionBank();
   const { data: curData } = useCurriculum();
+  const { coachingProfiles = [], saveCoachingProfile } = useCoaching();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [mobileActiveTab, setMobileActiveTab] = useState(() => mode === 'mistakes' ? 'guide' : 'pdf'); // 'guide' | 'pdf' | 'sliced'
+  const [addToTodaySchedule, setAddToTodaySchedule] = useState(true);
 
   const [sourceImage, setSourceImage] = useState(null);
   const [sourceFileName, setSourceFileName] = useState('');
@@ -1507,8 +1510,9 @@ export default function PdfQuestionSlicerModal({
 
       const finalTitle = testTitle.trim() || `Kırpılmış Telafi Testi (${slicedQuestions.length} Soru)`;
 
+      let savedTest = null;
       if (addQuestion) {
-        await addQuestion({
+        savedTest = await addQuestion({
           title: finalTitle,
           testTitle: finalTitle,
           subject: selectedSubject,
@@ -1531,6 +1535,51 @@ export default function PdfQuestionSlicerModal({
         });
       }
 
+      if (addToTodaySchedule && studentId && saveCoachingProfile) {
+        try {
+          const map = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+          const todayKey = map[new Date().getDay()] || 'Pzt';
+          const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+          const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+            studentId,
+            weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
+          };
+          const rawProg = Array.isArray(currentProfile.weeklyProgram)
+            ? currentProfile.weeklyProgram
+            : DAYS_LIST.map(d => ({ day: d, items: [] }));
+
+          const newItem = {
+            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            text: finalTitle,
+            subject: selectedSubject,
+            qCount: slicedQuestions.length,
+            targetCount: slicedQuestions.length,
+            testId: savedTest?.id || `test_${Date.now()}`,
+            type: 'remedialTest',
+            done: false,
+            date: new Date().toISOString().split('T')[0]
+          };
+
+          const updatedProg = rawProg.map(dObj => {
+            if (dObj.day === todayKey) {
+              return {
+                ...dObj,
+                items: [...(dObj.items || []), newItem]
+              };
+            }
+            return dObj;
+          });
+
+          await saveCoachingProfile({
+            ...currentProfile,
+            studentId,
+            weeklyProgram: updatedProg
+          });
+        } catch (schedErr) {
+          console.error('Program ekleme hatası:', schedErr);
+        }
+      }
+
       if (onSaveQuestions) {
         onSaveQuestions(slicedQuestions, {
           title: finalTitle,
@@ -1541,7 +1590,7 @@ export default function PdfQuestionSlicerModal({
         });
       }
 
-      setSaveSuccessMsg(`✓ "${finalTitle}" (${slicedQuestions.length} Soru) Soru Bankası'na başarıyla kaydedildi!`);
+      setSaveSuccessMsg(`✓ "${finalTitle}" (${slicedQuestions.length} Soru) kaydedildi ${addToTodaySchedule ? 've bugünün programına eklendi!' : '!'}`);
       setTimeout(() => {
         setSaveSuccessMsg(null);
         onClose();
@@ -2680,6 +2729,27 @@ export default function PdfQuestionSlicerModal({
             </div>
 
             <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Checkbox to add to today's schedule */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                padding: '2px 4px'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={addToTodaySchedule}
+                  onChange={(e) => setAddToTodaySchedule(e.target.checked)}
+                  style={{ accentColor: '#6366f1', cursor: 'pointer' }}
+                />
+                <span>📅 Bugünün Çalışma Programına Ekle</span>
+              </label>
+
               {saveSuccessMsg && (
                 <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#16a34a', textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px', borderRadius: 8 }}>
                   {saveSuccessMsg}

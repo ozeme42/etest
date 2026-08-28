@@ -3492,6 +3492,11 @@ export default function StudentDashboard() {
                     return;
                   }
                   
+                  if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial) {
+                    navigate(`/quiz/${task.testId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
+                    return;
+                  }
+
                   const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
                   const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
                   const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
