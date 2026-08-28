@@ -3403,7 +3403,7 @@ export default function QuestionBank() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setShowModal(false); setIsSlicerModalOpen(true); }}
+                    onClick={() => { setShowModal(false); navigate('/pdf-slicer?mode=general'); }}
                     className="btn-gradient"
                     style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6 }}
                   >

@@ -1299,7 +1299,7 @@ export default function StudentBookDetailsPage() {
                 )}
                 <button
                   type="button"
-                  onClick={() => setIsSlicerModalOpen(true)}
+                  onClick={() => navigate(`/pdf-slicer?bookId=${book.id}&mode=mistakes`)}
                   style={{
                     marginLeft: 8,
                     verticalAlign: 'middle',
@@ -1707,7 +1707,7 @@ export default function StudentBookDetailsPage() {
 
             <button
               type="button"
-              onClick={() => setIsSlicerModalOpen(true)}
+              onClick={() => navigate(`/pdf-slicer?bookId=${book.id}&mode=mistakes`)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

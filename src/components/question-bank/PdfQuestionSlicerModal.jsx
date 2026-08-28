@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
-  Scissors, Upload, X, Check, Trash2, Plus, ArrowRight,
+  Scissors, Upload, X, Check, Trash2, Plus, ArrowRight, ArrowLeft,
   ZoomIn, ZoomOut, RotateCcw, Image as ImageIcon, FileText,
   CheckCircle2, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   BookOpen, Sparkles, HelpCircle, Layers, CheckSquare, Square,
@@ -431,6 +431,7 @@ export default function PdfQuestionSlicerModal({
   onClose,
   onSaveQuestions,
   mode = 'general', // 'general' (Soru Bankası / Serbest PDF Kırpıcı) | 'mistakes' (Kitap Yanlışları Telafi Testi)
+  isPageMode = false,
   initialBook = null,
   initialBookId = null,
   initialPdfUrl = null,
@@ -1438,31 +1439,17 @@ export default function PdfQuestionSlicerModal({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 999999,
-        background: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(10px)',
+        zIndex: 99999,
+        background: 'var(--color-surface, #ffffff)',
+        color: 'var(--color-text, #0f172a)',
+        width: '100vw',
+        height: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0.4rem',
+        flexDirection: 'column',
+        overflow: 'hidden',
         boxSizing: 'border-box'
       }}
     >
-      <div
-        style={{
-          background: 'var(--color-surface, #ffffff)',
-          color: 'var(--color-text, #0f172a)',
-          width: '99vw',
-          maxWidth: '99vw',
-          height: '98vh',
-          borderRadius: 14,
-          border: '1.5px solid var(--color-border)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.45)'
-        }}
-      >
         <div
           style={{
             padding: '0.6rem 1.1rem',
@@ -1588,15 +1575,23 @@ export default function PdfQuestionSlicerModal({
             <button
               onClick={onClose}
               style={{
-                background: 'transparent',
-                border: 'none',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                border: '1px solid var(--color-border)',
                 cursor: 'pointer',
-                color: 'var(--color-text-muted)',
-                padding: 5,
-                borderRadius: 8
+                color: 'var(--color-text)',
+                padding: '5px 12px',
+                borderRadius: 8,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                transition: 'all 0.15s'
               }}
+              title="Önceki Sayfaya Dön / Kapat"
             >
-              <X size={20} />
+              <ArrowLeft size={15} />
+              <span>Geri Dön</span>
             </button>
           </div>
         </div>
@@ -2488,6 +2483,5 @@ export default function PdfQuestionSlicerModal({
         )}
       </div>
     </div>
-  </div>
   );
 }

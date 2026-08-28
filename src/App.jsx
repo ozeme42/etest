@@ -49,6 +49,7 @@ const SummaryManagerPage = lazy(() => import('./pages/SummaryManagerPage'));
 const StudentSummaryPage = lazy(() => import('./pages/StudentSummaryPage'));
 const StudentHomeworksPage = lazy(() => import('./pages/StudentHomeworksPage'));
 const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
+const PdfQuestionSlicerPage = lazy(() => import('./pages/PdfQuestionSlicerPage'));
 
 // One-time automatic cache bust for clean database sync
 const APP_CACHE_VERSION = 'v2026_08_25_master_sync_v7';
@@ -600,7 +601,7 @@ function AppContent() {
     } catch {}
   }, [currentUser?.role, currentUser?.id]);
 
-  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/quiz-review/', '/login', '/physical-exam/', '/study-room'];
+  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/quiz-review/', '/login', '/physical-exam/', '/study-room', '/pdf-slicer', '/slicer', '/student/pdf-slicer'];
   const isLandingPage = location.pathname === '/' && !currentUser;
   const isLoginPage = location.pathname === '/login' || location.pathname === '/landing';
   const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
@@ -677,6 +678,9 @@ function AppContent() {
               <Route path="/exam-analysis" element={<RequireRole roles={['teacher', 'admin']}><ExamAnalysisPage /></RequireRole>} />
               <Route path="/exam-analysis/:examId" element={<RequireRole roles={['teacher', 'admin']}><ExamAnalysisPage /></RequireRole>} />
               <Route path="/physical-exam/:hwId" element={<RequireAuth><PhysicalExamRunner /></RequireAuth>} />
+              <Route path="/pdf-slicer" element={<RequireAuth><PdfQuestionSlicerPage /></RequireAuth>} />
+              <Route path="/slicer" element={<RequireAuth><PdfQuestionSlicerPage /></RequireAuth>} />
+              <Route path="/student/pdf-slicer" element={<RequireAuth><PdfQuestionSlicerPage /></RequireAuth>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

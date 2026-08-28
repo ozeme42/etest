@@ -1340,7 +1340,7 @@ export default function StudentWrongAnswersPage() {
           {/* ✂️ PDF'TEN YANLIŞLARI KIRPARAK TEST OLUŞTUR BUTONU */}
           <button
             type="button"
-            onClick={() => setIsSlicerModalOpen(true)}
+            onClick={() => navigate('/pdf-slicer?mode=mistakes')}
             style={{
               display: 'flex',
               alignItems: 'center',
