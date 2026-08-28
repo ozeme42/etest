@@ -529,6 +529,14 @@ export default function StudentDashboard() {
         if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
         if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
         if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+
+        const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
+        if (targetTest?.name) {
+          const tName = String(targetTest.name).toLowerCase().trim();
+          const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
+          const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+          if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
+        }
         return false;
       }
 

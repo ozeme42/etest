@@ -266,13 +266,28 @@ export default function StudentBooksPage() {
         const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
         const sBookId = String(s.bookId || s.book_id || meta?.bookId || '');
         const sBookTitle = String(s.bookTitle || meta?.bookTitle || s.book_title || '').toLowerCase().trim();
-        const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
-        const sTestId = String(s.bookTestId || s.testId || meta?.realTestId || meta?.bookTestId || '');
+        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
+        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+        const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
 
         if (sBookId && (sBookId === bId || (bUuid && sBookId === bUuid) || sBookId.includes(bId))) return true;
         if (sBookTitle && (sBookTitle === bTitle || sBookTitle.includes(bTitle) || bTitle.includes(sBookTitle))) return true;
         if (sTitle && bTitle && (sTitle.startsWith(bTitle) || sTitle.includes(bTitle))) return true;
-        if (testsInBook.some(t => String(t.id) === sTestId || (toUUID(t.id) && String(toUUID(t.id)) === sTestId))) return true;
+        
+        if (testsInBook.some(t => {
+          const tId = String(t.id);
+          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
+          const tUuid = String(toUUID(t.id) || '');
+          const tName = String(t.name || '').toLowerCase().trim();
+
+          return (
+            sTestId === tId ||
+            sTestId === tClean ||
+            (tUuid && sTestId === tUuid) ||
+            (toUUID(sTestId) && toUUID(sTestId) === tUuid) ||
+            (tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)))
+          );
+        })) return true;
 
         return false;
       });
@@ -312,19 +327,38 @@ export default function StudentBooksPage() {
       const testSubsMap = {};
       matchedSubs.forEach(s => {
         const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const testKey = String(s.bookTestId || s.testId || meta?.realTestId || s.title || s.id);
+        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
+        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+        const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
+
+        const matchingTest = testsInBook.find(t => {
+          const tId = String(t.id);
+          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
+          const tUuid = String(toUUID(t.id) || '');
+          const tName = String(t.name || '').toLowerCase().trim();
+
+          return (
+            sTestId === tId ||
+            sTestId === tClean ||
+            (tUuid && sTestId === tUuid) ||
+            (toUUID(sTestId) && toUUID(sTestId) === tUuid) ||
+            (tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)))
+          );
+        });
+
+        const testKey = matchingTest ? String(matchingTest.id) : (cleanSTitle || sTestId || s.id);
         const existing = testSubsMap[testKey];
-        const score = Number(s.score || s.computedScore || s.correctCount || 0);
-        if (!existing || score > Number(existing.score || existing.computedScore || existing.correctCount || 0)) {
+        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+        if (!existing || score > Number(existing.score || existing.computedScore || (existing.correct_count ?? existing.correctCount ?? existing.correct ?? 0))) {
           testSubsMap[testKey] = s;
         }
       });
 
       Object.values(testSubsMap).forEach(s => {
         totalSolvedTests++;
-        totalCorrect += Number(s.correctCount ?? s.correct ?? 0);
-        totalWrong += Number(s.wrongCount ?? s.wrong ?? 0);
-        totalBlank += Number(s.blankCount ?? s.emptyCount ?? 0);
+        totalCorrect += Number(s.correct_count ?? s.correctCount ?? s.correct ?? 0);
+        totalWrong += Number(s.wrong_count ?? s.wrongCount ?? s.wrong ?? 0);
+        totalBlank += Number(s.empty_count ?? s.blankCount ?? s.blank ?? 0);
       });
 
       if (b.targetDueDate) {

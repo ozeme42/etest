@@ -293,6 +293,8 @@ export default function StudentBookDetailsPage() {
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
 
+        const tName = String(t.name || '').toLowerCase().trim();
+
         const solvedSubs = submissions.filter(s => {
           if (!s || isDeletedItem(s)) return false;
           const sStdId = String(s.studentId || s.student_id || '');
@@ -301,6 +303,15 @@ export default function StudentBookDetailsPage() {
           if (s.status === 'in_progress' || s.status === 'draft') return false;
 
           const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+          const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
+          const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+
+          const isNameMatch = Boolean(tName && (
+            cleanSTitle === tName ||
+            sTitle.includes(tName) ||
+            tName.includes(cleanSTitle)
+          ));
+
           const matchFields = [
             String(s.testId || ''),
             String(s.test_id || ''),
@@ -322,7 +333,7 @@ export default function StudentBookDetailsPage() {
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
-          return isDirectMatch;
+          return isDirectMatch || isNameMatch;
         });
 
         let hwSub = null;
@@ -334,7 +345,11 @@ export default function StudentBookDetailsPage() {
             const isMatchStudent = !studentIdStr || sStdId === studentIdStr || (studentUuidStr && sStdId === studentUuidStr) || (studentUuidStr && toUUID(sStdId) === studentUuidStr);
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
             const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
-            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
+            const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+            const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            return isDirect || isNameMatch;
           });
           if (match) {
             hwSub = match;
