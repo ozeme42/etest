@@ -235,96 +235,233 @@ export default function PdfQuestionSlicerModal({
       });
     }
 
-    const allSubs = getAllUnifiedStudentSubmissions({
+    const studentIdStr = studentId ? String(studentId).trim() : '';
+    const studentUuid = studentIdStr ? toUUID(studentIdStr) : null;
+
+    const isMatchStudent = (s) => {
+      if (!studentIdStr) return true;
+      if (!s) return false;
+      const sid = String(s.studentId ?? s.userId ?? s.student_id ?? s.raw_data?.studentId ?? s.raw_data?.student_id ?? '').trim();
+      if (!sid) return true;
+      return sid === studentIdStr || sid.toLowerCase() === studentIdStr.toLowerCase() ||
+        (studentUuid && (sid === String(studentUuid) || toUUID(sid) === studentUuid));
+    };
+
+    const isSubBelongsToBook = (s) => {
+      if (!s) return false;
+      const sBookId = String(s.bookId || s.book_id || s.raw_data?.bookId || s.raw_data?.book_id || '');
+      if (sBookId && (sBookId === bId || (bUuid && toUUID(sBookId) === bUuid))) return true;
+
+      const candidateTestIds = [
+        s.realTestId, s.testId, s.bookTestId, s.id,
+        s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.testId
+      ].filter(Boolean).map(String);
+
+      if (candidateTestIds.some(tid => bookStructureMap.has(tid) || (toUUID(tid) && bookStructureMap.has(toUUID(tid))))) {
+        return true;
+      }
+
+      if (candidateTestIds.some(tid => (bookTests || []).some(bt => (String(bt.bookId || bt.book_id) === bId || (bUuid && toUUID(bt.bookId || bt.book_id) === bUuid)) && (String(bt.id) === tid || (toUUID(tid) && toUUID(bt.id) === toUUID(tid)))))) {
+        return true;
+      }
+
+      const cleanBookTitle = (currentBook.title || '')
+        .replace(/\s*\([^)]*\)/gi, '')
+        .trim().toLowerCase();
+
+      const sBookTitle = String(s.bookTitle || s.book_title || s.raw_data?.bookTitle || '').toLowerCase();
+      const sTestTitle = String(s.testTitle || s.fullTitle || s.title || s.raw_data?.testTitle || '').toLowerCase();
+
+      if (cleanBookTitle && cleanBookTitle.length > 3) {
+        if (sBookTitle.includes(cleanBookTitle) || sTestTitle.includes(cleanBookTitle)) return true;
+      }
+
+      return false;
+    };
+
+    // Extract all candidate submissions from all available sources
+    const allCandidateSubs = [];
+
+    // 1. From getAllUnifiedStudentSubmissions
+    const unifiedSubs = getAllUnifiedStudentSubmissions({
       studentId: studentId || '',
       submissions,
       homeworks,
       books,
       bookTests
     });
+    (unifiedSubs || []).forEach(s => allCandidateSubs.push(s));
 
-    const relevantSubs = allSubs.filter(s => {
-      const isSameBook = String(s.bookId) === bId || (bUuid && toUUID(s.bookId) === bUuid) ||
-        (s.bookTitle && currentBook.title && s.bookTitle.toLowerCase().includes(currentBook.title.toLowerCase()));
-      return isSameBook && (s.wrongCount > 0 || (Array.isArray(s.answers) && s.answers.some(a => a.isCorrect === false)));
+    // 2. From raw submissions
+    (submissions || []).forEach(s => {
+      if (s && isMatchStudent(s)) allCandidateSubs.push(s);
     });
 
-    const list = [];
-    relevantSubs.forEach(sub => {
-      const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
-      const tName = sub.testName || sub.testTitle || sub.title || 'Test';
-      
-      const bTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
-      const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
+    // 3. From homework submissions
+    (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+      hwSubList.forEach(sub => {
+        if (sub && isMatchStudent(sub)) {
+          allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title, bookId: hw.bookId || hw.book_id || sub.bookId });
+        }
+      });
+    });
 
-      const wrongQNos = [];
+    const testMistakesMap = new Map();
+
+    const getCorrectLetter = (q, ak) => {
+      const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
+      if (typeof val === 'string' && /^[A-Ea-e]$/.test(val.trim())) return val.trim().toUpperCase();
+      if (typeof val === 'number' && val >= 0 && val <= 4) return String.fromCharCode(65 + val);
+      return null;
+    };
+
+    const extractWrongQuestions = (sub, ak = {}) => {
+      const wrongQNos = new Set();
+
+      // 1. From answers array
       if (Array.isArray(sub.answers) && sub.answers.length > 0) {
         sub.answers.forEach((ans, idx) => {
-          const qNo = Number(ans.questionNo || ans.questionNoInSection || (idx + 1));
-          if (ans.isCorrect === false || (ans.userAnswer && ans.userAnswer !== ans.correctAnswer)) {
-            if (!wrongQNos.includes(qNo)) wrongQNos.push(qNo);
+          const qNo = Number(ans.questionNo || ans.questionNoInSection || ans.qNum || ans.qNo || (idx + 1));
+          const isWrong = ans.isCorrect === false ||
+            (ans.userAnswer && ans.correctAnswer && String(ans.userAnswer).trim().toUpperCase() !== String(ans.correctAnswer).trim().toUpperCase()) ||
+            (ans.score !== undefined && ans.score !== null && Number(ans.score) === 0 && ans.userAnswer && ans.userAnswer !== 'empty');
+          if (isWrong && qNo > 0) {
+            wrongQNos.add(qNo);
           }
         });
       }
 
-      if (wrongQNos.length === 0 && sub.wrongCount > 0) {
-        const totalQ = sub.totalQuestions || 10;
-        const corr = sub.correctCount || 0;
-        for (let i = corr + 1; i <= Math.min(totalQ, corr + sub.wrongCount); i++) {
-          wrongQNos.push(i);
+      // 2. From wrongQuestions array
+      const rawWrongs = sub.wrongQuestions || sub.raw_data?.wrongQuestions;
+      if (Array.isArray(rawWrongs) && rawWrongs.length > 0) {
+        rawWrongs.forEach(q => {
+          const qNo = typeof q === 'object' ? Number(q.qNum || q.qNo || q.questionNo || q.question) : Number(q);
+          if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+        });
+      }
+
+      // 3. From mistakeReasons object
+      const rawReasons = sub.mistakeReasons || sub.raw_data?.mistakeReasons;
+      if (rawReasons && typeof rawReasons === 'object') {
+        Object.keys(rawReasons).forEach(k => {
+          const qNo = parseInt(k, 10);
+          if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+        });
+      }
+
+      // 4. From localStorage mistake reasons
+      const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
+      const sId = sub.studentId || studentId;
+      if (tId) {
+        try {
+          const keysToTry = [
+            `mistake_reasons_${tId}_${sId}`,
+            `mistake_reasons_bt_${tId}_${sId}`,
+            `mistake_reasons_${tId}`,
+            `mistake_reasons_bt_${tId}`
+          ];
+          for (const key of keysToTry) {
+            const val = localStorage.getItem(key);
+            if (val) {
+              const parsed = JSON.parse(val);
+              if (parsed && typeof parsed === 'object') {
+                Object.keys(parsed).forEach(qKey => {
+                  const qNo = parseInt(qKey, 10);
+                  if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+                });
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // 5. Fallback if wrongCount > 0 but no specific question numbers recorded
+      const wCount = sub.wrongCount ?? sub.wrong ?? sub.raw_data?.wrongCount ?? sub.raw_data?.wrong ?? 0;
+      if (wrongQNos.size === 0 && wCount > 0) {
+        const totalQ = sub.totalQuestions || sub.raw_data?.totalQuestions || 10;
+        const corr = sub.correctCount ?? sub.correct ?? 0;
+        for (let i = corr + 1; i <= Math.min(totalQ, corr + wCount); i++) {
+          wrongQNos.add(i);
         }
       }
 
-      if (wrongQNos.length > 0) {
-        const getCorrectLetter = (q) => {
-          const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
-          if (typeof val === 'string' && /^[A-Ea-e]$/.test(val.trim())) return val.trim().toUpperCase();
-          if (typeof val === 'number' && val >= 0 && val <= 4) return String.fromCharCode(65 + val);
-          return null;
-        };
+      return Array.from(wrongQNos).sort((a, b) => a - b);
+    };
 
-        const struct = bookStructureMap.get(String(tId)) || (toUUID(tId) ? bookStructureMap.get(toUUID(tId)) : null);
-        let unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
-        if (unitName && (unitName.toLowerCase() === 'genel' || unitName.toLowerCase() === 'ders')) {
-          unitName = '';
-        }
-        const cleanTestName = struct?.testName || tName;
-        if (!unitName) {
-          const m = (sub.testTitle || sub.fullTitle || sub.title || cleanTestName).match(/(\d+)\.\s*Ünite/i);
-          if (m) unitName = `${m[1]}. Ünite`;
-        }
+    allCandidateSubs.forEach(sub => {
+      if (!isMatchStudent(sub) || !isSubBelongsToBook(sub)) return;
 
-        const resolvedSubj = resolveSubjectName(
-          sub.subject,
-          sub.subjectName,
-          sub.testTitle,
-          sub.fullTitle,
-          sub.title,
-          sub.raw_data?.subject,
-          bTest?.subject_name,
-          bTest?.subject,
-          struct?.subjectName,
-          currentBook?.subject,
-          currentBook?.title
-        );
+      const tId = String(sub.realTestId || sub.testId || sub.bookTestId || sub.id);
+      const bTest = (bookTests || []).find(bt => String(bt.id) === tId || (toUUID(bt.id) && toUUID(bt.id) === toUUID(tId)));
+      const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
 
-        const orderIndex = struct?.index ?? (parseInt(cleanTestName.replace(/\D/g, ''), 10) || 9999);
+      const wrongList = extractWrongQuestions(sub, ak);
+      if (wrongList.length === 0) return;
 
-        list.push({
+      const struct = bookStructureMap.get(tId) || (toUUID(tId) ? bookStructureMap.get(toUUID(tId)) : null);
+      let unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
+      if (unitName && (unitName.toLowerCase() === 'genel' || unitName.toLowerCase() === 'ders')) {
+        unitName = '';
+      }
+      const cleanTestName = struct?.testName || sub.testName || sub.testTitle || sub.title || 'Test';
+      if (!unitName) {
+        const m = (sub.testTitle || sub.fullTitle || sub.title || cleanTestName).match(/(\d+)\.\s*Ünite/i);
+        if (m) unitName = `${m[1]}. Ünite`;
+      }
+      if (!unitName) {
+        unitName = '1. Ünite';
+      }
+
+      const resolvedSubj = resolveSubjectName(
+        sub.subject,
+        sub.subjectName,
+        sub.testTitle,
+        sub.fullTitle,
+        sub.title,
+        sub.raw_data?.subject,
+        bTest?.subject_name,
+        bTest?.subject,
+        struct?.subjectName,
+        currentBook?.subject,
+        currentBook?.title
+      );
+
+      const orderIndex = struct?.index ?? (parseInt(cleanTestName.replace(/\D/g, ''), 10) || 9999);
+
+      if (!testMistakesMap.has(tId)) {
+        testMistakesMap.set(tId, {
           testId: tId,
           testName: cleanTestName,
           unitName: unitName,
           orderIndex: orderIndex,
           subjectName: resolvedSubj,
-          wrongQuestions: wrongQNos.sort((a, b) => a - b),
-          answerKeyMap: wrongQNos.reduce((acc, q) => {
-            const letter = getCorrectLetter(q);
-            if (letter) acc[q] = letter;
-            return acc;
-          }, {})
+          wrongQuestions: wrongList,
+          answerKeyMap: {}
         });
+      } else {
+        const existing = testMistakesMap.get(tId);
+        const mergedWrongs = Array.from(new Set([...existing.wrongQuestions, ...wrongList])).sort((a, b) => a - b);
+        existing.wrongQuestions = mergedWrongs;
+        if ((!existing.unitName || existing.unitName === '1. Ünite') && unitName && unitName !== '1. Ünite') {
+          existing.unitName = unitName;
+        }
+        if (existing.subjectName === 'Genel' && resolvedSubj !== 'Genel') {
+          existing.subjectName = resolvedSubj;
+        }
       }
+
+      const item = testMistakesMap.get(tId);
+      item.wrongQuestions.forEach(q => {
+        const letter = getCorrectLetter(q, ak);
+        if (letter) item.answerKeyMap[q] = letter;
+      });
     });
+
+    const list = Array.from(testMistakesMap.values());
 
     // Sort strictly by book test order
     list.sort((a, b) => {

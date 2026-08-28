@@ -2987,7 +2987,7 @@ export default function StudentBookDetailsPage() {
           onClose={() => setIsSlicerModalOpen(false)}
           initialBook={book}
           initialPdfUrl={book?.pdfUrl}
-          studentId={currentUser?.id}
+          studentId={studentId || currentUser?.id}
           subject={book?.subject || 'Matematik'}
           grade={book?.grade ? `${book.grade}. Sınıf` : '8. Sınıf'}
         />
