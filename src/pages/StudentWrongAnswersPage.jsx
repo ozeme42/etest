@@ -354,7 +354,8 @@ export default function StudentWrongAnswersPage() {
           unit: isSubjectName(unitName) ? '' : unitName,
           topic: (topicName && topicName !== unitName && !isSubjectName(topicName)) ? topicName : '',
           bookId: b.id,
-          testId: bt.id
+          testId: bt.id,
+          orderIndex: Number(bt.order ?? bt.order_index ?? idx + 1)
         };
 
         map.set(String(bt.id), info);
@@ -613,6 +614,7 @@ export default function StudentWrongAnswersPage() {
         subject,
         unit,
         topic,
+        orderIndex: matchedBookTest?.orderIndex ?? matchedCurTest?.orderIndex ?? (parseInt((resolvedTitle || '').replace(/\D/g, ''), 10) || 9999),
         submittedAt: dateStr,
         wrongQuestions,
         blankQuestions,
@@ -659,6 +661,12 @@ export default function StudentWrongAnswersPage() {
     });
 
     return [...list].sort((a, b) => {
+      if (sortBy === 'book_order') {
+        const orderA = a.orderIndex ?? (parseInt((a.testTitle || '').replace(/\D/g, ''), 10) || 9999);
+        const orderB = b.orderIndex ?? (parseInt((b.testTitle || '').replace(/\D/g, ''), 10) || 9999);
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr', { numeric: true });
+      }
       if (sortBy === 'date_asc') {
         return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
       }
@@ -1929,6 +1937,7 @@ export default function StudentWrongAnswersPage() {
                       padding: '0.3rem 0'
                     }}
                   >
+                    <option value="book_order">📖 Kitap / Sıralı Müfredat Sırası</option>
                     <option value="date_desc">📅 Tarihe Göre: En Yeni</option>
                     <option value="date_asc">📅 Tarihe Göre: En Eski</option>
                     <option value="wrong_desc">❌ En Çok Yanlış Olan</option>

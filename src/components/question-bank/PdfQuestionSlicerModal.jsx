@@ -104,6 +104,51 @@ export default function PdfQuestionSlicerModal({
     const bId = String(currentBook.id);
     const bUuid = toUUID(bId);
 
+    // 1. Build comprehensive structural mapping from the book
+    const bookStructureMap = new Map();
+    let globalIndex = 0;
+
+    if (currentBook?.subjects && Array.isArray(currentBook.subjects)) {
+      currentBook.subjects.forEach((subj) => {
+        const sName = subj.name || currentBook.subject || 'Ders';
+        (subj.topics || []).forEach((top) => {
+          const uName = top.name || top.title || top.unit || '';
+          (top.tests || []).forEach((t) => {
+            globalIndex++;
+            const tId = String(t.id);
+            const structObj = {
+              index: globalIndex,
+              unitName: uName,
+              subjectName: sName,
+              testName: t.name || t.title || `Test ${globalIndex}`
+            };
+            bookStructureMap.set(tId, structObj);
+            if (toUUID(tId)) bookStructureMap.set(toUUID(tId), structObj);
+          });
+        });
+      });
+    }
+
+    if (bookTests && Array.isArray(bookTests)) {
+      const bTests = bookTests.filter(bt => String(bt.book_id || bt.bookId) === bId || (bUuid && toUUID(bt.book_id || bt.bookId) === bUuid));
+      bTests.forEach((bt) => {
+        const tId = String(bt.id);
+        if (!bookStructureMap.has(tId)) {
+          globalIndex++;
+          const uName = bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '';
+          const sName = bt.subject_name || bt.subjectName || currentBook.subject || 'Ders';
+          const structObj = {
+            index: Number(bt.order || bt.order_index || globalIndex),
+            unitName: uName,
+            subjectName: sName,
+            testName: bt.name || bt.title || `Test ${globalIndex}`
+          };
+          bookStructureMap.set(tId, structObj);
+          if (toUUID(tId)) bookStructureMap.set(toUUID(tId), structObj);
+        }
+      });
+    }
+
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: studentId || '',
       submissions,
@@ -123,7 +168,6 @@ export default function PdfQuestionSlicerModal({
       const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
       const tName = sub.testName || sub.testTitle || sub.title || 'Test';
       const subjName = sub.subjectName || sub.subject || currentBook.subject || 'Genel';
-      const topName = sub.topicName || sub.unitTopic || '';
       
       const bTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
       const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
@@ -154,11 +198,17 @@ export default function PdfQuestionSlicerModal({
           return null;
         };
 
+        const struct = bookStructureMap.get(String(tId)) || (toUUID(tId) ? bookStructureMap.get(toUUID(tId)) : null);
+        const unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
+        const cleanTestName = struct?.testName || tName;
+        const orderIndex = struct?.index ?? (parseInt(cleanTestName.replace(/\D/g, ''), 10) || 9999);
+
         list.push({
           testId: tId,
-          testName: tName,
-          subjectName: subjName,
-          topicName: topName,
+          testName: cleanTestName,
+          unitName: unitName,
+          orderIndex: orderIndex,
+          subjectName: struct?.subjectName || subjName,
           wrongQuestions: wrongQNos.sort((a, b) => a - b),
           answerKeyMap: wrongQNos.reduce((acc, q) => {
             const letter = getCorrectLetter(q);
@@ -167,6 +217,12 @@ export default function PdfQuestionSlicerModal({
           }, {})
         });
       }
+    });
+
+    // Sort strictly by book test order
+    list.sort((a, b) => {
+      if (a.orderIndex !== b.orderIndex) return a.orderIndex - b.orderIndex;
+      return a.testName.localeCompare(b.testName, 'tr', { numeric: true });
     });
 
     return list;
@@ -180,6 +236,7 @@ export default function PdfQuestionSlicerModal({
         setActiveTargetQuestion({
           testId: firstTest.testId,
           testName: firstTest.testName,
+          unitName: firstTest.unitName,
           qNo: qNo,
           correctAnswer: firstTest.answerKeyMap[qNo] || 'A'
         });
@@ -447,7 +504,8 @@ export default function PdfQuestionSlicerModal({
     let originalQNo = null;
 
     if (activeTargetQuestion) {
-      assignedTitle = `${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
+      const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
+      assignedTitle = `${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
       assignedAnswer = activeTargetQuestion.correctAnswer || 'A';
       assignedTestId = activeTargetQuestion.testId;
       originalQNo = activeTargetQuestion.qNo;
@@ -481,6 +539,7 @@ export default function PdfQuestionSlicerModal({
             setActiveTargetQuestion({
               testId: t.testId,
               testName: t.testName,
+              unitName: t.unitName,
               qNo: q,
               correctAnswer: t.answerKeyMap[q] || 'A'
             });
@@ -784,8 +843,12 @@ export default function PdfQuestionSlicerModal({
 
               {activeTargetQuestion && (
                 <div style={{ padding: '0.5rem 0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800 }}>
-                  <span>🎯 Sıradaki: <strong>{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong></span>
-                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 4 }}>Cevap: {activeTargetQuestion.correctAnswer}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    🎯 Sıradaki: <strong>{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
+                  </span>
+                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 4, flexShrink: 0, marginLeft: 6 }}>
+                    Cevap: {activeTargetQuestion.correctAnswer}
+                  </span>
                 </div>
               )}
 
@@ -796,29 +859,47 @@ export default function PdfQuestionSlicerModal({
                       key={t.testId}
                       style={{
                         padding: '0.65rem 0.75rem',
-                        borderRadius: 10,
-                        border: '1px solid var(--color-border)',
+                        borderRadius: 12,
+                        border: '1.5px solid var(--color-border)',
                         background: 'var(--color-surface)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 6
+                        gap: 6,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.25 }}>
-                          {t.testName}
-                        </div>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 5px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                      {/* Unit Badge & Subject */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
+                        {t.unitName ? (
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 900,
+                            background: isDark ? 'rgba(168,85,247,0.2)' : '#f3e8ff',
+                            color: '#9333ea',
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}>
+                            <Layers size={11} /> {t.unitName}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                            {t.subjectName}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
                           {t.wrongQuestions.length} Yanlış
                         </span>
                       </div>
 
-                      {t.topicName && (
-                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                          {t.subjectName} › {t.topicName}
-                        </div>
-                      )}
+                      {/* Test Name */}
+                      <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.25 }}>
+                        {t.testName}
+                      </div>
 
+                      {/* Question Chips */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
                         {t.wrongQuestions.map(qNo => {
                           const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
@@ -833,28 +914,30 @@ export default function PdfQuestionSlicerModal({
                                 setActiveTargetQuestion({
                                   testId: t.testId,
                                   testName: t.testName,
+                                  unitName: t.unitName,
                                   qNo: qNo,
                                   correctAnswer: cAns || 'A'
                                 });
                               }}
                               style={{
-                                padding: '2px 6px',
+                                padding: '3px 7px',
                                 borderRadius: 6,
                                 border: isActive ? '1.5px solid #4f46e5' : (isDone ? '1px solid #bbf7d0' : '1px solid #fca5a5'),
                                 background: isActive ? '#4f46e5' : (isDone ? (isDark ? 'rgba(34,197,94,0.15)' : '#f0fdf4') : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2')),
                                 color: isActive ? '#ffffff' : (isDone ? '#16a34a' : '#dc2626'),
-                                fontSize: '0.68rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 3
+                                gap: 3,
+                                transition: 'all 0.15s'
                               }}
                               title={isDone ? `Soru ${qNo} kırpıldı` : `Soru ${qNo} (Doğru Cevap: ${cAns || 'Bilinmiyor'})`}
                             >
-                              {isDone ? <Check size={10} /> : <X size={10} />}
+                              {isDone ? <Check size={11} /> : <X size={11} />}
                               <span>Soru {qNo}</span>
-                              {cAns && <span style={{ opacity: 0.75, fontSize: '0.62rem' }}>({cAns})</span>}
+                              {cAns && <span style={{ opacity: 0.8, fontSize: '0.64rem' }}>({cAns})</span>}
                             </button>
                           );
                         })}
