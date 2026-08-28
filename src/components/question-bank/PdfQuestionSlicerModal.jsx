@@ -13,6 +13,7 @@ import { useEvaluation } from '../../context/EvaluationContext';
 import { useHomework } from '../../context/HomeworkContext';
 import { useQuestionBank } from '../../context/QuestionBankContext';
 import { useCurriculum } from '../../context/CurriculumContext';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { getAllUnifiedStudentSubmissions } from '../../services/unifiedResultAdapter';
 import { getEmbeddablePdfUrl } from '../../utils/pdfUtils';
 import { toUUID } from '../../services/supabaseService';
@@ -317,9 +318,11 @@ function SlicerPdfPageItem({
     const r = canvas.getBoundingClientRect();
     const scaleX = canvas.width / r.width;
     const scaleY = canvas.height / r.height;
+    const clientX = e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX ?? e.clientX ?? 0;
+    const clientY = e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY ?? e.clientY ?? 0;
     return {
-      x: (e.clientX - r.left) * scaleX,
-      y: (e.clientY - r.top) * scaleY
+      x: (clientX - r.left) * scaleX,
+      y: (clientY - r.top) * scaleY
     };
   };
 
@@ -463,6 +466,10 @@ function SlicerPdfPageItem({
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onTouchStart={(e) => { e.preventDefault(); handleMouseDown(e); }}
+            onTouchMove={(e) => { e.preventDefault(); handleMouseMove(e); }}
+            onTouchEnd={(e) => { e.preventDefault(); handleMouseUp(); }}
+            onTouchCancel={() => { setIsDrawing(false); setCurrentRect(null); }}
             style={{
               position: 'absolute',
               top: 0,
@@ -471,6 +478,7 @@ function SlicerPdfPageItem({
               height: pageSize.height,
               cursor: 'crosshair',
               userSelect: 'none',
+              touchAction: 'none',
               zIndex: 2
             }}
           />
@@ -507,6 +515,8 @@ export default function PdfQuestionSlicerModal({
   const { homeworks = [] } = useHomework();
   const { addQuestion } = useQuestionBank();
   const { data: curData } = useCurriculum();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [mobileActiveTab, setMobileActiveTab] = useState(() => mode === 'mistakes' ? 'guide' : 'pdf'); // 'guide' | 'pdf' | 'sliced'
 
   const [sourceImage, setSourceImage] = useState(null);
   const [sourceFileName, setSourceFileName] = useState('');
@@ -1318,9 +1328,11 @@ export default function PdfQuestionSlicerModal({
     const r = canvas.getBoundingClientRect();
     const scaleX = canvas.width / r.width;
     const scaleY = canvas.height / r.height;
+    const clientX = e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX ?? e.clientX ?? 0;
+    const clientY = e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY ?? e.clientY ?? 0;
     return {
-      x: (e.clientX - r.left) * scaleX,
-      y: (e.clientY - r.top) * scaleY
+      x: (clientX - r.left) * scaleX,
+      y: (clientY - r.top) * scaleY
     };
   };
 
@@ -1706,20 +1718,105 @@ export default function PdfQuestionSlicerModal({
           </div>
         </div>
 
+        {/* ── MOBİL SEKMELER (YANLIŞLAR | PDF & KIRPICI | KIRPILANLAR) ── */}
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: isDark ? '#1e293b' : '#f1f5f9',
+            borderBottom: '1.5px solid var(--color-border)',
+            padding: '4px 6px',
+            gap: 5,
+            flexShrink: 0,
+            zIndex: 30
+          }}>
+            {mode === 'mistakes' && (
+              <button
+                type="button"
+                onClick={() => setMobileActiveTab('guide')}
+                style={{
+                  flex: 1,
+                  padding: '7px 4px',
+                  borderRadius: 8,
+                  border: mobileActiveTab === 'guide' ? '2px solid #ef4444' : '1px solid transparent',
+                  background: mobileActiveTab === 'guide' ? (isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2') : 'transparent',
+                  color: mobileActiveTab === 'guide' ? '#dc2626' : 'var(--color-text-muted)',
+                  fontSize: '0.74rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4
+                }}
+              >
+                <AlertCircle size={13} />
+                <span>Yanlışlar ({allFlattenedMistakeQuestions.length})</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setMobileActiveTab('pdf')}
+              style={{
+                flex: 1,
+                padding: '7px 4px',
+                borderRadius: 8,
+                border: mobileActiveTab === 'pdf' ? '2px solid #6366f1' : '1px solid transparent',
+                background: mobileActiveTab === 'pdf' ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : 'transparent',
+                color: mobileActiveTab === 'pdf' ? '#4f46e5' : 'var(--color-text-muted)',
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4
+              }}
+            >
+              <FileText size={13} />
+              <span>PDF & Kırpma</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileActiveTab('sliced')}
+              style={{
+                flex: 1,
+                padding: '7px 4px',
+                borderRadius: 8,
+                border: mobileActiveTab === 'sliced' ? '2px solid #10b981' : '1px solid transparent',
+                background: mobileActiveTab === 'sliced' ? (isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5') : 'transparent',
+                color: mobileActiveTab === 'sliced' ? '#059669' : 'var(--color-text-muted)',
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4
+              }}
+            >
+              <Scissors size={13} />
+              <span>Test ({slicedQuestions.length})</span>
+            </button>
+          </div>
+        )}
+
         <div style={{ flex: '1 1 0%', minHeight: 0, height: '100%', display: 'flex', overflow: 'hidden', position: 'relative' }}>
           
           {/* SOL PANEL: YANLIŞLAR KILAVUZU (DERS › ÜNİTE SEKME & TEST KARTLARI) */}
-          {showMistakesGuide && (
+          {showMistakesGuide && (!isMobile || mobileActiveTab === 'guide') && (
             <div
               style={{
-                width: 340,
-                minWidth: 340,
-                maxWidth: 340,
-                flex: '0 0 340px',
+                width: isMobile ? '100%' : 340,
+                minWidth: isMobile ? '100%' : 340,
+                maxWidth: isMobile ? '100%' : 340,
+                flex: isMobile ? '1 1 100%' : '0 0 340px',
                 height: '100%',
                 maxHeight: '100%',
                 minHeight: 0,
-                borderRight: '1.5px solid var(--color-border)',
+                borderRight: isMobile ? 'none' : '1.5px solid var(--color-border)',
                 background: isDark ? '#0c111d' : '#f8fafc',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1962,6 +2059,7 @@ export default function PdfQuestionSlicerModal({
                                   qNo: qNo,
                                   correctAnswer: cAns || 'A'
                                 });
+                                if (isMobile) setMobileActiveTab('pdf');
                               }}
                               style={{
                                 padding: '3px 7px',
@@ -1994,20 +2092,21 @@ export default function PdfQuestionSlicerModal({
           )}
 
           {/* ORTA BÖLÜM: PDF / GÖRSEL GÖRÜNTÜLEYİCİ VE KIRPICI ÇALIŞMA ALANI */}
-          <div
-            style={{
-              flex: '1 1 0%',
-              minWidth: 0,
-              minHeight: 0,
-              height: '100%',
-              maxHeight: '100%',
-              background: isDark ? '#090d16' : '#e2e8f0',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
+          {(!isMobile || mobileActiveTab === 'pdf') && (
+            <div
+              style={{
+                flex: '1 1 0%',
+                minWidth: 0,
+                minHeight: 0,
+                height: '100%',
+                maxHeight: '100%',
+                background: isDark ? '#090d16' : '#e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
             {/* Üst Araç Çubuğu (Toolbar) */}
             <div
               style={{
@@ -2370,28 +2469,37 @@ export default function PdfQuestionSlicerModal({
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
+                    onTouchStart={(e) => { e.preventDefault(); handleMouseDown(e); }}
+                    onTouchMove={(e) => { e.preventDefault(); handleMouseMove(e); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleMouseUp(); }}
+                    onTouchCancel={() => { setIsDrawing(false); setCurrentRect(null); }}
                     style={{
                       boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
                       borderRadius: 6,
                       maxWidth: 'none',
                       display: 'block',
-                      userSelect: 'none'
+                      userSelect: 'none',
+                      touchAction: 'none'
                     }}
                   />
                 </div>
               )}
             </div>
           </div>
+        )}
 
           {/* SAĞ PANEL: KIRPILAN SORULAR & TEST OLUŞTURUCU */}
-          {showRightPanel && (
+          {showRightPanel && (!isMobile || mobileActiveTab === 'sliced') && (
             <div
               style={{
-                width: 320,
+                width: isMobile ? '100%' : 320,
+                minWidth: isMobile ? '100%' : 320,
+                maxWidth: isMobile ? '100%' : 320,
+                flex: isMobile ? '1 1 100%' : '0 0 320px',
                 height: '100%',
                 maxHeight: '100%',
                 minHeight: 0,
-                borderLeft: '1.5px solid var(--color-border)',
+                borderLeft: isMobile ? 'none' : '1.5px solid var(--color-border)',
                 background: 'var(--color-surface)',
                 display: 'flex',
                 flexDirection: 'column',
