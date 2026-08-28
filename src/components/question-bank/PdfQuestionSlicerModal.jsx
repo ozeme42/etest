@@ -857,49 +857,112 @@ export default function PdfQuestionSlicerModal({
     return result;
   }, [bookMistakesList]);
 
-  // Hızlı Ders Filtresi ('all' veya spesifik ders)
-  const [selectedGuideSubject, setSelectedGuideSubject] = useState('all');
+  // Hızlı Ders ve Ünite Seçimi
+  const [activeGuideSubject, setActiveGuideSubject] = useState('');
+  const [activeGuideUnit, setActiveGuideUnit] = useState('all');
+  const [searchQueryGuide, setSearchQueryGuide] = useState('');
 
-  const filteredGroupedMistakesTree = useMemo(() => {
-    if (selectedGuideSubject === 'all') return groupedMistakesTree;
-    return groupedMistakesTree.filter(sg => sg.subjectName === selectedGuideSubject);
-  }, [groupedMistakesTree, selectedGuideSubject]);
+  // Otomatik ilk dersi seç
+  useEffect(() => {
+    if (groupedMistakesTree.length > 0 && !activeGuideSubject) {
+      setActiveGuideSubject(groupedMistakesTree[0].subjectName);
+    }
+  }, [groupedMistakesTree, activeGuideSubject]);
 
-  // Akordiyon Açık/Kapalı Durumları (Varsayılan olarak kapalıdır)
-  const [openSubjects, setOpenSubjects] = useState({});
-  const [openUnits, setOpenUnits] = useState({});
+  const currentSubjectGroup = useMemo(() => {
+    if (!activeGuideSubject) return groupedMistakesTree[0] || null;
+    return groupedMistakesTree.find(s => s.subjectName === activeGuideSubject) || groupedMistakesTree[0] || null;
+  }, [groupedMistakesTree, activeGuideSubject]);
 
-  const toggleSubject = (sName) => {
-    setOpenSubjects(prev => ({
-      ...prev,
-      [sName]: !prev[sName]
-    }));
-  };
+  const availableUnitsForSubject = useMemo(() => {
+    return currentSubjectGroup?.units || [];
+  }, [currentSubjectGroup]);
 
-  const toggleUnit = (uKey) => {
-    setOpenUnits(prev => ({
-      ...prev,
-      [uKey]: !prev[uKey]
-    }));
-  };
+  const displayedGuideTests = useMemo(() => {
+    if (!currentSubjectGroup) return [];
+    let tests = [];
+    if (activeGuideUnit === 'all') {
+      currentSubjectGroup.units.forEach(u => {
+        tests.push(...u.tests);
+      });
+    } else {
+      const uObj = currentSubjectGroup.units.find(u => u.unitName === activeGuideUnit);
+      if (uObj) tests.push(...uObj.tests);
+      else {
+        currentSubjectGroup.units.forEach(u => tests.push(...u.tests));
+      }
+    }
 
-  const expandAll = () => {
-    const nextSubjs = {};
-    const nextUnits = {};
-    groupedMistakesTree.forEach(s => {
-      nextSubjs[s.subjectName] = true;
-      s.units.forEach(u => {
-        nextUnits[`${s.subjectName}___${u.unitName}`] = true;
+    if (searchQueryGuide.trim()) {
+      const q = searchQueryGuide.toLowerCase().trim();
+      tests = tests.filter(t => 
+        (t.testName || '').toLowerCase().includes(q) ||
+        (t.unitName || '').toLowerCase().includes(q) ||
+        t.wrongQuestions.some(qNo => String(qNo) === q || `s.${qNo}`.includes(q))
+      );
+    }
+
+    return tests;
+  }, [currentSubjectGroup, activeGuideUnit, searchQueryGuide]);
+
+  // Tüm yanlış soruları düz bir liste olarak çıkaralım (Sonraki / Önceki geçiş için)
+  const allFlattenedMistakeQuestions = useMemo(() => {
+    const list = [];
+    bookMistakesList.forEach(t => {
+      t.wrongQuestions.forEach(qNo => {
+        list.push({
+          testId: t.testId,
+          testName: t.testName,
+          unitName: t.unitName,
+          subjectName: t.subjectName,
+          qNo: qNo,
+          correctAnswer: t.answerKeyMap[qNo] || 'A'
+        });
       });
     });
-    setOpenSubjects(nextSubjs);
-    setOpenUnits(nextUnits);
-  };
+    return list;
+  }, [bookMistakesList]);
 
-  const collapseAll = () => {
-    setOpenSubjects({});
-    setOpenUnits({});
-  };
+  const handleNextMistakeQuestion = useCallback(() => {
+    if (allFlattenedMistakeQuestions.length === 0) return;
+    if (!activeTargetQuestion) {
+      setActiveTargetQuestion(allFlattenedMistakeQuestions[0]);
+      return;
+    }
+    const curIdx = allFlattenedMistakeQuestions.findIndex(
+      item => item.testId === activeTargetQuestion.testId && item.qNo === activeTargetQuestion.qNo
+    );
+    if (curIdx === -1 || curIdx >= allFlattenedMistakeQuestions.length - 1) {
+      setActiveTargetQuestion(allFlattenedMistakeQuestions[0]);
+    } else {
+      const nextQ = allFlattenedMistakeQuestions[curIdx + 1];
+      setActiveTargetQuestion(nextQ);
+      if (nextQ.subjectName) setActiveGuideSubject(nextQ.subjectName);
+      if (nextQ.unitName) setActiveGuideUnit(nextQ.unitName);
+    }
+  }, [allFlattenedMistakeQuestions, activeTargetQuestion]);
+
+  const handlePrevMistakeQuestion = useCallback(() => {
+    if (allFlattenedMistakeQuestions.length === 0) return;
+    if (!activeTargetQuestion) {
+      setActiveTargetQuestion(allFlattenedMistakeQuestions[0]);
+      return;
+    }
+    const curIdx = allFlattenedMistakeQuestions.findIndex(
+      item => item.testId === activeTargetQuestion.testId && item.qNo === activeTargetQuestion.qNo
+    );
+    if (curIdx <= 0) {
+      const prevQ = allFlattenedMistakeQuestions[allFlattenedMistakeQuestions.length - 1];
+      setActiveTargetQuestion(prevQ);
+      if (prevQ.subjectName) setActiveGuideSubject(prevQ.subjectName);
+      if (prevQ.unitName) setActiveGuideUnit(prevQ.unitName);
+    } else {
+      const prevQ = allFlattenedMistakeQuestions[curIdx - 1];
+      setActiveTargetQuestion(prevQ);
+      if (prevQ.subjectName) setActiveGuideSubject(prevQ.subjectName);
+      if (prevQ.unitName) setActiveGuideUnit(prevQ.unitName);
+    }
+  }, [allFlattenedMistakeQuestions, activeTargetQuestion]);
 
   useEffect(() => {
     if (bookMistakesList.length > 0 && !activeTargetQuestion) {
@@ -917,16 +980,6 @@ export default function PdfQuestionSlicerModal({
       }
     }
   }, [bookMistakesList, activeTargetQuestion]);
-
-  useEffect(() => {
-    if (activeTargetQuestion) {
-      const sName = activeTargetQuestion.subjectName || 'Genel';
-      const uName = activeTargetQuestion.unitName || '1. Ünite';
-      const uKey = `${sName}___${uName}`;
-      setOpenSubjects(prev => ({ ...prev, [sName]: true }));
-      setOpenUnits(prev => ({ ...prev, [uKey]: true }));
-    }
-  }, [activeTargetQuestion]);
 
   useEffect(() => {
     if (bookMistakesList.length > 0 && bookMistakesList[0]?.subjectName && bookMistakesList[0].subjectName !== 'Genel') {
@@ -1606,14 +1659,14 @@ export default function PdfQuestionSlicerModal({
 
         <div style={{ flex: '1 1 0%', minHeight: 0, height: '100%', display: 'flex', overflow: 'hidden', position: 'relative' }}>
           
-          {/* SOL PANEL: YANLIŞLAR KILAVUZU AKORDİYONU */}
+          {/* SOL PANEL: YANLIŞLAR KILAVUZU (DERS › ÜNİTE SEKME & TEST KARTLARI) */}
           {showMistakesGuide && (
             <div
               style={{
-                width: 320,
-                minWidth: 320,
-                maxWidth: 320,
-                flex: '0 0 320px',
+                width: 340,
+                minWidth: 340,
+                maxWidth: 340,
+                flex: '0 0 340px',
                 height: '100%',
                 maxHeight: '100%',
                 minHeight: 0,
@@ -1625,6 +1678,7 @@ export default function PdfQuestionSlicerModal({
                 overflow: 'hidden'
               }}
             >
+              {/* 1. Başlık & Toplam İstatistik */}
               <div
                 style={{
                   padding: '0.55rem 0.75rem',
@@ -1638,41 +1692,73 @@ export default function PdfQuestionSlicerModal({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <AlertCircle size={13} className="text-red-500" />
-                  <span style={{ fontSize: '0.76rem', fontWeight: 900, color: '#dc2626' }}>
+                  <AlertCircle size={14} className="text-red-500" />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626' }}>
                     Yanlışlar Kılavuzu
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button
-                    type="button"
-                    onClick={Object.keys(openSubjects).length > 0 ? collapseAll : expandAll}
-                    style={{
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 6,
-                      padding: '2px 5px',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      color: 'var(--color-text-muted)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {Object.keys(openSubjects).length > 0 ? 'Kapat' : 'Aç'}
-                  </button>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 6 }}>
-                    {bookMistakesList.length} Test
-                  </span>
-                </div>
+                <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: 6 }}>
+                  {bookMistakesList.length} Test • {allFlattenedMistakeQuestions.length} Yanlış Soru
+                </span>
               </div>
 
-              {/* HIZLI DERS FİLTRELEME BUTONLARI (TÜMÜ / TÜRKÇE / MATEMATİK / FEN / SOSYAL) */}
-              {groupedMistakesTree.length > 1 && (
+              {/* 2. Ders Seçimi Sekmeleri (Türkçe / Matematik / Fen / Sosyal vb.) */}
+              {groupedMistakesTree.length > 0 && (
                 <div
                   style={{
-                    padding: '0.35rem 0.55rem',
+                    padding: '0.35rem 0.5rem',
                     borderBottom: '1px solid var(--color-border)',
-                    background: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+                    background: 'var(--color-surface)',
+                    display: 'flex',
+                    gap: 4,
+                    overflowX: 'auto',
+                    flexShrink: 0
+                  }}
+                >
+                  {groupedMistakesTree.map(s => {
+                    const isAct = (activeGuideSubject || groupedMistakesTree[0]?.subjectName) === s.subjectName;
+                    const sStyle = getSubjectBadgeStyle(s.subjectName, isDark);
+                    return (
+                      <button
+                        key={s.subjectName}
+                        type="button"
+                        onClick={() => {
+                          setActiveGuideSubject(s.subjectName);
+                          setActiveGuideUnit('all');
+                        }}
+                        style={{
+                          flex: '1 0 auto',
+                          padding: '4px 8px',
+                          borderRadius: 7,
+                          border: isAct ? `1.5px solid ${sStyle.color}` : '1px solid var(--color-border)',
+                          background: isAct ? sStyle.bg : 'transparent',
+                          color: isAct ? sStyle.color : 'var(--color-text-muted)',
+                          fontSize: '0.72rem',
+                          fontWeight: isAct ? 900 : 700,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <span>{sStyle.icon}</span>
+                        <span>{s.subjectName}</span>
+                        <span style={{ opacity: 0.8, fontSize: '0.62rem' }}>({s.totalTests})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 3. Ünite Seçimi Sekmeleri */}
+              {availableUnitsForSubject.length > 0 && (
+                <div
+                  style={{
+                    padding: '0.35rem 0.5rem',
+                    borderBottom: '1px solid var(--color-border)',
+                    background: isDark ? 'rgba(0,0,0,0.2)' : '#f1f5f9',
                     display: 'flex',
                     gap: 4,
                     overflowX: 'auto',
@@ -1681,62 +1767,94 @@ export default function PdfQuestionSlicerModal({
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedGuideSubject('all')}
+                    onClick={() => setActiveGuideUnit('all')}
                     style={{
-                      padding: '2px 7px',
+                      padding: '3px 8px',
                       borderRadius: 6,
-                      border: selectedGuideSubject === 'all' ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                      background: selectedGuideSubject === 'all' ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff') : 'transparent',
-                      color: selectedGuideSubject === 'all' ? '#4f46e5' : 'var(--color-text-muted)',
-                      fontSize: '0.66rem',
-                      fontWeight: 800,
+                      border: activeGuideUnit === 'all' ? '1.5px solid #6366f1' : '1px solid transparent',
+                      background: activeGuideUnit === 'all' ? '#4f46e5' : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                      color: activeGuideUnit === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                      fontSize: '0.68rem',
+                      fontWeight: activeGuideUnit === 'all' ? 900 : 700,
                       cursor: 'pointer',
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    Tümü ({bookMistakesList.length})
+                    Tüm Üniteler ({availableUnitsForSubject.reduce((acc, u) => acc + u.tests.length, 0)})
                   </button>
-                  {groupedMistakesTree.map(sg => {
-                    const isSel = selectedGuideSubject === sg.subjectName;
+                  {availableUnitsForSubject.map(u => {
+                    const isAct = activeGuideUnit === u.unitName;
                     return (
                       <button
-                        key={sg.subjectName}
+                        key={u.unitName}
                         type="button"
-                        onClick={() => {
-                          setSelectedGuideSubject(sg.subjectName);
-                          setOpenSubjects(prev => ({ ...prev, [sg.subjectName]: true }));
-                        }}
+                        onClick={() => setActiveGuideUnit(u.unitName)}
                         style={{
-                          padding: '2px 7px',
+                          padding: '3px 8px',
                           borderRadius: 6,
-                          border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                          background: isSel ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff') : 'transparent',
-                          color: isSel ? '#4f46e5' : 'var(--color-text-muted)',
-                          fontSize: '0.66rem',
-                          fontWeight: 800,
+                          border: isAct ? '1.5px solid #6366f1' : '1px solid transparent',
+                          background: isAct ? '#4f46e5' : (isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'),
+                          color: isAct ? '#ffffff' : 'var(--color-text-muted)',
+                          fontSize: '0.68rem',
+                          fontWeight: isAct ? 900 : 700,
                           cursor: 'pointer',
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {sg.subjectName} ({sg.totalTests})
+                        {u.unitName} ({u.tests.length}T • {u.totalWrong}Y)
                       </button>
                     );
                   })}
                 </div>
               )}
 
+              {/* 4. Hızlı Test Arama */}
+              <div style={{ padding: '0.35rem 0.55rem', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', flexShrink: 0 }}>
+                <input
+                  type="text"
+                  value={searchQueryGuide}
+                  onChange={(e) => setSearchQueryGuide(e.target.value)}
+                  placeholder="🔍 Test veya soru no ara... (örn: Test-4, Yeni Nesil)"
+                  style={{
+                    width: '100%',
+                    padding: '5px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+                    color: 'var(--color-text)',
+                    fontSize: '0.72rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* 5. Aktif Soru & Önceki / Sonraki Hızlı Butonlar */}
               {activeTargetQuestion && (
-                <div style={{ padding: '0.45rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    🎯 Sıradaki: <strong>{activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : ''}{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
-                  </span>
-                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 4px', borderRadius: 4, flexShrink: 0, marginLeft: 4 }}>
-                    {activeTargetQuestion.correctAnswer}
-                  </span>
+                <div style={{ padding: '0.45rem 0.65rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0, gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={handlePrevMistakeQuestion}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: 4, padding: '2px 7px', cursor: 'pointer', fontSize: '0.66rem', fontWeight: 900 }}
+                    title="Önceki Yanlış Soru"
+                  >
+                    ◀ Önceki
+                  </button>
+                  <div style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    🎯 <strong>{activeTargetQuestion.subjectName} › {activeTargetQuestion.testName} › S.{activeTargetQuestion.qNo}</strong> ({activeTargetQuestion.correctAnswer})
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleNextMistakeQuestion}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: 4, padding: '2px 7px', cursor: 'pointer', fontSize: '0.66rem', fontWeight: 900 }}
+                    title="Sonraki Yanlış Soru"
+                  >
+                    Sonraki ▶
+                  </button>
                 </div>
               )}
 
-              {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER (ÖZEL KAYDIRMA ALANI) */}
+              {/* 6. Testler & Sorular Listesi */}
               <div
                 className="slicer-mistakes-scroll"
                 style={{
@@ -1744,193 +1862,84 @@ export default function PdfQuestionSlicerModal({
                   minHeight: 0,
                   overflowY: 'scroll',
                   overflowX: 'hidden',
-                  padding: '0.45rem',
+                  padding: '0.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6
                 }}
               >
-                {filteredGroupedMistakesTree.map(sGroup => {
-                  const sStyle = getSubjectBadgeStyle(sGroup.subjectName, isDark);
-                  const isSubjOpen = Boolean(openSubjects[sGroup.subjectName]);
-
-                  return (
+                {displayedGuideTests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                    Bu seçimde gösterilecek yanlış soru bulunamadı.
+                  </div>
+                ) : (
+                  displayedGuideTests.map(t => (
                     <div
-                      key={sGroup.subjectName}
+                      key={t.testId}
                       style={{
-                        borderRadius: 10,
-                        border: `1.5px solid ${isSubjOpen ? sStyle.border : 'var(--color-border)'}`,
+                        padding: '0.55rem 0.65rem',
+                        borderRadius: 8,
+                        border: '1.5px solid var(--color-border)',
                         background: 'var(--color-surface)',
-                        overflow: 'hidden',
                         boxShadow: '0 2px 5px rgba(0,0,0,0.02)'
                       }}
                     >
-                      {/* 1. KADEME: DERS BAŞLIĞI */}
-                      <button
-                        type="button"
-                        onClick={() => toggleSubject(sGroup.subjectName)}
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem 0.65rem',
-                          background: isSubjOpen ? sStyle.bg : 'var(--color-surface)',
-                          border: 'none',
-                          borderBottom: isSubjOpen ? `1px solid ${sStyle.border}` : 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 5,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                          <span style={{ color: sStyle.color, display: 'flex', alignItems: 'center' }}>
-                            {isSubjOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          </span>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isSubjOpen ? sStyle.color : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span>{sStyle.icon}</span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sGroup.subjectName}</span>
-                          </span>
-                        </div>
-
-                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 6, flexShrink: 0 }}>
-                          {sGroup.totalTests} Test • {sGroup.totalWrong} Y
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          📌 {t.testName} {activeGuideUnit === 'all' ? `(${t.unitName})` : ''}
                         </span>
-                      </button>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#dc2626', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 5px', borderRadius: 4 }}>
+                          {t.wrongQuestions.length} Yanlış
+                        </span>
+                      </div>
 
-                      {/* 2. KADEME: ÜNİTELER LİSTESİ */}
-                      {isSubjOpen && (
-                        <div style={{ padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: 5, background: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(241,245,249,0.5)' }}>
-                          {sGroup.units.map(uGroup => {
-                            const uKey = `${sGroup.subjectName}___${uGroup.unitName}`;
-                            const isUnitOpen = Boolean(openUnits[uKey]);
+                      {/* Soru Butonları */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {t.wrongQuestions.map(qNo => {
+                          const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
+                          const isActive = activeTargetQuestion?.testId === t.testId && activeTargetQuestion?.qNo === qNo;
+                          const cAns = t.answerKeyMap[qNo] || '';
 
-                            return (
-                              <div
-                                key={uKey}
-                                style={{
-                                  borderRadius: 8,
-                                  border: isUnitOpen ? (isDark ? '1px solid rgba(168,85,247,0.4)' : '1px solid #e9d5ff') : '1px solid var(--color-border)',
-                                  background: 'var(--color-surface)',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                {/* 2. KADEME: ÜNİTE BAŞLIĞI */}
-                                <button
-                                  type="button"
-                                  onClick={() => toggleUnit(uKey)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '0.45rem 0.55rem',
-                                    background: isUnitOpen ? (isDark ? 'rgba(168,85,247,0.15)' : '#faf5ff') : 'var(--color-surface)',
-                                    border: 'none',
-                                    borderBottom: isUnitOpen ? (isDark ? '1px solid rgba(168,85,247,0.3)' : '1px solid #f3e8ff') : 'none',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: 5,
-                                    cursor: 'pointer',
-                                    textAlign: 'left'
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                                    <span style={{ color: '#9333ea', display: 'flex', alignItems: 'center' }}>
-                                      {isUnitOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                                    </span>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: isUnitOpen ? '#9333ea' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                                      <Layers size={10} />
-                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uGroup.unitName}</span>
-                                    </span>
-                                  </div>
-
-                                  <span style={{ fontSize: '0.62rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', color: '#dc2626', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>
-                                    {uGroup.tests.length} T • {uGroup.totalWrong} Y
-                                  </span>
-                                </button>
-
-                                {/* 3. KADEME: TESTLER VE SORULAR */}
-                                {isUnitOpen && (
-                                  <div style={{ padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: 5, background: isDark ? 'rgba(15,23,42,0.4)' : '#f8fafc' }}>
-                                    {uGroup.tests.map(t => {
-                                      return (
-                                        <div
-                                          key={t.testId}
-                                          style={{
-                                            padding: '0.45rem 0.55rem',
-                                            borderRadius: 7,
-                                            border: '1px solid var(--color-border)',
-                                            background: 'var(--color-surface)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: 3
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
-                                              📌 {t.testName}
-                                            </span>
-                                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>
-                                              {t.wrongQuestions.length} Yanlış
-                                            </span>
-                                          </div>
-
-                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
-                                            {t.wrongQuestions.map(qNo => {
-                                              const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
-                                              const isActive = activeTargetQuestion?.testId === t.testId && activeTargetQuestion?.qNo === qNo;
-                                              const cAns = t.answerKeyMap[qNo] || '';
-
-                                              return (
-                                                <button
-                                                  key={qNo}
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setActiveTargetQuestion({
-                                                      testId: t.testId,
-                                                      testName: t.testName,
-                                                      unitName: t.unitName,
-                                                      subjectName: t.subjectName,
-                                                      qNo: qNo,
-                                                      correctAnswer: cAns || 'A'
-                                                    });
-                                                  }}
-                                                  style={{
-                                                    padding: '2px 5px',
-                                                    borderRadius: 5,
-                                                    border: isActive ? '1.5px solid #4f46e5' : (isDone ? '1px solid #bbf7d0' : '1px solid #fca5a5'),
-                                                    background: isActive ? '#4f46e5' : (isDone ? (isDark ? 'rgba(34,197,94,0.15)' : '#f0fdf4') : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2')),
-                                                    color: isActive ? '#ffffff' : (isDone ? '#16a34a' : '#dc2626'),
-                                                    fontSize: '0.66rem',
-                                                    fontWeight: 800,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 2,
-                                                    transition: 'all 0.15s'
-                                                  }}
-                                                  title={isDone ? `Soru ${qNo} kırpıldı` : `Soru ${qNo} (Doğru: ${cAns || '?'})`}
-                                                >
-                                                  {isDone ? <Check size={9} /> : <X size={9} />}
-                                                  <span>S.{qNo}</span>
-                                                  {cAns && <span style={{ opacity: 0.8, fontSize: '0.6rem' }}>({cAns})</span>}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                          return (
+                            <button
+                              key={qNo}
+                              type="button"
+                              onClick={() => {
+                                setActiveTargetQuestion({
+                                  testId: t.testId,
+                                  testName: t.testName,
+                                  unitName: t.unitName,
+                                  subjectName: t.subjectName,
+                                  qNo: qNo,
+                                  correctAnswer: cAns || 'A'
+                                });
+                              }}
+                              style={{
+                                padding: '3px 7px',
+                                borderRadius: 6,
+                                border: isActive ? '2px solid #4f46e5' : (isDone ? '1px solid #86efac' : '1px solid #fca5a5'),
+                                background: isActive ? '#4f46e5' : (isDone ? (isDark ? 'rgba(34,197,94,0.15)' : '#f0fdf4') : (isDark ? 'rgba(239,68,68,0.12)' : '#fff1f2')),
+                                color: isActive ? '#ffffff' : (isDone ? '#16a34a' : '#dc2626'),
+                                fontSize: '0.72rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                transition: 'all 0.15s'
+                              }}
+                              title={isDone ? `Soru ${qNo} kırpıldı` : `Soru ${qNo} (Doğru: ${cAns || '?'})`}
+                            >
+                              {isDone ? <Check size={10} /> : null}
+                              <span>S.{qNo}</span>
+                              {cAns && <span style={{ opacity: 0.85, fontSize: '0.64rem' }}>({cAns})</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </div>
           )}
