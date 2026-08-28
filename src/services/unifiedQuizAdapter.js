@@ -292,10 +292,20 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
 
       // Images for this question
       const qImages = extractDirectImages(qObj);
-      if (qImages.length === 0 && secImages.length > 0) {
+      const isVisualSectionFormat = Boolean(
+        format === 'image' ||
+        sec.contentType === 'gorsel' ||
+        sec.type === 'gorsel' ||
+        sec.questionType === 'gorsel_klasik' ||
+        sec.formatType === 'image' ||
+        sec.sourceFormat === 'image'
+      );
+      if (qImages.length === 0 && isVisualSectionFormat && secImages.length > 0) {
         if (secImages.length === targetCount && secImages[i]) {
           qImages.push(secImages[i]);
-        } else if (secImages[0]) {
+        } else if (secImages[i]) {
+          qImages.push(secImages[i]);
+        } else if (secImages.length === 1 && targetCount === 1) {
           qImages.push(secImages[0]);
         }
       }

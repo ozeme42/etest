@@ -34,7 +34,21 @@ export default memo(function CompositeMultipleChoiceSection({
     setActiveQIdx(0);
   }, [section.id]);
 
+  const isVisualSection = Boolean(
+    section.type === 'gorsel' ||
+    section.type === 'gorsel_klasik' ||
+    section.contentType === 'gorsel' ||
+    section.contentType === 'image' ||
+    section.format === 'image' ||
+    section.formatType === 'image' ||
+    section.sourceFormat === 'image' ||
+    (Array.isArray(section.images) && section.images.length > 0) ||
+    (Array.isArray(section.imageUrls) && section.imageUrls.length > 0) ||
+    Boolean(section.imageUrl && typeof section.imageUrl === 'string' && !section.imageUrl.includes('[STORED_IN_INDEXEDDB]'))
+  );
+
   const sectionImages = useMemo(() => {
+    if (!isVisualSection) return [];
     const list = [];
     if (payload) {
       list.push(...extractImageUrls(payload));
@@ -53,7 +67,7 @@ export default memo(function CompositeMultipleChoiceSection({
       list.push(...section.bankQ.imageUrls);
     }
     return Array.from(new Set(list.filter(isValidImageUrl)));
-  }, [section, payload]);
+  }, [section, payload, isVisualSection]);
 
   const answeredCount = useMemo(() => {
     return Object.values(answers).filter(v => v !== null && v !== undefined && v !== 'empty').length;
@@ -63,18 +77,19 @@ export default memo(function CompositeMultipleChoiceSection({
     const qImages = [];
     if (Array.isArray(q.images) && q.images.length > 0) qImages.push(...q.images);
     if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) qImages.push(...q.imageUrls);
-    if (q.imageUrl) qImages.push(q.imageUrl);
-    if (q.image) qImages.push(q.image);
-    if (q.contentPayload) {
+    if (q.imageUrl && isValidImageUrl(q.imageUrl)) qImages.push(q.imageUrl);
+    if (q.image && isValidImageUrl(q.image)) qImages.push(q.image);
+    if (q.contentPayload && isValidImageUrl(q.contentPayload)) {
       qImages.push(...extractImageUrls(q.contentPayload));
     }
 
-    if (qImages.length === 0 && sectionImages.length > 0) {
+    // Yalnızca görsel tipindeki bölümlerde bölüm seviyesindeki görseller aktarılır
+    if (qImages.length === 0 && isVisualSection && sectionImages.length > 0) {
       if (sectionImages.length === totalCount && sectionImages[idx]) {
         qImages.push(sectionImages[idx]);
       } else if (sectionImages[idx]) {
         qImages.push(sectionImages[idx]);
-      } else if (sectionImages[0]) {
+      } else if (sectionImages.length === 1 && totalCount === 1) {
         qImages.push(sectionImages[0]);
       }
     }
