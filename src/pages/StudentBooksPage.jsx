@@ -485,7 +485,7 @@ export default function StudentBooksPage() {
     });
 
     return Object.values(bookMap);
-  }, [bookAssignments, books, studentSubmissions, bookTests, homeworks, studentIdStr, studentUuidStr]);
+  }, [bookAssignments, books, studentSubmissions, bookTests, homeworks, allStudentIds]);
 
   const overallStats = useMemo(() => {
     let totalD = 0, totalY = 0, totalB = 0, totalAssigned = 0, totalSolved = 0;
@@ -624,7 +624,8 @@ export default function StudentBooksPage() {
         for (const hw of homeworks) {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
-            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+            const sid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+            const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
             const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
             return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
@@ -645,9 +646,9 @@ export default function StudentBooksPage() {
           }
 
           if (bestSub) {
-            subMap[subjectName].Doğru += bestSub.correctCount || 0;
-            subMap[subjectName].Yanlış += bestSub.wrongCount || 0;
-            subMap[subjectName].Boş += bestSub.blankCount || 0;
+            subMap[subjectName].Doğru += Number(bestSub.correctCount ?? bestSub.correct_count ?? bestSub.correct ?? 0);
+            subMap[subjectName].Yanlış += Number(bestSub.wrongCount ?? bestSub.wrong_count ?? bestSub.wrong ?? 0);
+            subMap[subjectName].Boş += Number(bestSub.emptyCount ?? bestSub.blankCount ?? bestSub.blank ?? 0);
           }
         }
       });
@@ -664,16 +665,13 @@ export default function StudentBooksPage() {
         progress
       };
     }).sort((a, b) => b.totalQ - a.totalQ);
-  }, [assignedBooks, bookTests, studentSubmissions, homeworks, studentIdStr, studentUuidStr]);
+  }, [assignedBooks, bookTests, studentSubmissions, homeworks, allStudentIds]);
 
   const activeChartData = bookChartViewMode === 'books' ? chartData : subjectChartData;
 
   const [showClassifiedQuestions, setShowClassifiedQuestions] = useState(false);
 
   const bookMistakeStats = useMemo(() => {
-    const studentIdStr = String(studentId || '');
-    const studentUuidStr = String(toUUID(studentId) || '');
-
     const reasonDefs = {
       '⚡ İşlem Hatası': { key: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a', count: 0 },
       '⚠️ Dikkat Kaybı': { key: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', count: 0 },
@@ -729,7 +727,8 @@ export default function StudentBooksPage() {
 
     // 2. Scan Submissions in EvaluationContext
     (submissions || []).forEach(sub => {
-      const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
+      const sid = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
+      const isMatch = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
       if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
       if (!sub.mistakeReasons || typeof sub.mistakeReasons !== 'object') return;
 
@@ -764,7 +763,8 @@ export default function StudentBooksPage() {
     // 3. Scan Homeworks in HomeworkContext
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(hs => {
-        const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
+        const sid = String(hs.studentId || hs.student_id || hs.userId || hs.user_id || '');
+        const isMatch = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
         if (!isMatch) return;
         if (!hs.mistakeReasons || typeof hs.mistakeReasons !== 'object') return;
 
@@ -812,7 +812,7 @@ export default function StudentBooksPage() {
       sortedReasons,
       questionsList
     };
-  }, [submissions, overallStats.totalY, overallStats.totalB, studentId]);
+  }, [submissions, overallStats.totalY, overallStats.totalB, homeworks, allStudentIds]);
 
   /* ════════════════════════
      RENDER
