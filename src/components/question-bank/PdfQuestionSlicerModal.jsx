@@ -119,6 +119,47 @@ const getSubjectBadgeStyle = (subj = '', isDark = false) => {
   };
 };
 
+export const compareBookTestsOrder = (a, b) => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+
+  if (typeof a.orderIndex === 'number' && typeof b.orderIndex === 'number' && a.orderIndex !== b.orderIndex && a.orderIndex > 0 && b.orderIndex > 0) {
+    return a.orderIndex - b.orderIndex;
+  }
+  if (typeof a.order === 'number' && typeof b.order === 'number' && a.order !== b.order) {
+    return a.order - b.order;
+  }
+
+  const nameA = String(a.testName || a.name || a.title || '').trim();
+  const nameB = String(b.testName || b.name || b.title || '').trim();
+
+  // 1: Kazanım / Konu Testleri (Test-1, Test-2, vb.)
+  // 2: Yeni Nesil / Beceri Temelli / LGS Testleri
+  // 3: Ünite Değerlendirme / Ü. Değ. / Ünite Testleri
+  // 4: Tarama / Sarmal / Tekrar Testleri
+  // 5: Deneme / Sınavlar
+  // 6: Diğer
+  const getCategoryScore = (name) => {
+    const lower = name.toLowerCase();
+    if (/^(test|kazanım|kavrama|etkinlik)/i.test(lower) && !lower.includes('yeni nesil') && !lower.includes('ünite') && !lower.includes('değ')) return 1;
+    if (/^(yeni nesil|beceri|lgs)/i.test(lower)) return 2;
+    if (/^(ünite|ü\.|değerlendirme|ü\. değ)/i.test(lower)) return 3;
+    if (/^(tarama|sarmal|tekrar)/i.test(lower)) return 4;
+    if (/^(deneme|sınav|tatil)/i.test(lower)) return 5;
+    return 6;
+  };
+
+  const catA = getCategoryScore(nameA);
+  const catB = getCategoryScore(nameB);
+
+  if (catA !== catB) {
+    return catA - catB;
+  }
+
+  return nameA.localeCompare(nameB, 'tr', { numeric: true, sensitivity: 'base' });
+};
+
 function SlicerPdfPageItem({
   doc,
   pageNum,
@@ -838,12 +879,9 @@ export default function PdfQuestionSlicerModal({
         return a.unitName.localeCompare(b.unitName, 'tr', { numeric: true });
       });
 
-      // Sort tests within unit
+      // Sort tests within unit using book curriculum order
       units.forEach(u => {
-        u.tests.sort((a, b) => {
-          if (a.orderIndex !== b.orderIndex) return a.orderIndex - b.orderIndex;
-          return a.testName.localeCompare(b.testName, 'tr', { numeric: true });
-        });
+        u.tests.sort(compareBookTestsOrder);
       });
 
       result.push({
@@ -883,13 +921,18 @@ export default function PdfQuestionSlicerModal({
     let tests = [];
     if (activeGuideUnit === 'all') {
       currentSubjectGroup.units.forEach(u => {
-        tests.push(...u.tests);
+        const sortedUnitTests = [...u.tests].sort(compareBookTestsOrder);
+        tests.push(...sortedUnitTests);
       });
     } else {
       const uObj = currentSubjectGroup.units.find(u => u.unitName === activeGuideUnit);
-      if (uObj) tests.push(...uObj.tests);
-      else {
-        currentSubjectGroup.units.forEach(u => tests.push(...u.tests));
+      if (uObj) {
+        tests.push(...[...uObj.tests].sort(compareBookTestsOrder));
+      } else {
+        currentSubjectGroup.units.forEach(u => {
+          const sortedUnitTests = [...u.tests].sort(compareBookTestsOrder);
+          tests.push(...sortedUnitTests);
+        });
       }
     }
 
@@ -908,20 +951,26 @@ export default function PdfQuestionSlicerModal({
   // Tüm yanlış soruları düz bir liste olarak çıkaralım (Sonraki / Önceki geçiş için)
   const allFlattenedMistakeQuestions = useMemo(() => {
     const list = [];
-    bookMistakesList.forEach(t => {
-      t.wrongQuestions.forEach(qNo => {
-        list.push({
-          testId: t.testId,
-          testName: t.testName,
-          unitName: t.unitName,
-          subjectName: t.subjectName,
-          qNo: qNo,
-          correctAnswer: t.answerKeyMap[qNo] || 'A'
+    groupedMistakesTree.forEach(sGroup => {
+      sGroup.units.forEach(uGroup => {
+        const sortedTests = [...uGroup.tests].sort(compareBookTestsOrder);
+        sortedTests.forEach(t => {
+          const sortedWrongQNos = [...t.wrongQuestions].sort((a, b) => a - b);
+          sortedWrongQNos.forEach(qNo => {
+            list.push({
+              testId: t.testId,
+              testName: t.testName,
+              unitName: t.unitName,
+              subjectName: t.subjectName,
+              qNo: qNo,
+              correctAnswer: t.answerKeyMap[qNo] || 'A'
+            });
+          });
         });
       });
     });
     return list;
-  }, [bookMistakesList]);
+  }, [groupedMistakesTree]);
 
   const handleNextMistakeQuestion = useCallback(() => {
     if (allFlattenedMistakeQuestions.length === 0) return;
