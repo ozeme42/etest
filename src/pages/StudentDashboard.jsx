@@ -884,9 +884,9 @@ export default function StudentDashboard() {
           let isNameMatch = false;
           if (!isDirectMatch && tName) {
             if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              isNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+              isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
             } else {
-              const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
+              const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
               if (isTestNameMatch) {
                 const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
                 if (isSubjectMatch) {
@@ -920,10 +920,10 @@ export default function StudentDashboard() {
             const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
 
             if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+              return cleanSTitle === tName || sTitle.includes(tName);
             }
 
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
             if (isTestNameMatch) {
               const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
               if (isSubjectMatch) {

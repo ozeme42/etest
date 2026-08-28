@@ -339,9 +339,9 @@ export default function StudentBooksPage() {
 
           if (tName) {
             if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+              return cleanSTitle === tName || sTitle.includes(tName);
             }
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
             if (isTestNameMatch) {
               const subjects = b.raw_data?.subjects || b.subjects || [];
               let sName = '';
@@ -422,9 +422,9 @@ export default function StudentBooksPage() {
 
           if (tName) {
             if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+              return cleanSTitle === tName || sTitle.includes(tName);
             }
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
             if (isTestNameMatch) {
               const subjects = b.raw_data?.subjects || b.subjects || [];
               let sName = '';
