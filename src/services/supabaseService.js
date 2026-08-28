@@ -621,7 +621,12 @@ export async function dbGetSubmissions(studentId) {
     const { data, error } = await query;
     if (error) throw error;
     return data.map(s => {
-      const meta = (s.answers || []).find(a => a.type === 'metadata');
+      let rawAnswers = s.answers;
+      if (typeof rawAnswers === 'string') {
+        try { rawAnswers = JSON.parse(rawAnswers); } catch {}
+      }
+      const answersArr = Array.isArray(rawAnswers) ? rawAnswers : [];
+      const meta = answersArr.find(a => a?.type === 'metadata') || {};
       const isManual = meta?.isManual !== undefined
         ? Boolean(meta.isManual)
         : Boolean(
@@ -636,11 +641,17 @@ export async function dbGetSubmissions(studentId) {
         ? Boolean(meta.isApproved)
         : Boolean(approvalStatus === 'approved' || s.is_evaluated_by_teacher || s.status === 'completed');
 
+      const resolvedTitle = meta?.testTitle || s.test_title || s.title || '';
+      const resolvedSubject = meta?.subjectName || meta?.subject || s.subject || '';
+      const resolvedUnit = meta?.unitTopic || meta?.topicName || '';
+      const resolvedTestName = meta?.testName || s.test_name || '';
+
       return {
         id: meta?.realId || String(s.id),
         supabaseId: String(s.id),
         testId: meta?.realTestId || s.test_id,
         realTestId: meta?.realTestId || s.test_id,
+        bookTestId: meta?.bookTestId || meta?.realTestId || s.test_id,
         studentId: s.student_id,
         hwId: s.homework_id ? String(s.homework_id) : (meta?.hwId ? String(meta.hwId) : null),
         homeworkId: s.homework_id ? String(s.homework_id) : (meta?.hwId ? String(meta.hwId) : null),
@@ -649,11 +660,15 @@ export async function dbGetSubmissions(studentId) {
         wrongCount: s.wrong_count,
         emptyCount: s.empty_count,
         blankCount: s.empty_count,
-        subject: s.subject,
-        title: s.title,
-        testTitle: s.test_title || s.title,
+        subject: resolvedSubject || s.subject,
+        subjectName: resolvedSubject || s.subject,
+        title: resolvedTitle || s.title,
+        testTitle: resolvedTitle || s.title,
+        testName: resolvedTestName,
         bookTitle: meta?.bookTitle || s.book_title || null,
-        unitTopic: meta?.unitTopic || null,
+        unitTopic: resolvedUnit || null,
+        topicName: resolvedUnit || null,
+        answers: answersArr,
         totalNet: meta?.totalNet !== undefined && meta?.totalNet !== null 
           ? Number(meta.totalNet) 
           : Number(((s.correct_count || 0) - ((s.wrong_count || 0) / 4)).toFixed(2)),
