@@ -431,18 +431,42 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   if (topicName === 'Genel Konu' || !topicName) topicName = '1. Ünite';
 
   // Extract clean test name
-  let testName = matchedBookTest?.name || rawSub.testName || rawSub.name;
+  let testName = matchedBookTest?.name;
+  if (!testName || testName === 'Test') {
+    const candidates = [
+      rawSub.testName,
+      rawSub.name,
+      meta.testName,
+      rawSub.testTitle,
+      rawSub.title,
+      meta.testTitle
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+      const match = String(c).match(/(Test[-\s]?\d+|Yeni Nesil[-\s]?\d+|Ü\.?\s?Değ\.?[-\s]?\d+|Ünite Değerlendirme[-\s]?\d+)/i);
+      if (match) {
+        testName = match[0].replace(/Ünite Değerlendirme/i, 'Ü. Değ.');
+        break;
+      }
+    }
+  }
+
   if (!testName || testName === 'Test' || testName.includes('(Tüm Kitap Görevi)') || testName.includes('(Tüm Kitap)') || testName === matchedHw?.title) {
     const tIdStr = String(testIdCandidate);
-    const parts = tIdStr.split('_');
-    const lastPart = parts[parts.length - 1];
-    const testNum = parseInt(lastPart, 10);
-    if (!isNaN(testNum) && testNum > 0) {
-      testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
-    } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)')) {
-      testName = rawSub.testTitle;
+    const match = tIdStr.match(/(Test[-\s]?\d+|Yeni Nesil[-\s]?\d+|Ü\.?\s?Değ\.?[-\s]?\d+)/i);
+    if (match) {
+      testName = match[0];
     } else {
-      testName = 'Test-1';
+      const parts = tIdStr.split('_');
+      const lastPart = parts[parts.length - 1];
+      const testNum = parseInt(lastPart, 10);
+      if (!isNaN(testNum) && testNum >= 1 && testNum <= 30) {
+        testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
+      } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)') && !rawSub.testTitle.includes('Tüm Kitap')) {
+        testName = rawSub.testTitle;
+      } else {
+        testName = 'Test-1';
+      }
     }
   }
 
@@ -1078,7 +1102,9 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const isPlaceholderWithoutTest = (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)')) && (!normalized.testId || String(normalized.testId) === String(normalized.bookId));
       if (isPlaceholderWithoutTest) return;
 
-      const testKey = String(normalized.id || normalized.submissionId || `${normalized.bookId || ''}_${normalized.subjectName || normalized.subject || ''}_${normalized.topicName || ''}_${normalized.testName || normalized.testId || ''}_${normalized.date || normalized.submittedAt || ''}`);
+      // Deduplicate identical test attempts by test identifier, unit, subject, date, and score
+      const cleanTestIdentifier = normalized.testName || normalized.realTestId || normalized.testId || 'Test';
+      const testKey = `${normalized.studentId || ''}_${normalized.bookId || ''}_${normalized.subjectName || normalized.subject || ''}_${normalized.topicName || ''}_${cleanTestIdentifier}_${normalized.date || ''}_${normalized.correctCount}_${normalized.wrongCount}`;
       if (processedTestIds.has(testKey)) return;
       processedTestIds.add(testKey);
 
