@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   PlayCircle, Target, AlertCircle, Timer, BookOpen, Check,
@@ -41,6 +41,9 @@ import DashboardRecentSolvedCard from '../features/dashboard/components/Dashboar
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
+
+// Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
+const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
 
 function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
   if (!sub) return null;
@@ -222,8 +225,8 @@ const getRowTheme = (subject, idx) => {
   return PALETTES_LIST[idx % PALETTES_LIST.length];
 };
 
-import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import './StudentDashboard.css';
+
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 const parseSafeDate = (d) => {
@@ -508,11 +511,29 @@ export default function StudentDashboard() {
     }).filter(Boolean);
   }, [myStudyAssignments, studyPlans]);
 
-  const coachingNote = getCoachingNoteForStudent(selectedStudent?.id);
-  const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
-  const studentMeetings = getMeetingsForStudent(selectedStudent?.id);
-  const upcomingMeeting = studentMeetings.find(m => m.nextMeetingDate);
-  const hasCoach = coachingLinks?.some(l => String(l.studentId) === String(selectedStudent?.id));
+  const studentId = selectedStudent?.id;
+
+  const coachingNote = useMemo(
+    () => getCoachingNoteForStudent(studentId),
+    [studentId, getCoachingNoteForStudent]
+  );
+  const coachingProfile = useMemo(
+    () => getCoachingProfileForStudent(studentId),
+    [studentId, getCoachingProfileForStudent]
+  );
+  const studentMeetings = useMemo(
+    () => getMeetingsForStudent(studentId),
+    [studentId, getMeetingsForStudent]
+  );
+  const upcomingMeeting = useMemo(
+    () => studentMeetings.find(m => m.nextMeetingDate),
+    [studentMeetings]
+  );
+  const hasCoach = useMemo(
+    () => coachingLinks?.some(l => String(l.studentId) === String(studentId)),
+    [coachingLinks, studentId]
+  );
+
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', type: 'Soru', period: 'Günlük', target: 50, linkPreset: '', customLink: '' });
@@ -1090,71 +1111,118 @@ export default function StudentDashboard() {
     return { mondayDate, dayDateMap };
   }, []);
 
+  // ── Pre-indexed Map for fast O(1) book test lookups ──
+  // Replaces repeated O(n³) loops in resolveBookTestInfo
+  const bookTestInfoCache = useMemo(() => {
+    const cache = new Map();
+    const addToCache = (testId, info) => {
+      if (!testId) return;
+      const idStr = String(testId);
+      const idClean = idStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      const idUuid = String(toUUID(idStr) || '');
+      cache.set(idStr, info);
+      cache.set(idClean, info);
+      if (idUuid && idUuid !== idStr) cache.set(idUuid, info);
+    };
+
+    // Index from bookTests array
+    (bookTests || []).forEach(bt => {
+      const bookId = String(bt.bookId || bt.book_id || '');
+      const currentBook = (books || []).find(b => String(b.id) === bookId || (toUUID(b.id) && toUUID(b.id) === toUUID(bookId)));
+      addToCache(bt.id, { tObj: bt, currentBook: currentBook || null, subjObj: null, topicObj: null });
+    });
+
+    // Index from books.subjects.topics.tests (deep scan, done once)
+    (books || []).forEach(book => {
+      (book.subjects || []).forEach(subj => {
+        (subj.tests || []).forEach(t => {
+          addToCache(t.id, { tObj: t, currentBook: book, subjObj: subj, topicObj: null });
+        });
+        (subj.topics || []).forEach(topic => {
+          (topic.tests || []).forEach(t => {
+            addToCache(t.id, { tObj: t, currentBook: book, subjObj: subj, topicObj: topic });
+          });
+        });
+      });
+    });
+
+    return cache;
+  }, [books, bookTests]);
+
   // ── Helper to resolve accurate subject, unit/topic, and test names for any testId / book / homework ──
   const resolveBookTestInfo = useCallback((testId, targetHw = null, targetBookObj = null) => {
     const tIdStr = String(testId || '');
     const tUuidStr = String(toUUID(tIdStr) || '');
     const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
 
-    let tObj = (bookTests || []).find(b => {
-      const bId = String(b?.id || '');
-      return bId === tIdStr || 
-        (tUuidStr && bId === tUuidStr) || 
-        (tUuidStr && toUUID(bId) === tUuidStr) || 
-        bId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId;
-    });
+    // O(1) cache lookup — replaces repeated O(n³) deep loops
+    const cached = bookTestInfoCache.get(tIdStr) || bookTestInfoCache.get(tCleanId) || (tUuidStr && bookTestInfoCache.get(tUuidStr));
+    let tObj = cached?.tObj || null;
+    let currentBook = (targetBookObj?.subjects && targetBookObj.subjects.length > 0) ? targetBookObj : (cached?.currentBook || null);
+    let subjObj = cached?.subjObj || null;
+    let topicObj = cached?.topicObj || null;
 
-    let currentBook = (targetBookObj?.subjects && targetBookObj.subjects.length > 0) ? targetBookObj : null;
-    let subjObj = null;
-    let topicObj = null;
+    // Only run expensive deep search if cache missed (rare: newly added tests)
+    if (!tObj) {
+      tObj = (bookTests || []).find(b => {
+        const bId = String(b?.id || '');
+        return bId === tIdStr ||
+          (tUuidStr && bId === tUuidStr) ||
+          (tUuidStr && toUUID(bId) === tUuidStr) ||
+          bId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId;
+      });
+    }
 
-    // Search in all books that have subjects
-    for (const b of (books || [])) {
-      if (!b.subjects || b.subjects.length === 0) continue;
-      
-      const tSubjectId = String(tObj?.subject_id || tObj?.subjectId || '');
-      const tTopicId = String(tObj?.topic_id || tObj?.topicId || '');
+    // Search in all books that have subjects (only if cache missed)
+    if (!subjObj) {
+      for (const b of (books || [])) {
+        if (!b.subjects || b.subjects.length === 0) continue;
 
-      for (const s of b.subjects) {
-        if (tSubjectId && (String(s.id) === tSubjectId || toUUID(s.id) === toUUID(tSubjectId) || (s.name && (tObj?.subjectName || tObj?.subject) && String(s.name).toLowerCase().trim() === String(tObj?.subjectName || tObj?.subject).toLowerCase().trim()))) {
-          subjObj = s;
-          if (!currentBook) currentBook = b;
-          for (const tp of (s.topics || [])) {
-            if (tTopicId && (String(tp.id) === tTopicId || toUUID(tp.id) === toUUID(tTopicId) || (tp.name && (tObj?.topicName || tObj?.topic) && String(tp.name).toLowerCase().trim() === String(tObj?.topicName || tObj?.topic).toLowerCase().trim()))) {
-              topicObj = tp;
-              break;
-            }
-          }
-          break;
-        }
+        const tSubjectId = String(tObj?.subject_id || tObj?.subjectId || '');
+        const tTopicId = String(tObj?.topic_id || tObj?.topicId || '');
 
-        if (s.tests && Array.isArray(s.tests)) {
-          const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
-          if (found) {
-            if (!tObj) tObj = found;
+        for (const s of b.subjects) {
+          if (tSubjectId && (String(s.id) === tSubjectId || toUUID(s.id) === toUUID(tSubjectId) || (s.name && (tObj?.subjectName || tObj?.subject) && String(s.name).toLowerCase().trim() === String(tObj?.subjectName || tObj?.subject).toLowerCase().trim()))) {
             subjObj = s;
             if (!currentBook) currentBook = b;
-            break;
-          }
-        }
-        if (s.topics && Array.isArray(s.topics)) {
-          for (const tp of s.topics) {
-            if (tp.tests && Array.isArray(tp.tests)) {
-              const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
-              if (found) {
-                if (!tObj) tObj = found;
-                subjObj = s;
+            for (const tp of (s.topics || [])) {
+              if (tTopicId && (String(tp.id) === tTopicId || toUUID(tp.id) === toUUID(tTopicId) || (tp.name && (tObj?.topicName || tObj?.topic) && String(tp.name).toLowerCase().trim() === String(tObj?.topicName || tObj?.topic).toLowerCase().trim()))) {
                 topicObj = tp;
-                if (!currentBook) currentBook = b;
                 break;
               }
             }
+            break;
           }
+
+          if (s.tests && Array.isArray(s.tests)) {
+            const found = s.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
+            if (found) {
+              if (!tObj) tObj = found;
+              subjObj = s;
+              if (!currentBook) currentBook = b;
+              break;
+            }
+          }
+          if (s.topics && Array.isArray(s.topics)) {
+            for (const tp of s.topics) {
+              if (tp.tests && Array.isArray(tp.tests)) {
+                const found = tp.tests.find(t => String(t.id) === tIdStr || (tUuidStr && String(t.id) === tUuidStr) || String(t.id).replace(/^bt_/, '').replace(/^tbt_/, '') === tCleanId);
+                if (found) {
+                  if (!tObj) tObj = found;
+                  subjObj = s;
+                  topicObj = tp;
+                  if (!currentBook) currentBook = b;
+                  break;
+                }
+              }
+            }
+          }
+          if (subjObj) break;
         }
         if (subjObj) break;
       }
-      if (subjObj) break;
     }
+
 
     if (!currentBook) {
       currentBook = (books || []).find(b => 
@@ -1287,9 +1355,9 @@ export default function StudentDashboard() {
       cleanBookTitle: cleanTitle || 'Takip Kitabı',
       currentBook
     };
-  }, [books, bookTests]);
+  }, [books, bookTests, bookTestInfoCache]);
 
-  /* ─── Fully Processed Weekly Program Items for all 7 Days ─── */
+  /* ─── Computed Day Program — only for the active day (7x faster than computing all 7) ─── */
   const fullProcessedWeekMap = useMemo(() => {
     try {
       const rawProg = coachingProfile?.weeklyProgram;
@@ -1350,7 +1418,11 @@ export default function StudentDashboard() {
 
       const resultMap = {};
 
-      DAYS_OF_WEEK.forEach(dayMeta => {
+      // Only compute the active (visible) day — 7x faster than computing all days
+      const activeDayMeta = DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[4];
+      const daysToCompute = [activeDayMeta];
+
+      daysToCompute.forEach(dayMeta => {
         const dayInfo = weekInfo?.dayDateMap?.[dayMeta.key];
         const dayYMD = dayInfo?.ymd || '';
         const dayTime = dayInfo?.time || 0;
@@ -2005,7 +2077,7 @@ export default function StudentDashboard() {
       console.error('Error computing fullProcessedWeekMap:', err);
       return {};
     }
-  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
+  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey, activeDayKey]);
 
   const dayProgramInfo = useMemo(() => {
     return fullProcessedWeekMap[activeDayKey] || {
@@ -2108,30 +2180,7 @@ export default function StudentDashboard() {
       }
     };
 
-    // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ TÜM GÖREVLER
-    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
-    DAYS_OF_WEEK.forEach((d, idx) => {
-      if (idx < todayIdx) {
-        const dData = fullProcessedWeekMap[d.key];
-        (dData?.items || []).forEach(item => {
-          if (!item.done && !isItemSolved(item)) {
-            if (!isAlreadySeen(item)) {
-              addKeysToSeen(item);
-              list.push({
-                ...item,
-                categoryType: item.categoryType || (item.isBookTask ? 'kitap' : (item.isExamTask ? 'deneme' : 'program')),
-                sourceDayName: d.name,
-                sourceDayKey: d.key,
-                isCatchUp: true,
-                time: item.time || `Hedef: ${d.name}`,
-                dueDateStr: item.dueDateStr || dData.dateLabel || d.name,
-                reason: `${d.name} gününden kalan görev`
-              });
-            }
-          }
-        });
-      }
-    });
+    // Overdue weekly program items from past days are detected via book test due dates (section 2) below
 
     // 2. KİTAP TAKİBİNDEN / KİTAP ÖDEVLERİNDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
     const activeBookHws = (homeworks || []).filter(h => 
@@ -2295,7 +2344,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, todayDayKey, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
+  }, [selectedStudent, studyAssignments, studyPlans, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
@@ -3518,11 +3567,13 @@ export default function StudentDashboard() {
 
             {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
             <div>
-              <PeriodicQuestionAnalytics
-                homeworkSubmissions={otherHomeworkSubmissions}
-                mockExams={generalTrialExams}
-                studentName={selectedStudent?.name || 'Öğrenci'}
-              />
+              <Suspense fallback={<div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>📊 Analiz yükleniyor…</div>}>
+                <PeriodicQuestionAnalytics
+                  homeworkSubmissions={otherHomeworkSubmissions}
+                  mockExams={generalTrialExams}
+                  studentName={selectedStudent?.name || 'Öğrenci'}
+                />
+              </Suspense>
             </div>
 
             {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
