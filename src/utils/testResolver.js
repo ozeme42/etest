@@ -1026,4 +1026,87 @@ export function computeStudentAnalyticsData({
   return { generalTrialExams: trials, otherHomeworkSubmissions: homeworksOnly };
 }
 
+/**
+ * Accurately checks if a submission matches a specific book test without falsely matching generic names like 'Problem Sayfası' or 'Test 1'.
+ */
+export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], books = []) {
+  if (!s || !targetTestOrId) return false;
+  if (s.status === 'in_progress' || s.status === 'draft') return false;
 
+  const targetTest = typeof targetTestOrId === 'object'
+    ? targetTestOrId
+    : (bookTests || []).find(bt => String(bt.id) === String(targetTestOrId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(targetTestOrId)));
+
+  const specId = typeof targetTestOrId === 'object' ? String(targetTestOrId.id || '') : String(targetTestOrId);
+  const specClean = specId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+  const specUuid = String(toUUID(specId) || '');
+
+  const sTestId = String(s.testId || s.test_id || '');
+  const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
+  const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
+
+  // 1. Exact direct ID match (primary & highest confidence)
+  if (sTestId && (sTestId === specId || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
+  if (sRealTestId && (sRealTestId === specId || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
+  if (sBookTestId && (sBookTestId === specId || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
+  if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => {
+    const tStr = String(tid);
+    return tStr === specId || tStr === specClean || (specUuid && tStr === specUuid);
+  })) return true;
+
+  if (!targetTest) return false;
+
+  // 2. Strict page & unique test name matching
+  const extractPageNumbers = (str) => {
+    if (!str || typeof str !== 'string') return null;
+    const match = str.match(/(\d+)\s*[-–/]\s*(\d+)/);
+    if (match) return `${match[1]}-${match[2]}`;
+    const singleMatch = str.match(/sayfa\s*(\d+)/i) || str.match(/(\d+)\.\s*sayfa/i);
+    if (singleMatch) return singleMatch[1];
+    return null;
+  };
+
+  const tName = String(targetTest.name || targetTest.title || '').toLowerCase().trim();
+  const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
+  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+
+  const targetPages = targetTest.pageRange ||
+    (targetTest.startPage && targetTest.endPage ? `${targetTest.startPage}-${targetTest.endPage}` : null) ||
+    extractPageNumbers(targetTest.name) ||
+    extractPageNumbers(targetTest.title);
+
+  const subPages = s.metadata?.pageRange ||
+    (s.metadata?.startPage && s.metadata?.endPage ? `${s.metadata.startPage}-${s.metadata.endPage}` : null) ||
+    extractPageNumbers(s.title) ||
+    extractPageNumbers(s.testTitle) ||
+    extractPageNumbers(s.test_title);
+
+  // If the target test has a page range (e.g. "7-8. Sayfa"), submission MUST have the exact same page range!
+  if (targetPages) {
+    if (subPages) {
+      return targetPages === subPages;
+    }
+    // Check if submission title contains the exact page range (e.g. "7-8")
+    const hasPageRangeInTitle = sTitle.includes(targetPages) || cleanSTitle.includes(targetPages);
+    return hasPageRangeInTitle;
+  }
+
+  // If submission has specific pages but target test does not, they cannot match
+  if (subPages && !targetPages) {
+    return false;
+  }
+
+  // If both have orderIndex, check orderIndex
+  if (targetTest.orderIndex !== undefined && targetTest.orderIndex !== null && s.metadata?.orderIndex !== undefined && s.metadata?.orderIndex !== null) {
+    return Number(targetTest.orderIndex) === Number(s.metadata.orderIndex);
+  }
+
+  // Generic names (e.g. 'Problem Sayfası', 'Test 1', 'Sayfa') CANNOT match loosely
+  const isGeneric = /^(problem sayfası|etkinlik sayfası|sayfa|test|deneme|kazanım testi|konu testi|ödev|çalışma|test \d+)$/i.test(tName);
+  if (isGeneric) {
+    return false;
+  }
+
+  // Non-generic unique title match
+  return cleanSTitle === tName;
+}

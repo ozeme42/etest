@@ -23,7 +23,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
@@ -520,22 +520,7 @@ export default function StudentDashboard() {
       const sId = String(s.id || '');
 
       if (specificTestId) {
-        const specStr = String(specificTestId);
-        const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '');
-        const specUuid = String(toUUID(specificTestId) || '');
-        if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
-        if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
-        if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
-        if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
-
-        const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
-        if (targetTest?.name) {
-          const tName = String(targetTest.name).toLowerCase().trim();
-          const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
-          const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-          if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
-        }
-        return false;
+        return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
       }
 
       // 1. Direct ID match
@@ -852,55 +837,7 @@ export default function StudentDashboard() {
           }
         }
 
-        const solvedSubs = studentSubs.filter(s => {
-          const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
-          const sSubj = String(s.subject || s.subjectName || s.metadata?.subjectName || s.metadata?.subject || '').toLowerCase().trim();
-          const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-
-          const matchFields = [
-            String(s.testId || ''),
-            String(s.test_id || ''),
-            String(s.realTestId || ''),
-            String(s.bookTestId || ''),
-            String(s.metadata?.realTestId || ''),
-            String(s.metadata?.bookTestId || ''),
-            String(s.metadata?.realId || '')
-          ];
-          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-            matchFields.push(...s.bookTestIds.map(String));
-          }
-
-          const isDirectMatch = matchFields.some(f => f && (
-            f === tIdStr ||
-            f === tCleanId ||
-            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-            (tUuidStr && f === tUuidStr) ||
-            toUUID(f) === tIdStr ||
-            (tUuidStr && toUUID(f) === tUuidStr)
-          ));
-
-          let isNameMatch = false;
-          if (!isDirectMatch && tName) {
-            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
-            } else {
-              const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
-              if (isTestNameMatch) {
-                const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
-                if (isSubjectMatch) {
-                  if (topName) {
-                    const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                    isNameMatch = isTopicMatch;
-                  } else {
-                    isNameMatch = cleanSTitle === tName;
-                  }
-                }
-              }
-            }
-          }
-
-          return isDirectMatch || isNameMatch;
-        });
+        const solvedSubs = studentSubs.filter(s => isSubmissionMatchingBookTest(s, t, bookTests, books));
 
         let hwSub = null;
         for (const hw of homeworks) {
@@ -909,30 +846,7 @@ export default function StudentDashboard() {
             const sid = String(s.studentId || s.student_id || s.user_id || '');
             const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
-            const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
-            if (isDirect) return true;
-
-            const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
-            const sSubj = String(s.subject || s.subjectName || '').toLowerCase().trim();
-            const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-
-            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName);
-            }
-
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
-            if (isTestNameMatch) {
-              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
-              if (isSubjectMatch) {
-                if (topName) {
-                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch;
-                }
-                return cleanSTitle === tName;
-              }
-            }
-            return false;
+            return isSubmissionMatchingBookTest(s, t, bookTests, books);
           });
           if (match) {
             hwSub = match;
@@ -1366,22 +1280,7 @@ export default function StudentDashboard() {
           const sId = String(s.id || '');
 
           if (specificTestId) {
-            const specStr = String(specificTestId);
-            const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-            const specUuid = String(toUUID(specificTestId) || '');
-            if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
-            if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
-            if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
-            if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
-
-            const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
-            if (targetTest?.name) {
-              const tName = String(targetTest.name).toLocaleLowerCase('tr').trim();
-              const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
-              const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-              if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
-            }
-            return false;
+            return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
           }
 
           if (targetHw) {
@@ -1622,22 +1521,7 @@ export default function StudentDashboard() {
             const sId = String(s.id || '');
 
             if (specificTestId) {
-              const specStr = String(specificTestId);
-              const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-              const specUuid = String(toUUID(specificTestId) || '');
-              if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
-              if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
-              if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
-              if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
-
-              const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
-              if (targetTest?.name) {
-                const tName = String(targetTest.name).toLocaleLowerCase('tr').trim();
-                const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
-                const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-                if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
-              }
-              return false;
+              return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
             }
 
             if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || sHwId.replace(/^hw_/, '') === cleanHwId)) return true;
@@ -2067,66 +1951,18 @@ export default function StudentDashboard() {
       if (!item) return false;
       if (item.done || item.isCompleted) return true;
       const tId = item.testId || item.bookTestId || item.realTestId || item.id;
-      const tIdStr = String(tId || '');
-      const tCleanId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-      const tUuidStr = String(toUUID(tIdStr) || '');
 
-      const tName = String(item.testName || item.title || item.name || '').toLocaleLowerCase('tr').trim();
-      const sName = String(item.subject || '').toLocaleLowerCase('tr').trim();
-      const topName = String(item.unitTopic || item.topic || '').toLocaleLowerCase('tr').trim();
+      if (tId) {
+        const matchedInSubs = allSubs.some(s => {
+          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+          const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+          if (sStdId && sStdId !== studentId && toUUID(sStdId) !== toUUID(studentId)) return false;
+          return isSubmissionMatchingBookTest(s, tId, bookTests, books);
+        });
+        if (matchedInSubs) return true;
+      }
 
-      return allSubs.some(s => {
-        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-        const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-        if (sStdId && sStdId !== studentId && toUUID(sStdId) !== toUUID(studentId)) return false;
-
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLocaleLowerCase('tr').trim();
-        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLocaleLowerCase('tr').trim();
-        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-
-        const matchFields = [
-          String(s.testId || ''),
-          String(s.test_id || ''),
-          String(s.realTestId || ''),
-          String(s.bookTestId || ''),
-          String(meta?.realTestId || ''),
-          String(meta?.bookTestId || '')
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String));
-        }
-
-        const isDirectMatch = matchFields.some(f => f && (
-          f === tIdStr ||
-          f === tCleanId ||
-          f.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId ||
-          (tUuidStr && f === tUuidStr) ||
-          toUUID(f) === tIdStr ||
-          (tUuidStr && toUUID(f) === tUuidStr)
-        ));
-
-        let isNameMatch = false;
-        if (!isDirectMatch && tName) {
-          if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-            isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
-          } else {
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 5 && sTitle.includes(tName));
-            if (isTestNameMatch) {
-              const isSubjectMatch = !sName || sName === 'ders' || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
-              if (isSubjectMatch) {
-                if (topName && topName !== 'genel konu') {
-                  isNameMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                } else {
-                  isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
-                }
-              }
-            }
-          }
-        }
-
-        return isDirectMatch || isNameMatch;
-      });
+      return false;
     };
 
     const isAlreadySeen = (it) => {

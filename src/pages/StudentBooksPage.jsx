@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
@@ -323,49 +323,7 @@ export default function StudentBooksPage() {
         if (sBookTitle && (sBookTitle === bTitle || sBookTitle.includes(bTitle) || bTitle.includes(sBookTitle))) return true;
         if (sTitle && bTitle && (sTitle.startsWith(bTitle) || sTitle.includes(bTitle))) return true;
         
-        return testsInBook.some(t => {
-          const tId = String(t.id);
-          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
-          const tUuid = String(toUUID(t.id) || '');
-          const tName = String(t.name || '').toLowerCase().trim();
-
-          const isDirect = (
-            sTestId === tId ||
-            sTestId === tClean ||
-            (tUuid && sTestId === tUuid) ||
-            (toUUID(sTestId) && toUUID(sTestId) === tUuid)
-          );
-          if (isDirect) return true;
-
-          if (tName) {
-            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName);
-            }
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
-            if (isTestNameMatch) {
-              const subjects = b.raw_data?.subjects || b.subjects || [];
-              let sName = '';
-              let topName = '';
-              if (Array.isArray(subjects)) {
-                const matchedSubj = subjects.find(sb => String(sb.id) === String(t.subjectId || t.subject_id));
-                if (matchedSubj) {
-                  sName = String(matchedSubj.name || '').toLowerCase().trim();
-                  const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
-                  if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
-                }
-              }
-              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
-              if (isSubjectMatch) {
-                if (topName) {
-                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch;
-                }
-                return cleanSTitle === tName;
-              }
-            }
-          }
-          return false;
-        });
+        return testsInBook.some(t => isSubmissionMatchingBookTest(s, t, testsInBook, books));
       });
 
       // Calculate total test count in book
@@ -406,49 +364,7 @@ export default function StudentBooksPage() {
         const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
         const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
 
-        const matchingTest = testsInBook.find(t => {
-          const tId = String(t.id);
-          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
-          const tUuid = String(toUUID(t.id) || '');
-          const tName = String(t.name || '').toLowerCase().trim();
-
-          const isDirect = (
-            sTestId === tId ||
-            sTestId === tClean ||
-            (tUuid && sTestId === tUuid) ||
-            (toUUID(sTestId) && toUUID(sTestId) === tUuid)
-          );
-          if (isDirect) return true;
-
-          if (tName) {
-            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
-              return cleanSTitle === tName || sTitle.includes(tName);
-            }
-            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && sTitle.includes(tName));
-            if (isTestNameMatch) {
-              const subjects = b.raw_data?.subjects || b.subjects || [];
-              let sName = '';
-              let topName = '';
-              if (Array.isArray(subjects)) {
-                const matchedSubj = subjects.find(sb => String(sb.id) === String(t.subjectId || t.subject_id));
-                if (matchedSubj) {
-                  sName = String(matchedSubj.name || '').toLowerCase().trim();
-                  const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
-                  if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
-                }
-              }
-              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
-              if (isSubjectMatch) {
-                if (topName) {
-                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch;
-                }
-                return cleanSTitle === tName;
-              }
-            }
-          }
-          return false;
-        });
+        const matchingTest = testsInBook.find(t => isSubmissionMatchingBookTest(s, t, testsInBook, books));
 
         if (matchingTest) {
           const testKey = String(matchingTest.id);
