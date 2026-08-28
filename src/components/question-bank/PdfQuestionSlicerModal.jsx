@@ -119,6 +119,267 @@ const getSubjectBadgeStyle = (subj = '', isDark = false) => {
   };
 };
 
+function SlicerPdfPageItem({
+  doc,
+  pageNum,
+  zoom = 1,
+  slicedQuestions = [],
+  onSliceQuestion,
+  viewMode = 'scroll',
+  pdfNumPages = 1,
+  isDark = false
+}) {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const imageObjRef = useRef(null);
+
+  const [isVisible, setIsVisible] = useState(pageNum <= 3 || viewMode === 'single');
+  const [isRendered, setIsRendered] = useState(false);
+  const [currentRect, setCurrentRect] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  // IntersectionObserver for lazy page rendering in scroll mode
+  useEffect(() => {
+    if (viewMode === 'single' || isVisible || !containerRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '1200px' });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [isVisible, viewMode]);
+
+  // Render the PDF page onto offscreen canvas and keep imageObjRef
+  useEffect(() => {
+    if (!doc || !isVisible) return;
+    let isCancelled = false;
+
+    const render = async () => {
+      try {
+        const page = await doc.getPage(pageNum);
+        if (isCancelled) return;
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = viewport.width;
+        offCanvas.height = viewport.height;
+        const offCtx = offCanvas.getContext('2d');
+
+        await page.render({ canvasContext: offCtx, viewport }).promise;
+        if (isCancelled) return;
+
+        const dataUrl = offCanvas.toDataURL('image/png');
+        const img = new Image();
+        img.onload = () => {
+          if (isCancelled) return;
+          imageObjRef.current = img;
+          setIsRendered(true);
+        };
+        img.src = dataUrl;
+      } catch (err) {
+        console.error(`Page ${pageNum} render error:`, err);
+      }
+    };
+
+    render();
+    return () => { isCancelled = true; };
+  }, [doc, pageNum, isVisible]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imageObjRef.current;
+    if (!canvas || !img) return;
+
+    if (canvas.width !== img.width || canvas.height !== img.height) {
+      canvas.width = img.width;
+      canvas.height = img.height;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+
+    // Draw sliced question boxes on this page
+    slicedQuestions.forEach(sq => {
+      if (sq.rect && (!sq.page || Number(sq.page) === Number(pageNum))) {
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
+        ctx.fillRect(sq.rect.x, sq.rect.y, sq.rect.w, sq.rect.h);
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(sq.rect.x, sq.rect.y, sq.rect.w, sq.rect.h);
+
+        ctx.fillStyle = '#22c55e';
+        const labelText = sq.title || `Soru ${sq.qNo}`;
+        const labelWidth = Math.max(68, labelText.length * 8 + 16);
+        ctx.fillRect(sq.rect.x, Math.max(0, sq.rect.y - 24), labelWidth, 24);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(labelText, sq.rect.x + 8, Math.max(16, sq.rect.y - 7));
+      }
+    });
+
+    // Draw active drawing rect
+    if (currentRect && currentRect.w && currentRect.h) {
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+      ctx.fillRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 6]);
+      ctx.strokeRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+      ctx.setLineDash([]);
+    }
+  }, [slicedQuestions, pageNum, currentRect]);
+
+  useEffect(() => {
+    if (isRendered) draw();
+  }, [isRendered, draw, slicedQuestions, currentRect]);
+
+  const getCanvasCoords = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / r.width;
+    const scaleY = canvas.height / r.height;
+    return {
+      x: (e.clientX - r.left) * scaleX,
+      y: (e.clientY - r.top) * scaleY
+    };
+  };
+
+  const handleMouseDown = (e) => {
+    if (!isRendered) return;
+    const coords = getCanvasCoords(e);
+    setIsDrawing(true);
+    setStartPos(coords);
+    setCurrentRect({ x: coords.x, y: coords.y, w: 0, h: 0 });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDrawing || !isRendered) return;
+    const coords = getCanvasCoords(e);
+    const rect = {
+      x: Math.min(startPos.x, coords.x),
+      y: Math.min(startPos.y, coords.y),
+      w: Math.abs(coords.x - startPos.x),
+      h: Math.abs(coords.y - startPos.y)
+    };
+    setCurrentRect(rect);
+  };
+
+  const handleMouseUp = async () => {
+    if (!isDrawing || !currentRect || currentRect.w < 25 || currentRect.h < 25) {
+      setIsDrawing(false);
+      setCurrentRect(null);
+      return;
+    }
+    setIsDrawing(false);
+    const img = imageObjRef.current;
+    if (!img) return;
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = currentRect.w;
+    cropCanvas.height = currentRect.h;
+    const cropCtx = cropCanvas.getContext('2d');
+    if (!cropCtx) return;
+
+    cropCtx.drawImage(
+      img,
+      currentRect.x, currentRect.y, currentRect.w, currentRect.h,
+      0, 0, currentRect.w, currentRect.h
+    );
+
+    const croppedBase64 = cropCanvas.toDataURL('image/png');
+    const compressed = await compressImageToWebP(croppedBase64, 1200, 0.85);
+
+    onSliceQuestion({
+      rect: currentRect,
+      page: pageNum,
+      image: compressed.dataUrl || croppedBase64,
+      sizeKb: compressed.sizeKb || 50
+    });
+
+    setCurrentRect(null);
+  };
+
+  return (
+    <div
+      id={`slicer-page-${pageNum}`}
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        marginBottom: viewMode === 'scroll' ? '1.5rem' : '0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        background: 'transparent',
+        width: '100%'
+      }}
+    >
+      {viewMode === 'scroll' && pdfNumPages > 1 && (
+        <div
+          style={{
+            alignSelf: 'center',
+            marginBottom: 6,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+            color: 'var(--color-text)',
+            padding: '3px 10px',
+            borderRadius: 8,
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+          }}
+        >
+          <FileText size={12} className="text-indigo-500" />
+          <span>Sayfa {pageNum} / {pdfNumPages}</span>
+        </div>
+      )}
+
+      <div
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: 'top center',
+          transition: 'transform 0.08s ease-out',
+          minHeight: isRendered ? 'auto' : 320,
+          display: 'inline-block',
+          background: '#ffffff',
+          borderRadius: 6,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+          overflow: 'hidden'
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{
+            display: isRendered ? 'block' : 'none',
+            cursor: 'crosshair',
+            userSelect: 'none',
+            maxWidth: 'none'
+          }}
+        />
+        {!isRendered && (
+          <div style={{ padding: '6rem 4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#6366f1' }}>
+            <Loader2 size={28} className="animate-spin" />
+            <span style={{ fontSize: '0.74rem', fontWeight: 800 }}>Sayfa {pageNum} hazırlanıyor…</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PdfQuestionSlicerModal({
   isOpen,
   onClose,
@@ -153,6 +414,7 @@ export default function PdfQuestionSlicerModal({
   const [pdfNumPages, setPdfNumPages] = useState(0);
   const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
   const [pageJumpInput, setPageJumpInput] = useState('1');
+  const [viewMode, setViewMode] = useState('scroll'); // 'scroll' (Sürekli Dikey Kaydırma) | 'single' (Tek Sayfa)
 
   const [selectedBookId, setSelectedBookId] = useState(() => {
     return initialBook?.id || initialBookId || (books.length > 0 ? books[0].id : null);
@@ -813,37 +1075,72 @@ export default function PdfQuestionSlicerModal({
     reader.readAsDataURL(file);
   };
 
-  const handleNextPage = async () => {
-    if (!pdfDoc || pdfCurrentPage >= pdfNumPages) return;
-    const nextPage = pdfCurrentPage + 1;
-    setPdfCurrentPage(nextPage);
-    setPageJumpInput(String(nextPage));
-    await renderPdfPage(pdfDoc, nextPage);
-  };
+  const scrollToPage = (pageNum) => {
+    if (!pageNum || pageNum < 1 || (pdfNumPages > 0 && pageNum > pdfNumPages)) return;
+    setPdfCurrentPage(pageNum);
+    setPageJumpInput(String(pageNum));
 
-  const handlePrevPage = async () => {
-    if (!pdfDoc || pdfCurrentPage <= 1) return;
-    const prevPage = pdfCurrentPage - 1;
-    setPdfCurrentPage(prevPage);
-    setPageJumpInput(String(prevPage));
-    await renderPdfPage(pdfDoc, prevPage);
-  };
-
-  const handlePageJump = async (e) => {
-    e.preventDefault();
-    if (!pdfDoc) return;
-    const num = parseInt(pageJumpInput, 10);
-    if (!isNaN(num) && num >= 1 && num <= pdfNumPages) {
-      setPdfCurrentPage(num);
-      await renderPdfPage(pdfDoc, num);
+    if (viewMode === 'scroll') {
+      const el = document.getElementById(`slicer-page-${pageNum}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else if (pdfDoc) {
+      renderPdfPage(pdfDoc, pageNum);
     }
   };
 
+  const handleNextPage = () => {
+    scrollToPage(Math.min(pdfNumPages || 1, pdfCurrentPage + 1));
+  };
+
+  const handlePrevPage = () => {
+    scrollToPage(Math.max(1, pdfCurrentPage - 1));
+  };
+
+  const handlePageJump = (e) => {
+    e.preventDefault();
+    const num = parseInt(pageJumpInput, 10);
+    if (!isNaN(num)) {
+      scrollToPage(num);
+    }
+  };
+
+  // 📜 Dikey kaydırma modunda kullanıcının gördüğü aktif sayfayı otomatik takip et
   useEffect(() => {
-    if (sourceImage && imageObjRef.current) {
+    if (viewMode !== 'scroll' || !pdfDoc || pdfNumPages <= 1 || !containerRef.current) return;
+    const container = containerRef.current;
+
+    const handleScroll = () => {
+      const pageElements = container.querySelectorAll('[id^="slicer-page-"]');
+      const containerTop = container.scrollTop;
+      const containerMiddle = containerTop + container.clientHeight / 3;
+
+      for (let i = 0; i < pageElements.length; i++) {
+        const el = pageElements[i];
+        const top = el.offsetTop;
+        const bottom = top + el.offsetHeight;
+        if (top <= containerMiddle && bottom >= containerMiddle) {
+          const pageNum = parseInt(el.id.replace('slicer-page-', ''), 10);
+          if (!isNaN(pageNum) && pageNum !== pdfCurrentPage) {
+            setPdfCurrentPage(pageNum);
+            setPageJumpInput(String(pageNum));
+          }
+          break;
+        }
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [viewMode, pdfDoc, pdfNumPages, pdfCurrentPage]);
+
+  // Tekil görsel (PNG/JPG) yüklemeleri için standart çizim
+  useEffect(() => {
+    if (sourceImage && imageObjRef.current && !pdfDoc) {
       drawCanvas();
     }
-  }, [sourceImage, zoom, currentRect, slicedQuestions, drawCanvas]);
+  }, [sourceImage, zoom, currentRect, slicedQuestions, drawCanvas, pdfDoc]);
 
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -877,6 +1174,64 @@ export default function PdfQuestionSlicerModal({
     setCurrentRect(rect);
   };
 
+  const handleSliceQuestionOnPage = ({ rect, page, image, sizeKb }) => {
+    const nextQNo = slicedQuestions.length + 1;
+    let assignedTitle = `${nextQNo}. Soru`;
+    let assignedAnswer = 'A';
+    let assignedTestId = null;
+    let originalQNo = null;
+
+    if (activeTargetQuestion) {
+      const sPrefix = activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : '';
+      const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
+      assignedTitle = `${sPrefix}${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
+      assignedAnswer = activeTargetQuestion.correctAnswer || 'A';
+      assignedTestId = activeTargetQuestion.testId;
+      originalQNo = activeTargetQuestion.qNo;
+    }
+
+    const newQuestion = {
+      id: `sq_${Date.now()}_${nextQNo}`,
+      qNo: nextQNo,
+      title: assignedTitle,
+      image: image,
+      sizeKb: sizeKb || 50,
+      correctAnswer: assignedAnswer,
+      optionCount: defaultOptionCount,
+      subject: activeTargetQuestion?.subjectName || selectedSubject,
+      grade: selectedGrade,
+      page: page,
+      rect: rect,
+      sourceTestId: assignedTestId,
+      originalQuestionNo: originalQNo
+    };
+
+    setSlicedQuestions(prev => [...prev, newQuestion]);
+
+    if (activeTargetQuestion && bookMistakesList.length > 0) {
+      let foundNext = false;
+      for (const t of bookMistakesList) {
+        for (const q of t.wrongQuestions) {
+          const isAlreadyDone = [...slicedQuestions, newQuestion].some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === q);
+          if (!isAlreadyDone) {
+            setActiveTargetQuestion({
+              testId: t.testId,
+              testName: t.testName,
+              unitName: t.unitName,
+              subjectName: t.subjectName,
+              qNo: q,
+              correctAnswer: t.answerKeyMap[q] || 'A'
+            });
+            foundNext = true;
+            break;
+          }
+        }
+        if (foundNext) break;
+      }
+      if (!foundNext) setActiveTargetQuestion(null);
+    }
+  };
+
   const handleMouseUp = async () => {
     if (!isDrawing || !currentRect || currentRect.w < 25 || currentRect.h < 25) {
       setIsDrawing(false);
@@ -903,62 +1258,14 @@ export default function PdfQuestionSlicerModal({
     const croppedBase64 = cropCanvas.toDataURL('image/png');
     const compressed = await compressImageToWebP(croppedBase64, 1200, 0.85);
 
-    const nextQNo = slicedQuestions.length + 1;
-    let assignedTitle = `${nextQNo}. Soru`;
-    let assignedAnswer = 'A';
-    let assignedTestId = null;
-    let originalQNo = null;
-
-    if (activeTargetQuestion) {
-      const sPrefix = activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : '';
-      const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
-      assignedTitle = `${sPrefix}${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
-      assignedAnswer = activeTargetQuestion.correctAnswer || 'A';
-      assignedTestId = activeTargetQuestion.testId;
-      originalQNo = activeTargetQuestion.qNo;
-    }
-
-    const newQuestion = {
-      id: `sq_${Date.now()}_${nextQNo}`,
-      qNo: nextQNo,
-      title: assignedTitle,
-      image: compressed.dataUrl || croppedBase64,
-      sizeKb: compressed.sizeKb || 50,
-      correctAnswer: assignedAnswer,
-      optionCount: defaultOptionCount,
-      subject: activeTargetQuestion?.subjectName || selectedSubject,
-      grade: selectedGrade,
-      page: pdfCurrentPage,
+    handleSliceQuestionOnPage({
       rect: currentRect,
-      sourceTestId: assignedTestId,
-      originalQuestionNo: originalQNo
-    };
+      page: pdfCurrentPage,
+      image: compressed.dataUrl || croppedBase64,
+      sizeKb: compressed.sizeKb || 50
+    });
 
-    setSlicedQuestions(prev => [...prev, newQuestion]);
     setCurrentRect(null);
-
-    if (activeTargetQuestion && bookMistakesList.length > 0) {
-      let foundNext = false;
-      for (const t of bookMistakesList) {
-        for (const q of t.wrongQuestions) {
-          const isAlreadyDone = [...slicedQuestions, newQuestion].some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === q);
-          if (!isAlreadyDone) {
-            setActiveTargetQuestion({
-              testId: t.testId,
-              testName: t.testName,
-              unitName: t.unitName,
-              subjectName: t.subjectName,
-              qNo: q,
-              correctAnswer: t.answerKeyMap[q] || 'A'
-            });
-            foundNext = true;
-            break;
-          }
-        }
-        if (foundNext) break;
-      }
-      if (!foundNext) setActiveTargetQuestion(null);
-    }
   };
 
   const handleDeleteQuestion = (id) => {
@@ -1522,39 +1829,93 @@ export default function PdfQuestionSlicerModal({
                 )}
               </div>
 
-              {pdfNumPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '2px 6px', borderRadius: 7 }}>
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={pdfCurrentPage <= 1 || isLoadingFile}
-                    style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage <= 1 ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage <= 1 ? 0.4 : 1, padding: 2 }}
-                    title="Önceki Sayfa"
-                  >
-                    <ChevronLeft size={15} />
-                  </button>
-                  <form onSubmit={handlePageJump} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <input
-                      type="text"
-                      value={pageJumpInput}
-                      onChange={(e) => setPageJumpInput(e.target.value)}
-                      style={{ width: 28, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)' }}
-                    />
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ {pdfNumPages}</span>
-                  </form>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={pdfCurrentPage >= pdfNumPages || isLoadingFile}
-                    style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage >= pdfNumPages ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage >= pdfNumPages ? 0.4 : 1, padding: 2 }}
-                    title="Sonraki Sayfa"
-                  >
-                    <ChevronRight size={15} />
-                  </button>
+              {/* Görünüm Modu ve Sayfa Gezinme Butonları */}
+              {pdfDoc && pdfNumPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Mod Seçici (Sürekli Dikey Kaydır / Tek Sayfa) */}
+                  <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '2px', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('scroll')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: viewMode === 'scroll' ? '#4f46e5' : 'transparent',
+                        color: viewMode === 'scroll' ? 'white' : 'var(--color-text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s'
+                      }}
+                      title="Sürekli Dikey Kaydırma (Tüm Kitabı Aşağı Kaydırarak Gör)"
+                    >
+                      <Layers size={11} />
+                      <span>Sürekli Kaydır</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('single')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: viewMode === 'single' ? '#4f46e5' : 'transparent',
+                        color: viewMode === 'single' ? 'white' : 'var(--color-text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s'
+                      }}
+                      title="Tek Sayfa Modu (Sayfa Sayfa İlerlet)"
+                    >
+                      <FileText size={11} />
+                      <span>Tek Sayfa</span>
+                    </button>
+                  </div>
+
+                  {/* Sayfa Atlama & İleri/Geri */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '2px 6px', borderRadius: 7 }}>
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={pdfCurrentPage <= 1 || isLoadingFile}
+                      style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage <= 1 ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage <= 1 ? 0.4 : 1, padding: 2 }}
+                      title="Önceki Sayfaya Git"
+                    >
+                      <ChevronLeft size={15} />
+                    </button>
+                    <form onSubmit={handlePageJump} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Sayfa</span>
+                      <input
+                        type="text"
+                        value={pageJumpInput}
+                        onChange={(e) => setPageJumpInput(e.target.value)}
+                        style={{ width: 32, textAlign: 'center', fontSize: '0.72rem', fontWeight: 900, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text)', padding: '1px 0' }}
+                        title="Sayfa numarası yazıp Enter'a basın"
+                      />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ {pdfNumPages}</span>
+                    </form>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={pdfCurrentPage >= pdfNumPages || isLoadingFile}
+                      style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage >= pdfNumPages ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage >= pdfNumPages ? 0.4 : 1, padding: 2 }}
+                      title="Sonraki Sayfaya Git"
+                    >
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* Hızlı Görünüm ve Sığdırma Butonları */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {sourceImage && (
+                {(sourceImage || pdfDoc) && (
                   <>
                     <button
                       type="button"
@@ -1655,14 +2016,14 @@ export default function PdfQuestionSlicerModal({
                 alignItems: 'flex-start',
                 justifyContent: 'center',
                 padding: '0.75rem',
-                cursor: sourceImage ? 'crosshair' : 'default',
+                cursor: (sourceImage || pdfDoc) ? 'crosshair' : 'default',
                 position: 'relative'
               }}
             >
-              {isLoadingFile && (
+              {isLoadingFile && !pdfDoc && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#6366f1', margin: 'auto' }}>
                   <Loader2 size={32} className="animate-spin" />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>Sayfa hazırlanıyor…</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>PDF Dokümanı hazırlanıyor…</span>
                 </div>
               )}
 
@@ -1696,7 +2057,7 @@ export default function PdfQuestionSlicerModal({
                 </div>
               )}
 
-              {!sourceImage && !isLoadingFile && !loadError && (
+              {!sourceImage && !pdfDoc && !isLoadingFile && !loadError && (
                 <div style={{ textAlign: 'center', maxWidth: 360, margin: 'auto' }}>
                   <div style={{ width: 56, height: 56, borderRadius: 18, background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
                     <FileText size={28} className="text-indigo-500" />
@@ -1708,28 +2069,67 @@ export default function PdfQuestionSlicerModal({
                 </div>
               )}
 
-              <div
-                style={{
-                  display: sourceImage && !isLoadingFile ? 'inline-block' : 'none',
-                  transform: `scale(${zoom})`,
-                  transformOrigin: 'top center',
-                  transition: 'transform 0.08s ease-out'
-                }}
-              >
-                <canvas
-                  ref={canvasRef}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
+              {/* PDF Çoklu Sayfa (Sürekli Dikey Kaydırma Modu) */}
+              {pdfDoc && viewMode === 'scroll' && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '1rem', paddingBottom: '3rem' }}>
+                  {Array.from({ length: pdfNumPages }, (_, i) => i + 1).map(pNum => (
+                    <SlicerPdfPageItem
+                      key={`slicer_page_item_${pNum}`}
+                      doc={pdfDoc}
+                      pageNum={pNum}
+                      zoom={zoom}
+                      slicedQuestions={slicedQuestions}
+                      onSliceQuestion={handleSliceQuestionOnPage}
+                      viewMode="scroll"
+                      pdfNumPages={pdfNumPages}
+                      isDark={isDark}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* PDF Tek Sayfa Modu */}
+              {pdfDoc && viewMode === 'single' && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <SlicerPdfPageItem
+                    key={`slicer_page_single_${pdfCurrentPage}`}
+                    doc={pdfDoc}
+                    pageNum={pdfCurrentPage}
+                    zoom={zoom}
+                    slicedQuestions={slicedQuestions}
+                    onSliceQuestion={handleSliceQuestionOnPage}
+                    viewMode="single"
+                    pdfNumPages={pdfNumPages}
+                    isDark={isDark}
+                  />
+                </div>
+              )}
+
+              {/* Tekil Görsel (PNG / JPG) Yüklemeleri için */}
+              {sourceImage && !pdfDoc && (
+                <div
                   style={{
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
-                    borderRadius: 6,
-                    maxWidth: 'none',
-                    display: 'block',
-                    userSelect: 'none'
+                    display: !isLoadingFile ? 'inline-block' : 'none',
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'top center',
+                    transition: 'transform 0.08s ease-out'
                   }}
-                />
-              </div>
+                >
+                  <canvas
+                    ref={canvasRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    style={{
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                      borderRadius: 6,
+                      maxWidth: 'none',
+                      display: 'block',
+                      userSelect: 'none'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
