@@ -2505,12 +2505,13 @@ export default function StudentDashboard() {
   };
 
   const weekTasksCountMap = useMemo(() => {
+    // Only the active day is computed — return just that day's count
     const map = {};
     DAYS_OF_WEEK.forEach(d => {
-      map[d.key] = fullProcessedWeekMap[d.key]?.totalCount || 0;
+      map[d.key] = d.key === activeDayKey ? (fullProcessedWeekMap[d.key]?.totalCount || 0) : 0;
     });
     return map;
-  }, [fullProcessedWeekMap]);
+  }, [fullProcessedWeekMap, activeDayKey]);
 
   /* ─── Hero Date & Task Stats for Top KPI Cards (Program + Ödevler) ─── */
   const taskStats = useMemo(() => {
@@ -2522,18 +2523,8 @@ export default function StudentDashboard() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    // 1. Program Görevleri (Bugünün Programı veya Haftalık Program)
-    const programItems = [];
-    if (dayProgramInfo && Array.isArray(dayProgramInfo.items) && dayProgramInfo.items.length > 0) {
-      programItems.push(...dayProgramInfo.items);
-    } else {
-      DAYS_OF_WEEK.forEach(day => {
-        const dayData = fullProcessedWeekMap[day.key];
-        if (dayData && Array.isArray(dayData.items)) {
-          programItems.push(...dayData.items);
-        }
-      });
-    }
+    // 1. Program Görevleri (Aktif Günün Programı)
+    const programItems = dayProgramInfo?.items || [];
 
     programItems.forEach(item => {
       const itemKey = String(item.uniqueKey || item.id || item.hwId || `${item.testId}_${item.dayKey || ''}`);
@@ -2554,9 +2545,8 @@ export default function StudentDashboard() {
     (tests || []).forEach(t => {
       const hwKey = String(t.id || t.hwId || t.testId || '');
       const hwCleanKey = hwKey.replace(/^hw_/, '');
-      // Check if already counted in program tasks
-      const isAlreadyCounted = Array.from(seenKeys).some(k => k === hwKey || k === hwCleanKey || k.includes(hwKey) || (hwCleanKey && k.includes(hwCleanKey)));
-      if (isAlreadyCounted) return;
+      // O(1) Set lookup — avoids expensive Array.from().some() O(n²) conversion
+      if (seenKeys.has(hwKey) || seenKeys.has(hwCleanKey)) return;
       seenKeys.add(hwKey);
 
       totalCount++;
@@ -2582,7 +2572,7 @@ export default function StudentDashboard() {
       overdueCount,
       completionRate
     };
-  }, [dayProgramInfo, fullProcessedWeekMap, tests]);
+  }, [dayProgramInfo, tests]);
 
   
   const studentGamification = useMemo(() => {
@@ -2857,57 +2847,7 @@ export default function StudentDashboard() {
   return (
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: isMobile ? 'calc(75px + env(safe-area-inset-bottom) + 20px)' : '0' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        .student-dashboard-page {
-          width: 100%;
-          max-width: 100vw;
-          overflow-x: hidden;
-          box-sizing: border-box;
-        }
-        .student-dashboard-page * {
-          box-sizing: border-box;
-        }
-        @keyframes pulseGlow {
-          0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.04); opacity: 1; }
-        }
-        @keyframes onlinePulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.75); }
-          60% { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes floatBlob {
-          0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(-14px) scale(1.07); }
-        }
-        @keyframes ringRotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .sd-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .sd-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
-        .sd-btn:active { transform: translateY(0); }
-        .sd-card { transition: all 0.25s ease; box-sizing: border-box; max-width: 100%; }
-        .sd-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.15) !important; border-color: #818cf8 !important; }
-        .sd-kpi { transition: all 0.22s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; box-sizing: border-box; min-width: 0; }
-        .sd-kpi::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%); border-radius: inherit; pointer-events: none; }
-        .sd-kpi:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 18px 48px rgba(0,0,0,0.45) !important; }
-        .sd-kpi:active { transform: scale(0.96); }
-        .sd-success { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
-        .sd-success:hover { transform: scale(1.08) rotate(2deg); }
-        .sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
-        .sd-avatar-ring { animation: ringRotate 8s linear infinite; }
-        .sd-grid-layout { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.98fr); gap: 1.75rem; align-items: start; width: 100%; max-width: 100%; box-sizing: border-box; }
-        @media (max-width: 1100px) { .sd-grid-layout { grid-template-columns: 1fr; gap: 1.25rem; } }
-        .sd-hide-scrollbar::-webkit-scrollbar { display: none; }
-        .sd-hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 99px; } ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 99px; }
-      `}</style>
-
+      {/* styles are in StudentDashboard.css */}
       {/* ══════════════════════════════════════════════════════
           PREMIUM VIBRANT HEADER
       ══════════════════════════════════════════════════════ */}

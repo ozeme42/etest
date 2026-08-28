@@ -125,3 +125,14 @@
     box-sizing: border-box;
   }
 }
+
+/* -- Animations moved from inline style tag -- */
+@keyframes pulseGlow { 0%,100%{transform:scale(1);opacity:0.9} 50%{transform:scale(1.04);opacity:1} }
+@keyframes onlinePulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.75)} 60%{box-shadow:0 0 0 7px rgba(34,197,94,0)} }
+@keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+@keyframes floatBlob { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-14px) scale(1.07)} }
+@keyframes ringRotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.sd-online{animation:onlinePulse 2.2s ease-in-out infinite}.sd-avatar-ring{animation:ringRotate 8s linear infinite}
+.sd-hide-scrollbar::-webkit-scrollbar{display:none}.sd-hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:rgba(0,0,0,0.05);border-radius:99px}::-webkit-scrollbar-thumb{background:rgba(100,116,139,0.3);border-radius:99px}
+
