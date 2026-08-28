@@ -788,18 +788,75 @@ export default function StudentDashboard() {
       }
     });
 
+    // Pre-index book tests by bookId
+    const bookTestsByBookIdMap = new Map();
+    (bookTests || []).forEach(bt => {
+      const bId = String(bt.bookId || bt.book_id || '');
+      if (bId) {
+        if (!bookTestsByBookIdMap.has(bId)) bookTestsByBookIdMap.set(bId, []);
+        bookTestsByBookIdMap.get(bId).push(bt);
+      }
+      const bUuid = toUUID(bId);
+      if (bUuid && bUuid !== bId) {
+        if (!bookTestsByBookIdMap.has(bUuid)) bookTestsByBookIdMap.set(bUuid, []);
+        bookTestsByBookIdMap.get(bUuid).push(bt);
+      }
+      if (bt.bookTitle) {
+        const cleanTitle = String(bt.bookTitle).toLowerCase().trim();
+        if (!bookTestsByBookIdMap.has(cleanTitle)) bookTestsByBookIdMap.set(cleanTitle, []);
+        bookTestsByBookIdMap.get(cleanTitle).push(bt);
+      }
+    });
+
+    // Pre-index all matching student submissions
+    const allMatchingSubs = [...studentSubs];
+    (homeworks || []).forEach(hw => {
+      if (Array.isArray(hw.submissions)) {
+        hw.submissions.forEach(s => {
+          if (!s || s.status === 'in_progress' || s.status === 'draft') return;
+          const sid = String(s.studentId || s.student_id || s.user_id || '');
+          if (allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)))) {
+            allMatchingSubs.push(s);
+          }
+        });
+      }
+    });
+
+    const solvedSubsMap = new Map();
+    allMatchingSubs.forEach(s => {
+      const matchIds = [
+        s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
+        s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
+      ];
+      if (Array.isArray(s.bookTestIds)) matchIds.push(...s.bookTestIds);
+      matchIds.forEach(id => {
+        if (!id) return;
+        const strId = String(id);
+        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '');
+        const uuid = toUUID(strId);
+        
+        const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
+        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(strId, s);
+          solvedSubsMap.set(cleanId, s);
+          if (uuid) solvedSubsMap.set(uuid, s);
+        }
+      });
+    });
+
     // Compute statistics for each book
     const list = Object.values(bookMap).map((book, idx) => {
       const bId = String(book.id);
       const bUuid = toUUID(bId);
       const bTitle = String(book.title || '').toLowerCase().trim();
 
-      const testsInBookRaw = (bookTests || []).filter(bt => {
-        const btBId = String(bt.bookId || bt.book_id || '');
-        if (btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid)) return true;
-        if (bt.bookTitle && String(bt.bookTitle).toLowerCase().trim() === bTitle) return true;
-        return false;
-      });
+      const testsInBookRaw = [
+        ...(bookTestsByBookIdMap.get(bId) || []),
+        ...(bUuid && bUuid !== bId ? (bookTestsByBookIdMap.get(bUuid) || []) : []),
+        ...(bookTestsByBookIdMap.get(bTitle) || [])
+      ];
 
       // Deduplicate tests by subject + topic + name
       const testsInBook = [];
@@ -823,52 +880,22 @@ export default function StudentDashboard() {
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
-        const tName = String(t.name || '').toLowerCase().trim();
 
-        const subjects = book.raw_data?.subjects || book.subjects || [];
-        let sName = '';
-        let topName = '';
-        if (Array.isArray(subjects)) {
-          const matchedSubj = subjects.find(s => String(s.id) === String(t.subjectId || t.subject_id));
-          if (matchedSubj) {
-            sName = String(matchedSubj.name || '').toLowerCase().trim();
-            const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
-            if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
-          }
-        }
-
-        const solvedSubs = studentSubs.filter(s => isSubmissionMatchingBookTest(s, t, bookTests, books));
-
-        let hwSub = null;
-        for (const hw of homeworks) {
-          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
-          const match = hw.submissions.find(s => {
-            const sid = String(s.studentId || s.student_id || s.user_id || '');
-            const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
-            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            return isSubmissionMatchingBookTest(s, t, bookTests, books);
-          });
-          if (match) {
-            hwSub = match;
-            break;
-          }
-        }
-
-        const isCompleted = solvedSubs.length > 0 || !!hwSub;
-        if (isCompleted) {
-          totalSolvedTests++;
-          let bestSub = null;
-          if (solvedSubs.length > 0) {
-            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
-          } else if (hwSub) {
-            bestSub = hwSub;
-          }
-
+        let bestSub = solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId) || (tUuidStr ? solvedSubsMap.get(tUuidStr) : null);
+        
+        if (!bestSub) {
+          bestSub = allMatchingSubs.find(s => isSubmissionMatchingBookTest(s, t, bookTests, books));
           if (bestSub) {
-            totalCorrect += Number(bestSub.correctCount ?? bestSub.correct ?? 0);
-            totalWrong += Number(bestSub.wrongCount ?? bestSub.wrong ?? 0);
-            totalBlank += Number(bestSub.emptyCount ?? bestSub.blankCount ?? bestSub.blank ?? 0);
+            solvedSubsMap.set(tIdStr, bestSub);
+            solvedSubsMap.set(tCleanId, bestSub);
           }
+        }
+
+        if (bestSub) {
+          totalSolvedTests++;
+          totalCorrect += Number(bestSub.correctCount ?? bestSub.correct ?? 0);
+          totalWrong += Number(bestSub.wrongCount ?? bestSub.wrong ?? 0);
+          totalBlank += Number(bestSub.emptyCount ?? bestSub.blankCount ?? bestSub.blank ?? 0);
         } else if (!nextTest) {
           nextTest = t;
         }
@@ -1237,6 +1264,41 @@ export default function StudentDashboard() {
         return isHomeworkForStudent(hw, selectedStudent, gradesList);
       });
 
+      // Pre-index sets & maps for 100x faster lookups across days
+      const validHwIdSet = new Set();
+      (homeworks || []).forEach(h => {
+        if (!h?.id) return;
+        validHwIdSet.add(String(h.id));
+        const u = toUUID(h.id);
+        if (u) validHwIdSet.add(u);
+      });
+
+      const validBtIdSet = new Set();
+      (bookTests || []).forEach(b => {
+        if (!b?.id) return;
+        validBtIdSet.add(String(b.id));
+        const u = toUUID(b.id);
+        if (u) validBtIdSet.add(u);
+      });
+
+      const validQIdSet = new Set();
+      (questions || []).forEach(q => {
+        if (!q?.id) return;
+        validQIdSet.add(String(q.id));
+        const u = toUUID(q.id);
+        if (u) validQIdSet.add(u);
+      });
+
+      const studyAssignmentMap = new Map();
+      (studyAssignments || []).forEach(a => {
+        if (a?.id) studyAssignmentMap.set(String(a.id), a);
+      });
+
+      const studyPlanMap = new Map();
+      (studyPlans || []).forEach(p => {
+        if (p?.id) studyPlanMap.set(String(p.id), p);
+      });
+
       const allDailyItems = [];
       if (Array.isArray(rawProg)) {
         rawProg.forEach(dObj => {
@@ -1332,21 +1394,16 @@ export default function StudentDashboard() {
           }
         });
 
-        // Filter out manual/program items referencing deleted homeworks, book tests, or deleted study plans/roadmaps
+        // Filter out manual/program items referencing deleted homeworks, book tests, or deleted study plans/roadmaps using fast O(1) Sets
         dayManualItems = dayManualItems.filter(item => {
-          if (item.hwId) {
-            const hasHw = (homeworks || []).some(h => String(h.id) === String(item.hwId) || toUUID(h.id) === toUUID(item.hwId));
-            if (!hasHw) return false;
-          }
+          if (item.hwId && !validHwIdSet.has(String(item.hwId))) return false;
           if (item.testId && !item.hwId && item.type !== 'remedialTest' && !item.isRemedial && !item.isTeacherRemedial && !item.isSpacedRepetition) {
-            const hasBt = (bookTests || []).some(bt => String(bt.id) === String(item.testId) || toUUID(bt.id) === toUUID(item.testId));
-            const hasBankQ = (questions || []).some(q => String(q.id) === String(item.testId) || toUUID(q.id) === toUUID(item.testId));
-            if (!hasBt && !hasBankQ) return false;
+            if (!validBtIdSet.has(String(item.testId)) && !validQIdSet.has(String(item.testId))) return false;
           }
           if (item.roadmapAssignmentId || item.isRoadmapTask || item.taskType === 'yol_haritasi' || item.taskType === 'konu') {
-            const assignment = (studyAssignments || []).find(a => String(a?.id) === String(item.roadmapAssignmentId));
+            const assignment = studyAssignmentMap.get(String(item.roadmapAssignmentId));
             if (!assignment) return false;
-            const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId || assignment.study_plan_id));
+            const plan = studyPlanMap.get(String(assignment.planId || assignment.studyPlanId || assignment.study_plan_id));
             if (!plan) return false;
           }
           return true;

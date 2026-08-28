@@ -18,7 +18,7 @@ import {
   extractItemDate
 } from '../utils/dateHelpers';
 
-export default function PeriodicQuestionAnalytics({
+const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics({
   homeworkSubmissions = [],
   mockExams = [],
   studentName = 'Öğrenci'
@@ -1382,4 +1382,6 @@ export default function PeriodicQuestionAnalytics({
 
     </div>
   );
-}
+});
+
+export default PeriodicQuestionAnalytics;
