@@ -2051,45 +2051,79 @@ export default function StudentDashboard() {
 
     const todayYMD = formatLocalYMD(nowZero);
 
+    // All submissions combined (submissions table + hw.submissions)
+    const allSubs = [...(submissions || [])];
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(s => {
+        if (s && !allSubs.some(x => x.id === s.id)) {
+          allSubs.push(s);
+        }
+      });
+    });
+
     const isItemSolved = (item) => {
       if (!item) return false;
       if (item.done || item.isCompleted) return true;
       const tId = item.testId || item.bookTestId || item.realTestId || item.id;
-      const tIdClean = String(tId || '').replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-      const tIdUuid = toUUID(tId);
+      const tIdStr = String(tId || '');
+      const tCleanId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+      const tUuidStr = String(toUUID(tIdStr) || '');
 
-      const itemTitle = String(item.testName || item.title || item.name || '').toLocaleLowerCase('tr').trim();
-      const itemSubj = String(item.subject || '').toLocaleLowerCase('tr').trim();
-      const itemTopic = String(item.unitTopic || item.topic || '').toLocaleLowerCase('tr').trim();
+      const tName = String(item.testName || item.title || item.name || '').toLocaleLowerCase('tr').trim();
+      const sName = String(item.subject || '').toLocaleLowerCase('tr').trim();
+      const topName = String(item.unitTopic || item.topic || '').toLocaleLowerCase('tr').trim();
 
-      return (submissions || []).some(s => {
+      return allSubs.some(s => {
         if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-        const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
-        if (sid !== studentId && toUUID(sid) !== toUUID(studentId)) return false;
+        const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        if (sStdId && sStdId !== studentId && toUUID(sStdId) !== toUUID(studentId)) return false;
 
-        const sTestId = String(s.test_id || s.testId || s.realTestId || s.bookTestId || '');
-        const sClean = sTestId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-        const sUuid = toUUID(sTestId);
-
-        if (tId && (sTestId === String(tId) || sClean === tIdClean || (tIdUuid && sUuid === tIdUuid))) return true;
-
-        const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
+        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLocaleLowerCase('tr').trim();
+        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLocaleLowerCase('tr').trim();
         const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
 
-        if (itemTitle && itemTitle.length > 3 && itemTitle !== 'test' && itemTitle !== 'kitap testi') {
-          if (sTitle.includes(itemTitle) || cleanSTitle === itemTitle) {
-            if (itemSubj && itemSubj !== 'genel testler' && sTitle.includes('—')) {
-              const sSubj = String(s.subject || '').toLocaleLowerCase('tr').trim();
-              if (sSubj && sSubj !== itemSubj && !sTitle.includes(itemSubj)) return false;
+        const matchFields = [
+          String(s.testId || ''),
+          String(s.test_id || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || ''),
+          String(meta?.realTestId || ''),
+          String(meta?.bookTestId || '')
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String));
+        }
+
+        const isDirectMatch = matchFields.some(f => f && (
+          f === tIdStr ||
+          f === tCleanId ||
+          f.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '') === tCleanId ||
+          (tUuidStr && f === tUuidStr) ||
+          toUUID(f) === tIdStr ||
+          (tUuidStr && toUUID(f) === tUuidStr)
+        ));
+
+        let isNameMatch = false;
+        if (!isDirectMatch && tName) {
+          if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+            isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
+          } else {
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 5 && sTitle.includes(tName));
+            if (isTestNameMatch) {
+              const isSubjectMatch = !sName || sName === 'ders' || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && topName !== 'genel konu') {
+                  isNameMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                } else {
+                  isNameMatch = cleanSTitle === tName || sTitle.includes(tName);
+                }
+              }
             }
-            if (itemTopic && itemTopic !== 'genel konu') {
-              const sTopic = String(s.unitTopic || s.topic || '').toLocaleLowerCase('tr').trim();
-              if (sTopic && sTopic !== itemTopic && !sTitle.includes(itemTopic)) return false;
-            }
-            return true;
           }
         }
-        return false;
+
+        return isDirectMatch || isNameMatch;
       });
     };
 
