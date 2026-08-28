@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -12,6 +13,8 @@ import { LocalNotifications } from '@capacitor/local-notifications';
  */
 export async function initNativeApp(navigate) {
   try {
+    if (!Capacitor.isNativePlatform()) return;
+
     // 1. Hide Splash Screen after app load
     await SplashScreen.hide().catch(() => {});
 
@@ -28,7 +31,7 @@ export async function initNativeApp(navigate) {
       }
     });
 
-    // 4. Request Notification permissions
+    // 4. Request Notification permissions (only on native Android/iOS app)
     await LocalNotifications.requestPermissions().catch(() => {});
   } catch (e) {
     console.warn('[NativeMobile] Initialization notice:', e?.message);
