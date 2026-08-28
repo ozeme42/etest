@@ -2049,6 +2049,8 @@ export default function StudentDashboard() {
     const nowTime = nowZero.getTime();
     const studentId = String(selectedStudent.id);
 
+    const todayYMD = formatLocalYMD(nowZero);
+
     const isItemSolved = (item) => {
       if (!item) return false;
       if (item.done || item.isCompleted) return true;
@@ -2072,8 +2074,10 @@ export default function StudentDashboard() {
         if (tId && (sTestId === String(tId) || sClean === tIdClean || (tIdUuid && sUuid === tIdUuid))) return true;
 
         const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
+        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+
         if (itemTitle && itemTitle.length > 3 && itemTitle !== 'test' && itemTitle !== 'kitap testi') {
-          if (sTitle.includes(itemTitle)) {
+          if (sTitle.includes(itemTitle) || cleanSTitle === itemTitle) {
             if (itemSubj && itemSubj !== 'genel testler' && sTitle.includes('—')) {
               const sSubj = String(s.subject || '').toLocaleLowerCase('tr').trim();
               if (sSubj && sSubj !== itemSubj && !sTitle.includes(itemSubj)) return false;
@@ -2115,6 +2119,115 @@ export default function StudentDashboard() {
           }
         });
       }
+    });
+
+    // 2. KİTAP TAKİBİNDEN / KİTAP ÖDEVLERİNDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
+    (homeworks || []).forEach(hw => {
+      const testDueDatesMap = {
+        ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
+      };
+
+      const allGenuineTests = [];
+      const seenTestIds = new Set();
+
+      const bookObj = (books || []).find(b => 
+        String(b.id) === String(hw.bookId || hw.book_id) || 
+        toUUID(b.id) === toUUID(hw.bookId || hw.book_id) ||
+        (hw.title && String(b.title).toLowerCase().trim().includes(String(hw.title).toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim())) ||
+        (hw.title && String(hw.title).toLowerCase().trim().includes(String(b.title).toLowerCase().trim()))
+      );
+
+      if (bookObj?.subjects && Array.isArray(bookObj.subjects)) {
+        bookObj.subjects.forEach(s => {
+          (s.tests || []).forEach(t => {
+            const tid = String(t.id);
+            if (!seenTestIds.has(tid)) {
+              seenTestIds.add(tid);
+              allGenuineTests.push({ ...t, subjectName: s.name, topicName: '' });
+            }
+          });
+          (s.topics || []).forEach(tp => {
+            (tp.tests || []).forEach(t => {
+              const tid = String(t.id);
+              if (!seenTestIds.has(tid)) {
+                seenTestIds.add(tid);
+                allGenuineTests.push({ ...t, subjectName: s.name, topicName: tp.name });
+              }
+            });
+          });
+        });
+      }
+
+      (bookTests || []).filter(bt => 
+        String(bt.bookId || bt.book_id) === String(hw.bookId || bookObj?.id) || 
+        toUUID(bt.bookId || bt.book_id) === toUUID(hw.bookId || bookObj?.id)
+      ).forEach(bt => {
+        const tid = String(bt.id);
+        if (!seenTestIds.has(tid)) {
+          seenTestIds.add(tid);
+          allGenuineTests.push(bt);
+        }
+      });
+
+      allGenuineTests.forEach(testItem => {
+        const tidStr = String(testItem.id);
+        const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tidUuid = String(toUUID(tidStr) || '');
+
+        const tDateStr = testDueDatesMap[tidStr] ||
+          (tidUuid && testDueDatesMap[tidUuid]) ||
+          testDueDatesMap[tidClean] ||
+          testDueDatesMap[`bt_${tidClean}`] ||
+          testDueDatesMap[`bt_${tidStr}`] ||
+          testItem.dueDate || testItem.testDueDate || testItem.date;
+
+        if (!tDateStr) return;
+        const tYMD = extractItemYMD(tDateStr);
+        if (tYMD && tYMD < todayYMD) {
+          const info = resolveBookTestInfo(testItem.id, hw, bookObj);
+          let testName = info?.testName || testItem.name || 'Test';
+          if (!testName || testName === 'Testi' || testName === info?.cleanBookTitle) {
+            if (testItem.name && testItem.name !== 'Test' && testItem.name !== 'Kitap Testi') {
+              testName = testItem.name;
+            } else {
+              return;
+            }
+          }
+
+          const itemObj = {
+            id: `auto_hw_${hw.id}_${testItem.id}`,
+            hwId: hw.id,
+            testId: testItem.id,
+            bookTestId: testItem.id,
+            bookId: hw.bookId || hw.book_id || info?.currentBook?.id || bookObj?.id,
+            isAutoHomework: true,
+            isBookTask: true,
+            taskType: 'kitap',
+            categoryType: 'kitap',
+            subject: info?.subjectName || testItem.subjectName || testItem.subject || 'Ders',
+            unitTopic: info?.topicName || testItem.topicName || testItem.topic || '',
+            bookTitle: info?.cleanBookTitle || bookObj?.title || hw.title,
+            testName: testName,
+            title: `${testName}${info?.topicName ? ` (${info.topicName})` : ''}`,
+            questionCount: `${info?.qCount || testItem.questionCount || 10} soru`,
+            time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+            dueDateStr: new Date(tDateStr).toLocaleDateString('tr-TR'),
+            dueDateObj: new Date(tDateStr),
+            isCatchUp: true,
+            reason: `📖 Kitap Testi Gecikti (Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')})`
+          };
+
+          if (!isItemSolved(itemObj) && !isTaskDismissed(itemObj)) {
+            const key = `book_due_${itemObj.bookId || hw.id}_${itemObj.testId}`;
+            const cleanKey = `${itemObj.bookTitle}_${itemObj.subject}_${itemObj.testName}`;
+            if (!seen.has(key) && !seen.has(cleanKey)) {
+              seen.add(key);
+              seen.add(cleanKey);
+              list.push(itemObj);
+            }
+          }
+        }
+      });
     });
 
     // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
@@ -2193,7 +2306,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed, submissions, bookTests]);
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
