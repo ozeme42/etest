@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
-export default function DashboardRoadmapCard({
+const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
   isMobile,
   isDark,
   myRoadmaps = [],
@@ -87,4 +87,6 @@ export default function DashboardRoadmapCard({
       )}
     </div>
   );
-}
+});
+
+export default DashboardRoadmapCard;

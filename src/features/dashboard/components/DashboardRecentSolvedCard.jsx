@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, ChevronRight, CheckCircle2, Award } from 'lucide-react';
 
-export default function DashboardRecentSolvedCard({
+const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard({
   isMobile,
   recentSolvedTests = [],
   onOpenManualModal,
@@ -285,4 +285,6 @@ export default function DashboardRecentSolvedCard({
       )}
     </div>
   );
-}
+});
+
+export default DashboardRecentSolvedCard;

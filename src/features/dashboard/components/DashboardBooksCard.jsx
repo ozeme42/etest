@@ -41,7 +41,7 @@ function MiniCircularProgress({ pct = 0, size = 44, stroke = 4.5, color = '#6366
   );
 }
 
-export default function DashboardBooksCard({
+const DashboardBooksCard = React.memo(function DashboardBooksCard({
   isMobile,
   isDark,
   assignedBooksList = [],
@@ -313,4 +313,6 @@ export default function DashboardBooksCard({
       )}
     </div>
   );
-}
+});
+
+export default DashboardBooksCard;

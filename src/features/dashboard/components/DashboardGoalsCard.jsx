@@ -1,7 +1,7 @@
 import React from 'react';
 import { Target, ChevronRight, Plus } from 'lucide-react';
 
-export default function DashboardGoalsCard({
+const DashboardGoalsCard = React.memo(function DashboardGoalsCard({
   isMobile,
   goalTrackingData = { visualGoals: [], daily: [], weekly: [], monthly: [], hasAnyGoals: false, totalItemsCount: 0 },
   solvedQuestionsStats = { today: 0 },
@@ -268,4 +268,6 @@ export default function DashboardGoalsCard({
       )}
     </div>
   );
-}
+});
+
+export default DashboardGoalsCard;

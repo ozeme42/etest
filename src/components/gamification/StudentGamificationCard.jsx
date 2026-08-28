@@ -7,7 +7,7 @@ import { computeStudentGamificationData } from '../../services/gamificationServi
 import GamificationModal from './GamificationModal';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function StudentGamificationCard({
+const StudentGamificationCard = React.memo(function StudentGamificationCard({
   student,
   submissions = [],
   homeworks = [],
@@ -276,4 +276,6 @@ export default function StudentGamificationCard({
       )}
     </>
   );
-}
+});
+
+export default StudentGamificationCard;
