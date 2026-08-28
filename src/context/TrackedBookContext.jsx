@@ -77,7 +77,7 @@ export function TrackedBookProvider({ children }) {
       return null;
     }
     
-    if (!force && isCacheValid('tracked_books', 30) && books.length > 0) {
+    if (!force && isCacheValid('tracked_books', 30) && books.length > 0 && bookTests.length > 200) {
       setIsLoading(false);
       return { books, bookTests };
     }
@@ -92,9 +92,15 @@ export function TrackedBookProvider({ children }) {
             ...b,
             bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
           }));
-          setBooks(deduplicateBooks(cleanBooks));
+          const deduped = deduplicateBooks(cleanBooks);
+          setBooks(deduped);
+          safeSetItem('eTestTrackedBooks', JSON.stringify(deduped));
         }
-        if (res.bookTests) setBookTests(deduplicateTests(res.bookTests));
+        if (res.bookTests) {
+          const dedupedTests = deduplicateTests(res.bookTests);
+          setBookTests(dedupedTests);
+          safeSetItem('eTestTrackedBookTests', JSON.stringify(dedupedTests));
+        }
       }
       return res;
     } finally {
@@ -103,7 +109,7 @@ export function TrackedBookProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshTrackedBooks();
+    refreshTrackedBooks(true);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
