@@ -338,7 +338,10 @@ export default function StudentBooksPage() {
           if (isDirect) return true;
 
           if (tName) {
-            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            }
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
             if (isTestNameMatch) {
               const subjects = b.raw_data?.subjects || b.subjects || [];
               let sName = '';
@@ -351,13 +354,13 @@ export default function StudentBooksPage() {
                   if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
                 }
               }
-              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
               if (isSubjectMatch) {
-                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                if (topName) {
                   const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch || !sTitle.includes('›');
+                  return isTopicMatch;
                 }
-                return true;
+                return cleanSTitle === tName;
               }
             }
           }
@@ -418,7 +421,10 @@ export default function StudentBooksPage() {
           if (isDirect) return true;
 
           if (tName) {
-            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            }
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
             if (isTestNameMatch) {
               const subjects = b.raw_data?.subjects || b.subjects || [];
               let sName = '';
@@ -431,13 +437,13 @@ export default function StudentBooksPage() {
                   if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
                 }
               }
-              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
               if (isSubjectMatch) {
-                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                if (topName) {
                   const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch || !sTitle.includes('›');
+                  return isTopicMatch;
                 }
-                return true;
+                return cleanSTitle === tName;
               }
             }
           }

@@ -883,15 +883,19 @@ export default function StudentDashboard() {
 
           let isNameMatch = false;
           if (!isDirectMatch && tName) {
-            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
-            if (isTestNameMatch) {
-              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
-              if (isSubjectMatch) {
-                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
-                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  isNameMatch = isTopicMatch || !sTitle.includes('›');
-                } else {
-                  isNameMatch = true;
+            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+              isNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            } else {
+              const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
+              if (isTestNameMatch) {
+                const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
+                if (isSubjectMatch) {
+                  if (topName) {
+                    const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                    isNameMatch = isTopicMatch;
+                  } else {
+                    isNameMatch = cleanSTitle === tName;
+                  }
                 }
               }
             }
@@ -914,15 +918,20 @@ export default function StudentDashboard() {
             const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
             const sSubj = String(s.subject || s.subjectName || '').toLowerCase().trim();
             const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-            const isTestNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+
+            if (tName.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+              return cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            }
+
+            const isTestNameMatch = cleanSTitle === tName || (cleanSTitle.length > 8 && (sTitle.includes(tName) || tName.includes(cleanSTitle)));
             if (isTestNameMatch) {
-              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              const isSubjectMatch = sName && (sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj));
               if (isSubjectMatch) {
-                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                if (topName) {
                   const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
-                  return isTopicMatch || !sTitle.includes('›');
+                  return isTopicMatch;
                 }
-                return true;
+                return cleanSTitle === tName;
               }
             }
             return false;
