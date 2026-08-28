@@ -700,9 +700,9 @@ export async function dbGetSubmissions(studentId) {
         teacherFeedback: s.teacher_feedback || null,
         totalScorePoints: s.total_score_points || null,
         maxPossibleScore: s.max_possible_score || null,
-        answers: (s.answers || []).filter(a => a.type !== 'metadata'),
+        answers: answersArr.filter(a => a?.type !== 'metadata'),
         mistakeReasons: meta?.mistakeReasons || s.mistake_reasons || null,
-        bookTestId: meta?.bookTestId || null,
+        bookTestId: meta?.bookTestId || meta?.realTestId || s.test_id,
         bookTestIds: meta?.bookTestIds || [],
         questions: s.questions || [],
         contentPayload: s.content_payload || null,
@@ -724,7 +724,11 @@ export async function dbSaveSubmission(sub) {
   if (!isSupabaseConfigured()) return null;
   try {
     const rawMistakeReasons = sub.mistakeReasons || null;
-    const cleanAnswers = (sub.answers || []).filter(a => a.type !== 'metadata').map(a => {
+    let subAnswersArr = sub.answers;
+    if (typeof subAnswersArr === 'string') {
+      try { subAnswersArr = JSON.parse(subAnswersArr); } catch {}
+    }
+    const cleanAnswers = (Array.isArray(subAnswersArr) ? subAnswersArr : []).filter(a => a?.type !== 'metadata').map(a => {
       const qNo = a.questionNo;
       const r = (rawMistakeReasons && qNo && rawMistakeReasons[qNo]) ? rawMistakeReasons[qNo] : a.reason || a.mistakeReason || null;
       return r ? { ...a, reason: r, mistakeReason: r } : a;
