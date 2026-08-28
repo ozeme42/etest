@@ -891,14 +891,29 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     setCurrentPage(1);
   }, [searchQuery, subjectFilter, typeFilter, startDate, endDate, selectedStudent, tableSortBy]);
 
+  // Helper to reliably extract score percentage for sorting
+  const getItemScore = (s) => {
+    if (!s) return 0;
+    if (typeof s.computedScore === 'number' && !isNaN(s.computedScore) && s.computedScore > 0) return s.computedScore;
+    if (typeof s.scorePercentage === 'number' && !isNaN(s.scorePercentage) && s.scorePercentage > 0) return s.scorePercentage;
+    const c = Number(s.correctCount) || 0;
+    const w = Number(s.wrongCount) || 0;
+    const b = Number(s.blankCount ?? s.emptyCount) || 0;
+    const tot = c + w + b || Number(s.totalQuestions) || 0;
+    if (tot > 0) return Math.min(100, Math.max(0, Math.round((c / tot) * 100)));
+    const raw = Number(s.score);
+    if (!isNaN(raw) && raw > 0) return Math.min(100, Math.round(raw));
+    return 0;
+  };
+
   /* ── Sorted submissions for 'all' tab ─── */
   const sortedSubs = useMemo(() => {
     const list = [...filteredSubs];
     return list.sort((a, b) => {
-      const scoreA = Number(a.scorePercentage ?? a.computedScore ?? 0);
-      const scoreB = Number(b.scorePercentage ?? b.computedScore ?? 0);
-      const totQA = (Number(a.correctCount) || 0) + (Number(a.wrongCount) || 0) + (Number(a.blankCount ?? a.emptyCount) || 0);
-      const totQB = (Number(b.correctCount) || 0) + (Number(b.wrongCount) || 0) + (Number(b.blankCount ?? b.emptyCount) || 0);
+      const scoreA = getItemScore(a);
+      const scoreB = getItemScore(b);
+      const totQA = (Number(a.correctCount) || 0) + (Number(a.wrongCount) || 0) + (Number(a.blankCount ?? a.emptyCount) || 0) || Number(a.totalQuestions) || 0;
+      const totQB = (Number(b.correctCount) || 0) + (Number(b.wrongCount) || 0) + (Number(b.blankCount ?? b.emptyCount) || 0) || Number(b.totalQuestions) || 0;
       const dateA = new Date(a.date || a.submittedAt || a.createdAt || 0).getTime();
       const dateB = new Date(b.date || b.submittedAt || b.createdAt || 0).getTime();
       const titleA = String(a.testTitle || a.bookTitle || a.title || '');
@@ -906,13 +921,17 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
       switch (tableSortBy) {
         case 'score_desc':
-          return scoreB - scoreA || dateB - dateA;
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          return dateB - dateA;
         case 'score_asc':
-          return scoreA - scoreB || dateB - dateA;
+          if (scoreA !== scoreB) return scoreA - scoreB;
+          return dateB - dateA;
         case 'questions_desc':
-          return totQB - totQA || dateB - dateA;
+          if (totQB !== totQA) return totQB - totQA;
+          return dateB - dateA;
         case 'questions_asc':
-          return totQA - totQB || dateB - dateA;
+          if (totQA !== totQB) return totQA - totQB;
+          return dateB - dateA;
         case 'date_asc':
           return dateA - dateB;
         case 'name_asc':
