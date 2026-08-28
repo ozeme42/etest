@@ -857,6 +857,14 @@ export default function PdfQuestionSlicerModal({
     return result;
   }, [bookMistakesList]);
 
+  // Hızlı Ders Filtresi ('all' veya spesifik ders)
+  const [selectedGuideSubject, setSelectedGuideSubject] = useState('all');
+
+  const filteredGroupedMistakesTree = useMemo(() => {
+    if (selectedGuideSubject === 'all') return groupedMistakesTree;
+    return groupedMistakesTree.filter(sg => sg.subjectName === selectedGuideSubject);
+  }, [groupedMistakesTree, selectedGuideSubject]);
+
   // Akordiyon Açık/Kapalı Durumları (Varsayılan olarak kapalıdır)
   const [openSubjects, setOpenSubjects] = useState({});
   const [openUnits, setOpenUnits] = useState({});
@@ -1602,9 +1610,10 @@ export default function PdfQuestionSlicerModal({
           {showMistakesGuide && (
             <div
               style={{
-                width: 300,
-                minWidth: 300,
-                maxWidth: 300,
+                width: 320,
+                minWidth: 320,
+                maxWidth: 320,
+                flex: '0 0 320px',
                 height: '100%',
                 maxHeight: '100%',
                 minHeight: 0,
@@ -1657,6 +1666,65 @@ export default function PdfQuestionSlicerModal({
                 </div>
               </div>
 
+              {/* HIZLI DERS FİLTRELEME BUTONLARI (TÜMÜ / TÜRKÇE / MATEMATİK / FEN / SOSYAL) */}
+              {groupedMistakesTree.length > 1 && (
+                <div
+                  style={{
+                    padding: '0.35rem 0.55rem',
+                    borderBottom: '1px solid var(--color-border)',
+                    background: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+                    display: 'flex',
+                    gap: 4,
+                    overflowX: 'auto',
+                    flexShrink: 0
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGuideSubject('all')}
+                    style={{
+                      padding: '2px 7px',
+                      borderRadius: 6,
+                      border: selectedGuideSubject === 'all' ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                      background: selectedGuideSubject === 'all' ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff') : 'transparent',
+                      color: selectedGuideSubject === 'all' ? '#4f46e5' : 'var(--color-text-muted)',
+                      fontSize: '0.66rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Tümü ({bookMistakesList.length})
+                  </button>
+                  {groupedMistakesTree.map(sg => {
+                    const isSel = selectedGuideSubject === sg.subjectName;
+                    return (
+                      <button
+                        key={sg.subjectName}
+                        type="button"
+                        onClick={() => {
+                          setSelectedGuideSubject(sg.subjectName);
+                          setOpenSubjects(prev => ({ ...prev, [sg.subjectName]: true }));
+                        }}
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: 6,
+                          border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                          background: isSel ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff') : 'transparent',
+                          color: isSel ? '#4f46e5' : 'var(--color-text-muted)',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {sg.subjectName} ({sg.totalTests})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {activeTargetQuestion && (
                 <div style={{ padding: '0.45rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1670,21 +1738,19 @@ export default function PdfQuestionSlicerModal({
 
               {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER (ÖZEL KAYDIRMA ALANI) */}
               <div
+                className="slicer-mistakes-scroll"
                 style={{
-                  flex: '1 1 0%',
-                  height: '100%',
+                  flex: '1 1 0px',
                   minHeight: 0,
-                  maxHeight: '100%',
-                  overflowY: 'auto',
+                  overflowY: 'scroll',
                   overflowX: 'hidden',
-                  overscrollBehavior: 'contain',
                   padding: '0.45rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6
                 }}
               >
-                {groupedMistakesTree.map(sGroup => {
+                {filteredGroupedMistakesTree.map(sGroup => {
                   const sStyle = getSubjectBadgeStyle(sGroup.subjectName, isDark);
                   const isSubjOpen = Boolean(openSubjects[sGroup.subjectName]);
 
