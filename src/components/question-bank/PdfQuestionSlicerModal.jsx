@@ -1555,18 +1555,22 @@ export default function PdfQuestionSlicerModal({
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 0, height: '100%', display: 'flex', overflow: 'hidden', position: 'relative' }}>
           
           {/* SOL PANEL: YANLIŞLAR KILAVUZU AKORDİYONU */}
           {showMistakesGuide && (
             <div
               style={{
                 width: 290,
+                height: '100%',
+                maxHeight: '100%',
+                minHeight: 0,
                 borderRight: '1.5px solid var(--color-border)',
                 background: isDark ? '#0c111d' : '#f8fafc',
                 display: 'flex',
                 flexDirection: 'column',
-                flexShrink: 0
+                flexShrink: 0,
+                overflow: 'hidden'
               }}
             >
               <div
@@ -1577,7 +1581,8 @@ export default function PdfQuestionSlicerModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 4
+                  gap: 4,
+                  flexShrink: 0
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1610,7 +1615,7 @@ export default function PdfQuestionSlicerModal({
               </div>
 
               {activeTargetQuestion && (
-                <div style={{ padding: '0.45rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800 }}>
+                <div style={{ padding: '0.45rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     🎯 Sıradaki: <strong>{activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : ''}{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
                   </span>
@@ -1621,7 +1626,18 @@ export default function PdfQuestionSlicerModal({
               )}
 
               {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0.4rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  padding: '0.4rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 5
+                }}
+              >
                 {groupedMistakesTree.map(sGroup => {
                   const sStyle = getSubjectBadgeStyle(sGroup.subjectName, isDark);
                   const isSubjOpen = Boolean(openSubjects[sGroup.subjectName]);
@@ -2196,11 +2212,15 @@ export default function PdfQuestionSlicerModal({
             <div
               style={{
                 width: 320,
+                height: '100%',
+                maxHeight: '100%',
+                minHeight: 0,
                 borderLeft: '1.5px solid var(--color-border)',
                 background: 'var(--color-surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                flexShrink: 0
+                flexShrink: 0,
+                overflow: 'hidden'
               }}
             >
               <div
@@ -2209,7 +2229,8 @@ export default function PdfQuestionSlicerModal({
                   borderBottom: '1px solid var(--color-border)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6
+                  gap: 6,
+                  flexShrink: 0
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2270,7 +2291,7 @@ export default function PdfQuestionSlicerModal({
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {slicedQuestions.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.8rem', lineHeight: 1.5 }}>
                   PDF üzerinde farenizle soruyu seçip bırakın. Seçtiğiniz sorular otomatik olarak doğru cevaplarıyla buraya eklenecektir. ✂️
