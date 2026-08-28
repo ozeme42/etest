@@ -2177,7 +2177,7 @@ export default function StudentDashboard() {
       if (idx < todayIdx) {
         const dData = fullProcessedWeekMap[d.key];
         (dData?.items || []).forEach(item => {
-          if (!item.done && !isItemSolved(item) && !isTaskDismissed(item)) {
+          if (!item.done && !isItemSolved(item)) {
             if (!isAlreadySeen(item)) {
               addKeysToSeen(item);
               list.push({
@@ -2297,7 +2297,7 @@ export default function StudentDashboard() {
             reason: `📖 Kitap Testi Gecikti (Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')})`
           };
 
-          if (!isItemSolved(itemObj) && !isTaskDismissed(itemObj) && !isAlreadySeen(itemObj)) {
+          if (!isItemSolved(itemObj) && !isAlreadySeen(itemObj)) {
             addKeysToSeen(itemObj);
             list.push(itemObj);
           }
@@ -2348,7 +2348,7 @@ export default function StudentDashboard() {
               reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
             };
 
-            if (!isTaskDismissed(roadmapItem) && !isAlreadySeen(roadmapItem)) {
+            if (!isAlreadySeen(roadmapItem)) {
               addKeysToSeen(roadmapItem);
               list.push(roadmapItem);
             }
@@ -3476,11 +3476,9 @@ export default function StudentDashboard() {
                 activeDayConfig={DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0]}
                 dayProgramInfo={dayProgramInfo}
                 catchUpTasks={catchUpTasks}
-                dismissedCount={dismissedTaskKeys.length}
                 showAllDayTasks={showAllDayTasks}
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}
-                onDeleteTask={handleDeleteTask}
                 onTaskClick={(task) => {
                   if (!task) return;
                   if (task.roadmapAssignmentId) {
