@@ -1,11 +1,6 @@
 import { pdfjs } from 'react-pdf';
 
-if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-}
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export const DEFAULT_GEMINI_MODELS = [
   { id: 'gemini-3.6-flash', name: '⚡ Gemini 3.6 Flash (En Hızlı & En Kararlı • Önerilen)' },
