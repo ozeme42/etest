@@ -246,6 +246,13 @@ export default function BookContentManager() {
     if (refreshTrackedBooks) refreshTrackedBooks(true);
   }, []);
 
+  // Auto-reload tests if schedule modal opens while tests not yet fetched
+  React.useEffect(() => {
+    if (scheduleModalHw && tests.length === 0) {
+      fetchLiveDirect();
+    }
+  }, [scheduleModalHw]);
+
   // Book Settings Dialog State
   const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
   const [bookSettingsForm, setBookSettingsForm] = useState({ title: '', publisher: '', bookType: 'standard', optionCount: 5, pdfUrl: '' });
@@ -4240,6 +4247,22 @@ export default function BookContentManager() {
                       </button>
                     </div>
                   </div>
+
+                  {/* If tests not loaded yet, trigger fetch and show loading */}
+                  {tests.length === 0 && !isLiveLoading && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>⏳ Testler yükleniyor...</div>
+                      <button
+                        onClick={() => fetchLiveDirect()}
+                        style={{ padding: '0.5rem 1.2rem', borderRadius: '0.65rem', background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1.5px solid rgba(99,102,241,0.35)', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem' }}
+                      >🔄 Yeniden Yükle</button>
+                    </div>
+                  )}
+                  {tests.length === 0 && isLiveLoading && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)', fontSize: '0.95rem', fontWeight: 700 }}>
+                      ⏳ Yükleniyor...
+                    </div>
+                  )}
 
                   {book.subjects?.map(subj => {
                     const sId = String(subj.id || '');
