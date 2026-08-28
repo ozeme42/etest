@@ -640,6 +640,11 @@ export default function BookContentManager() {
       } else if (sId) {
         if (!directBySubject.has(sId)) directBySubject.set(sId, []);
         directBySubject.get(sId).push(t);
+        // Also index by UUID alias so tests stored with UUID subject_id are found
+        if (sUuid && sUuid !== sId) {
+          if (!directBySubject.has(sUuid)) directBySubject.set(sUuid, []);
+          directBySubject.get(sUuid).push(t);
+        }
       }
     });
 
@@ -2016,10 +2021,23 @@ export default function BookContentManager() {
               {book.subjects.map(subject => {
                 const topicsList = subject.topics || [];
                 const sId = String(subject.id || '');
+                const sIdUuid = toUUID(sId);
 
                 const directTests = sortTestsNaturally(
-                  testLookup.directBySubject.get(sId) || 
-                  (topicsList.length === 0 ? (testLookup.bySubject.get(sId) || []) : [])
+                  testLookup.directBySubject.get(sId) ||
+                  (sIdUuid ? testLookup.directBySubject.get(sIdUuid) : null) ||
+                  (topicsList.length === 0 ? (
+                    testLookup.bySubject.get(sId) ||
+                    (sIdUuid ? testLookup.bySubject.get(sIdUuid) : null) ||
+                    // Last resort: match by subject name
+                    tests.filter(t => {
+                      const tSubjId = String(t.subjectId || t.subject_id || '');
+                      if (!tSubjId) return false;
+                      const tSubjUuid = toUUID(tSubjId);
+                      return tSubjId === sId || tSubjId === sIdUuid || 
+                             (tSubjUuid && (tSubjUuid === sId || tSubjUuid === sIdUuid));
+                    })
+                  ) : [])
                 );
 
                 let totalSubjectTopicTests = 0;
