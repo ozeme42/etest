@@ -489,9 +489,37 @@ export default memo(function DashboardTodayTasks({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: hasCatchUp ? '#f59e0b' : '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>
-            <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
-            {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {hasCatchUp && onDeleteTask && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteTask('CLEAR_ALL_CATCHUP');
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: 8,
+                  padding: '3px 8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+                title="Tüm telafi görevlerini havuzdan temizle"
+              >
+                <Trash2 size={12} />
+                <span>Havuzu Temizle</span>
+              </button>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: hasCatchUp ? '#f59e0b' : '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>
+              <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
+              {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
           </div>
         </div>
 
@@ -731,6 +759,33 @@ export default memo(function DashboardTodayTasks({
                             }}
                           >
                             Tamamla
+                          </button>
+                        )}
+
+                        {onDeleteTask && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteTask(task);
+                            }}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              borderRadius: 8,
+                              width: isMobile ? 28 : 32,
+                              height: isMobile ? 28 : 32,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: 0,
+                              flexShrink: 0
+                            }}
+                            title="Bu görevi telafi havuzundan kaldır"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         )}
                       </div>

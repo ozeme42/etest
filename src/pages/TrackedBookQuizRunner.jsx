@@ -554,10 +554,29 @@ export default function TrackedBookQuizRunner() {
       // Match by Book & Test Name/Unit
       const isSameBook = String(s.bookId || '') === String(resolvedBook?.id) || (s.bookTitle && resolvedBook?.title && (s.bookTitle.includes(resolvedBook.title) || resolvedBook.title.includes(s.bookTitle)));
       if (isSameBook && resolvedTest?.name) {
-        const subTitleClean = String(s.testTitle || s.title || s.topic || s.unit || '').trim().toLowerCase();
+        const sTitleClean = String(s.testTitle || s.title || s.topic || s.unit || '').trim().toLowerCase();
         const tNameClean = String(resolvedTest.name || '').trim().toLowerCase();
-        if (subTitleClean === tNameClean || subTitleClean.endsWith(`(${tNameClean})`) || subTitleClean.includes(`› ${tNameClean}`) || subTitleClean.includes(`(${tNameClean})`)) {
-          return true;
+        const cleanSTitle = sTitleClean.replace(/^.*?—\s*/, '').trim();
+
+        if (tNameClean.includes('sayfa') || cleanSTitle.includes('sayfa')) {
+          if (cleanSTitle === tNameClean || sTitleClean.includes(tNameClean)) return true;
+        } else {
+          const isTestNameMatch = cleanSTitle === tNameClean || sTitleClean.includes(`(${tNameClean})`) || sTitleClean.endsWith(` ${tNameClean}`);
+          if (isTestNameMatch) {
+            const currentSubj = (resolvedBook?.subjects || []).find(sb => sb.id === (resolvedTest.subject_id || resolvedTest.subjectId) || toUUID(sb.id) === toUUID(resolvedTest.subject_id || resolvedTest.subjectId));
+            const subjName = (currentSubj?.name || resolvedTest.subjectName || resolvedTest.subject || '').toLowerCase().trim();
+            const sSubj = String(s.subject || s.subjectName || '').toLowerCase().trim();
+
+            const isSubjectMatch = !subjName || subjName === 'ders' || sTitleClean.includes(subjName) || sSubj.includes(subjName) || subjName.includes(sSubj);
+            if (isSubjectMatch) {
+              const currentTopic = currentSubj?.topics?.find(tp => tp.id === (resolvedTest.topic_id || resolvedTest.topicId) || toUUID(tp.id) === toUUID(resolvedTest.topic_id || resolvedTest.topicId));
+              const topicName = (currentTopic?.name || resolvedTest.topicName || resolvedTest.topic || '').toLowerCase().trim();
+              if (topicName && topicName !== 'genel konu') {
+                return sTitleClean.includes(topicName) || topicName.includes(sTitleClean.split('›')[1]?.split('(')[0]?.trim() || '');
+              }
+              return true;
+            }
+          }
         }
       }
 

@@ -2387,8 +2387,34 @@ export default function StudentDashboard() {
 
   const handleDeleteTask = async (task) => {
     if (!task) return;
+
+    if (task === 'CLEAR_ALL_CATCHUP' || task.isClearAllCatchUp) {
+      if (!window.confirm('Tüm telafi havuzundaki görevleri kaldırmak istediğinize emin misiniz?')) return;
+      const allKeys = [];
+      catchUpTasks.forEach(t => {
+        allKeys.push(
+          String(t.id || ''),
+          String(t.hwId || ''),
+          String(t.testId || ''),
+          String(t.realTestId || ''),
+          String(t.bookTestId || ''),
+          String(t.uniqueKey || ''),
+          String(t.title || ''),
+          `book_due_${t.bookId || t.hwId}_${t.testId}`
+        );
+      });
+      setDismissedTaskKeys(prev => {
+        const next = Array.from(new Set([...prev, ...allKeys.filter(Boolean)]));
+        try {
+          localStorage.setItem(`dismissed_tasks_${selectedStudent?.id || 'default'}`, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+      return;
+    }
+
     const taskTitle = task.testName || task.title || 'görev';
-    if (!window.confirm(`"${taskTitle}" görevini silmek istediğinize emin misiniz?`)) {
+    if (!window.confirm(`"${taskTitle}" görevini telafi havuzundan kaldırmak istediğinize emin misiniz?`)) {
       return;
     }
 
@@ -2400,7 +2426,8 @@ export default function StudentDashboard() {
       String(task.realTestId || ''),
       String(task.bookTestId || ''),
       String(task.uniqueKey || ''),
-      String(task.title || '')
+      String(task.title || ''),
+      `book_due_${task.bookId || task.hwId}_${task.testId}`
     ].filter(Boolean);
 
     setDismissedTaskKeys(prev => {
