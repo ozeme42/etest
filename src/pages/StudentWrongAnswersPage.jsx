@@ -885,26 +885,118 @@ export default function StudentWrongAnswersPage() {
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
   const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
 
-  // Spaced Repetition (Leitner) Flat Questions & Overview
+  // Spaced Repetition (Leitner) Flat Questions & Overview (STRICTLY ONLY Soru Bankası & Telafi Testleri)
   const allFlatWrongQuestions = useMemo(() => {
     const list = [];
+
+    // Create quick lookup maps for remedial and question bank tests
+    const remedialMap = new Map();
+    (remedialTests || []).forEach(rt => {
+      if (rt?.id) {
+        remedialMap.set(String(rt.id), rt);
+        if (toUUID(rt.id)) remedialMap.set(String(toUUID(rt.id)), rt);
+      }
+    });
+
+    const bankMap = new Map();
+    (bankQuestions || []).forEach(bq => {
+      if (bq?.id) {
+        bankMap.set(String(bq.id), bq);
+        if (toUUID(bq.id)) bankMap.set(String(toUUID(bq.id)), bq);
+      }
+    });
+
     testGroupedSubmissions.forEach(sub => {
+      const subIdStr = String(sub.testId || sub.hwId || sub.id || '');
+      const subTitle = String(sub.testTitle || sub.title || '');
+
+      // 1. Check if it's a Remedial Test
+      const matchedRemedial = remedialMap.get(subIdStr) || (sub.metadata?.realTestId ? remedialMap.get(String(sub.metadata.realTestId)) : null);
+      const isRemedial = Boolean(
+        matchedRemedial ||
+        sub.isRemedialTest === true ||
+        sub.sourceType === 'pdfSlicer' ||
+        sub.type === 'remedial' ||
+        subTitle.includes('Telafi') ||
+        subTitle.includes('Kırpılmış')
+      );
+
+      // 2. Check if it's a Question Bank Test
+      const matchedBank = bankMap.get(subIdStr) || (sub.metadata?.realTestId ? bankMap.get(String(sub.metadata.realTestId)) : null);
+      const isQuestionBank = Boolean(
+        matchedBank ||
+        sub.sourceType === 'questionBank' ||
+        sub.sourceType === 'bank' ||
+        sub.type === 'soru_bankasi' ||
+        sub.testType === 'bank'
+      ) && (
+        !sub.isManual &&
+        sub.sourceType !== 'trackedBook' &&
+        sub.sourceType !== 'bookTest' &&
+        sub.sourceType !== 'optik' &&
+        sub.sourceType !== 'book' &&
+        !subTitle.includes('(Tüm Kitap Görevi)') &&
+        !subTitle.includes('(Tüm Kitap)')
+      );
+
+      // EXCLUDE all other types (paper books, optical forms, manual forms, curriculum tests without digital content)
+      if (!isRemedial && !isQuestionBank) {
+        return;
+      }
+
+      // Resolve questions list if available
+      const testSourceObj = matchedRemedial || matchedBank || null;
+      let resolvedQuestions = [];
+      if (testSourceObj) {
+        resolvedQuestions = (testSourceObj.questionsList && testSourceObj.questionsList.length > 0)
+          ? testSourceObj.questionsList
+          : resolveTestQuestions(testSourceObj, bankQuestions || []);
+      }
+
       (sub.wrongQuestions || []).forEach(wq => {
+        const qIdx = (typeof wq.qNum === 'number' ? wq.qNum - 1 : 0);
+        const resolvedQ = resolvedQuestions[qIdx] || {};
+
+        // Resolve best image URL
+        const qImage = resolvedQ.imageUrl ||
+                       wq.imageUrl ||
+                       (Array.isArray(testSourceObj?.imageUrls) ? testSourceObj.imageUrls[qIdx] : null) ||
+                       (testSourceObj?.imageUrl && qIdx === 0 ? testSourceObj.imageUrl : null) ||
+                       null;
+
+        const qText = resolvedQ.questionText ||
+                      resolvedQ.text ||
+                      resolvedQ.title ||
+                      wq.questionText ||
+                      `${subTitle} — Soru ${wq.qNum}`;
+
+        const qOptions = resolvedQ.options || wq.options || ['A', 'B', 'C', 'D', 'E'];
+        const qCorrect = resolvedQ.correctAnswer !== undefined
+          ? resolvedQ.correctAnswer
+          : (typeof resolvedQ.correctAnswerLetter === 'string'
+              ? (resolvedQ.correctAnswerLetter.toUpperCase().charCodeAt(0) - 65)
+              : (wq.correctAnswer ?? 0));
+
         list.push({
           id: `${sub.id}_${wq.qNum}`,
           testId: sub.id,
-          testTitle: sub.testTitle,
-          subject: sub.subject,
+          testTitle: sub.testTitle || subTitle,
+          subject: sub.subject || resolvedQ.subject || 'Ders',
           questionNo: wq.qNum,
-          questionText: wq.questionText || `${sub.testTitle} — Soru ${wq.qNum}`,
-          options: wq.options || ['A', 'B', 'C', 'D', 'E'],
-          correctAnswer: wq.correctAnswer ?? 0,
-          imageUrl: wq.imageUrl || null
+          questionText: qText,
+          options: qOptions,
+          optionCount: resolvedQ.optionCount || (qOptions ? qOptions.length : 5),
+          correctAnswer: qCorrect,
+          correctAnswerLetter: resolvedQ.correctAnswerLetter || String.fromCharCode(65 + qCorrect),
+          imageUrl: qImage,
+          isRemedialTest: isRemedial,
+          isQuestionBank: isQuestionBank
         });
       });
     });
+
     return list;
-  }, [testGroupedSubmissions]);
+  }, [testGroupedSubmissions, remedialTests, bankQuestions]);
 
   const leitnerOverview = useMemo(() => {
     const sId = selectedStudent?.id || currentUser?.id || 'default_student';
@@ -1715,7 +1807,7 @@ export default function StudentWrongAnswersPage() {
                   Aralıklı Tekrar (Leitner) Telafi Kutuları
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  Yanlış yaptığınız soruları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
+                  Soru bankası ve özel telafi testlerinizdeki yanlışları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
                 </p>
               </div>
             </div>
