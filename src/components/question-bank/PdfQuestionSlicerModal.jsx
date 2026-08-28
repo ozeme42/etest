@@ -26,6 +26,75 @@ if (!pdfjs.GlobalWorkerOptions.workerSrc) {
   ).toString();
 }
 
+const detectSubject = (text = '') => {
+  const t = String(text).toLowerCase();
+  if (t.includes('matematik') || t.includes('mat')) return 'Matematik';
+  if (t.includes('fen') || t.includes('fizik') || t.includes('kimya') || t.includes('biyoloji')) return 'Fen Bilimleri';
+  if (t.includes('türkçe') || t.includes('turkce') || t.includes('edebiyat')) return 'Türkçe';
+  if (t.includes('sosyal') || t.includes('tarih') || t.includes('coğrafya') || t.includes('cografya') || t.includes('inkılap') || t.includes('inkilap')) return 'Sosyal Bilgiler';
+  if (t.includes('din') || t.includes('ahlak')) return 'Din Kültürü';
+  if (t.includes('ingilizce') || t.includes('ing') || t.includes('english')) return 'İngilizce';
+  return 'Genel';
+};
+
+const getSubjectBadgeStyle = (subj = '', isDark = false) => {
+  const s = String(subj).toLowerCase();
+  if (s.includes('matematik')) {
+    return {
+      icon: '📐',
+      bg: isDark ? 'rgba(59, 130, 246, 0.2)' : '#eff6ff',
+      color: isDark ? '#93c5fd' : '#1d4ed8',
+      border: isDark ? 'rgba(59, 130, 246, 0.4)' : '#bfdbfe'
+    };
+  }
+  if (s.includes('fen')) {
+    return {
+      icon: '🔬',
+      bg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#f0fdf4',
+      color: isDark ? '#6ee7b7' : '#047857',
+      border: isDark ? 'rgba(16, 185, 129, 0.4)' : '#bbf7d0'
+    };
+  }
+  if (s.includes('türkçe') || s.includes('turkce')) {
+    return {
+      icon: '📖',
+      bg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb',
+      color: isDark ? '#fcd34d' : '#b45309',
+      border: isDark ? 'rgba(245, 158, 11, 0.4)' : '#fde68a'
+    };
+  }
+  if (s.includes('sosyal') || s.includes('tarih') || s.includes('inkılap')) {
+    return {
+      icon: '🏛️',
+      bg: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2',
+      color: isDark ? '#fca5a5' : '#b91c1c',
+      border: isDark ? 'rgba(239, 68, 68, 0.4)' : '#fecaca'
+    };
+  }
+  if (s.includes('din')) {
+    return {
+      icon: '🕌',
+      bg: isDark ? 'rgba(6, 182, 212, 0.2)' : '#ecfeff',
+      color: isDark ? '#67e8f9' : '#0e7490',
+      border: isDark ? 'rgba(6, 182, 212, 0.4)' : '#a5f3fc'
+    };
+  }
+  if (s.includes('ingilizce')) {
+    return {
+      icon: '🌍',
+      bg: isDark ? 'rgba(168, 85, 247, 0.2)' : '#faf5ff',
+      color: isDark ? '#d8b4fe' : '#7e22ce',
+      border: isDark ? 'rgba(168, 85, 247, 0.4)' : '#e9d5ff'
+    };
+  }
+  return {
+    icon: '📚',
+    bg: isDark ? 'rgba(99, 102, 241, 0.2)' : '#eef2ff',
+    color: isDark ? '#a5b4fc' : '#4338ca',
+    border: isDark ? 'rgba(99, 102, 241, 0.4)' : '#c7d2fe'
+  };
+};
+
 export default function PdfQuestionSlicerModal({
   isOpen,
   onClose,
@@ -149,6 +218,10 @@ export default function PdfQuestionSlicerModal({
       });
     }
 
+    const bookDefaultSubj = currentBook?.subject || 
+      (currentBook?.subjects && currentBook.subjects[0]?.name) || 
+      detectSubject(currentBook?.title || '') || 'Ders';
+
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: studentId || '',
       submissions,
@@ -167,7 +240,7 @@ export default function PdfQuestionSlicerModal({
     relevantSubs.forEach(sub => {
       const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
       const tName = sub.testName || sub.testTitle || sub.title || 'Test';
-      const subjName = sub.subjectName || sub.subject || currentBook.subject || 'Genel';
+      const subjName = sub.subjectName || sub.subject || bookDefaultSubj;
       
       const bTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
       const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
@@ -208,7 +281,7 @@ export default function PdfQuestionSlicerModal({
           testName: cleanTestName,
           unitName: unitName,
           orderIndex: orderIndex,
-          subjectName: struct?.subjectName || subjName,
+          subjectName: struct?.subjectName || subjName || bookDefaultSubj,
           wrongQuestions: wrongQNos.sort((a, b) => a - b),
           answerKeyMap: wrongQNos.reduce((acc, q) => {
             const letter = getCorrectLetter(q);
@@ -237,6 +310,7 @@ export default function PdfQuestionSlicerModal({
           testId: firstTest.testId,
           testName: firstTest.testName,
           unitName: firstTest.unitName,
+          subjectName: firstTest.subjectName,
           qNo: qNo,
           correctAnswer: firstTest.answerKeyMap[qNo] || 'A'
         });
@@ -504,8 +578,9 @@ export default function PdfQuestionSlicerModal({
     let originalQNo = null;
 
     if (activeTargetQuestion) {
+      const sPrefix = activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : '';
       const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
-      assignedTitle = `${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
+      assignedTitle = `${sPrefix}${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
       assignedAnswer = activeTargetQuestion.correctAnswer || 'A';
       assignedTestId = activeTargetQuestion.testId;
       originalQNo = activeTargetQuestion.qNo;
@@ -519,7 +594,7 @@ export default function PdfQuestionSlicerModal({
       sizeKb: compressed.sizeKb || 50,
       correctAnswer: assignedAnswer,
       optionCount: defaultOptionCount,
-      subject: selectedSubject,
+      subject: activeTargetQuestion?.subjectName || selectedSubject,
       grade: selectedGrade,
       page: pdfCurrentPage,
       rect: currentRect,
@@ -540,6 +615,7 @@ export default function PdfQuestionSlicerModal({
               testId: t.testId,
               testName: t.testName,
               unitName: t.unitName,
+              subjectName: t.subjectName,
               qNo: q,
               correctAnswer: t.answerKeyMap[q] || 'A'
             });
@@ -844,7 +920,7 @@ export default function PdfQuestionSlicerModal({
               {activeTargetQuestion && (
                 <div style={{ padding: '0.5rem 0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    🎯 Sıradaki: <strong>{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
+                    🎯 Sıradaki: <strong>{activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : ''}{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
                   </span>
                   <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 4, flexShrink: 0, marginLeft: 6 }}>
                     Cevap: {activeTargetQuestion.correctAnswer}
@@ -854,6 +930,8 @@ export default function PdfQuestionSlicerModal({
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {bookMistakesList.map(t => {
+                  const sStyle = getSubjectBadgeStyle(t.subjectName || currentBook?.subject || 'Ders', isDark);
+
                   return (
                     <div
                       key={t.testId}
@@ -868,34 +946,51 @@ export default function PdfQuestionSlicerModal({
                         boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
                       }}
                     >
-                      {/* Unit Badge & Subject */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
-                        {t.unitName ? (
+                      {/* Top row: Ders Rozeti + Ünite Rozeti + Yanlış Sayısı */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                          {/* 📘 DERS ROZETİ */}
                           <span style={{
                             fontSize: '0.66rem',
                             fontWeight: 900,
-                            background: isDark ? 'rgba(168,85,247,0.2)' : '#f3e8ff',
-                            color: '#9333ea',
-                            padding: '2px 7px',
+                            background: sStyle.bg,
+                            color: sStyle.color,
+                            border: `1px solid ${sStyle.border}`,
+                            padding: '2px 6px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 3
                           }}>
-                            <Layers size={11} /> {t.unitName}
+                            {sStyle.icon} {t.subjectName || currentBook?.subject || 'Ders'}
                           </span>
-                        ) : (
-                          <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                            {t.subjectName}
-                          </span>
-                        )}
+
+                          {/* 📚 ÜNİTE ROZETİ */}
+                          {t.unitName && (
+                            <span style={{
+                              fontSize: '0.66rem',
+                              fontWeight: 900,
+                              background: isDark ? 'rgba(168,85,247,0.2)' : '#f3e8ff',
+                              color: '#9333ea',
+                              border: isDark ? '1px solid rgba(168,85,247,0.4)' : '1px solid #e9d5ff',
+                              padding: '2px 6px',
+                              borderRadius: 6,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              <Layers size={10} /> {t.unitName}
+                            </span>
+                          )}
+                        </div>
+
                         <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
                           {t.wrongQuestions.length} Yanlış
                         </span>
                       </div>
 
                       {/* Test Name */}
-                      <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.25 }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.25, marginTop: 1 }}>
                         {t.testName}
                       </div>
 
