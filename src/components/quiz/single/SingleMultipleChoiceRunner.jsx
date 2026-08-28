@@ -60,15 +60,16 @@ export default function SingleMultipleChoiceRunner({
 
   const getQImages = (q, idx) => {
     if (q?.imageUrl && isValidImageUrl(q.imageUrl)) return [normalizeImageUrl(q.imageUrl)];
+    if (q?.contentPayload && isValidImageUrl(q.contentPayload)) return [normalizeImageUrl(q.contentPayload)];
     const extracted = extractImageUrls(q);
     if (extracted.length > 0) {
-      if (extracted.length === totalQuestions && typeof idx === 'number' && extracted[idx]) return [extracted[idx]];
-      return extracted;
+      if (typeof idx === 'number' && extracted.length > 1 && extracted[idx]) return [extracted[idx]];
+      return [extracted[0]];
     }
     const testImgs = extractImageUrls(test);
     if (testImgs.length > 0) {
-      if (testImgs.length === totalQuestions && typeof idx === 'number' && testImgs[idx]) return [testImgs[idx]];
-      return testImgs;
+      if (typeof idx === 'number' && testImgs[idx]) return [testImgs[idx]];
+      if (idx === 0) return [testImgs[0]];
     }
     return [];
   };

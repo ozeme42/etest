@@ -16,7 +16,10 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
 
   // Resolve questions if not fully populated
   const questions = useMemo(() => {
-    return resolveTestQuestions(test, initialQuestions, globalTests);
+    if (Array.isArray(initialQuestions) && initialQuestions.length > 0) {
+      return initialQuestions;
+    }
+    return resolveTestQuestions(test, globalTests || []);
   }, [test, initialQuestions, globalTests]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -116,7 +119,7 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     return list.filter(isValidImageUrl).map(normalizeImageUrl);
   }, [questions, test, idbPayload]);
 
-  const activeQuestion = questions[currentIndex] || questions[0] || {};
+  const activeQuestion = questions[currentIndex] || {};
 
   const qCount = useMemo(() => {
     if (questions && questions.length > 1) return questions.length;
@@ -234,53 +237,46 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
   };
 
   const activeImageUrl = useMemo(() => {
-    // 1. If activeQuestion has a single valid imageUrl
+    // 1. Direct active question imageUrl
     if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) {
       return normalizeImageUrl(activeQuestion.imageUrl);
     }
-    // 2. From allImageUrls matching current question index
-    if (allImageUrls.length > 0) {
-      if (allImageUrls[currentIndex]) return allImageUrls[currentIndex];
-      return allImageUrls[0];
+    // 2. Direct active question contentPayload
+    if (activeQuestion.contentPayload && isValidImageUrl(activeQuestion.contentPayload)) {
+      return normalizeImageUrl(activeQuestion.contentPayload);
     }
     // 3. Extracted from active question
     const fromActive = extractImageUrls(activeQuestion);
     if (fromActive.length > 0) {
-      if (fromActive.length === qCount && fromActive[currentIndex]) return fromActive[currentIndex];
+      if (fromActive.length > 1 && fromActive[currentIndex]) return fromActive[currentIndex];
       return fromActive[0];
     }
-    // 4. Test direct
+    // 4. From allImageUrls matching current question index
+    if (allImageUrls.length > 0) {
+      if (allImageUrls[currentIndex]) return allImageUrls[currentIndex];
+      if (allImageUrls.length === 1 && currentIndex === 0) return allImageUrls[0];
+    }
+    // 5. Test direct (indexed by currentIndex)
     const testDirect = extractImageUrls(test);
     if (testDirect.length > 0) {
-      if (testDirect.length === qCount && testDirect[currentIndex]) return testDirect[currentIndex];
-      return testDirect[0];
+      if (testDirect[currentIndex]) return testDirect[currentIndex];
+      if (testDirect.length === 1 && currentIndex === 0) return testDirect[0];
     }
-    // 5. From IDB
+    // 6. From IDB
     if (idbPayload) {
       const idbUrls = extractImageUrls(idbPayload);
       if (idbUrls.length > 0) {
-        if (idbUrls.length === qCount && idbUrls[currentIndex]) return idbUrls[currentIndex];
-        return idbUrls[currentIndex] || idbUrls[0];
+        if (idbUrls[currentIndex]) return idbUrls[currentIndex];
+        if (idbUrls.length === 1 && currentIndex === 0) return idbUrls[0];
       }
     }
     return null;
-  }, [activeQuestion, allImageUrls, currentIndex, qCount, test, idbPayload]);
+  }, [activeQuestion, allImageUrls, currentIndex, test, idbPayload]);
 
   const imageUrls = useMemo(() => {
-    if (activeQuestion.imageUrl && isValidImageUrl(activeQuestion.imageUrl)) {
-      return [normalizeImageUrl(activeQuestion.imageUrl)];
-    }
-    if (allImageUrls.length > 0) {
-      if (allImageUrls[currentIndex]) return [allImageUrls[currentIndex]];
-      return [allImageUrls[0]];
-    }
-    const fromActive = extractImageUrls(activeQuestion);
-    if (fromActive.length > 0) {
-      if (fromActive.length === qCount && fromActive[currentIndex]) return [fromActive[currentIndex]];
-      return [fromActive[0]];
-    }
-    return activeImageUrl ? [activeImageUrl] : [];
-  }, [activeQuestion, allImageUrls, currentIndex, qCount, activeImageUrl]);
+    if (activeImageUrl) return [activeImageUrl];
+    return [];
+  }, [activeImageUrl]);
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => {
