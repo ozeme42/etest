@@ -45,7 +45,20 @@ const resolveSubjectName = (...candidates) => {
       const detected = detectSubject(trimmed);
       if (detected) return detected;
       const lower = trimmed.toLowerCase();
-      if (lower !== '' && lower !== 'ders' && lower !== 'genel' && lower !== 'null' && lower !== 'undefined' && lower !== 'standart' && lower !== 'optik') {
+      if (
+        lower !== '' &&
+        lower !== 'ders' &&
+        lower !== 'genel' &&
+        lower !== 'null' &&
+        lower !== 'undefined' &&
+        lower !== 'standart' &&
+        lower !== 'optik' &&
+        !trimmed.includes('›') &&
+        !trimmed.includes('—') &&
+        !trimmed.includes('(') &&
+        !trimmed.includes(':') &&
+        trimmed.length <= 25
+      ) {
         return trimmed;
       }
     }
@@ -186,57 +199,10 @@ export default function PdfQuestionSlicerModal({
     }
     if (!currentBook) return [];
 
-    const bId = String(currentBook.id);
-    const bUuid = toUUID(bId);
-
-    // 1. Build comprehensive structural mapping from the book
-    const bookStructureMap = new Map();
-    let globalIndex = 0;
-
-    if (currentBook?.subjects && Array.isArray(currentBook.subjects)) {
-      currentBook.subjects.forEach((subj) => {
-        const sName = resolveSubjectName(subj.name, currentBook.subject, currentBook.title);
-        (subj.topics || []).forEach((top) => {
-          const uName = top.name || top.title || top.unit || '';
-          (top.tests || []).forEach((t) => {
-            globalIndex++;
-            const tId = String(t.id);
-            const structObj = {
-              index: globalIndex,
-              unitName: uName,
-              subjectName: sName,
-              testName: t.name || t.title || `Test ${globalIndex}`
-            };
-            bookStructureMap.set(tId, structObj);
-            if (toUUID(tId)) bookStructureMap.set(toUUID(tId), structObj);
-          });
-        });
-      });
-    }
-
-    if (bookTests && Array.isArray(bookTests)) {
-      const bTests = bookTests.filter(bt => String(bt.book_id || bt.bookId) === bId || (bUuid && toUUID(bt.book_id || bt.bookId) === bUuid));
-      bTests.forEach((bt) => {
-        const tId = String(bt.id);
-        if (!bookStructureMap.has(tId)) {
-          globalIndex++;
-          const uName = bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '';
-          const parentSubj = (currentBook?.subjects || []).find(s => String(s.id) === String(bt.subjectId || bt.subject_id));
-          const sName = resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, parentSubj?.name, currentBook.subject, currentBook.title);
-          const structObj = {
-            index: Number(bt.order || bt.order_index || globalIndex),
-            unitName: uName,
-            subjectName: sName,
-            testName: bt.name || bt.title || `Test ${globalIndex}`
-          };
-          bookStructureMap.set(tId, structObj);
-          if (toUUID(tId)) bookStructureMap.set(toUUID(tId), structObj);
-        }
-      });
-    }
-
-    const studentIdStr = studentId ? String(studentId).trim() : '';
-    const studentUuid = studentIdStr ? toUUID(studentIdStr) : null;
+    const bId = String(currentBook.id || '');
+    const bUuid = String(toUUID(currentBook.id) || '');
+    const studentIdStr = String(studentId || '').trim();
+    const studentUuidStr = String(toUUID(studentId) || '').trim();
 
     const isMatchStudent = (s) => {
       if (!studentIdStr) return true;
@@ -244,73 +210,121 @@ export default function PdfQuestionSlicerModal({
       const sid = String(s.studentId ?? s.userId ?? s.student_id ?? s.raw_data?.studentId ?? s.raw_data?.student_id ?? '').trim();
       if (!sid) return true;
       return sid === studentIdStr || sid.toLowerCase() === studentIdStr.toLowerCase() ||
-        (studentUuid && (sid === String(studentUuid) || toUUID(sid) === studentUuid));
+        (studentUuidStr && (sid === studentUuidStr || toUUID(sid) === studentUuidStr));
     };
 
-    const isSubBelongsToBook = (s) => {
-      if (!s) return false;
-      const sBookId = String(s.bookId || s.book_id || s.raw_data?.bookId || s.raw_data?.book_id || '');
-      if (sBookId && (sBookId === bId || (bUuid && toUUID(sBookId) === bUuid))) return true;
+    let deletedIds = new Set();
+    try {
+      const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
+      if (savedDeleted) {
+        const parsed = JSON.parse(savedDeleted);
+        if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+      }
+    } catch {}
 
-      const candidateTestIds = [
-        s.realTestId, s.testId, s.bookTestId, s.id,
+    const isDeletedItem = (s) => {
+      if (!s) return true;
+      const candidates = [
+        s.id, s.submissionId, s.supabaseId, s.testId, s.realTestId, s.bookTestId,
         s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.testId
-      ].filter(Boolean).map(String);
-
-      if (candidateTestIds.some(tid => bookStructureMap.has(tid) || (toUUID(tid) && bookStructureMap.has(toUUID(tid))))) {
-        return true;
-      }
-
-      if (candidateTestIds.some(tid => (bookTests || []).some(bt => (String(bt.bookId || bt.book_id) === bId || (bUuid && toUUID(bt.bookId || bt.book_id) === bUuid)) && (String(bt.id) === tid || (toUUID(tid) && toUUID(bt.id) === toUUID(tid)))))) {
-        return true;
-      }
-
-      const cleanBookTitle = (currentBook.title || '')
-        .replace(/\s*\([^)]*\)/gi, '')
-        .trim().toLowerCase();
-
-      const sBookTitle = String(s.bookTitle || s.book_title || s.raw_data?.bookTitle || '').toLowerCase();
-      const sTestTitle = String(s.testTitle || s.fullTitle || s.title || s.raw_data?.testTitle || '').toLowerCase();
-
-      if (cleanBookTitle && cleanBookTitle.length > 3) {
-        if (sBookTitle.includes(cleanBookTitle) || sTestTitle.includes(cleanBookTitle)) return true;
-      }
-
-      return false;
+      ];
+      return candidates.some(c => {
+        if (!c) return false;
+        const str = String(c);
+        const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+        const u = toUUID(str);
+        return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+      });
     };
 
-    // Extract all candidate submissions from all available sources
-    const allCandidateSubs = [];
+    // 1. Build canonical list of tests strictly belonging to currentBook
+    const rawSubjects = (currentBook.subjects && currentBook.subjects.length > 0)
+      ? currentBook.subjects
+      : (currentBook.raw_data?.subjects || []);
 
-    // 1. From getAllUnifiedStudentSubmissions
-    const unifiedSubs = getAllUnifiedStudentSubmissions({
-      studentId: studentId || '',
-      submissions,
-      homeworks,
-      books,
-      bookTests
-    });
-    (unifiedSubs || []).forEach(s => allCandidateSubs.push(s));
+    const canonicalTests = [];
+    let globalIndex = 0;
 
-    // 2. From raw submissions
-    (submissions || []).forEach(s => {
-      if (s && isMatchStudent(s)) allCandidateSubs.push(s);
-    });
+    if (rawSubjects.length > 0) {
+      rawSubjects.forEach((subj, sIdx) => {
+        const sId = String(subj.id || `subj_${sIdx}`);
+        const sName = resolveSubjectName(subj.name, currentBook.subject, currentBook.title);
 
-    // 3. From homework submissions
-    (homeworks || []).forEach(hw => {
-      if (!hw) return;
-      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
-        ? hw.submissions
-        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
-      hwSubList.forEach(sub => {
-        if (sub && isMatchStudent(sub)) {
-          allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title, bookId: hw.bookId || hw.book_id || sub.bookId });
-        }
+        const topics = (subj.topics && Array.isArray(subj.topics) && subj.topics.length > 0)
+          ? subj.topics
+          : [{ id: `top_${sId}_1`, name: '1. Ünite' }];
+
+        topics.forEach((tp, tpIdx) => {
+          const tpId = String(tp.id || `tp_${tpIdx}`);
+          const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+
+          // Find tests in bookTests matching this book & (subject or topic)
+          let matchedTests = (bookTests || []).filter(bt => {
+            const isMatchBook = String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid);
+            if (!isMatchBook) return false;
+            return String(bt.topicId || bt.topic_id) === tpId || String(bt.subjectId || bt.subject_id) === sId;
+          });
+
+          // If no tests in bookTests for this topic, check tp.tests
+          if (matchedTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
+            matchedTests = tp.tests;
+          }
+
+          // Fallback: Default 5 tests per unit topic (same as Kitap Takibi)
+          if (matchedTests.length === 0) {
+            matchedTests = [];
+            for (let i = 1; i <= 5; i++) {
+              matchedTests.push({
+                id: `tbt_${bId}_${sId}_${tpId}_${i}`,
+                bookId: bId,
+                subjectId: sId,
+                topicId: tpId,
+                name: i <= 3 ? `Test-${i}` : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
+                questionCount: 20,
+                answerKey: {}
+              });
+            }
+          }
+
+          matchedTests.forEach((t) => {
+            globalIndex++;
+            canonicalTests.push({
+              id: String(t.id),
+              cleanId: String(t.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
+              uuid: toUUID(t.id),
+              name: t.name || t.title || `Test ${globalIndex}`,
+              subjectName: sName,
+              unitName: uName,
+              orderIndex: Number(t.order || t.order_index || globalIndex),
+              answerKey: t.answerKey || t.answer_key || currentBook.answerKey || {}
+            });
+          });
+        });
       });
-    });
+    } else {
+      // If book has no subjects array, check bookTests for this book
+      const bTests = (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid));
+      const defaultSubj = resolveSubjectName(currentBook.subject, currentBook.title);
 
-    const testMistakesMap = new Map();
+      if (bTests.length > 0) {
+        bTests.forEach((bt) => {
+          globalIndex++;
+          canonicalTests.push({
+            id: String(bt.id),
+            cleanId: String(bt.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
+            uuid: toUUID(bt.id),
+            name: bt.name || bt.title || `Test ${globalIndex}`,
+            subjectName: resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, defaultSubj),
+            unitName: bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '1. Ünite',
+            orderIndex: Number(bt.order || bt.order_index || globalIndex),
+            answerKey: bt.answerKey || bt.answer_key || currentBook.answerKey || {}
+          });
+        });
+      }
+    }
+
+    // 2. For each canonical test, find mistakes from submissions
+    const list = [];
 
     const getCorrectLetter = (q, ak) => {
       const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
@@ -319,149 +333,148 @@ export default function PdfQuestionSlicerModal({
       return null;
     };
 
-    const extractWrongQuestions = (sub, ak = {}) => {
+    canonicalTests.forEach(testObj => {
+      // Find matching submissions for this test
+      const matchedSubs = [];
+
+      (submissions || []).forEach(s => {
+        if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
+        if (s.status === 'in_progress' || s.status === 'draft') return;
+
+        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+        const matchFields = [
+          String(s.testId || ''),
+          String(s.test_id || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || ''),
+          String(s.id || ''),
+          String(meta?.realTestId || ''),
+          String(meta?.bookTestId || ''),
+          String(meta?.realId || '')
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String));
+        }
+
+        const isMatch = matchFields.some(f => f && (
+          f === testObj.id ||
+          f === testObj.cleanId ||
+          f.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '') === testObj.cleanId ||
+          (testObj.uuid && f === testObj.uuid) ||
+          (testObj.uuid && toUUID(f) === testObj.uuid)
+        ));
+
+        if (isMatch) matchedSubs.push(s);
+      });
+
+      (homeworks || []).forEach(hw => {
+        if (!hw) return;
+        const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
+          ? hw.submissions
+          : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+
+        hwSubList.forEach(s => {
+          if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
+          if (s.status === 'in_progress' || s.status === 'draft') return;
+
+          const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || s.id || '');
+          const isMatch = (
+            subTId === testObj.id ||
+            subTId === testObj.cleanId ||
+            subTId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '') === testObj.cleanId ||
+            (testObj.uuid && subTId === testObj.uuid) ||
+            (testObj.uuid && toUUID(subTId) === testObj.uuid)
+          );
+
+          if (isMatch) matchedSubs.push(s);
+        });
+      });
+
+      if (matchedSubs.length === 0) return;
+
+      // Extract wrong questions
       const wrongQNos = new Set();
+      matchedSubs.forEach(sub => {
+        if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+          sub.answers.forEach((ans, idx) => {
+            const qNo = Number(ans.questionNo || ans.questionNoInSection || ans.qNum || ans.qNo || (idx + 1));
+            const isWrong = ans.isCorrect === false ||
+              (ans.userAnswer && ans.correctAnswer && String(ans.userAnswer).trim().toUpperCase() !== String(ans.correctAnswer).trim().toUpperCase()) ||
+              (ans.score !== undefined && ans.score !== null && Number(ans.score) === 0 && ans.userAnswer && ans.userAnswer !== 'empty');
+            if (isWrong && qNo > 0) wrongQNos.add(qNo);
+          });
+        }
 
-      // 1. From answers array
-      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-        sub.answers.forEach((ans, idx) => {
-          const qNo = Number(ans.questionNo || ans.questionNoInSection || ans.qNum || ans.qNo || (idx + 1));
-          const isWrong = ans.isCorrect === false ||
-            (ans.userAnswer && ans.correctAnswer && String(ans.userAnswer).trim().toUpperCase() !== String(ans.correctAnswer).trim().toUpperCase()) ||
-            (ans.score !== undefined && ans.score !== null && Number(ans.score) === 0 && ans.userAnswer && ans.userAnswer !== 'empty');
-          if (isWrong && qNo > 0) {
-            wrongQNos.add(qNo);
-          }
-        });
-      }
+        const rawWrongs = sub.wrongQuestions || sub.raw_data?.wrongQuestions;
+        if (Array.isArray(rawWrongs) && rawWrongs.length > 0) {
+          rawWrongs.forEach(q => {
+            const qNo = typeof q === 'object' ? Number(q.qNum || q.qNo || q.questionNo || q.question) : Number(q);
+            if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+          });
+        }
 
-      // 2. From wrongQuestions array
-      const rawWrongs = sub.wrongQuestions || sub.raw_data?.wrongQuestions;
-      if (Array.isArray(rawWrongs) && rawWrongs.length > 0) {
-        rawWrongs.forEach(q => {
-          const qNo = typeof q === 'object' ? Number(q.qNum || q.qNo || q.questionNo || q.question) : Number(q);
-          if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-        });
-      }
+        const rawReasons = sub.mistakeReasons || sub.raw_data?.mistakeReasons;
+        if (rawReasons && typeof rawReasons === 'object') {
+          Object.keys(rawReasons).forEach(k => {
+            const qNo = parseInt(k, 10);
+            if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+          });
+        }
+      });
 
-      // 3. From mistakeReasons object
-      const rawReasons = sub.mistakeReasons || sub.raw_data?.mistakeReasons;
-      if (rawReasons && typeof rawReasons === 'object') {
-        Object.keys(rawReasons).forEach(k => {
-          const qNo = parseInt(k, 10);
-          if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-        });
-      }
-
-      // 4. From localStorage mistake reasons
-      const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
-      const sId = sub.studentId || studentId;
-      if (tId) {
-        try {
-          const keysToTry = [
-            `mistake_reasons_${tId}_${sId}`,
-            `mistake_reasons_bt_${tId}_${sId}`,
-            `mistake_reasons_${tId}`,
-            `mistake_reasons_bt_${tId}`
-          ];
-          for (const key of keysToTry) {
-            const val = localStorage.getItem(key);
-            if (val) {
-              const parsed = JSON.parse(val);
-              if (parsed && typeof parsed === 'object') {
-                Object.keys(parsed).forEach(qKey => {
-                  const qNo = parseInt(qKey, 10);
-                  if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-                });
-              }
+      // Check localStorage for mistake reasons
+      try {
+        const keysToTry = [
+          `mistake_reasons_${testObj.id}_${studentIdStr}`,
+          `mistake_reasons_bt_${testObj.id}_${studentIdStr}`,
+          `mistake_reasons_${testObj.id}`,
+          `mistake_reasons_bt_${testObj.id}`
+        ];
+        for (const key of keysToTry) {
+          const val = localStorage.getItem(key);
+          if (val) {
+            const parsed = JSON.parse(val);
+            if (parsed && typeof parsed === 'object') {
+              Object.keys(parsed).forEach(qKey => {
+                const qNo = parseInt(qKey, 10);
+                if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+              });
             }
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
-      // 5. Fallback if wrongCount > 0 but no specific question numbers recorded
-      const wCount = sub.wrongCount ?? sub.wrong ?? sub.raw_data?.wrongCount ?? sub.raw_data?.wrong ?? 0;
-      if (wrongQNos.size === 0 && wCount > 0) {
-        const totalQ = sub.totalQuestions || sub.raw_data?.totalQuestions || 10;
-        const corr = sub.correctCount ?? sub.correct ?? 0;
-        for (let i = corr + 1; i <= Math.min(totalQ, corr + wCount); i++) {
-          wrongQNos.add(i);
+      // Fallback if wrongCount > 0 but no specific question numbers
+      if (wrongQNos.size === 0) {
+        const maxWrong = Math.max(...matchedSubs.map(s => s.wrongCount ?? s.wrong ?? s.raw_data?.wrongCount ?? s.raw_data?.wrong ?? 0));
+        if (maxWrong > 0) {
+          const totalQ = matchedSubs[0]?.totalQuestions || 10;
+          const corr = matchedSubs[0]?.correctCount ?? 0;
+          for (let i = corr + 1; i <= Math.min(totalQ, corr + maxWrong); i++) {
+            wrongQNos.add(i);
+          }
         }
       }
 
-      return Array.from(wrongQNos).sort((a, b) => a - b);
-    };
-
-    allCandidateSubs.forEach(sub => {
-      if (!isMatchStudent(sub) || !isSubBelongsToBook(sub)) return;
-
-      const tId = String(sub.realTestId || sub.testId || sub.bookTestId || sub.id);
-      const bTest = (bookTests || []).find(bt => String(bt.id) === tId || (toUUID(bt.id) && toUUID(bt.id) === toUUID(tId)));
-      const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
-
-      const wrongList = extractWrongQuestions(sub, ak);
+      const wrongList = Array.from(wrongQNos).sort((a, b) => a - b);
       if (wrongList.length === 0) return;
 
-      const struct = bookStructureMap.get(tId) || (toUUID(tId) ? bookStructureMap.get(toUUID(tId)) : null);
-      let unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
-      if (unitName && (unitName.toLowerCase() === 'genel' || unitName.toLowerCase() === 'ders')) {
-        unitName = '';
-      }
-      const cleanTestName = struct?.testName || sub.testName || sub.testTitle || sub.title || 'Test';
-      if (!unitName) {
-        const m = (sub.testTitle || sub.fullTitle || sub.title || cleanTestName).match(/(\d+)\.\s*Ünite/i);
-        if (m) unitName = `${m[1]}. Ünite`;
-      }
-      if (!unitName) {
-        unitName = '1. Ünite';
-      }
+      const akMap = {};
+      wrongList.forEach(q => {
+        const letter = getCorrectLetter(q, testObj.answerKey);
+        if (letter) akMap[q] = letter;
+      });
 
-      const resolvedSubj = resolveSubjectName(
-        sub.subject,
-        sub.subjectName,
-        sub.testTitle,
-        sub.fullTitle,
-        sub.title,
-        sub.raw_data?.subject,
-        bTest?.subject_name,
-        bTest?.subject,
-        struct?.subjectName,
-        currentBook?.subject,
-        currentBook?.title
-      );
-
-      const orderIndex = struct?.index ?? (parseInt(cleanTestName.replace(/\D/g, ''), 10) || 9999);
-
-      if (!testMistakesMap.has(tId)) {
-        testMistakesMap.set(tId, {
-          testId: tId,
-          testName: cleanTestName,
-          unitName: unitName,
-          orderIndex: orderIndex,
-          subjectName: resolvedSubj,
-          wrongQuestions: wrongList,
-          answerKeyMap: {}
-        });
-      } else {
-        const existing = testMistakesMap.get(tId);
-        const mergedWrongs = Array.from(new Set([...existing.wrongQuestions, ...wrongList])).sort((a, b) => a - b);
-        existing.wrongQuestions = mergedWrongs;
-        if ((!existing.unitName || existing.unitName === '1. Ünite') && unitName && unitName !== '1. Ünite') {
-          existing.unitName = unitName;
-        }
-        if (existing.subjectName === 'Genel' && resolvedSubj !== 'Genel') {
-          existing.subjectName = resolvedSubj;
-        }
-      }
-
-      const item = testMistakesMap.get(tId);
-      item.wrongQuestions.forEach(q => {
-        const letter = getCorrectLetter(q, ak);
-        if (letter) item.answerKeyMap[q] = letter;
+      list.push({
+        testId: testObj.id,
+        testName: testObj.name,
+        unitName: testObj.unitName,
+        orderIndex: testObj.orderIndex,
+        subjectName: testObj.subjectName,
+        wrongQuestions: wrongList,
+        answerKeyMap: akMap
       });
     });
-
-    const list = Array.from(testMistakesMap.values());
 
     // Sort strictly by book test order
     list.sort((a, b) => {
@@ -470,7 +483,7 @@ export default function PdfQuestionSlicerModal({
     });
 
     return list;
-  }, [currentBook, initialMistakes, studentId, submissions, homeworks, books, bookTests]);
+  }, [currentBook, initialMistakes, studentId, submissions, homeworks, bookTests]);
 
   // 🌲 3-KADEMELİ HİYERARŞİK AĞAÇ (Ders › Ünite › Testler)
   const groupedMistakesTree = useMemo(() => {
