@@ -20,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
+import { resolveTestQuestions } from '../utils/testResolver';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 
@@ -239,6 +240,115 @@ export default function StudentWrongAnswersPage() {
     setProgramToast(`✓ "${testItem.title || 'Test'}" ${targetDayKey} gününün çalışma programına eklendi!`);
     setTimeout(() => setProgramToast(null), 3500);
     setOpenDaySelectorId(null);
+  };
+
+  const handleAddSpacedRepetitionPlan = async (testItem) => {
+    const studentId = selectedStudent?.id || currentUser?.id;
+    if (!studentId) return;
+
+    const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+    const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+      studentId,
+      weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
+    };
+
+    const rawProg = Array.isArray(currentProfile.weeklyProgram)
+      ? currentProfile.weeklyProgram
+      : DAYS_LIST.map(d => ({ day: d, items: [] }));
+
+    const todayIdx = (new Date().getDay() + 6) % 7; // 0 for Pzt, 6 for Paz
+    const repetitionOffsets = [
+      { offset: 1, label: '1. Gün Tekrarı' },
+      { offset: 3, label: '3. Gün Tekrarı' },
+      { offset: 7, label: '7. Gün Tekrarı' }
+    ];
+
+    let updatedProg = [...rawProg];
+
+    repetitionOffsets.forEach(({ offset, label }) => {
+      const targetDayIdx = (todayIdx + offset) % 7;
+      const targetDayKey = DAYS_LIST[targetDayIdx];
+
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + offset);
+      const dateStr = targetDate.toISOString().split('T')[0];
+
+      const newItem = {
+        id: `leitner_${Date.now()}_${offset}_${Math.random().toString(36).substr(2, 4)}`,
+        text: `🧠 [${label}] ${testItem.title || testItem.name || 'Telafi Testi'}`,
+        subject: testItem.subject || 'Genel',
+        qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+        targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+        testId: testItem.id,
+        type: 'remedialTest',
+        isSpacedRepetition: true,
+        done: false,
+        date: dateStr
+      };
+
+      updatedProg = updatedProg.map(dObj => {
+        if (dObj.day === targetDayKey) {
+          return {
+            ...dObj,
+            items: [...(dObj.items || []), newItem]
+          };
+        }
+        return dObj;
+      });
+    });
+
+    await saveCoachingProfile({
+      ...currentProfile,
+      studentId,
+      weeklyProgram: updatedProg
+    });
+
+    setProgramToast(`🎯 "${testItem.title || 'Test'}" için 1., 3. ve 7. gün aralıklı tekrar görevleri programınıza eklendi!`);
+    setTimeout(() => setProgramToast(null), 4000);
+    setOpenDaySelectorId(null);
+  };
+
+  const handlePracticeTestMistakes = (testItem, subItem) => {
+    const studentId = selectedStudent?.id || currentUser?.id;
+    if (!testItem || !subItem) return;
+
+    const resolvedQuestions = (testItem.questionsList && testItem.questionsList.length > 0)
+      ? testItem.questionsList
+      : resolveTestQuestions(testItem, bankQuestions || []);
+
+    const answers = subItem.answers || subItem.formattedAnswers || [];
+
+    const mistakeQuestions = [];
+    resolvedQuestions.forEach((q, idx) => {
+      const qNo = idx + 1;
+      const ans = (Array.isArray(answers) ? answers.find(a => (
+        Number(a.questionNo || a.questionNoInSection || a.number || a.qNo) === qNo ||
+        String(a.questionId || a.id).includes(`_${qNo}`)
+      )) : null) || answers[idx];
+
+      const isRight = ans ? (ans.isCorrect === true || ans.evalStatus === 'correct') : false;
+      if (!isRight) {
+        mistakeQuestions.push({
+          ...q,
+          id: q.id ? `${testItem.id}_${q.id}` : `${testItem.id}_q${qNo}`,
+          testId: testItem.id,
+          questionNo: qNo,
+          subject: testItem.subject || q.subject || 'Telafi',
+          topic: testItem.topic || q.topic || '',
+          unit: testItem.unit || q.unit || '',
+          imageUrl: q.imageUrl || (Array.isArray(testItem.imageUrls) ? testItem.imageUrls[idx] : (testItem.imageUrl && idx === 0 ? testItem.imageUrl : null)),
+          correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (typeof q.correctAnswerLetter === 'string' ? (q.correctAnswerLetter.toUpperCase().charCodeAt(0) - 65) : 0)
+        });
+      }
+    });
+
+    if (mistakeQuestions.length === 0) {
+      alert('Bu testte tüm soruları doğru çözmüşsünüz! Tebrikler! 🎉');
+      return;
+    }
+
+    setLeitnerPracticeQuestions(mistakeQuestions);
+    setIsLeitnerModalOpen(true);
   };
 
   const handleDeleteRemedialTest = async (testId, testTitle, e) => {
@@ -2106,6 +2216,35 @@ export default function StudentWrongAnswersPage() {
                         </button>
                       </div>
 
+                      {/* Practice Only Mistakes Button (If Solved and has Mistakes) */}
+                      {isSolved && (wrongCount > 0 || blankCount > 0) && (
+                        <button
+                          type="button"
+                          onClick={() => handlePracticeTestMistakes(test, sub)}
+                          style={{
+                            width: '100%',
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontSize: '0.74rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            boxShadow: '0 2px 8px rgba(236,72,153,0.25)',
+                            transition: 'all 0.15s'
+                          }}
+                          title="Bu testteki yanlışları Leitner aralıklı tekrar modunda çöz"
+                        >
+                          <Zap size={13} fill="currentColor" />
+                          <span>🧠 Sadece Yanlışları Tekrarla ({wrongCount + blankCount} Soru)</span>
+                        </button>
+                      )}
+
                       {/* Add to Study Schedule Button & Day Selector */}
                       <div>
                         <button
@@ -2140,41 +2279,69 @@ export default function StudentWrongAnswersPage() {
                             background: isDark ? '#1e293b' : '#f1f5f9',
                             border: '1px solid var(--color-border)',
                             display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 4
+                            flexDirection: 'column',
+                            gap: 6
                           }}>
-                            <span style={{ width: '100%', fontSize: '0.66rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 2 }}>
+                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
                               Hangi günün programına eklensin?
                             </span>
-                            {[
-                              { key: 'Pzt', label: 'Pzt' },
-                              { key: 'Sal', label: 'Sal' },
-                              { key: 'Çrş', label: 'Çrş' },
-                              { key: 'Prş', label: 'Prş' },
-                              { key: 'Cum', label: 'Cum' },
-                              { key: 'Cts', label: 'Cts' },
-                              { key: 'Paz', label: 'Paz' }
-                            ].map(d => (
-                              <button
-                                key={d.key}
-                                type="button"
-                                onClick={() => handleAddTestToProgram(test, d.key)}
-                                style={{
-                                  flex: '1 0 32px',
-                                  padding: '4px 2px',
-                                  borderRadius: 6,
-                                  border: '1px solid var(--color-border)',
-                                  background: 'var(--color-surface)',
-                                  color: 'var(--color-text)',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  textAlign: 'center'
-                                }}
-                              >
-                                {d.label}
-                              </button>
-                            ))}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                              {[
+                                { key: 'Pzt', label: 'Pzt' },
+                                { key: 'Sal', label: 'Sal' },
+                                { key: 'Çrş', label: 'Çrş' },
+                                { key: 'Prş', label: 'Prş' },
+                                { key: 'Cum', label: 'Cum' },
+                                { key: 'Cts', label: 'Cts' },
+                                { key: 'Paz', label: 'Paz' }
+                              ].map(d => (
+                                <button
+                                  key={d.key}
+                                  type="button"
+                                  onClick={() => handleAddTestToProgram(test, d.key)}
+                                  style={{
+                                    flex: '1 0 32px',
+                                    padding: '4px 2px',
+                                    borderRadius: 6,
+                                    border: '1px solid var(--color-border)',
+                                    background: 'var(--color-surface)',
+                                    color: 'var(--color-text)',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    textAlign: 'center'
+                                  }}
+                                >
+                                  {d.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* 1-Click Spaced Repetition (1, 3, 7 days) */}
+                            <button
+                              type="button"
+                              onClick={() => handleAddSpacedRepetitionPlan(test)}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                padding: '5px 8px',
+                                borderRadius: 6,
+                                background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                                border: '1px dashed #6366f1',
+                                color: '#6366f1',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 5
+                              }}
+                              title="1. Gün, 3. Gün ve 7. Gün için otomatik tekrar görevleri ekler"
+                            >
+                              <Sparkles size={12} />
+                              <span>⚡ 1, 3 ve 7 Günlük Aralıklı Tekrar Planı Kur</span>
+                            </button>
                           </div>
                         )}
                       </div>
