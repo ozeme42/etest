@@ -260,10 +260,14 @@ export const extractItemDate = (s) => {
   }
 
   const raw = (s && typeof s === 'object') ? (s.raw_data || {}) : {};
-  const meta = (s && typeof s === 'object' && s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : ((s && s.metadata) || {});
+  let answersList = (s && s.answers) ? s.answers : null;
+  if (typeof answersList === 'string') {
+    try { answersList = JSON.parse(answersList); } catch {}
+  }
+  const meta = (answersList && Array.isArray(answersList)) ? answersList.find(a => a?.type === 'metadata') : ((s && s.metadata) || {});
 
-  // 1. FIRST PRIORITY: Genuine submission & solve timestamps from database
-  const solveTimestamps = [
+  // 1. FIRST PRIORITY: Genuine explicit submission & completion timestamps
+  const explicitSolveTimestamps = [
     meta?.submittedAt,
     meta?.completedAt,
     meta?.date,
@@ -276,15 +280,10 @@ export const extractItemDate = (s) => {
     raw.submitted_at,
     raw.completedAt,
     raw.completed_at,
-    raw.date,
-    s.created_at,
-    s.createdAt,
-    raw.created_at,
-    raw.createdAt,
-    meta?.createdAt
+    raw.date
   ];
 
-  for (const exp of solveTimestamps) {
+  for (const exp of explicitSolveTimestamps) {
     if (exp && String(exp).trim()) {
       const expYMD = getTurkeyYMD(String(exp).trim());
       if (expYMD) return expYMD;
@@ -305,13 +304,29 @@ export const extractItemDate = (s) => {
     if (!idStr) continue;
     if (idStr.includes('tbt') || idStr.includes('bt_') || idStr.includes('hw_') || idStr.includes('tb_')) continue;
 
-    const matchSubTs = idStr.match(/^sub_(?:manual_)?(\d{12,13})$/i) || idStr.match(/^me_(\d{12,13})$/i);
+    const matchSubTs = idStr.match(/(?:sub_|me_|manual_)?(\d{12,13})/i);
     if (matchSubTs) {
       const tsNum = Number(matchSubTs[1]);
       if (tsNum > 1650000000000 && tsNum < 2000000000000) {
         const extractedYMD = getTurkeyYMD(new Date(tsNum));
         if (extractedYMD) return extractedYMD;
       }
+    }
+  }
+
+  // 3. THIRD PRIORITY: DB row created_at timestamp
+  const dbCreatedTimestamps = [
+    s.created_at,
+    s.createdAt,
+    raw.created_at,
+    raw.createdAt,
+    meta?.createdAt
+  ];
+
+  for (const exp of dbCreatedTimestamps) {
+    if (exp && String(exp).trim()) {
+      const expYMD = getTurkeyYMD(String(exp).trim());
+      if (expYMD) return expYMD;
     }
   }
 
