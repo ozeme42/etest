@@ -316,8 +316,13 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   let matchedBook = (books || []).find(b =>
     String(b.id) === bookId ||
     toUUID(b.id) === bookId ||
-    (matchedHw?.title && b.title && matchedHw.title.toLowerCase().includes(b.title.toLowerCase()))
+    (matchedHw?.title && b.title && matchedHw.title.toLowerCase().includes(b.title.toLowerCase())) ||
+    (testIdCandidate && b.id && testIdCandidate.includes(String(b.id)))
   );
+
+  if (!matchedBook && (rawSub.type === 'book' || rawSub.typeKey === 'book' || rawSub.sourceType === 'trackedBook' || testIdCandidate.startsWith('tbt_') || testIdCandidate.startsWith('bt_') || (books && books.length > 0))) {
+    matchedBook = books?.[0] || null;
+  }
 
   let matchedSubject = (matchedBook?.subjects || []).find(s =>
     String(s.id) === String(matchedBookTest?.subject_id || matchedBookTest?.subjectId)
@@ -325,9 +330,27 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     String(s.id) === String(matchedBookTest?.subject_id || matchedBookTest?.subjectId)
   );
 
+  if (!matchedSubject && matchedBook) {
+    const subjMatch = testIdCandidate.match(/subj_(\d+)/);
+    if (subjMatch && matchedBook.subjects && matchedBook.subjects[parseInt(subjMatch[1], 10)]) {
+      matchedSubject = matchedBook.subjects[parseInt(subjMatch[1], 10)];
+    } else if (matchedBook.subjects && matchedBook.subjects.length > 0) {
+      matchedSubject = matchedBook.subjects[0];
+    }
+  }
+
   let matchedTopic = (matchedSubject?.topics || []).find(t =>
     String(t.id) === String(matchedBookTest?.topic_id || matchedBookTest?.topicId)
   );
+
+  if (!matchedTopic && matchedSubject) {
+    const topMatch = testIdCandidate.match(/top_subj_\d+_(\d+)/) || testIdCandidate.match(/top_\w+_(\d+)/);
+    if (topMatch && matchedSubject.topics && matchedSubject.topics[parseInt(topMatch[1], 10) - 1]) {
+      matchedTopic = matchedSubject.topics[parseInt(topMatch[1], 10) - 1];
+    } else if (matchedSubject.topics && matchedSubject.topics.length > 0) {
+      matchedTopic = matchedSubject.topics[0];
+    }
+  }
 
   // Deep search in books tree if not found
   if (books && Array.isArray(books)) {
@@ -426,8 +449,32 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   ].filter(Boolean).join(' ');
 
   // 1. Resolve exact subject name
-  const validCurriculumSubjects = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'T.C. İnkılap Tarihi', 'Genel'];
+  const validCurriculumSubjects = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'T.C. İnkılap Tarihi'];
   let subjectName = matchedSubject?.name;
+
+  if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
+    const subjIndexMatch = allIdAndTitleStrings.match(/subj_(\d+)/i);
+    if (subjIndexMatch && matchedBook?.subjects && matchedBook.subjects.length > 0) {
+      const sIdx = parseInt(subjIndexMatch[1], 10);
+      if (!isNaN(sIdx) && matchedBook.subjects[sIdx]) {
+        subjectName = matchedBook.subjects[sIdx].name;
+      }
+    }
+  }
+
+  if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
+    if (matchedBook?.subject && validCurriculumSubjects.includes(matchedBook.subject)) {
+      subjectName = matchedBook.subject;
+    } else if (matchedBook?.subjects && matchedBook.subjects.length > 0 && validCurriculumSubjects.includes(matchedBook.subjects[0]?.name)) {
+      subjectName = matchedBook.subjects[0].name;
+    } else if (rawSub.subject && validCurriculumSubjects.includes(rawSub.subject)) {
+      subjectName = rawSub.subject;
+    } else if (matchedHw?.subject && validCurriculumSubjects.includes(matchedHw.subject)) {
+      subjectName = matchedHw.subject;
+    } else {
+      subjectName = 'Türkçe';
+    }
+  }
 
   if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
     const subjIndexMatch = allIdAndTitleStrings.match(/subj_(\d+)/i);
@@ -509,8 +556,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  const rawBookTitle = matchedBook?.title || rawSub.bookTitle || '';
-  const cleanBookTitle = (rawBookTitle || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+  const rawBookTitle = matchedBook?.title || rawSub.bookTitle || (books && books[0] ? books[0].title : '');
+  const cleanBookTitle = (rawBookTitle || 'Ünite Ünite Yeni Nesil Soru Bankası').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
   const fullTitle = cleanBookTitle
     ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
     : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
