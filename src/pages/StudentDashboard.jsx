@@ -2197,7 +2197,12 @@ export default function StudentDashboard() {
     });
 
     // 2. KİTAP TAKİBİNDEN / KİTAP ÖDEVLERİNDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
-    (homeworks || []).forEach(hw => {
+    const activeBookHws = (homeworks || []).filter(h => 
+      h.isBookAssignment || h.bookId || h.raw_data?.bookId || 
+      (books || []).some(b => String(b.id) === String(h.bookId || h.book_id))
+    );
+
+    activeBookHws.forEach(hw => {
       const testDueDatesMap = {
         ...(hw.test_due_dates || hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
       };
@@ -2352,26 +2357,8 @@ export default function StudentDashboard() {
       });
     });
 
-    // 4. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
-    (pendingTasks || []).forEach(task => {
-      const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
-      if (dueDateObj && dueDateObj.getTime() < nowTime && !task.done && !isItemSolved(task) && !isTaskDismissed(task) && !isAlreadySeen(task)) {
-        addKeysToSeen(task);
-        const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam';
-        list.push({
-          ...task,
-          isCatchUp: true,
-          isOverdueHomework: true,
-          categoryType: isExam ? 'deneme' : 'ödev',
-          reason: isExam 
-            ? `📊 Deneme Sınavı Gecikti (Son Teslim: ${task.dueDateStr})` 
-            : `📝 Ödev Teslimi Gecikti (Son Teslim: ${task.dueDateStr})`
-        });
-      }
-    });
-
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, todayDayKey, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
