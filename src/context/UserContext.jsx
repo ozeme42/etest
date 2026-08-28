@@ -1,5 +1,5 @@
 import { isSupabaseConfigured } from '../lib/supabase';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetUsers, dbAddUser, dbUpdateUser, dbDeleteUser } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
@@ -173,14 +173,16 @@ export function UserProvider({ children }) {
     return await addUser(newStudent);
   };
 
+  const value = useMemo(() => ({
+    users,
+    addUser,
+    updateUser,
+    deleteUser,
+    addStudentForTeacher
+  }), [users]);
+
   return (
-    <UserContext.Provider value={{
-      users,
-      addUser,
-      updateUser,
-      deleteUser,
-      addStudentForTeacher
-    }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

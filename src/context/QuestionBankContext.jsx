@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetQuestions, dbAddQuestion, dbDeleteQuestion, toUUID } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
@@ -268,13 +268,15 @@ export function QuestionBankProvider({ children }) {
     }
   };
 
+  const value = useMemo(() => ({
+    questions,
+    addQuestion,
+    updateQuestion,
+    deleteQuestion
+  }), [questions]);
+
   return (
-    <QuestionBankContext.Provider value={{
-      questions,
-      addQuestion,
-      updateQuestion,
-      deleteQuestion
-    }}>
+    <QuestionBankContext.Provider value={value}>
       {children}
     </QuestionBankContext.Provider>
   );

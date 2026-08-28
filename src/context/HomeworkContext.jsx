@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
@@ -582,19 +582,21 @@ export function HomeworkProvider({ children }) {
     await dbClearHomeworkSubmissionsForStudent(hwId, studentId, bookId, testIds);
   };
 
+  const value = useMemo(() => ({
+    homeworks,
+    isLoading,
+    refreshHomeworks,
+    addHomework,
+    updateHomework,
+    deleteHomework,
+    deleteAllHomeworks,
+    submitHomework,
+    updateHomeworkSubmission,
+    clearHomeworkSubmissionsForStudent
+  }), [homeworks, isLoading]);
+
   return (
-    <HomeworkContext.Provider value={{
-      homeworks,
-      isLoading,
-      refreshHomeworks,
-      addHomework,
-      updateHomework,
-      deleteHomework,
-      deleteAllHomeworks,
-      submitHomework,
-      updateHomeworkSubmission,
-      clearHomeworkSubmissionsForStudent
-    }}>
+    <HomeworkContext.Provider value={value}>
       {children}
     </HomeworkContext.Provider>
   );

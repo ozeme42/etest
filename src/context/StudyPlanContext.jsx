@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   dbGetStudyPlans,
@@ -106,16 +106,18 @@ export function StudyPlanProvider({ children }) {
     await dbUpdateStudyAssignment(id, dbData);
   };
 
+  const value = useMemo(() => ({
+    studyPlans,
+    addStudyPlan,
+    updateStudyPlan,
+    deleteStudyPlan,
+    studyAssignments,
+    addStudyAssignment,
+    updateStudyAssignment
+  }), [studyPlans, studyAssignments]);
+
   return (
-    <StudyPlanContext.Provider value={{
-      studyPlans,
-      addStudyPlan,
-      updateStudyPlan,
-      deleteStudyPlan,
-      studyAssignments,
-      addStudyAssignment,
-      updateStudyAssignment
-    }}>
+    <StudyPlanContext.Provider value={value}>
       {children}
     </StudyPlanContext.Provider>
   );

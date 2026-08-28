@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetSchedules, dbAddSchedule, dbToggleSchedule, dbDeleteSchedule, toUUID } from '../services/supabaseService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 
@@ -75,8 +75,16 @@ export function ScheduleProvider({ children }) {
     setSchedules(prev => prev.map(s => (s.studentId === studentId || toUUID(s.studentId) === toUUID(studentId)) ? { ...s, done: false } : s));
   };
 
+  const value = useMemo(() => ({
+    schedules,
+    addSchedule,
+    toggleScheduleDone,
+    deleteSchedule,
+    resetDoneForStudent
+  }), [schedules]);
+
   return (
-    <ScheduleContext.Provider value={{ schedules, addSchedule, toggleScheduleDone, deleteSchedule, resetDoneForStudent }}>
+    <ScheduleContext.Provider value={value}>
       {children}
     </ScheduleContext.Provider>
   );

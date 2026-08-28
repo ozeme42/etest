@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { safeSetItem } from '../utils/storageUtils';
 import { dbGetScales, dbSaveScale, dbDeleteScale } from '../services/supabaseService';
 
@@ -61,14 +61,16 @@ export function ScaleProvider({ children }) {
     await dbDeleteScale(scaleId);
   }, []);
 
+  const value = useMemo(() => ({
+    scales,
+    getScalesForTeacher,
+    loadScalesForTeacher,
+    saveScale,
+    deleteScale,
+  }), [scales, getScalesForTeacher, loadScalesForTeacher, saveScale, deleteScale]);
+
   return (
-    <ScaleContext.Provider value={{
-      scales,
-      getScalesForTeacher,
-      loadScalesForTeacher,
-      saveScale,
-      deleteScale,
-    }}>
+    <ScaleContext.Provider value={value}>
       {children}
     </ScaleContext.Provider>
   );

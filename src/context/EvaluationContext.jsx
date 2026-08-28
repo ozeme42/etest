@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -885,24 +885,26 @@ export function EvaluationProvider({ children }) {
     });
   };
 
+  const value = useMemo(() => ({
+    submissions,
+    isSyncing,
+    refreshSubmissions: syncFromSupabase,
+    addSubmission,
+    evaluateAnswer,
+    finalizeSubmission,
+    updateSubmission,
+    approveSubmission,
+    rejectSubmission,
+    deleteSubmission,
+    clearSubmissionsForStudent,
+    deleteSubmissionsByTestId,
+    deleteStudentSubmissionsForBookOrHw,
+    deleteBookSubmissionsForEveryone,
+    deleteAllSubmissions
+  }), [submissions, isSyncing]);
+
   return (
-    <EvaluationContext.Provider value={{
-      submissions,
-      isSyncing,
-      refreshSubmissions: syncFromSupabase,
-      addSubmission,
-      evaluateAnswer,
-      finalizeSubmission,
-      updateSubmission,
-      approveSubmission,
-      rejectSubmission,
-      deleteSubmission,
-      clearSubmissionsForStudent,
-      deleteSubmissionsByTestId,
-      deleteStudentSubmissionsForBookOrHw,
-      deleteBookSubmissionsForEveryone,
-      deleteAllSubmissions
-    }}>
+    <EvaluationContext.Provider value={value}>
       {children}
     </EvaluationContext.Provider>
   );

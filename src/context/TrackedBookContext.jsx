@@ -1,5 +1,5 @@
 import { isSupabaseConfigured } from '../lib/supabase';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetTrackedBooks,
   dbAddTrackedBook,
@@ -281,20 +281,22 @@ export function TrackedBookProvider({ children }) {
     await dbDeleteTrackedBookTest(id);
   };
 
+  const value = useMemo(() => ({
+    books,
+    bookTests,
+    isLoading,
+    refreshTrackedBooks,
+    addTrackedBook,
+    updateTrackedBook,
+    deleteTrackedBook,
+    addTrackedBookTest,
+    batchSaveTrackedBookTests,
+    updateTrackedBookTest,
+    deleteTrackedBookTest
+  }), [books, bookTests, isLoading]);
+
   return (
-    <TrackedBookContext.Provider value={{
-      books,
-      bookTests,
-      isLoading,
-      refreshTrackedBooks,
-      addTrackedBook,
-      updateTrackedBook,
-      deleteTrackedBook,
-      addTrackedBookTest,
-      batchSaveTrackedBookTests,
-      updateTrackedBookTest,
-      deleteTrackedBookTest
-    }}>
+    <TrackedBookContext.Provider value={value}>
       {children}
     </TrackedBookContext.Provider>
   );

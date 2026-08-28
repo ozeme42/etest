@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetGoals, dbAddGoal, dbUpdateGoalProgress, dbDeleteGoal, toUUID } from '../services/supabaseService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 
@@ -8,26 +8,22 @@ export function useGoal() {
   return useContext(GoalContext);
 }
 
-const INITIAL_GOALS = [];
-
 export function GoalProvider({ children }) {
   const [goals, setGoals] = useState(() => {
     const saved = localStorage.getItem('eTestGoals');
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    async function syncFromSupabase() {
+    async function syncGoals() {
       if (isCacheValid('goals', 30) && goals.length > 0) return;
       const dbGoals = await dbGetGoals();
-      if (dbGoals && Array.isArray(dbGoals)) {
+      if (dbGoals) {
         touchCache('goals');
-        if (dbGoals.length > 0) {
-          setGoals(dbGoals);
-        }
+        setGoals(dbGoals);
       }
     }
-    syncFromSupabase();
+    syncGoals();
   }, []);
 
   useEffect(() => {
@@ -35,18 +31,15 @@ export function GoalProvider({ children }) {
   }, [goals]);
 
   const addGoal = async (goalData) => {
-    const rawId = goalData.id || `goal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const uuidId = toUUID(rawId) || rawId;
     const newGoal = {
-      ...goalData,
-      id: uuidId,
-      current: Number(goalData.current) || 0,
-      createdAt: new Date().toISOString()
+      id: `goal_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      current: 0,
+      ...goalData
     };
     setGoals(prev => {
-      const exists = prev.some(g => g.id === newGoal.id);
-      if (exists) return prev.map(g => g.id === newGoal.id ? newGoal : g);
-      return [...prev, newGoal];
+      const filtered = prev.filter(g => !(g.studentId === newGoal.studentId && g.type === newGoal.type && g.period === newGoal.period));
+      return [...filtered, newGoal];
     });
     await dbAddGoal(newGoal);
     return newGoal;
@@ -72,8 +65,15 @@ export function GoalProvider({ children }) {
     await dbDeleteGoal(goalId);
   };
 
+  const value = useMemo(() => ({
+    goals,
+    addGoal,
+    updateGoalProgress,
+    deleteGoal
+  }), [goals]);
+
   return (
-    <GoalContext.Provider value={{ goals, addGoal, updateGoalProgress, deleteGoal }}>
+    <GoalContext.Provider value={value}>
       {children}
     </GoalContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeSetItem } from '../utils/storageUtils';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
@@ -270,32 +270,34 @@ export function CoachingProvider({ children }) {
     await saveCoachingProfile(updatedProfile);
   };
 
+  const value = useMemo(() => ({
+    coachingLinks,
+    coachingNotes,
+    mockExams,
+    coachingMeetings,
+    coachingProfiles,
+    toggleCoachedStudent,
+    saveCoachingNote,
+    saveCoachingProfile,
+    addMockExam,
+    updateMockExam,
+    approveMockExam,
+    rejectMockExam,
+    deleteMockExam,
+    addCoachingMeeting,
+    getCoachedStudentIds,
+    isStudentCoached,
+    getCoachingNoteForStudent,
+    getCoachingProfileForStudent,
+    getMockExamsForStudent,
+    getMeetingsForStudent,
+    addStudentError,
+    updateStudentError,
+    deleteStudentError
+  }), [coachingLinks, coachingNotes, mockExams, coachingMeetings, coachingProfiles]);
+
   return (
-    <CoachingContext.Provider value={{
-      coachingLinks,
-      coachingNotes,
-      mockExams,
-      coachingMeetings,
-      coachingProfiles,
-      toggleCoachedStudent,
-      saveCoachingNote,
-      saveCoachingProfile,
-      addMockExam,
-      updateMockExam,
-      approveMockExam,
-      rejectMockExam,
-      deleteMockExam,
-      addCoachingMeeting,
-      getCoachedStudentIds,
-      isStudentCoached,
-      getCoachingNoteForStudent,
-      getCoachingProfileForStudent,
-      getMockExamsForStudent,
-      getMeetingsForStudent,
-      addStudentError,
-      updateStudentError,
-      deleteStudentError
-    }}>
+    <CoachingContext.Provider value={value}>
       {children}
     </CoachingContext.Provider>
   );

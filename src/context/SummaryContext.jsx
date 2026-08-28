@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetSummaries, dbSaveSummary, dbDeleteSummary } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
@@ -235,20 +235,22 @@ export function SummaryProvider({ children }) {
     return nextIsRead;
   };
 
+  const value = useMemo(() => ({
+    summaries,
+    isLoading,
+    saveSummary,
+    deleteSummary,
+    getSummary,
+    hasSummary,
+    getSummariesBySubject,
+    getSummariesByUnit,
+    isSummaryRead,
+    toggleSummaryRead,
+    readMap
+  }), [summaries, isLoading, readMap]);
+
   return (
-    <SummaryContext.Provider value={{
-      summaries,
-      isLoading,
-      saveSummary,
-      deleteSummary,
-      getSummary,
-      hasSummary,
-      getSummariesBySubject,
-      getSummariesByUnit,
-      isSummaryRead,
-      toggleSummaryRead,
-      readMap
-    }}>
+    <SummaryContext.Provider value={value}>
       {children}
     </SummaryContext.Provider>
   );

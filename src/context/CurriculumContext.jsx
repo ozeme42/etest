@@ -1,5 +1,5 @@
 import { isSupabaseConfigured } from '../lib/supabase';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetCurriculum,
   dbAddGrade,
@@ -292,23 +292,25 @@ export function CurriculumProvider({ children }) {
     for (const t of newTopics) await dbAddTopic(t);
   };
 
+  const value = useMemo(() => ({
+    data,
+    addGrade,
+    updateGrade,
+    addSubject,
+    updateSubject,
+    addUnit,
+    updateUnit,
+    addTopic,
+    updateTopic,
+    updateItem,
+    addTest,
+    updateTest,
+    deleteItem,
+    bulkAddCurriculum
+  }), [data]);
+
   return (
-    <CurriculumContext.Provider value={{
-      data,
-      addGrade,
-      updateGrade,
-      addSubject,
-      updateSubject,
-      addUnit,
-      updateUnit,
-      addTopic,
-      updateTopic,
-      updateItem,
-      addTest,
-      updateTest,
-      deleteItem,
-      bulkAddCurriculum
-    }}>
+    <CurriculumContext.Provider value={value}>
       {children}
     </CurriculumContext.Provider>
   );
