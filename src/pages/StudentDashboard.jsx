@@ -564,10 +564,25 @@ export default function StudentDashboard() {
     });
   }, [submissions, selectedStudent]);
 
-  // ── Fast O(1) Solved Tests Set for Student ──
+  // ── Fast O(1) Solved Tests Set for Student (with comprehensive ID & Content matching) ──
   const studentSolvedSet = useMemo(() => {
     const set = new Set();
-    studentSubmissions.forEach(s => {
+    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+
+    // Include submissions from both studentSubmissions and homeworks.submissions
+    const allStudentSubs = [...(studentSubmissions || [])];
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        if (sub && (String(sub.studentId) === String(selectedStudent?.id) || String(sub.student_id) === String(selectedStudent?.id) || String(sub.userId) === String(selectedStudent?.id))) {
+          if (!allStudentSubs.some(x => x.id === sub.id)) {
+            allStudentSubs.push(sub);
+          }
+        }
+      });
+    });
+
+    allStudentSubs.forEach(s => {
+      if (!s) return;
       if (s.status === 'in_progress' || s.status === 'draft') return;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
 
@@ -592,9 +607,30 @@ export default function StudentDashboard() {
           }
         });
       }
+
+      // Add text and content-based keys for book tests
+      const bTitle = normalizeKey(s.bookTitle || s.metadata?.bookTitle);
+      const sName = normalizeKey(s.subjectName || s.subject || s.metadata?.subjectName);
+      const uTopic = normalizeKey(s.topicName || s.unitTopic || s.metadata?.topicName);
+      const tName = normalizeKey(s.testName || s.title || s.testTitle || s.metadata?.testName);
+
+      if (tName) {
+        set.add(`name_${tName}`);
+        if (bTitle) set.add(`book_test_${bTitle}_${tName}`);
+        if (sName) set.add(`subj_test_${sName}_${tName}`);
+        if (bTitle && sName) set.add(`full_${bTitle}_${sName}_${tName}`);
+        if (bTitle && sName && uTopic) set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
+      }
+
+      if (s.bookId && tName) {
+        set.add(`bid_tname_${s.bookId}_${tName}`);
+      }
+      if (s.bookId && (s.testId || s.bookTestId)) {
+        set.add(`bid_tid_${s.bookId}_${s.testId || s.bookTestId}`);
+      }
     });
     return set;
-  }, [studentSubmissions]);
+  }, [studentSubmissions, homeworks, selectedStudent?.id]);
 
   /* ─── Computed Tests Data ─── */
   const tests = useMemo(() => {
@@ -2157,12 +2193,38 @@ export default function StudentDashboard() {
     const isItemSolved = (item) => {
       if (!item) return false;
       if (item.done || item.isCompleted) return true;
-      const tId = item.testId || item.bookTestId || item.realTestId || item.id;
+      const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
 
+      const tId = item.testId || item.bookTestId || item.realTestId || item.id;
       if (tId) {
         const tidStr = String(tId);
         const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        return studentSolvedSet.has(tidStr) || studentSolvedSet.has(tidClean) || (toUUID(tidStr) && studentSolvedSet.has(toUUID(tidStr)));
+        if (studentSolvedSet.has(tidStr) || studentSolvedSet.has(tidClean) || (toUUID(tidStr) && studentSolvedSet.has(toUUID(tidStr)))) {
+          return true;
+        }
+      }
+
+      // Check by bookId + testId
+      if (item.bookId && tId) {
+        if (studentSolvedSet.has(`bid_tid_${item.bookId}_${tId}`)) return true;
+      }
+
+      // Check by content name keys (testName, subject, bookTitle)
+      const bTitle = normalizeKey(item.bookTitle);
+      const sName = normalizeKey(item.subject || item.subjectName);
+      const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
+      const tName = normalizeKey(item.testName || item.title);
+
+      if (tName) {
+        if (studentSolvedSet.has(`name_${tName}`)) return true;
+        if (bTitle && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
+        if (sName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
+        if (bTitle && sName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
+        if (bTitle && sName && uTopic && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
+      }
+
+      if (item.bookId && tName) {
+        if (studentSolvedSet.has(`bid_tname_${item.bookId}_${tName}`)) return true;
       }
 
       return false;
