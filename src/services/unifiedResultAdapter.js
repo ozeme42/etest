@@ -707,6 +707,73 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       });
     });
 
+    // 3. Synthesize submissions for tests that have recorded mistake reasons in localStorage
+    if (typeof localStorage !== 'undefined') {
+      const existingCandidateTestIds = new Set(allCandidateSubs.map(s => String(s.testId || s.realTestId || s.bookTestId || s.id)));
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || (!k.startsWith('mistake_reasons_') && !k.startsWith('mistake_reason_'))) continue;
+
+        const parts = k.split('_');
+        const keyStudentId = parts[parts.length - 1];
+        const isMatchThisStudent = !studentIdStr || keyStudentId === studentIdStr || (studentUuidStr && keyStudentId === studentUuidStr) || (studentUuidStr && toUUID(keyStudentId) === studentUuidStr);
+        if (!isMatchThisStudent && parts.length > 3) continue;
+
+        try {
+          const val = localStorage.getItem(k);
+          if (!val) continue;
+          const parsedReasons = JSON.parse(val);
+          if (!parsedReasons || typeof parsedReasons !== 'object' || Object.keys(parsedReasons).length === 0) continue;
+
+          let testId = k.replace(/^mistake_reasons_bt_/, '').replace(/^mistake_reasons_/, '').replace(`_${keyStudentId}`, '');
+          if (!testId || existingCandidateTestIds.has(testId)) continue;
+
+          const matchedBt = (bookTests || []).find(bt => String(bt.id) === testId || toUUID(bt.id) === testId || String(bt.id).includes(testId));
+          const matchedB = matchedBt ? (books || []).find(b => String(b.id) === String(matchedBt.bookId || matchedBt.book_id)) : null;
+
+          const wrongQNos = Object.keys(parsedReasons).map(q => parseInt(q, 10)).filter(q => !isNaN(q) && q > 0);
+          const totalQ = matchedBt?.questionCount || matchedBt?.question_count || Math.max(10, ...wrongQNos);
+          const wrongCount = wrongQNos.length;
+          const correctCount = Math.max(0, totalQ - wrongCount);
+
+          const syntheticAnswers = [];
+          for (let q = 1; q <= totalQ; q++) {
+            const isWrong = wrongQNos.includes(q);
+            syntheticAnswers.push({
+              questionNo: q,
+              isCorrect: !isWrong,
+              userAnswer: isWrong ? 'Y' : 'D',
+              correctAnswer: matchedBt?.answerKey?.[q] || 'A',
+              mistakeReason: parsedReasons[q] || null
+            });
+          }
+
+          allCandidateSubs.push({
+            id: `mistake_sub_${testId}_${studentIdStr}`,
+            testId: testId,
+            realTestId: testId,
+            bookTestId: testId,
+            bookId: matchedB?.id || matchedBt?.bookId,
+            testTitle: `${matchedB?.title || 'Kitap'} — ${matchedBt?.name || 'Test'}`,
+            studentId: studentIdStr,
+            score: Number((correctCount - (wrongCount / 4)).toFixed(2)),
+            correctCount,
+            wrongCount,
+            blankCount: 0,
+            totalQuestions: totalQ,
+            answers: syntheticAnswers,
+            mistakeReasons: parsedReasons,
+            sourceType: 'trackedBook',
+            date: getTurkeyToday(),
+            submittedAt: new Date().toISOString(),
+            isStandalone: true
+          });
+          existingCandidateTestIds.add(testId);
+        } catch (e) {}
+      }
+    }
+
     // Sort candidates: Evaluated first, Standalone submissions before generic homework updates, then newest
     allCandidateSubs.sort((a, b) => {
       const aEval = (a.isEvaluated || a.isEvaluatedByTeacher || a.status === 'evaluated' || a.teacherFeedback) ? 1 : 0;
