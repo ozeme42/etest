@@ -107,7 +107,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     }
 
     // Extract from composite testTitle or fullTitle if still missing (e.g. "Ünite Ünite Yeni Nesil Soru Bankası — Türkçe › 5. Ünite (Test-9)")
-    const rawTitle = submission?.fullTitle || submission?.testTitle || test?.testTitle || '';
+    const rawTitle = submission?.fullTitle || submission?.testTitle || test?.testTitle || submission?.title || test?.name || '';
     if (rawTitle && rawTitle.includes('—')) {
       const parts = rawTitle.split('—');
       if (!bookTitle && parts[0]) bookTitle = parts[0].trim();
@@ -183,7 +183,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
 
     // 2. Sync to Supabase Evaluation Context
     if (submission && updateSubmission) {
-      const updatedAnswers = (submission.answers || []).map(a => {
+      const raw = submission.answers || [];
+      const updatedAnswers = raw.map(a => {
         const num = a.questionNo || a.questionIndex;
         if (num === qNo || String(num) === String(qNo)) {
           return { ...a, reason: next[qNo], mistakeReason: next[qNo] };
@@ -213,7 +214,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
 
       // 2. Save directly to Supabase via Evaluation Context
       if (submission && updateSubmission) {
-        const updatedAnswers = (submission.answers || []).map(a => {
+        const raw = submission.answers || [];
+        const updatedAnswers = raw.map(a => {
           const num = a.questionNo || a.questionIndex;
           if (num && mistakeReasons[num]) {
             return { ...a, reason: mistakeReasons[num], mistakeReason: mistakeReasons[num] };
@@ -253,26 +255,35 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     }
   };
 
-  const answers = submission?.answers || [];
+  const rawAnswers = submission?.answers || [];
+  const answers = useMemo(() => {
+    return Array.isArray(rawAnswers) ? rawAnswers.filter(a => a && a.type !== 'metadata') : [];
+  }, [rawAnswers]);
+
   const qCount = useMemo(() => {
     if (Array.isArray(questions) && questions.length > 0) return questions.length;
-    if (Array.isArray(answers) && answers.length > 0) return answers.length;
-    if (test?.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
+    if (answers.length > 0) return answers.length;
     if (submission?.totalQuestions && Number(submission.totalQuestions) > 0) return Number(submission.totalQuestions);
+    if (test?.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
     if (test?.totalQuestions && Number(test.totalQuestions) > 0) return Number(test.totalQuestions);
     return 20;
   }, [questions, answers, test, submission]);
 
-  const correctCount = submission?.correctCount ?? answers.filter(a => a.isCorrect === true).length;
-  const wrongCount = submission?.wrongCount ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
-  const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
-  const scorePct = qCount > 0
-    ? Math.round((correctCount / qCount) * 100)
-    : (submission?.scorePercentage ?? submission?.score ?? 0);
+  const correctCount = submission?.correctCount ?? submission?.correct_count ?? answers.filter(a => a.isCorrect === true).length;
+  const wrongCount = submission?.wrongCount ?? submission?.wrong_count ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
+  const blankCount = submission?.blankCount ?? submission?.empty_count ?? Math.max(0, qCount - correctCount - wrongCount);
+  const totalEvaluatedQ = (correctCount + wrongCount + blankCount) > 0 ? (correctCount + wrongCount + blankCount) : qCount;
+  const scorePct = submission?.scorePercentage !== undefined && submission?.scorePercentage !== null
+    ? Number(submission.scorePercentage)
+    : (totalEvaluatedQ > 0 ? Math.round((correctCount / totalEvaluatedQ) * 100) : (submission?.score ?? 0));
   const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
-  const netScore = submission?.netScore !== undefined && submission?.netScore !== null
-    ? Number(submission.netScore)
-    : Number((correctCount - (penaltyRatio > 0 ? wrongCount / penaltyRatio : 0)).toFixed(2));
+  const netScore = submission?.totalNet !== undefined && submission?.totalNet !== null
+    ? Number(submission.totalNet)
+    : (submission?.netScore !== undefined && submission?.netScore !== null
+      ? Number(submission.netScore)
+      : (submission?.net_score !== undefined && submission?.net_score !== null
+        ? Number(submission.net_score)
+        : Number((correctCount - (penaltyRatio > 0 ? wrongCount / penaltyRatio : 0)).toFixed(2))));
   const opticalContainerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(1000);
 
