@@ -626,7 +626,14 @@ export default function StudentDashboard() {
       const sId = String(s.id || '');
 
       if (specificTestId) {
-        return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
+        const specStr = String(specificTestId);
+        const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+        const specUuid = String(toUUID(specificTestId) || '');
+        if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
+        if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
+        if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
+        if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+        return false;
       }
 
       // 1. Direct ID match
@@ -1488,7 +1495,14 @@ export default function StudentDashboard() {
           const sId = String(s.id || '');
 
           if (specificTestId) {
-            return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
+            const specStr = String(specificTestId);
+            const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+            const specUuid = String(toUUID(specificTestId) || '');
+            if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
+            if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
+            if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
+            if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+            return false;
           }
 
           if (targetHw) {
