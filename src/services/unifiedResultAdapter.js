@@ -292,12 +292,16 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     meta.realTestId || meta.bookTestId || meta.testId ||
     raw.testId || raw.realTestId || rawSub.id || ''
   );
+  const cleanCandidate = testIdCandidate.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
 
-  let matchedBookTest = (bookTests || []).find(bt =>
-    String(bt.id) === testIdCandidate ||
-    toUUID(bt.id) === testIdCandidate ||
-    (bt.id && testIdCandidate.includes(String(bt.id)))
-  );
+  let matchedBookTest = (bookTests || []).find(bt => {
+    const btIdStr = String(bt.id);
+    const cleanBtId = btIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+    return btIdStr === testIdCandidate ||
+      toUUID(btIdStr) === testIdCandidate ||
+      (cleanBtId.length >= 3 && cleanBtId === cleanCandidate) ||
+      (btIdStr.length >= 6 && testIdCandidate.includes(btIdStr));
+  });
 
   const matchedHw = (homeworks || []).find(h =>
     String(h.id) === String(rawSub.hwId || rawSub.homeworkId || raw.hwId || raw.homeworkId) ||
@@ -331,7 +335,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       if (!b.subjects || !Array.isArray(b.subjects)) continue;
       for (const s of b.subjects) {
         if (s.tests && Array.isArray(s.tests)) {
-          const ft = s.tests.find(t => String(t.id) === testIdCandidate || testIdCandidate.includes(String(t.id)));
+          const ft = s.tests.find(t => {
+            const tIdStr = String(t.id);
+            const cleanTId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+            return tIdStr === testIdCandidate || (cleanTId.length >= 3 && cleanTId === cleanCandidate) || (tIdStr.length >= 6 && testIdCandidate.includes(tIdStr));
+          });
           if (ft) {
             if (!matchedBookTest) matchedBookTest = { ...ft, bookId: b.id, subjectId: s.id };
             if (!matchedBook) matchedBook = b;
@@ -342,7 +350,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         if (s.topics && Array.isArray(s.topics)) {
           for (const tp of s.topics) {
             if (tp.tests && Array.isArray(tp.tests)) {
-              const ft = tp.tests.find(t => String(t.id) === testIdCandidate || testIdCandidate.includes(String(t.id)));
+              const ft = tp.tests.find(t => {
+                const tIdStr = String(t.id);
+                const cleanTId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+                return tIdStr === testIdCandidate || (cleanTId.length >= 3 && cleanTId === cleanCandidate) || (tIdStr.length >= 6 && testIdCandidate.includes(tIdStr));
+              });
               if (ft) {
                 if (!matchedBookTest) matchedBookTest = { ...ft, bookId: b.id, subjectId: s.id, topicId: tp.id };
                 if (!matchedBook) matchedBook = b;
@@ -721,7 +733,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const t = String(normalized.testTitle || normalized.fullTitle || normalized.title || '').toLowerCase();
       if (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)') || t.includes('(kendi eklediğim)')) return;
 
-      const testKey = `${normalized.bookId || ''}_${normalized.subject || ''}_${normalized.realTestId || normalized.testId || normalized.id}`;
+      const testKey = String(normalized.id || normalized.submissionId || `${normalized.bookId || ''}_${normalized.testId || normalized.realTestId || ''}_${normalized.date || normalized.submittedAt || ''}`);
       if (processedTestIds.has(testKey)) return;
       processedTestIds.add(testKey);
 
