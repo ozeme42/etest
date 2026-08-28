@@ -701,7 +701,14 @@ export default function BookContentManager() {
         }
       });
       if (s.testId) testKeys.add(String(s.testId));
+      if (s.test_id) testKeys.add(String(s.test_id)); // raw UUID from Supabase submissions table
       if (s.id) testKeys.add(String(s.id));
+      // Also index submission UUID so homework tests array (UUID format) can match
+      const rawTestIdUuid = s.test_id || s.testId;
+      if (rawTestIdUuid) {
+        const uv = toUUID(String(rawTestIdUuid));
+        if (uv) testKeys.add(uv);
+      }
 
       testKeys.forEach(k => {
         stSet.add(k);
@@ -2343,7 +2350,13 @@ export default function BookContentManager() {
                     targetStudents = students.filter(s => (hw.targetIds || []).some(tid => String(s.gradeId) === String(tid) || String(s.grade) === String(tid) || String(s.className) === String(tid)));
                   } else {
                     targetStudents = (hw.targetIds || []).map(tid => {
-                      return students.find(s => String(s.id) === String(tid)) || { id: tid, name: 'Öğrenci' };
+                      const tidStr = String(tid);
+                      const tidUuid = toUUID(tidStr);
+                      return students.find(s =>
+                        String(s.id) === tidStr ||
+                        String(s.supabaseId || '') === tidStr ||
+                        (tidUuid && (toUUID(String(s.id)) === tidUuid || String(s.id) === tidUuid || String(s.supabaseId || '') === tidUuid))
+                      ) || { id: tidStr, name: 'Öğrenci' };
                     });
                   }
                   if (targetStudents.length === 0 && students.length > 0) {
@@ -2352,11 +2365,35 @@ export default function BookContentManager() {
                     }
                   }
 
-                  const hwTests = (hw.tests && hw.tests.length > 0)
+                  let hwTests = (hw.tests && hw.tests.length > 0)
                     ? hw.tests
                     : (hw.testDueDates && Object.keys(hw.testDueDates).length > 0)
                       ? Object.keys(hw.testDueDates)
                       : tests.map(t => t.id);
+
+                  // Fallback: if hwTests is still empty (book has no tests in book_tests table),
+                  // derive test IDs from actual submissions that match this book by title or bookId
+                  if (hwTests.length === 0 && allCombinedSubmissions && allCombinedSubmissions.length > 0) {
+                    const bookTitleCleanForMatch = (book?.title || hw.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim().toLowerCase();
+                    const hwBookId = hw.bookId || hw.book_id || hw.raw_data?.bookId;
+                    const derivedTestIds = new Set();
+                    allCombinedSubmissions.forEach(sub => {
+                      if (!sub) return;
+                      const subTestId = String(sub.test_id || sub.testId || sub.bookTestId || sub.id || '');
+                      if (!subTestId) return;
+                      // Match by bookId or title
+                      const subTitle = String(sub.title || sub.testTitle || '').toLowerCase();
+                      const subBookId = String(sub.bookId || sub.book_id || '');
+                      const bookIdMatch = hwBookId && (subBookId === String(hwBookId) || toUUID(subBookId) === toUUID(hwBookId));
+                      const titleMatch = bookTitleCleanForMatch && subTitle.includes(bookTitleCleanForMatch.slice(0, 20));
+                      if (bookIdMatch || titleMatch) {
+                        derivedTestIds.add(subTestId);
+                      }
+                    });
+                    if (derivedTestIds.size > 0) {
+                      hwTests = [...derivedTestIds];
+                    }
+                  }
 
                   const totalTestsInHw = hwTests.length || 1;
                   const hwTestsSet = new Set(hwTests.map(String));
