@@ -1365,19 +1365,27 @@ export default function StudentDashboard() {
           const hwIdStr = String(targetHw?.id || '');
           const cleanHwId = hwIdStr.replace(/^hw_/, '');
           const sHwId = String(s.hwId || s.homeworkId || '');
-          const sTestId = String(s.testId || '');
+          const sTestId = String(s.testId || s.test_id || '');
           const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
           const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
           const sId = String(s.id || '');
 
           if (specificTestId) {
             const specStr = String(specificTestId);
-            const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '');
+            const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
             const specUuid = String(toUUID(specificTestId) || '');
             if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
             if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
             if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
             if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+
+            const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
+            if (targetTest?.name) {
+              const tName = String(targetTest.name).toLocaleLowerCase('tr').trim();
+              const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
+              const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+              if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
+            }
             return false;
           }
 
@@ -1606,19 +1614,27 @@ export default function StudentDashboard() {
             const hwIdStr = String(targetHw?.id || '');
             const cleanHwId = hwIdStr.replace(/^hw_/, '');
             const sHwId = String(s.hwId || s.homeworkId || '');
-            const sTestId = String(s.testId || '');
+            const sTestId = String(s.testId || s.test_id || '');
             const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
             const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
             const sId = String(s.id || '');
 
             if (specificTestId) {
               const specStr = String(specificTestId);
-              const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '');
+              const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
               const specUuid = String(toUUID(specificTestId) || '');
               if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
               if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
               if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
               if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+
+              const targetTest = (bookTests || []).find(bt => String(bt.id) === specStr || String(bt.id) === specClean || (specUuid && String(bt.id) === specUuid));
+              if (targetTest?.name) {
+                const tName = String(targetTest.name).toLocaleLowerCase('tr').trim();
+                const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
+                const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+                if (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)) return true;
+              }
               return false;
             }
 
@@ -2033,13 +2049,53 @@ export default function StudentDashboard() {
     const nowTime = nowZero.getTime();
     const studentId = String(selectedStudent.id);
 
+    const isItemSolved = (item) => {
+      if (!item) return false;
+      if (item.done || item.isCompleted) return true;
+      const tId = item.testId || item.bookTestId || item.realTestId || item.id;
+      const tIdClean = String(tId || '').replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+      const tIdUuid = toUUID(tId);
+
+      const itemTitle = String(item.testName || item.title || item.name || '').toLocaleLowerCase('tr').trim();
+      const itemSubj = String(item.subject || '').toLocaleLowerCase('tr').trim();
+      const itemTopic = String(item.unitTopic || item.topic || '').toLocaleLowerCase('tr').trim();
+
+      return (submissions || []).some(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+        if (sid !== studentId && toUUID(sid) !== toUUID(studentId)) return false;
+
+        const sTestId = String(s.test_id || s.testId || s.realTestId || s.bookTestId || '');
+        const sClean = sTestId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+        const sUuid = toUUID(sTestId);
+
+        if (tId && (sTestId === String(tId) || sClean === tIdClean || (tIdUuid && sUuid === tIdUuid))) return true;
+
+        const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLocaleLowerCase('tr').trim();
+        if (itemTitle && itemTitle.length > 3 && itemTitle !== 'test' && itemTitle !== 'kitap testi') {
+          if (sTitle.includes(itemTitle)) {
+            if (itemSubj && itemSubj !== 'genel testler' && sTitle.includes('—')) {
+              const sSubj = String(s.subject || '').toLocaleLowerCase('tr').trim();
+              if (sSubj && sSubj !== itemSubj && !sTitle.includes(itemSubj)) return false;
+            }
+            if (itemTopic && itemTopic !== 'genel konu') {
+              const sTopic = String(s.unitTopic || s.topic || '').toLocaleLowerCase('tr').trim();
+              if (sTopic && sTopic !== itemTopic && !sTitle.includes(itemTopic)) return false;
+            }
+            return true;
+          }
+        }
+        return false;
+      });
+    };
+
     // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ TÜM GÖREVLER
     const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
     DAYS_OF_WEEK.forEach((d, idx) => {
       if (idx < todayIdx) {
         const dData = fullProcessedWeekMap[d.key];
         (dData?.items || []).forEach(item => {
-          if (!item.done && !isTaskDismissed(item)) {
+          if (!item.done && !isItemSolved(item) && !isTaskDismissed(item)) {
             const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
             const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
             const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
@@ -2116,7 +2172,7 @@ export default function StudentDashboard() {
     // 3. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
     (pendingTasks || []).forEach(task => {
       const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
-      if (dueDateObj && dueDateObj.getTime() < nowTime && !isTaskDismissed(task)) {
+      if (dueDateObj && dueDateObj.getTime() < nowTime && !task.done && !isItemSolved(task) && !isTaskDismissed(task)) {
         const key = String(task.id || task.hwId || task.testId);
         const hwCleanKey = key.replace(/^hw_/, '').replace(/^auto_hw_/, '').replace(/^book_test_/, '');
         const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(hwCleanKey));
@@ -2137,7 +2193,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed]);
+  }, [selectedStudent, fullProcessedWeekMap, studyAssignments, studyPlans, pendingTasks, todayDayKey, isTaskDismissed, submissions, bookTests]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
