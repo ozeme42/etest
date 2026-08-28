@@ -796,9 +796,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (!normalized || isDeletedItem(normalized)) return;
 
-      // Filter out umbrella "(Tüm Kitap Görevi)" or placeholder container assignments
+      // Filter out umbrella "(Tüm Kitap Görevi)" placeholder container assignments ONLY if no specific test was completed
       const t = String(normalized.testTitle || normalized.fullTitle || normalized.title || '').toLowerCase();
-      if (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)') || t.includes('(kendi eklediğim)')) return;
+      const isPlaceholderWithoutTest = (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)')) && (!normalized.testId || String(normalized.testId) === String(normalized.bookId));
+      if (isPlaceholderWithoutTest) return;
 
       const testKey = String(normalized.id || normalized.submissionId || `${normalized.bookId || ''}_${normalized.testId || normalized.realTestId || ''}_${normalized.date || normalized.submittedAt || ''}`);
       if (processedTestIds.has(testKey)) return;
