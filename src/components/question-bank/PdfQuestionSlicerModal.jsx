@@ -119,44 +119,64 @@ const getSubjectBadgeStyle = (subj = '', isDark = false) => {
   };
 };
 
+export const parseTestNameInfo = (name) => {
+  const str = String(name || '').trim();
+  const lower = str.toLowerCase();
+
+  let cat = 6;
+  if (/^(yeni nesil|beceri|lgs)/i.test(lower)) {
+    cat = 2;
+  } else if (/^(ünite|ü\.|değerlendirme|ü\. değ|ü\.değ)/i.test(lower)) {
+    cat = 3;
+  } else if (/^(tarama|sarmal|tekrar|genel tekrar)/i.test(lower)) {
+    cat = 4;
+  } else if (/^(deneme|sınav|tatil)/i.test(lower)) {
+    cat = 5;
+  } else if (/^(test|kazanım|kavrama|etkinlik|konu)/i.test(lower) || /^t-\d+/i.test(lower) || /^test-\d+/i.test(lower)) {
+    cat = 1;
+  }
+
+  const numMatch = str.match(/\d+/);
+  const num = numMatch ? parseInt(numMatch[0], 10) : 0;
+
+  return { cat, num, str };
+};
+
 export const compareBookTestsOrder = (a, b) => {
   if (!a && !b) return 0;
   if (!a) return 1;
   if (!b) return -1;
 
-  if (typeof a.orderIndex === 'number' && typeof b.orderIndex === 'number' && a.orderIndex !== b.orderIndex && a.orderIndex > 0 && b.orderIndex > 0) {
-    return a.orderIndex - b.orderIndex;
-  }
-  if (typeof a.order === 'number' && typeof b.order === 'number' && a.order !== b.order) {
-    return a.order - b.order;
-  }
-
   const nameA = String(a.testName || a.name || a.title || '').trim();
   const nameB = String(b.testName || b.name || b.title || '').trim();
 
-  // 1: Kazanım / Konu Testleri (Test-1, Test-2, vb.)
-  // 2: Yeni Nesil / Beceri Temelli / LGS Testleri
-  // 3: Ünite Değerlendirme / Ü. Değ. / Ünite Testleri
-  // 4: Tarama / Sarmal / Tekrar Testleri
-  // 5: Deneme / Sınavlar
-  // 6: Diğer
-  const getCategoryScore = (name) => {
-    const lower = name.toLowerCase();
-    if (/^(test|kazanım|kavrama|etkinlik)/i.test(lower) && !lower.includes('yeni nesil') && !lower.includes('ünite') && !lower.includes('değ')) return 1;
-    if (/^(yeni nesil|beceri|lgs)/i.test(lower)) return 2;
-    if (/^(ünite|ü\.|değerlendirme|ü\. değ)/i.test(lower)) return 3;
-    if (/^(tarama|sarmal|tekrar)/i.test(lower)) return 4;
-    if (/^(deneme|sınav|tatil)/i.test(lower)) return 5;
-    return 6;
-  };
+  const pA = parseTestNameInfo(nameA);
+  const pB = parseTestNameInfo(nameB);
 
-  const catA = getCategoryScore(nameA);
-  const catB = getCategoryScore(nameB);
-
-  if (catA !== catB) {
-    return catA - catB;
+  // 1. Sort by Category (Test-1..12 first -> Yeni Nesil 1..10 second -> Ünite Değerlendirme third...)
+  if (pA.cat !== pB.cat) {
+    return pA.cat - pB.cat;
   }
 
+  // 2. Within same category, sort numerically (1, 2, 3, 4 ... 10, 11, 12)
+  if (pA.num !== pB.num) {
+    return pA.num - pB.num;
+  }
+
+  return pA.str.localeCompare(pB.str, 'tr', { numeric: true, sensitivity: 'base' });
+};
+
+export const compareUnitOrder = (a, b) => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const nameA = String(a.unitName || a.name || a.title || '').trim();
+  const nameB = String(b.unitName || b.name || b.title || '').trim();
+  const numA = (nameA.match(/\d+/) ? parseInt(nameA.match(/\d+/)[0], 10) : 0);
+  const numB = (nameB.match(/\d+/) ? parseInt(nameB.match(/\d+/)[0], 10) : 0);
+  if (numA !== numB && numA > 0 && numB > 0) {
+    return numA - numB;
+  }
   return nameA.localeCompare(nameB, 'tr', { numeric: true, sensitivity: 'base' });
 };
 
@@ -873,11 +893,8 @@ export default function PdfQuestionSlicerModal({
     const result = [];
     subjectMap.forEach(sGroup => {
       const units = Array.from(sGroup.unitMap.values());
-      // Sort units by their orderIndex
-      units.sort((a, b) => {
-        if (a.orderIndex !== b.orderIndex) return a.orderIndex - b.orderIndex;
-        return a.unitName.localeCompare(b.unitName, 'tr', { numeric: true });
-      });
+      // Sort units by natural unit number (1. Ünite, 2. Ünite, ...)
+      units.sort(compareUnitOrder);
 
       // Sort tests within unit using book curriculum order
       units.forEach(u => {
