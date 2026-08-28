@@ -42,11 +42,39 @@ export function HomeworkProvider({ children }) {
         touchCache('homeworks');
         const cleanDbHws = dbHws.filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
         
-        setHomeworks(cleanDbHws);
+        // Merge: keep any localStorage-only homeworks that aren't in DB yet
+        // This prevents homework assignments from being silently lost on page reload
+        const dbHwIds = new Set(cleanDbHws.map(h => String(h.id)));
+        const dbHwSupabaseIds = new Set(cleanDbHws.map(h => String(h.supabaseId || '')).filter(Boolean));
+
+        let currentLocal = [];
         try {
-          localStorage.setItem('eTestHomeworks', JSON.stringify(cleanDbHws));
+          const saved = localStorage.getItem('eTestHomeworks');
+          currentLocal = saved ? JSON.parse(saved) : [];
+          if (!Array.isArray(currentLocal)) currentLocal = [];
         } catch {}
-        return cleanDbHws;
+
+        const localOnlyHws = currentLocal.filter(lh => {
+          if (!lh || lh.id === 'global_ai_config' || lh.subject === 'SYSTEM') return false;
+          const lhIdStr = String(lh.id || '');
+          return !dbHwIds.has(lhIdStr) && !dbHwSupabaseIds.has(lhIdStr);
+        });
+
+        // Attempt to sync localStorage-only homeworks back to DB
+        if (localOnlyHws.length > 0) {
+          localOnlyHws.forEach(lh => {
+            dbAddHomework(lh).catch(() => {});
+          });
+        }
+
+        // Final merged list: DB data + localStorage-only (not yet synced)
+        const merged = [...cleanDbHws, ...localOnlyHws];
+        
+        setHomeworks(merged);
+        try {
+          localStorage.setItem('eTestHomeworks', JSON.stringify(merged));
+        } catch {}
+        return merged;
       }
       return dbHws;
     } finally {
