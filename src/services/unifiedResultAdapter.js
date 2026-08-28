@@ -1067,11 +1067,14 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
                 const subDate = extractItemDate(bestSub);
                 const dedupeKey = `${studentIdStr}_${bId}_${sName}_${uName}_${t.name}_${subDate}_${corr}_${wrg}`;
+                // Also track by actual submission ID to prevent same DB record matching multiple slots
+                const bestSubRawId = String(bestSub.id || bestSub.submissionId || '');
 
-                if (!processedAttemptKeys.has(dedupeKey)) {
+                if (!processedAttemptKeys.has(dedupeKey) && (!bestSubRawId || !processedBookTestIds.has(bestSubRawId))) {
                   processedAttemptKeys.add(dedupeKey);
                   processedBookTestIds.add(tIdStr);
                   if (tCleanId) processedBookTestIds.add(tCleanId);
+                  if (bestSubRawId) processedBookTestIds.add(bestSubRawId);
 
                   // Build a fully unique ID that is NEVER shared between different book tests
                   const uniqueEntryId = `sub_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`;
