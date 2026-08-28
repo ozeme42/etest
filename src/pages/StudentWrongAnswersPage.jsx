@@ -292,7 +292,7 @@ export default function StudentWrongAnswersPage() {
         (toUUID(bt.bookId) && String(toUUID(bt.bookId)) === String(toUUID(b.id)))
       );
 
-      bTests.forEach(bt => {
+      bTests.forEach((bt, idx) => {
         let parentSubject = (b.subjects || []).find(s => 
           String(s.id) === String(bt.subjectId) || 
           (s.topics && s.topics.some(tp => String(tp.id) === String(bt.topicId) || (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id)))))) ||
