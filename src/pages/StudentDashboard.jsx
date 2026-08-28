@@ -568,6 +568,11 @@ export default function StudentDashboard() {
   const studentSolvedSet = useMemo(() => {
     const set = new Set();
     const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+    const stripPage = (str) => String(str || '').toLowerCase()
+      .replace(/\d+[-–\s\d]*\.\s*sayfa/gi, '')
+      .replace(/sayfa\s*\d+[-–\s\d]*/gi, '')
+      .replace(/[^a-z0-9ğüşıöç]/g, '')
+      .trim();
 
     // Include submissions from both studentSubmissions and homeworks.submissions
     const allStudentSubs = [...(studentSubmissions || [])];
@@ -614,12 +619,24 @@ export default function StudentDashboard() {
       const uTopic = normalizeKey(s.topicName || s.unitTopic || s.metadata?.topicName);
       const tName = normalizeKey(s.testName || s.title || s.testTitle || s.metadata?.testName);
 
+      const strippedTitle = stripPage(s.title || s.testTitle || s.testName);
+      const strippedName = stripPage(s.testName || s.title);
+      const strippedTopic = stripPage(s.topicName || s.unitTopic);
+
       if (tName) {
         set.add(`name_${tName}`);
         if (bTitle) set.add(`book_test_${bTitle}_${tName}`);
         if (sName) set.add(`subj_test_${sName}_${tName}`);
         if (bTitle && sName) set.add(`full_${bTitle}_${sName}_${tName}`);
         if (bTitle && sName && uTopic) set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
+      }
+
+      if (strippedTitle) {
+        set.add(`str_${strippedTitle}`);
+      }
+      if (strippedName) {
+        set.add(`str_${strippedName}`);
+        if (strippedTopic) set.add(`str_${strippedTopic}_${strippedName}`);
       }
 
       if (s.bookId && tName) {
@@ -631,6 +648,72 @@ export default function StudentDashboard() {
     });
     return set;
   }, [studentSubmissions, homeworks, selectedStudent?.id]);
+
+  const isItemSolved = useCallback((item) => {
+    if (!item) return false;
+    if (item.done || item.isCompleted) return true;
+    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+    const stripPage = (str) => String(str || '').toLowerCase()
+      .replace(/\d+[-–\s\d]*\.\s*sayfa/gi, '')
+      .replace(/sayfa\s*\d+[-–\s\d]*/gi, '')
+      .replace(/[^a-z0-9ğüşıöç]/g, '')
+      .trim();
+
+    const tId = item.testId || item.bookTestId || item.realTestId || item.id;
+    if (tId) {
+      const tidStr = String(tId);
+      const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      if (studentSolvedSet.has(tidStr) || studentSolvedSet.has(tidClean) || (toUUID(tidStr) && studentSolvedSet.has(toUUID(tidStr)))) {
+        return true;
+      }
+    }
+
+    // Check by bookId + testId
+    if (item.bookId && tId) {
+      if (studentSolvedSet.has(`bid_tid_${item.bookId}_${tId}`)) return true;
+    }
+
+    // Check by content name keys (testName, subject, bookTitle)
+    const bTitle = normalizeKey(item.bookTitle);
+    const sName = normalizeKey(item.subject || item.subjectName);
+    const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
+    const tName = normalizeKey(item.testName || item.title);
+
+    if (tName) {
+      if (studentSolvedSet.has(`name_${tName}`)) return true;
+      if (bTitle && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
+      if (sName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
+      if (bTitle && sName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
+      if (bTitle && sName && uTopic && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
+    }
+
+    if (item.bookId && tName) {
+      if (studentSolvedSet.has(`bid_tname_${item.bookId}_${tName}`)) return true;
+    }
+
+    // Check page-number stripped keys
+    const strippedTitle = stripPage(item.title || item.testName);
+    const strippedName = stripPage(item.testName || item.title);
+    const strippedTopic = stripPage(item.unitTopic || item.topicName);
+
+    if (strippedTitle && studentSolvedSet.has(`str_${strippedTitle}`)) return true;
+    if (strippedName && studentSolvedSet.has(`str_${strippedName}`)) return true;
+    if (strippedTopic && strippedName && studentSolvedSet.has(`str_${strippedTopic}_${strippedName}`)) return true;
+
+    // Substring check for composite titles (e.g. "4. Sınıf ... 25-26. Sayfa 1. Ünite - PARAGRAF DENEME SINAVI - 1")
+    if (strippedName && strippedName.length > 3) {
+      for (const key of studentSolvedSet) {
+        if (key.startsWith('str_')) {
+          const subStr = key.slice(4);
+          if (subStr.includes(strippedName) || (strippedTitle && subStr.includes(strippedTitle)) || (strippedTitle && strippedTitle.includes(subStr))) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }, [studentSolvedSet]);
 
   /* ─── Computed Tests Data ─── */
   const tests = useMemo(() => {
@@ -1774,7 +1857,14 @@ export default function StudentDashboard() {
             const sId = String(s.id || '');
 
             if (specificTestId) {
-              return isSubmissionMatchingBookTest(s, specificTestId, bookTests, books);
+              const specStr = String(specificTestId);
+              const specClean = specStr.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+              const specUuid = String(toUUID(specificTestId) || '');
+              if (sTestId && (sTestId === specStr || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
+              if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
+              if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
+              if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+              return false;
             }
 
             if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || sHwId.replace(/^hw_/, '') === cleanHwId)) return true;
@@ -1868,9 +1958,21 @@ export default function StudentDashboard() {
                       return; // Skip phantom/unnamed test
                     }
                   }
+                  const testItemObj = {
+                    id: testItem.id,
+                    testId: testItem.id,
+                    bookTestId: testItem.id,
+                    bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
+                    testName: info.testName,
+                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                    unitTopic: info.topicName,
+                    subject: info.subjectName,
+                    bookTitle: info.cleanBookTitle
+                  };
 
-                  const isTestSolved = (hw.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id)) ||
-                    (submissions || []).some(s => isMatchHwSub(s, hw, testItem.id));
+                  const isTestSolved = isItemSolved(testItemObj) ||
+                    (hw.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id)) ||
+                    (studentSubmissions || []).some(s => isMatchHwSub(s, hw, testItem.id));
                   const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
 
                   const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
@@ -2189,46 +2291,6 @@ export default function StudentDashboard() {
     const studentId = String(selectedStudent.id);
 
     const todayYMD = formatLocalYMD(nowZero);
-
-    const isItemSolved = (item) => {
-      if (!item) return false;
-      if (item.done || item.isCompleted) return true;
-      const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-
-      const tId = item.testId || item.bookTestId || item.realTestId || item.id;
-      if (tId) {
-        const tidStr = String(tId);
-        const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        if (studentSolvedSet.has(tidStr) || studentSolvedSet.has(tidClean) || (toUUID(tidStr) && studentSolvedSet.has(toUUID(tidStr)))) {
-          return true;
-        }
-      }
-
-      // Check by bookId + testId
-      if (item.bookId && tId) {
-        if (studentSolvedSet.has(`bid_tid_${item.bookId}_${tId}`)) return true;
-      }
-
-      // Check by content name keys (testName, subject, bookTitle)
-      const bTitle = normalizeKey(item.bookTitle);
-      const sName = normalizeKey(item.subject || item.subjectName);
-      const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
-      const tName = normalizeKey(item.testName || item.title);
-
-      if (tName) {
-        if (studentSolvedSet.has(`name_${tName}`)) return true;
-        if (bTitle && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
-        if (sName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
-        if (bTitle && sName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
-        if (bTitle && sName && uTopic && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
-      }
-
-      if (item.bookId && tName) {
-        if (studentSolvedSet.has(`bid_tname_${item.bookId}_${tName}`)) return true;
-      }
-
-      return false;
-    };
 
     const isAlreadySeen = (it) => {
       if (!it) return false;
