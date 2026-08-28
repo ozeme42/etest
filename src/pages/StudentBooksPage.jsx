@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -9,7 +10,7 @@ import { isHomeworkForStudent } from '../utils/testResolver';
 import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
-  ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList
+  ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList, User
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -98,14 +99,64 @@ export default function StudentBooksPage() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
+  const { users = [] } = useUser();
   const { homeworks = [], addHomework } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
+  const { data: curData } = useCurriculum();
 
-  const studentId = currentUser?.id;
-  const grade = currentUser?.grade;
-  const gradeId = currentUser?.gradeId;
-  const className = currentUser?.className;
+  const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+  const activeStudent = useMemo(() => {
+    if (currentUser?.role === 'student') return currentUser;
+    if (selectedStudentId) {
+      const found = studentMembers.find(s => String(s.id) === String(selectedStudentId) || (toUUID(s.id) && String(toUUID(s.id)) === String(selectedStudentId)));
+      if (found) return found;
+    }
+    return studentMembers[0] || currentUser;
+  }, [currentUser, selectedStudentId, studentMembers]);
+
+  const studentId = activeStudent?.id;
+  const grade = activeStudent?.grade;
+  const gradeId = activeStudent?.gradeId;
+  const className = activeStudent?.className;
+
+  // Build comprehensive ID set for active student (aliases, UUIDs, matching email/name)
+  const allStudentIds = useMemo(() => {
+    const ids = new Set();
+    if (!activeStudent) return ids;
+
+    const addId = (val) => {
+      if (!val) return;
+      const sVal = String(val).trim();
+      ids.add(sVal);
+      const uv = toUUID(sVal);
+      if (uv) ids.add(uv);
+    };
+
+    addId(activeStudent.id);
+    addId(activeStudent.student_id);
+    addId(activeStudent.studentId);
+    addId(activeStudent.uuid);
+
+    const sName = String(activeStudent.name || '').trim().toLowerCase();
+    const sEmail = String(activeStudent.email || '').trim().toLowerCase();
+
+    (users || []).forEach(u => {
+      const uName = String(u.name || '').trim().toLowerCase();
+      const uEmail = String(u.email || '').trim().toLowerCase();
+      const isNameMatch = sName && uName && sName === uName;
+      const isEmailMatch = sEmail && uEmail && (sEmail === uEmail || sEmail.split('@')[0] === uEmail.split('@')[0]);
+      if (isNameMatch || isEmailMatch) {
+        addId(u.id);
+        addId(u.student_id);
+        addId(u.studentId);
+      }
+    });
+
+    return ids;
+  }, [activeStudent, users]);
 
   const defaultOptionCount = (grade && String(grade).match(/^[5-8]/)) ? 4 : 5;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -159,30 +210,26 @@ export default function StudentBooksPage() {
     finally { setIsSaving(false); }
   };
 
-  const { data: curData } = useCurriculum();
-
   const bookAssignments = useMemo(() => {
     return homeworks.filter(hw => {
       if (!hw.isBookAssignment) return false;
-      return isHomeworkForStudent(hw, currentUser, curData?.grades);
+      return isHomeworkForStudent(hw, activeStudent, curData?.grades);
     });
-  }, [homeworks, currentUser, curData?.grades]);
-
-  const studentIdStr = String(studentId || '');
-  const studentUuidStr = String(toUUID(studentId) || '');
+  }, [homeworks, activeStudent, curData?.grades]);
 
   const studentSubmissions = useMemo(() =>
     submissions.filter(s => {
       if (!s || isDeletedItem(s)) return false;
-      const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+      const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      const isMatchStudent = allStudentIds.has(sId) || (toUUID(sId) && allStudentIds.has(toUUID(sId)));
       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
       return true;
     })
-    , [submissions, studentIdStr, studentUuidStr]);
+    , [submissions, allStudentIds]);
 
   const assignedBooks = useMemo(() => {
-        const isExamBook = (b) => {
+    const isExamBook = (b) => {
       if (!b) return false;
       const raw = b.raw_data || {};
       if (b.id === 'tb_07kzdf_1787267196768') return true;
@@ -236,17 +283,17 @@ export default function StudentBooksPage() {
       const bUuid = String(toUUID(b.id) || '');
       const bTitle = String(b.title || '').toLowerCase().trim();
 
-      const testsInBookRaw = (bookTests || []).filter(bt => 
-        String(bt.bookId) === bId || 
-        String(bt.book_id) === bId || 
-        (bUuid && String(bt.bookId) === bUuid) ||
-        (bUuid && toUUID(bt.bookId) === bUuid)
-      );
+      const testsInBookRaw = (bookTests || []).filter(bt => {
+        const btBId = String(bt.bookId || bt.book_id || '');
+        if (btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid)) return true;
+        if (bt.bookTitle && String(bt.bookTitle).toLowerCase().trim() === bTitle) return true;
+        return false;
+      });
 
       const testsInBook = [];
       const seenTestKeys = new Set();
       testsInBookRaw.forEach(t => {
-        const tKey = `${String(t.subjectId || '')}_${String(t.topicId || '')}_${String(t.name || '').trim().toLowerCase()}`;
+        const tKey = `${String(t.subjectId || t.subject_id || '')}_${String(t.topicId || t.topic_id || '')}_${String(t.name || '').trim().toLowerCase()}`;
         if (!seenTestKeys.has(tKey)) {
           seenTestKeys.add(tKey);
           testsInBook.push(t);
@@ -310,10 +357,8 @@ export default function StudentBooksPage() {
       }
 
       const totalBookTests = Math.max(
-        maxHwTests,
         testsInBook.length,
         countFromSubjects,
-        matchedSubs.length,
         b.total_tests || b.totalTests || 0,
         1
       );
@@ -730,6 +775,23 @@ export default function StudentBooksPage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {currentUser?.role !== 'student' && studentMembers.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 12, padding: '0.4rem 0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <User size={16} style={{ color: '#6366f1' }} />
+                <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Öğrenci:</label>
+                <select
+                  value={activeStudent?.id || ''}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', outline: 'none' }}
+                >
+                  {studentMembers.map(st => (
+                    <option key={st.id} value={st.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
+                      {st.name} ({st.className || st.grade || 'Öğrenci'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               onClick={() => setIsManualTestModalOpen(true)}
               style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)', transition: 'transform 0.15s' }}

@@ -178,6 +178,42 @@ export default function StudentBookDetailsPage() {
   const gradeId = targetStudent?.gradeId;
   const className = targetStudent?.className;
 
+  // Build comprehensive ID set for target student (aliases, UUIDs, matching email/name)
+  const allStudentIds = useMemo(() => {
+    const ids = new Set();
+    if (!targetStudent) return ids;
+
+    const addId = (val) => {
+      if (!val) return;
+      const sVal = String(val).trim();
+      ids.add(sVal);
+      const uv = toUUID(sVal);
+      if (uv) ids.add(uv);
+    };
+
+    addId(targetStudent.id);
+    addId(targetStudent.student_id);
+    addId(targetStudent.studentId);
+    addId(targetStudent.uuid);
+
+    const sName = String(targetStudent.name || '').trim().toLowerCase();
+    const sEmail = String(targetStudent.email || '').trim().toLowerCase();
+
+    (users || []).forEach(u => {
+      const uName = String(u.name || '').trim().toLowerCase();
+      const uEmail = String(u.email || '').trim().toLowerCase();
+      const isNameMatch = sName && uName && sName === uName;
+      const isEmailMatch = sEmail && uEmail && (sEmail === uEmail || sEmail.split('@')[0] === uEmail.split('@')[0]);
+      if (isNameMatch || isEmailMatch) {
+        addId(u.id);
+        addId(u.student_id);
+        addId(u.studentId);
+      }
+    });
+
+    return ids;
+  }, [targetStudent, users]);
+
   // Find the book
   const book = useMemo(() => books.find(b => String(b.id) === String(bookId)), [books, bookId]);
 
@@ -297,8 +333,8 @@ export default function StudentBookDetailsPage() {
 
         const solvedSubs = submissions.filter(s => {
           if (!s || isDeletedItem(s)) return false;
-          const sStdId = String(s.studentId || s.student_id || '');
-          const isMatchStudent = !studentIdStr || sStdId === studentIdStr || (studentUuidStr && sStdId === studentUuidStr) || (studentUuidStr && toUUID(sStdId) === studentUuidStr);
+          const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+          const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
           if (!isMatchStudent) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
 
@@ -341,8 +377,8 @@ export default function StudentBookDetailsPage() {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
             if (!s || isDeletedItem(s)) return false;
-            const sStdId = String(s.studentId || s.student_id || '');
-            const isMatchStudent = !studentIdStr || sStdId === studentIdStr || (studentUuidStr && sStdId === studentUuidStr) || (studentUuidStr && toUUID(sStdId) === studentUuidStr);
+            const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+            const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
             const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
             const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
