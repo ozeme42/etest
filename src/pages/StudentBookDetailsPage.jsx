@@ -436,11 +436,42 @@ export default function StudentBookDetailsPage() {
         let bestScore = null;
         let bestSub = null;
         if (solvedSubs.length > 0) {
-          bestScore = Math.max(...solvedSubs.map(s => Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0))));
-          bestSub = solvedSubs.reduce((prev, curr) => ((Number(curr.score || curr.correct_count || curr.correctCount || 0) > Number(prev.score || prev.correct_count || prev.correctCount || 0)) ? curr : prev), solvedSubs[0]);
+          const getScoreVal = (s) => {
+            const d = Number(s.correct_count ?? s.correctCount ?? s.correct ?? 0);
+            const y = Number(s.wrong_count ?? s.wrongCount ?? s.wrong ?? 0);
+            const b = Number(s.empty_count ?? s.blankCount ?? s.blank ?? 0);
+            const tot = d + y + b;
+            const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+            if (s.scorePercentage !== undefined && s.scorePercentage !== null) return Number(s.scorePercentage);
+            if (meta?.scorePercentage !== undefined && meta?.scorePercentage !== null) return Number(meta.scorePercentage);
+            if (tot > 0) return Math.round((d / tot) * 100);
+            return Number(s.score || 0);
+          };
+
+          bestSub = solvedSubs.reduce((prev, curr) => (getScoreVal(curr) > getScoreVal(prev) ? curr : prev), solvedSubs[0]);
+
+          const d = Number(bestSub.correct_count ?? bestSub.correctCount ?? bestSub.correct ?? 0);
+          const y = Number(bestSub.wrong_count ?? bestSub.wrongCount ?? bestSub.wrong ?? 0);
+          const b = Number(bestSub.empty_count ?? bestSub.blankCount ?? bestSub.blank ?? 0);
+          const tot = d + y + b;
+          const meta = (bestSub.answers && Array.isArray(bestSub.answers)) ? bestSub.answers.find(a => a.type === 'metadata') : (bestSub.metadata || {});
+          
+          if (bestSub.scorePercentage !== undefined && bestSub.scorePercentage !== null) {
+            bestScore = Number(bestSub.scorePercentage);
+          } else if (meta?.scorePercentage !== undefined && meta?.scorePercentage !== null) {
+            bestScore = Number(meta.scorePercentage);
+          } else if (tot > 0) {
+            bestScore = Math.round((d / tot) * 100);
+          } else {
+            bestScore = Number(bestSub.score || 0);
+          }
         } else if (hwSub) {
-          bestScore = hwSub.score || 0;
           bestSub = hwSub;
+          const d = Number(hwSub.correctCount ?? hwSub.correct_count ?? 0);
+          const y = Number(hwSub.wrongCount ?? hwSub.wrong_count ?? 0);
+          const b = Number(hwSub.blankCount ?? hwSub.empty_count ?? 0);
+          const tot = d + y + b;
+          bestScore = tot > 0 ? Math.round((d / tot) * 100) : (hwSub.score || 0);
         }
 
         let testDueDate = null;
@@ -2127,14 +2158,12 @@ export default function StudentBookDetailsPage() {
               {isOpen && (
                 <div style={{ padding: '0.85rem', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   
-                  {/* Direct Tests */}
-                  {subj.directTests && subj.directTests.length > 0 && (
+                  {/* Direct Tests (when subject has topics/units) */}
+                  {subj.topics && subj.topics.length > 0 && subj.directTests && subj.directTests.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                      {subj.topics && subj.topics.length > 0 && (
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
-                          <FileText size={14} color={sc.accent} /> Direkt Testler
-                        </div>
-                      )}
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
+                        <FileText size={14} color={sc.accent} /> Direkt Testler
+                      </div>
                       {subj.directTests.map(test => {
                         let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
                         if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
