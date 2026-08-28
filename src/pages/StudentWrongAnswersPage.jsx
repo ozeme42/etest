@@ -165,16 +165,30 @@ export default function StudentWrongAnswersPage() {
   const [programToast, setProgramToast] = useState(null);
   const [openDaySelectorId, setOpenDaySelectorId] = useState(null);
 
+  const currentStudentId = selectedStudent?.id || currentUser?.id;
+
   const remedialTests = useMemo(() => {
     return (bankQuestions || []).filter(q => {
-      const isRemedial = q.isRemedialTest === true;
-      const isBundle = q.isBundle === true;
-      const titleMatch = q.title && String(q.title).toLowerCase().includes('telafi');
-      const nameMatch = q.name && String(q.name).toLowerCase().includes('telafi');
-      const isCustomSliced = (Array.isArray(q.questionsList) && q.questionsList.length > 0 && (q.contentType === 'gorsel' || q.type === 'coktan_secmeli'));
-      return isRemedial || isBundle || titleMatch || nameMatch || isCustomSliced;
+      // Must be explicitly created as a remedial / sliced test
+      const isExplicitRemedial = q.isRemedialTest === true || q.sourceType === 'pdfSlicer';
+      const titleLower = (q.title || q.name || '').toLowerCase();
+      const isRemedialTitle = titleLower.includes('telafi testi') || titleLower.includes('kırpılmış');
+
+      if (!isExplicitRemedial && !isRemedialTitle) {
+        return false;
+      }
+
+      // If test belongs to a specific student, ensure it matches currentStudentId
+      if (q.studentId && currentStudentId && String(q.studentId) !== String(currentStudentId)) {
+        return false;
+      }
+      if (q.createdBy && currentStudentId && String(q.createdBy) !== String(currentStudentId) && q.createdByRole === 'student') {
+        return false;
+      }
+
+      return true;
     });
-  }, [bankQuestions]);
+  }, [bankQuestions, currentStudentId]);
 
   const handleAddTestToProgram = async (testItem, targetDayKey) => {
     const studentId = selectedStudent?.id || currentUser?.id;

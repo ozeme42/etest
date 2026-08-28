@@ -1531,7 +1531,10 @@ export default function PdfQuestionSlicerModal({
           imageAnswers: imageAnswersObj,
           bookId: currentBook?.id || null,
           bookTitle: currentBook?.title || null,
-          isRemedialTest: true
+          isRemedialTest: true,
+          sourceType: 'pdfSlicer',
+          studentId: studentId || null,
+          createdBy: studentId || null
         });
       }
 
