@@ -370,6 +370,46 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
+  // Check generated book tests pattern if still not found
+  if (!matchedBookTest && books && Array.isArray(books)) {
+    for (const b of books) {
+      const bId = String(b.id || '');
+      const rawSubjs = b.subjects || b.raw_data?.subjects || [];
+      for (let sIdx = 0; sIdx < rawSubjs.length; sIdx++) {
+        const s = rawSubjs[sIdx];
+        const sId = String(s.id || `subj_${sIdx}`);
+        const topics = s.topics || [{ id: `top_${sId}_1`, name: '1. Ünite' }];
+        for (let tpIdx = 0; tpIdx < topics.length; tpIdx++) {
+          const tp = topics[tpIdx];
+          const tpId = String(tp.id || `tp_${tpIdx}`);
+          const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+          for (let i = 1; i <= 20; i++) {
+            const genId = `tbt_${bId}_${sId}_${tpId}_${i}`;
+            const genName = i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`);
+            if (genId === testIdCandidate || cleanCandidate.endsWith(`_${tpId}_${i}`) || testIdCandidate.includes(`_${sId}_${tpId}_${i}`) || testIdCandidate.includes(`_${tpId}_${i}`)) {
+              matchedBookTest = {
+                id: genId,
+                bookId: b.id,
+                subjectId: s.id,
+                topicId: tp.id,
+                name: genName,
+                topicName: uName,
+                subjectName: s.name || b.subject
+              };
+              matchedBook = b;
+              matchedSubject = s;
+              matchedTopic = tp;
+              break;
+            }
+          }
+          if (matchedBookTest) break;
+        }
+        if (matchedBookTest) break;
+      }
+      if (matchedBookTest) break;
+    }
+  }
+
   const subjectName = matchedSubject?.name || meta.subjectName || rawSub.subject || matchedHw?.subject || matchedBook?.subject || 'Genel';
   const topicName = matchedTopic?.name || meta.topicName || rawSub.topic || matchedBookTest?.topicName || 'Genel Konu';
   const testName = matchedBookTest?.name || rawSub.testName || rawSub.name || rawSub.testTitle || rawSub.title || matchedHw?.title || 'Test';
@@ -791,6 +831,108 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       }
     }
 
+    // 4. Scan all canonical book tests and match with submissions
+    if (books && Array.isArray(books)) {
+      const existingCandidateTestIds = new Set(allCandidateSubs.map(s => String(s.id || s.submissionId || s.testId || s.realTestId || s.bookTestId || '')));
+
+      books.forEach(b => {
+        const bId = String(b.id || '');
+        const bUuid = toUUID(b.id);
+        const rawSubjs = (b.subjects && b.subjects.length > 0) ? b.subjects : (b.raw_data?.subjects || []);
+
+        rawSubjs.forEach((subj, sIdx) => {
+          const sId = String(subj.id || `subj_${sIdx}`);
+          const sName = subj.name || b.subject || 'Genel';
+          const topics = (subj.topics && Array.isArray(subj.topics) && subj.topics.length > 0)
+            ? subj.topics
+            : [{ id: `top_${sId}_1`, name: '1. Ünite' }];
+
+          topics.forEach((tp, tpIdx) => {
+            const tpId = String(tp.id || `tp_${tpIdx}`);
+            const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+
+            let matchedTests = (bookTests || []).filter(bt => {
+              const isMatchBook = String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid);
+              if (!isMatchBook) return false;
+              return String(bt.topicId || bt.topic_id) === tpId || (topics.length === 1 && String(bt.subjectId || bt.subject_id) === sId);
+            });
+
+            if (matchedTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
+              matchedTests = tp.tests;
+            }
+
+            if (matchedTests.length === 0) {
+              matchedTests = [];
+              for (let i = 1; i <= 20; i++) {
+                matchedTests.push({
+                  id: `tbt_${bId}_${sId}_${tpId}_${i}`,
+                  bookId: bId,
+                  subjectId: sId,
+                  topicId: tpId,
+                  name: i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`),
+                  questionCount: 20,
+                  answerKey: {}
+                });
+              }
+            }
+
+            matchedTests.forEach(testObj => {
+              const tIdStr = String(testObj.id);
+              const tCleanId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+              const tUuidStr = String(toUUID(testObj.id) || '');
+
+              const matchedSubs = (submissions || []).filter(s => {
+                if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
+                if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+                const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+                const matchFields = [
+                  String(s.testId || ''),
+                  String(s.realTestId || ''),
+                  String(s.bookTestId || ''),
+                  String(s.id || ''),
+                  String(meta?.realTestId || ''),
+                  String(meta?.bookTestId || ''),
+                  String(meta?.realId || '')
+                ].filter(f => Boolean(f) && f.length >= 2);
+                if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+                  matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2));
+                }
+
+                return matchFields.some(f => (
+                  f === tIdStr ||
+                  (tCleanId && tCleanId.length >= 3 && f === tCleanId) ||
+                  (tUuidStr && f === tUuidStr) ||
+                  (toUUID(f) && toUUID(f) === tIdStr) ||
+                  (tUuidStr && toUUID(f) === tUuidStr)
+                ));
+              });
+
+              matchedSubs.forEach(s => {
+                const subKey = String(s.id || s.submissionId || `${tIdStr}_${s.studentId}`);
+                if (!existingCandidateTestIds.has(subKey)) {
+                  allCandidateSubs.push({
+                    ...s,
+                    bookId: b.id,
+                    bookTitle: b.title,
+                    subjectId: sId,
+                    subjectName: sName,
+                    topicId: tpId,
+                    topicName: uName,
+                    testId: tIdStr,
+                    realTestId: tIdStr,
+                    testName: testObj.name,
+                    isStandalone: true
+                  });
+                  existingCandidateTestIds.add(subKey);
+                }
+              });
+            });
+          });
+        });
+      });
+    }
+
     // Sort candidates: Evaluated first, Standalone submissions before generic homework updates, then newest
     allCandidateSubs.sort((a, b) => {
       const aEval = (a.isEvaluated || a.isEvaluatedByTeacher || a.status === 'evaluated' || a.teacherFeedback) ? 1 : 0;
@@ -818,7 +960,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const isPlaceholderWithoutTest = (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)')) && (!normalized.testId || String(normalized.testId) === String(normalized.bookId));
       if (isPlaceholderWithoutTest) return;
 
-      const testKey = String(normalized.id || normalized.submissionId || `${normalized.bookId || ''}_${normalized.testId || normalized.realTestId || ''}_${normalized.date || normalized.submittedAt || ''}`);
+      const testKey = String(normalized.id || normalized.submissionId || `${normalized.bookId || ''}_${normalized.subjectName || normalized.subject || ''}_${normalized.topicName || ''}_${normalized.testName || normalized.testId || ''}_${normalized.date || normalized.submittedAt || ''}`);
       if (processedTestIds.has(testKey)) return;
       processedTestIds.add(testKey);
 
