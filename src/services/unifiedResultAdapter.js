@@ -957,12 +957,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
               const tCleanId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
               const tUuidStr = String(toUUID(t.id) || '');
 
-              const solvedSubs = submissions.filter(s => {
+              const isMatchThisTest = (s) => {
                 if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
                 if (s.status === 'in_progress' || s.status === 'draft') return false;
 
                 const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
-                const matchFields = [
+                const candidateIds = [
                   String(s.testId || ''),
                   String(s.test_id || ''),
                   String(s.realTestId || ''),
@@ -971,30 +971,42 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
                   String(meta?.realTestId || ''),
                   String(meta?.bookTestId || ''),
                   String(meta?.realId || '')
-                ];
-                if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-                  matchFields.push(...s.bookTestIds.map(String));
+                ].filter(Boolean);
+
+                if (candidateIds.some(cid => cid === tIdStr || cid === tCleanId)) return true;
+
+                // Exact title candidate match (e.g. "Test-8", "Yeni Nesil 1", "Ü. Değ. 4")
+                const titleCandidates = [s.testTitle, s.testName, s.title, s.name, meta?.testTitle, meta?.testName].filter(Boolean);
+                for (const tc of titleCandidates) {
+                  const tcClean = String(tc).toLowerCase().replace(/\s+/g, '');
+                  const tNameClean = String(t.name || '').toLowerCase().replace(/\s+/g, '');
+                  if (tcClean.endsWith(`—${tNameClean}`) || tcClean.endsWith(`-${tNameClean}`) || tcClean.endsWith(`›${tNameClean}`) || tcClean.includes(`(${tNameClean})`) || tcClean === tNameClean) {
+                    const sUnit = s.unitTopic || meta?.unitTopic || s.topic;
+                    if (sUnit && tp?.name) {
+                      const uNum1 = String(sUnit).match(/\d+/)?.[0];
+                      const uNum2 = String(tp.name).match(/\d+/)?.[0];
+                      if (uNum1 && uNum2 && uNum1 !== uNum2) return false;
+                    }
+                    return true;
+                  }
                 }
 
-                return matchFields.some(f => f && (
-                  f === tIdStr ||
-                  f === tCleanId ||
-                  f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-                  (tUuidStr && f === tUuidStr) ||
-                  toUUID(f) === tIdStr ||
-                  (tUuidStr && toUUID(f) === tUuidStr)
-                ));
-              });
+                // Match trailing index in structured ID (e.g. _1 matches Test-1, _2 matches Test-2)
+                for (const cid of candidateIds) {
+                  if (cid.startsWith('tbt_') || cid.includes('_top_')) {
+                    if (cid.endsWith(`_${tIdStr.split('_').pop()}`) && cid.includes(String(tp.id))) return true;
+                  }
+                }
+
+                return false;
+              };
+
+              const solvedSubs = submissions.filter(isMatchThisTest);
 
               let hwSub = null;
               for (const hw of homeworks) {
                 if (!hw || !hw.submissions || !Array.isArray(hw.submissions)) continue;
-                const match = hw.submissions.find(s => {
-                  if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
-                  if (s.status === 'in_progress' || s.status === 'draft') return false;
-                  const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
-                  return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
-                });
+                const match = hw.submissions.find(isMatchThisTest);
                 if (match) {
                   hwSub = match;
                   break;
