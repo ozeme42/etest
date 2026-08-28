@@ -3488,7 +3488,7 @@ export default function StudentDashboard() {
                 onTaskClick={(task) => {
                   if (!task) return;
                   if (task.roadmapAssignmentId) {
-                    navigate(`/student/study-plan/${task.roadmapAssignmentId}`);
+                    navigate(`/student/study-plan/${task.roadmapAssignmentId}`, { state: { from: '/student' } });
                     return;
                   }
                   
@@ -3497,7 +3497,7 @@ export default function StudentDashboard() {
                   const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
                   
                   if (isExam) {
-                    navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`);
+                    navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
                     return;
                   }
 
@@ -3513,14 +3513,14 @@ export default function StudentDashboard() {
                   );
 
                   if (targetBookTestId) {
-                    navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`);
+                    navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
                     return;
                   }
 
                   // Normal Homework Quiz
                   const quizTargetId = task.realTestId || task.hwId || task.id || task.testId;
                   if (quizTargetId) {
-                    navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent.id}`);
+                    navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
                     return;
                   }
 

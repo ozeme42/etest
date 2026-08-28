@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, ArrowRight, Search } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
@@ -3278,6 +3278,7 @@ export default function ProgramCenter({
   const [expandedDayTasks, setExpandedDayTasks] = useState({});
   const [daySearchQueries, setDaySearchQueries] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handlePrevDay = useCallback(() => {
     const currentIndex = DAYS.findIndex(d => d.key === selectedDayFilter);
@@ -3342,35 +3343,36 @@ export default function ProgramCenter({
   const handleOpenTaskResult = useCallback((item) => {
     if (!item) return;
     const sId = effectiveStudentId;
+    const fromPath = location.pathname || '/my-program';
 
     if (item.roadmapAssignmentId) {
-      navigate(`/student/study-plan/${item.roadmapAssignmentId}`);
+      navigate(`/student/study-plan/${item.roadmapAssignmentId}`, { state: { from: fromPath } });
       return;
     }
 
     if (item.testId) {
-      navigate(`/book-quiz/${item.testId}${sId ? `?studentId=${sId}` : ''}`);
+      navigate(`/book-quiz/${item.testId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
 
     if (item.hwId) {
       const hwObj = (allHomeworks || []).find(h => String(h.id) === String(item.hwId));
       if (hwObj?.type === 'physicalExam') {
-        navigate(`/physical-exam/${item.hwId}${sId ? `?studentId=${sId}` : ''}`);
+        navigate(`/physical-exam/${item.hwId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       } else if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
-        navigate(`/book-quiz/${hwObj.tests[0]}${sId ? `?studentId=${sId}` : ''}`);
+        navigate(`/book-quiz/${hwObj.tests[0]}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       } else {
-        navigate(`/quiz/${item.hwId}${sId ? `?studentId=${sId}` : ''}`);
+        navigate(`/quiz/${item.hwId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       }
       return;
     }
 
     if (item.id && String(item.id).startsWith('hw_')) {
       const cleanId = String(item.id).replace('hw_', '');
-      navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`);
+      navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
-  }, [navigate, effectiveStudentId, allHomeworks]);
+  }, [navigate, effectiveStudentId, allHomeworks, location.pathname]);
 
   const handleStartInStudyRoom = useCallback((item) => {
     if (!item) return;

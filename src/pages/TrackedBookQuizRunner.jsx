@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useHomework } from '../context/HomeworkContext';
@@ -54,6 +54,9 @@ export default function TrackedBookQuizRunner() {
   const { testId: routeParamId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const returnUrl = location.state?.from || location.state?.returnUrl || (searchParams.get('from'));
 
   const { books, bookTests, loading: booksLoading } = useTrackedBooks();
   const { homeworks, submitHomework, loading: hwLoading } = useHomework();
@@ -983,6 +986,20 @@ export default function TrackedBookQuizRunner() {
     );
   }
 
+  const handleGoBack = useCallback(() => {
+    if (returnUrl) {
+      navigate(returnUrl);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else if (resolvedBook?.bookType === 'exam') {
+      navigate('/student/exams');
+    } else if (resolvedBook?.id) {
+      navigate(`/student/books/${resolvedBook.id}`);
+    } else {
+      navigate('/student');
+    }
+  }, [returnUrl, resolvedBook, navigate]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
@@ -1028,14 +1045,9 @@ export default function TrackedBookQuizRunner() {
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
-              onClick={() => {
-                if (resolvedBook?.bookType === 'exam') navigate('/student/exams');
-                else if (resolvedBook) navigate(`/student/books/${resolvedBook.id}`);
-                else if (window.history.length > 1) navigate(-1);
-                else navigate('/student/exams');
-              }}
+              onClick={handleGoBack}
               style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title={resolvedBook?.bookType === 'exam' ? "Denemelere Dön" : "Kitaba Dön"}
+              title="Geri Dön"
             >
               <ArrowLeft size={isMobile ? 18 : 22} />
             </button>
@@ -1417,16 +1429,12 @@ export default function TrackedBookQuizRunner() {
                   {/* Action buttons after submission */}
                   <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button 
-                      onClick={() => {
-                        if (resolvedBook?.bookType === 'exam') navigate('/student/exams');
-                        else if (resolvedBook?.id) navigate(`/student/books/${resolvedBook.id}`);
-                        else navigate('/student/exams');
-                      }}
+                      onClick={handleGoBack}
                       style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
-                      <Trophy size={16} /> {resolvedBook?.bookType === 'exam' ? 'Denemelerime Dön' : 'Kitap Testlerine Dön'}
+                      <Trophy size={16} /> {returnUrl ? (returnUrl.includes('/program') || returnUrl.includes('/my-program') ? '📅 Programa Dön' : (returnUrl.includes('/homeworks') ? '📝 Ödevlere Dön' : (returnUrl === '/student' ? '🏠 Panoya Dön' : 'Geri Dön'))) : (resolvedBook?.bookType === 'exam' ? 'Denemelerime Dön' : 'Kitap Testlerine Dön')}
                     </button>
 
                     <button

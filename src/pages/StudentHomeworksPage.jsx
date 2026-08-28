@@ -555,11 +555,11 @@ export default function StudentHomeworksPage() {
 
   const handleStartTask = (task) => {
     if (task.type === 'physicalExam' || task.isPhysical) {
-      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`);
+      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     } else if (task.isBookAssignment || task.sourceType === 'trackedBook') {
-      navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId}?studentId=${selectedStudent.id}`);
+      navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     } else {
-      navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${selectedStudent.id}`);
+      navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     }
   };
 

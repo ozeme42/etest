@@ -52,6 +52,7 @@ const MISTAKE_REASON_OPTIONS = [
 export default function PhysicalExamRunner() {
   const { hwId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { homeworks, submitHomework } = useHomework();
   const { books } = useTrackedBooks();
   const { currentUser } = useAuth();
@@ -63,7 +64,16 @@ export default function PhysicalExamRunner() {
   const queryParams = new URLSearchParams(window.location.search);
   const paramStudentId = queryParams.get('studentId');
   const isRetake = queryParams.get('retake') === 'true';
+  const returnUrl = location.state?.from || location.state?.returnUrl || queryParams.get('from');
   const studentId = paramStudentId || currentUser?.id;
+
+  const handleGoBack = () => {
+    if (returnUrl) {
+      navigate(returnUrl);
+    } else {
+      navigate(-1);
+    }
+  };
 
   const currentViewingStudent = users.find(u => u.id === studentId);
   const isTeacherReviewing = currentUser?.role !== 'student' && paramStudentId && paramStudentId !== currentUser?.id;
@@ -1369,15 +1379,12 @@ export default function PhysicalExamRunner() {
                   {/* Action buttons after submission */}
                   <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button 
-                      onClick={() => {
-                        if (isTeacherOrAdmin) navigate('/physical-exam');
-                        else navigate('/student/exams');
-                      }}
+                      onClick={handleGoBack}
                       style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
-                      <Trophy size={16} /> Denemelerime Dön
+                      <Trophy size={16} /> {returnUrl ? (returnUrl.includes('/program') || returnUrl.includes('/my-program') ? '📅 Programa Dön' : (returnUrl.includes('/homeworks') ? '📝 Ödevlere Dön' : (returnUrl === '/student' ? '🏠 Panoya Dön' : 'Geri Dön'))) : 'Denemelerime Dön'}
                     </button>
                   </div>
                 </div>

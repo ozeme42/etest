@@ -55,6 +55,18 @@ export default function ModularQuizPage() {
   }, []);
 
   const location = useLocation();
+  const returnUrl = location.state?.from || location.state?.returnUrl || (searchParams.get('from'));
+
+  const handleGoBack = useCallback(() => {
+    if (returnUrl) {
+      navigate(returnUrl);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/student');
+    }
+  }, [returnUrl, navigate]);
+
   const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
 
   // Check if there is an active homework assigned to this student that matches this test
@@ -1204,7 +1216,7 @@ export default function ModularQuizPage() {
           onSubmit={handleSubmit}
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1218,7 +1230,7 @@ export default function ModularQuizPage() {
           onSubmit={handleSubmit}
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1232,7 +1244,7 @@ export default function ModularQuizPage() {
           onSubmit={handleSubmit}
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1246,7 +1258,7 @@ export default function ModularQuizPage() {
           onSubmit={handleSubmit}
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1260,7 +1272,7 @@ export default function ModularQuizPage() {
           onSubmit={handleSubmit}
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1275,7 +1287,7 @@ export default function ModularQuizPage() {
           onAutoSave={handleAutoSave}
           draftAnswers={draftSubmission?.answers}
           bookPdfUrl={bookPdfUrl}
-          onExit={() => navigate('/student')}
+          onExit={handleGoBack}
         />
       );
     }
@@ -1288,7 +1300,7 @@ export default function ModularQuizPage() {
         onSubmit={handleSubmit}
         onAutoSave={handleAutoSave}
         draftAnswers={draftSubmission?.answers}
-        onExit={() => navigate('/student')}
+        onExit={handleGoBack}
       />
     );
   };
@@ -1841,61 +1853,59 @@ export default function ModularQuizPage() {
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                 <button
-                  type="button"
-                  onClick={() => {
-                    navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}&submissionId=${submittedResult.id}`, {
-                      state: {
-                        submission: submittedResult,
-                        from: submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student'
-                      }
-                    });
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: 150,
-                    padding: '0.85rem 1.25rem',
-                    borderRadius: '0.85rem',
-                    background: 'var(--color-surface)',
-                    border: '1.5px solid var(--color-border-input)',
-                    color: 'var(--color-text)',
-                    fontWeight: 900,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.45rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-                  }}
-                >
-                  <Eye size={17} /> Cevapları İncele
-                </button>
+                   type="button"
+                   onClick={() => {
+                     navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}&submissionId=${submittedResult.id}`, {
+                       state: {
+                         submission: submittedResult,
+                         from: returnUrl || (submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student')
+                       }
+                     });
+                   }}
+                   style={{
+                     flex: 1,
+                     minWidth: 150,
+                     padding: '0.85rem 1.25rem',
+                     borderRadius: '0.85rem',
+                     background: 'var(--color-surface)',
+                     border: '1.5px solid var(--color-border-input)',
+                     color: 'var(--color-text)',
+                     fontWeight: 900,
+                     fontSize: '0.9rem',
+                     cursor: 'pointer',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '0.45rem',
+                     boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                   }}
+                 >
+                   <Eye size={17} /> Cevapları İncele
+                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigate('/student');
-                  }}
-                  style={{
-                    flex: 1.3,
-                    minWidth: 160,
-                    padding: '0.85rem 1.25rem',
-                    borderRadius: '0.85rem',
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: 900,
-                    fontSize: '0.92rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.45rem',
-                    boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
-                  }}
-                >
-                  <CheckCircle2 size={18} /> Öğrenci Paneline Dön
-                </button>
+                 <button
+                   type="button"
+                   onClick={handleGoBack}
+                   style={{
+                     flex: 1.3,
+                     minWidth: 160,
+                     padding: '0.85rem 1.25rem',
+                     borderRadius: '0.85rem',
+                     background: 'linear-gradient(135deg, #10b981, #059669)',
+                     border: 'none',
+                     color: 'white',
+                     fontWeight: 900,
+                     fontSize: '0.92rem',
+                     cursor: 'pointer',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '0.45rem',
+                     boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
+                   }}
+                 >
+                   <CheckCircle2 size={18} /> {returnUrl ? (returnUrl.includes('/program') || returnUrl.includes('/my-program') ? '📅 Programa Dön' : (returnUrl.includes('/homeworks') ? '📝 Ödevlere Dön' : (returnUrl === '/student' ? '🏠 Panoya Dön' : 'Geri Dön'))) : '🏠 Öğrenci Paneline Dön'}
+                 </button>
               </div>
             </div>
           </div>
