@@ -1935,6 +1935,105 @@ export default function BookContentManager() {
     showToast("Yanlış analizi indirildi.");
   };
 
+  const handleCleanDuplicatesFromDb = async () => {
+    if (!book?.id) return;
+    if (!window.confirm(`"${book.title}" kitabındaki mükerrer kopya testler taranıp veritabanından ve önbellekten temizlenecek. Devam etmek istiyor musunuz?`)) {
+      return;
+    }
+
+    try {
+      showToast("Mükerrer testler taranıyor...", "info");
+      const candidateBookIds = Array.from(new Set([toUUID(book.id), String(book.id), toUUID(id), String(id)].filter(Boolean)));
+      
+      const { data: dbTests, error: fetchErr } = await supabase
+        .from('tracked_book_tests')
+        .select('*')
+        .in('book_id', candidateBookIds)
+        .order('created_at', { ascending: true });
+
+      if (fetchErr) throw fetchErr;
+      if (!dbTests || dbTests.length === 0) {
+        showToast("Veritabanında bu kitaba ait test bulunamadı.", "info");
+        return;
+      }
+
+      // Group by canonical key: normalized test name
+      const groups = new Map();
+      dbTests.forEach(t => {
+        const nameKey = String(t.name || '').trim().toLowerCase();
+        if (!nameKey) return;
+        if (!groups.has(nameKey)) groups.set(nameKey, []);
+        groups.get(nameKey).push(t);
+      });
+
+      const toDeleteIds = [];
+
+      groups.forEach((group) => {
+        if (group.length > 1) {
+          // Sort group to pick the best test to KEEP:
+          // 1. Matches subject_id of book.subjects directly
+          // 2. Has more answer keys
+          // 3. Oldest created_at
+          group.sort((a, b) => {
+            const aMatchesSubj = book.subjects?.some(s => String(s.id) === String(a.subject_id)) ? 1 : 0;
+            const bMatchesSubj = book.subjects?.some(s => String(s.id) === String(b.subject_id)) ? 1 : 0;
+            if (aMatchesSubj !== bMatchesSubj) return bMatchesSubj - aMatchesSubj;
+
+            const aAnsCount = Object.keys(a.answer_key || {}).filter(k => k !== '__meta').length;
+            const bAnsCount = Object.keys(b.answer_key || {}).filter(k => k !== '__meta').length;
+            if (aAnsCount !== bAnsCount) return bAnsCount - aAnsCount;
+
+            return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+          });
+
+          // Keep the first (best), delete the rest
+          for (let i = 1; i < group.length; i++) {
+            toDeleteIds.push(group[i].id);
+          }
+        }
+      });
+
+      // Also clean up any test with name === 'Test' and no answer key
+      dbTests.forEach(t => {
+        if (String(t.name || '').trim().toLowerCase() === 'test' && !toDeleteIds.includes(t.id)) {
+          const ansCount = Object.keys(t.answer_key || {}).filter(k => k !== '__meta').length;
+          if (ansCount === 0) {
+            toDeleteIds.push(t.id);
+          }
+        }
+      });
+
+      // Clear local storage cache
+      try {
+        localStorage.removeItem('eTestTrackedBookTests');
+      } catch {}
+
+      if (toDeleteIds.length === 0) {
+        await fetchLiveDirect();
+        if (refreshTrackedBooks) await refreshTrackedBooks(true);
+        showToast("Veritabanı ve liste tertemiz! Mükerrer kayıt bulunamadı. ✨", "success");
+        return;
+      }
+
+      // Delete in batches of 50
+      const batchSize = 50;
+      for (let i = 0; i < toDeleteIds.length; i += batchSize) {
+        const batch = toDeleteIds.slice(i, i + batchSize);
+        const { error: delErr } = await supabase.from('tracked_book_tests').delete().in('id', batch);
+        if (delErr) console.warn('[CleanDupes] Delete batch error:', delErr.message);
+      }
+
+      // Refresh live
+      await fetchLiveDirect();
+      if (refreshTrackedBooks) await refreshTrackedBooks(true);
+
+      showToast(`✓ ${toDeleteIds.length} mükerrer test veritabanından başarıyla temizlendi! ✨`, "success");
+    } catch (err) {
+      console.error('[CleanDuplicates Error]', err);
+      showToast(`Temizleme sırasında hata: ${err.message || 'Bilinmeyen hata'}`, "error");
+    }
+  };
+
   if (!book) return <div className="books-page-container" style={{ padding: '4rem', textAlign: 'center', color: 'var(--color-text)', fontWeight: 800, fontSize: '1.2rem' }}>Yükleniyor...</div>;
 
   return (
@@ -1977,7 +2076,14 @@ export default function BookContentManager() {
         </div>
 
         {/* Header Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button 
+            onClick={handleCleanDuplicatesFromDb}
+            style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.12)', border: '1.5px solid rgba(239, 68, 68, 0.35)', color: '#ef4444', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            title="Mükerrer ve boş kopya testleri veritabanından temizle"
+          >
+            <RotateCcw size={16} /> Mükerrerleri Temizle
+          </button>
           <button 
             onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, bookType: book.bookType || 'standard', optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
             style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
@@ -4268,6 +4374,14 @@ export default function BookContentManager() {
                       style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}
                     >
                       📁 Tümünü Kapat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCleanDuplicatesFromDb}
+                      style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer' }}
+                      title="Mükerrer testleri veritabanından temizle"
+                    >
+                      🧹 Mükerrerleri Temizle
                     </button>
                     <button
                       type="button"
