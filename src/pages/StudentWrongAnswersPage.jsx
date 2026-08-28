@@ -178,11 +178,15 @@ export default function StudentWrongAnswersPage() {
         return false;
       }
 
-      // If test belongs to a specific student, ensure it matches currentStudentId
+      // Check if assigned to this student, or created by this student, or general remedial test
       if (q.studentId && currentStudentId && String(q.studentId) !== String(currentStudentId)) {
         return false;
       }
-      if (q.createdBy && currentStudentId && String(q.createdBy) !== String(currentStudentId) && q.createdByRole === 'student') {
+      if (Array.isArray(q.assignedTo) && q.assignedTo.length > 0 && currentStudentId) {
+        const assignedMatch = q.assignedTo.some(id => String(id) === String(currentStudentId));
+        if (!assignedMatch) return false;
+      }
+      if (q.createdByRole === 'student' && q.createdBy && currentStudentId && String(q.createdBy) !== String(currentStudentId)) {
         return false;
       }
 
@@ -1746,7 +1750,7 @@ export default function StudentWrongAnswersPage() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    ✂️ Kendi Hazırladığım Telafi Testleri
+                    ✂️ Özel & Atanan Telafi Testlerim
                   </h3>
                   <span style={{
                     fontSize: '0.7rem',
@@ -1760,7 +1764,7 @@ export default function StudentWrongAnswersPage() {
                   </span>
                 </div>
                 <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  PDF Soru Kırpıcı ile hazırladığınız kişisel telafi testlerini buradan çözün, sonuçları inceleyin veya haftalık çalışma programınıza ekleyin.
+                  Öğretmeninizin size atadığı veya PDF Soru Kırpıcı ile hazırladığınız kişisel telafi testlerini buradan çözün, sonuçları inceleyin veya çalışma programınıza ekleyin.
                 </p>
               </div>
             </div>
@@ -1803,10 +1807,10 @@ export default function StudentWrongAnswersPage() {
             }}>
               <div style={{ fontSize: '1.8rem' }}>📄✂️</div>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                Henüz Hazırlanmış Bir Telafi Testiniz Yok
+                Henüz Hazırlanmış veya Atanmış Bir Telafi Testiniz Yok
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', maxWidth: 450 }}>
-                Kitap takibinde yanlış yaptığınız sorulardan tek tıkla yeni bir telafi testi kırpıp birleştirebilir ve istediğiniz an çözebilirsiniz.
+                Kitap takibinde yanlış yaptığınız sorulardan tek tıkla yeni bir telafi testi kırpıp birleştirebilir veya öğretmeninizin atadığı telafi testlerini buradan çözebilirsiniz.
               </div>
               <button
                 type="button"
@@ -1849,6 +1853,7 @@ export default function StudentWrongAnswersPage() {
                 const scorePct = sub ? (sub.scorePercentage ?? (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0)) : 0;
                 const isDaySelectorOpen = openDaySelectorId === test.id;
                 const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
+                const isTeacherAssigned = test.createdByRole === 'teacher' || (Array.isArray(test.assignedTo) && test.assignedTo.length > 0) || test.isTeacherCreated || (test.createdBy && test.createdBy !== currentStudentId && test.createdByRole !== 'student');
 
                 return (
                   <div
@@ -1869,7 +1874,7 @@ export default function StudentWrongAnswersPage() {
                     <div>
                       {/* Top Badges */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 6 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                           <span style={{
                             fontSize: '0.68rem',
                             fontWeight: 900,
@@ -1891,6 +1896,37 @@ export default function StudentWrongAnswersPage() {
                               color: 'var(--color-text-muted)'
                             }}>
                               {test.grade}
+                            </span>
+                          )}
+                          {isTeacherAssigned ? (
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: 6,
+                              background: isDark ? 'rgba(59,130,246,0.15)' : '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid rgba(59,130,246,0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              👨‍🏫 Öğretmen Atadı
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: 6,
+                              background: isDark ? 'rgba(139,92,246,0.15)' : '#f5f3ff',
+                              color: '#7c3aed',
+                              border: '1px solid rgba(139,92,246,0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              👤 Kendi Hazırladığım
                             </span>
                           )}
                         </div>
