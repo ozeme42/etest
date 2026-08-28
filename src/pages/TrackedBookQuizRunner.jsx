@@ -743,12 +743,22 @@ export default function TrackedBookQuizRunner() {
 
     // 1. Save to EvaluationContext
     try {
+      const fullTestTitle = `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${resolvedUnit || resolvedTopic || '1. Ünite'} (${resolvedTest.name})`;
       await addSubmission({
         testId: resolvedTest.id,
+        realTestId: resolvedTest.id,
         bookTestId: resolvedTest.id,
         bookId: resolvedBook?.id,
+        bookTitle: resolvedBook?.title || 'Kitap',
+        subject: resolvedSubject || resolvedBook?.subject || 'Türkçe',
+        subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
+        topicName: resolvedUnit || resolvedTopic || '1. Ünite',
+        unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
+        testName: resolvedTest.name,
+        testTitle: fullTestTitle,
+        title: resolvedTest.name,
+        fullTitle: fullTestTitle,
         hwId: resolvedHw?.id || null,
-        testTitle: `${resolvedBook?.title || 'Kitap'} — ${resolvedTest.name}`,
         studentId: studentId,
         score: calculated.net,
         scorePercentage: calculated.scorePct,
@@ -757,10 +767,28 @@ export default function TrackedBookQuizRunner() {
         wrongCount: calculated.wrong,
         blankCount: calculated.blank,
         totalQuestions: calculated.totalQuestions,
-        answers: answersList,
+        answers: [
+          ...answersList,
+          {
+            type: 'metadata',
+            realId: `sub_${resolvedTest.id}_${studentId}`,
+            realTestId: resolvedTest.id,
+            bookTestId: resolvedTest.id,
+            bookTitle: resolvedBook?.title || 'Kitap',
+            subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
+            topicName: resolvedUnit || resolvedTopic || '1. Ünite',
+            unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
+            testName: resolvedTest.name,
+            testTitle: fullTestTitle,
+            totalQuestions: calculated.totalQuestions,
+            totalNet: calculated.net,
+            sourceType: 'trackedBook'
+          }
+        ],
         studentAnswers: answers,
         mistakeReasons: mistakeReasons,
-        sourceType: 'trackedBook'
+        sourceType: 'trackedBook',
+        typeKey: 'book'
       });
     } catch (e) {
       console.error("Evaluation submission error", e);
@@ -769,12 +797,20 @@ export default function TrackedBookQuizRunner() {
     // 2. Save to HomeworkContext if this test was assigned as homework
     if (resolvedHw) {
       try {
+        const fullTestTitle = `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${resolvedUnit || resolvedTopic || '1. Ünite'} (${resolvedTest.name})`;
         await submitHomework(resolvedHw.id, studentId, calculated.net, calculated.totalQuestions, {
           testId: resolvedTest.id,
+          bookTestId: resolvedTest.id,
+          testName: resolvedTest.name,
+          testTitle: fullTestTitle,
+          subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
+          topicName: resolvedUnit || resolvedTopic || '1. Ünite',
+          unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
           studentAnswers: answers,
           correctCount: calculated.correct,
           wrongCount: calculated.wrong,
-          blankCount: calculated.blank
+          blankCount: calculated.blank,
+          totalQuestions: calculated.totalQuestions
         });
       } catch (e) {
         console.error("Homework submission error", e);
