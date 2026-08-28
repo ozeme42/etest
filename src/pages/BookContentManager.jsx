@@ -781,6 +781,8 @@ export default function BookContentManager() {
 
       if (!matchedTest) {
         const sTestName = String(s.testTitle || s.testName || s.title || '').toLowerCase().trim();
+        const cleanSTitle = sTestName.replace(/^.*?—\s*/, '').trim();
+
         if (sTestName && testLookup.byName.has(sTestName)) {
           const candidates = testLookup.byName.get(sTestName);
           const sSubj = String(s.subject || s.extra_data?.subject || '').toLowerCase().trim();
@@ -788,6 +790,19 @@ export default function BookContentManager() {
             const cSubj = String(c.subjectName || c.subject || '').toLowerCase().trim();
             return !sSubj || !cSubj || sSubj === cSubj;
           }) || candidates[0];
+        } else if (cleanSTitle && testLookup.byName.has(cleanSTitle)) {
+          const candidates = testLookup.byName.get(cleanSTitle);
+          const sSubj = String(s.subject || s.extra_data?.subject || '').toLowerCase().trim();
+          matchedTest = candidates.find(c => {
+            const cSubj = String(c.subjectName || c.subject || '').toLowerCase().trim();
+            return !sSubj || !cSubj || sSubj === cSubj;
+          }) || candidates[0];
+        } else {
+          matchedTest = (tests || []).find(t => {
+            const tName = String(t.name || '').toLowerCase().trim();
+            if (!tName || tName.length < 3) return false;
+            return sTestName.includes(tName) || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
+          }) || null;
         }
       }
 
@@ -837,20 +852,24 @@ export default function BookContentManager() {
     const targetIdStr = String(targetId);
 
     const fields = getCandidateSubmissionFields(s);
+    const targetClean = targetIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+    const targetUuid = toUUID(targetIdStr);
+
     for (const f of fields) {
-      if (f === targetIdStr || f.replace(/^bt_/, '').replace(/^q_/, '') === targetIdStr.replace(/^bt_/, '').replace(/^q_/, '')) {
+      if (f === targetIdStr || f.replace(/^bt_/, '').replace(/^q_/, '') === targetClean || (targetUuid && (f === targetUuid || toUUID(f) === targetUuid))) {
         return true;
       }
     }
 
     const testObj = typeof targetTestOrId === 'object' && targetTestOrId !== null
       ? targetTestOrId
-      : testLookup.byId.get(targetIdStr);
+      : (testLookup.byId.get(targetIdStr) || testLookup.byCleanId.get(targetClean));
 
     if (testObj) {
       const testName = String(testObj.name || '').toLowerCase().trim();
       const sTestName = String(s.testTitle || s.testName || s.title || '').toLowerCase().trim();
-      if (testName && sTestName && (sTestName === testName || sTestName.includes(testName) || testName.includes(sTestName))) {
+      const cleanSTitle = sTestName.replace(/^.*?—\s*/, '').trim();
+      if (testName && (sTestName === testName || cleanSTitle === testName || sTestName.includes(testName) || testName.includes(cleanSTitle) || cleanSTitle.includes(testName))) {
         return true;
       }
     }
