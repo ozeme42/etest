@@ -567,8 +567,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     } else if (isStudentRole && currentUser) {
       const match = studentMembers.find(u => String(u.id) === String(currentUser.id)) || currentUser;
       setSelectedStudent(match);
+    } else if (!selectedStudent && studentMembers.length > 0) {
+      setSelectedStudent(studentMembers[0]);
     }
-  }, [activeTargetStudentId, isStudentRole, currentUser, studentMembers]);
+  }, [activeTargetStudentId, isStudentRole, currentUser, studentMembers, selectedStudent]);
 
   const studentMockExams = useMemo(() => {
     if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
@@ -664,6 +666,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
     return getAllUnifiedStudentSubmissions({
       studentId: currentTargetStudent.id,
+      targetStudent: currentTargetStudent,
       submissions,
       homeworks,
       books,

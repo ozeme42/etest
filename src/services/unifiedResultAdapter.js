@@ -637,21 +637,38 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
    */
   export function getAllUnifiedStudentSubmissions({
     studentId,
+    targetStudent = null,
     submissions = [],
     homeworks = [],
     books = [],
     bookTests = [],
     mockExams = []
   }) {
-    if (!studentId) return [];
+    if (!studentId && !targetStudent) return [];
 
-    const studentIdStr = String(studentId);
+    const studentIdStr = String(studentId || targetStudent?.id || '').trim();
     const studentUuidStr = toUUID(studentIdStr);
+
+    const targetStudentObj = targetStudent || null;
+    const targetIds = new Set([
+      studentIdStr,
+      studentUuidStr,
+      String(targetStudentObj?.id || '').trim(),
+      String(targetStudentObj?.supabaseId || '').trim(),
+      String(targetStudentObj?.userId || '').trim(),
+      String(targetStudentObj?.studentId || '').trim(),
+      String(targetStudentObj?.student_id || '').trim(),
+      String(targetStudentObj?.email || '').trim().toLowerCase()
+    ].filter(Boolean));
 
     const isMatchStudent = (s) => {
       if (!s) return false;
-      const sid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
-      return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+      if (!studentIdStr && !targetStudentObj) return true;
+      const sIds = [
+        String(s.studentId ?? s.userId ?? s.student_id ?? s.raw_data?.studentId ?? s.raw_data?.student_id ?? '').trim(),
+        String(s.studentEmail ?? s.email ?? s.raw_data?.email ?? '').trim().toLowerCase()
+      ].filter(Boolean);
+      return sIds.some(sid => targetIds.has(sid) || (toUUID(sid) && targetIds.has(String(toUUID(sid)))));
     };
 
     let deletedIds = new Set();
