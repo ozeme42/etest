@@ -442,9 +442,15 @@ export default function StudentDashboard() {
   }, [selectedStudent]);
 
   useEffect(() => {
-    if (currentUser?.role === 'student') setSelectedStudent(currentUser);
-    else if (studentMembers.length > 0) setSelectedStudent(studentMembers[0]);
-    else setSelectedStudent(null);
+    if (currentUser?.role === 'student') {
+      setSelectedStudent(currentUser);
+    } else if (studentMembers.length > 0) {
+      const savedStudentId = localStorage.getItem('etest_selected_student_id');
+      const found = studentMembers.find(s => String(s.id) === String(savedStudentId));
+      setSelectedStudent(found || studentMembers[0]);
+    } else {
+      setSelectedStudent(null);
+    }
   }, [currentUser, studentMembers]);
 
   const myStudyAssignments = useMemo(() => {
@@ -3073,7 +3079,10 @@ export default function StudentDashboard() {
               value={selectedStudent?.id || ''}
               onChange={e => {
                 const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                if (s) setSelectedStudent(s);
+                if (s) {
+                  setSelectedStudent(s);
+                  try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
+                }
               }}
               style={{ background:'rgba(15,23,42,0.85)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.65rem', fontSize:'0.76rem', fontWeight:700, backdropFilter:'blur(8px)', flex: 1, minWidth: 0 }}
             >
