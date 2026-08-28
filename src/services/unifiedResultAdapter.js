@@ -908,18 +908,44 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     };
 
     const results = [];
-    const processedSubIds = new Set();
+    const processedTestKeys = new Set();
+    const processedAttemptSigs = new Set();
+
+    const registerTestKeys = (sub, normalized) => {
+      const sId = String(sub.id || sub.submissionId || sub.supabaseId || '');
+      if (sId) processedTestKeys.add(sId);
+
+      const candidateIds = [
+        sub.test_id, sub.testId, sub.realTestId, sub.bookTestId,
+        normalized?.testId, normalized?.realTestId, normalized?.bookTestId,
+        sub.raw_data?.test_id, sub.raw_data?.testId
+      ].filter(Boolean);
+
+      candidateIds.forEach(cid => {
+        const str = String(cid);
+        const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+        processedTestKeys.add(str);
+        processedTestKeys.add(clean);
+        const u = toUUID(str);
+        if (u) processedTestKeys.add(String(u));
+      });
+
+      const titleStr = normalized?.testTitle || normalized?.testName || sub.title || sub.testTitle || sub.test_name || sub.name || '';
+      const dateStr = normalized?.date || sub.created_at || sub.submittedAt || sub.date || '';
+      const dCount = normalized?.correctCount ?? sub.correct_count ?? sub.correctCount ?? 0;
+      const yCount = normalized?.wrongCount ?? sub.wrong_count ?? sub.wrongCount ?? 0;
+      const sig = `${titleStr}_${dateStr}_${dCount}_${yCount}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (sig) processedAttemptSigs.add(sig);
+    };
 
     // 1. PRIMARY SOURCE: All student submissions from EvaluationContext / Supabase
     (submissions || []).filter(isMatchStudent).forEach(sub => {
       if (!sub || isDeletedItem(sub)) return;
       if (sub.status === 'in_progress' || sub.status === 'draft') return;
-      const sId = String(sub.id || sub.submissionId || sub.supabaseId || '');
-      if (sId && processedSubIds.has(sId)) return;
-      if (sId) processedSubIds.add(sId);
 
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (normalized && !isDeletedItem(normalized)) {
+        registerTestKeys(sub, normalized);
         results.push(normalized);
       }
     });
@@ -930,12 +956,29 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       hw.submissions.filter(isMatchStudent).forEach(hs => {
         if (!hs || isDeletedItem(hs)) return;
         if (hs.status === 'in_progress' || hs.status === 'draft') return;
+
         const hsId = String(hs.id || hs.submissionId || hs.supabaseId || '');
-        if (hsId && processedSubIds.has(hsId)) return;
-        if (hsId) processedSubIds.add(hsId);
+        const hsTestId = String(hs.testId || hs.realTestId || hs.bookTestId || '');
+        const hsClean = hsTestId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+        const hsUuid = toUUID(hsTestId);
+
+        const isAlreadyIn = (hsId && processedTestKeys.has(hsId)) ||
+                            (hsTestId && processedTestKeys.has(hsTestId)) ||
+                            (hsClean && processedTestKeys.has(hsClean)) ||
+                            (hsUuid && processedTestKeys.has(String(hsUuid)));
+
+        const titleStr = hs.testTitle || hs.title || hs.test_name || hs.name || hw.title || '';
+        const dateStr = hs.created_at || hs.submittedAt || hs.date || '';
+        const dCount = hs.correct_count ?? hs.correctCount ?? 0;
+        const yCount = hs.wrong_count ?? hs.wrongCount ?? 0;
+        const sig = `${titleStr}_${dateStr}_${dCount}_${yCount}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const isSigMatch = sig && processedAttemptSigs.has(sig);
+
+        if (isAlreadyIn || isSigMatch) return;
 
         const normalized = normalizeUnifiedSubmission({ ...hs, hwId: hw.id }, { books, bookTests, homeworks });
         if (normalized && !isDeletedItem(normalized)) {
+          registerTestKeys(hs, normalized);
           results.push(normalized);
         }
       });
@@ -947,11 +990,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       exam.submissions.filter(isMatchStudent).forEach(sub => {
         if (!sub || isDeletedItem(sub)) return;
         const subId = String(sub.id || sub.submissionId || sub.supabaseId || '');
-        if (subId && processedSubIds.has(subId)) return;
-        if (subId) processedSubIds.add(subId);
+        const subTestId = String(sub.testId || sub.realTestId || '');
+        if ((subId && processedTestKeys.has(subId)) || (subTestId && processedTestKeys.has(subTestId))) return;
 
         const normalized = normalizeUnifiedSubmission({ ...sub, testTitle: exam.title, isExam: true }, { books, bookTests, homeworks });
         if (normalized && !isDeletedItem(normalized)) {
+          registerTestKeys(sub, normalized);
           results.push(normalized);
         }
       });
