@@ -15,7 +15,8 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
   bookTests = [],
   mockExams = [],
   studySessions = [],
-  users = []
+  users = [],
+  gamificationData = null
 }) {
   const { isDark } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +29,7 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
   }, []);
 
   const gamification = useMemo(() => {
+    if (gamificationData) return gamificationData;
     return computeStudentGamificationData({
       studentId: student?.id,
       submissions,
@@ -37,7 +39,7 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
       mockExams,
       studySessions
     });
-  }, [student, submissions, homeworks, books, bookTests, mockExams, studySessions]);
+  }, [gamificationData, student, submissions, homeworks, books, bookTests, mockExams, studySessions]);
 
   const { levelInfo, streakTierInfo, stats, unlockedBadges, xp } = gamification;
 

@@ -156,19 +156,38 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
     const nowZero = new Date();
     nowZero.setHours(0, 0, 0, 0);
 
-    const isTestSolved = (tId, hId) => {
-      const tIdStr = tId ? String(tId) : null;
-      const tCleanId = tIdStr ? tIdStr.replace(/^bt_/, '').replace(/^q_/, '') : null;
-      return (submissions || []).some(s => {
-        const sid = String(s.studentId || s.userId || '');
-        if (sid !== studentId && (studentUuid && sid !== studentUuid) && (studentUuid && toUUID(sid) !== studentUuid)) return false;
-        if (s.status === 'in_progress' || s.status === 'draft') return false;
-        if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected')) return false;
-        const sTestId = String(s.testId || s.realTestId || s.bookTestId || '');
-        if (tIdStr && (sTestId === tIdStr || sTestId === tCleanId || sTestId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId)) return true;
-        if (hId && (String(s.homeworkId) === String(hId) || String(s.hwId) === String(hId))) return true;
-        return false;
+    // Pre-index student's solved test IDs in O(N) once, instead of nested O(N*M) .some() searches
+    const solvedSet = new Set();
+    (submissions || []).forEach(s => {
+      if (!s) return;
+      const sid = String(s.studentId || s.userId || '');
+      if (sid !== studentId && (studentUuid && sid !== studentUuid) && (studentUuid && toUUID(sid) !== studentUuid)) return;
+      if (s.status === 'in_progress' || s.status === 'draft') return;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected')) return;
+
+      const ids = [s.testId, s.realTestId, s.bookTestId, s.homeworkId, s.hwId, s.id, s.supabaseId];
+      ids.forEach(id => {
+        if (id) {
+          const str = String(id);
+          solvedSet.add(str);
+          solvedSet.add(str.replace(/^bt_/, '').replace(/^q_/, ''));
+        }
       });
+      if (Array.isArray(s.bookTestIds)) {
+        s.bookTestIds.forEach(id => {
+          if (id) {
+            const str = String(id);
+            solvedSet.add(str);
+            solvedSet.add(str.replace(/^bt_/, '').replace(/^q_/, ''));
+          }
+        });
+      }
+    });
+
+    const isTestSolved = (tId, hId) => {
+      if (tId && (solvedSet.has(String(tId)) || solvedSet.has(String(tId).replace(/^bt_/, '').replace(/^q_/, '')))) return true;
+      if (hId && (solvedSet.has(String(hId)) || solvedSet.has(String(hId).replace(/^hw_/, '')))) return true;
+      return false;
     };
 
     let count = 0;

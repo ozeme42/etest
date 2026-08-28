@@ -548,6 +548,54 @@ export default function StudentDashboard() {
     }
   };
 
+  // ── Pre-filter submissions strictly for selected student once ──
+  const studentSubmissions = useMemo(() => {
+    if (!selectedStudent) return [];
+    const studentIdStr = String(selectedStudent.id || '');
+    const studentUuidStr = String(toUUID(selectedStudent.id) || selectedStudent.uuid || '');
+
+    return (submissions || []).filter(s => {
+      if (!s) return false;
+      const sStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
+      if (!sStudentId) return false;
+      return sStudentId === studentIdStr ||
+        (studentUuidStr && (sStudentId === studentUuidStr || toUUID(sStudentId) === studentUuidStr)) ||
+        (studentIdStr && toUUID(studentIdStr) === sStudentId);
+    });
+  }, [submissions, selectedStudent]);
+
+  // ── Fast O(1) Solved Tests Set for Student ──
+  const studentSolvedSet = useMemo(() => {
+    const set = new Set();
+    studentSubmissions.forEach(s => {
+      if (s.status === 'in_progress' || s.status === 'draft') return;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
+
+      const ids = [s.testId, s.test_id, s.bookTestId, s.realTestId, s.hwId, s.homeworkId, s.id, s.supabaseId, s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId];
+      ids.forEach(id => {
+        if (id) {
+          const str = String(id);
+          set.add(str);
+          set.add(str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, ''));
+          const u = toUUID(str);
+          if (u) set.add(u);
+        }
+      });
+      if (Array.isArray(s.bookTestIds)) {
+        s.bookTestIds.forEach(id => {
+          if (id) {
+            const str = String(id);
+            set.add(str);
+            set.add(str.replace(/^bt_/, '').replace(/^q_/, ''));
+            const u = toUUID(str);
+            if (u) set.add(u);
+          }
+        });
+      }
+    });
+    return set;
+  }, [studentSubmissions]);
+
   /* ─── Computed Tests Data ─── */
   const tests = useMemo(() => {
     if (!selectedStudent) return [];
@@ -616,7 +664,7 @@ export default function StudentDashboard() {
 
       if (isExam) {
         const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
-          (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
+          (studentSubmissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
         return [{
           ...hw,
@@ -647,7 +695,7 @@ export default function StudentDashboard() {
       }
 
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
-        (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
+        (studentSubmissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
       let qCount = hw.totalQuestions || hw.questionCount || 0;
       if (!qCount && Array.isArray(hw.sections) && hw.sections.length > 0) {
@@ -673,7 +721,7 @@ export default function StudentDashboard() {
     });
 
     return hwTests;
-  }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
+  }, [homeworks, studentSubmissions, selectedStudent, curData, books, bookTests]);
 
   /* ─── Homework Summary Groups for Dashboard Card ─── */
   const homeworkSummaryGroups = useMemo(() => {
@@ -719,13 +767,13 @@ export default function StudentDashboard() {
     return computeStudentAnalyticsData({
       studentId: selectedStudent?.id,
       targetStudent: selectedStudent,
-      submissions,
+      submissions: studentSubmissions,
       homeworks,
       books,
       bookTests,
       studentMockExams
     });
-  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
+  }, [selectedStudent, studentSubmissions, homeworks, books, bookTests, studentMockExams]);
 
   /* ─── Overall Student Success Rate (%) (Sonuçlarım & Koçluk ile %100 Senkronize) ─── */
   const overallSuccessRate = useMemo(() => {
@@ -796,13 +844,7 @@ export default function StudentDashboard() {
       }
     });
 
-    const studentSubs = (submissions || []).filter(s => {
-      const sid = String(s?.studentId || s?.student_id || s?.userId || s?.user_id || '');
-      const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
-      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
-      return true;
-    });
+    const studentSubs = studentSubmissions;
 
     const bookAssignments = (homeworks || []).filter(hw => {
       if (!hw.isBookAssignment && !hw.bookId && !hw.title?.includes('(Tüm Kitap Görevi)') && !hw.title?.includes('(Tüm Kitap)') && !hw.title?.includes('(Kendi Eklediğim)') && hw.sourceType !== 'trackedBook') return false;
@@ -990,20 +1032,19 @@ export default function StudentDashboard() {
     });
 
     return list.sort((a, b) => b.totalSolvedTests - a.totalSolvedTests || b.progressPct - a.progressPct);
-  }, [selectedStudent, books, bookTests, submissions, homeworks, curData]);
+  }, [selectedStudent, books, bookTests, studentSubmissions, homeworks, curData]);
 
-  /* ─── Son Çözülen 5 Test (Single Source of Truth via Unified Result Adapter) ─── */
   const recentSolvedTests = useMemo(() => {
     if (!selectedStudent?.id) return [];
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: selectedStudent.id,
-      submissions,
+      submissions: studentSubmissions,
       homeworks,
       books,
       bookTests
     });
     return allSubs.slice(0, 5);
-  }, [selectedStudent?.id, submissions, homeworks, books, bookTests]);
+  }, [selectedStudent?.id, studentSubmissions, homeworks, books, bookTests]);
 
   const handleDeleteRecentTest = async (testItem) => {
     if (!testItem || !window.confirm(`"${testItem.title || 'Bu test'}" sonucunu silmek istediğinize emin misiniz? Tüm kaydı ve istatistikleri sıfırlanacaktır.`)) return;
@@ -1418,11 +1459,7 @@ export default function StudentDashboard() {
 
       const resultMap = {};
 
-      // Only compute the active (visible) day — 7x faster than computing all days
-      const activeDayMeta = DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[4];
-      const daysToCompute = [activeDayMeta];
-
-      daysToCompute.forEach(dayMeta => {
+      DAYS_OF_WEEK.forEach(dayMeta => {
         const dayInfo = weekInfo?.dayDateMap?.[dayMeta.key];
         const dayYMD = dayInfo?.ymd || '';
         const dayTime = dayInfo?.time || 0;
@@ -2077,7 +2114,7 @@ export default function StudentDashboard() {
       console.error('Error computing fullProcessedWeekMap:', err);
       return {};
     }
-  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey, activeDayKey]);
+  }, [coachingProfile, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
 
   const dayProgramInfo = useMemo(() => {
     return fullProcessedWeekMap[activeDayKey] || {
@@ -2103,29 +2140,15 @@ export default function StudentDashboard() {
 
     const todayYMD = formatLocalYMD(nowZero);
 
-    // All submissions combined (submissions table + hw.submissions)
-    const allSubs = [...(submissions || [])];
-    (homeworks || []).forEach(hw => {
-      (hw.submissions || []).forEach(s => {
-        if (s && !allSubs.some(x => x.id === s.id)) {
-          allSubs.push(s);
-        }
-      });
-    });
-
     const isItemSolved = (item) => {
       if (!item) return false;
       if (item.done || item.isCompleted) return true;
       const tId = item.testId || item.bookTestId || item.realTestId || item.id;
 
       if (tId) {
-        const matchedInSubs = allSubs.some(s => {
-          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-          const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-          if (sStdId && sStdId !== studentId && toUUID(sStdId) !== toUUID(studentId)) return false;
-          return isSubmissionMatchingBookTest(s, tId, bookTests, books);
-        });
-        if (matchedInSubs) return true;
+        const tidStr = String(tId);
+        const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        return studentSolvedSet.has(tidStr) || studentSolvedSet.has(tidClean) || (toUUID(tidStr) && studentSolvedSet.has(toUUID(tidStr)));
       }
 
       return false;
@@ -2180,7 +2203,30 @@ export default function StudentDashboard() {
       }
     };
 
-    // Overdue weekly program items from past days are detected via book test due dates (section 2) below
+    // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ TÜM GÖREVLER
+    const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
+    DAYS_OF_WEEK.forEach((d, idx) => {
+      if (idx < todayIdx) {
+        const dData = fullProcessedWeekMap[d.key];
+        (dData?.items || []).forEach(item => {
+          if (!item.done && !isItemSolved(item)) {
+            if (!isAlreadySeen(item)) {
+              addKeysToSeen(item);
+              list.push({
+                ...item,
+                categoryType: item.categoryType || (item.isBookTask ? 'kitap' : (item.isExamTask ? 'deneme' : 'program')),
+                sourceDayName: d.name,
+                sourceDayKey: d.key,
+                isCatchUp: true,
+                time: item.time || `Hedef: ${d.name}`,
+                dueDateStr: item.dueDateStr || dData.dateLabel || d.name,
+                reason: `${d.name} gününden kalan görev`
+              });
+            }
+          }
+        });
+      }
+    });
 
     // 2. KİTAP TAKİBİNDEN / KİTAP ÖDEVLERİNDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
     const activeBookHws = (homeworks || []).filter(h => 
@@ -2344,7 +2390,7 @@ export default function StudentDashboard() {
     });
 
     return list;
-  }, [selectedStudent, studyAssignments, studyPlans, isTaskDismissed, submissions, bookTests, books, homeworks, resolveBookTestInfo]);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, studyAssignments, studyPlans, isTaskDismissed, studentSolvedSet, bookTests, books, homeworks, resolveBookTestInfo]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
@@ -2505,13 +2551,12 @@ export default function StudentDashboard() {
   };
 
   const weekTasksCountMap = useMemo(() => {
-    // Only the active day is computed — return just that day's count
     const map = {};
     DAYS_OF_WEEK.forEach(d => {
-      map[d.key] = d.key === activeDayKey ? (fullProcessedWeekMap[d.key]?.totalCount || 0) : 0;
+      map[d.key] = fullProcessedWeekMap[d.key]?.totalCount || 0;
     });
     return map;
-  }, [fullProcessedWeekMap, activeDayKey]);
+  }, [fullProcessedWeekMap]);
 
   /* ─── Hero Date & Task Stats for Top KPI Cards (Program + Ödevler) ─── */
   const taskStats = useMemo(() => {
@@ -2579,14 +2624,14 @@ export default function StudentDashboard() {
     if (!selectedStudent) return null;
     return computeStudentGamificationData({
       studentId: selectedStudent.id,
-      submissions,
+      submissions: studentSubmissions,
       homeworks,
       books,
       bookTests,
-      mockExams: selectedStudent ? getMockExamsForStudent(selectedStudent.id) : [],
+      mockExams: studentMockExams,
       studySessions: []
     });
-  }, [selectedStudent, submissions, homeworks, books, bookTests]);
+  }, [selectedStudent, studentSubmissions, homeworks, books, bookTests, studentMockExams]);
 
   const studentRank = studentGamification?.levelInfo || {
     level: 1,
@@ -2606,9 +2651,6 @@ export default function StudentDashboard() {
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
 
-    const studentIdStr = String(selectedStudent.id);
-    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
-    
     // Standart Türkiye Saati (UTC+3) Tarih Aralıkları
     const todayYMD = getTurkeyToday();
     const { startYMD: weekStartYMD, endYMD: weekEndYMD } = getTurkeyWeekRange();
@@ -2621,21 +2663,13 @@ export default function StudentDashboard() {
 
     const countedSubIds = new Set();
 
-    // 1. All Evaluation Submissions
-    (submissions || []).forEach(s => {
-      const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+    // 1. Student's Evaluation Submissions
+    (studentSubmissions || []).forEach(s => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return;
       const isManualTest = s.isManual === true || s.sourceType === 'manual_test' || String(s.id || '').startsWith('sub_manual') || String(s.testId || '').startsWith('sub_manual');
       if (isManualTest) {
         const isApproved = s.approvalStatus === 'approved' || s.isApproved === true || s.status === 'completed';
         if (!isApproved) return;
-      } else {
-        const testObj = (bookTests || []).find(bt => String(bt.id) === String(s.bookTestId || s.testId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(s.bookTestId || s.testId)));
-        const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || testObj?.bookId) || (toUUID(b.id) && String(toUUID(b.id)) === String(s.bookId || testObj?.bookId)));
-        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.homeworkId) || (toUUID(h.id) && (String(toUUID(h.id)) === String(s.testId) || String(toUUID(h.id)) === String(s.hwId))));
-
-        if ((s.bookId || s.bookTestId || s.isExamBook) && !bookObj && !testObj) return;
-        if ((s.hwId || s.homeworkId) && !parentHw && !testObj) return;
-        if (!bookObj && !testObj && !parentHw) return;
       }
 
       const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
@@ -2653,10 +2687,7 @@ export default function StudentDashboard() {
         qCount = (Number(s.correctCount || s.correct_count || 0)) + (Number(s.wrongCount || s.wrong_count || 0)) + (Number(s.blankCount || s.emptyCount || s.empty_count || s.blank_count || 0));
       }
 
-      if (qCount <= 0) {
-        const testObj = (tests || []).find(t => String(t.id) === String(s.testId) || String(t.realTestId) === String(s.testId) || String(t.submissionId) === String(s.id));
-        qCount = testObj?.questionCount || 20;
-      }
+      if (qCount <= 0) qCount = 12;
 
       const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
       const subYMD = getTurkeyYMD(dateStr);
@@ -2664,52 +2695,13 @@ export default function StudentDashboard() {
       totalCount += qCount;
 
       if (subYMD) {
-        if (subYMD === todayYMD) {
-          todayCount += qCount;
-        }
-        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
-          weekCount += qCount;
-        }
-        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
-          monthCount += qCount;
-        }
+        if (subYMD === todayYMD) todayCount += qCount;
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) weekCount += qCount;
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) monthCount += qCount;
       }
     });
 
-    // 2. All Homework Submissions
-    (homeworks || []).forEach(hw => {
-      const isBookHw = Boolean(hw.isBookAssignment || hw.bookId || hw.sourceType === 'trackedBook' || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)'));
-      if (isBookHw) return; // Book assignments are counted via individual test submissions
-
-      (hw.submissions || []).forEach(sub => {
-        const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
-        if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
-
-        const subId = sub.id || `hw_${hw.id}_${studentIdStr}`;
-        if (countedSubIds.has(subId)) return;
-        countedSubIds.add(subId);
-
-        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 1);
-        const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
-        const subYMD = getTurkeyYMD(dateStr);
-
-        totalCount += qCount;
-
-        if (subYMD) {
-          if (subYMD === todayYMD) {
-            todayCount += qCount;
-          }
-          if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
-            weekCount += qCount;
-          }
-          if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
-            monthCount += qCount;
-          }
-        }
-      });
-    });
-
-    // 3. All Mock Exams (Deneme Sınavları)
+    // 2. All Mock Exams (Deneme Sınavları)
     (studentMockExams || []).forEach(m => {
       if (!m) return;
       const mId = m.id || `mock_${m.title}_${m.date}`;
@@ -2733,19 +2725,13 @@ export default function StudentDashboard() {
       totalCount += qCount;
 
       if (subYMD) {
-        if (subYMD === todayYMD) {
-          todayCount += qCount;
-        }
-        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) {
-          weekCount += qCount;
-        }
-        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) {
-          monthCount += qCount;
-        }
+        if (subYMD === todayYMD) todayCount += qCount;
+        if (subYMD >= weekStartYMD && subYMD <= weekEndYMD) weekCount += qCount;
+        if (subYMD >= monthStartYMD && subYMD <= monthEndYMD) monthCount += qCount;
       }
     });
 
-    const profile = getCoachingProfileForStudent(selectedStudent.id);
+    const profile = coachingProfile;
     if (profile?.dailyLogs && Array.isArray(profile.dailyLogs)) {
       profile.dailyLogs.forEach(log => {
         if (!log.date) return;
@@ -2765,7 +2751,7 @@ export default function StudentDashboard() {
       thisMonth: monthCount,
       total: totalCount
     };
-  }, [selectedStudent, submissions, homeworks, studentMockExams, tests, getCoachingProfileForStudent]);
+  }, [selectedStudent, studentSubmissions, studentMockExams, coachingProfile]);
 
   const goalTrackingData = useMemo(() => {
     if (!selectedStudent?.id) {
@@ -3349,17 +3335,18 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
-                {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
+        {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
         <div style={{ marginBottom: isMobile ? '1rem' : '1.5rem' }}>
           <StudentGamificationCard
             student={selectedStudent}
-            submissions={submissions}
+            submissions={studentSubmissions}
             homeworks={homeworks}
             books={books}
             bookTests={bookTests}
-            mockExams={selectedStudent ? getMockExamsForStudent(selectedStudent.id) : []}
+            mockExams={studentMockExams}
             studySessions={[]}
             users={users}
+            gamificationData={studentGamification}
           />
         </div>
 
