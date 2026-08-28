@@ -857,15 +857,48 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   }, [studentSubmissions]);
 
   /* ── Filtered submissions for 'all' tab ─── */
+  /* ── Filtered submissions for 'all' and 'bytype' tabs ─── */
   const filteredSubs = useMemo(() => {
+    const q = (searchQuery || '').trim().toLowerCase();
+
     return studentSubmissions.filter(s => {
-      const titleMatch = (s.testTitle || s.bookTitle || s.testName || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const subjectMatch = subjectFilter === 'all' || s.subjectKey === subjectFilter;
-      const typeMatch = typeFilter === 'all' || s.typeKey === typeFilter;
-      
+      // 1. Search Query Match
+      let titleMatch = true;
+      if (q) {
+        const fullSearchTarget = `${s.testTitle || ''} ${s.bookTitle || ''} ${s.testName || ''} ${s.title || ''} ${s.subjectName || ''} ${s.subjectKey || ''} ${s.unitTopic || ''} ${s.topicName || ''}`.toLowerCase();
+        titleMatch = fullSearchTarget.includes(q);
+      }
+
+      // 2. Subject Filter Match
+      let subjectMatch = true;
+      if (subjectFilter && subjectFilter !== 'all') {
+        const sf = subjectFilter.toLowerCase();
+        const sSubj = String(s.subjectKey || s.subjectName || s.subject || '').toLowerCase();
+        const sFull = String(s.testTitle || s.bookTitle || '').toLowerCase();
+        subjectMatch = sSubj.includes(sf) || sFull.includes(sf) || s.subjectKey === subjectFilter;
+      }
+
+      // 3. Type Filter Match
+      let typeMatch = true;
+      if (typeFilter && typeFilter !== 'all') {
+        if (typeFilter === 'homework') {
+          typeMatch = s.typeKey === 'homework' || s.sourceType === 'homework' || Boolean(s.hwId || s.homeworkId);
+        } else if (typeFilter === 'book') {
+          typeMatch = s.typeKey === 'book' || s.sourceType === 'book' || Boolean(s.bookTitle || s.bookId || s.bookTestId);
+        } else if (typeFilter === 'physicalExam') {
+          typeMatch = s.typeKey === 'physicalExam' || s.sourceType === 'physicalExam' || Boolean(s.isExam);
+        } else if (typeFilter === 'individual') {
+          typeMatch = s.typeKey === 'individual' || s.sourceType === 'individual' || (!s.hwId && !s.bookTitle && !s.isExam);
+        } else {
+          typeMatch = s.typeKey === typeFilter;
+        }
+      }
+
+      // 4. Date Range Filter Match
       let dateMatch = true;
       if (startDate || endDate) {
-        const itemYMD = getTurkeyYMD(s.date || s.submittedAt || s.createdAt);
+        const rawDate = s.date || s.submittedAt || s.createdAt;
+        const itemYMD = getTurkeyYMD(rawDate);
         if (startDate && itemYMD < startDate) dateMatch = false;
         if (endDate && itemYMD > endDate) dateMatch = false;
       }
@@ -954,12 +987,22 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     return sortedSubs.slice(start, start + pageSize);
   }, [sortedSubs, currentPage, pageSize]);
 
-  /* ── By-type tab submissions ─── */
+  /* ── By-type tab submissions (sorted) ─── */
   const byTypeSubs = useMemo(() => {
     const map = { physicalExam: [], homework: [], book: [], individual: [] };
-    studentSubmissions.forEach(s => { (map[s.typeKey] || []).push(s); });
+    sortedSubs.forEach(s => {
+      if (s.typeKey === 'homework' || s.sourceType === 'homework' || Boolean(s.hwId || s.homeworkId)) {
+        map.homework.push(s);
+      } else if (s.typeKey === 'book' || s.sourceType === 'book' || Boolean(s.bookTitle || s.bookId || s.bookTestId)) {
+        map.book.push(s);
+      } else if (s.typeKey === 'physicalExam' || s.sourceType === 'physicalExam' || Boolean(s.isExam)) {
+        map.physicalExam.push(s);
+      } else {
+        map.individual.push(s);
+      }
+    });
     return map;
-  }, [studentSubmissions]);
+  }, [sortedSubs]);
 
   /* ── Top Best / Weak Topics ─── */
   const { topBestTopics, topWeakTopics } = useMemo(() => {
