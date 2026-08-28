@@ -1470,7 +1470,7 @@ export default function PdfQuestionSlicerModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             background: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f8fafc',
-            flexWrap: 'wrap',
+            flexShrink: 0,
             gap: 8
           }}
         >
@@ -1555,13 +1555,15 @@ export default function PdfQuestionSlicerModal({
           </div>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, height: '100%', display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ flex: '1 1 0%', minHeight: 0, height: '100%', display: 'flex', overflow: 'hidden', position: 'relative' }}>
           
           {/* SOL PANEL: YANLIŞLAR KILAVUZU AKORDİYONU */}
           {showMistakesGuide && (
             <div
               style={{
-                width: 290,
+                width: 300,
+                minWidth: 300,
+                maxWidth: 300,
                 height: '100%',
                 maxHeight: '100%',
                 minHeight: 0,
@@ -1625,17 +1627,20 @@ export default function PdfQuestionSlicerModal({
                 </div>
               )}
 
-              {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER */}
+              {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER (ÖZEL KAYDIRMA ALANI) */}
               <div
                 style={{
-                  flex: 1,
+                  flex: '1 1 0%',
+                  height: '100%',
                   minHeight: 0,
+                  maxHeight: '100%',
                   overflowY: 'auto',
                   overflowX: 'hidden',
-                  padding: '0.4rem',
+                  overscrollBehavior: 'contain',
+                  padding: '0.45rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 5
+                  gap: 6
                 }}
               >
                 {groupedMistakesTree.map(sGroup => {
@@ -1826,7 +1831,11 @@ export default function PdfQuestionSlicerModal({
           {/* ORTA BÖLÜM: PDF / GÖRSEL GÖRÜNTÜLEYİCİ VE KIRPICI ÇALIŞMA ALANI */}
           <div
             style={{
-              flex: 1,
+              flex: '1 1 0%',
+              minWidth: 0,
+              minHeight: 0,
+              height: '100%',
+              maxHeight: '100%',
               background: isDark ? '#090d16' : '#e2e8f0',
               display: 'flex',
               flexDirection: 'column',
@@ -1844,7 +1853,7 @@ export default function PdfQuestionSlicerModal({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 6,
-                flexWrap: 'wrap'
+                flexShrink: 0
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
