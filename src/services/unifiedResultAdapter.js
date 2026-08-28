@@ -410,11 +410,44 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  const subjectName = matchedSubject?.name || meta.subjectName || rawSub.subject || matchedHw?.subject || matchedBook?.subject || 'Genel';
-  const topicName = matchedTopic?.name || meta.topicName || rawSub.topic || matchedBookTest?.topicName || 'Genel Konu';
-  const testName = matchedBookTest?.name || rawSub.testName || rawSub.name || rawSub.testTitle || rawSub.title || matchedHw?.title || 'Test';
+  // Resolve valid curriculum subject name
+  const validCurriculumSubjects = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'T.C. İnkılap Tarihi', 'Genel'];
+  let subjectName = matchedSubject?.name;
+  if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
+    if (matchedBook?.subject && validCurriculumSubjects.includes(matchedBook.subject)) {
+      subjectName = matchedBook.subject;
+    } else if (matchedBook?.subjects && matchedBook.subjects.length > 0 && validCurriculumSubjects.includes(matchedBook.subjects[0]?.name)) {
+      subjectName = matchedBook.subjects[0].name;
+    } else if (rawSub.subject && validCurriculumSubjects.includes(rawSub.subject)) {
+      subjectName = rawSub.subject;
+    } else if (matchedHw?.subject && validCurriculumSubjects.includes(matchedHw.subject)) {
+      subjectName = matchedHw.subject;
+    } else {
+      subjectName = 'Türkçe';
+    }
+  }
+
+  let topicName = matchedTopic?.name || meta.topicName || meta.unitTopic || rawSub.topic || rawSub.unitTopic || matchedBookTest?.topicName || '1. Ünite';
+  if (topicName === 'Genel Konu' || !topicName) topicName = '1. Ünite';
+
+  // Extract clean test name
+  let testName = matchedBookTest?.name || rawSub.testName || rawSub.name;
+  if (!testName || testName === 'Test' || testName.includes('(Tüm Kitap Görevi)') || testName.includes('(Tüm Kitap)') || testName === matchedHw?.title) {
+    const tIdStr = String(testIdCandidate);
+    const parts = tIdStr.split('_');
+    const lastPart = parts[parts.length - 1];
+    const testNum = parseInt(lastPart, 10);
+    if (!isNaN(testNum) && testNum > 0) {
+      testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
+    } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)')) {
+      testName = rawSub.testTitle;
+    } else {
+      testName = 'Test-1';
+    }
+  }
+
   const rawBookTitle = matchedBook?.title || rawSub.bookTitle || '';
-  const cleanBookTitle = rawBookTitle.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+  const cleanBookTitle = (rawBookTitle || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
   const fullTitle = cleanBookTitle
     ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
     : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
@@ -425,14 +458,24 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const studentAnswersMap = normalizeStudentAnswers(rawSub);
 
-  const totalQuestions = Math.max(
+  const expCorrect = rawSub.correctCount ?? rawSub.correct_count ?? rawSub.correct ?? raw.correctCount ?? raw.correct_count;
+  const expWrong = rawSub.wrongCount ?? rawSub.wrong_count ?? rawSub.wrong ?? raw.wrongCount ?? raw.wrong_count;
+  const expEmpty = rawSub.emptyCount ?? rawSub.empty_count ?? rawSub.blankCount ?? rawSub.blank_count ?? rawSub.empty ?? raw.emptyCount ?? raw.empty_count;
+  const derivedQuestionsCount = (Number(expCorrect) || 0) + (Number(expWrong) || 0) + (Number(expEmpty) || 0);
+
+  let totalQuestions = Math.max(
     matchedBookTest?.question_count || matchedBookTest?.questionCount || 0,
     rawSub.totalQuestions || raw.totalQuestions || 0,
+    derivedQuestionsCount,
     Object.keys(studentAnswersMap).length,
     Object.keys(answerKey).length,
     Array.isArray(rawSub.answers) ? rawSub.answers.filter(a => a && a.type !== 'metadata').length : 0,
     1
   );
+
+  if (derivedQuestionsCount > 0 && totalQuestions < derivedQuestionsCount) {
+    totalQuestions = derivedQuestionsCount;
+  }
 
   // 4. Mistake Reasons Map
   const mistakeReasons = rawSub.mistakeReasons || raw.mistakeReasons || {};
@@ -458,20 +501,22 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     rawSub.type === 'yazili' ||
     rawSub.questionType === 'acik_uclu' ||
     rawSub.questionType === 'yazili' ||
-    rawSub.sourceFormat === 'yazili' ||
-    rawSub.formatType === 'yazili' ||
-    rawSub.openEndedText ||
-    rawSub.openEndedAnswers ||
-    (fullTitle && (fullTitle.toLowerCase().includes('açık uçlu') || fullTitle.toLowerCase().includes('acik uclu') || fullTitle.toLowerCase().includes('yazılı') || fullTitle.toLowerCase().includes('yazili') || fullTitle.toLowerCase().includes('klasik'))) ||
-    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a && (a.isOpenEnded || a.userAnswerText || a.studentAnswerText || (typeof a.userAnswer === 'string' && a.userAnswer.length > 2))))
+    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a?.type === 'open_ended' || a?.maxScore !== undefined))
   );
 
-  if (isSubWritten && Array.isArray(rawSub.answers) && rawSub.answers.length > 0) {
-    rawSub.answers.forEach((a, idx) => {
+  if (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a?.type !== 'metadata' && (a?.score !== undefined || a?.teacherFeedback || a?.teacherScore !== undefined))) {
+    rawSub.answers.filter(a => a?.type !== 'metadata').forEach((a, idx) => {
+      const isCorrect = (a.isCorrect === true || Number(a.score || 0) > 0);
+      if (isCorrect) correctCount++;
+      else if (a.userAnswer && a.userAnswer !== 'empty') wrongCount++;
+      else blankCount++;
+
       detailedAnswers.push({
-        ...a,
-        questionNo: a.questionNo || a.questionNoInSection || (idx + 1),
-        userAnswer: a.userAnswerText || a.studentAnswerText || a.userAnswer,
+        questionNo: a.questionNo || (idx + 1),
+        score: a.score !== undefined ? a.score : (isCorrect ? 1 : 0),
+        maxScore: a.maxScore || 10,
+        teacherFeedback: a.teacherFeedback || a.teacherNote || null,
+        userAnswer: a.userAnswer,
         userAnswerText: a.userAnswerText || a.studentAnswerText || a.userAnswer,
         correctAnswer: a.correctAnswer,
         isCorrect: a.isCorrect
@@ -507,10 +552,6 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   }
 
   // Override correct/wrong counts if pre-evaluated by teacher, entered manually, or explicitly defined in snake_case / camelCase
-  const expCorrect = rawSub.correctCount ?? rawSub.correct_count ?? rawSub.correct ?? raw.correctCount ?? raw.correct_count;
-  const expWrong = rawSub.wrongCount ?? rawSub.wrong_count ?? rawSub.wrong ?? raw.wrongCount ?? raw.wrong_count;
-  const expEmpty = rawSub.emptyCount ?? rawSub.empty_count ?? rawSub.blankCount ?? rawSub.blank_count ?? rawSub.empty ?? raw.emptyCount ?? raw.empty_count;
-
   if (expCorrect !== undefined && expCorrect !== null && !isNaN(Number(expCorrect))) {
     const numCorr = Number(expCorrect);
     const numWrg = (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) ? Number(expWrong) : 0;
@@ -544,12 +585,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   // 6. Score & Net Calculation
   const expScorePct = rawSub.scorePercentage ?? rawSub.score_percentage ?? rawSub.pct ?? raw.scorePercentage;
   let scorePercentage = 0;
-  if (totalQuestions > 0) {
-    scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+  if (totalQuestions > 0 && correctCount >= 0) {
+    scorePercentage = Math.min(100, Math.max(0, Math.round((correctCount / totalQuestions) * 100)));
   } else if (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct))) {
-    scorePercentage = Math.round(Number(expScorePct));
+    scorePercentage = Math.min(100, Math.max(0, Math.round(Number(expScorePct))));
   } else if (rawSub.score !== undefined && rawSub.score !== null && !isNaN(Number(rawSub.score)) && Number(rawSub.score) > 10) {
-    scorePercentage = Math.round(Number(rawSub.score));
+    scorePercentage = Math.min(100, Math.max(0, Math.round(Number(rawSub.score))));
   }
 
   const expNet = rawSub.totalNet ?? rawSub.total_net ?? rawSub.net ?? raw.totalNet;
