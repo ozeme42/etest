@@ -12,18 +12,30 @@ export function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
 
 export function sortTestsNaturally(testsArray) {
   if (!Array.isArray(testsArray)) return [];
+
+  const getPageNum = (name = '') => {
+    // Extract the first number from names like "9-10. Sayfa..." or "13-14. Sayfa..."
+    const match = String(name).match(/^(\d+)/);
+    return match ? parseInt(match[1], 10) : 9999;
+  };
+
   const getTestRank = (name = '') => {
     const s = String(name).toLowerCase().trim();
-    if (s.startsWith('test') || s.startsWith('paragraf') || s.startsWith('problem')) return 1;
-    if (s.includes('yeni nesil') || s.startsWith('yn')) return 2;
-    if (s.includes('değ') || s.includes('degerlendirme') || s.includes('deneme')) return 3;
-    return 2;
+    // Within same page group: TEST < YENİ NESİL < DENEME
+    if (s.includes('deneme')) return 3;
+    if (s.includes('yeni nesil') || s.includes('yn')) return 2;
+    return 1; // normal test / problem sayfası
   };
 
   return [...testsArray].sort((a, b) => {
+    const pageA = getPageNum(a.name);
+    const pageB = getPageNum(b.name);
+    if (pageA !== pageB) return pageA - pageB;
+
     const rankA = getTestRank(a.name);
     const rankB = getTestRank(b.name);
     if (rankA !== rankB) return rankA - rankB;
+
     return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
   });
 }
