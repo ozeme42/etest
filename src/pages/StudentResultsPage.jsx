@@ -7,7 +7,8 @@ import {
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
-  LayoutGrid, Plus, Edit3, Trash2, X, ChevronLeft, ChevronsLeft, ChevronsRight
+  LayoutGrid, Plus, Edit3, Trash2, X, ChevronLeft, ChevronsLeft, ChevronsRight,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -602,6 +603,20 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize]       = useState(15);
   const [viewMode, setViewMode]       = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 768 ? 'cards' : 'table'));
+  const [tableSortBy, setTableSortBy] = useState('date_desc');
+
+  const handleSort = (column) => {
+    setCurrentPage(1);
+    if (column === 'score') {
+      setTableSortBy(prev => prev === 'score_desc' ? 'score_asc' : 'score_desc');
+    } else if (column === 'date') {
+      setTableSortBy(prev => prev === 'date_desc' ? 'date_asc' : 'date_desc');
+    } else if (column === 'questions') {
+      setTableSortBy(prev => prev === 'questions_desc' ? 'questions_asc' : 'questions_desc');
+    } else if (column === 'name') {
+      setTableSortBy(prev => prev === 'name_asc' ? 'name_desc' : 'name_asc');
+    }
+  };
 
   const handleDatePreset = (preset) => {
     setDatePreset(preset);
@@ -874,16 +889,51 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   // Reset page to 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, subjectFilter, typeFilter, startDate, endDate, selectedStudent]);
+  }, [searchQuery, subjectFilter, typeFilter, startDate, endDate, selectedStudent, tableSortBy]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSubs.length / (pageSize || 15)));
+  /* ── Sorted submissions for 'all' tab ─── */
+  const sortedSubs = useMemo(() => {
+    const list = [...filteredSubs];
+    return list.sort((a, b) => {
+      const scoreA = Number(a.scorePercentage ?? a.computedScore ?? 0);
+      const scoreB = Number(b.scorePercentage ?? b.computedScore ?? 0);
+      const totQA = (Number(a.correctCount) || 0) + (Number(a.wrongCount) || 0) + (Number(a.blankCount ?? a.emptyCount) || 0);
+      const totQB = (Number(b.correctCount) || 0) + (Number(b.wrongCount) || 0) + (Number(b.blankCount ?? b.emptyCount) || 0);
+      const dateA = new Date(a.date || a.submittedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.date || b.submittedAt || b.createdAt || 0).getTime();
+      const titleA = String(a.testTitle || a.bookTitle || a.title || '');
+      const titleB = String(b.testTitle || b.bookTitle || b.title || '');
+
+      switch (tableSortBy) {
+        case 'score_desc':
+          return scoreB - scoreA || dateB - dateA;
+        case 'score_asc':
+          return scoreA - scoreB || dateB - dateA;
+        case 'questions_desc':
+          return totQB - totQA || dateB - dateA;
+        case 'questions_asc':
+          return totQA - totQB || dateB - dateA;
+        case 'date_asc':
+          return dateA - dateB;
+        case 'name_asc':
+          return titleA.localeCompare(titleB, 'tr');
+        case 'name_desc':
+          return titleB.localeCompare(titleA, 'tr');
+        case 'date_desc':
+        default:
+          return dateB - dateA;
+      }
+    });
+  }, [filteredSubs, tableSortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedSubs.length / (pageSize || 15)));
 
   /* ── Paginated submissions for current page ─── */
   const paginatedSubs = useMemo(() => {
-    if (!pageSize || pageSize >= 9999) return filteredSubs;
+    if (!pageSize || pageSize >= 9999) return sortedSubs;
     const start = (currentPage - 1) * pageSize;
-    return filteredSubs.slice(start, start + pageSize);
-  }, [filteredSubs, currentPage, pageSize]);
+    return sortedSubs.slice(start, start + pageSize);
+  }, [sortedSubs, currentPage, pageSize]);
 
   /* ── By-type tab submissions ─── */
   const byTypeSubs = useMemo(() => {
@@ -2534,6 +2584,36 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     </select>
                   </div>
 
+                  {/* Mobile Sort Dropdown */}
+                  <select
+                    value={tableSortBy}
+                    onChange={e => {
+                      setCurrentPage(1);
+                      setTableSortBy(e.target.value);
+                    }}
+                    style={{
+                      padding: '0.45rem 0.6rem',
+                      borderRadius: 8,
+                      border: tableSortBy.startsWith('score') ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      background: tableSortBy.startsWith('score') ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : 'var(--color-surface-hover)',
+                      color: tableSortBy.startsWith('score') ? '#059669' : 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    <option value="date_desc">📅 Tarihe Göre (En Yeni)</option>
+                    <option value="date_asc">📅 Tarihe Göre (En Eski)</option>
+                    <option value="score_desc">🏆 Başarıya Göre (En Yüksek %)</option>
+                    <option value="score_asc">📉 Başarıya Göre (En Düşük %)</option>
+                    <option value="questions_desc">🔢 Soru Sayısına Göre (Çoktan Aza)</option>
+                    <option value="questions_asc">🔢 Soru Sayısına Göre (Azdan Çoka)</option>
+                    <option value="name_asc">🔤 Test Adına Göre (A-Z)</option>
+                    <option value="name_desc">🔤 Test Adına Göre (Z-A)</option>
+                  </select>
+
                   {/* Mobile Date Range Filter Row */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -2670,6 +2750,35 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                     <option value="book">Kitap Testleri</option>
                     <option value="physicalExam">Denemeler</option>
                     <option value="individual">Bireysel</option>
+                  </select>
+
+                  {/* Desktop Sort Dropdown */}
+                  <select
+                    value={tableSortBy}
+                    onChange={e => {
+                      setCurrentPage(1);
+                      setTableSortBy(e.target.value);
+                    }}
+                    style={{
+                      padding: '0.5rem 0.8rem',
+                      borderRadius: 10,
+                      border: tableSortBy.startsWith('score') ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input)',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      background: tableSortBy.startsWith('score') ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : 'var(--color-surface-hover)',
+                      color: tableSortBy.startsWith('score') ? '#059669' : 'var(--color-text)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="date_desc">📅 Tarihe Göre (En Yeni)</option>
+                    <option value="date_asc">📅 Tarihe Göre (En Eski)</option>
+                    <option value="score_desc">🏆 Başarıya Göre (En Yüksek %)</option>
+                    <option value="score_asc">📉 Başarıya Göre (En Düşük %)</option>
+                    <option value="questions_desc">🔢 Soru Sayısına Göre (Çoktan Aza)</option>
+                    <option value="questions_asc">🔢 Soru Sayısına Göre (Azdan Çoka)</option>
+                    <option value="name_asc">🔤 Test Adına Göre (A-Z)</option>
+                    <option value="name_desc">🔤 Test Adına Göre (Z-A)</option>
                   </select>
 
                   {/* Desktop Date Range Preset Dropdown */}
@@ -2922,9 +3031,59 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600, fontSize: '0.8rem' }}>
                     <thead>
                       <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)' }}>
-                        {['TEST ADI', 'TÜR', 'TARİH', 'SORU', 'D / Y / B', 'BAŞARI', 'İŞLEM'].map(h => (
-                          <th key={h} style={{ padding: '0.75rem 0.85rem', fontWeight: 900, fontSize: '0.68rem', color: 'var(--color-text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
-                        ))}
+                        {[
+                          { key: 'name', label: 'TEST ADI', sortable: true },
+                          { key: 'type', label: 'TÜR', sortable: false },
+                          { key: 'date', label: 'TARİH', sortable: true },
+                          { key: 'questions', label: 'SORU', sortable: true },
+                          { key: 'stats', label: 'D / Y / B', sortable: false },
+                          { key: 'score', label: 'BAŞARI', sortable: true },
+                          { key: 'action', label: 'İŞLEM', sortable: false }
+                        ].map(col => {
+                          const isSortActive = (
+                            (col.key === 'score' && (tableSortBy === 'score_desc' || tableSortBy === 'score_asc')) ||
+                            (col.key === 'date' && (tableSortBy === 'date_desc' || tableSortBy === 'date_asc')) ||
+                            (col.key === 'questions' && (tableSortBy === 'questions_desc' || tableSortBy === 'questions_asc')) ||
+                            (col.key === 'name' && (tableSortBy === 'name_asc' || tableSortBy === 'name_desc'))
+                          );
+                          const isAsc = (
+                            tableSortBy === 'score_asc' ||
+                            tableSortBy === 'date_asc' ||
+                            tableSortBy === 'questions_asc' ||
+                            tableSortBy === 'name_asc'
+                          );
+
+                          return (
+                            <th
+                              key={col.key}
+                              onClick={() => col.sortable && handleSort(col.key)}
+                              style={{
+                                padding: '0.75rem 0.85rem',
+                                fontWeight: 900,
+                                fontSize: '0.68rem',
+                                color: isSortActive ? '#4f46e5' : 'var(--color-text-muted)',
+                                textAlign: 'left',
+                                whiteSpace: 'nowrap',
+                                cursor: col.sortable ? 'pointer' : 'default',
+                                userSelect: 'none',
+                                background: isSortActive ? (isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff') : 'transparent',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={col.sortable ? `${col.label} sütununa göre sırala` : undefined}
+                            >
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span>{col.label}</span>
+                                {col.sortable && (
+                                  isSortActive ? (
+                                    isAsc ? <ArrowUp size={12} color="#4f46e5" /> : <ArrowDown size={12} color="#4f46e5" />
+                                  ) : (
+                                    <ArrowUpDown size={11} style={{ opacity: 0.35 }} />
+                                  )
+                                )}
+                              </div>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody>
