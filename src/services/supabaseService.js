@@ -2031,7 +2031,7 @@ export async function dbGetTrackedBooks() {
         createdAt: t.created_at
       };
 
-      const testKey = `${canonicalBookId}___${sId || ''}___${topId || ''}___${name.toLowerCase()}`;
+      const testKey = `${canonicalBookId}___${name.toLowerCase()}`;
       if (!deduplicatedTestsMap.has(testKey)) {
         deduplicatedTestsMap.set(testKey, testObj);
       } else {
