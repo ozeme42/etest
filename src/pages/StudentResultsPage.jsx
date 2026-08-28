@@ -862,10 +862,10 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   /* ── Totals summary across filtered submissions ─── */
   const tableTotals = useMemo(() => {
     const count = filteredSubs.length;
-    const totalQ = filteredSubs.reduce((sum, s) => sum + (Number(s.totalQuestions) || 0), 0);
     const totalC = filteredSubs.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
     const totalW = filteredSubs.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
     const totalB = filteredSubs.reduce((sum, s) => sum + (Number(s.blankCount ?? s.emptyCount) || 0), 0);
+    const totalQ = totalC + totalW + totalB;
     const totalNet = Number(filteredSubs.reduce((sum, s) => sum + (Number(s.netScore ?? s.net ?? s.totalNet) || 0), 0).toFixed(2));
     const overallSuccess = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
     return { count, totalQ, totalC, totalW, totalB, totalNet, overallSuccess };

@@ -1048,14 +1048,17 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
                 const corr = Number(bestSub.correctCount ?? bestSub.correct_count ?? bestSub.correct ?? 0);
                 const wrg = Number(bestSub.wrongCount ?? bestSub.wrong_count ?? bestSub.wrong ?? 0);
+                const explicitBlk = Number(bestSub.blankCount ?? bestSub.empty_count ?? 0);
+                const explicitSum = corr + wrg + explicitBlk;
                 const totQ = Math.max(
-                  t.questionCount || t.question_count || 0,
                   bestSub.totalQuestions || 0,
-                  corr + wrg + Number(bestSub.blankCount ?? bestSub.empty_count ?? 0),
-                  Object.keys(bestSub.answers || {}).length,
-                  12
+                  explicitSum > 0 ? explicitSum : 0,
+                  Array.isArray(bestSub.answers) ? bestSub.answers.filter(a => a?.type !== 'metadata').length : 0,
+                  1
                 );
-                const blk = Number(bestSub.blankCount ?? bestSub.empty_count ?? Math.max(0, totQ - corr - wrg));
+                const blk = (bestSub.blankCount !== undefined || bestSub.empty_count !== undefined)
+                  ? explicitBlk
+                  : Math.max(0, totQ - corr - wrg);
                 const net = Number(bestSub.totalNet ?? bestSub.net ?? (corr - (wrg / 4)).toFixed(2));
                 const pct = totQ > 0 ? Math.min(100, Math.max(0, Math.round((corr / totQ) * 100))) : 0;
                 const fullTitle = `${cleanBookTitle} — ${sName} › ${uName} (${t.name})`;
