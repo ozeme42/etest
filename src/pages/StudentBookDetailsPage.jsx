@@ -1692,16 +1692,42 @@ export default function StudentBookDetailsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-            <span>Toplam Yanlış: <strong style={{ color: '#dc2626' }}>{bookMistakeStats.totalWrongInBook}</strong></span>
-            <span>•</span>
-            <span>Sınıflandırılan: <strong style={{ color: '#059669' }}>{bookMistakeStats.totalClassified}</strong></span>
-            {bookMistakeStats.unclassifiedCount > 0 && (
-              <>
-                <span>•</span>
-                <span style={{ color: '#d97706' }}>Bekleyen: {bookMistakeStats.unclassifiedCount}</span>
-              </>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+              <span>Toplam Yanlış: <strong style={{ color: '#dc2626' }}>{bookMistakeStats.totalWrongInBook}</strong></span>
+              <span>•</span>
+              <span>Sınıflandırılan: <strong style={{ color: '#059669' }}>{bookMistakeStats.totalClassified}</strong></span>
+              {bookMistakeStats.unclassifiedCount > 0 && (
+                <>
+                  <span>•</span>
+                  <span style={{ color: '#d97706' }}>Bekleyen: {bookMistakeStats.unclassifiedCount}</span>
+                </>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsSlicerModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '0.35rem 0.85rem',
+                borderRadius: '0.6rem',
+                fontSize: '0.75rem',
+                fontWeight: 900,
+                border: 'none',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(239,68,68,0.35)',
+                transition: 'all 0.15s'
+              }}
+              title="Bu kitaptaki yanlış soruları PDF üzerinden kırparak telafi testi oluşturun"
+            >
+              <Scissors size={13} />
+              <span>Yanlışlarımdan Telafi Testi Kırp</span>
+            </button>
           </div>
         </div>
 
@@ -2985,6 +3011,7 @@ export default function StudentBookDetailsPage() {
         <PdfQuestionSlicerModal
           isOpen={isSlicerModalOpen}
           onClose={() => setIsSlicerModalOpen(false)}
+          mode="mistakes"
           initialBook={book}
           initialPdfUrl={book?.pdfUrl}
           studentId={studentId || currentUser?.id}

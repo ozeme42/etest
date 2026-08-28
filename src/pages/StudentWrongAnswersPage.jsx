@@ -2893,6 +2893,7 @@ export default function StudentWrongAnswersPage() {
         <PdfQuestionSlicerModal
           isOpen={isSlicerModalOpen}
           onClose={() => setIsSlicerModalOpen(false)}
+          mode="mistakes"
           studentId={selectedStudent?.id || currentUser?.id}
           subject={selectedSubject !== 'Tümü' ? selectedSubject : 'Matematik'}
         />

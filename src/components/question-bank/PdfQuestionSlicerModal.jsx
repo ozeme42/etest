@@ -430,6 +430,7 @@ export default function PdfQuestionSlicerModal({
   isOpen,
   onClose,
   onSaveQuestions,
+  mode = 'general', // 'general' (Soru Bankası / Serbest PDF Kırpıcı) | 'mistakes' (Kitap Yanlışları Telafi Testi)
   initialBook = null,
   initialBookId = null,
   initialPdfUrl = null,
@@ -463,9 +464,9 @@ export default function PdfQuestionSlicerModal({
   const [viewMode, setViewMode] = useState('scroll'); // 'scroll' (Sürekli Dikey Kaydırma) | 'single' (Tek Sayfa)
 
   const [selectedBookId, setSelectedBookId] = useState(() => {
-    return initialBook?.id || initialBookId || (books.length > 0 ? books[0].id : null);
+    return initialBook?.id || initialBookId || (mode === 'mistakes' && books.length > 0 ? books[0].id : null);
   });
-  const [showMistakesGuide, setShowMistakesGuide] = useState(true);
+  const [showMistakesGuide, setShowMistakesGuide] = useState(() => mode === 'mistakes');
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeTargetQuestion, setActiveTargetQuestion] = useState(null);
 
@@ -483,19 +484,19 @@ export default function PdfQuestionSlicerModal({
     if (initialBook && (!selectedBookId || String(initialBook.id) === String(selectedBookId))) {
       return initialBook;
     }
-    return books.find(b => String(b.id) === String(selectedBookId) || toUUID(b.id) === toUUID(selectedBookId)) || books[0] || null;
-  }, [selectedBookId, books, initialBook]);
+    return books.find(b => String(b.id) === String(selectedBookId) || toUUID(b.id) === toUUID(selectedBookId)) || (mode === 'mistakes' ? books[0] : null);
+  }, [selectedBookId, books, initialBook, mode]);
 
   useEffect(() => {
-    if (currentBook?.title) {
+    if (mode === 'mistakes' && currentBook?.title) {
       const cleanBook = currentBook.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
       setTestTitle(`${cleanBook} — Özel Telafi Testi`);
       if (currentBook.subject) setSelectedSubject(currentBook.subject);
       if (currentBook.grade) setSelectedGrade(`${currentBook.grade}. Sınıf`);
     } else {
-      setTestTitle(`Özel Yanlışlar Telafi Testi`);
+      setTestTitle(`${selectedSubject || 'Özel'} PDF Testi`);
     }
-  }, [currentBook]);
+  }, [currentBook, mode, selectedSubject]);
 
   const bookMistakesList = useMemo(() => {
     if (initialMistakes && Array.isArray(initialMistakes) && initialMistakes.length > 0) {
@@ -1480,7 +1481,7 @@ export default function PdfQuestionSlicerModal({
                 width: 34,
                 height: 34,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                background: mode === 'general' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1493,50 +1494,95 @@ export default function PdfQuestionSlicerModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.94rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                  Akıllı PDF Soru Kırpıcı & Telafi Testi Birleştirici
+                  {mode === 'general' ? '📄 PDF / Görselden Soru Kırpıcı & Test Oluşturucu' : 'Akıllı PDF Soru Kırpıcı & Telafi Testi Birleştirici'}
                 </span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#e0e7ff', color: '#4338ca', padding: '1px 7px', borderRadius: 99 }}>
-                  Smart Slicer 2.0
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: mode === 'general' ? '#ecfdf5' : '#e0e7ff', color: mode === 'general' ? '#047857' : '#4338ca', padding: '1px 7px', borderRadius: 99 }}>
+                  {mode === 'general' ? 'Soru Bankası Modu' : 'Smart Slicer 2.0'}
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 1 }}>
-                Kitap takibindeki yanlış soruları görerek PDF üzerinden tek tıkla kırpın ve yeni bir telafi testinde birleştirin.
+                {mode === 'general'
+                  ? 'Herhangi bir PDF veya görselden soru kırparak yeni bir test oluşturun ve doğrudan Soru Bankasına aktarın.'
+                  : 'Kitap takibindeki yanlış soruları görerek PDF üzerinden tek tıkla kırpın ve yeni bir telafi testinde birleştirin.'}
               </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {books.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitap:</span>
+            {mode === 'general' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <select
-                  value={selectedBookId || ''}
-                  onChange={(e) => {
-                    setSelectedBookId(e.target.value);
-                    const b = books.find(item => String(item.id) === e.target.value);
-                    if (b?.pdfUrl) {
-                      loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
-                    }
-                  }}
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
                   style={{
                     padding: '4px 8px',
                     borderRadius: 8,
                     border: '1px solid var(--color-border)',
                     background: 'var(--color-surface)',
                     color: 'var(--color-text)',
-                    fontSize: '0.76rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
-                    maxWidth: 220,
                     cursor: 'pointer'
                   }}
+                  title="Ders Seçin"
                 >
-                  {books.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
-                    </option>
+                  {['Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler', 'Din Kültürü', 'İngilizce', 'Genel'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedGrade}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 8,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Sınıf Seçin"
+                >
+                  {['5. Sınıf', '6. Sınıf', '7. Sınıf', '8. Sınıf', 'LGS', 'TYT', 'AYT', 'Genel'].map(g => (
+                    <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
               </div>
+            ) : (
+              books.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitap:</span>
+                  <select
+                    value={selectedBookId || ''}
+                    onChange={(e) => {
+                      setSelectedBookId(e.target.value);
+                      const b = books.find(item => String(item.id) === e.target.value);
+                      if (b?.pdfUrl) {
+                        loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      maxWidth: 220,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {books.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )
             )}
 
             <button
@@ -1858,27 +1904,29 @@ export default function PdfQuestionSlicerModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 {/* Yanlışlar Panelini Aç/Kapat Butonu */}
-                <button
-                  type="button"
-                  onClick={() => setShowMistakesGuide(p => !p)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '4px 8px',
-                    borderRadius: 7,
-                    border: '1px solid var(--color-border)',
-                    background: showMistakesGuide ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface)',
-                    color: showMistakesGuide ? '#4f46e5' : 'var(--color-text-muted)',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                  title={showMistakesGuide ? 'Yanlışlar Panelini Gizle' : 'Yanlışlar Panelini Göster'}
-                >
-                  <Layers size={13} />
-                  <span>{showMistakesGuide ? '◀ Kılavuzu Gizle' : '▶ Yanlışlar'}</span>
-                </button>
+                {mode === 'mistakes' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMistakesGuide(p => !p)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 8px',
+                      borderRadius: 7,
+                      border: '1px solid var(--color-border)',
+                      background: showMistakesGuide ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface)',
+                      color: showMistakesGuide ? '#4f46e5' : 'var(--color-text-muted)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    title={showMistakesGuide ? 'Yanlışlar Panelini Gizle' : 'Yanlışlar Panelini Göster'}
+                  >
+                    <Layers size={13} />
+                    <span>{showMistakesGuide ? '◀ Kılavuzu Gizle' : '▶ Yanlışlar Kılavuzu'}</span>
+                  </button>
+                )}
 
                 <label
                   style={{

@@ -5140,6 +5140,7 @@ export default function QuestionBank() {
           isOpen={isSlicerModalOpen}
           onClose={() => setIsSlicerModalOpen(false)}
           onSaveQuestions={handleSaveSlicedQuestions}
+          mode="general"
           subject={activeSubjectId || 'Matematik'}
           grade={activeGradeId ? `${activeGradeId}. Sınıf` : '8. Sınıf'}
         />
