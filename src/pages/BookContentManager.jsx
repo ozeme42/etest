@@ -600,6 +600,53 @@ export default function BookContentManager() {
     ));
   };
 
+  const isTestInSubject = (t, subj, bookSubjects = []) => {
+    if (!t || !subj) return false;
+    const sId = String(subj.id || '');
+    const sIdUuid = toUUID(sId);
+    const sName = String(subj.name || '').toLowerCase().trim();
+    const tSubId = String(t.subjectId || t.subject_id || '');
+    const tSubUuid = toUUID(tSubId);
+
+    // 1. Direct ID / UUID match
+    if (tSubId && (tSubId === sId || (sIdUuid && tSubId === sIdUuid) || (sIdUuid && tSubUuid === sIdUuid) || (tSubUuid && tSubUuid === sId))) {
+      return true;
+    }
+
+    // 2. Subject name match
+    const tSubName = String(t.subjectName || t.subject || '').toLowerCase().trim();
+    if (tSubName && (tSubName === sName || (sName && (tSubName.includes(sName) || sName.includes(tSubName))))) {
+      return true;
+    }
+
+    // 3. Name keyword heuristic (Paragraf/Türkçe vs Problem/Matematik etc.)
+    const tName = String(t.name || '').toLowerCase().trim();
+    if (sName.includes('türkçe') || sName.includes('turkce') || sName.includes('paragraf')) {
+      if (tName.includes('paragraf') || tName.includes('türkçe') || tName.includes('turkce') || tName.includes('okuma') || tName.includes('metin') || tName.includes('dil bilgisi')) {
+        return true;
+      }
+    }
+    if (sName.includes('matematik') || sName.includes('problem')) {
+      if (tName.includes('problem') || tName.includes('matematik') || tName.includes('sayı') || tName.includes('geometri')) {
+        return true;
+      }
+    }
+    if (sName.includes('fen')) {
+      if (tName.includes('fen')) return true;
+    }
+    if (sName.includes('sosyal')) {
+      if (tName.includes('sosyal')) return true;
+    }
+
+    // 4. Single subject fallback: If book has only 1 subject, all tests belong to it
+    const activeSubjects = Array.isArray(bookSubjects) && bookSubjects.length > 0 ? bookSubjects : (book?.subjects || []);
+    if (activeSubjects.length === 1 && String(activeSubjects[0]?.id) === sId) {
+      return true;
+    }
+
+    return false;
+  };
+
   // 1. Pre-index tests for O(1) instant lookup
   const testLookup = useMemo(() => {
     const byId = new Map();
@@ -608,6 +655,8 @@ export default function BookContentManager() {
     const bySubject = new Map(); // subjectId -> test[]
     const byTopic = new Map(); // topicId -> test[]
     const directBySubject = new Map(); // subjectId -> direct test[]
+
+    const bookSubjects = book?.subjects || [];
 
     (tests || []).forEach(t => {
       const idStr = String(t.id || '');
@@ -655,8 +704,40 @@ export default function BookContentManager() {
       }
     });
 
+    // Also populate by bookSubjects using isTestInSubject for guaranteed mapping
+    bookSubjects.forEach(subj => {
+      const subjId = String(subj.id || '');
+      const subjUuid = toUUID(subjId);
+      const matchedTests = (tests || []).filter(t => isTestInSubject(t, subj, bookSubjects));
+      
+      if (!bySubject.has(subjId)) bySubject.set(subjId, []);
+      const existing = bySubject.get(subjId);
+      matchedTests.forEach(t => {
+        if (!existing.some(et => String(et.id) === String(t.id))) {
+          existing.push(t);
+        }
+      });
+      if (subjUuid && subjUuid !== subjId) {
+        bySubject.set(subjUuid, existing);
+      }
+
+      const topicsList = subj.topics || [];
+      if (topicsList.length === 0) {
+        if (!directBySubject.has(subjId)) directBySubject.set(subjId, []);
+        const directExisting = directBySubject.get(subjId);
+        matchedTests.forEach(t => {
+          if (!directExisting.some(et => String(et.id) === String(t.id))) {
+            directExisting.push(t);
+          }
+        });
+        if (subjUuid && subjUuid !== subjId) {
+          directBySubject.set(subjUuid, directExisting);
+        }
+      }
+    });
+
     return { byId, byCleanId, byName, bySubject, byTopic, directBySubject };
-  }, [tests]);
+  }, [tests, book?.subjects]);
 
   // 2. Pre-index student submissions for O(1) matching
   const studentSolvedIndex = useMemo(() => {
@@ -2036,14 +2117,7 @@ export default function BookContentManager() {
                   (topicsList.length === 0 ? (
                     testLookup.bySubject.get(sId) ||
                     (sIdUuid ? testLookup.bySubject.get(sIdUuid) : null) ||
-                    // Last resort: match by subject name
-                    tests.filter(t => {
-                      const tSubjId = String(t.subjectId || t.subject_id || '');
-                      if (!tSubjId) return false;
-                      const tSubjUuid = toUUID(tSubjId);
-                      return tSubjId === sId || tSubjId === sIdUuid || 
-                             (tSubjUuid && (tSubjUuid === sId || tSubjUuid === sIdUuid));
-                    })
+                    tests.filter(t => isTestInSubject(t, subject, book.subjects))
                   ) : [])
                 );
 
@@ -4082,8 +4156,8 @@ export default function BookContentManager() {
                           let testCounter = 0;
 
                           book.subjects?.forEach(subj => {
-                            const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subj.id))));
                             const topicsList = subj.topics || [];
+                            const directTests = sortTestsNaturally(tests.filter(t => isTestInSubject(t, subj, book.subjects) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subj.id))));
 
                             if (topicsList.length > 0) {
                               directTests.forEach(t => {
@@ -4114,7 +4188,7 @@ export default function BookContentManager() {
                                 });
                               });
                             } else {
-                              const subjTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id)));
+                              const subjTests = sortTestsNaturally(tests.filter(t => isTestInSubject(t, subj, book.subjects)));
                               subjTests.forEach(t => {
                                 if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
                                 const dStr = formatSafeInputYMD(currDate);
@@ -4137,6 +4211,61 @@ export default function BookContentManager() {
                         <Zap size={16} /> Otomatik Tarihleri Dağıt
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Header Actions for Test List: Expand/Collapse All + Bulk Select */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.5rem 0.25rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-text)', fontWeight: 900 }}>
+                    Kitap İçindekiler Yapısı & Test Bazlı Tarihler
+                  </h4>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allOpenSubj = {};
+                        const allOpenTop = {};
+                        book.subjects?.forEach(s => {
+                          allOpenSubj[s.id] = false;
+                          s.topics?.forEach(t => { allOpenTop[t.id] = false; });
+                        });
+                        setScheduleCollapsedSubj(allOpenSubj);
+                        setScheduleCollapsedTopic(allOpenTop);
+                      }}
+                      style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}
+                    >
+                      📂 Tümünü Aç
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allClosedSubj = {};
+                        const allClosedTop = {};
+                        book.subjects?.forEach(s => {
+                          allClosedSubj[s.id] = true;
+                          s.topics?.forEach(t => { allClosedTop[t.id] = true; });
+                        });
+                        setScheduleCollapsedSubj(allClosedSubj);
+                        setScheduleCollapsedTopic(allClosedTop);
+                      }}
+                      style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}
+                    >
+                      📁 Tümünü Kapat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allTestIds = tests.map(t => t.id);
+                        if (scheduleSelectedTestIds.length === allTestIds.length) {
+                          setScheduleSelectedTestIds([]);
+                        } else {
+                          setScheduleSelectedTestIds(allTestIds);
+                        }
+                      }}
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 900, borderRadius: '0.5rem', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)', cursor: 'pointer' }}
+                    >
+                      {scheduleSelectedTestIds.length === tests.length ? '✅ Tüm Kitabı Kaldır' : '☑️ Tüm Kitabı Seç'}
+                    </button>
                   </div>
                 </div>
 
@@ -4194,60 +4323,6 @@ export default function BookContentManager() {
 
                 {/* Per-Test Date Settings List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-text)', fontWeight: 900 }}>
-                      Kitap İçindekiler Yapısı &amp; Test Bazlı Tarihler
-                    </h4>
-                    <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const allOpenSubj = {};
-                          const allOpenTop = {};
-                          book.subjects?.forEach(s => {
-                            allOpenSubj[s.id] = false;
-                            s.topics?.forEach(t => { allOpenTop[t.id] = false; });
-                          });
-                          setScheduleCollapsedSubj(allOpenSubj);
-                          setScheduleCollapsedTopic(allOpenTop);
-                        }}
-                        style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}
-                      >
-                        📂 Tümünü Aç
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const allClosedSubj = {};
-                          const allClosedTop = {};
-                          book.subjects?.forEach(s => {
-                            allClosedSubj[s.id] = true;
-                            s.topics?.forEach(t => { allClosedTop[t.id] = true; });
-                          });
-                          setScheduleCollapsedSubj(allClosedSubj);
-                          setScheduleCollapsedTopic(allClosedTop);
-                        }}
-                        style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}
-                      >
-                        📁 Tümünü Kapat
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const allTestIds = tests.map(t => t.id);
-                          if (scheduleSelectedTestIds.length === allTestIds.length) {
-                            setScheduleSelectedTestIds([]);
-                          } else {
-                            setScheduleSelectedTestIds(allTestIds);
-                          }
-                        }}
-                        style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 900, borderRadius: '0.5rem', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)', cursor: 'pointer' }}
-                      >
-                        {scheduleSelectedTestIds.length === tests.length ? '✅ Tüm Kitabı Kaldır' : '☑️ Tüm Kitabı Seç'}
-                      </button>
-                    </div>
-                  </div>
-
                   {/* If tests not loaded yet, trigger fetch and show loading */}
                   {tests.length === 0 && !isLiveLoading && (
                     <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
@@ -4265,14 +4340,7 @@ export default function BookContentManager() {
                   )}
 
                   {book.subjects?.map(subj => {
-                    const sId = String(subj.id || '');
-                    const sIdUuid = toUUID(sId);
-                    const sName = String(subj.name || '').toLowerCase().trim();
-                    const isSubjMatch = (t) => {
-                      const tSubId = String(t.subjectId || t.subject_id || '');
-                      return (tSubId && (tSubId === sId || (sIdUuid && toUUID(tSubId) === sIdUuid))) ||
-                        String(t.subjectId || t.subject_id || t.subject || t.subjectName || '').toLowerCase().trim() === sName;
-                    };
+                    const isSubjMatch = (t) => isTestInSubject(t, subj, book.subjects);
 
                     const allSubjTests = sortTestsNaturally(tests.filter(t => isSubjMatch(t)));
                     if (allSubjTests.length === 0) return null;
@@ -4282,6 +4350,7 @@ export default function BookContentManager() {
                       if (!isSubjMatch(t)) return false;
                       if (topicsList.length === 0) return true;
                       const tTopicId = String(t.topicId || t.topic_id || '');
+                      const sId = String(subj.id || '');
                       if (!tTopicId || tTopicId === 'direct' || tTopicId === sId || tTopicId === 'null' || tTopicId === 'undefined') return true;
                       const matchesAnyTopic = topicsList.some(tp => {
                         const tpId = String(tp.id || '');
